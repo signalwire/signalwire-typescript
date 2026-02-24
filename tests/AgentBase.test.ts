@@ -218,4 +218,144 @@ describe('AgentBase', () => {
     expect(JSON.parse(swml1).version).toBe('1.0.0');
     expect(JSON.parse(swml2).version).toBe('1.0.0');
   });
+
+  // ── Auth source tracking ────────────────────────────────────────────
+
+  it('getBasicAuthCredentials returns source=provided when given explicitly', () => {
+    const agent = new AgentBase({ name: 'test', route: '/test', basicAuth: ['u', 'p'] });
+    const [user, pass, source] = agent.getBasicAuthCredentials(true);
+    expect(user).toBe('u');
+    expect(pass).toBe('p');
+    expect(source).toBe('provided');
+  });
+
+  it('getBasicAuthCredentials returns source=generated when auto-generated', () => {
+    const savedUser = process.env['SWML_BASIC_AUTH_USER'];
+    const savedPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
+    delete process.env['SWML_BASIC_AUTH_USER'];
+    delete process.env['SWML_BASIC_AUTH_PASSWORD'];
+    try {
+      const agent = new AgentBase({ name: 'test', route: '/test' });
+      const [user, , source] = agent.getBasicAuthCredentials(true);
+      expect(user).toBe('test');
+      expect(source).toBe('generated');
+    } finally {
+      if (savedUser) process.env['SWML_BASIC_AUTH_USER'] = savedUser;
+      if (savedPass) process.env['SWML_BASIC_AUTH_PASSWORD'] = savedPass;
+    }
+  });
+
+  it('getBasicAuthCredentials without source returns tuple of 2', () => {
+    const agent = new AgentBase({ name: 'test', route: '/test', basicAuth: ['u', 'p'] });
+    const result = agent.getBasicAuthCredentials();
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(['u', 'p']);
+  });
+
+  // ── Security headers ───────────────────────────────────────────────
+
+  it('includes security headers in responses', async () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const app = agent.getApp();
+    const res = await app.request('/health');
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('X-XSS-Protection')).toBe('1; mode=block');
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
+
+  // ── CORS ──────────────────────────────────────────────────────────
+
+  it('responds to CORS preflight', async () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    const app = agent.getApp();
+    const res = await app.request('/health', {
+      method: 'OPTIONS',
+      headers: {
+        'Origin': 'https://example.com',
+        'Access-Control-Request-Method': 'POST',
+      },
+    });
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+  });
+
+  // ── Debug events ──────────────────────────────────────────────────
+
+  it('enableDebugEvents injects debug_webhook_url in SWML', () => {
+    const agent = createAgent();
+    agent.setPromptText('hello');
+    agent.enableDebugEvents(2);
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main[1].ai;
+    expect(ai.debug_webhook_url).toBeDefined();
+    expect(ai.debug_webhook_url).toContain('/debug_events');
+    expect(ai.debug_webhook_level).toBe(2);
+  });
+
+  it('debug events endpoint responds to POST', async () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.enableDebugEvents();
+    const app = agent.getApp();
+    const res = await app.request('/debug_events', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ event: 'test' }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+  });
+
+  it('no debug_webhook_url when debug events not enabled', () => {
+    const agent = createAgent();
+    agent.setPromptText('hello');
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main[1].ai;
+    expect(ai.debug_webhook_url).toBeUndefined();
+    expect(ai.debug_webhook_level).toBeUndefined();
+  });
+
+  // ── Tool introspection ──────────────────────────────────────────────
+
+  it('getRegisteredTools lists all tools', () => {
+    const agent = createAgent();
+    agent.defineTool({
+      name: 'fn1',
+      description: 'Function 1',
+      parameters: { x: { type: 'string' } },
+      handler: () => new SwaigFunctionResult('ok'),
+    });
+    agent.defineTool({
+      name: 'fn2',
+      description: 'Function 2',
+      parameters: {},
+      handler: () => new SwaigFunctionResult('ok'),
+    });
+    const tools = agent.getRegisteredTools();
+    expect(tools).toHaveLength(2);
+    expect(tools[0].name).toBe('fn1');
+    expect(tools[1].name).toBe('fn2');
+  });
+
+  it('getTool returns a SwaigFunction', () => {
+    const agent = createAgent();
+    agent.defineTool({
+      name: 'my_fn',
+      description: 'My function',
+      parameters: {},
+      handler: () => new SwaigFunctionResult('ok'),
+    });
+    const tool = agent.getTool('my_fn');
+    expect(tool).toBeDefined();
+    expect(tool!.name).toBe('my_fn');
+  });
+
+  it('getTool returns undefined for missing tool', () => {
+    const agent = createAgent();
+    expect(agent.getTool('nope')).toBeUndefined();
+  });
 });

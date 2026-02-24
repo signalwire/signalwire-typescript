@@ -76,4 +76,27 @@ describe('AgentServer', () => {
     expect(body.service).toBe('SignalWire AI Agents');
     expect(body.agents.length).toBe(1);
   });
+
+  it('includes security headers in responses', async () => {
+    const server = new AgentServer();
+    const app = server.getApp();
+    const res = await app.request('/health');
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('X-XSS-Protection')).toBe('1; mode=block');
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('responds to CORS preflight', async () => {
+    const server = new AgentServer();
+    const app = server.getApp();
+    const res = await app.request('/health', {
+      method: 'OPTIONS',
+      headers: {
+        'Origin': 'https://example.com',
+        'Access-Control-Request-Method': 'POST',
+      },
+    });
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+  });
 });

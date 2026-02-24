@@ -3,6 +3,9 @@
  */
 
 import { SwaigFunctionResult } from './SwaigFunctionResult.js';
+import { getLogger } from './Logger.js';
+
+const log = getLogger('SwaigFunction');
 
 export type SwaigHandler = (
   args: Record<string, unknown>,
@@ -84,7 +87,7 @@ export class SwaigFunction {
       }
       return new SwaigFunctionResult(String(result)).toDict();
     } catch (err) {
-      console.error(`Error executing SWAIG function ${this.name}:`, err);
+      log.error(`Error executing SWAIG function ${this.name}: ${err}`);
       return new SwaigFunctionResult(
         "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.",
       ).toDict();

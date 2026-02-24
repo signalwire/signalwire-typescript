@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
+import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
@@ -14,6 +15,7 @@ import { SwmlBuilder } from './SwmlBuilder.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { SwaigFunctionResult } from './SwaigFunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
+import { getLogger } from './Logger.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -36,6 +38,7 @@ export class AgentBase {
 
   // Auth
   private basicAuthCreds: [string, string];
+  private basicAuthSource: 'provided' | 'environment' | 'generated' = 'generated';
 
   // Call settings
   private autoAnswer: boolean;
@@ -77,6 +80,14 @@ export class AgentBase {
   private debugEventsEnabled = false;
   private debugEventsLevel = 1;
 
+  // Proxy detection
+  private _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
+  private _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
+  private _proxyDebug = process.env['SWML_PROXY_DEBUG'] === 'true';
+
+  // Logger
+  protected log = getLogger('AgentBase');
+
   // Hono app
   private _app: Hono | null = null;
 
@@ -99,13 +110,16 @@ export class AgentBase {
     // Setup auth
     if (opts.basicAuth) {
       this.basicAuthCreds = opts.basicAuth;
+      this.basicAuthSource = 'provided';
     } else {
       const envUser = process.env['SWML_BASIC_AUTH_USER'];
       const envPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
       if (envUser && envPass) {
         this.basicAuthCreds = [envUser, envPass];
+        this.basicAuthSource = 'environment';
       } else {
         this.basicAuthCreds = [this.name, randomBytes(8).toString('hex')];
+        this.basicAuthSource = 'generated';
       }
     }
   }
@@ -300,6 +314,27 @@ export class AgentBase {
     return this;
   }
 
+  getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[] {
+    const tools: { name: string; description: string; parameters: Record<string, unknown> }[] = [];
+    for (const [name, fn] of this.toolRegistry) {
+      if (fn instanceof SwaigFunction) {
+        tools.push({ name, description: fn.description, parameters: fn.parameters });
+      } else {
+        tools.push({
+          name,
+          description: (fn['purpose'] as string) ?? '',
+          parameters: (fn['argument'] as Record<string, unknown>) ?? {},
+        });
+      }
+    }
+    return tools;
+  }
+
+  getTool(name: string): SwaigFunction | undefined {
+    const fn = this.toolRegistry.get(name);
+    return fn instanceof SwaigFunction ? fn : undefined;
+  }
+
   registerSwaigFunction(fn: SwaigFunction | Record<string, unknown>): this {
     if (fn instanceof SwaigFunction) {
       this.toolRegistry.set(fn.name, fn);
@@ -344,6 +379,62 @@ export class AgentBase {
     return this;
   }
 
+  // ── Proxy detection ────────────────────────────────────────────────
+
+  manualSetProxyUrl(url: string): this {
+    this._proxyUrlBase = url.replace(/\/+$/, '');
+    this._proxyUrlBaseFromEnv = false;
+    return this;
+  }
+
+  private detectProxyFromRequest(c: any): void {
+    // Never override env var setting
+    if (this._proxyUrlBaseFromEnv) return;
+
+    const get = (name: string): string | undefined =>
+      c.req.header(name) ?? undefined;
+
+    // 1. X-Forwarded-Host + X-Forwarded-Proto
+    const xfHost = get('x-forwarded-host');
+    if (xfHost) {
+      const proto = get('x-forwarded-proto') ?? 'https';
+      const url = `${proto}://${xfHost}`;
+      if (this._proxyDebug) this.log.debug(`Proxy detected from X-Forwarded-Host: ${url}`);
+      this._proxyUrlBase = url;
+      return;
+    }
+
+    // 2. Forwarded header (RFC 7239): Forwarded: host=example.com;proto=https
+    const forwarded = get('forwarded');
+    if (forwarded) {
+      const hostMatch = forwarded.match(/host=([^;,\s]+)/i);
+      const protoMatch = forwarded.match(/proto=([^;,\s]+)/i);
+      if (hostMatch) {
+        const proto = protoMatch ? protoMatch[1] : 'https';
+        const url = `${proto}://${hostMatch[1]}`;
+        if (this._proxyDebug) this.log.debug(`Proxy detected from Forwarded header: ${url}`);
+        this._proxyUrlBase = url;
+        return;
+      }
+    }
+
+    // 3. X-Original-Host
+    const xOrigHost = get('x-original-host');
+    if (xOrigHost) {
+      const proto = get('x-forwarded-proto') ?? 'https';
+      const url = `${proto}://${xOrigHost}`;
+      if (this._proxyDebug) this.log.debug(`Proxy detected from X-Original-Host: ${url}`);
+      this._proxyUrlBase = url;
+      return;
+    }
+
+    // 4. X-Forwarded-For (warn only - no host info)
+    const xff = get('x-forwarded-for');
+    if (xff && this._proxyDebug) {
+      this.log.debug(`X-Forwarded-For detected (${xff}) but cannot determine host - set SWML_PROXY_URL_BASE manually`);
+    }
+  }
+
   // ── URL ─────────────────────────────────────────────────────────────
 
   setWebHookUrl(url: string): this {
@@ -357,9 +448,8 @@ export class AgentBase {
   }
 
   getFullUrl(includeAuth = false): string {
-    const proxyBase = process.env['SWML_PROXY_URL_BASE'];
-    if (proxyBase) {
-      let base = proxyBase.replace(/\/+$/, '');
+    if (this._proxyUrlBase) {
+      let base = this._proxyUrlBase.replace(/\/+$/, '');
       if (includeAuth) base = this.insertAuth(base);
       return base;
     }
@@ -394,6 +484,10 @@ export class AgentBase {
   }
 
   onSwmlRequest(_rawData: Record<string, unknown>): void | Promise<void> {
+    // Default no-op
+  }
+
+  onDebugEvent(_event: Record<string, unknown>): void | Promise<void> {
     // Default no-op
   }
 
@@ -525,6 +619,12 @@ export class AgentBase {
     if (Object.keys(this.params).length) aiConfig['params'] = this.params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
 
+    // Debug events
+    if (this.debugEventsEnabled) {
+      aiConfig['debug_webhook_url'] = this.buildWebhookUrl('debug_events');
+      aiConfig['debug_webhook_level'] = this.debugEventsLevel;
+    }
+
     this.swmlBuilder.addVerb('ai', aiConfig);
 
     // ── PHASE 5: Post-AI verbs ──
@@ -567,6 +667,18 @@ export class AgentBase {
 
     const app = new Hono();
 
+    // Security headers
+    app.use('*', async (c, next) => {
+      await next();
+      c.res.headers.set('X-Content-Type-Options', 'nosniff');
+      c.res.headers.set('X-Frame-Options', 'DENY');
+      c.res.headers.set('X-XSS-Protection', '1; mode=block');
+      c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    });
+
+    // CORS
+    app.use('*', cors({ origin: '*', credentials: true }));
+
     // Auth middleware
     const [user, pass] = this.basicAuthCreds;
     const authMw = basicAuth({ username: user, password: pass });
@@ -578,6 +690,7 @@ export class AgentBase {
       let body: Record<string, unknown> = {};
       try { body = await c.req.json(); } catch { /* GET or no body */ }
 
+      this.detectProxyFromRequest(c);
       await this.onSwmlRequest(body);
 
       let agentToUse: AgentBase = this;
@@ -647,6 +760,18 @@ export class AgentBase {
     app.get(`${basePath}/post_prompt`, authMw, handlePostPrompt);
     app.post(`${basePath}/post_prompt`, authMw, handlePostPrompt);
 
+    // Debug events handler
+    const handleDebugEvents = async (c: any) => {
+      let body: Record<string, unknown> = {};
+      try { body = await c.req.json(); } catch { /* empty */ }
+
+      this.log.debug('Debug event received', body);
+      await this.onDebugEvent(body);
+      return c.json({ ok: true });
+    };
+
+    app.post(`${basePath}/debug_events`, authMw, handleDebugEvents);
+
     // Health / Ready
     app.get(`${basePath}/health`, (c: any) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: any) => c.json({ status: 'ready' }));
@@ -662,8 +787,8 @@ export class AgentBase {
   async serve(): Promise<void> {
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
-    console.log(`[${this.name}] Agent running at http://${this.host}:${this.port}${this.route}`);
-    console.log(`[${this.name}] Auth: ${this.basicAuthCreds[0]}:${this.basicAuthCreds[1]}`);
+    this.log.info(`Agent '${this.name}' running at http://${this.host}:${this.port}${this.route}`);
+    this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);
     honoServe({ fetch: app.fetch, port: this.port, hostname: this.host });
   }
 
@@ -691,8 +816,11 @@ export class AgentBase {
     return null;
   }
 
-  /** Get basic auth credentials */
-  getBasicAuthCredentials(): [string, string] {
+  /** Get basic auth credentials, optionally including their source */
+  getBasicAuthCredentials(includeSource?: false): [string, string];
+  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
+  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+    if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;
   }
 }

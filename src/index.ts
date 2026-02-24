@@ -41,6 +41,9 @@ export {
 // Security
 export { SessionManager } from './SessionManager.js';
 
+// Logging
+export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs } from './Logger.js';
+
 // Types
 export type {
   AgentOptions,

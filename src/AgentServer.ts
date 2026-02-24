@@ -6,18 +6,33 @@
  */
 
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { AgentBase } from './AgentBase.js';
+import { getLogger } from './Logger.js';
 
 export class AgentServer {
   host: string;
   port: number;
   private agents: Map<string, AgentBase> = new Map();
   private _app: Hono;
+  private log = getLogger('AgentServer');
 
   constructor(opts?: { host?: string; port?: number }) {
     this.host = opts?.host ?? '0.0.0.0';
     this.port = opts?.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
     this._app = new Hono();
+
+    // Security headers
+    this._app.use('*', async (c, next) => {
+      await next();
+      c.res.headers.set('X-Content-Type-Options', 'nosniff');
+      c.res.headers.set('X-Frame-Options', 'DENY');
+      c.res.headers.set('X-XSS-Protection', '1; mode=block');
+      c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    });
+
+    // CORS
+    this._app.use('*', cors({ origin: '*', credentials: true }));
 
     // Global health endpoints
     this._app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -43,7 +58,7 @@ export class AgentServer {
       this._app.route(r, agentApp);
     }
 
-    console.log(`[AgentServer] Registered '${agent.name}' at ${r}`);
+    this.log.info(`Registered '${agent.name}' at ${r}`);
   }
 
   unregister(route: string): void {
@@ -88,10 +103,10 @@ export class AgentServer {
 
     const app = this.getApp();
 
-    console.log(`[AgentServer] Starting on http://${h}:${p}`);
+    this.log.info(`Starting on http://${h}:${p}`);
     for (const [route, agent] of this.agents) {
-      const [user, pass] = agent.getBasicAuthCredentials();
-      console.log(`  ${route} -> ${agent.name} (auth: ${user}:${pass})`);
+      const [user] = agent.getBasicAuthCredentials();
+      this.log.info(`  ${route} -> ${agent.name} (auth: ${user}:****)`);
     }
 
     serve({ fetch: app.fetch, port: p, hostname: h });
