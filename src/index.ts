@@ -9,6 +9,10 @@
 export { AgentBase } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
+// SWML Service (non-AI call flows)
+export { SWMLService } from './SWMLService.js';
+export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
+
 // Tool results & functions
 export { SwaigFunctionResult } from './SwaigFunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './SwaigFunctionResult.js';
@@ -24,6 +28,7 @@ export type { PomSectionData } from './PomBuilder.js';
 
 // SWML builder
 export { SwmlBuilder } from './SwmlBuilder.js';
+import './SwmlVerbMethods.generated.js';
 
 // Prompt management
 export { PromptManager } from './PromptManager.js';
@@ -65,7 +70,7 @@ export type { ServerlessPlatform, ServerlessEvent, ServerlessResponse } from './
 
 // Skills
 export { SkillBase, SkillManager, SkillRegistry } from './skills/index.js';
-export type { SkillConfig, SkillToolDefinition, SkillPromptSection, SkillManifest, SkillFactory } from './skills/index.js';
+export type { SkillConfig, SkillToolDefinition, SkillPromptSection, SkillManifest, SkillFactory, ParameterSchemaEntry, SkillSchemaInfo } from './skills/index.js';
 
 // Built-in Skills
 export { registerBuiltinSkills } from './skills/builtin/index.js';

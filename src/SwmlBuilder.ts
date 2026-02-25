@@ -2,19 +2,84 @@
  * SwmlBuilder - Builds SWML (SignalWire Markup Language) documents.
  *
  * Produces `{ version: "1.0.0", sections: { main: [...verbs] } }`.
+ *
+ * Verb methods (`.answer()`, `.hangup()`, `.play()`, etc.) are auto-installed
+ * at construction from the bundled schema.json. All verb methods support
+ * fluent chaining and call `addVerb()` internally.
  */
+
+import { SchemaUtils } from './SchemaUtils.js';
+import type { ValidationResult } from './SchemaUtils.js';
+
+// Ensure module augmentation from generated file is active
+import './SwmlVerbMethods.generated.js';
 
 /** Builds SWML documents composed of verb instructions organized into named sections. */
 export class SwmlBuilder {
   private document: { version: string; sections: Record<string, unknown[]> };
+  private static _schemaUtils: SchemaUtils | null = null;
+  private enableValidation: boolean;
 
   /** Creates a new SwmlBuilder with an empty SWML document. */
   constructor() {
     this.document = this.createEmpty();
+    this.enableValidation = process.env['SWML_SKIP_SCHEMA_VALIDATION'] !== 'true';
+    this._installVerbMethods();
   }
 
   private createEmpty() {
     return { version: '1.0.0', sections: { main: [] as unknown[] } };
+  }
+
+  /**
+   * Get or create the shared SchemaUtils singleton.
+   * Exposed for use by the type generator and tests.
+   */
+  static getSchemaUtils(): SchemaUtils {
+    if (!SwmlBuilder._schemaUtils) {
+      SwmlBuilder._schemaUtils = new SchemaUtils();
+    }
+    return SwmlBuilder._schemaUtils;
+  }
+
+  /**
+   * Install verb methods on this instance for every verb defined in the schema.
+   * Uses a closure factory so each method captures the correct verb name.
+   * Mirrors Python SDK's `_create_verb_methods()`.
+   */
+  private _installVerbMethods(): void {
+    const schemaUtils = SwmlBuilder.getSchemaUtils();
+    const verbNames = schemaUtils.getVerbNames();
+
+    for (const verbName of verbNames) {
+      // Skip if this instance already has the method (e.g. from prototype)
+      if (verbName in this) continue;
+
+      // Special handling for sleep — accepts number directly or config object
+      if (verbName === 'sleep') {
+        const self = this;
+        (this as Record<string, unknown>)['sleep'] = function sleep(
+          durationOrConfig: number | Record<string, unknown>,
+        ): SwmlBuilder {
+          if (typeof durationOrConfig === 'number') {
+            self.addVerb('sleep', durationOrConfig);
+          } else {
+            self.addVerb('sleep', durationOrConfig);
+          }
+          return self;
+        };
+        continue;
+      }
+
+      // Closure factory to capture verbName
+      const makeMethod = (name: string) =>
+        (config?: Record<string, unknown>): SwmlBuilder => {
+          this.addVerb(name, config ?? {});
+          return this;
+        };
+
+      (this as Record<string, unknown>)[verbName] = makeMethod(verbName);
+    }
   }
 
   /** Resets the document to an empty SWML structure. */
@@ -24,10 +89,20 @@ export class SwmlBuilder {
 
   /**
    * Appends a verb to the main section.
+   * Validates the verb config against the schema when validation is enabled.
    * @param verbName - The SWML verb name (e.g., "answer", "ai").
    * @param config - The verb's configuration payload.
    */
   addVerb(verbName: string, config: unknown): void {
+    if (this.enableValidation) {
+      const schemaUtils = SwmlBuilder.getSchemaUtils();
+      if (schemaUtils.hasVerb(verbName)) {
+        const result: ValidationResult = schemaUtils.validateVerb(verbName, config);
+        if (!result.valid) {
+          throw new Error(`SWML verb validation failed: ${result.errors.join('; ')}`);
+        }
+      }
+    }
     this.document.sections['main'].push({ [verbName]: config });
   }
 

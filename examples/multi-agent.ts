@@ -13,7 +13,7 @@
 import { AgentBase, AgentServer, SwaigFunctionResult } from '../src/index.js';
 
 // --- Support Agent ---
-const support = new AgentBase({
+export const support = new AgentBase({
   name: 'support',
   route: '/support',
   basicAuth: ['user', 'pass'],
@@ -34,7 +34,7 @@ support.defineTool({
 });
 
 // --- Sales Agent ---
-const sales = new AgentBase({
+export const sales = new AgentBase({
   name: 'sales',
   route: '/sales',
   basicAuth: ['user', 'pass'],

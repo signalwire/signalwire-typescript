@@ -633,9 +633,15 @@ export class AgentBase {
   async addSkill(skill: SkillBase): Promise<this> {
     await this.skillManager.addSkill(skill);
 
-    // Register skill tools
+    // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
     for (const toolDef of skill.getTools()) {
       this.defineTool(toolDef);
+      if (Object.keys(skill.swaigFields).length > 0) {
+        const fn = this.toolRegistry.get(toolDef.name);
+        if (fn instanceof SwaigFunction) {
+          Object.assign(fn.extraFields, skill.swaigFields);
+        }
+      }
     }
 
     // Inject prompt sections
@@ -1039,6 +1045,37 @@ export class AgentBase {
     copy.postAnswerVerbs = [...this.postAnswerVerbs];
     copy.postAiVerbs = [...this.postAiVerbs];
     copy.swmlBuilder = new SwmlBuilder();
+
+    // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
+    copy.skillManager = new SkillManager();
+    for (const entry of this.skillManager.getLoadedSkillEntries()) {
+      try {
+        const skill = new (entry.SkillClass as any)(entry.config);
+        // Synchronous re-add: mark initialized, register tools/prompts/hints/data
+        skill.markInitialized();
+        copy.skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
+
+        for (const toolDef of skill.getTools()) {
+          copy.defineTool(toolDef);
+          if (Object.keys(skill.swaigFields).length > 0) {
+            const fn = copy.toolRegistry.get(toolDef.name);
+            if (fn instanceof SwaigFunction) {
+              Object.assign(fn.extraFields, skill.swaigFields);
+            }
+          }
+        }
+        for (const section of skill.getPromptSections()) {
+          copy.promptAddSection(section.title, section);
+        }
+        const hints = skill.getHints();
+        if (hints.length) copy.addHints(hints);
+        const globalData = skill.getGlobalData();
+        if (Object.keys(globalData).length) copy.updateGlobalData(globalData);
+      } catch (e) {
+        this.log.warn(`Failed to replay skill '${entry.skillName}' in ephemeral copy: ${e}`);
+      }
+    }
+
     return copy;
   }
 
@@ -1231,6 +1268,9 @@ export class AgentBase {
    * @returns A promise that resolves once the server is running.
    */
   async serve(): Promise<void> {
+    // When loaded by the CLI tool, skip server startup — only the agent config is needed.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
     this.log.info(`Agent '${this.name}' running at http://${this.host}:${this.port}${this.route}`);
@@ -1244,6 +1284,34 @@ export class AgentBase {
    */
   async run(): Promise<void> {
     return this.serve();
+  }
+
+  // ── Graceful shutdown ─────────────────────────────────────────────
+
+  private static _shutdownRegistered = false;
+
+  /**
+   * Register process signal handlers for clean Kubernetes/Docker shutdown.
+   * Handles SIGTERM and SIGINT, waits for a timeout, then exits.
+   * @param opts - Optional timeout in milliseconds (default 5000).
+   */
+  static setupGracefulShutdown(opts?: { timeout?: number }): void {
+    if (AgentBase._shutdownRegistered) return;
+    AgentBase._shutdownRegistered = true;
+
+    const timeout = opts?.timeout ?? 5000;
+    const log = getLogger('GracefulShutdown');
+
+    const handler = (signal: string) => {
+      log.info(`Received ${signal}, shutting down in ${timeout}ms...`);
+      setTimeout(() => {
+        log.info('Shutdown complete.');
+        process.exit(0);
+      }, timeout);
+    };
+
+    process.on('SIGTERM', () => handler('SIGTERM'));
+    process.on('SIGINT', () => handler('SIGINT'));
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────
