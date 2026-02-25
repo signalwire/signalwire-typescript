@@ -1231,6 +1231,9 @@ export class AgentBase {
    * @returns A promise that resolves once the server is running.
    */
   async serve(): Promise<void> {
+    // When loaded by the CLI tool, skip server startup — only the agent config is needed.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
     this.log.info(`Agent '${this.name}' running at http://${this.host}:${this.port}${this.route}`);

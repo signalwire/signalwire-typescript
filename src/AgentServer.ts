@@ -132,6 +132,9 @@ export class AgentServer {
    * @param port - Override the configured port.
    */
   async run(host?: string, port?: number): Promise<void> {
+    // When loaded by the CLI tool, skip server startup — only the agent config is needed.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
     const { serve } = await import('@hono/node-server');
     const h = host ?? this.host;
     const p = port ?? this.port;

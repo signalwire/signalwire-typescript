@@ -8,7 +8,7 @@
 
 import { AgentBase, SwaigFunctionResult } from '../src/index.js';
 
-const agent = new AgentBase({
+export const agent = new AgentBase({
   name: 'support-agent',
   route: '/',
   basicAuth: ['user', 'pass'],

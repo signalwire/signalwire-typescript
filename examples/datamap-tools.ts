@@ -14,7 +14,7 @@ import {
   createSimpleApiTool,
 } from '../src/index.js';
 
-const agent = new AgentBase({
+export const agent = new AgentBase({
   name: 'weather-agent',
   route: '/',
   basicAuth: ['user', 'pass'],
