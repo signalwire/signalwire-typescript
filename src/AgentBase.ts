@@ -1250,6 +1250,7 @@ export class AgentBase {
 
       const fnName = body['function'] as string;
       if (!fnName) return c.json({ error: 'Missing function name' }, 400);
+      if (fnName.length > 128) return c.json({ error: 'Invalid function name' }, 400);
 
       reqLog = reqLog.bind({ function: fnName });
       reqLog.debug('function_call_received');
@@ -1259,7 +1260,7 @@ export class AgentBase {
 
       const fn = this.toolRegistry.get(fnName);
       if (!fn || !(fn instanceof SwaigFunction)) {
-        reqLog.warn('function_not_found', { available_functions: [...this.toolRegistry.keys()] });
+        reqLog.warn('function_not_found', { requested: fnName });
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 

@@ -3,6 +3,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import { safeAssign } from '../SecurityUtils.js';
 
 /** Options for generating mock call data in CLI testing. */
 export interface MockCallOptions {
@@ -72,7 +73,7 @@ export function generateFakePostData(opts?: MockCallOptions): Record<string, unk
 
   // Apply overrides
   if (opts?.overrides) {
-    Object.assign(data, opts.overrides);
+    safeAssign(data, opts.overrides);
   }
 
   return data;
@@ -103,7 +104,7 @@ export function generateMinimalPostData(
   };
 
   if (opts?.overrides) {
-    Object.assign(data, opts.overrides);
+    safeAssign(data, opts.overrides);
   }
 
   return data;

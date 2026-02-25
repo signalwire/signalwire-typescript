@@ -777,6 +777,48 @@ describe('AgentBase', () => {
     expect(res.headers.get('Permissions-Policy')).toContain('camera=()');
   });
 
+  it('rejects function names longer than 128 chars', async () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const app = agent.getApp();
+    const longName = 'x'.repeat(129);
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: longName, argument: {} }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('Invalid function name');
+  });
+
+  it('function-not-found log does not expose available_functions', async () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.defineTool({
+      name: 'real_tool',
+      description: 'A tool',
+      parameters: {},
+      handler: () => new SwaigFunctionResult('ok'),
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: 'nonexistent_fn', argument: {} }),
+    });
+    expect(res.status).toBe(404);
+    // The response should not leak the list of available functions
+    const text = await res.text();
+    expect(text).not.toContain('real_tool');
+  });
+
   it('auto-generated password is 32 hex chars', () => {
     const savedUser = process.env['SWML_BASIC_AUTH_USER'];
     const savedPass = process.env['SWML_BASIC_AUTH_PASSWORD'];

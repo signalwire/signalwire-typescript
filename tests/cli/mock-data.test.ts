@@ -90,5 +90,24 @@ describe('mock-data', () => {
       const data = generateFakePostData({ overrides: { custom: 'value' } });
       expect(data['custom']).toBe('value');
     });
+
+    it('overrides with __proto__ do NOT pollute Object prototype', () => {
+      const data = generateFakePostData({
+        overrides: { '__proto__': { polluted: true } } as any,
+      });
+      // @ts-expect-error - checking prototype pollution
+      expect(({} as any).polluted).toBeUndefined();
+      // The data object itself should NOT have __proto__ as own property from pollution
+    });
+  });
+
+  describe('generateMinimalPostData - prototype pollution', () => {
+    it('overrides with __proto__ do NOT pollute Object prototype', () => {
+      const data = generateMinimalPostData('fn', {}, {
+        overrides: { '__proto__': { polluted: true } } as any,
+      });
+      // @ts-expect-error - checking prototype pollution
+      expect(({} as any).polluted).toBeUndefined();
+    });
   });
 });

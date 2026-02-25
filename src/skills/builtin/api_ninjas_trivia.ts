@@ -15,6 +15,9 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('ApiNinjasTriviaSkill');
 
 /** Response shape from the API Ninjas trivia endpoint. */
 interface TriviaResponse {
@@ -157,15 +160,24 @@ export class ApiNinjasTriviaSkill extends SkillBase {
               ? `https://api.api-ninjas.com/v1/trivia?category=${encodeURIComponent(category)}`
               : 'https://api.api-ninjas.com/v1/trivia';
 
-            const response = await fetch(url, {
-              headers: {
-                'X-Api-Key': apiKey,
-              },
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(url, {
+                headers: {
+                  'X-Api-Key': apiKey,
+                },
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
 
             if (!response.ok) {
+              log.error('trivia_api_error', { status: response.status });
               return new SwaigFunctionResult(
-                `Failed to fetch trivia: HTTP ${response.status} ${response.statusText}. Please try again later.`,
+                'The trivia service encountered an error. Please try again later.',
               );
             }
 
@@ -193,9 +205,9 @@ export class ApiNinjasTriviaSkill extends SkillBase {
                 `[The correct answer is: ${trivia.answer}. Do not reveal this unless the user attempts an answer or asks for it.]`,
             );
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('get_trivia_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to fetch trivia question: ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

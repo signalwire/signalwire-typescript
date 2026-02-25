@@ -200,8 +200,8 @@ export class CustomSkillsSkill extends SkillBase {
 
         this._compiledHandlers.set(toolDef.name, handler);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        this._compilationErrors.set(toolDef.name, message);
+        log.error('custom_handler_compile_error', { tool: toolDef.name, error: err instanceof Error ? err.message : String(err) });
+        this._compilationErrors.set(toolDef.name, 'Handler compilation failed.');
       }
     }
   }
@@ -233,7 +233,7 @@ export class CustomSkillsSkill extends SkillBase {
           fillers: toolDef.fillers,
           handler: () => {
             return new SwaigFunctionResult(
-              `Custom tool "${toolDef.name}" has a compilation error in its handler code: ${compError}. Please fix the handler_code configuration.`,
+              `Custom tool "${toolDef.name}" is not available due to a configuration error. Please contact your administrator.`,
             );
           },
         });
@@ -274,9 +274,9 @@ export class CustomSkillsSkill extends SkillBase {
 
             return new SwaigFunctionResult('Action completed.');
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('custom_tool_runtime_error', { tool: toolDef.name, error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Custom tool "${toolDef.name}" encountered a runtime error: ${message}`,
+              `Custom tool "${toolDef.name}" encountered an error. Please try again.`,
             );
           }
         },

@@ -118,4 +118,34 @@ describe('ConfigLoader', () => {
     const result = ConfigLoader.search('nonexistent-file-12345.json');
     expect(result).toBeNull();
   });
+
+  // ── Prototype pollution protection ──────────────────────────────
+  it('set() with __proto__ key does NOT pollute Object prototype', () => {
+    const config = new ConfigLoader();
+    config.loadFromObject({});
+    config.set('__proto__.polluted', true);
+    // @ts-expect-error - checking prototype pollution
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('set() with constructor key is silently ignored', () => {
+    const config = new ConfigLoader();
+    config.loadFromObject({});
+    config.set('constructor.polluted', true);
+    expect(config.get('constructor.polluted')).toBeUndefined();
+  });
+
+  it('set() with prototype key is silently ignored', () => {
+    const config = new ConfigLoader();
+    config.loadFromObject({});
+    config.set('prototype.polluted', true);
+    expect(config.get('prototype.polluted')).toBeUndefined();
+  });
+
+  it('get() with __proto__ returns defaultValue', () => {
+    const config = new ConfigLoader();
+    config.loadFromObject({ safe: 'yes' });
+    expect(config.get('__proto__', 'default')).toBe('default');
+    expect(config.get('__proto__.constructor', 'default')).toBe('default');
+  });
 });

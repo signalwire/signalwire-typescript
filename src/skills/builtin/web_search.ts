@@ -16,6 +16,9 @@ import type {
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
 import { MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('WebSearchSkill');
 
 /** A single search result item from the Google Custom Search API. */
 interface GoogleSearchItem {
@@ -178,12 +181,20 @@ export class WebSearchSkill extends SkillBase {
               `https://www.googleapis.com/customsearch/v1` +
               `?key=${apiKey}&cx=${cx}&q=${encodedQuery}&num=${count}${safeParam}`;
 
-            const response = await fetch(url);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(url, { signal: controller.signal });
+            } finally {
+              clearTimeout(timeout);
+            }
             const data = (await response.json()) as GoogleSearchResponse;
 
             if (data.error) {
+              log.error('web_search_api_error', { code: data.error.code });
               return new SwaigFunctionResult(
-                `Web search failed: ${data.error.message}`,
+                'The web search service encountered an error. Please try again later.',
               );
             }
 
@@ -213,9 +224,9 @@ export class WebSearchSkill extends SkillBase {
 
             return new SwaigFunctionResult(parts.join('\n').trim());
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('web_search_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to perform web search for "${query}": ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

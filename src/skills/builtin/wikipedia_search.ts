@@ -15,6 +15,9 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('WikipediaSearchSkill');
 
 /** Response shape from the Wikipedia REST API page summary endpoint. */
 interface WikipediaSummaryResponse {
@@ -140,9 +143,17 @@ export class WikipediaSearchSkill extends SkillBase {
             const encodedQuery = encodeURIComponent(query.trim().replace(/\s+/g, '_'));
             const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
 
-            const summaryResponse = await fetch(summaryUrl, {
-              headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-            });
+            const controller1 = new AbortController();
+            const timeout1 = setTimeout(() => controller1.abort(), 30_000);
+            let summaryResponse: Response;
+            try {
+              summaryResponse = await fetch(summaryUrl, {
+                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
+                signal: controller1.signal,
+              });
+            } finally {
+              clearTimeout(timeout1);
+            }
 
             if (summaryResponse.ok) {
               const data = (await summaryResponse.json()) as WikipediaSummaryResponse;
@@ -175,13 +186,22 @@ export class WikipediaSearchSkill extends SkillBase {
             // If direct lookup failed, use the search API
             const searchUrl = `https://en.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(query.trim())}&limit=1`;
 
-            const searchResponse = await fetch(searchUrl, {
-              headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-            });
+            const controller2 = new AbortController();
+            const timeout2 = setTimeout(() => controller2.abort(), 30_000);
+            let searchResponse: Response;
+            try {
+              searchResponse = await fetch(searchUrl, {
+                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
+                signal: controller2.signal,
+              });
+            } finally {
+              clearTimeout(timeout2);
+            }
 
             if (!searchResponse.ok) {
+              log.error('wikipedia_search_api_error', { status: searchResponse.status });
               return new SwaigFunctionResult(
-                `Wikipedia search failed with status ${searchResponse.status}. Please try a different search term.`,
+                'Wikipedia search could not be completed. Please try a different search term.',
               );
             }
 
@@ -197,9 +217,17 @@ export class WikipediaSearchSkill extends SkillBase {
             const bestMatch = searchData.pages[0];
             const matchUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestMatch.key)}`;
 
-            const matchResponse = await fetch(matchUrl, {
-              headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-            });
+            const controller3 = new AbortController();
+            const timeout3 = setTimeout(() => controller3.abort(), 30_000);
+            let matchResponse: Response;
+            try {
+              matchResponse = await fetch(matchUrl, {
+                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
+                signal: controller3.signal,
+              });
+            } finally {
+              clearTimeout(timeout3);
+            }
 
             if (!matchResponse.ok) {
               // Fall back to the search excerpt
@@ -232,9 +260,9 @@ export class WikipediaSearchSkill extends SkillBase {
 
             return new SwaigFunctionResult(parts.join('\n').trim());
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('search_wikipedia_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to search Wikipedia for "${query}": ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

@@ -15,6 +15,9 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('DataSphereSkill');
 
 /** A single search result from the DataSphere API. */
 interface DataSphereResult {
@@ -188,26 +191,27 @@ export class DataSphereSkill extends SkillBase {
 
             const authHeader = Buffer.from(`${projectId}:${token}`).toString('base64');
 
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${authHeader}`,
-              },
-              body: JSON.stringify(requestBody),
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Basic ${authHeader}`,
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
 
             if (!response.ok) {
-              const errorText = await response.text();
-              let errorMsg: string;
-              try {
-                const errorData = JSON.parse(errorText) as DataSphereResponse;
-                errorMsg = errorData.error ?? errorData.message ?? `HTTP ${response.status}`;
-              } catch {
-                errorMsg = `HTTP ${response.status}: ${errorText.slice(0, 200)}`;
-              }
+              log.error('datasphere_api_error', { status: response.status });
               return new SwaigFunctionResult(
-                `DataSphere search failed: ${errorMsg}`,
+                'The knowledge base search service encountered an error. Please try again later.',
               );
             }
 
@@ -237,9 +241,9 @@ export class DataSphereSkill extends SkillBase {
 
             return new SwaigFunctionResult(parts.join('\n').trim());
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('search_datasphere_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to search DataSphere for "${query}": ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

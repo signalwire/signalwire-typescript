@@ -15,6 +15,9 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('ClaudeSkill');
 
 /** A single message in the Anthropic Messages API format. */
 interface AnthropicMessage {
@@ -179,35 +182,37 @@ export class ClaudeSkill extends SkillBase {
               requestBody['system'] = systemPrompt.trim();
             }
 
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-              },
-              body: JSON.stringify(requestBody),
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': apiKey,
+                  'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
 
             if (!response.ok) {
-              const errorText = await response.text();
-              let errorMsg: string;
-              try {
-                const errorData = JSON.parse(errorText) as AnthropicErrorResponse;
-                errorMsg = errorData.error?.message ?? `HTTP ${response.status}`;
-              } catch {
-                errorMsg = `HTTP ${response.status}: ${errorText.slice(0, 300)}`;
-              }
+              log.error('claude_api_error', { status: response.status });
               return new SwaigFunctionResult(
-                `Claude API request failed: ${errorMsg}`,
+                'The AI service encountered an error. Please try again later.',
               );
             }
 
             const data = (await response.json()) as AnthropicResponse;
 
             if (data.error) {
+              log.error('claude_response_error', { type: data.error.type });
               return new SwaigFunctionResult(
-                `Claude returned an error: ${data.error.message}`,
+                'The AI service returned an error. Please try again later.',
               );
             }
 
@@ -225,9 +230,9 @@ export class ClaudeSkill extends SkillBase {
             const responseText = textParts.join('\n\n');
             return new SwaigFunctionResult(responseText);
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('ask_claude_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to query Claude AI: ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

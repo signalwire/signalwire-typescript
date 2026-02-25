@@ -16,6 +16,9 @@ import type {
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
 import { resolveAndValidateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('SpiderSkill');
 
 /** A single crawl result from the Spider API. */
 interface SpiderResult {
@@ -134,9 +137,9 @@ export class SpiderSkill extends SkillBase {
           const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
           try {
             await resolveAndValidateUrl(trimmedUrl, allowPrivate);
-          } catch (err) {
+          } catch {
             return new SwaigFunctionResult(
-              `URL validation failed: ${err instanceof Error ? err.message : String(err)}`,
+              'The provided URL could not be validated. Please check the URL and try again.',
             );
           }
 
@@ -157,19 +160,27 @@ export class SpiderSkill extends SkillBase {
               requestBody['css_selector'] = selector.trim();
             }
 
-            const response = await fetch('https://api.spider.cloud/crawl', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-              },
-              body: JSON.stringify(requestBody),
-            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch('https://api.spider.cloud/crawl', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
 
             if (!response.ok) {
-              const errorText = await response.text();
+              log.error('spider_api_error', { status: response.status });
               return new SwaigFunctionResult(
-                `Spider API returned an error (HTTP ${response.status}): ${errorText.slice(0, 300)}`,
+                'The web scraping service encountered an error. Please try again later.',
               );
             }
 
@@ -177,8 +188,9 @@ export class SpiderSkill extends SkillBase {
 
             // Handle error responses
             if (!Array.isArray(data) && 'error' in data) {
+              log.error('spider_scraping_failed', { error: data.error });
               return new SwaigFunctionResult(
-                `Spider scraping failed: ${data.error}`,
+                'The web scraping service could not process the request. Please try again later.',
               );
             }
 
@@ -193,8 +205,9 @@ export class SpiderSkill extends SkillBase {
             }
 
             if (result.error) {
+              log.error('spider_result_error', { error: result.error });
               return new SwaigFunctionResult(
-                `Error scraping "${trimmedUrl}": ${result.error}`,
+                `Could not extract content from the requested page. Please try again later.`,
               );
             }
 
@@ -227,9 +240,9 @@ export class SpiderSkill extends SkillBase {
 
             return new SwaigFunctionResult(parts.join('\n'));
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('scrape_url_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to scrape "${trimmedUrl}": ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

@@ -144,7 +144,9 @@ describe('MathSkill', () => {
     const handler = skill.getTools()[0].handler;
     const result = handler({ expression: 'process.exit(1)' }, {}) as SwaigFunctionResult;
     expect(result).toBeInstanceOf(SwaigFunctionResult);
-    expect(result.response).toContain('invalid characters');
+    expect(result.response).toContain('Could not evaluate');
+    // Must not leak internal error details
+    expect(result.response).not.toContain('isSafeExpression');
   });
 });
 
@@ -963,7 +965,7 @@ describe('SpiderSkill - SSRF protection', () => {
     const handler = skill.getTools()[0].handler;
     const result = await handler({ url: 'http://127.0.0.1/secret' }, {}) as SwaigFunctionResult;
     expect(result).toBeInstanceOf(SwaigFunctionResult);
-    expect(result.response).toContain('private IP');
+    expect(result.response).toContain('could not be validated');
     if (saved) process.env['SWML_ALLOW_PRIVATE_URLS'] = saved;
   });
 
@@ -974,5 +976,57 @@ describe('SpiderSkill - SSRF protection', () => {
     const result = await handler({ url: longUrl }, {}) as SwaigFunctionResult;
     expect(result).toBeInstanceOf(SwaigFunctionResult);
     expect(result.response).toContain('too long');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Security remediation round 2 — error message leak tests
+// ---------------------------------------------------------------------------
+describe('Skill error messages do not leak internal details', () => {
+  it('math skill catch returns generic message', () => {
+    const skill = createMathSkill();
+    const handler = skill.getTools()[0].handler;
+    // Intentionally malformed expression that will throw
+    const result = handler({ expression: '2 +' }, {}) as SwaigFunctionResult;
+    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    expect(result.response).toContain('Could not evaluate');
+    // Must not contain stack traces or JS error messages
+    expect(result.response).not.toContain('Unexpected');
+    expect(result.response).not.toContain('SyntaxError');
+  });
+
+  it('custom_skills compilation error returns generic message', () => {
+    const saved = process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'];
+    process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = 'true';
+    try {
+      const skill = createCustomSkillsSkill({
+        tools: [{ name: 'bad_tool', description: 'Bad', handler_code: 'this is not valid javascript {{{{' }],
+      });
+      const errors = skill.getCompilationErrors();
+      expect(errors.has('bad_tool')).toBe(true);
+      // The stored error message should be generic, not expose syntax details
+      expect(errors.get('bad_tool')).toBe('Handler compilation failed.');
+    } finally {
+      if (saved) process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = saved;
+      else delete process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'];
+    }
+  });
+
+  it('custom_skills runtime error returns generic message', async () => {
+    const saved = process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'];
+    process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = 'true';
+    try {
+      const skill = createCustomSkillsSkill({
+        tools: [{ name: 'crash_tool', description: 'Crash', handler_code: 'throw new Error("secret internal stack trace info");' }],
+      });
+      const handler = skill.getTools()[0].handler;
+      const result = await handler({}, {}) as SwaigFunctionResult;
+      expect(result).toBeInstanceOf(SwaigFunctionResult);
+      expect(result.response).not.toContain('secret internal stack trace info');
+      expect(result.response).toContain('encountered an error');
+    } finally {
+      if (saved) process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = saved;
+      else delete process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'];
+    }
   });
 });
