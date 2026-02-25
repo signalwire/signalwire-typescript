@@ -366,6 +366,25 @@ All endpoints (except health/ready) require basic auth.
 | `SWML_BASIC_AUTH_PASSWORD` | Basic auth password |
 | `SWML_PROXY_URL_BASE` | Proxy/tunnel base URL for webhook URLs |
 
+## Documentation
+
+Comprehensive guides and API reference are in the [`docs/`](docs/) directory:
+
+| Guide | Description |
+|-------|-------------|
+| [Agent Guide](docs/agent-guide.md) | Getting started — creating agents, prompts, tools, call flow, dynamic config |
+| [Architecture](docs/architecture.md) | System design, component relationships, SWML rendering pipeline |
+| [SWAIG Reference](docs/swaig-reference.md) | Complete SwaigFunctionResult API — all call control, audio, data, and action methods |
+| [DataMap Guide](docs/datamap-guide.md) | Server-side tools — webhooks, expressions, templates, environment variables |
+| [Contexts & Steps](docs/contexts-guide.md) | Multi-step conversation workflows, navigation, gather_info |
+| [Skills Guide](docs/skills-guide.md) | Skills framework — 18 built-in skills, custom skill development |
+| [Prefabs Guide](docs/prefabs-guide.md) | Pre-built agents — InfoGatherer, Survey, FAQ, Concierge, Receptionist |
+| [CLI Guide](docs/cli-guide.md) | Testing tool — dump SWML, execute tools, simulate serverless |
+| [Configuration](docs/configuration.md) | Constructor options, environment variables, ConfigLoader, AuthHandler |
+| [Security](docs/security.md) | Authentication, SSL/TLS, CORS, rate limiting, production checklist |
+| [Serverless Guide](docs/serverless-guide.md) | Deploy to AWS Lambda, Google Cloud Functions, Azure Functions, CGI |
+| [API Reference](docs/api-reference.md) | Complete reference for every exported class, method, and interface |
+
 ## Examples
 
 See the [`examples/`](examples/) directory:
