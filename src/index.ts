@@ -24,6 +24,7 @@ export type { PomSectionData } from './PomBuilder.js';
 
 // SWML builder
 export { SwmlBuilder } from './SwmlBuilder.js';
+import './SwmlVerbMethods.generated.js';
 
 // Prompt management
 export { PromptManager } from './PromptManager.js';

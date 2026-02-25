@@ -9,6 +9,8 @@
     "swaig-test": "./dist/cli/swaig-test.js"
   },
   "scripts": {
+    "generate:verbs": "npx tsx src/generateVerbTypes.ts",
+    "prebuild": "npm run generate:verbs",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
