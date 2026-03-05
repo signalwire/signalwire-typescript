@@ -20,7 +20,8 @@ export { DataSphereSkill, createSkill as createDataSphereSkill } from './datasph
 export { DataSphereServerlessSkill, createSkill as createDataSphereServerlessSkill } from './datasphere_serverless.js';
 export { NativeVectorSearchSkill, createSkill as createNativeVectorSearchSkill } from './native_vector_search.js';
 export { SpiderSkill, createSkill as createSpiderSkill } from './spider.js';
-export { ClaudeSkill, createSkill as createClaudeSkill } from './claude_skills.js';
+export { ClaudeSkillsSkill, createSkill as createClaudeSkillsSkill } from './claude_skills.js';
+export { AskClaudeSkill, createSkill as createAskClaudeSkill } from './ask_claude.js';
 export { McpGatewaySkill, createSkill as createMcpGatewaySkill } from './mcp_gateway.js';
 
 import { SkillRegistry } from '../SkillRegistry.js';
@@ -40,11 +41,12 @@ import { createSkill as createDataSphereSkill } from './datasphere.js';
 import { createSkill as createDataSphereServerlessSkill } from './datasphere_serverless.js';
 import { createSkill as createNativeVectorSearchSkill } from './native_vector_search.js';
 import { createSkill as createSpiderSkill } from './spider.js';
-import { createSkill as createClaudeSkill } from './claude_skills.js';
+import { createSkill as createClaudeSkillsSkill } from './claude_skills.js';
+import { createSkill as createAskClaudeSkill } from './ask_claude.js';
 import { createSkill as createMcpGatewaySkill } from './mcp_gateway.js';
 
 /**
- * Register all 18 built-in skills with the global SkillRegistry singleton.
+ * Register all 19 built-in skills with the global SkillRegistry singleton.
  * Skips registration for any skill name already present in the registry.
  */
 export function registerBuiltinSkills(): void {
@@ -67,7 +69,8 @@ export function registerBuiltinSkills(): void {
     ['datasphere_serverless', createDataSphereServerlessSkill],
     ['native_vector_search', createNativeVectorSearchSkill],
     ['spider', createSpiderSkill],
-    ['claude_skills', createClaudeSkill],
+    ['claude_skills', createClaudeSkillsSkill],
+    ['ask_claude', createAskClaudeSkill],
     ['mcp_gateway', createMcpGatewaySkill],
   ];
 

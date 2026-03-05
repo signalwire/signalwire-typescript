@@ -83,7 +83,7 @@ export {
   ApiNinjasTriviaSkill, InfoGathererSkill, CustomSkillsSkill,
   WebSearchSkill, WikipediaSearchSkill, GoogleMapsSkill,
   DataSphereSkill, DataSphereServerlessSkill, NativeVectorSearchSkill,
-  SpiderSkill, ClaudeSkill, McpGatewaySkill,
+  SpiderSkill, ClaudeSkillsSkill, AskClaudeSkill, McpGatewaySkill,
 } from './skills/builtin/index.js';
 
 // Prefab Agents

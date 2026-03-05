@@ -1,11 +1,14 @@
 /**
- * Comprehensive tests for all 18 built-in skills.
+ * Comprehensive tests for all 19 built-in skills.
  *
  * Covers instantiation, manifest, tools, prompt sections, and handler execution
  * for each skill. API-dependent skills verify error messages when keys are missing.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
   DateTimeSkill,
   createDateTimeSkill,
@@ -39,8 +42,10 @@ import {
   createNativeVectorSearchSkill,
   SpiderSkill,
   createSpiderSkill,
-  ClaudeSkill,
-  createClaudeSkill,
+  ClaudeSkillsSkill,
+  createClaudeSkillsSkill,
+  AskClaudeSkill,
+  createAskClaudeSkill,
   McpGatewaySkill,
   createMcpGatewaySkill,
 } from '../../src/skills/builtin/index.js';
@@ -876,29 +881,436 @@ describe('SpiderSkill', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Claude Skills Skill
+// Ask Claude Skill (renamed from ClaudeSkill)
 // ---------------------------------------------------------------------------
-describe('ClaudeSkill', () => {
+describe('AskClaudeSkill', () => {
   it('should instantiate via createSkill factory', () => {
-    const skill = createClaudeSkill();
-    expect(skill).toBeInstanceOf(ClaudeSkill);
+    const skill = createAskClaudeSkill();
+    expect(skill).toBeInstanceOf(AskClaudeSkill);
     expect(skill).toBeInstanceOf(SkillBase);
   });
 
   it('should return correct manifest name and version', () => {
-    const skill = createClaudeSkill();
+    const skill = createAskClaudeSkill();
     const manifest = skill.getManifest();
-    expect(manifest.name).toBe('claude_skills');
+    expect(manifest.name).toBe('ask_claude');
     expect(manifest.version).toBe('1.0.0');
     expect(manifest.requiredEnvVars).toContain('ANTHROPIC_API_KEY');
   });
 
   it('should return an ask_claude tool', () => {
-    const skill = createClaudeSkill();
+    const skill = createAskClaudeSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('ask_claude');
     expect(tools[0].required).toContain('prompt');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Claude Skills Skill (SKILL.md loader)
+// ---------------------------------------------------------------------------
+describe('ClaudeSkillsSkill', () => {
+  let tmpDir: string;
+  let skillsDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'claude-skills-test-'));
+    skillsDir = join(tmpDir, 'skills');
+    mkdirSync(skillsDir);
+
+    // Create a basic skill
+    const basicSkillDir = join(skillsDir, 'greeting');
+    mkdirSync(basicSkillDir);
+    writeFileSync(
+      join(basicSkillDir, 'SKILL.md'),
+      '---\nname: greeting\ndescription: Greet the user\n---\n\nHello $ARGUMENTS! Welcome.',
+    );
+
+    // Create a skill with sections
+    const sectionSkillDir = join(skillsDir, 'helper');
+    mkdirSync(sectionSkillDir);
+    writeFileSync(
+      join(sectionSkillDir, 'SKILL.md'),
+      '---\nname: helper\ndescription: A helper skill\n---\n\nMain helper content.',
+    );
+    writeFileSync(
+      join(sectionSkillDir, 'advanced.md'),
+      'Advanced helper content.',
+    );
+    writeFileSync(
+      join(sectionSkillDir, 'basics.md'),
+      'Basic helper content.',
+    );
+
+    // Create a skill with nested section
+    const nestedDir = join(sectionSkillDir, 'references');
+    mkdirSync(nestedDir);
+    writeFileSync(join(nestedDir, 'api.md'), 'API reference content.');
+
+    // Create a skill with no frontmatter
+    const noFmDir = join(skillsDir, 'raw-skill');
+    mkdirSync(noFmDir);
+    writeFileSync(join(noFmDir, 'SKILL.md'), 'Just raw content, no frontmatter.');
+
+    // Create a skill with disable-model-invocation
+    const disabledDir = join(skillsDir, 'disabled-skill');
+    mkdirSync(disabledDir);
+    writeFileSync(
+      join(disabledDir, 'SKILL.md'),
+      '---\nname: disabled-skill\ndescription: Should be disabled\ndisable-model-invocation: true\n---\n\nDisabled content.',
+    );
+
+    // Create a skill with user-invocable: false
+    const knowledgeDir = join(skillsDir, 'knowledge-only');
+    mkdirSync(knowledgeDir);
+    writeFileSync(
+      join(knowledgeDir, 'SKILL.md'),
+      '---\nname: knowledge-only\ndescription: Knowledge only skill\nuser-invocable: false\n---\n\nKnowledge content.',
+    );
+
+    // Create a skill with argument-hint
+    const hintDir = join(skillsDir, 'with-hint');
+    mkdirSync(hintDir);
+    writeFileSync(
+      join(hintDir, 'SKILL.md'),
+      '---\nname: with-hint\ndescription: Skill with hint\nargument-hint: The city name to look up\n---\n\nLooking up $ARGUMENTS.',
+    );
+
+    // Create a skill with variables
+    const varDir = join(skillsDir, 'var-skill');
+    mkdirSync(varDir);
+    writeFileSync(
+      join(varDir, 'SKILL.md'),
+      '---\nname: var-skill\ndescription: Variable skill\n---\n\nDir: ${CLAUDE_SKILL_DIR} Session: ${CLAUDE_SESSION_ID}',
+    );
+
+    // Create a skill with shell injection patterns
+    const shellDir = join(skillsDir, 'shell-skill');
+    mkdirSync(shellDir);
+    writeFileSync(
+      join(shellDir, 'SKILL.md'),
+      '---\nname: shell-skill\ndescription: Shell skill\n---\n\nResult: !`echo hello`',
+    );
+
+    // Create a skill with argument placeholders
+    const argDir = join(skillsDir, 'arg-skill');
+    mkdirSync(argDir);
+    writeFileSync(
+      join(argDir, 'SKILL.md'),
+      '---\nname: arg-skill\ndescription: Argument skill\n---\n\nFirst: $0 Second: $1 Indexed: $ARGUMENTS[0] All: $ARGUMENTS',
+    );
+
+    // A non-skill directory (no SKILL.md)
+    const noSkillDir = join(skillsDir, 'not-a-skill');
+    mkdirSync(noSkillDir);
+    writeFileSync(join(noSkillDir, 'README.md'), 'Not a skill.');
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('should instantiate via createSkill factory', () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    expect(skill).toBeInstanceOf(ClaudeSkillsSkill);
+    expect(skill).toBeInstanceOf(SkillBase);
+  });
+
+  it('should return correct manifest', () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    const manifest = skill.getManifest();
+    expect(manifest.name).toBe('claude_skills');
+    expect(manifest.version).toBe('1.0.0');
+  });
+
+  it('should support multiple instances', () => {
+    expect(ClaudeSkillsSkill.SUPPORTS_MULTIPLE_INSTANCES).toBe(true);
+  });
+
+  it('should discover skills from directory after setup', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    // Should find skills with SKILL.md: greeting, helper, raw-skill, disabled-skill,
+    // knowledge-only, with-hint, var-skill, shell-skill, arg-skill
+    // But disabled-skill should be skipped (_skipTool), knowledge-only should be skipped (_skipTool)
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).toContain('claude_greeting');
+    expect(toolNames).toContain('claude_helper');
+    expect(toolNames).toContain('claude_raw_skill');
+    expect(toolNames).toContain('claude_with_hint');
+    expect(toolNames).toContain('claude_var_skill');
+    expect(toolNames).toContain('claude_shell_skill');
+    expect(toolNames).toContain('claude_arg_skill');
+    // disabled-skill and knowledge-only should NOT be registered as tools
+    expect(toolNames).not.toContain('claude_disabled_skill');
+    expect(toolNames).not.toContain('claude_knowledge_only');
+  });
+
+  it('should sanitize tool names correctly', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    // raw-skill → raw_skill (hyphens replaced)
+    expect(toolNames).toContain('claude_raw_skill');
+  });
+
+  it('should return SKILL.md body content from handler', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const greetingTool = tools.find((t) => t.name === 'claude_greeting');
+    expect(greetingTool).toBeDefined();
+    const result = greetingTool!.handler({ arguments: 'World' }, {}) as SwaigFunctionResult;
+    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    expect(result.response).toContain('Hello World! Welcome.');
+  });
+
+  it('should load section content when section is specified', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const helperTool = tools.find((t) => t.name === 'claude_helper');
+    expect(helperTool).toBeDefined();
+
+    // Check section enum
+    const sectionParam = helperTool!.parameters!['section'] as Record<string, unknown>;
+    expect(sectionParam).toBeDefined();
+    const enumValues = sectionParam.enum as string[];
+    expect(enumValues).toContain('advanced');
+    expect(enumValues).toContain('basics');
+    expect(enumValues).toContain('references/api');
+
+    // Load a section
+    const result = helperTool!.handler({ section: 'advanced', arguments: '' }, {}) as SwaigFunctionResult;
+    expect(result.response).toContain('Advanced helper content.');
+  });
+
+  it('should substitute $ARGUMENTS in body', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const argTool = tools.find((t) => t.name === 'claude_arg_skill');
+    expect(argTool).toBeDefined();
+    const result = argTool!.handler({ arguments: 'foo bar' }, {}) as SwaigFunctionResult;
+    expect(result.response).toContain('First: foo');
+    expect(result.response).toContain('Second: bar');
+    expect(result.response).toContain('Indexed: foo');
+    expect(result.response).toContain('All: foo bar');
+  });
+
+  it('should append ARGUMENTS when no bare $ARGUMENTS placeholder', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const helperTool = tools.find((t) => t.name === 'claude_helper');
+    expect(helperTool).toBeDefined();
+    const result = helperTool!.handler({ arguments: 'some context' }, {}) as SwaigFunctionResult;
+    expect(result.response).toContain('Main helper content.');
+    expect(result.response).toContain('ARGUMENTS: some context');
+  });
+
+  it('should substitute ${CLAUDE_SKILL_DIR} and ${CLAUDE_SESSION_ID}', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const varTool = tools.find((t) => t.name === 'claude_var_skill');
+    expect(varTool).toBeDefined();
+    const result = varTool!.handler(
+      { arguments: '' },
+      { call_id: 'test-session-123' },
+    ) as SwaigFunctionResult;
+    expect(result.response).toContain(`Dir: ${join(skillsDir, 'var-skill')}`);
+    expect(result.response).toContain('Session: test-session-123');
+  });
+
+  it('should respect disable-model-invocation (no tool, no prompt)', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).not.toContain('claude_disabled_skill');
+
+    const prompts = skill.getPromptSections();
+    const promptTitles = prompts.map((p) => p.title);
+    expect(promptTitles).not.toContain('disabled-skill');
+  });
+
+  it('should respect user-invocable=false (no tool, yes prompt)', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).not.toContain('claude_knowledge_only');
+
+    const prompts = skill.getPromptSections();
+    const promptTitles = prompts.map((p) => p.title);
+    expect(promptTitles).toContain('knowledge-only');
+  });
+
+  it('should handle include/exclude patterns', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['greeting', 'helper'],
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).toContain('claude_greeting');
+    expect(toolNames).toContain('claude_helper');
+    expect(toolNames).not.toContain('claude_raw_skill');
+  });
+
+  it('should handle exclude patterns', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      exclude: ['greeting'],
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    expect(toolNames).not.toContain('claude_greeting');
+    expect(toolNames).toContain('claude_helper');
+  });
+
+  it('should use custom tool_prefix', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      tool_prefix: 'sk_',
+      include: ['greeting'],
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    expect(tools[0].name).toBe('sk_greeting');
+  });
+
+  it('should apply response_prefix and response_postfix', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['greeting'],
+      response_prefix: '[PREFIX]',
+      response_postfix: '[POSTFIX]',
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const result = tools[0].handler({ arguments: 'World' }, {}) as SwaigFunctionResult;
+    expect(result.response).toMatch(/^\[PREFIX\]/);
+    expect(result.response).toMatch(/\[POSTFIX\]$/);
+    expect(result.response).toContain('Hello World! Welcome.');
+  });
+
+  it('should use argument-hint as parameter description', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: skillsDir, include: ['with-hint'] });
+    await skill.setup();
+    const tools = skill.getTools();
+    const hintTool = tools.find((t) => t.name === 'claude_with_hint');
+    expect(hintTool).toBeDefined();
+    const argParam = hintTool!.parameters!['arguments'] as Record<string, unknown>;
+    expect(argParam.description).toBe('The city name to look up');
+  });
+
+  it('should return prompt sections for non-skipped skills', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['helper'],
+    });
+    await skill.setup();
+    const prompts = skill.getPromptSections();
+    expect(prompts.length).toBeGreaterThan(0);
+    const helperPrompt = prompts.find((p) => p.title === 'helper');
+    expect(helperPrompt).toBeDefined();
+    expect(helperPrompt!.body).toContain('Main helper content.');
+    expect(helperPrompt!.body).toContain('Available reference sections:');
+  });
+
+  it('should return hints from skill names', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['greeting', 'helper'],
+    });
+    await skill.setup();
+    const hints = skill.getHints();
+    expect(hints).toContain('greeting');
+    expect(hints).toContain('helper');
+  });
+
+  it('should return empty tools for missing skills_path', async () => {
+    const skill = createClaudeSkillsSkill({ skills_path: '/nonexistent/path' });
+    await skill.setup();
+    const tools = skill.getTools();
+    expect(tools).toHaveLength(0);
+  });
+
+  it('should return empty tools for empty directory', async () => {
+    const emptyDir = mkdtempSync(join(tmpdir(), 'empty-skills-'));
+    try {
+      const skill = createClaudeSkillsSkill({ skills_path: emptyDir });
+      await skill.setup();
+      const tools = skill.getTools();
+      expect(tools).toHaveLength(0);
+    } finally {
+      rmSync(emptyDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should execute shell injection when enabled', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['shell-skill'],
+      allow_shell_injection: true,
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const shellTool = tools.find((t) => t.name === 'claude_shell_skill');
+    expect(shellTool).toBeDefined();
+    const result = shellTool!.handler({ arguments: '' }, {}) as SwaigFunctionResult;
+    expect(result.response).toContain('Result: hello');
+  });
+
+  it('should pass through shell patterns when disabled', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['shell-skill'],
+      allow_shell_injection: false,
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const shellTool = tools.find((t) => t.name === 'claude_shell_skill');
+    expect(shellTool).toBeDefined();
+    const result = shellTool!.handler({ arguments: '' }, {}) as SwaigFunctionResult;
+    expect(result.response).toContain('!`echo hello`');
+  });
+
+  it('should override invocation control when ignore_invocation_control=true', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      ignore_invocation_control: true,
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    const toolNames = tools.map((t) => t.name);
+    // Both disabled-skill and knowledge-only should now be registered
+    expect(toolNames).toContain('claude_disabled_skill');
+    expect(toolNames).toContain('claude_knowledge_only');
+  });
+
+  it('should override descriptions via skill_descriptions', async () => {
+    const skill = createClaudeSkillsSkill({
+      skills_path: skillsDir,
+      include: ['greeting'],
+      skill_descriptions: { greeting: 'Custom description' },
+    });
+    await skill.setup();
+    const tools = skill.getTools();
+    expect(tools[0].description).toBe('Custom description');
+  });
+
+  it('should return unique instance keys for different paths', () => {
+    const skill1 = createClaudeSkillsSkill({ skills_path: '/path/a' });
+    const skill2 = createClaudeSkillsSkill({ skills_path: '/path/b' });
+    expect(skill1.getInstanceKey()).not.toBe(skill2.getInstanceKey());
   });
 });
 
