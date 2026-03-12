@@ -104,6 +104,14 @@ export class GatherInfo {
   }
 
   /**
+   * Returns the completion action for this gather info.
+   * @internal
+   */
+  getCompletionAction(): string | undefined {
+    return this.completionAction;
+  }
+
+  /**
    * Serializes this gather operation to a plain object for SWML output.
    * @returns A dictionary representation of the gather info and its questions.
    */
@@ -287,6 +295,14 @@ export class Step {
     if (!this.gatherInfo) throw new Error('Must call setGatherInfo() before addGatherQuestion()');
     this.gatherInfo.addQuestion(opts);
     return this;
+  }
+
+  /**
+   * Returns the gather info for this step, if any.
+   * @internal
+   */
+  getGatherInfo(): GatherInfo | null {
+    return this.gatherInfo;
   }
 
   /**
@@ -665,6 +681,11 @@ export class Context {
   }
 
   /** @internal */
+  getStepOrder(): readonly string[] {
+    return this.stepOrder;
+  }
+
+  /** @internal */
   getValidContexts(): string[] | null {
     return this._validContexts;
   }
@@ -774,6 +795,30 @@ export class ContextBuilder {
           if (!this.contexts.has(ref)) {
             throw new Error(`Context '${ctx.name}' references unknown context '${ref}'`);
           }
+        }
+      }
+    }
+    // Validate completion_action references in gather_info
+    for (const [ctxName, ctx] of this.contexts) {
+      const stepOrder = ctx.getStepOrder();
+      const steps = ctx.getSteps();
+      for (let i = 0; i < stepOrder.length; i++) {
+        const stepName = stepOrder[i];
+        const step = steps.get(stepName)!;
+        const gi = step.getGatherInfo();
+        if (!gi) continue;
+        const action = gi.getCompletionAction();
+        if (!action) continue;
+        if (action === 'next_step') {
+          if (i === stepOrder.length - 1) {
+            throw new Error(
+              `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='next_step' but it is the last step in the context`,
+            );
+          }
+        } else if (!steps.has(action)) {
+          throw new Error(
+            `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='${action}' but step '${action}' does not exist in this context`,
+          );
         }
       }
     }

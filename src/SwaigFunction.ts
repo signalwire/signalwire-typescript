@@ -42,6 +42,8 @@ export interface SwaigFunctionOptions {
   required?: string[];
   /** Additional fields to include in the SWAIG definition output. */
   extraFields?: Record<string, unknown>;
+  /** Whether this tool uses a typed handler with named parameters. */
+  isTypedHandler?: boolean;
 }
 
 /**
@@ -73,6 +75,8 @@ export class SwaigFunction {
   required: string[];
   /** Additional fields included in the SWAIG definition output. */
   extraFields: Record<string, unknown>;
+  /** Whether this tool uses a typed handler with named parameters. */
+  isTypedHandler: boolean;
   /** Whether this tool is externally hosted (has a webhookUrl). */
   isExternal: boolean;
 
@@ -91,6 +95,7 @@ export class SwaigFunction {
     this.webhookUrl = opts.webhookUrl;
     this.required = opts.required ?? [];
     this.extraFields = opts.extraFields ?? {};
+    this.isTypedHandler = opts.isTypedHandler ?? false;
     this.isExternal = opts.webhookUrl !== undefined;
   }
 

@@ -13,6 +13,7 @@ import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
 import { SwaigFunctionResult } from './SwaigFunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
@@ -500,6 +501,66 @@ export class AgentBase {
       waitFile: opts.waitFile,
       waitFileLoops: opts.waitFileLoops,
       required: opts.required,
+    });
+    this.toolRegistry.set(opts.name, fn);
+    return this;
+  }
+
+  /**
+   * Register a SWAIG tool with a typed handler that receives named parameters
+   * instead of the standard `(args, rawData)` convention.
+   *
+   * The SDK wraps the handler to unpack the args dict into positional params.
+   * If no `parameters` schema is provided, one is inferred from the handler's
+   * source code (parameter names and default values).
+   *
+   * @param opts - Tool definition with a typed handler function.
+   * @returns This agent instance for chaining.
+   */
+  defineTypedTool(opts: {
+    name: string;
+    description: string;
+    parameters?: Record<string, unknown>;
+    handler: Function;
+    secure?: boolean;
+    fillers?: Record<string, string[]>;
+    waitFile?: string;
+    waitFileLoops?: number;
+    required?: string[];
+  }): this {
+    let params = opts.parameters;
+    let required = opts.required ?? [];
+    let paramNames: string[];
+    let hasRawData = false;
+
+    const inferred = inferSchema(opts.handler);
+    if (inferred) {
+      paramNames = inferred.paramNames;
+      hasRawData = inferred.hasRawData;
+      if (!params) {
+        params = inferred.parameters;
+        required = inferred.required;
+      }
+    } else {
+      // Could not infer — treat as old-style handler
+      paramNames = [];
+    }
+
+    const wrapper = paramNames.length > 0
+      ? createTypedHandlerWrapper(opts.handler, paramNames, hasRawData)
+      : opts.handler as SwaigHandler;
+
+    const fn = new SwaigFunction({
+      name: opts.name,
+      description: opts.description,
+      parameters: params,
+      handler: wrapper,
+      secure: opts.secure,
+      fillers: opts.fillers,
+      waitFile: opts.waitFile,
+      waitFileLoops: opts.waitFileLoops,
+      required,
+      isTypedHandler: true,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;

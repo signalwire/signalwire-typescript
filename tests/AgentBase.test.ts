@@ -950,6 +950,72 @@ describe('AgentBase', () => {
     }
   });
 
+  // ── defineTypedTool ─────────────────────────────────────────────────
+
+  it('defineTypedTool registers tool with inferred schema', () => {
+    const agent = createAgent();
+    agent.setPromptText('hello');
+    agent.defineTypedTool({
+      name: 'get_weather',
+      description: 'Get weather for a city',
+      handler: (city: string, days = 5) => new SwaigFunctionResult(`Weather for ${city}, ${days} days`),
+    });
+    const tool = agent.getTool('get_weather');
+    expect(tool).toBeDefined();
+    expect(tool!.isTypedHandler).toBe(true);
+    expect(tool!.parameters['city']).toBeDefined();
+    expect(tool!.parameters['city']).toEqual({ type: 'string', description: 'The city parameter' });
+    expect(tool!.parameters['days']).toEqual({ type: 'integer', description: 'The days parameter' });
+    expect(tool!.required).toEqual(['city']);
+  });
+
+  it('defineTypedTool handler receives named params', async () => {
+    const agent = createAgent();
+    const captured: unknown[] = [];
+    agent.defineTypedTool({
+      name: 'greet',
+      description: 'Greet someone',
+      handler: (name: string, excited = false) => {
+        captured.push(name, excited);
+        return new SwaigFunctionResult('hi');
+      },
+    });
+    const tool = agent.getTool('greet');
+    await tool!.execute({ name: 'Alice', excited: true });
+    expect(captured).toEqual(['Alice', true]);
+  });
+
+  it('defineTypedTool explicit parameters override inference', () => {
+    const agent = createAgent();
+    agent.defineTypedTool({
+      name: 'custom',
+      description: 'Custom tool',
+      parameters: { location: { type: 'string', description: 'Location' } },
+      required: ['location'],
+      handler: (location: string) => new SwaigFunctionResult(`Got ${location}`),
+    });
+    const tool = agent.getTool('custom');
+    expect(tool).toBeDefined();
+    expect(tool!.parameters['location']).toEqual({ type: 'string', description: 'Location' });
+    // Should not have inferred params
+    expect(tool!.parameters['city']).toBeUndefined();
+  });
+
+  it('defineTypedTool SWML output includes tool', () => {
+    const agent = createAgent();
+    agent.setPromptText('hello');
+    agent.defineTypedTool({
+      name: 'lookup',
+      description: 'Look up info',
+      handler: (query: string) => new SwaigFunctionResult(`Found: ${query}`),
+    });
+    const swml = JSON.parse(agent.renderSwml());
+    const fns = swml.sections.main[1].ai.SWAIG.functions;
+    expect(fns.length).toBe(1);
+    expect(fns[0].function).toBe('lookup');
+    expect(fns[0].parameters.properties.query).toBeDefined();
+  });
+
   it('auto-generated password is 32 hex chars', () => {
     const savedUser = process.env['SWML_BASIC_AUTH_USER'];
     const savedPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
