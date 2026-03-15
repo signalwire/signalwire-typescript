@@ -7,8 +7,42 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { readFile, stat } from 'node:fs/promises';
+import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase } from './AgentBase.js';
 import { getLogger } from './Logger.js';
+
+/** Common MIME types for static file serving. */
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.htm': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.json': 'application/json',
+  '.xml': 'application/xml',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.csv': 'text/csv',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.gz': 'application/gzip',
+};
 
 /** Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes. */
 export class AgentServer {
@@ -104,6 +138,55 @@ export class AgentServer {
    */
   getAgent(route: string): AgentBase | undefined {
     return this.agents.get(route);
+  }
+
+  /**
+   * Serve static files from a local directory under a given route prefix.
+   * Includes path traversal protection (rejects `..`), MIME type detection,
+   * and security headers (Cache-Control, X-Content-Type-Options).
+   * @param directory - Absolute or relative path to the directory to serve.
+   * @param route - Route prefix for static files (defaults to '/static').
+   */
+  serveStaticFiles(directory: string, route = '/static'): void {
+    const baseDir = resolve(directory);
+    const routePrefix = route.replace(/\/+$/, '') || '/static';
+
+    this._app.get(`${routePrefix}/*`, async (c) => {
+      const requestedPath = c.req.path.slice(routePrefix.length);
+
+      // Path traversal protection: reject any path containing ".."
+      if (requestedPath.includes('..')) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+
+      const normalizedPath = normalize(requestedPath);
+      // Double-check the resolved path is within the base directory
+      const fullPath = resolve(join(baseDir, normalizedPath));
+      if (!fullPath.startsWith(baseDir)) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+
+      try {
+        const fileStat = await stat(fullPath);
+        if (!fileStat.isFile()) {
+          return c.json({ error: 'Not found' }, 404);
+        }
+
+        const content = await readFile(fullPath);
+        const ext = extname(fullPath).toLowerCase();
+        const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
+
+        c.header('Content-Type', contentType);
+        c.header('X-Content-Type-Options', 'nosniff');
+        c.header('Cache-Control', 'public, max-age=3600');
+
+        return c.body(content);
+      } catch {
+        return c.json({ error: 'Not found' }, 404);
+      }
+    });
+
+    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
   }
 
   /**

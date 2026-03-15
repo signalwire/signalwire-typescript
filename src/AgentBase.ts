@@ -90,6 +90,12 @@ export class AgentBase {
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
 
+  // SIP Routing
+  private _sipRoutingEnabled = false;
+  private _sipRoute = '/sip';
+  private _sipAutoMap = false;
+  private _sipUsernames: Map<string, string> | null = null;
+
   // Debug
   private debugEventsEnabled = false;
   private debugEventsLevel = 1;
@@ -471,6 +477,54 @@ export class AgentBase {
     this.debugEventsEnabled = true;
     this.debugEventsLevel = level;
     return this;
+  }
+
+  // ── SIP routing ────────────────────────────────────────────────────
+
+  /**
+   * Enable SIP routing for this agent.
+   * @param autoMap - When true, automatically map SIP usernames to the agent route (defaults to true).
+   * @param path - HTTP path for the SIP routing endpoint (defaults to '/sip').
+   * @returns This agent instance for chaining.
+   */
+  enableSipRouting(autoMap = true, path = '/sip'): this {
+    this._sipRoutingEnabled = true;
+    this._sipRoute = path;
+    if (autoMap) {
+      this._sipAutoMap = true;
+    }
+    return this;
+  }
+
+  /**
+   * Register a SIP username to route to this agent.
+   * @param username - The SIP username to register.
+   * @returns This agent instance for chaining.
+   */
+  registerSipUsername(username: string): this {
+    if (!this._sipUsernames) this._sipUsernames = new Map();
+    this._sipUsernames.set(username, this.route);
+    return this;
+  }
+
+  /**
+   * Extract the SIP username from a request body's call.to field.
+   * @param requestBody - The parsed request body containing call information.
+   * @returns The extracted SIP username, or null if not found.
+   */
+  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+    const call = requestBody?.['call'] as Record<string, unknown> | undefined;
+    const callTo = call?.['to'] as string | undefined;
+    if (callTo) {
+      let uri = callTo;
+      if (uri.startsWith('sip:') || uri.startsWith('sips:')) {
+        uri = uri.replace(/^sips?:/, '');
+      }
+      const atIdx = uri.indexOf('@');
+      if (atIdx > 0) return uri.substring(0, atIdx);
+      return uri;
+    }
+    return null;
   }
 
   // ── Tools ───────────────────────────────────────────────────────────
