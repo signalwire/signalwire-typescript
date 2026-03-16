@@ -115,3 +115,6 @@ export * from './relay/index.js';
 
 // REST Client (typed HTTP access to all SignalWire platform APIs)
 export * from './rest/index.js';
+
+// LiveWire (LiveKit-compatible agents powered by SignalWire)
+export * as livewire from './livewire/index.js';
