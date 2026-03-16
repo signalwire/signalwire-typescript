@@ -13,6 +13,7 @@ import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
 import { SwaigFunctionResult } from './SwaigFunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
@@ -88,6 +89,12 @@ export class AgentBase {
 
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
+
+  // SIP Routing
+  private _sipRoutingEnabled = false;
+  private _sipRoute = '/sip';
+  private _sipAutoMap = false;
+  private _sipUsernames: Map<string, string> | null = null;
 
   // Debug
   private debugEventsEnabled = false;
@@ -472,6 +479,54 @@ export class AgentBase {
     return this;
   }
 
+  // ── SIP routing ────────────────────────────────────────────────────
+
+  /**
+   * Enable SIP routing for this agent.
+   * @param autoMap - When true, automatically map SIP usernames to the agent route (defaults to true).
+   * @param path - HTTP path for the SIP routing endpoint (defaults to '/sip').
+   * @returns This agent instance for chaining.
+   */
+  enableSipRouting(autoMap = true, path = '/sip'): this {
+    this._sipRoutingEnabled = true;
+    this._sipRoute = path;
+    if (autoMap) {
+      this._sipAutoMap = true;
+    }
+    return this;
+  }
+
+  /**
+   * Register a SIP username to route to this agent.
+   * @param username - The SIP username to register.
+   * @returns This agent instance for chaining.
+   */
+  registerSipUsername(username: string): this {
+    if (!this._sipUsernames) this._sipUsernames = new Map();
+    this._sipUsernames.set(username, this.route);
+    return this;
+  }
+
+  /**
+   * Extract the SIP username from a request body's call.to field.
+   * @param requestBody - The parsed request body containing call information.
+   * @returns The extracted SIP username, or null if not found.
+   */
+  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+    const call = requestBody?.['call'] as Record<string, unknown> | undefined;
+    const callTo = call?.['to'] as string | undefined;
+    if (callTo) {
+      let uri = callTo;
+      if (uri.startsWith('sip:') || uri.startsWith('sips:')) {
+        uri = uri.replace(/^sips?:/, '');
+      }
+      const atIdx = uri.indexOf('@');
+      if (atIdx > 0) return uri.substring(0, atIdx);
+      return uri;
+    }
+    return null;
+  }
+
   // ── Tools ───────────────────────────────────────────────────────────
 
   /**
@@ -500,6 +555,66 @@ export class AgentBase {
       waitFile: opts.waitFile,
       waitFileLoops: opts.waitFileLoops,
       required: opts.required,
+    });
+    this.toolRegistry.set(opts.name, fn);
+    return this;
+  }
+
+  /**
+   * Register a SWAIG tool with a typed handler that receives named parameters
+   * instead of the standard `(args, rawData)` convention.
+   *
+   * The SDK wraps the handler to unpack the args dict into positional params.
+   * If no `parameters` schema is provided, one is inferred from the handler's
+   * source code (parameter names and default values).
+   *
+   * @param opts - Tool definition with a typed handler function.
+   * @returns This agent instance for chaining.
+   */
+  defineTypedTool(opts: {
+    name: string;
+    description: string;
+    parameters?: Record<string, unknown>;
+    handler: Function;
+    secure?: boolean;
+    fillers?: Record<string, string[]>;
+    waitFile?: string;
+    waitFileLoops?: number;
+    required?: string[];
+  }): this {
+    let params = opts.parameters;
+    let required = opts.required ?? [];
+    let paramNames: string[];
+    let hasRawData = false;
+
+    const inferred = inferSchema(opts.handler);
+    if (inferred) {
+      paramNames = inferred.paramNames;
+      hasRawData = inferred.hasRawData;
+      if (!params) {
+        params = inferred.parameters;
+        required = inferred.required;
+      }
+    } else {
+      // Could not infer — treat as old-style handler
+      paramNames = [];
+    }
+
+    const wrapper = paramNames.length > 0
+      ? createTypedHandlerWrapper(opts.handler, paramNames, hasRawData)
+      : opts.handler as SwaigHandler;
+
+    const fn = new SwaigFunction({
+      name: opts.name,
+      description: opts.description,
+      parameters: params,
+      handler: wrapper,
+      secure: opts.secure,
+      fillers: opts.fillers,
+      waitFile: opts.waitFile,
+      waitFileLoops: opts.waitFileLoops,
+      required,
+      isTypedHandler: true,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;

@@ -58,6 +58,10 @@ export type { ValidationResult } from './SchemaUtils.js';
 export { AuthHandler } from './AuthHandler.js';
 export type { AuthConfig } from './AuthHandler.js';
 
+// Type inference for typed tool handlers
+export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './TypeInference.js';
+export type { InferredSchema, ParsedParam } from './TypeInference.js';
+
 // Security utilities
 export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH } from './SecurityUtils.js';
 
@@ -105,3 +109,12 @@ export type {
   DynamicConfigCallback,
   SummaryCallback,
 } from './types.js';
+
+// RELAY Client (real-time call/message control over WebSocket)
+export * from './relay/index.js';
+
+// REST Client (typed HTTP access to all SignalWire platform APIs)
+export * from './rest/index.js';
+
+// LiveWire (LiveKit-compatible agents powered by SignalWire)
+export * as livewire from './livewire/index.js';
