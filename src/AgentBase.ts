@@ -13,9 +13,11 @@ import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
 import { SwaigFunctionResult } from './SwaigFunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
+import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase } from './skills/SkillBase.js';
 import type {
@@ -88,6 +90,12 @@ export class AgentBase {
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
 
+  // SIP Routing
+  private _sipRoutingEnabled = false;
+  private _sipRoute = '/sip';
+  private _sipAutoMap = false;
+  private _sipUsernames: Map<string, string> | null = null;
+
   // Debug
   private debugEventsEnabled = false;
   private debugEventsLevel = 1;
@@ -96,6 +104,8 @@ export class AgentBase {
   private _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   private _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
   private _proxyDebug = process.env['SWML_PROXY_DEBUG'] === 'true';
+  private _trustProxyHeaders = process.env['SWML_TRUST_PROXY_HEADERS'] === 'true';
+  private _enforceHttps = process.env['SWML_ENFORCE_HTTPS'] === 'true';
 
   /** Structured logger instance for this agent, configurable via SIGNALWIRE_LOG_LEVEL. */
   protected log = getLogger('AgentBase');
@@ -114,7 +124,11 @@ export class AgentBase {
     this.name = opts.name;
     this.route = (opts.route ?? '/').replace(/\/+$/, '') || '/';
     this.host = opts.host ?? '0.0.0.0';
-    this.port = opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
+    const parsedPort = opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
+    if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+      throw new Error(`Invalid port: ${opts.port ?? process.env['PORT']}. Must be between 1 and 65535.`);
+    }
+    this.port = parsedPort;
     this.agentId = opts.agentId ?? randomBytes(8).toString('hex');
     this.autoAnswer = opts.autoAnswer ?? true;
     this._recordCall = opts.recordCall ?? false;
@@ -128,7 +142,7 @@ export class AgentBase {
     }
 
     this.promptManager = new PromptManager(opts.usePom ?? true);
-    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
+    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 900);
     this.swmlBuilder = new SwmlBuilder();
 
     // Setup auth
@@ -142,7 +156,7 @@ export class AgentBase {
         this.basicAuthCreds = [envUser, envPass];
         this.basicAuthSource = 'environment';
       } else {
-        this.basicAuthCreds = [this.name, randomBytes(8).toString('hex')];
+        this.basicAuthCreds = [this.name, randomBytes(16).toString('hex')];
         this.basicAuthSource = 'generated';
       }
     }
@@ -371,7 +385,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setParams(params: Record<string, unknown>): this {
-    Object.assign(this.params, params);
+    safeAssign(this.params, params);
     return this;
   }
 
@@ -391,7 +405,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   updateGlobalData(data: Record<string, unknown>): this {
-    Object.assign(this.globalData, data);
+    safeAssign(this.globalData, data);
     return this;
   }
 
@@ -440,7 +454,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setPromptLlmParams(params: Record<string, unknown>): this {
-    Object.assign(this.promptLlmParams, params);
+    safeAssign(this.promptLlmParams, params);
     return this;
   }
 
@@ -450,7 +464,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setPostPromptLlmParams(params: Record<string, unknown>): this {
-    Object.assign(this.postPromptLlmParams, params);
+    safeAssign(this.postPromptLlmParams, params);
     return this;
   }
 
@@ -463,6 +477,54 @@ export class AgentBase {
     this.debugEventsEnabled = true;
     this.debugEventsLevel = level;
     return this;
+  }
+
+  // ── SIP routing ────────────────────────────────────────────────────
+
+  /**
+   * Enable SIP routing for this agent.
+   * @param autoMap - When true, automatically map SIP usernames to the agent route (defaults to true).
+   * @param path - HTTP path for the SIP routing endpoint (defaults to '/sip').
+   * @returns This agent instance for chaining.
+   */
+  enableSipRouting(autoMap = true, path = '/sip'): this {
+    this._sipRoutingEnabled = true;
+    this._sipRoute = path;
+    if (autoMap) {
+      this._sipAutoMap = true;
+    }
+    return this;
+  }
+
+  /**
+   * Register a SIP username to route to this agent.
+   * @param username - The SIP username to register.
+   * @returns This agent instance for chaining.
+   */
+  registerSipUsername(username: string): this {
+    if (!this._sipUsernames) this._sipUsernames = new Map();
+    this._sipUsernames.set(username, this.route);
+    return this;
+  }
+
+  /**
+   * Extract the SIP username from a request body's call.to field.
+   * @param requestBody - The parsed request body containing call information.
+   * @returns The extracted SIP username, or null if not found.
+   */
+  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+    const call = requestBody?.['call'] as Record<string, unknown> | undefined;
+    const callTo = call?.['to'] as string | undefined;
+    if (callTo) {
+      let uri = callTo;
+      if (uri.startsWith('sip:') || uri.startsWith('sips:')) {
+        uri = uri.replace(/^sips?:/, '');
+      }
+      const atIdx = uri.indexOf('@');
+      if (atIdx > 0) return uri.substring(0, atIdx);
+      return uri;
+    }
+    return null;
   }
 
   // ── Tools ───────────────────────────────────────────────────────────
@@ -493,6 +555,66 @@ export class AgentBase {
       waitFile: opts.waitFile,
       waitFileLoops: opts.waitFileLoops,
       required: opts.required,
+    });
+    this.toolRegistry.set(opts.name, fn);
+    return this;
+  }
+
+  /**
+   * Register a SWAIG tool with a typed handler that receives named parameters
+   * instead of the standard `(args, rawData)` convention.
+   *
+   * The SDK wraps the handler to unpack the args dict into positional params.
+   * If no `parameters` schema is provided, one is inferred from the handler's
+   * source code (parameter names and default values).
+   *
+   * @param opts - Tool definition with a typed handler function.
+   * @returns This agent instance for chaining.
+   */
+  defineTypedTool(opts: {
+    name: string;
+    description: string;
+    parameters?: Record<string, unknown>;
+    handler: Function;
+    secure?: boolean;
+    fillers?: Record<string, string[]>;
+    waitFile?: string;
+    waitFileLoops?: number;
+    required?: string[];
+  }): this {
+    let params = opts.parameters;
+    let required = opts.required ?? [];
+    let paramNames: string[];
+    let hasRawData = false;
+
+    const inferred = inferSchema(opts.handler);
+    if (inferred) {
+      paramNames = inferred.paramNames;
+      hasRawData = inferred.hasRawData;
+      if (!params) {
+        params = inferred.parameters;
+        required = inferred.required;
+      }
+    } else {
+      // Could not infer — treat as old-style handler
+      paramNames = [];
+    }
+
+    const wrapper = paramNames.length > 0
+      ? createTypedHandlerWrapper(opts.handler, paramNames, hasRawData)
+      : opts.handler as SwaigHandler;
+
+    const fn = new SwaigFunction({
+      name: opts.name,
+      description: opts.description,
+      parameters: params,
+      handler: wrapper,
+      secure: opts.secure,
+      fillers: opts.fillers,
+      waitFile: opts.waitFile,
+      waitFileLoops: opts.waitFileLoops,
+      required,
+      isTypedHandler: true,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
@@ -639,7 +761,7 @@ export class AgentBase {
       if (Object.keys(skill.swaigFields).length > 0) {
         const fn = this.toolRegistry.get(toolDef.name);
         if (fn instanceof SwaigFunction) {
-          Object.assign(fn.extraFields, skill.swaigFields);
+          safeAssign(fn.extraFields, skill.swaigFields);
         }
       }
     }
@@ -704,7 +826,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   addSwaigQueryParams(params: Record<string, string>): this {
-    Object.assign(this.swaigQueryParams, params);
+    safeAssign(this.swaigQueryParams, params);
     return this;
   }
 
@@ -724,6 +846,8 @@ export class AgentBase {
   private detectProxyFromRequest(c: any): void {
     // Never override env var setting
     if (this._proxyUrlBaseFromEnv) return;
+    // Only trust proxy headers when explicitly enabled
+    if (!this._trustProxyHeaders) return;
 
     const get = (name: string): string | undefined =>
       c.req.header(name) ?? undefined;
@@ -743,12 +867,14 @@ export class AgentBase {
     if (forwarded) {
       const hostMatch = forwarded.match(/host=([^;,\s]+)/i);
       const protoMatch = forwarded.match(/proto=([^;,\s]+)/i);
-      if (hostMatch) {
+      if (hostMatch && isValidHostname(hostMatch[1])) {
         const proto = protoMatch ? protoMatch[1] : 'https';
         const url = `${proto}://${hostMatch[1]}`;
         if (this._proxyDebug) this.log.debug(`Proxy detected from Forwarded header: ${url}`);
         this._proxyUrlBase = url;
         return;
+      } else if (hostMatch) {
+        this.log.warn(`Invalid hostname in Forwarded header: ${hostMatch[1]}`);
       }
     }
 
@@ -802,7 +928,7 @@ export class AgentBase {
       if (includeAuth) base = this.insertAuth(base);
       return base;
     }
-    const protocol = 'http';
+    const protocol = this._enforceHttps ? 'https' : 'http';
     const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
     let base = `${protocol}://${hostPart}:${this.port}`;
     if (includeAuth) base = this.insertAuth(base);
@@ -926,7 +1052,7 @@ export class AgentBase {
           if (token) urlParams['__token'] = token;
           entry['web_hook_url'] = this.buildWebhookUrl('swaig', urlParams);
         }
-        Object.assign(entry, fn.extraFields);
+        safeAssign(entry, fn.extraFields);
         functions.push(entry);
       } else {
         // Raw dict (DataMap) - use as-is
@@ -1060,7 +1186,7 @@ export class AgentBase {
           if (Object.keys(skill.swaigFields).length > 0) {
             const fn = copy.toolRegistry.get(toolDef.name);
             if (fn instanceof SwaigFunction) {
-              Object.assign(fn.extraFields, skill.swaigFields);
+              safeAssign(fn.extraFields, skill.swaigFields);
             }
           }
         }
@@ -1099,12 +1225,15 @@ export class AgentBase {
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
       c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+      c.res.headers.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+      c.res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     });
 
     // Request size limit
     app.use('*', async (c, next) => {
       const contentLength = c.req.header('content-length');
-      if (contentLength && parseInt(contentLength, 10) > maxRequestSize) {
+      const size = parseInt(contentLength ?? '', 10);
+      if (contentLength && (isNaN(size) || size > maxRequestSize)) {
         return c.json({ error: 'Request too large' }, 413);
       }
       await next();
@@ -1130,14 +1259,22 @@ export class AgentBase {
       if (maxPerMinute > 0) {
         const hits = new Map<string, { count: number; resetAt: number }>();
         app.use('*', async (c, next) => {
-          const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim()
-            ?? c.req.header('x-real-ip')
-            ?? 'unknown';
+          const ip = this._trustProxyHeaders
+            ? (c.req.header('x-forwarded-for')?.split(',')[0].trim()
+              ?? c.req.header('x-real-ip')
+              ?? 'unknown')
+            : 'unknown';
           const now = Date.now();
           let entry = hits.get(ip);
           if (!entry || now >= entry.resetAt) {
             entry = { count: 0, resetAt: now + 60_000 };
             hits.set(ip, entry);
+          }
+          // Cleanup if map grows too large
+          if (hits.size > 10000) {
+            for (const [k, v] of hits) {
+              if (now >= v.resetAt) hits.delete(k);
+            }
           }
           entry.count++;
           if (entry.count > maxPerMinute) {
@@ -1151,7 +1288,24 @@ export class AgentBase {
     // CORS (configurable via env)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
     const corsOrigin = corsOrigins ? corsOrigins.split(',').map(o => o.trim()) : '*';
-    app.use('*', cors({ origin: corsOrigin, credentials: true }));
+    const corsCredentials = corsOrigin !== '*';
+    app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
+
+    // CSRF protection (optional, gated by env)
+    if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
+      const allowedOrigins = corsOrigins
+        ? new Set(corsOrigins.split(',').map(o => o.trim().toLowerCase()))
+        : null;
+      app.use('*', async (c, next) => {
+        if (c.req.method === 'POST') {
+          const origin = c.req.header('origin');
+          if (origin && allowedOrigins && !allowedOrigins.has(origin.toLowerCase())) {
+            return c.json({ error: 'Origin not allowed' }, 403);
+          }
+        }
+        await next();
+      });
+    }
 
     // Auth middleware
     const [user, pass] = this.basicAuthCreds;
@@ -1161,11 +1315,19 @@ export class AgentBase {
 
     // Root - returns SWML
     const handleSwml = async (c: any) => {
+      let reqLog = this.log.bind({ endpoint: this.route });
+      reqLog.debug('endpoint_called');
+
       let body: Record<string, unknown> = {};
       try { body = await c.req.json(); } catch { /* GET or no body */ }
 
+      reqLog.debug('request_body_received', { body_size: JSON.stringify(body).length });
+
       this.detectProxyFromRequest(c);
       await this.onSwmlRequest(body);
+
+      const callId = (body['call_id'] as string) || undefined;
+      if (callId) reqLog = reqLog.bind({ call_id: callId });
 
       let agentToUse: AgentBase = this;
       if (this.dynamicConfigCallback) {
@@ -1173,13 +1335,16 @@ export class AgentBase {
         const queryParams: Record<string, string> = {};
         const url = new URL(c.req.url);
         url.searchParams.forEach((v: string, k: string) => { queryParams[k] = v; });
-        const headers: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
+        const rawHeaders: Record<string, string> = {};
+        c.req.raw.headers.forEach((v: string, k: string) => { rawHeaders[k] = v; });
+        const headers = filterSensitiveHeaders(rawHeaders);
         await this.dynamicConfigCallback(queryParams, body, headers, agentToUse);
+        reqLog.debug('dynamic_config_complete');
       }
 
-      const callId = (body['call_id'] as string) || undefined;
       const swml = agentToUse.renderSwml(callId);
+      reqLog.debug('swml_rendered', { swml_size: swml.length });
+      reqLog.info('request_successful');
       return c.json(JSON.parse(swml));
     };
 
@@ -1192,14 +1357,29 @@ export class AgentBase {
 
     // SWAIG function dispatcher
     const handleSwaig = async (c: any) => {
+      let reqLog = this.log.bind({ endpoint: `${basePath}/swaig` });
+      reqLog.debug('endpoint_called');
+
       let body: Record<string, unknown> = {};
       try { body = await c.req.json(); } catch { /* empty */ }
 
       const fnName = body['function'] as string;
       if (!fnName) return c.json({ error: 'Missing function name' }, 400);
+      if (fnName.length > 128) return c.json({ error: 'Invalid function name' }, 400);
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fnName)) {
+        reqLog.warn('invalid_function_name_format', { function: fnName });
+        return c.json({ error: 'Invalid function name' }, 400);
+      }
+
+      reqLog = reqLog.bind({ function: fnName });
+      reqLog.debug('function_call_received');
+
+      const callIdStr = (body['call_id'] as string) ?? '';
+      if (callIdStr) reqLog = reqLog.bind({ call_id: callIdStr });
 
       const fn = this.toolRegistry.get(fnName);
       if (!fn || !(fn instanceof SwaigFunction)) {
+        reqLog.warn('function_not_found', { requested: fnName });
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
@@ -1207,16 +1387,40 @@ export class AgentBase {
       if (fn.secure) {
         const url = new URL(c.req.url);
         const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-        const callId = (body['call_id'] as string) ?? '';
-        if (!token || !this.sessionManager.validateToken(callId, fnName, token)) {
-          return c.json({ error: 'Invalid or expired token' }, 403);
+        if (!token) {
+          reqLog.warn('missing_token');
+          const result = new SwaigFunctionResult(
+            'The security token for this function is missing or expired. This action cannot be completed.'
+          );
+          return c.json(result.toDict());
         }
+        if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
+          reqLog.warn('token_invalid');
+          const result = new SwaigFunctionResult(
+            'The security token for this function is invalid or expired. This action cannot be completed.'
+          );
+          return c.json(result.toDict());
+        }
+        reqLog.debug('token_valid');
       }
 
-      const args = (body['argument'] as Record<string, unknown>) ?? {};
+      const rawArgs = body['argument'];
+      const args: Record<string, unknown> =
+        (rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs))
+          ? rawArgs as Record<string, unknown>
+          : {};
+      reqLog.debug('executing_function', { args: JSON.stringify(args) });
       await this.onFunctionCall(fnName, args, body);
-      const result = await fn.execute(args, body);
-      return c.json(result);
+
+      try {
+        const result = await fn.execute(args, body);
+        reqLog.info('function_executed_successfully');
+        reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
+        return c.json(result);
+      } catch (err) {
+        reqLog.error('function_execution_error', { error: err instanceof Error ? err.message : String(err) });
+        return c.json({ error: 'Function execution failed' }, 500);
+      }
     };
 
     app.get(`${basePath}/swaig`, authMw, handleSwaig);
@@ -1224,8 +1428,16 @@ export class AgentBase {
 
     // Post-prompt handler
     const handlePostPrompt = async (c: any) => {
+      let reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt` });
+      reqLog.debug('endpoint_called');
+
       let body: Record<string, unknown> = {};
       try { body = await c.req.json(); } catch { /* empty */ }
+
+      const callId = (body['call_id'] as string) || undefined;
+      if (callId) reqLog = reqLog.bind({ call_id: callId });
+
+      reqLog.info('post_prompt_received');
 
       const summary = this.findSummary(body);
       await this.onSummary(summary, body);
@@ -1237,10 +1449,13 @@ export class AgentBase {
 
     // Debug events handler
     const handleDebugEvents = async (c: any) => {
+      const reqLog = this.log.bind({ endpoint: `${basePath}/debug_events` });
+      reqLog.debug('endpoint_called');
+
       let body: Record<string, unknown> = {};
       try { body = await c.req.json(); } catch { /* empty */ }
 
-      this.log.debug('Debug event received', body);
+      reqLog.debug('debug_event_received', body);
       await this.onDebugEvent(body);
       return c.json({ ok: true });
     };
@@ -1273,8 +1488,12 @@ export class AgentBase {
 
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
-    this.log.info(`Agent '${this.name}' running at http://${this.host}:${this.port}${this.route}`);
+    const listenUrl = `http://${this.host}:${this.port}${this.route}`;
+    this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
     this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);
+    if (this._proxyUrlBase) {
+      this.log.info(`Proxy URL: ${redactUrl(this._proxyUrlBase)}`);
+    }
     honoServe({ fetch: app.fetch, port: this.port, hostname: this.host });
   }
 

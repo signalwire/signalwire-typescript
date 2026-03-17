@@ -7,8 +7,42 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { readFile, stat } from 'node:fs/promises';
+import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase } from './AgentBase.js';
 import { getLogger } from './Logger.js';
+
+/** Common MIME types for static file serving. */
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.htm': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.json': 'application/json',
+  '.xml': 'application/xml',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.csv': 'text/csv',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.gz': 'application/gzip',
+};
 
 /** Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes. */
 export class AgentServer {
@@ -36,10 +70,15 @@ export class AgentServer {
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
       c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+      c.res.headers.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+      c.res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     });
 
-    // CORS
-    this._app.use('*', cors({ origin: '*', credentials: true }));
+    // CORS (configurable via env)
+    const corsOrigins = process.env['SWML_CORS_ORIGINS'];
+    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+    const corsCredentials = corsOrigin !== '*';
+    this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
 
     // Global health endpoints
     this._app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -102,6 +141,55 @@ export class AgentServer {
   }
 
   /**
+   * Serve static files from a local directory under a given route prefix.
+   * Includes path traversal protection (rejects `..`), MIME type detection,
+   * and security headers (Cache-Control, X-Content-Type-Options).
+   * @param directory - Absolute or relative path to the directory to serve.
+   * @param route - Route prefix for static files (defaults to '/static').
+   */
+  serveStaticFiles(directory: string, route = '/static'): void {
+    const baseDir = resolve(directory);
+    const routePrefix = route.replace(/\/+$/, '') || '/static';
+
+    this._app.get(`${routePrefix}/*`, async (c) => {
+      const requestedPath = c.req.path.slice(routePrefix.length);
+
+      // Path traversal protection: reject any path containing ".."
+      if (requestedPath.includes('..')) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+
+      const normalizedPath = normalize(requestedPath);
+      // Double-check the resolved path is within the base directory
+      const fullPath = resolve(join(baseDir, normalizedPath));
+      if (!fullPath.startsWith(baseDir)) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+
+      try {
+        const fileStat = await stat(fullPath);
+        if (!fileStat.isFile()) {
+          return c.json({ error: 'Not found' }, 404);
+        }
+
+        const content = await readFile(fullPath);
+        const ext = extname(fullPath).toLowerCase();
+        const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
+
+        c.header('Content-Type', contentType);
+        c.header('X-Content-Type-Options', 'nosniff');
+        c.header('Cache-Control', 'public, max-age=3600');
+
+        return c.body(content);
+      } catch {
+        return c.json({ error: 'Not found' }, 404);
+      }
+    });
+
+    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
+  }
+
+  /**
    * Build and return the Hono application with all registered agents and a root listing endpoint.
    * @returns The fully configured Hono app.
    */
@@ -140,6 +228,10 @@ export class AgentServer {
     const p = port ?? this.port;
 
     const app = this.getApp();
+
+    if (this.agents.size === 0) {
+      this.log.warn('starting_server_with_no_agents');
+    }
 
     this.log.info(`Starting on http://${h}:${p}`);
     for (const [route, agent] of this.agents) {

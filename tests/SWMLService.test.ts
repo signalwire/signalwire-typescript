@@ -253,4 +253,68 @@ describe('SWMLService', () => {
       delete process.env['SWAIG_CLI_MODE'];
     });
   });
+
+  // ── Security remediation round 2 ────────────────────────────────
+
+  describe('CORS credentials with wildcard origin', () => {
+    it('does not set credentials: true with wildcard origin', async () => {
+      const saved = process.env['SWML_CORS_ORIGINS'];
+      delete process.env['SWML_CORS_ORIGINS'];
+      try {
+        const svc = new SWMLService();
+        svc.addVerb('answer', {});
+        const app = svc.getApp();
+        const res = await app.request('/', {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': 'https://example.com',
+            'Access-Control-Request-Method': 'GET',
+          },
+        });
+        // With wildcard, Access-Control-Allow-Credentials should NOT be 'true'
+        expect(res.headers.get('Access-Control-Allow-Credentials')).not.toBe('true');
+      } finally {
+        if (saved) process.env['SWML_CORS_ORIGINS'] = saved;
+      }
+    });
+
+    it('sets credentials: true when SWML_CORS_ORIGINS is configured', async () => {
+      const saved = process.env['SWML_CORS_ORIGINS'];
+      process.env['SWML_CORS_ORIGINS'] = 'https://example.com';
+      try {
+        const svc = new SWMLService();
+        svc.addVerb('answer', {});
+        const app = svc.getApp();
+        const res = await app.request('/', {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': 'https://example.com',
+            'Access-Control-Request-Method': 'GET',
+          },
+        });
+        expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+      } finally {
+        if (saved) process.env['SWML_CORS_ORIGINS'] = saved;
+        else delete process.env['SWML_CORS_ORIGINS'];
+      }
+    });
+  });
+
+  describe('CSP and Permissions-Policy headers', () => {
+    it('includes Content-Security-Policy header', async () => {
+      const svc = new SWMLService();
+      svc.addVerb('answer', {});
+      const app = svc.getApp();
+      const res = await app.request('/', { method: 'GET' });
+      expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
+    });
+
+    it('includes Permissions-Policy header', async () => {
+      const svc = new SWMLService();
+      svc.addVerb('answer', {});
+      const app = svc.getApp();
+      const res = await app.request('/', { method: 'GET' });
+      expect(res.headers.get('Permissions-Policy')).toContain('camera=()');
+    });
+  });
 });

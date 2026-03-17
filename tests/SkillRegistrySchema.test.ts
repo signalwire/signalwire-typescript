@@ -27,10 +27,10 @@ describe('SkillRegistry Schema', () => {
     expect(schema).toBeUndefined();
   });
 
-  it('getAllSkillsSchema returns schemas for all 18 built-in skills', () => {
+  it('getAllSkillsSchema returns schemas for all 19 built-in skills', () => {
     const allSchemas = registry.getAllSkillsSchema();
     const names = Object.keys(allSchemas);
-    expect(names.length).toBe(18);
+    expect(names.length).toBe(19);
     expect(names).toContain('datetime');
     expect(names).toContain('math');
     expect(names).toContain('joke');
@@ -38,6 +38,7 @@ describe('SkillRegistry Schema', () => {
     expect(names).toContain('datasphere');
     expect(names).toContain('native_vector_search');
     expect(names).toContain('claude_skills');
+    expect(names).toContain('ask_claude');
     expect(names).toContain('mcp_gateway');
   });
 
@@ -68,9 +69,9 @@ describe('SkillRegistry Schema', () => {
   it('listAllSkillSources groups skills by source', () => {
     const sources = registry.listAllSkillSources();
     expect(sources).toBeDefined();
-    // All 18 should appear in some category
+    // All 19 should appear in some category
     const total = Object.values(sources).flat().length;
-    expect(total).toBe(18);
+    expect(total).toBe(19);
   });
 
   it('weather_api schema includes api_key with hidden + env_var', () => {

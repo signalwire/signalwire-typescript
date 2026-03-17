@@ -15,6 +15,10 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('WeatherApiSkill');
 
 /** Response shape from the OpenWeatherMap current weather endpoint. */
 interface WeatherApiResponse {
@@ -117,10 +121,14 @@ export class WeatherApiSkill extends SkillBase {
             );
           }
 
+          if (location.length > MAX_SKILL_INPUT_LENGTH) {
+            return new SwaigFunctionResult('Input is too long.');
+          }
+
           const apiKey = process.env['WEATHER_API_KEY'];
           if (!apiKey) {
             return new SwaigFunctionResult(
-              'Weather service is not configured. The WEATHER_API_KEY environment variable is missing.',
+              'Service is not configured. Please contact your administrator.',
             );
           }
 
@@ -128,13 +136,20 @@ export class WeatherApiSkill extends SkillBase {
             const encodedLocation = encodeURIComponent(location.trim());
             const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&appid=${apiKey}&units=${units}`;
 
-            const response = await fetch(url);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(url, { signal: controller.signal });
+            } finally {
+              clearTimeout(timeout);
+            }
             const data = (await response.json()) as WeatherApiResponse;
 
             if (!response.ok || data.cod !== 200) {
-              const errorMessage = data.message ?? `HTTP ${response.status}`;
+              log.error('weather_api_error', { status: response.status });
               return new SwaigFunctionResult(
-                `Could not retrieve weather for "${location}": ${errorMessage}. Please check the location name and try again.`,
+                `Could not retrieve weather for "${location}". Please check the location name and try again.`,
               );
             }
 
@@ -167,9 +182,9 @@ export class WeatherApiSkill extends SkillBase {
 
             return new SwaigFunctionResult(parts.join(' '));
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+            log.error('get_weather_failed', { error: err instanceof Error ? err.message : String(err) });
             return new SwaigFunctionResult(
-              `Failed to fetch weather data for "${location}": ${message}`,
+              'The request could not be completed. Please try again.',
             );
           }
         },

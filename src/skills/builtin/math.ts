@@ -117,10 +117,9 @@ export class MathSkill extends SkillBase {
             return new SwaigFunctionResult(
               `The result of ${expression.trim()} is ${result}.`,
             );
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
+          } catch {
             return new SwaigFunctionResult(
-              `Could not evaluate the expression "${expression}": ${message}`,
+              `Could not evaluate the expression. Please check that it contains only valid mathematical operators and try again.`,
             );
           }
         },

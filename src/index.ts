@@ -20,7 +20,7 @@ export { SwaigFunction } from './SwaigFunction.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
 // DataMap (server-side tools)
-export { DataMap, createSimpleApiTool, createExpressionTool } from './DataMap.js';
+export { DataMap, createSimpleApiTool, createExpressionTool, setAllowedEnvPrefixes, getAllowedEnvPrefixes } from './DataMap.js';
 
 // Prompt Object Model
 export { PomBuilder, PomSection } from './PomBuilder.js';
@@ -58,11 +58,18 @@ export type { ValidationResult } from './SchemaUtils.js';
 export { AuthHandler } from './AuthHandler.js';
 export type { AuthConfig } from './AuthHandler.js';
 
+// Type inference for typed tool handlers
+export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './TypeInference.js';
+export type { InferredSchema, ParsedParam } from './TypeInference.js';
+
+// Security utilities
+export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH } from './SecurityUtils.js';
+
 // Config
 export { ConfigLoader } from './ConfigLoader.js';
 
 // Logging
-export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, resetLoggingConfiguration } from './Logger.js';
+export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode } from './Logger.js';
 
 // Serverless
 export { ServerlessAdapter } from './ServerlessAdapter.js';
@@ -80,7 +87,7 @@ export {
   ApiNinjasTriviaSkill, InfoGathererSkill, CustomSkillsSkill,
   WebSearchSkill, WikipediaSearchSkill, GoogleMapsSkill,
   DataSphereSkill, DataSphereServerlessSkill, NativeVectorSearchSkill,
-  SpiderSkill, ClaudeSkill, McpGatewaySkill,
+  SpiderSkill, ClaudeSkillsSkill, AskClaudeSkill, McpGatewaySkill,
 } from './skills/builtin/index.js';
 
 // Prefab Agents
@@ -102,3 +109,12 @@ export type {
   DynamicConfigCallback,
   SummaryCallback,
 } from './types.js';
+
+// RELAY Client (real-time call/message control over WebSocket)
+export * from './relay/index.js';
+
+// REST Client (typed HTTP access to all SignalWire platform APIs)
+export * from './rest/index.js';
+
+// LiveWire (LiveKit-compatible agents powered by SignalWire)
+export * as livewire from './livewire/index.js';

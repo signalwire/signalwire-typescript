@@ -5,6 +5,9 @@
  * completion criteria, function restrictions, and navigation rules.
  */
 
+const MAX_CONTEXTS = 50;
+const MAX_STEPS_PER_CONTEXT = 100;
+
 // ── GatherQuestion ──────────────────────────────────────────────────
 
 /** Represents a single question within a gather operation. */
@@ -98,6 +101,14 @@ export class GatherInfo {
    */
   getQuestions(): GatherQuestion[] {
     return this.questions;
+  }
+
+  /**
+   * Returns the completion action for this gather info.
+   * @internal
+   */
+  getCompletionAction(): string | undefined {
+    return this.completionAction;
   }
 
   /**
@@ -287,6 +298,14 @@ export class Step {
   }
 
   /**
+   * Returns the gather info for this step, if any.
+   * @internal
+   */
+  getGatherInfo(): GatherInfo | null {
+    return this.gatherInfo;
+  }
+
+  /**
    * Removes all POM sections and raw text from this step.
    * @returns This step for chaining.
    */
@@ -424,6 +443,9 @@ export class Context {
       validSteps?: string[];
     },
   ): Step {
+    if (this.steps.size >= MAX_STEPS_PER_CONTEXT) {
+      throw new Error(`Maximum steps per context (${MAX_STEPS_PER_CONTEXT}) exceeded`);
+    }
     if (this.steps.has(name)) throw new Error(`Step '${name}' already exists in context '${this.name}'`);
     const step = new Step(name);
     this.steps.set(name, step);
@@ -659,6 +681,11 @@ export class Context {
   }
 
   /** @internal */
+  getStepOrder(): readonly string[] {
+    return this.stepOrder;
+  }
+
+  /** @internal */
   getValidContexts(): string[] | null {
     return this._validContexts;
   }
@@ -728,6 +755,9 @@ export class ContextBuilder {
    * @returns The newly created Context for further configuration.
    */
   addContext(name: string): Context {
+    if (this.contexts.size >= MAX_CONTEXTS) {
+      throw new Error(`Maximum number of contexts (${MAX_CONTEXTS}) exceeded`);
+    }
     if (this.contexts.has(name)) throw new Error(`Context '${name}' already exists`);
     const ctx = new Context(name);
     this.contexts.set(name, ctx);
@@ -765,6 +795,30 @@ export class ContextBuilder {
           if (!this.contexts.has(ref)) {
             throw new Error(`Context '${ctx.name}' references unknown context '${ref}'`);
           }
+        }
+      }
+    }
+    // Validate completion_action references in gather_info
+    for (const [ctxName, ctx] of this.contexts) {
+      const stepOrder = ctx.getStepOrder();
+      const steps = ctx.getSteps();
+      for (let i = 0; i < stepOrder.length; i++) {
+        const stepName = stepOrder[i];
+        const step = steps.get(stepName)!;
+        const gi = step.getGatherInfo();
+        if (!gi) continue;
+        const action = gi.getCompletionAction();
+        if (!action) continue;
+        if (action === 'next_step') {
+          if (i === stepOrder.length - 1) {
+            throw new Error(
+              `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='next_step' but it is the last step in the context`,
+            );
+          }
+        } else if (!steps.has(action)) {
+          throw new Error(
+            `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='${action}' but step '${action}' does not exist in this context`,
+          );
         }
       }
     }

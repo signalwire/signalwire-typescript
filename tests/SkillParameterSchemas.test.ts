@@ -15,7 +15,8 @@ import { DataSphereSkill } from '../src/skills/builtin/datasphere.js';
 import { DataSphereServerlessSkill } from '../src/skills/builtin/datasphere_serverless.js';
 import { NativeVectorSearchSkill } from '../src/skills/builtin/native_vector_search.js';
 import { SpiderSkill } from '../src/skills/builtin/spider.js';
-import { ClaudeSkill } from '../src/skills/builtin/claude_skills.js';
+import { ClaudeSkillsSkill } from '../src/skills/builtin/claude_skills.js';
+import { AskClaudeSkill } from '../src/skills/builtin/ask_claude.js';
 import { McpGatewaySkill } from '../src/skills/builtin/mcp_gateway.js';
 import type { ParameterSchemaEntry } from '../src/skills/SkillBase.js';
 
@@ -36,7 +37,8 @@ const ALL_SKILLS = [
   { name: 'DataSphereServerlessSkill', cls: DataSphereServerlessSkill },
   { name: 'NativeVectorSearchSkill', cls: NativeVectorSearchSkill },
   { name: 'SpiderSkill', cls: SpiderSkill },
-  { name: 'ClaudeSkill', cls: ClaudeSkill },
+  { name: 'ClaudeSkillsSkill', cls: ClaudeSkillsSkill },
+  { name: 'AskClaudeSkill', cls: AskClaudeSkill },
   { name: 'McpGatewaySkill', cls: McpGatewaySkill },
 ] as const;
 
@@ -99,10 +101,16 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.max_results.default).toBe(5);
     });
 
-    it('ClaudeSkill has model with default', () => {
-      const schema = ClaudeSkill.getParameterSchema();
+    it('AskClaudeSkill has model with default', () => {
+      const schema = AskClaudeSkill.getParameterSchema();
       expect(schema.model).toBeDefined();
       expect(schema.model.default).toBe('claude-sonnet-4-5-20250929');
+    });
+
+    it('ClaudeSkillsSkill has skills_path required', () => {
+      const schema = ClaudeSkillsSkill.getParameterSchema();
+      expect(schema.skills_path).toBeDefined();
+      expect(schema.skills_path.required).toBe(true);
     });
 
     it('DataSphereSkill has distance_threshold with min/max', () => {

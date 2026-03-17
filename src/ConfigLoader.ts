@@ -12,6 +12,8 @@ const ENV_VAR_PATTERN = /\$\{([^}|]+)(?:\|([^}]*))?\}/g;
 
 /** JSON configuration file loader with environment variable interpolation and dot-notation access. */
 export class ConfigLoader {
+  private static readonly DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
   private data: Record<string, unknown> = {};
   private filePath: string | null = null;
 
@@ -71,6 +73,9 @@ export class ConfigLoader {
    */
   get<T = unknown>(path: string, defaultValue?: T): T {
     const parts = path.split('.');
+    if (parts.some(p => ConfigLoader.DANGEROUS_KEYS.has(p))) {
+      return defaultValue as T;
+    }
     let current: unknown = this.data;
 
     for (const part of parts) {
@@ -91,6 +96,9 @@ export class ConfigLoader {
    */
   set(path: string, value: unknown): this {
     const parts = path.split('.');
+    if (parts.some(p => ConfigLoader.DANGEROUS_KEYS.has(p))) {
+      return this;
+    }
     let current: Record<string, unknown> = this.data;
 
     for (let i = 0; i < parts.length - 1; i++) {

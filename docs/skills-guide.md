@@ -8,7 +8,7 @@ Complete guide to the Skills system in the SignalWire AI Agents TypeScript SDK -
 
 1. [Overview](#overview)
 2. [Using Skills](#using-skills)
-3. [Built-in Skills (18)](#built-in-skills-18)
+3. [Built-in Skills (19)](#built-in-skills-18)
 4. [Skill Configuration](#skill-configuration)
 5. [Skill Registry](#skill-registry)
 6. [Creating Custom Skills](#creating-custom-skills)
@@ -100,7 +100,7 @@ if (agent.hasSkill('web_search')) {
 
 ---
 
-## Built-in Skills (18)
+## Built-in Skills (19)
 
 The SDK ships with 18 built-in skills organized into three tiers based on complexity and dependency requirements.
 
@@ -242,7 +242,8 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 | `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold`, `document_id` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
 | `spider` | `SpiderSkill` | Web page scraping via Spider API | `scrape_url` | `SPIDER_API_KEY` | `max_content_length` |
-| `claude_skills` | `ClaudeSkill` | Anthropic Claude AI sub-queries | `ask_claude` | `ANTHROPIC_API_KEY` | `model`, `max_tokens` |
+| `claude_skills` | `ClaudeSkillsSkill` | Load Claude SKILL.md files as tools | (dynamic) | None | `skills_path`, `include`, `exclude`, `tool_prefix` |
+| `ask_claude` | `AskClaudeSkill` | Anthropic Claude AI sub-queries | `ask_claude` | `ANTHROPIC_API_KEY` | `model`, `max_tokens` |
 | `mcp_gateway` | `McpGatewaySkill` | MCP protocol gateway (placeholder) | `mcp_invoke` | None | None |
 
 **web_search** -- Searches the web using Google Custom Search JSON API. Returns formatted results with titles, links, and snippets.
@@ -312,11 +313,23 @@ await agent.addSkill(new SpiderSkill({
 }));
 ```
 
-**claude_skills** -- Provides access to Anthropic's Claude AI for sub-queries, complex reasoning, analysis, or summarization. The agent can delegate tasks to Claude when deeper processing is needed.
+**claude_skills** -- Loads Claude Code SKILL.md files from a directory and converts them into SWAIG tools. Each skill directory contains a `SKILL.md` with YAML frontmatter (name, description) and markdown instructions. Supports argument substitution, variable replacement, optional shell injection, and invocation control.
 
 ```typescript
-import { ClaudeSkill } from 'signalwire-agents/skills/builtin';
-await agent.addSkill(new ClaudeSkill({
+import { ClaudeSkillsSkill } from 'signalwire-agents/skills/builtin';
+await agent.addSkill(new ClaudeSkillsSkill({
+  skills_path: '/path/to/skills',
+  include: ['*'],
+  exclude: [],
+  tool_prefix: 'claude_',
+}));
+```
+
+**ask_claude** -- Provides access to Anthropic's Claude AI for sub-queries, complex reasoning, analysis, or summarization. The agent can delegate tasks to Claude when deeper processing is needed.
+
+```typescript
+import { AskClaudeSkill } from 'signalwire-agents/skills/builtin';
+await agent.addSkill(new AskClaudeSkill({
   model: 'claude-sonnet-4-5-20250929',
   max_tokens: 1024,
 }));
@@ -841,5 +854,5 @@ This two-layer approach (warn at registration, error at call time) allows agents
 | `SIGNALWIRE_TOKEN` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_SPACE` | `datasphere`, `datasphere_serverless` |
 | `SPIDER_API_KEY` | `spider` |
-| `ANTHROPIC_API_KEY` | `claude_skills` |
+| `ANTHROPIC_API_KEY` | `ask_claude` |
 | `SIGNALWIRE_SKILL_PATHS` | `SkillRegistry` (directory discovery) |
