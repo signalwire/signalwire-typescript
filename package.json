@@ -1,6 +1,6 @@
 {
   "name": "signalwire-agents",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "SignalWire AI Agents SDK for TypeScript/Node.js",
   "type": "module",
   "main": "dist/index.js",
