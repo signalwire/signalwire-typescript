@@ -90,6 +90,10 @@ export class AgentBase {
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
 
+  // MCP
+  private _mcpServers: Record<string, unknown>[] = [];
+  private _mcpServerEnabled = false;
+
   // SIP Routing
   private _sipRoutingEnabled = false;
   private _sipRoute = '/sip';
@@ -525,6 +529,140 @@ export class AgentBase {
       return uri;
     }
     return null;
+  }
+
+  // ── MCP Integration ─────────────────────────────────────────────────
+
+  /**
+   * Add an external MCP server for tool discovery and invocation.
+   * Tools are discovered via MCP protocol at session start and added to the AI's tool list.
+   * @param url - MCP server HTTP endpoint URL
+   * @param opts - Optional configuration: headers, resources, resourceVars
+   * @returns This agent instance for chaining
+   */
+  addMcpServer(url: string, opts?: { headers?: Record<string, string>; resources?: boolean; resourceVars?: Record<string, string> }): this {
+    const server: Record<string, unknown> = { url };
+    if (opts?.headers && Object.keys(opts.headers).length) server['headers'] = opts.headers;
+    if (opts?.resources) server['resources'] = true;
+    if (opts?.resourceVars && Object.keys(opts.resourceVars).length) server['resource_vars'] = opts.resourceVars;
+    this._mcpServers.push(server);
+    return this;
+  }
+
+  /**
+   * Expose this agent's tools as an MCP server endpoint at /mcp.
+   * Adds a JSON-RPC 2.0 endpoint that MCP clients (Claude Desktop, other agents) can connect to.
+   * @returns This agent instance for chaining
+   */
+  enableMcpServer(): this {
+    this._mcpServerEnabled = true;
+    return this;
+  }
+
+  /** Check if MCP server endpoint is enabled. */
+  isMcpServerEnabled(): boolean {
+    return this._mcpServerEnabled;
+  }
+
+  /** Get configured MCP servers (read-only copy). */
+  getMcpServers(): Record<string, unknown>[] {
+    return [...this._mcpServers];
+  }
+
+  /** Build MCP tool list from registered tools. */
+  private buildMcpToolList(): Record<string, unknown>[] {
+    const tools: Record<string, unknown>[] = [];
+    for (const [name, fn] of this.toolRegistry) {
+      if (fn instanceof SwaigFunction) {
+        const tool: Record<string, unknown> = {
+          name,
+          description: fn.description || name,
+        };
+        if (fn.parameters && Object.keys(fn.parameters).length) {
+          if ('type' in fn.parameters && 'properties' in fn.parameters) {
+            tool['inputSchema'] = fn.parameters;
+          } else {
+            tool['inputSchema'] = {
+              type: 'object',
+              properties: fn.parameters,
+              ...(fn.required.length ? { required: fn.required } : {}),
+            };
+          }
+        } else {
+          tool['inputSchema'] = { type: 'object', properties: {} };
+        }
+        tools.push(tool);
+      }
+    }
+    return tools;
+  }
+
+  /** Handle an MCP JSON-RPC 2.0 request. Returns the response object. */
+  async handleMcpRequest(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const jsonrpc = (body['jsonrpc'] as string) || '';
+    const method = (body['method'] as string) || '';
+    const reqId = body['id'] ?? null;
+    const params = (body['params'] as Record<string, unknown>) || {};
+
+    if (jsonrpc !== '2.0') {
+      return { jsonrpc: '2.0', id: reqId, error: { code: -32600, message: 'Invalid JSON-RPC version' } };
+    }
+
+    // Initialize handshake
+    if (method === 'initialize') {
+      return {
+        jsonrpc: '2.0', id: reqId,
+        result: {
+          protocolVersion: '2025-06-18',
+          capabilities: { tools: {} },
+          serverInfo: { name: this.name, version: '1.0.0' },
+        },
+      };
+    }
+
+    // Initialized notification
+    if (method === 'notifications/initialized') {
+      return { jsonrpc: '2.0', id: reqId, result: {} };
+    }
+
+    // List tools
+    if (method === 'tools/list') {
+      return { jsonrpc: '2.0', id: reqId, result: { tools: this.buildMcpToolList() } };
+    }
+
+    // Call tool
+    if (method === 'tools/call') {
+      const toolName = (params['name'] as string) || '';
+      const args = (params['arguments'] as Record<string, unknown>) || {};
+
+      const fn = this.toolRegistry.get(toolName);
+      if (!fn || !(fn instanceof SwaigFunction)) {
+        return { jsonrpc: '2.0', id: reqId, error: { code: -32602, message: `Unknown tool: ${toolName}` } };
+      }
+
+      try {
+        const rawData = { function: toolName, argument: { parsed: [args] } };
+        const resultDict = await fn.execute(args, rawData);
+        const responseText = (resultDict['response'] as string) ?? '';
+        return {
+          jsonrpc: '2.0', id: reqId,
+          result: { content: [{ type: 'text', text: responseText }], isError: false },
+        };
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return {
+          jsonrpc: '2.0', id: reqId,
+          result: { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true },
+        };
+      }
+    }
+
+    // Ping
+    if (method === 'ping') {
+      return { jsonrpc: '2.0', id: reqId, result: {} };
+    }
+
+    return { jsonrpc: '2.0', id: reqId, error: { code: -32601, message: `Method not found: ${method}` } };
   }
 
   // ── Tools ───────────────────────────────────────────────────────────
@@ -1066,6 +1204,11 @@ export class AgentBase {
       swaigObj['defaults'] = { web_hook_url: defaultWebhookUrl };
     }
 
+    // MCP servers
+    if (this._mcpServers.length) {
+      swaigObj['mcp_servers'] = [...this._mcpServers];
+    }
+
     // Build post-prompt URL
     let postPromptUrl: string | undefined;
     if (postPrompt) {
@@ -1461,6 +1604,18 @@ export class AgentBase {
     };
 
     app.post(`${basePath}/debug_events`, authMw, handleDebugEvents);
+
+    // MCP server endpoint (JSON-RPC 2.0)
+    if (this._mcpServerEnabled) {
+      app.post(`${basePath}/mcp`, async (c: any) => {
+        let body: Record<string, unknown> = {};
+        try { body = await c.req.json(); } catch {
+          return c.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+        }
+        const result = await this.handleMcpRequest(body);
+        return c.json(result);
+      });
+    }
 
     // Health / Ready
     app.get(`${basePath}/health`, (c: any) => c.json({ status: 'ok' }));
