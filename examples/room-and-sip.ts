@@ -1,12 +1,12 @@
 /**
  * Room and SIP Actions Example
  *
- * Demonstrates SwaigFunctionResult actions for room joining,
+ * Demonstrates FunctionResult actions for room joining,
  * SIP REFER transfers, and conference management.
  * Run: npx tsx examples/room-and-sip.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'room-sip-agent',
@@ -30,7 +30,7 @@ agent.defineTool({
     room_name: { type: 'string', description: 'Name of the meeting room' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Connecting you to room "${args.room_name}" now.`,
     );
     result.joinRoom(args.room_name as string);
@@ -46,7 +46,7 @@ agent.defineTool({
     sip_uri: { type: 'string', description: 'SIP URI to transfer to (e.g., sip:user@domain.com)' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Transferring your call to ${args.sip_uri}.`,
     );
     result.sipRefer(args.sip_uri as string);
@@ -64,7 +64,7 @@ agent.defineTool({
   },
   handler: (args) => {
     const muted = args.muted === true;
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Joining conference "${args.conference_name}"${muted ? ' (muted)' : ''}.`,
     );
     result.joinConference(args.conference_name as string, { muted });
@@ -80,7 +80,7 @@ agent.defineTool({
     phone_number: { type: 'string', description: 'Phone number to connect to' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Connecting you to ${args.phone_number}. Please hold.`,
     );
     result.connect(args.phone_number as string);

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { WebSearchSkill, createWebSearchSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -54,13 +54,13 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_API_KEY'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const handler = new WebSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as SwaigFunctionResult;
+    const result = await handler({ query: 'test' }, {}) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 
   it('should reject empty query', async () => {
     const handler = new WebSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: '' }, {}) as SwaigFunctionResult;
+    const result = await handler({ query: '' }, {}) as FunctionResult;
     expect(result.response).toContain('provide a search query');
   });
 

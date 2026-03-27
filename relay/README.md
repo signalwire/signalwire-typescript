@@ -5,7 +5,7 @@ Real-time call control and messaging over WebSocket using TypeScript. The RELAY 
 ## Quick Start
 
 ```typescript
-import { RelayClient, Call } from 'signalwire-agents';
+import { RelayClient, Call } from '@signalwire/sdk';
 
 const client = new RelayClient({
   contexts: ['default'],

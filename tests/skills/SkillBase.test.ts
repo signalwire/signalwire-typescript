@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 
 class TestSkill extends SkillBase {
   constructor(config?: Record<string, unknown>) {
@@ -22,7 +22,7 @@ class TestSkill extends SkillBase {
       name: 'test_tool',
       description: 'A test tool',
       parameters: { query: { type: 'string' } },
-      handler: (args) => new SwaigFunctionResult(`Result: ${args['query']}`),
+      handler: (args) => new FunctionResult(`Result: ${args['query']}`),
     }];
   }
 

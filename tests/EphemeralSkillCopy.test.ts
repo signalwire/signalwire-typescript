@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
 import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig } from '../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Test skill that adds a tool and prompt section. */
 class EphemeralTestSkill extends SkillBase {
@@ -15,7 +15,7 @@ class EphemeralTestSkill extends SkillBase {
     return [{
       name: 'ephemeral_tool',
       description: 'A tool from ephemeral test skill',
-      handler: () => new SwaigFunctionResult('ephemeral result'),
+      handler: () => new FunctionResult('ephemeral result'),
     }];
   }
   protected override _getPromptSections() {

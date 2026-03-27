@@ -34,7 +34,7 @@ Supported platforms:
 ### Constructor
 
 ```typescript
-import { ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 // Auto-detect platform from environment variables
 const adapter = new ServerlessAdapter();
@@ -108,7 +108,7 @@ Use `ServerlessAdapter.createLambdaHandler()` to create a Lambda-compatible hand
 
 ```typescript
 // handler.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'lambda-agent',
@@ -127,8 +127,8 @@ agent.defineTool({
     },
   },
   handler: async (args) => {
-    const { SwaigFunctionResult } = await import('@anthropic/signalwire-agents');
-    const result = new SwaigFunctionResult();
+    const { FunctionResult } = await import('@anthropic/@signalwire/sdk');
+    const result = new FunctionResult();
     result.setResponse(`System ${args.system} is operational.`);
     return result;
   },
@@ -183,7 +183,7 @@ Use `ServerlessAdapter.createGcfHandler()` to create a GCF-compatible handler.
 
 ```typescript
 // index.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'gcf-agent',
@@ -238,7 +238,7 @@ Use `ServerlessAdapter.createAzureHandler()` to create an Azure Functions-compat
 
 ```typescript
 // index.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'azure-agent',
@@ -308,7 +308,7 @@ func azure functionapp publish my-agent-app \
 For traditional CGI environments, use the `ServerlessAdapter` with `platform: 'cgi'`:
 
 ```typescript
-import { AgentBase, ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'cgi-agent' });
 agent.setPromptText('You are a CGI-deployed assistant.');
@@ -465,7 +465,7 @@ For local development and testing before deploying to a serverless platform, run
 
 ```typescript
 // local-dev.ts
-import { AgentBase } from '@anthropic/signalwire-agents';
+import { AgentBase } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'my-agent',
@@ -488,7 +488,7 @@ export const app = agent.getApp();
 You can manually test the `ServerlessAdapter` with constructed events:
 
 ```typescript
-import { AgentBase, ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'test-agent', basicAuth: ['admin', 'test'] });
 agent.setPromptText('Hello!');

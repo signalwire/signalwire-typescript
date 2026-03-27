@@ -6,7 +6,7 @@
  * Run: npx tsx examples/contexts-steps.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'quiz-agent',
@@ -24,7 +24,7 @@ agent.defineTool({
   name: 'get_score',
   description: 'Get the current score for the player',
   parameters: {},
-  handler: () => new SwaigFunctionResult('The player has 3 out of 5 correct.'),
+  handler: () => new FunctionResult('The player has 3 out of 5 correct.'),
 });
 
 agent.defineTool({
@@ -34,7 +34,7 @@ agent.defineTool({
     answer: { type: 'string', description: 'The answer to check' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(`The answer "${args.answer}" has been recorded.`);
+    return new FunctionResult(`The answer "${args.answer}" has been recorded.`);
   },
 });
 

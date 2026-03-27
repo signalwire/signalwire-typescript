@@ -1,6 +1,6 @@
-# SwaigFunctionResult Reference
+# FunctionResult Reference
 
-Complete API reference for the `SwaigFunctionResult` class in the SignalWire AI Agents TypeScript SDK.
+Complete API reference for the `FunctionResult` class in the SignalWire AI Agents TypeScript SDK.
 
 ---
 
@@ -75,17 +75,17 @@ Complete API reference for the `SwaigFunctionResult` class in the SignalWire AI 
 
 ## Overview
 
-`SwaigFunctionResult` is the return type for SWAIG tool handlers. It carries two pieces of information back to the SignalWire AI engine:
+`FunctionResult` is the return type for SWAIG tool handlers. It carries two pieces of information back to the SignalWire AI engine:
 
 1. **Response text** -- A string the AI uses as the tool's output. The AI reads this text and incorporates it into its conversation with the caller.
 2. **Actions** -- An ordered list of structured commands (hangup, connect, play audio, send SMS, etc.) that the platform executes as side effects.
 
-When a tool handler runs, it constructs a `SwaigFunctionResult`, optionally adds actions, and returns it. The SDK serializes it via `toDict()` and sends it back to SignalWire.
+When a tool handler runs, it constructs a `FunctionResult`, optionally adds actions, and returns it. The SDK serializes it via `toDict()` and sends it back to SignalWire.
 
 ### Basic usage
 
 ```typescript
-import { AgentBase, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
@@ -94,7 +94,7 @@ agent.defineTool({
   description: 'Transfer the caller to a human agent',
   parameters: {},
   handler: () => {
-    return new SwaigFunctionResult('Transferring you now.')
+    return new FunctionResult('Transferring you now.')
       .connect('+15551234567');
   },
 });
@@ -105,7 +105,7 @@ agent.defineTool({
 When the handler returns, the SDK calls `toDict()` to produce a plain object:
 
 ```typescript
-const result = new SwaigFunctionResult('Done').hangup();
+const result = new FunctionResult('Done').hangup();
 console.log(result.toDict());
 // { response: "Done", action: [{ hangup: true }] }
 ```
@@ -126,7 +126,7 @@ If both `response` and `action` are empty, `toDict()` returns `{ response: "Acti
 
 ### constructor
 
-Create a new `SwaigFunctionResult`.
+Create a new `FunctionResult`.
 
 ```typescript
 constructor(response?: string, postProcess?: boolean)
@@ -137,17 +137,17 @@ constructor(response?: string, postProcess?: boolean)
 | `response`    | `string`  | `''`    | Initial response text for the AI.              |
 | `postProcess` | `boolean` | `false` | Whether actions should be post-processed.      |
 
-**Returns:** A new `SwaigFunctionResult` instance.
+**Returns:** A new `FunctionResult` instance.
 
 ```typescript
 // Empty result (will serialize as "Action completed.")
-const r1 = new SwaigFunctionResult();
+const r1 = new FunctionResult();
 
 // With response text
-const r2 = new SwaigFunctionResult('Order placed successfully.');
+const r2 = new FunctionResult('Order placed successfully.');
 
 // With post-processing enabled
-const r3 = new SwaigFunctionResult('Processing payment...', true);
+const r3 = new FunctionResult('Processing payment...', true);
 ```
 
 ---
@@ -167,7 +167,7 @@ setResponse(response: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult()
+const result = new FunctionResult()
   .setResponse('Your balance is $42.50');
 ```
 
@@ -190,7 +190,7 @@ setPostProcess(postProcess: boolean): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Goodbye!')
+const result = new FunctionResult('Goodbye!')
   .setPostProcess(true)
   .hangup();
 // The AI says "Goodbye!" first, then the hangup executes.
@@ -214,7 +214,7 @@ addAction(name: string, data: unknown): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Done')
+const result = new FunctionResult('Done')
   .addAction('custom_action', { key: 'value' });
 // action: [{ custom_action: { key: "value" } }]
 ```
@@ -236,7 +236,7 @@ addActions(actions: Record<string, unknown>[]): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Multi-step')
+const result = new FunctionResult('Multi-step')
   .addActions([
     { say: 'Step one complete.' },
     { say: 'Step two complete.' },
@@ -263,14 +263,14 @@ toDict(): Record<string, unknown>
 - If both `response` and `action` are empty, the result falls back to `{ response: "Action completed." }`.
 
 ```typescript
-const result = new SwaigFunctionResult('Hello').say('Welcome!');
+const result = new FunctionResult('Hello').say('Welcome!');
 console.log(result.toDict());
 // {
 //   response: "Hello",
 //   action: [{ say: "Welcome!" }]
 // }
 
-const empty = new SwaigFunctionResult();
+const empty = new FunctionResult();
 console.log(empty.toDict());
 // { response: "Action completed." }
 ```
@@ -297,15 +297,15 @@ connect(destination: string, final?: boolean, fromAddr?: string): this
 
 ```typescript
 // Simple transfer
-const result = new SwaigFunctionResult('Connecting you to support.')
+const result = new FunctionResult('Connecting you to support.')
   .connect('+15551234567');
 
 // Non-final transfer (AI continues after the connected call ends)
-const result2 = new SwaigFunctionResult('Let me conference in my manager.')
+const result2 = new FunctionResult('Let me conference in my manager.')
   .connect('+15559876543', false);
 
 // Transfer with custom caller ID
-const result3 = new SwaigFunctionResult('Transferring...')
+const result3 = new FunctionResult('Transferring...')
   .connect('+15551234567', true, '+15550001111');
 ```
 
@@ -328,7 +328,7 @@ swmlTransfer(dest: string, aiResponse: string, final?: boolean): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Transfer initiated.')
+const result = new FunctionResult('Transfer initiated.')
   .swmlTransfer('sip:support@example.com', 'Call is being transferred to support.');
 ```
 
@@ -345,7 +345,7 @@ hangup(): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Thank you for calling. Goodbye!')
+const result = new FunctionResult('Thank you for calling. Goodbye!')
   .setPostProcess(true)
   .hangup();
 ```
@@ -368,10 +368,10 @@ hold(timeout?: number): this
 
 ```typescript
 // Hold for default 5 minutes
-const result = new SwaigFunctionResult('Please hold.').hold();
+const result = new FunctionResult('Please hold.').hold();
 
 // Hold for 60 seconds
-const result2 = new SwaigFunctionResult('Brief hold.').hold(60);
+const result2 = new FunctionResult('Brief hold.').hold(60);
 ```
 
 ---
@@ -400,18 +400,18 @@ waitForUser(opts?: {
 
 ```typescript
 // Simple wait
-const r1 = new SwaigFunctionResult('Go ahead.').waitForUser();
+const r1 = new FunctionResult('Go ahead.').waitForUser();
 
 // Wait with timeout
-const r2 = new SwaigFunctionResult('I will wait 10 seconds.')
+const r2 = new FunctionResult('I will wait 10 seconds.')
   .waitForUser({ timeout: 10 });
 
 // Answer-first mode
-const r3 = new SwaigFunctionResult('Waiting for answer.')
+const r3 = new FunctionResult('Waiting for answer.')
   .waitForUser({ answerFirst: true });
 
 // Disable waiting
-const r4 = new SwaigFunctionResult('Continuing.')
+const r4 = new FunctionResult('Continuing.')
   .waitForUser({ enabled: false });
 ```
 
@@ -428,7 +428,7 @@ stop(): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Session ended.').stop();
+const result = new FunctionResult('Session ended.').stop();
 ```
 
 ---
@@ -450,7 +450,7 @@ say(text: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Info retrieved.')
+const result = new FunctionResult('Info retrieved.')
   .say('Your order number is 12345.');
 ```
 
@@ -473,11 +473,11 @@ playBackgroundFile(filename: string, wait?: boolean): this
 
 ```typescript
 // Play background music (non-blocking)
-const result = new SwaigFunctionResult('Playing hold music.')
+const result = new FunctionResult('Playing hold music.')
   .playBackgroundFile('https://example.com/hold-music.mp3');
 
 // Play and wait for completion
-const result2 = new SwaigFunctionResult('Listen to this announcement.')
+const result2 = new FunctionResult('Listen to this announcement.')
   .playBackgroundFile('https://example.com/announcement.wav', true);
 ```
 
@@ -494,7 +494,7 @@ stopBackgroundFile(): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Stopping music.')
+const result = new FunctionResult('Stopping music.')
   .stopBackgroundFile();
 ```
 
@@ -520,11 +520,11 @@ addDynamicHints(
 
 ```typescript
 // Simple word hints
-const result = new SwaigFunctionResult('Ready.')
+const result = new FunctionResult('Ready.')
   .addDynamicHints(['SignalWire', 'SWML', 'SWAIG']);
 
 // Pattern-replacement hints
-const result2 = new SwaigFunctionResult('Ready.')
+const result2 = new FunctionResult('Ready.')
   .addDynamicHints([
     { pattern: 'signal wire', replace: 'SignalWire', ignore_case: true },
     { pattern: 'swiggy', replace: 'SWAIG' },
@@ -544,7 +544,7 @@ clearDynamicHints(): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Hints cleared.')
+const result = new FunctionResult('Hints cleared.')
   .clearDynamicHints();
 ```
 
@@ -565,7 +565,7 @@ setEndOfSpeechTimeout(milliseconds: number): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Adjusted speech timeout.')
+const result = new FunctionResult('Adjusted speech timeout.')
   .setEndOfSpeechTimeout(500);  // 500ms of silence = end of speech
 ```
 
@@ -586,7 +586,7 @@ setSpeechEventTimeout(milliseconds: number): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Event timeout set.')
+const result = new FunctionResult('Event timeout set.')
   .setSpeechEventTimeout(3000);
 ```
 
@@ -609,7 +609,7 @@ updateGlobalData(data: Record<string, unknown>): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Data saved.')
+const result = new FunctionResult('Data saved.')
   .updateGlobalData({ customer_id: 'C-123', tier: 'premium' });
 ```
 
@@ -631,11 +631,11 @@ removeGlobalData(keys: string | string[]): this
 
 ```typescript
 // Remove a single key
-const r1 = new SwaigFunctionResult('Removed.')
+const r1 = new FunctionResult('Removed.')
   .removeGlobalData('temp_token');
 
 // Remove multiple keys
-const r2 = new SwaigFunctionResult('Cleaned up.')
+const r2 = new FunctionResult('Cleaned up.')
   .removeGlobalData(['temp_token', 'session_cache']);
 ```
 
@@ -656,7 +656,7 @@ setMetadata(data: Record<string, unknown>): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Metadata set.')
+const result = new FunctionResult('Metadata set.')
   .setMetadata({ department: 'sales', priority: 'high' });
 ```
 
@@ -677,7 +677,7 @@ removeMetadata(keys: string | string[]): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Metadata removed.')
+const result = new FunctionResult('Metadata removed.')
   .removeMetadata(['temp_flag', 'debug_info']);
 ```
 
@@ -705,7 +705,7 @@ executeSwml(
 
 ```typescript
 // Execute SWML from an object
-const result = new SwaigFunctionResult('Executing custom flow.')
+const result = new FunctionResult('Executing custom flow.')
   .executeSwml({
     version: '1.0.0',
     sections: {
@@ -714,7 +714,7 @@ const result = new SwaigFunctionResult('Executing custom flow.')
   });
 
 // Execute with transfer
-const result2 = new SwaigFunctionResult('Transferring via SWML.')
+const result2 = new FunctionResult('Transferring via SWML.')
   .executeSwml({
     version: '1.0.0',
     sections: {
@@ -751,18 +751,18 @@ switchContext(opts?: {
 
 ```typescript
 // Simple context switch -- just change the system prompt
-const r1 = new SwaigFunctionResult('Switching to billing mode.')
+const r1 = new FunctionResult('Switching to billing mode.')
   .switchContext({ systemPrompt: 'You are a billing specialist.' });
 
 // Switch with consolidation (carry over conversation summary)
-const r2 = new SwaigFunctionResult('Escalating to supervisor.')
+const r2 = new FunctionResult('Escalating to supervisor.')
   .switchContext({
     systemPrompt: 'You are a supervisor handling an escalated call.',
     consolidate: true,
   });
 
 // Full reset
-const r3 = new SwaigFunctionResult('Starting fresh.')
+const r3 = new FunctionResult('Starting fresh.')
   .switchContext({
     systemPrompt: 'You are a general assistant.',
     fullReset: true,
@@ -786,7 +786,7 @@ swmlChangeStep(stepName: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Moving to verification.')
+const result = new FunctionResult('Moving to verification.')
   .swmlChangeStep('verify_identity');
 ```
 
@@ -807,7 +807,7 @@ swmlChangeContext(contextName: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Switching to Spanish.')
+const result = new FunctionResult('Switching to Spanish.')
   .swmlChangeContext('spanish_support');
 ```
 
@@ -828,7 +828,7 @@ swmlUserEvent(eventData: Record<string, unknown>): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Event emitted.')
+const result = new FunctionResult('Event emitted.')
   .swmlUserEvent({
     type: 'order_placed',
     order_id: 'ORD-456',
@@ -857,7 +857,7 @@ toggleFunctions(toggles: { function: string; active: boolean }[]): this
 
 ```typescript
 // After authentication, enable account-specific tools
-const result = new SwaigFunctionResult('Identity verified.')
+const result = new FunctionResult('Identity verified.')
   .toggleFunctions([
     { function: 'check_balance', active: true },
     { function: 'make_payment', active: true },
@@ -883,11 +883,11 @@ enableFunctionsOnTimeout(enabled?: boolean): this
 
 ```typescript
 // Enable functions on speaker timeout
-const r1 = new SwaigFunctionResult('Monitoring silence.')
+const r1 = new FunctionResult('Monitoring silence.')
   .enableFunctionsOnTimeout();
 
 // Disable functions on speaker timeout
-const r2 = new SwaigFunctionResult('Waiting patiently.')
+const r2 = new FunctionResult('Waiting patiently.')
   .enableFunctionsOnTimeout(false);
 ```
 
@@ -908,7 +908,7 @@ updateSettings(settings: Record<string, unknown>): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Settings updated.')
+const result = new FunctionResult('Settings updated.')
   .updateSettings({ temperature: 0.3, top_p: 0.9 });
 ```
 
@@ -931,7 +931,7 @@ simulateUserInput(text: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Proceeding with default.')
+const result = new FunctionResult('Proceeding with default.')
   .simulateUserInput('Yes, please go ahead.');
 ```
 
@@ -952,7 +952,7 @@ enableExtensiveData(enabled?: boolean): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Extensive data enabled.')
+const result = new FunctionResult('Extensive data enabled.')
   .enableExtensiveData();
 ```
 
@@ -974,11 +974,11 @@ replaceInHistory(text?: string | boolean): this
 
 ```typescript
 // Replace with the response text
-const r1 = new SwaigFunctionResult('Sensitive data redacted.')
+const r1 = new FunctionResult('Sensitive data redacted.')
   .replaceInHistory();
 
 // Replace with custom text
-const r2 = new SwaigFunctionResult('SSN verified.')
+const r2 = new FunctionResult('SSN verified.')
   .replaceInHistory('Identity verification completed.');
 ```
 
@@ -1016,7 +1016,7 @@ sendSms(opts: {
 
 ```typescript
 // Send a text SMS
-const result = new SwaigFunctionResult('Confirmation sent.')
+const result = new FunctionResult('Confirmation sent.')
   .sendSms({
     toNumber: '+15551234567',
     fromNumber: '+15559876543',
@@ -1024,7 +1024,7 @@ const result = new SwaigFunctionResult('Confirmation sent.')
   });
 
 // Send an MMS with an image
-const result2 = new SwaigFunctionResult('Receipt sent.')
+const result2 = new FunctionResult('Receipt sent.')
   .sendSms({
     toNumber: '+15551234567',
     fromNumber: '+15559876543',
@@ -1073,11 +1073,11 @@ recordCall(opts?: {
 
 ```typescript
 // Simple recording
-const result = new SwaigFunctionResult('Recording started.')
+const result = new FunctionResult('Recording started.')
   .recordCall();
 
 // Stereo MP3 recording with a control ID
-const result2 = new SwaigFunctionResult('Recording...')
+const result2 = new FunctionResult('Recording...')
   .recordCall({
     controlId: 'main-recording',
     stereo: true,
@@ -1104,7 +1104,7 @@ stopRecordCall(controlId?: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Recording stopped.')
+const result = new FunctionResult('Recording stopped.')
   .stopRecordCall('main-recording');
 ```
 
@@ -1137,7 +1137,7 @@ tap(opts: {
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Tap started.')
+const result = new FunctionResult('Tap started.')
   .tap({
     uri: 'wss://transcription.example.com/stream',
     controlId: 'realtime-tap',
@@ -1162,7 +1162,7 @@ stopTap(controlId?: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Tap stopped.')
+const result = new FunctionResult('Tap stopped.')
   .stopTap('realtime-tap');
 ```
 
@@ -1185,7 +1185,7 @@ joinRoom(name: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Joining the meeting room.')
+const result = new FunctionResult('Joining the meeting room.')
   .joinRoom('team-standup');
 ```
 
@@ -1206,7 +1206,7 @@ sipRefer(toUri: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Transferring via SIP.')
+const result = new FunctionResult('Transferring via SIP.')
   .sipRefer('sip:agent@pbx.example.com');
 ```
 
@@ -1265,11 +1265,11 @@ joinConference(name: string, opts?: {
 
 ```typescript
 // Simple conference join
-const result = new SwaigFunctionResult('Joining conference.')
+const result = new FunctionResult('Joining conference.')
   .joinConference('support-queue');
 
 // Conference with options
-const result2 = new SwaigFunctionResult('Joining as listener.')
+const result2 = new FunctionResult('Joining as listener.')
   .joinConference('all-hands', {
     muted: true,
     record: 'record-from-start',
@@ -1305,7 +1305,7 @@ executeRpc(opts: {
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('RPC executed.')
+const result = new FunctionResult('RPC executed.')
   .executeRpc({
     method: 'calling.play',
     callId: 'call-abc-123',
@@ -1340,7 +1340,7 @@ rpcDial(
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Dialing out.')
+const result = new FunctionResult('Dialing out.')
   .rpcDial('+15551234567', '+15559876543', 'https://example.com/swml');
 ```
 
@@ -1363,7 +1363,7 @@ rpcAiMessage(callId: string, messageText: string, role?: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Message sent to other call.')
+const result = new FunctionResult('Message sent to other call.')
   .rpcAiMessage('call-abc-123', 'The customer has been verified.');
 ```
 
@@ -1384,7 +1384,7 @@ rpcAiUnhold(callId: string): this
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Resuming the held call.')
+const result = new FunctionResult('Resuming the held call.')
   .rpcAiUnhold('call-abc-123');
 ```
 
@@ -1445,7 +1445,7 @@ pay(opts: {
 **Returns:** `this` for chaining.
 
 ```typescript
-const result = new SwaigFunctionResult('Collecting payment.')
+const result = new FunctionResult('Collecting payment.')
   .pay({
     paymentConnectorUrl: 'https://payments.example.com/connector',
     chargeAmount: '49.99',
@@ -1480,9 +1480,9 @@ static createPaymentPrompt(
 **Returns:** A `PaymentPrompt` object.
 
 ```typescript
-const prompt = SwaigFunctionResult.createPaymentPrompt(
+const prompt = FunctionResult.createPaymentPrompt(
   'payment-card-number',
-  [SwaigFunctionResult.createPaymentAction('say', 'Please enter your card number.')],
+  [FunctionResult.createPaymentAction('say', 'Please enter your card number.')],
 );
 ```
 
@@ -1504,7 +1504,7 @@ static createPaymentAction(actionType: string, phrase: string): PaymentAction
 **Returns:** A `PaymentAction` object.
 
 ```typescript
-const action = SwaigFunctionResult.createPaymentAction(
+const action = FunctionResult.createPaymentAction(
   'say',
   'Please enter your credit card number followed by the pound sign.',
 );
@@ -1528,7 +1528,7 @@ static createPaymentParameter(name: string, value: string): PaymentParameter
 **Returns:** A `PaymentParameter` object.
 
 ```typescript
-const param = SwaigFunctionResult.createPaymentParameter('merchant_id', 'MERCH-001');
+const param = FunctionResult.createPaymentParameter('merchant_id', 'MERCH-001');
 ```
 
 ---
@@ -1537,25 +1537,25 @@ const param = SwaigFunctionResult.createPaymentParameter('merchant_id', 'MERCH-0
 
 ```typescript
 const prompts = [
-  SwaigFunctionResult.createPaymentPrompt(
+  FunctionResult.createPaymentPrompt(
     'payment-card-number',
-    [SwaigFunctionResult.createPaymentAction('say', 'Please enter your card number.')],
+    [FunctionResult.createPaymentAction('say', 'Please enter your card number.')],
   ),
-  SwaigFunctionResult.createPaymentPrompt(
+  FunctionResult.createPaymentPrompt(
     'payment-expiration-date',
-    [SwaigFunctionResult.createPaymentAction('say', 'Enter the expiration date.')],
+    [FunctionResult.createPaymentAction('say', 'Enter the expiration date.')],
   ),
-  SwaigFunctionResult.createPaymentPrompt(
+  FunctionResult.createPaymentPrompt(
     'payment-security-code',
-    [SwaigFunctionResult.createPaymentAction('say', 'Enter the CVV on the back of your card.')],
+    [FunctionResult.createPaymentAction('say', 'Enter the CVV on the back of your card.')],
   ),
 ];
 
 const params = [
-  SwaigFunctionResult.createPaymentParameter('merchant_id', 'MERCH-001'),
+  FunctionResult.createPaymentParameter('merchant_id', 'MERCH-001'),
 ];
 
-const result = new SwaigFunctionResult('Starting payment collection.')
+const result = new FunctionResult('Starting payment collection.')
   .pay({
     paymentConnectorUrl: 'https://payments.example.com/connector',
     chargeAmount: '99.95',
@@ -1572,7 +1572,7 @@ const result = new SwaigFunctionResult('Starting payment collection.')
 
 ## Fluent Chaining
 
-Every mutating method on `SwaigFunctionResult` returns `this`, enabling fluent method chaining. You can compose complex multi-action responses in a single expression.
+Every mutating method on `FunctionResult` returns `this`, enabling fluent method chaining. You can compose complex multi-action responses in a single expression.
 
 ```typescript
 agent.defineTool({
@@ -1584,7 +1584,7 @@ agent.defineTool({
   handler: (args) => {
     const orderId = args.order_id as string;
 
-    return new SwaigFunctionResult(`Order ${orderId} completed.`)
+    return new FunctionResult(`Order ${orderId} completed.`)
       .setPostProcess(true)
       // Store data for other tools
       .updateGlobalData({ last_order: orderId, order_status: 'complete' })

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/llm-params.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'tuned-agent',
@@ -60,7 +60,7 @@ agent.defineTool({
     date: { type: 'string', description: 'The requested date (YYYY-MM-DD)' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Availability for ${args.date}: 9:00 AM, 11:30 AM, 2:00 PM slots open.`,
     );
   },

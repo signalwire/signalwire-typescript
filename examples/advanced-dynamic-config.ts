@@ -6,7 +6,7 @@
  * Run: npx tsx examples/advanced-dynamic-config.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'smart-router',
@@ -27,7 +27,7 @@ agent.defineTool({
     phone: { type: 'string', description: 'The customer phone number' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(`Account lookup for ${args.phone}: Active, Premium tier.`);
+    return new FunctionResult(`Account lookup for ${args.phone}: Active, Premium tier.`);
   },
 });
 

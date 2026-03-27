@@ -59,7 +59,7 @@ This differs from the Python SDK which uses 8 mixins. The TS SDK composes everyt
 | Class | Purpose | Size |
 |-------|---------|------|
 | `AgentBase` | HTTP server, SWML rendering, tool dispatch, dynamic config | ~1100 lines |
-| `SwaigFunctionResult` | Fluent response builder with 40+ call-control actions | ~900 lines |
+| `FunctionResult` | Fluent response builder with 40+ call-control actions | ~900 lines |
 | `ContextBuilder` | Multi-step workflows: Context → Step → GatherInfo | ~800 lines |
 | `DataMap` | Server-side tools (webhooks + expressions, no server roundtrip) | ~400 lines |
 | `SwaigFunction` | Wraps a tool handler with metadata for SWAIG serialization | ~100 lines |
@@ -80,7 +80,7 @@ class MyAgent extends AgentBase {
 
 ### Builder Pattern
 
-`SwaigFunctionResult`, `DataMap`, `ContextBuilder`, and `PomBuilder` all use fluent chaining (methods return `this`).
+`FunctionResult`, `DataMap`, `ContextBuilder`, and `PomBuilder` all use fluent chaining (methods return `this`).
 
 ## Code Conventions
 

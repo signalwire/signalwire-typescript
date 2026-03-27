@@ -10,9 +10,9 @@
  *   npx tsx rest/examples/rest-datasphere-search.ts
  */
 
-import { SignalWireClient } from '../../src/index.js';
+import { RestClient } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

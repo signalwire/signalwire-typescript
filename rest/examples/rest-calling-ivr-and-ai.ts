@@ -14,9 +14,9 @@
  *   npx tsx rest/examples/rest-calling-ivr-and-ai.ts
  */
 
-import { SignalWireClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 const CALL_ID = 'demo-call-id';
 
 async function safe(label: string, fn: () => Promise<unknown>): Promise<unknown> {

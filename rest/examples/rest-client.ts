@@ -10,11 +10,11 @@
  *   npx tsx rest/examples/rest-client.ts
  */
 
-import { SignalWireClient, paginateAll } from '../../src/index.js';
+import { RestClient, paginateAll } from '../../src/index.js';
 
 async function main() {
   // Create client — reads from env vars if not provided explicitly
-  const client = new SignalWireClient();
+  const client = new RestClient();
 
   console.log('=== Phone Numbers ===');
 

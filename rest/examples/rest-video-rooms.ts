@@ -10,9 +10,9 @@
  *   npx tsx rest/examples/rest-video-rooms.ts
  */
 
-import { SignalWireClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 
 async function main() {
   // --- Video Rooms ---

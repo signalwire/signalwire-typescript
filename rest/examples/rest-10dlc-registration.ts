@@ -14,9 +14,9 @@
  *   npx tsx rest/examples/rest-10dlc-registration.ts
  */
 
-import { SignalWireClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 
 async function main() {
   // 1. Register a brand

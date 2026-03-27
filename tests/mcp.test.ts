@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 describe('MCP Integration', () => {
   function createAgentWithTool() {
@@ -12,7 +12,7 @@ describe('MCP Integration', () => {
       parameters: { location: { type: 'string', description: 'City name' } },
       handler: (args: Record<string, unknown>) => {
         const location = (args['location'] as string) || 'unknown';
-        return new SwaigFunctionResult(`72F sunny in ${location}`);
+        return new FunctionResult(`72F sunny in ${location}`);
       },
     });
     return agent;
@@ -187,7 +187,7 @@ describe('MCP Integration', () => {
       name: 'fn',
       description: 'Test',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main.find((v: any) => v.ai)?.ai;
@@ -205,7 +205,7 @@ describe('MCP Integration', () => {
       name: 'test_fn',
       description: 'Test',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const app = agent.getApp();
     const res = await app.request('/mcp', {

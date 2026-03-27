@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { WikipediaSearchSkill, createWikipediaSearchSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -51,7 +51,7 @@ describe('WikipediaSearchSkill', () => {
 
   it('should reject empty query', async () => {
     const handler = new WikipediaSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: '' }, {}) as SwaigFunctionResult;
+    const result = await handler({ query: '' }, {}) as FunctionResult;
     expect(result.response).toContain('provide a topic');
   });
 

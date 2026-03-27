@@ -61,7 +61,7 @@ All prefabs are exported from the main SDK entry point:
 import {
   InfoGathererAgent, SurveyAgent, FAQBotAgent,
   ConciergeAgent, ReceptionistAgent,
-} from 'signalwire-agents';
+} from '@signalwire/sdk';
 ```
 
 ---
@@ -140,7 +140,7 @@ When a call comes in without a `call_id`, the fallback key `"default"` is used.
 ### InfoGatherer Example
 
 ```typescript
-import { InfoGathererAgent } from 'signalwire-agents';
+import { InfoGathererAgent } from '@signalwire/sdk';
 
 const agent = new InfoGathererAgent({
   name: 'PatientIntake',
@@ -288,7 +288,7 @@ Returns the current progress of the survey.
 ### Survey Example
 
 ```typescript
-import { SurveyAgent } from 'signalwire-agents';
+import { SurveyAgent } from '@signalwire/sdk';
 
 const agent = new SurveyAgent({
   name: 'CustomerSatisfaction',
@@ -411,12 +411,12 @@ Transfers the caller to a live agent. **Only registered when `escalationNumber` 
 |---|---|---|---|
 | `reason` | `string` | No | The reason for escalation. Defaults to `"Caller needs assistance beyond FAQ"`. |
 
-**Behavior:** Uses `SwaigFunctionResult.connect()` to transfer the call to the configured `escalationNumber`.
+**Behavior:** Uses `FunctionResult.connect()` to transfer the call to the configured `escalationNumber`.
 
 ### FAQBot Example
 
 ```typescript
-import { FAQBotAgent } from 'signalwire-agents';
+import { FAQBotAgent } from '@signalwire/sdk';
 
 const agent = new FAQBotAgent({
   name: 'HelpDesk',
@@ -522,12 +522,12 @@ Transfers the caller to a specific department.
 - Looks up the department by name or keyword (case-insensitive).
 - Returns an error if the department is not found.
 - Returns the `afterHoursMessage` if the department has no `transferNumber`.
-- Uses `SwaigFunctionResult.connect()` to initiate the transfer.
+- Uses `FunctionResult.connect()` to initiate the transfer.
 
 ### Concierge Example
 
 ```typescript
-import { ConciergeAgent } from 'signalwire-agents';
+import { ConciergeAgent } from '@signalwire/sdk';
 
 const agent = new ConciergeAgent({
   name: 'MainLine',
@@ -623,7 +623,7 @@ Transfers the caller to a department by dialing its extension.
 **Behavior:**
 - Looks up the department by name (case-insensitive).
 - Returns an error with the list of available departments if not found.
-- Uses `SwaigFunctionResult.connect()` to dial the extension.
+- Uses `FunctionResult.connect()` to dial the extension.
 
 #### `check_in_visitor`
 
@@ -647,7 +647,7 @@ Checks in a visitor by recording their details. **Only registered when `checkInE
 ### Receptionist Example
 
 ```typescript
-import { ReceptionistAgent } from 'signalwire-agents';
+import { ReceptionistAgent } from '@signalwire/sdk';
 
 const agent = new ReceptionistAgent({
   companyName: 'Acme Corporation',
@@ -704,7 +704,7 @@ Each prefab provides a factory function that creates and returns a new instance.
 Factory functions accept the same config type as their corresponding class constructors.
 
 ```typescript
-import { createSurveyAgent } from 'signalwire-agents';
+import { createSurveyAgent } from '@signalwire/sdk';
 
 const agent = createSurveyAgent({
   questions: [
@@ -722,10 +722,10 @@ Factory functions and class constructors are exported both from the individual p
 
 ```typescript
 // From the SDK entry point
-import { createFAQBotAgent, FAQBotAgent } from 'signalwire-agents';
+import { createFAQBotAgent, FAQBotAgent } from '@signalwire/sdk';
 
 // From the prefab module directly
-import { createFAQBotAgent } from 'signalwire-agents/prefabs';
+import { createFAQBotAgent } from '@signalwire/sdk/prefabs';
 ```
 
 ---
@@ -739,8 +739,8 @@ Prefab agents can be subclassed to customize their behavior. The two primary ext
 Each prefab declares a `static override PROMPT_SECTIONS` array that the `AgentBase` constructor merges into the prompt. You can override this in your subclass to change the AI's role and rules:
 
 ```typescript
-import { InfoGathererAgent } from 'signalwire-agents';
-import type { InfoGathererConfig } from 'signalwire-agents';
+import { InfoGathererAgent } from '@signalwire/sdk';
+import type { InfoGathererConfig } from '@signalwire/sdk';
 
 class SpanishInfoGatherer extends InfoGathererAgent {
   static override PROMPT_SECTIONS = [
@@ -772,8 +772,8 @@ class SpanishInfoGatherer extends InfoGathererAgent {
 You can override `defineTools()` to add additional tools, replace existing tools, or extend the default tool set by calling `super.defineTools()` first:
 
 ```typescript
-import { FAQBotAgent, SwaigFunctionResult } from 'signalwire-agents';
-import type { FAQBotConfig } from 'signalwire-agents';
+import { FAQBotAgent, FunctionResult } from '@signalwire/sdk';
+import type { FAQBotConfig } from '@signalwire/sdk';
 
 class FAQBotWithFeedback extends FAQBotAgent {
   protected override defineTools(): void {
@@ -802,7 +802,7 @@ class FAQBotWithFeedback extends FAQBotAgent {
         const rating = args['rating'] as string;
         const comment = args['comment'] as string | undefined;
         console.log(`FAQ Feedback: ${rating}${comment ? ' - ' + comment : ''}`);
-        return new SwaigFunctionResult('Thank you for your feedback!');
+        return new FunctionResult('Thank you for your feedback!');
       },
     });
   }
@@ -814,8 +814,8 @@ class FAQBotWithFeedback extends FAQBotAgent {
 Beyond the static `PROMPT_SECTIONS`, you can use `this.promptAddSection()` in the constructor body to add additional dynamic prompt content:
 
 ```typescript
-import { ConciergeAgent } from 'signalwire-agents';
-import type { ConciergeConfig } from 'signalwire-agents';
+import { ConciergeAgent } from '@signalwire/sdk';
+import type { ConciergeConfig } from '@signalwire/sdk';
 
 class HolidayConcierge extends ConciergeAgent {
   constructor(config: ConciergeConfig) {

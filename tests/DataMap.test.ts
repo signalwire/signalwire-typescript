@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { DataMap, createSimpleApiTool, createExpressionTool, setAllowedEnvPrefixes } from '../src/DataMap.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 describe('DataMap', () => {
   it('basic builder produces valid swaig function', () => {
@@ -8,7 +8,7 @@ describe('DataMap', () => {
       .purpose('Get weather')
       .parameter('location', 'string', 'City name', { required: true })
       .webhook('GET', 'https://api.weather.com?q=${location}')
-      .output(new SwaigFunctionResult('Weather: ${response.temp}'));
+      .output(new FunctionResult('Weather: ${response.temp}'));
 
     const fn = dm.toSwaigFunction();
     expect(fn['function']).toBe('get_weather');
@@ -25,7 +25,7 @@ describe('DataMap', () => {
 
   it('default description when purpose not set', () => {
     const dm = new DataMap('my_fn');
-    dm.webhook('GET', 'https://example.com').output(new SwaigFunctionResult('ok'));
+    dm.webhook('GET', 'https://example.com').output(new FunctionResult('ok'));
     expect(dm.toSwaigFunction()['description']).toBe('Execute my_fn');
   });
 
@@ -41,8 +41,8 @@ describe('DataMap', () => {
     const dm = new DataMap('ctrl')
       .purpose('Control playback')
       .parameter('cmd', 'string', 'Command')
-      .expression('${args.cmd}', /start.*/, new SwaigFunctionResult('Starting'))
-      .expression('${args.cmd}', 'stop', new SwaigFunctionResult('Stopping'));
+      .expression('${args.cmd}', /start.*/, new FunctionResult('Starting'))
+      .expression('${args.cmd}', 'stop', new FunctionResult('Stopping'));
 
     const fn = dm.toSwaigFunction();
     const dataMap = fn['data_map'] as Record<string, unknown>;
@@ -57,8 +57,8 @@ describe('DataMap', () => {
       .expression(
         '${args.x}',
         'yes',
-        new SwaigFunctionResult('matched'),
-        new SwaigFunctionResult('no match'),
+        new FunctionResult('matched'),
+        new FunctionResult('no match'),
       );
     const fn = dm.toSwaigFunction();
     const exprs = (fn['data_map'] as Record<string, unknown>)['expressions'] as Record<string, unknown>[];
@@ -72,7 +72,7 @@ describe('DataMap', () => {
         headers: { Authorization: 'Bearer TOKEN' },
       })
       .body({ query: '${query}', limit: 3 })
-      .output(new SwaigFunctionResult('Found: ${response.title}'));
+      .output(new FunctionResult('Found: ${response.title}'));
 
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
@@ -85,7 +85,7 @@ describe('DataMap', () => {
     const dm = new DataMap('fn')
       .webhook('GET', 'https://example.com')
       .params({ key: 'val' })
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['params']).toEqual({ key: 'val' });
   });
@@ -94,7 +94,7 @@ describe('DataMap', () => {
     const dm = new DataMap('fn')
       .webhook('GET', 'https://example.com')
       .foreach({ input_key: 'results', output_key: 'out', append: '${this.title}\n' })
-      .output(new SwaigFunctionResult('${out}'));
+      .output(new FunctionResult('${out}'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['foreach']).toBeDefined();
   });
@@ -103,10 +103,10 @@ describe('DataMap', () => {
     const dm = new DataMap('multi')
       .purpose('Search')
       .webhook('GET', 'https://primary.com')
-      .output(new SwaigFunctionResult('Primary: ${response.title}'))
+      .output(new FunctionResult('Primary: ${response.title}'))
       .webhook('GET', 'https://fallback.com')
-      .output(new SwaigFunctionResult('Fallback: ${response.title}'))
-      .fallbackOutput(new SwaigFunctionResult('All APIs failed'));
+      .output(new FunctionResult('Fallback: ${response.title}'))
+      .fallbackOutput(new FunctionResult('All APIs failed'));
 
     const fn = dm.toSwaigFunction();
     const dataMap = fn['data_map'] as Record<string, unknown>;
@@ -118,14 +118,14 @@ describe('DataMap', () => {
     const dm = new DataMap('fn')
       .webhook('GET', 'https://example.com')
       .errorKeys(['error', 'message'])
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['error_keys']).toEqual(['error', 'message']);
   });
 
   it('global error keys', () => {
     const dm = new DataMap('fn').globalErrorKeys(['err']);
-    dm.webhook('GET', 'https://example.com').output(new SwaigFunctionResult('ok'));
+    dm.webhook('GET', 'https://example.com').output(new FunctionResult('ok'));
     const dataMap = dm.toSwaigFunction()['data_map'] as Record<string, unknown>;
     expect(dataMap['error_keys']).toEqual(['err']);
   });
@@ -133,7 +133,7 @@ describe('DataMap', () => {
   it('throws if body/output/params/foreach called without webhook', () => {
     const dm = new DataMap('fn');
     expect(() => dm.body({})).toThrow('Must add webhook');
-    expect(() => dm.output(new SwaigFunctionResult('x'))).toThrow('Must add webhook');
+    expect(() => dm.output(new FunctionResult('x'))).toThrow('Must add webhook');
     expect(() => dm.params({})).toThrow('Must add webhook');
     expect(() => dm.foreach({ input_key: 'a', output_key: 'b', append: 'c' })).toThrow('Must add webhook');
   });
@@ -142,7 +142,7 @@ describe('DataMap', () => {
     const dm = new DataMap('fn')
       .webhook('GET', 'https://example.com')
       .webhookExpressions([{ string: '${response.status}', pattern: 'ok', output: { response: 'good' } }])
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['expressions']).toBeDefined();
   });
@@ -154,7 +154,7 @@ describe('DataMap', () => {
         inputArgsAsParams: true,
         requireArgs: ['query'],
       })
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['form_param']).toBe('data');
     expect(webhooks[0]['input_args_as_params']).toBe(true);
@@ -182,7 +182,7 @@ describe('createExpressionTool', () => {
     const dm = createExpressionTool({
       name: 'ctrl',
       patterns: {
-        '${args.cmd}': ['start', new SwaigFunctionResult('Starting')],
+        '${args.cmd}': ['start', new FunctionResult('Starting')],
       },
     });
     const fn = dm.toSwaigFunction();
@@ -204,7 +204,7 @@ describe('DataMap - registerWithAgent', () => {
     const dm = new DataMap('my_tool')
       .purpose('Test tool')
       .webhook('GET', 'https://example.com')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
 
     dm.registerWithAgent(mockAgent);
     expect(registered.length).toBe(1);
@@ -215,7 +215,7 @@ describe('DataMap - registerWithAgent', () => {
     const mockAgent = { registerSwaigFunction() {} };
     const dm = new DataMap('fn')
       .webhook('GET', 'https://example.com')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     expect(dm.registerWithAgent(mockAgent)).toBe(dm);
   });
 });
@@ -229,7 +229,7 @@ describe('DataMap - ENV expansion', () => {
         .enableEnvExpansion()
         .purpose('Test')
         .webhook('GET', 'https://api.example.com?key=${ENV.SWML_TEST_API_KEY}')
-        .output(new SwaigFunctionResult('ok'));
+        .output(new FunctionResult('ok'));
       const fn = dm.toSwaigFunction();
       const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
       expect(webhooks[0]['url']).toBe('https://api.example.com?key=secret123');
@@ -244,7 +244,7 @@ describe('DataMap - ENV expansion', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://api.example.com?key=${ENV.SWML_NONEXISTENT_VAR_12345}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://api.example.com?key=');
@@ -255,7 +255,7 @@ describe('DataMap - ENV expansion', () => {
     try {
       const dm = new DataMap('fn')
         .webhook('GET', 'https://api.example.com?key=${ENV.TEST_NO_EXPAND}')
-        .output(new SwaigFunctionResult('ok'));
+        .output(new FunctionResult('ok'));
       const fn = dm.toSwaigFunction();
       const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
       expect(webhooks[0]['url']).toBe('https://api.example.com?key=${ENV.TEST_NO_EXPAND}');
@@ -271,7 +271,7 @@ describe('DataMap - ENV expansion', () => {
         .enableEnvExpansion()
         .purpose('Call ${ENV.SWML_SERVICE_NAME} API')
         .webhook('GET', 'https://example.com')
-        .output(new SwaigFunctionResult('ok'));
+        .output(new FunctionResult('ok'));
       const fn = dm.toSwaigFunction();
       expect(fn['description']).toBe('Call MyService API');
     } finally {
@@ -300,7 +300,7 @@ describe('DataMap - ENV prefix whitelist', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://example.com?key=${ENV.SIGNALWIRE_TEST_VAR}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?key=sw_value');
@@ -311,7 +311,7 @@ describe('DataMap - ENV prefix whitelist', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://example.com?key=${ENV.SWML_TEST_VAR}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?key=swml_value');
@@ -322,7 +322,7 @@ describe('DataMap - ENV prefix whitelist', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://example.com?db=${ENV.DATABASE_URL}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?db=');
@@ -335,7 +335,7 @@ describe('DataMap - ENV prefix whitelist', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://example.com?db=${ENV.DATABASE_URL}&sw=${ENV.SIGNALWIRE_TEST_VAR}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?db=postgres://host/db&sw=');
@@ -347,7 +347,7 @@ describe('DataMap - ENV prefix whitelist', () => {
     const dm = new DataMap('fn')
       .enableEnvExpansion()
       .webhook('GET', 'https://example.com?key=${ENV.SECRET_KEY}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?key=mysecret');
@@ -359,7 +359,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       .enableEnvExpansion()
       .setAllowedEnvPrefixes(['DATABASE_'])
       .webhook('GET', 'https://example.com?db=${ENV.DATABASE_URL}')
-      .output(new SwaigFunctionResult('ok'));
+      .output(new FunctionResult('ok'));
     const fn = dm.toSwaigFunction();
     const webhooks = (fn['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
     expect(webhooks[0]['url']).toBe('https://example.com?db=postgres://host/db');

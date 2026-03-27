@@ -6,7 +6,7 @@
  * Run: npx tsx examples/serverless-lambda.ts
  */
 
-import { AgentBase, ServerlessAdapter, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, ServerlessAdapter, FunctionResult } from '../src/index.js';
 
 // Create the agent as usual
 export const agent = new AgentBase({
@@ -25,7 +25,7 @@ agent.defineTool({
   name: 'get_time',
   description: 'Get the current time',
   parameters: {},
-  handler: () => new SwaigFunctionResult(`The time is ${new Date().toISOString()}`),
+  handler: () => new FunctionResult(`The time is ${new Date().toISOString()}`),
 });
 
 // Create a Lambda handler from the agent's Hono app

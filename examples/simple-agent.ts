@@ -6,7 +6,7 @@
  * Test: curl http://user:pass@localhost:3000/
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'simple-agent',
@@ -29,7 +29,7 @@ agent.defineTool({
   parameters: {},
   handler: () => {
     const now = new Date().toLocaleString();
-    return new SwaigFunctionResult(`The current date and time is ${now}`);
+    return new FunctionResult(`The current date and time is ${now}`);
   },
 });
 

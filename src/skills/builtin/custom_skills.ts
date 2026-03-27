@@ -18,7 +18,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('CustomSkillsSkill');
@@ -135,7 +135,7 @@ export class CustomSkillsSkill extends SkillBase {
               handler_code: {
                 type: 'string',
                 description:
-                  'JavaScript function body. Receives (args, rawData, SwaigFunctionResult) as arguments. Must return a SwaigFunctionResult, string, or object.',
+                  'JavaScript function body. Receives (args, rawData, FunctionResult) as arguments. Must return a FunctionResult, string, or object.',
               },
               required: {
                 type: 'array',
@@ -185,17 +185,17 @@ export class CustomSkillsSkill extends SkillBase {
 
       try {
         log.warn(`Compiling custom handler code for tool '${toolDef.name}'`);
-        // The handler code receives: args, rawData, SwaigFunctionResult
-        // It should return a SwaigFunctionResult, string, or plain object
+        // The handler code receives: args, rawData, FunctionResult
+        // It should return a FunctionResult, string, or plain object
         const handler = new Function(
           'args',
           'rawData',
-          'SwaigFunctionResult',
+          'FunctionResult',
           toolDef.handler_code,
         ) as (
           args: Record<string, unknown>,
           rawData: Record<string, unknown>,
-          resultClass: typeof SwaigFunctionResult,
+          resultClass: typeof FunctionResult,
         ) => unknown;
 
         this._compiledHandlers.set(toolDef.name, handler);
@@ -232,7 +232,7 @@ export class CustomSkillsSkill extends SkillBase {
           secure: toolDef.secure,
           fillers: toolDef.fillers,
           handler: () => {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Custom tool "${toolDef.name}" is not available due to a configuration error. Please contact your administrator.`,
             );
           },
@@ -257,25 +257,25 @@ export class CustomSkillsSkill extends SkillBase {
           rawData: Record<string, unknown>,
         ) => {
           try {
-            const result = await compiledHandler(args, rawData, SwaigFunctionResult);
+            const result = await compiledHandler(args, rawData, FunctionResult);
 
             // Normalize the result
-            if (result instanceof SwaigFunctionResult) {
+            if (result instanceof FunctionResult) {
               return result;
             }
 
             if (typeof result === 'string') {
-              return new SwaigFunctionResult(result);
+              return new FunctionResult(result);
             }
 
             if (result && typeof result === 'object') {
               return result as Record<string, unknown>;
             }
 
-            return new SwaigFunctionResult('Action completed.');
+            return new FunctionResult('Action completed.');
           } catch (err) {
             log.error('custom_tool_runtime_error', { tool: toolDef.name, error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Custom tool "${toolDef.name}" encountered an error. Please try again.`,
             );
           }

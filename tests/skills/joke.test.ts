@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { JokeSkill, createJokeSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -50,20 +50,20 @@ describe('JokeSkill', () => {
 
   it('should return a joke from any category', () => {
     const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({}, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({}, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('...');
   });
 
   it('should return a joke from a specific category', () => {
     const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({ category: 'programming' }, {}) as SwaigFunctionResult;
+    const result = handler({ category: 'programming' }, {}) as FunctionResult;
     expect(result.response).toBeTruthy();
   });
 
   it('should handle unknown category', () => {
     const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({ category: 'nonexistent' }, {}) as SwaigFunctionResult;
+    const result = handler({ category: 'nonexistent' }, {}) as FunctionResult;
     expect(result.response).toContain('Unknown');
   });
 

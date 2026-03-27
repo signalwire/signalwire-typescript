@@ -23,7 +23,7 @@ Complete reference for every exported class, interface, type, and function in th
   - [Utility Methods](#utility-methods)
   - [Protected Hooks](#protected-hooks)
 - [AgentServer](#agentserver)
-- [SwaigFunctionResult](#swaigfunctionresult)
+- [FunctionResult](#swaigfunctionresult)
   - [Constructor](#swaigfunctionresult-constructor)
   - [Core Methods](#swaigfunctionresult-core-methods)
   - [Call Control Actions](#call-control-actions)
@@ -97,7 +97,7 @@ Complete reference for every exported class, interface, type, and function in th
 ## AgentBase
 
 ```ts
-import { AgentBase } from '@anthropic/signalwire-agents';
+import { AgentBase } from '@anthropic/@signalwire/sdk';
 ```
 
 Core agent class that composes an HTTP server, prompt management, session handling, SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
@@ -262,7 +262,7 @@ agent.defineTool({
   name: 'get_weather',
   description: 'Get current weather for a city',
   parameters: { city: { type: 'string', description: 'City name' } },
-  handler: async (args) => new SwaigFunctionResult(`Weather in ${args.city}: sunny`),
+  handler: async (args) => new FunctionResult(`Weather in ${args.city}: sunny`),
 });
 ```
 
@@ -711,7 +711,7 @@ Pre-execution hook called before each SWAIG function.
 ## AgentServer
 
 ```ts
-import { AgentServer } from '@anthropic/signalwire-agents';
+import { AgentServer } from '@anthropic/@signalwire/sdk';
 ```
 
 Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes.
@@ -787,15 +787,15 @@ await server.run();
 
 ---
 
-## SwaigFunctionResult
+## FunctionResult
 
 ```ts
-import { SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { FunctionResult } from '@anthropic/@signalwire/sdk';
 ```
 
 Builder for SWAIG function responses. Carries response text and an ordered list of structured actions. Every mutating method returns `this` for fluent chaining.
 
-### SwaigFunctionResult Constructor
+### FunctionResult Constructor
 
 ```ts
 constructor(response?: string, postProcess?: boolean)
@@ -814,7 +814,7 @@ constructor(response?: string, postProcess?: boolean)
 | `action` | `Record<string, unknown>[]` | Ordered list of actions |
 | `postProcess` | `boolean` | Whether post-processing is enabled |
 
-### SwaigFunctionResult Core Methods
+### FunctionResult Core Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -938,7 +938,7 @@ pay(opts: {
 
 Initiate a payment collection flow.
 
-### SwaigFunctionResult Static Helpers
+### FunctionResult Static Helpers
 
 | Method | Signature | Returns |
 |--------|-----------|---------|
@@ -946,7 +946,7 @@ Initiate a payment collection flow.
 | `createPaymentAction` | `(actionType, phrase)` | `PaymentAction` |
 | `createPaymentParameter` | `(name, value)` | `PaymentParameter` |
 
-### SwaigFunctionResult Serialization
+### FunctionResult Serialization
 
 #### `toDict()`
 
@@ -961,7 +961,7 @@ Serialize to a plain object for the SWAIG response. Returns `{ response, action,
 ## SwaigFunction
 
 ```ts
-import { SwaigFunction } from '@anthropic/signalwire-agents';
+import { SwaigFunction } from '@anthropic/@signalwire/sdk';
 ```
 
 Wraps a tool handler function with metadata for SWAIG registration.
@@ -1014,7 +1014,7 @@ Serialize to the SWAIG wire format for inclusion in SWML. Returns an object with
 ## DataMap
 
 ```ts
-import { DataMap, createSimpleApiTool, createExpressionTool } from '@anthropic/signalwire-agents';
+import { DataMap, createSimpleApiTool, createExpressionTool } from '@anthropic/@signalwire/sdk';
 ```
 
 Fluent builder for SWAIG `data_map` configurations. Creates server-side tool definitions that execute on SignalWire without requiring webhook endpoints.
@@ -1065,8 +1065,8 @@ Define a parameter for this data map tool.
 expression(
   testValue: string,
   pattern: string | RegExp,
-  output: SwaigFunctionResult,
-  nomatchOutput?: SwaigFunctionResult,
+  output: FunctionResult,
+  nomatchOutput?: FunctionResult,
 ): this
 ```
 
@@ -1124,7 +1124,7 @@ Configure iteration over an array in the webhook response.
 #### `output(result)`
 
 ```ts
-output(result: SwaigFunctionResult): this
+output(result: FunctionResult): this
 ```
 
 Set the output template for the most recently added webhook.
@@ -1132,7 +1132,7 @@ Set the output template for the most recently added webhook.
 #### `fallbackOutput(result)`
 
 ```ts
-fallbackOutput(result: SwaigFunctionResult): this
+fallbackOutput(result: FunctionResult): this
 ```
 
 Set a fallback output used when no webhook or expression matches.
@@ -1195,7 +1195,7 @@ Create a DataMap tool that calls a single API endpoint and formats the response.
 ```ts
 function createExpressionTool(opts: {
   name: string;
-  patterns: Record<string, [string, SwaigFunctionResult]>;
+  patterns: Record<string, [string, FunctionResult]>;
   parameters?: Record<string, { type?: string; description?: string; required?: boolean }>;
 }): DataMap
 ```
@@ -1207,7 +1207,7 @@ Create a DataMap tool that evaluates expressions against patterns without making
 ## ContextBuilder
 
 ```ts
-import { ContextBuilder, Context, Step, GatherInfo, GatherQuestion, createSimpleContext } from '@anthropic/signalwire-agents';
+import { ContextBuilder, Context, Step, GatherInfo, GatherQuestion, createSimpleContext } from '@anthropic/@signalwire/sdk';
 ```
 
 Contexts and Steps workflow system. Contexts contain ordered Steps, each with prompt content, completion criteria, function restrictions, and navigation rules.
@@ -1439,7 +1439,7 @@ Create a standalone Context without a ContextBuilder. Name defaults to `'default
 ## PomBuilder
 
 ```ts
-import { PomBuilder, PomSection } from '@anthropic/signalwire-agents';
+import { PomBuilder, PomSection } from '@anthropic/@signalwire/sdk';
 ```
 
 Prompt Object Model for structured prompt sections. Sections have a title, body, bullets (optionally numbered), and nested subsections.
@@ -1501,7 +1501,7 @@ Builds a structured prompt by composing named POM sections.
 ## SwmlBuilder
 
 ```ts
-import { SwmlBuilder } from '@anthropic/signalwire-agents';
+import { SwmlBuilder } from '@anthropic/@signalwire/sdk';
 ```
 
 Builds SWML (SignalWire Markup Language) documents: `{ version: "1.0.0", sections: { main: [...verbs] } }`.
@@ -1521,7 +1521,7 @@ Builds SWML (SignalWire Markup Language) documents: `{ version: "1.0.0", section
 ## PromptManager
 
 ```ts
-import { PromptManager } from '@anthropic/signalwire-agents';
+import { PromptManager } from '@anthropic/@signalwire/sdk';
 ```
 
 Manages agent prompt text, supporting both raw text and structured POM-based prompts.
@@ -1555,7 +1555,7 @@ constructor(usePom?: boolean)
 ## SessionManager
 
 ```ts
-import { SessionManager } from '@anthropic/signalwire-agents';
+import { SessionManager } from '@anthropic/@signalwire/sdk';
 ```
 
 Stateless HMAC-SHA256 token manager for SWAIG function call authentication and per-session metadata storage. Tokens encode `callId.functionName.expiry.nonce.hmacSignature` in base64url format.
@@ -1641,7 +1641,7 @@ Decode token components for debugging without validating the signature. Returns 
 ## Skills
 
 ```ts
-import { SkillBase, SkillManager, SkillRegistry } from '@anthropic/signalwire-agents';
+import { SkillBase, SkillManager, SkillRegistry } from '@anthropic/@signalwire/sdk';
 ```
 
 ### SkillBase
@@ -1753,7 +1753,7 @@ Pre-built agent templates with declarative configuration, built-in tools, and pr
 ### InfoGathererAgent
 
 ```ts
-import { InfoGathererAgent, createInfoGathererAgent } from '@anthropic/signalwire-agents';
+import { InfoGathererAgent, createInfoGathererAgent } from '@anthropic/@signalwire/sdk';
 ```
 
 Sequentially collects named fields from a caller with optional validation and completion callback.
@@ -1785,7 +1785,7 @@ Sequentially collects named fields from a caller with optional validation and co
 ### SurveyAgent
 
 ```ts
-import { SurveyAgent, createSurveyAgent } from '@anthropic/signalwire-agents';
+import { SurveyAgent, createSurveyAgent } from '@anthropic/@signalwire/sdk';
 ```
 
 Conducts surveys with branching logic, answer scoring, and conditional question flow.
@@ -1819,7 +1819,7 @@ Conducts surveys with branching logic, answer scoring, and conditional question 
 ### FAQBotAgent
 
 ```ts
-import { FAQBotAgent, createFAQBotAgent } from '@anthropic/signalwire-agents';
+import { FAQBotAgent, createFAQBotAgent } from '@anthropic/@signalwire/sdk';
 ```
 
 Answers frequently asked questions using keyword/word-overlap matching with optional escalation.
@@ -1850,7 +1850,7 @@ Answers frequently asked questions using keyword/word-overlap matching with opti
 ### ConciergeAgent
 
 ```ts
-import { ConciergeAgent, createConciergeAgent } from '@anthropic/signalwire-agents';
+import { ConciergeAgent, createConciergeAgent } from '@anthropic/@signalwire/sdk';
 ```
 
 Multi-department routing with a knowledge base of department info, hours, and transfer capabilities.
@@ -1883,7 +1883,7 @@ Multi-department routing with a knowledge base of department info, hours, and tr
 ### ReceptionistAgent
 
 ```ts
-import { ReceptionistAgent, createReceptionistAgent } from '@anthropic/signalwire-agents';
+import { ReceptionistAgent, createReceptionistAgent } from '@anthropic/@signalwire/sdk';
 ```
 
 Front-desk agent that handles visitor check-in, department directory lookup, and call transfers by extension.
@@ -1919,7 +1919,7 @@ Front-desk agent that handles visitor check-in, department directory lookup, and
 ### AuthHandler
 
 ```ts
-import { AuthHandler } from '@anthropic/signalwire-agents';
+import { AuthHandler } from '@anthropic/@signalwire/sdk';
 ```
 
 Multi-method authentication handler with timing-safe credential comparison. Supports Bearer token, API key, Basic auth, and custom validators.
@@ -1945,7 +1945,7 @@ See [AuthConfig](#authconfig).
 ### ConfigLoader
 
 ```ts
-import { ConfigLoader } from '@anthropic/signalwire-agents';
+import { ConfigLoader } from '@anthropic/@signalwire/sdk';
 ```
 
 JSON configuration file loader with `${VAR|default}` environment variable interpolation and dot-notation access.
@@ -1979,7 +1979,7 @@ Optionally loads a JSON file immediately on construction.
 ### Logger
 
 ```ts
-import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, resetLoggingConfiguration } from '@anthropic/signalwire-agents';
+import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, resetLoggingConfiguration } from '@anthropic/@signalwire/sdk';
 ```
 
 Structured logger configurable via environment variables.
@@ -2023,7 +2023,7 @@ constructor(name: string, context?: Record<string, unknown>)
 ### SslConfig
 
 ```ts
-import { SslConfig } from '@anthropic/signalwire-agents';
+import { SslConfig } from '@anthropic/@signalwire/sdk';
 ```
 
 SSL/TLS configuration sourced from explicit options or environment variables.
@@ -2070,7 +2070,7 @@ See [SslOptions](#ssloptions).
 ### SchemaUtils
 
 ```ts
-import { SchemaUtils } from '@anthropic/signalwire-agents';
+import { SchemaUtils } from '@anthropic/@signalwire/sdk';
 ```
 
 Validates SWML documents against structural rules with an LRU-style result cache.
@@ -2097,7 +2097,7 @@ constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number })
 ### ServerlessAdapter
 
 ```ts
-import { ServerlessAdapter } from '@anthropic/signalwire-agents';
+import { ServerlessAdapter } from '@anthropic/@signalwire/sdk';
 ```
 
 Adapts a Hono application for deployment on serverless platforms. Auto-detects platform from environment variables.
@@ -2235,13 +2235,13 @@ Callback invoked when a post-prompt summary is received.
 type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: Record<string, unknown>,
-) => SwaigFunctionResult | Record<string, unknown> | string | Promise<SwaigFunctionResult | Record<string, unknown> | string>;
+) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
 ```
 
 Handler function for a SWAIG tool invocation. Can return:
-- A `SwaigFunctionResult` instance
+- A `FunctionResult` instance
 - A plain object with a `response` key
-- A plain string (wrapped into a SwaigFunctionResult)
+- A plain string (wrapped into a FunctionResult)
 - A `Promise` of any of the above
 
 ### SwaigFunctionOptions

@@ -10,7 +10,7 @@
 import {
   AgentBase,
   DataMap,
-  SwaigFunctionResult,
+  FunctionResult,
   createSimpleApiTool,
 } from '../src/index.js';
 
@@ -33,12 +33,12 @@ const weatherTool = new DataMap('get_weather')
   .parameter('city', 'string', 'The city name', { required: true })
   .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
   .output(
-    new SwaigFunctionResult(
+    new FunctionResult(
       'Weather in ${args.city}: ${response.current_condition[0].temp_F}°F, ${response.current_condition[0].weatherDesc[0].value}',
     ),
   )
   .fallbackOutput(
-    new SwaigFunctionResult('Sorry, I could not fetch the weather for that city.'),
+    new FunctionResult('Sorry, I could not fetch the weather for that city.'),
   );
 
 agent.registerSwaigFunction(weatherTool.toSwaigFunction());

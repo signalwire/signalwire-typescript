@@ -1,9 +1,9 @@
-# SignalWireClient Reference
+# RestClient Reference
 
 ## Constructor
 
 ```python
-SignalWireClient(
+RestClient(
     project: str = None,   # SIGNALWIRE_PROJECT_ID
     token: str = None,     # SIGNALWIRE_API_TOKEN
     host: str = None,      # SIGNALWIRE_SPACE
@@ -103,5 +103,5 @@ except SignalWireRestError as e:
 
 - A single `requests.Session` is shared across all namespaces for connection pooling.
 - Content-Type is always `application/json`.
-- User-Agent is `signalwire-agents-python-rest/1.0`.
+- User-Agent is `@signalwire/sdk-python-rest/1.0`.
 - DELETE requests returning 204 return an empty dict.

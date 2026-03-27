@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 import { ContextBuilder } from '../src/ContextBuilder.js';
 import { DataMap } from '../src/DataMap.js';
 import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../src/skills/SkillBase.js';
@@ -51,7 +51,7 @@ describe('AgentBase', () => {
       name: 'get_time',
       description: 'Get the current time',
       parameters: {},
-      handler: () => new SwaigFunctionResult('The time is 12:00'),
+      handler: () => new FunctionResult('The time is 12:00'),
     });
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main[1].ai;
@@ -69,7 +69,7 @@ describe('AgentBase', () => {
       .purpose('Get weather')
       .parameter('location', 'string', 'City', { required: true })
       .webhook('GET', 'https://api.weather.com?q=${location}')
-      .output(new SwaigFunctionResult('Temp: ${response.temp}'));
+      .output(new FunctionResult('Temp: ${response.temp}'));
 
     agent.registerSwaigFunction(dm.toSwaigFunction());
     const swml = JSON.parse(agent.renderSwml());
@@ -148,7 +148,7 @@ describe('AgentBase', () => {
       name: 'fn',
       description: 'd',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const swml = JSON.parse(agent.renderSwml());
     expect(swml.sections.main[1].ai.SWAIG.native_functions).toEqual(['check_time']);
@@ -162,7 +162,7 @@ describe('AgentBase', () => {
       name: 'fn',
       description: 'd',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const swml = JSON.parse(agent.renderSwml());
     expect(swml.sections.main[1].ai.SWAIG.includes).toHaveLength(1);
@@ -328,13 +328,13 @@ describe('AgentBase', () => {
       name: 'fn1',
       description: 'Function 1',
       parameters: { x: { type: 'string' } },
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     agent.defineTool({
       name: 'fn2',
       description: 'Function 2',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const tools = agent.getRegisteredTools();
     expect(tools).toHaveLength(2);
@@ -348,7 +348,7 @@ describe('AgentBase', () => {
       name: 'my_fn',
       description: 'My function',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const tool = agent.getTool('my_fn');
     expect(tool).toBeDefined();
@@ -554,7 +554,7 @@ describe('AgentBase', () => {
           name: 'auto_tool',
           description: 'Auto-registered tool',
           parameters: {},
-          handler: () => new SwaigFunctionResult('auto'),
+          handler: () => new FunctionResult('auto'),
         });
       }
     }
@@ -589,7 +589,7 @@ describe('AgentBase', () => {
       name: 'test_fn',
       description: 'Test',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const app = agent.getApp();
     const res = await app.request('/swaig', {
@@ -638,7 +638,7 @@ describe('AgentBase', () => {
         return [{
           name: 'skill_tool',
           description: 'Skill tool',
-          handler: () => new SwaigFunctionResult('skill result'),
+          handler: () => new FunctionResult('skill result'),
         }];
       }
       getPromptSections() { return [{ title: 'Skill Info', body: 'From test skill' }]; }
@@ -802,7 +802,7 @@ describe('AgentBase', () => {
       name: 'real_tool',
       description: 'A tool',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     });
     const app = agent.getApp();
     const res = await app.request('/swaig', {
@@ -819,13 +819,13 @@ describe('AgentBase', () => {
     expect(text).not.toContain('real_tool');
   });
 
-  it('invalid token returns 200 with SwaigFunctionResult (not 403)', async () => {
+  it('invalid token returns 200 with FunctionResult (not 403)', async () => {
     const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
     agent.defineTool({
       name: 'secure_fn',
       description: 'Secure function',
       parameters: {},
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
       secure: true,
     });
     const app = agent.getApp();
@@ -905,7 +905,7 @@ describe('AgentBase', () => {
       parameters: {},
       handler: (_args, _params, _body) => {
         captured.push(_args);
-        return new SwaigFunctionResult('ok');
+        return new FunctionResult('ok');
       },
     });
     const app = agent.getApp();
@@ -958,7 +958,7 @@ describe('AgentBase', () => {
     agent.defineTypedTool({
       name: 'get_weather',
       description: 'Get weather for a city',
-      handler: (city: string, days = 5) => new SwaigFunctionResult(`Weather for ${city}, ${days} days`),
+      handler: (city: string, days = 5) => new FunctionResult(`Weather for ${city}, ${days} days`),
     });
     const tool = agent.getTool('get_weather');
     expect(tool).toBeDefined();
@@ -977,7 +977,7 @@ describe('AgentBase', () => {
       description: 'Greet someone',
       handler: (name: string, excited = false) => {
         captured.push(name, excited);
-        return new SwaigFunctionResult('hi');
+        return new FunctionResult('hi');
       },
     });
     const tool = agent.getTool('greet');
@@ -992,7 +992,7 @@ describe('AgentBase', () => {
       description: 'Custom tool',
       parameters: { location: { type: 'string', description: 'Location' } },
       required: ['location'],
-      handler: (location: string) => new SwaigFunctionResult(`Got ${location}`),
+      handler: (location: string) => new FunctionResult(`Got ${location}`),
     });
     const tool = agent.getTool('custom');
     expect(tool).toBeDefined();
@@ -1007,7 +1007,7 @@ describe('AgentBase', () => {
     agent.defineTypedTool({
       name: 'lookup',
       description: 'Look up info',
-      handler: (query: string) => new SwaigFunctionResult(`Found: ${query}`),
+      handler: (query: string) => new FunctionResult(`Found: ${query}`),
     });
     const swml = JSON.parse(agent.renderSwml());
     const fns = swml.sections.main[1].ai.SWAIG.functions;

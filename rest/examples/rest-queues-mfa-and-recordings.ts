@@ -10,9 +10,9 @@
  *   npx tsx rest/examples/rest-queues-mfa-and-recordings.ts
  */
 
-import { SignalWireClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 
 async function main() {
   // --- Queues ---

@@ -15,7 +15,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /** A document entry in the in-memory search index. */
 interface DocumentEntry {
@@ -258,11 +258,11 @@ export class NativeVectorSearchSkill extends SkillBase {
           const topK = args.top_k as number | undefined;
 
           if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a search query.');
+            return new FunctionResult('Please provide a search query.');
           }
 
           if (!this._indexed || this._documents.length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'No documents are loaded for searching. Configure the skill with a "documents" array.',
             );
           }
@@ -271,7 +271,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           const queryTokens = tokenize(query);
 
           if (queryTokens.length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The search query did not contain any meaningful search terms. Please try a more specific query.',
             );
           }
@@ -289,7 +289,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           const results = scored.filter((s) => s.score > 0).slice(0, k);
 
           if (results.length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `No relevant documents found for "${query}". Try different search terms.`,
             );
           }
@@ -324,7 +324,7 @@ export class NativeVectorSearchSkill extends SkillBase {
             parts.push('');
           }
 
-          return new SwaigFunctionResult(parts.join('\n').trim());
+          return new FunctionResult(parts.join('\n').trim());
         },
       },
     ];

@@ -2,7 +2,7 @@
  * SwaigFunction - Wraps a handler function with metadata for SWAIG registration.
  */
 
-import { SwaigFunctionResult } from './SwaigFunctionResult.js';
+import { FunctionResult } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
 
 const log = getLogger('SwaigFunction');
@@ -11,12 +11,12 @@ const log = getLogger('SwaigFunction');
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
- * @returns A SwaigFunctionResult, a plain object with a response key, a string, or a Promise of any of these.
+ * @returns A FunctionResult, a plain object with a response key, a string, or a Promise of any of these.
  */
 export type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: Record<string, unknown>,
-) => SwaigFunctionResult | Record<string, unknown> | string | Promise<SwaigFunctionResult | Record<string, unknown> | string>;
+) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
 
 /** Configuration options for creating a SwaigFunction. */
 export interface SwaigFunctionOptions {
@@ -126,19 +126,19 @@ export class SwaigFunction {
   ): Promise<Record<string, unknown>> {
     try {
       const result = await this.handler(args, rawData ?? {});
-      if (result instanceof SwaigFunctionResult) {
+      if (result instanceof FunctionResult) {
         return result.toDict();
       }
       if (typeof result === 'object' && result !== null && 'response' in result) {
         return result as Record<string, unknown>;
       }
       if (typeof result === 'object' && result !== null) {
-        return new SwaigFunctionResult('Function completed successfully').toDict();
+        return new FunctionResult('Function completed successfully').toDict();
       }
-      return new SwaigFunctionResult(String(result)).toDict();
+      return new FunctionResult(String(result)).toDict();
     } catch (err) {
       log.error(`Error executing SWAIG function ${this.name}: ${err}`);
-      return new SwaigFunctionResult(
+      return new FunctionResult(
         "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.",
       ).toDict();
     }

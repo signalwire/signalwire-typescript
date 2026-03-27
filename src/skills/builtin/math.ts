@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /**
  * Validate that an expression contains only safe mathematical characters.
@@ -107,18 +107,18 @@ export class MathSkill extends SkillBase {
           const expression = args.expression as string | undefined;
 
           if (!expression || typeof expression !== 'string') {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a mathematical expression to evaluate.',
             );
           }
 
           try {
             const result = safeEvaluate(expression);
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `The result of ${expression.trim()} is ${result}.`,
             );
           } catch {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Could not evaluate the expression. Please check that it contains only valid mathematical operators and try again.`,
             );
           }

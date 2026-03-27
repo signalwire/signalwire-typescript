@@ -10,9 +10,9 @@
  *   npx tsx rest/examples/rest-manage-resources.ts
  */
 
-import { SignalWireClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '../../src/index.js';
 
-const client = new SignalWireClient();
+const client = new RestClient();
 
 async function main() {
   // 1. Create an AI agent

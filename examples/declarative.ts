@@ -7,7 +7,7 @@
  * Run: npx tsx examples/declarative.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 import type { AgentOptions } from '../src/index.js';
 
 class HelpDeskAgent extends AgentBase {
@@ -50,7 +50,7 @@ class HelpDeskAgent extends AgentBase {
         email: { type: 'string', description: 'User email address' },
       },
       handler: (args) => {
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Password reset email sent to ${args.email}. It will arrive within 5 minutes.`,
         );
       },
@@ -61,7 +61,7 @@ class HelpDeskAgent extends AgentBase {
       description: 'Check the current system status of AcmePM',
       parameters: {},
       handler: () => {
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           'AcmePM system status: All services operational. No known outages.',
         );
       },
@@ -74,7 +74,7 @@ class HelpDeskAgent extends AgentBase {
         issue: { type: 'string', description: 'Description of the issue' },
       },
       handler: (args) => {
-        const result = new SwaigFunctionResult(
+        const result = new FunctionResult(
           `Issue escalated to Tier 2: "${args.issue}". A specialist will follow up within 2 hours.`,
         );
         return result;

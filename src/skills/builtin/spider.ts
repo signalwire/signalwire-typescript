@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { resolveAndValidateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 
@@ -119,16 +119,16 @@ export class SpiderSkill extends SkillBase {
           const selector = args.selector as string | undefined;
 
           if (!url || typeof url !== 'string' || url.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a URL to scrape.');
+            return new FunctionResult('Please provide a URL to scrape.');
           }
 
           if (url.length > MAX_SKILL_INPUT_LENGTH) {
-            return new SwaigFunctionResult('Input URL is too long.');
+            return new FunctionResult('Input URL is too long.');
           }
 
           const trimmedUrl = url.trim();
           if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Invalid URL. Please provide a full URL starting with http:// or https://.',
             );
           }
@@ -138,14 +138,14 @@ export class SpiderSkill extends SkillBase {
           try {
             await resolveAndValidateUrl(trimmedUrl, allowPrivate);
           } catch {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The provided URL could not be validated. Please check the URL and try again.',
             );
           }
 
           const apiKey = process.env['SPIDER_API_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
             );
           }
@@ -179,7 +179,7 @@ export class SpiderSkill extends SkillBase {
 
             if (!response.ok) {
               log.error('spider_api_error', { status: response.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The web scraping service encountered an error. Please try again later.',
               );
             }
@@ -189,7 +189,7 @@ export class SpiderSkill extends SkillBase {
             // Handle error responses
             if (!Array.isArray(data) && 'error' in data) {
               log.error('spider_scraping_failed', { error: data.error });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The web scraping service could not process the request. Please try again later.',
               );
             }
@@ -199,14 +199,14 @@ export class SpiderSkill extends SkillBase {
             const result: SpiderResult = Array.isArray(data) ? data[0] : data;
 
             if (!result) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No content could be extracted from "${trimmedUrl}".`,
               );
             }
 
             if (result.error) {
               log.error('spider_result_error', { error: result.error });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Could not extract content from the requested page. Please try again later.`,
               );
             }
@@ -215,7 +215,7 @@ export class SpiderSkill extends SkillBase {
             content = result.markdown ?? result.text ?? result.content ?? '';
 
             if (content.trim().length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `The page at "${trimmedUrl}" returned no extractable content.`,
               );
             }
@@ -238,10 +238,10 @@ export class SpiderSkill extends SkillBase {
               parts.push(`[Content truncated to ${maxContentLength} characters]`);
             }
 
-            return new SwaigFunctionResult(parts.join('\n'));
+            return new FunctionResult(parts.join('\n'));
           } catch (err) {
             log.error('scrape_url_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

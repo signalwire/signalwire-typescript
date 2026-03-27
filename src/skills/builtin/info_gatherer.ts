@@ -15,7 +15,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /** Definition of a single data field to be collected from the user. */
 interface FieldDefinition {
@@ -205,13 +205,13 @@ export class InfoGathererSkill extends SkillBase {
           }
 
           if (errors.length > 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Could not save information due to validation errors:\n${errors.join('\n')}\nPlease correct these fields and try again.`,
             );
           }
 
           if (Object.keys(collected).length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'No information was provided. Please collect at least one field before saving.',
             );
           }
@@ -228,7 +228,7 @@ export class InfoGathererSkill extends SkillBase {
             .map(([key, val]) => `${key}: ${val}`)
             .join(', ');
 
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             `${confirmationMessage} Saved: ${fieldSummary}.`,
           );
 
@@ -250,7 +250,7 @@ export class InfoGathererSkill extends SkillBase {
           const info = this.gatheredData.get(callId);
 
           if (!info || Object.keys(info).length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'No information has been gathered yet for this call.',
             );
           }
@@ -259,7 +259,7 @@ export class InfoGathererSkill extends SkillBase {
             .map(([key, val]) => `${key}: ${val}`)
             .join(', ');
 
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Previously gathered information: ${summary}.`,
           );
         },

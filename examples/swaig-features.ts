@@ -1,13 +1,13 @@
 /**
  * SWAIG Features Showcase
  *
- * Demonstrates the full range of SwaigFunctionResult actions:
+ * Demonstrates the full range of FunctionResult actions:
  * hangup, hold, say, context switching, dynamic hints, global data,
  * metadata, toggleFunctions, background audio, and more.
  * Run: npx tsx examples/swaig-features.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'features-agent',
@@ -29,7 +29,7 @@ agent.defineTool({
   description: 'End the call when the user wants to hang up',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult('Goodbye! Ending the call now.');
+    const result = new FunctionResult('Goodbye! Ending the call now.');
     result.hangup();
     return result;
   },
@@ -44,7 +44,7 @@ agent.defineTool({
   },
   handler: (args) => {
     const secs = (args.seconds as number) ?? 60;
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Placing you on hold for ${secs} seconds.`,
     );
     result.hold(secs);
@@ -60,7 +60,7 @@ agent.defineTool({
     message: { type: 'string', description: 'The announcement message' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult('Making announcement.');
+    const result = new FunctionResult('Making announcement.');
     result.say(args.message as string);
     return result;
   },
@@ -74,7 +74,7 @@ agent.defineTool({
     url: { type: 'string', description: 'URL of the audio file' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult('Playing background music.');
+    const result = new FunctionResult('Playing background music.');
     result.playBackgroundFile(args.url as string);
     return result;
   },
@@ -86,7 +86,7 @@ agent.defineTool({
   description: 'Stop any playing background music',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult('Stopping background music.');
+    const result = new FunctionResult('Stopping background music.');
     result.stopBackgroundFile();
     return result;
   },
@@ -101,7 +101,7 @@ agent.defineTool({
     value: { type: 'string', description: 'Preference value' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Saved preference: ${args.key} = ${args.value}`,
     );
     result.updateGlobalData({ [args.key as string]: args.value });
@@ -117,7 +117,7 @@ agent.defineTool({
     tag: { type: 'string', description: 'Tag to add to the call' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(`Call tagged as "${args.tag}".`);
+    const result = new FunctionResult(`Call tagged as "${args.tag}".`);
     result.setMetadata({ tag: args.tag });
     return result;
   },
@@ -135,7 +135,7 @@ agent.defineTool({
       args.mode === 'formal'
         ? 'You are now a formal, professional assistant. Use proper language.'
         : 'You are now a casual, friendly assistant. Be relaxed and conversational.';
-    const result = new SwaigFunctionResult(`Switched to ${args.mode} mode.`);
+    const result = new FunctionResult(`Switched to ${args.mode} mode.`);
     result.switchContext({ systemPrompt: prompt });
     return result;
   },
@@ -150,7 +150,7 @@ agent.defineTool({
     message: { type: 'string', description: 'SMS message text' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `SMS sent to ${args.to}: "${args.message}"`,
     );
     result.sendSms({
@@ -168,7 +168,7 @@ agent.defineTool({
   description: 'Disable all tools except end_call for security',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       'Entering secure mode. Only the end call function is available.',
     );
     result.toggleFunctions([

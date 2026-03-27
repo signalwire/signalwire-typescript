@@ -6,7 +6,7 @@
  * Run: npx tsx examples/kubernetes-agent.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 // Set up graceful shutdown before anything else
 AgentBase.setupGracefulShutdown({ timeout: 10000 });
@@ -32,7 +32,7 @@ agent.defineTool({
   description: 'Get the current service status',
   parameters: {},
   handler: () => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Service is healthy. Uptime: ${Math.floor(process.uptime())}s. Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB.`,
     );
   },

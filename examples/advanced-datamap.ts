@@ -9,7 +9,7 @@
 import {
   AgentBase,
   DataMap,
-  SwaigFunctionResult,
+  FunctionResult,
   createExpressionTool,
 } from '../src/index.js';
 
@@ -34,7 +34,7 @@ const greetingTool = createExpressionTool({
   patterns: {
     '${args.text}': [
       '(?i)(hello|hi|hey|good morning|good afternoon)',
-      new SwaigFunctionResult('The user greeted with: ${args.text}. Respond warmly.'),
+      new FunctionResult('The user greeted with: ${args.text}. Respond warmly.'),
     ],
   },
   parameters: {
@@ -49,13 +49,13 @@ const translationTool = new DataMap('lookup_definition')
   .parameter('word', 'string', 'The word to look up', { required: true })
   .webhook('GET', 'https://api.dictionaryapi.dev/api/v2/entries/en/${args.word}')
   .output(
-    new SwaigFunctionResult(
+    new FunctionResult(
       'Definition of ${args.word}: The word was found in the dictionary.',
     ),
   )
   .errorKeys(['title'])
   .fallbackOutput(
-    new SwaigFunctionResult('Could not find a definition for that word.'),
+    new FunctionResult('Could not find a definition for that word.'),
   );
 
 agent.registerSwaigFunction(translationTool.toSwaigFunction());
@@ -71,8 +71,8 @@ const newsTool = new DataMap('get_news')
     append: '- ${this.title}: ${this.description}',
     max: 5,
   })
-  .output(new SwaigFunctionResult('Latest news on ${args.topic}:\n${headlines}'))
-  .fallbackOutput(new SwaigFunctionResult('No news found for that topic.'));
+  .output(new FunctionResult('Latest news on ${args.topic}:\n${headlines}'))
+  .fallbackOutput(new FunctionResult('No news found for that topic.'));
 
 // Enable env expansion for the news API key
 newsTool.enableEnvExpansion(true);
@@ -87,8 +87,8 @@ const statusChecker = new DataMap('check_status')
   .expression(
     '${args.service}',
     '(?i)(api|web|database)',
-    new SwaigFunctionResult('The ${args.service} service is currently operational.'),
-    new SwaigFunctionResult(
+    new FunctionResult('The ${args.service} service is currently operational.'),
+    new FunctionResult(
       'Unknown service "${args.service}". Available services: api, web, database.',
     ),
   );

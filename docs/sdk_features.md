@@ -41,7 +41,7 @@ class WeatherAgent(AgentBase):
     def get_weather(self, args, raw_data):
         city = args["city"]
         # ... fetch weather ...
-        return SwaigFunctionResult(f"72°F and sunny in {city}")
+        return FunctionResult(f"72°F and sunny in {city}")
 
 agent = WeatherAgent()
 agent.run()
@@ -79,7 +79,7 @@ POM sections are rendered by the platform into a format the LLM understands with
                             "required": ["order_id"]})
 def lookup_order(self, args, raw_data):
     order = db.get(args["order_id"])
-    result = SwaigFunctionResult(f"Order {order.id}: {order.status}")
+    result = FunctionResult(f"Order {order.id}: {order.status}")
     result.add_action("set_global_data", {"current_order": order.to_dict()})
     return result
 ```
@@ -97,7 +97,7 @@ def lookup_order(self, order_id: str):
         order_id: The order identifier
     """
     order = db.get(order_id)
-    return SwaigFunctionResult(f"Order {order.id}: {order.status}")
+    return FunctionResult(f"Order {order.id}: {order.status}")
 ```
 
 The SDK infers the parameter schema, required fields, and description from the function signature and docstring. Explicit `parameters=` always takes precedence.
@@ -109,8 +109,8 @@ data_map = (DataMap("check_stock")
     .purpose("Check product stock levels")
     .parameter("sku", "string", "Product SKU", required=True)
     .webhook("GET", "https://api.warehouse.com/stock/${args.sku}")
-    .output(SwaigFunctionResult("Stock for ${args.sku}: ${response.quantity} units"))
-    .fallback_output(SwaigFunctionResult("Could not check stock right now")))
+    .output(FunctionResult("Stock for ${args.sku}: ${response.quantity} units"))
+    .fallback_output(FunctionResult("Could not check stock right now")))
 
 agent.register_swaig_function(data_map.to_swaig_function())
 ```
@@ -226,7 +226,7 @@ def handle_hit(args, raw_data):
     game["player_hand"].append(card)
     score = calculate_hand(game["player_hand"])
 
-    result = SwaigFunctionResult(
+    result = FunctionResult(
         f"You drew {format_card(card)}. Your total is {score}."
     )
     result.update_global_data({"game_state": game})

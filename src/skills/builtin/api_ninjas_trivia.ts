@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('ApiNinjasTriviaSkill');
@@ -133,7 +133,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
         handler: async (args: Record<string, unknown>) => {
           const apiKey = process.env['API_NINJAS_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Trivia service is not configured. The API_NINJAS_KEY environment variable is missing.',
             );
           }
@@ -148,7 +148,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
                 normalized as (typeof VALID_CATEGORIES)[number],
               )
             ) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Unknown trivia category "${category}". Available categories: ${VALID_CATEGORIES.join(', ')}.`,
               );
             }
@@ -176,7 +176,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
 
             if (!response.ok) {
               log.error('trivia_api_error', { status: response.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The trivia service encountered an error. Please try again later.',
               );
             }
@@ -184,7 +184,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             const data = (await response.json()) as TriviaResponse[];
 
             if (!Array.isArray(data) || data.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'No trivia questions were returned. Please try again or try a different category.',
               );
             }
@@ -192,21 +192,21 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             const trivia = data[0]!;
 
             if (revealAnswer) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Trivia (${trivia.category}): ${trivia.question} Answer: ${trivia.answer}`,
               );
             }
 
             // When not revealing the answer, provide it in a structured way
             // so the AI knows the answer but can quiz the user
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Here is a trivia question from the "${trivia.category}" category. ` +
                 `Question: ${trivia.question} ` +
                 `[The correct answer is: ${trivia.answer}. Do not reveal this unless the user attempts an answer or asks for it.]`,
             );
           } catch (err) {
             log.error('get_trivia_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

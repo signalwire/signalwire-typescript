@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /**
  * Controls background audio playback during calls via SWML actions.
@@ -104,7 +104,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
           const wait = (args.wait as boolean | undefined) ?? false;
 
           if (!fileUrl || typeof fileUrl !== 'string' || fileUrl.trim().length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a file URL for the audio to play in the background.',
             );
           }
@@ -115,7 +115,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
           try {
             const parsed = new URL(fileUrl);
             if (!['http:', 'https:'].includes(parsed.protocol)) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'Invalid file URL. Only HTTP and HTTPS URLs are supported.',
               );
             }
@@ -129,18 +129,18 @@ export class PlayBackgroundFileSkill extends SkillBase {
                   hostname.endsWith(`.${domain.toLowerCase()}`),
               );
               if (!isAllowed) {
-                return new SwaigFunctionResult(
+                return new FunctionResult(
                   `Audio files from "${parsed.hostname}" are not allowed. Allowed domains: ${allowedDomains.join(', ')}.`,
                 );
               }
             }
           } catch {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Invalid file URL: "${fileUrl}". Please provide a valid HTTP or HTTPS URL.`,
             );
           }
 
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             `Now playing background audio: ${fileUrl}${wait ? ' (waiting for completion)' : ''}.`,
           );
           result.playBackgroundFile(fileUrl, wait);
@@ -154,7 +154,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
           'Stop any audio file currently playing in the background. Use this when the caller is ready to resume the conversation or when background audio is no longer needed.',
         parameters: {},
         handler: () => {
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             'Background audio playback has been stopped.',
           );
           result.stopBackgroundFile();

@@ -7,7 +7,7 @@
 
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
-import type { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import type { FunctionResult } from '../FunctionResult.js';
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -231,12 +231,12 @@ export abstract class SkillBase {
   }
 
   /**
-   * Update this skill's namespaced data on a SwaigFunctionResult via updateGlobalData.
-   * @param result - The SwaigFunctionResult to update.
+   * Update this skill's namespaced data on a FunctionResult via updateGlobalData.
+   * @param result - The FunctionResult to update.
    * @param data - The data to store under this skill's namespace.
-   * @returns The SwaigFunctionResult for chaining.
+   * @returns The FunctionResult for chaining.
    */
-  updateSkillData(result: SwaigFunctionResult, data: Record<string, unknown>): SwaigFunctionResult {
+  updateSkillData(result: FunctionResult, data: Record<string, unknown>): FunctionResult {
     return result.updateGlobalData({ [this.getSkillNamespace()]: data });
   }
 

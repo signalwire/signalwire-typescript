@@ -1,7 +1,7 @@
-import { SignalWireClient } from '../../src/rest/index.js';
+import { RestClient } from '../../src/rest/index.js';
 import { createMockFetch } from './helpers.js';
 
-describe('SignalWireClient', () => {
+describe('RestClient', () => {
   const savedEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe('SignalWireClient', () => {
 
   it('constructs with explicit options', () => {
     const [fetchImpl] = createMockFetch();
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'proj-123',
       token: 'tok-456',
       host: 'test.signalwire.com',
@@ -54,7 +54,7 @@ describe('SignalWireClient', () => {
 
   it('throws when project is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new SignalWireClient({
+    expect(() => new RestClient({
       token: 'tok',
       host: 'test.signalwire.com',
       fetchImpl,
@@ -63,7 +63,7 @@ describe('SignalWireClient', () => {
 
   it('throws when token is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new SignalWireClient({
+    expect(() => new RestClient({
       project: 'proj',
       host: 'test.signalwire.com',
       fetchImpl,
@@ -72,7 +72,7 @@ describe('SignalWireClient', () => {
 
   it('throws when host is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new SignalWireClient({
+    expect(() => new RestClient({
       project: 'proj',
       token: 'tok',
       fetchImpl,
@@ -85,7 +85,7 @@ describe('SignalWireClient', () => {
     process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
     process.env['SIGNALWIRE_SPACE'] = 'env.signalwire.com';
 
-    const client = new SignalWireClient({ fetchImpl });
+    const client = new RestClient({ fetchImpl });
     expect(client.fabric).toBeDefined();
   });
 
@@ -97,7 +97,7 @@ describe('SignalWireClient', () => {
     process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
     process.env['SIGNALWIRE_SPACE'] = 'env.signalwire.com';
 
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'explicit-proj',
       token: 'explicit-tok',
       host: 'explicit.signalwire.com',
@@ -118,7 +118,7 @@ describe('SignalWireClient', () => {
     const [fetchImpl, getRequests] = createMockFetch([
       { status: 200, body: { data: [] } },
     ]);
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'proj',
       token: 'tok',
       host: 'my.signalwire.com',
@@ -133,7 +133,7 @@ describe('SignalWireClient', () => {
     const [fetchImpl, getRequests] = createMockFetch([
       { status: 200, body: { data: [] } },
     ]);
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'proj',
       token: 'tok',
       host: 'https://my.signalwire.com',
@@ -149,7 +149,7 @@ describe('SignalWireClient', () => {
     const [fetchImpl, getRequests] = createMockFetch([
       { status: 200, body: { calls: [] } },
     ]);
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'proj-abc',
       token: 'tok',
       host: 'test.signalwire.com',
@@ -167,7 +167,7 @@ describe('SignalWireClient', () => {
       { status: 200, body: { data: [] } },   // phoneNumbers
       { status: 200, body: { data: [] } },   // video
     ]);
-    const client = new SignalWireClient({
+    const client = new RestClient({
       project: 'proj',
       token: 'tok',
       host: 'test.signalwire.com',

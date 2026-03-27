@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
 import { SkillManager } from '../src/skills/SkillManager.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Single-instance test skill. */
 class SingleInstanceSkill extends SkillBase {
@@ -12,7 +12,7 @@ class SingleInstanceSkill extends SkillBase {
     return { name: 'single_skill', description: 'Single instance', version: '1.0.0' };
   }
   getTools(): SkillToolDefinition[] {
-    return [{ name: 'single_tool', description: 'tool', handler: () => new SwaigFunctionResult('ok') }];
+    return [{ name: 'single_tool', description: 'tool', handler: () => new FunctionResult('ok') }];
   }
 }
 
@@ -41,7 +41,7 @@ class MultiInstanceSkill extends SkillBase {
   }
   getTools(): SkillToolDefinition[] {
     const name = this.getConfig<string>('tool_name', 'multi_tool');
-    return [{ name, description: 'tool', handler: () => new SwaigFunctionResult('ok') }];
+    return [{ name, description: 'tool', handler: () => new FunctionResult('ok') }];
   }
 }
 

@@ -7,7 +7,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
@@ -173,19 +173,19 @@ export class InfoGathererAgent extends AgentBase {
         const value = args['value'] as string;
 
         if (!fieldName || !value) {
-          return new SwaigFunctionResult('Both field_name and value are required.');
+          return new FunctionResult('Both field_name and value are required.');
         }
 
         const field = this.getFieldByName(fieldName);
         if (!field) {
           const available = this.fields.map((f) => f.name).join(', ');
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Unknown field "${fieldName}". Available fields: ${available}`,
           );
         }
 
         if (!this.validateValue(field, value)) {
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `The value "${value}" is not valid for field "${field.name}". Please ask the caller to provide a valid value. Expected format: ${field.validation instanceof RegExp ? field.validation.source : field.validation}`,
           );
         }
@@ -206,7 +206,7 @@ export class InfoGathererAgent extends AgentBase {
           const collectedSummary = Object.entries(session.collected)
             .map(([k, v]) => `${k}: ${v}`)
             .join(', ');
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Field "${field.name}" saved successfully. All required fields are now collected! Summary: ${collectedSummary}. ${this.confirmationMessage}`,
           );
         }
@@ -216,7 +216,7 @@ export class InfoGathererAgent extends AgentBase {
           .filter((f) => f.required !== false && !(f.name in session.collected))
           .map((f) => f.name);
 
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Field "${field.name}" saved as "${value}". Remaining required fields: ${remaining.length > 0 ? remaining.join(', ') : 'none'}.`,
         );
       },
@@ -256,7 +256,7 @@ export class InfoGathererAgent extends AgentBase {
           status += ` Optional fields not yet collected: ${remainingOptional.join(', ')}.`;
         }
 
-        return new SwaigFunctionResult(status);
+        return new FunctionResult(status);
       },
     });
   }

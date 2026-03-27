@@ -50,7 +50,7 @@ import {
   createMcpGatewaySkill,
 } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => {
@@ -95,8 +95,8 @@ describe('DateTimeSkill', () => {
   it('should execute handler and return datetime for a timezone', () => {
     const skill = createDateTimeSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ timezone: 'America/New_York' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('America/New_York');
     expect(result.response).toContain('current date and time');
   });
@@ -139,16 +139,16 @@ describe('MathSkill', () => {
   it('should evaluate basic math expressions correctly', () => {
     const skill = createMathSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ expression: '2 + 3 * 4' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ expression: '2 + 3 * 4' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('14');
   });
 
   it('should reject unsafe expressions', () => {
     const skill = createMathSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ expression: 'process.exit(1)' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ expression: 'process.exit(1)' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Could not evaluate');
     // Must not leak internal error details
     expect(result.response).not.toContain('isSafeExpression');
@@ -190,8 +190,8 @@ describe('JokeSkill', () => {
   it('should execute handler and return a joke', () => {
     const skill = createJokeSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({}, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({}, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     // Jokes contain " ... " between setup and punchline
     expect(result.response).toContain('...');
   });
@@ -237,8 +237,8 @@ describe('WeatherApiSkill', () => {
     delete process.env['WEATHER_API_KEY'];
     const skill = createWeatherApiSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ location: 'London' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ location: 'London' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (originalKey !== undefined) process.env['WEATHER_API_KEY'] = originalKey;
   });
@@ -276,8 +276,8 @@ describe('PlayBackgroundFileSkill', () => {
     const result = playTool.handler(
       { file_url: 'https://example.com/music.mp3' },
       {},
-    ) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    ) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('playing background audio');
     // Should have a playback_bg action
     expect(result.action.length).toBeGreaterThan(0);
@@ -287,8 +287,8 @@ describe('PlayBackgroundFileSkill', () => {
   it('should execute stop_background handler', () => {
     const skill = createPlayBackgroundFileSkill();
     const stopTool = skill.getTools().find((t) => t.name === 'stop_background')!;
-    const result = stopTool.handler({}, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = stopTool.handler({}, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('stopped');
     expect(result.action.length).toBeGreaterThan(0);
     expect(result.action[0]).toHaveProperty('stop_playback_bg');
@@ -323,8 +323,8 @@ describe('SwmlTransferSkill', () => {
   it('should execute transfer with arbitrary destination', () => {
     const skill = createSwmlTransferSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: '+15551234567' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ destination: '+15551234567' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toBe('Transferring your call now.');
     // Should have a SWML transfer action
     expect(result.action.length).toBeGreaterThan(0);
@@ -347,8 +347,8 @@ describe('SwmlTransferSkill', () => {
 
     // Transfer by name
     const handler = tools[0].handler;
-    const result = handler({ destination: 'sales' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ destination: 'sales' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.action.length).toBeGreaterThan(0);
   });
 
@@ -360,8 +360,8 @@ describe('SwmlTransferSkill', () => {
       allow_arbitrary: false,
     });
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: 'unknown_dept' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ destination: 'unknown_dept' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Unknown transfer destination');
     expect(result.response).toContain('sales');
   });
@@ -404,8 +404,8 @@ describe('ApiNinjasTriviaSkill', () => {
     delete process.env['API_NINJAS_KEY'];
     const skill = createApiNinjasTriviaSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({}, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({}, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('API_NINJAS_KEY');
     expect(result.response).toContain('not configured');
     if (originalKey !== undefined) process.env['API_NINJAS_KEY'] = originalKey;
@@ -464,8 +464,8 @@ describe('InfoGathererSkill', () => {
     const result = saveTool.handler(
       { full_name: 'Jane Doe', email: 'jane@example.com' },
       { call_id: 'test-call-123' },
-    ) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    ) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('saved successfully');
     expect(result.response).toContain('Jane Doe');
     expect(result.response).toContain('jane@example.com');
@@ -482,7 +482,7 @@ describe('CustomSkillsSkill', () => {
         {
           name: 'greet',
           description: 'Greet a user',
-          handler_code: 'return new SwaigFunctionResult("Hello, " + args.name + "!");',
+          handler_code: 'return new FunctionResult("Hello, " + args.name + "!");',
           parameters: [{ name: 'name', type: 'string', description: 'Name to greet' }],
         },
       ],
@@ -504,12 +504,12 @@ describe('CustomSkillsSkill', () => {
         {
           name: 'greet',
           description: 'Greet a user',
-          handler_code: 'return new SwaigFunctionResult("Hello!");',
+          handler_code: 'return new FunctionResult("Hello!");',
         },
         {
           name: 'farewell',
           description: 'Say goodbye',
-          handler_code: 'return new SwaigFunctionResult("Goodbye!");',
+          handler_code: 'return new FunctionResult("Goodbye!");',
         },
       ],
     });
@@ -528,14 +528,14 @@ describe('CustomSkillsSkill', () => {
           {
             name: 'greet',
             description: 'Greet a user',
-            handler_code: 'return new SwaigFunctionResult("Hello, " + args.name + "!");',
+            handler_code: 'return new FunctionResult("Hello, " + args.name + "!");',
             parameters: [{ name: 'name', type: 'string', description: 'Name to greet' }],
           },
         ],
       });
       const handler = skill.getTools()[0].handler;
-      const result = await handler({ name: 'World' }, {}) as SwaigFunctionResult;
-      expect(result).toBeInstanceOf(SwaigFunctionResult);
+      const result = await handler({ name: 'World' }, {}) as FunctionResult;
+      expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).toBe('Hello, World!');
     } finally {
       if (saved) process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = saved;
@@ -585,8 +585,8 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_CX'];
     const skill = createWebSearchSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_SEARCH_API_KEY'] = origKey;
     if (origCx !== undefined) process.env['GOOGLE_SEARCH_CX'] = origCx;
@@ -669,8 +669,8 @@ describe('GoogleMapsSkill', () => {
     const result = await dirTool.handler(
       { origin: 'New York', destination: 'Boston' },
       {},
-    ) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    ) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
   });
@@ -683,8 +683,8 @@ describe('GoogleMapsSkill', () => {
     const result = await placeTool.handler(
       { query: 'pizza near me' },
       {},
-    ) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    ) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
   });
@@ -734,8 +734,8 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_SPACE'];
     const skill = createDataSphereSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     expect(result.response).toContain('SIGNALWIRE_PROJECT_ID');
     if (origPid !== undefined) process.env['SIGNALWIRE_PROJECT_ID'] = origPid;
@@ -774,8 +774,8 @@ describe('DataSphereServerlessSkill', () => {
   it('should return stub handler message indicating DataMap mode', () => {
     const skill = createDataSphereServerlessSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({}, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({}, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('serverless DataMap');
   });
 
@@ -824,8 +824,8 @@ describe('NativeVectorSearchSkill', () => {
   it('should execute search and find relevant documents', () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'TypeScript programming language' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ query: 'TypeScript programming language' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('doc1');
     expect(result.response).toContain('TypeScript');
   });
@@ -833,8 +833,8 @@ describe('NativeVectorSearchSkill', () => {
   it('should rank relevant documents higher (scoring works)', () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'programming language', top_k: 4 }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ query: 'programming language', top_k: 4 }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     // Programming-related docs should appear; weather doc should not (no overlap)
     expect(result.response).toContain('programming');
     // The response should contain "Result 1" indicating at least one result
@@ -873,8 +873,8 @@ describe('SpiderSkill', () => {
     delete process.env['SPIDER_API_KEY'];
     const skill = createSpiderSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'https://example.com' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ url: 'https://example.com' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['SPIDER_API_KEY'] = origKey;
   });
@@ -1063,8 +1063,8 @@ describe('ClaudeSkillsSkill', () => {
     const tools = skill.getTools();
     const greetingTool = tools.find((t) => t.name === 'claude_greeting');
     expect(greetingTool).toBeDefined();
-    const result = greetingTool!.handler({ arguments: 'World' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = greetingTool!.handler({ arguments: 'World' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Hello World! Welcome.');
   });
 
@@ -1084,7 +1084,7 @@ describe('ClaudeSkillsSkill', () => {
     expect(enumValues).toContain('references/api');
 
     // Load a section
-    const result = helperTool!.handler({ section: 'advanced', arguments: '' }, {}) as SwaigFunctionResult;
+    const result = helperTool!.handler({ section: 'advanced', arguments: '' }, {}) as FunctionResult;
     expect(result.response).toContain('Advanced helper content.');
   });
 
@@ -1094,7 +1094,7 @@ describe('ClaudeSkillsSkill', () => {
     const tools = skill.getTools();
     const argTool = tools.find((t) => t.name === 'claude_arg_skill');
     expect(argTool).toBeDefined();
-    const result = argTool!.handler({ arguments: 'foo bar' }, {}) as SwaigFunctionResult;
+    const result = argTool!.handler({ arguments: 'foo bar' }, {}) as FunctionResult;
     expect(result.response).toContain('First: foo');
     expect(result.response).toContain('Second: bar');
     expect(result.response).toContain('Indexed: foo');
@@ -1107,7 +1107,7 @@ describe('ClaudeSkillsSkill', () => {
     const tools = skill.getTools();
     const helperTool = tools.find((t) => t.name === 'claude_helper');
     expect(helperTool).toBeDefined();
-    const result = helperTool!.handler({ arguments: 'some context' }, {}) as SwaigFunctionResult;
+    const result = helperTool!.handler({ arguments: 'some context' }, {}) as FunctionResult;
     expect(result.response).toContain('Main helper content.');
     expect(result.response).toContain('ARGUMENTS: some context');
   });
@@ -1121,7 +1121,7 @@ describe('ClaudeSkillsSkill', () => {
     const result = varTool!.handler(
       { arguments: '' },
       { call_id: 'test-session-123' },
-    ) as SwaigFunctionResult;
+    ) as FunctionResult;
     expect(result.response).toContain(`Dir: ${join(skillsDir, 'var-skill')}`);
     expect(result.response).toContain('Session: test-session-123');
   });
@@ -1195,7 +1195,7 @@ describe('ClaudeSkillsSkill', () => {
     });
     await skill.setup();
     const tools = skill.getTools();
-    const result = tools[0].handler({ arguments: 'World' }, {}) as SwaigFunctionResult;
+    const result = tools[0].handler({ arguments: 'World' }, {}) as FunctionResult;
     expect(result.response).toMatch(/^\[PREFIX\]/);
     expect(result.response).toMatch(/\[POSTFIX\]$/);
     expect(result.response).toContain('Hello World! Welcome.');
@@ -1265,7 +1265,7 @@ describe('ClaudeSkillsSkill', () => {
     const tools = skill.getTools();
     const shellTool = tools.find((t) => t.name === 'claude_shell_skill');
     expect(shellTool).toBeDefined();
-    const result = shellTool!.handler({ arguments: '' }, {}) as SwaigFunctionResult;
+    const result = shellTool!.handler({ arguments: '' }, {}) as FunctionResult;
     expect(result.response).toContain('Result: hello');
   });
 
@@ -1279,7 +1279,7 @@ describe('ClaudeSkillsSkill', () => {
     const tools = skill.getTools();
     const shellTool = tools.find((t) => t.name === 'claude_shell_skill');
     expect(shellTool).toBeDefined();
-    const result = shellTool!.handler({ arguments: '' }, {}) as SwaigFunctionResult;
+    const result = shellTool!.handler({ arguments: '' }, {}) as FunctionResult;
     expect(result.response).toContain('!`echo hello`');
   });
 
@@ -1334,8 +1334,8 @@ describe('McpGatewaySkill', () => {
   it('should return not implemented message from handler', () => {
     const skill = createMcpGatewaySkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ server: 'test', method: 'test' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ server: 'test', method: 'test' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not yet implemented');
   });
 });
@@ -1375,8 +1375,8 @@ describe('SpiderSkill - SSRF protection', () => {
     delete process.env['SWML_ALLOW_PRIVATE_URLS'];
     const skill = createSpiderSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'http://127.0.0.1/secret' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ url: 'http://127.0.0.1/secret' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('could not be validated');
     if (saved) process.env['SWML_ALLOW_PRIVATE_URLS'] = saved;
   });
@@ -1385,8 +1385,8 @@ describe('SpiderSkill - SSRF protection', () => {
     const skill = createSpiderSkill();
     const handler = skill.getTools()[0].handler;
     const longUrl = 'https://example.com/' + 'a'.repeat(2000);
-    const result = await handler({ url: longUrl }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = await handler({ url: longUrl }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('too long');
   });
 });
@@ -1399,8 +1399,8 @@ describe('Skill error messages do not leak internal details', () => {
     const skill = createMathSkill();
     const handler = skill.getTools()[0].handler;
     // Intentionally malformed expression that will throw
-    const result = handler({ expression: '2 +' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ expression: '2 +' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Could not evaluate');
     // Must not contain stack traces or JS error messages
     expect(result.response).not.toContain('Unexpected');
@@ -1432,8 +1432,8 @@ describe('Skill error messages do not leak internal details', () => {
         tools: [{ name: 'crash_tool', description: 'Crash', handler_code: 'throw new Error("secret internal stack trace info");' }],
       });
       const handler = skill.getTools()[0].handler;
-      const result = await handler({}, {}) as SwaigFunctionResult;
-      expect(result).toBeInstanceOf(SwaigFunctionResult);
+      const result = await handler({}, {}) as FunctionResult;
+      expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).not.toContain('secret internal stack trace info');
       expect(result.response).toContain('encountered an error');
     } finally {

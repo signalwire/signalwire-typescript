@@ -1,12 +1,12 @@
 /**
  * Record Call Example
  *
- * Demonstrates call recording with SwaigFunctionResult actions:
+ * Demonstrates call recording with FunctionResult actions:
  * recordCall(), stopRecordCall(), and other call-control actions.
  * Run: npx tsx examples/record-call.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'recording-agent',
@@ -32,7 +32,7 @@ agent.defineTool({
   description: 'Start or resume call recording',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult('Recording has been started.');
+    const result = new FunctionResult('Recording has been started.');
     result.recordCall({ stereo: true, format: 'mp3' });
     return result;
   },
@@ -43,7 +43,7 @@ agent.defineTool({
   description: 'Stop call recording when the caller requests it',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult('Recording has been stopped.');
+    const result = new FunctionResult('Recording has been stopped.');
     result.stopRecordCall();
     return result;
   },
@@ -56,7 +56,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for the transfer' },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       `Transferring you to a supervisor. Reason: ${args.reason}`,
     );
     result.connect('+18005551234');

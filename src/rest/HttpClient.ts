@@ -41,7 +41,7 @@ export class HttpClient {
     const headers: Record<string, string> = {
       'Authorization': this._authHeader,
       'Accept': 'application/json',
-      'User-Agent': 'signalwire-agents-ts/0.1.0',
+      'User-Agent': '@signalwire/sdk-ts/2.0.0',
     };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';

@@ -19,7 +19,7 @@ import { SileroVAD } from '@livekit/agents-plugin-silero';
 import {
   defineAgent, JobContext, AgentSession, Agent, tool, RunContext,
   plugins, runApp,
-} from 'signalwire-agents/livewire';
+} from '@signalwire/sdk/livewire';
 ```
 
 All types are in a single module. No separate plugin packages needed.
@@ -34,7 +34,7 @@ import { Agent } from '@livekit/agents/voice';
 const agent = new Agent({ instructions: 'Hello' });
 
 // After (LiveWire)
-import { Agent } from 'signalwire-agents/livewire';
+import { Agent } from '@signalwire/sdk/livewire';
 const agent = new Agent({ instructions: 'Hello' });
 ```
 
@@ -75,7 +75,7 @@ const getWeather = tool({
 });
 
 // After (LiveWire)
-import { tool } from 'signalwire-agents/livewire';
+import { tool } from '@signalwire/sdk/livewire';
 
 const getWeather = tool({
   description: 'Get weather for a location',
@@ -192,7 +192,7 @@ export default defineAgent({
 import {
   defineAgent, JobContext, AgentSession, Agent, tool,
   plugins, runApp,
-} from 'signalwire-agents/livewire';
+} from '@signalwire/sdk/livewire';
 
 const greet = tool({
   description: 'Greet someone by name',

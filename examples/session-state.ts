@@ -6,7 +6,7 @@
  * Run: npx tsx examples/session-state.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 import type { AgentOptions } from '../src/index.js';
 
 class OrderAgent extends AgentBase {
@@ -43,7 +43,7 @@ class OrderAgent extends AgentBase {
           last_order_number: args.order_number,
           call_id: rawData['call_id'],
         });
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Order ${args.order_number}: Status: Shipped, ETA: 2 business days, Carrier: FedEx`,
         );
       },

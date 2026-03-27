@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { GoogleMapsSkill, createGoogleMapsSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -50,7 +50,7 @@ describe('GoogleMapsSkill', () => {
   it('should return error when origin is missing', async () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const handler = new GoogleMapsSkill().getTools()[0].handler;
-    const result = await handler({}, {}) as SwaigFunctionResult;
+    const result = await handler({}, {}) as FunctionResult;
     expect(result.response).toBeTruthy();
   });
 

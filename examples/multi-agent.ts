@@ -10,7 +10,7 @@
  *   curl http://localhost:3000/health
  */
 
-import { AgentBase, AgentServer, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, AgentServer, FunctionResult } from '../src/index.js';
 
 // --- Support Agent ---
 export const support = new AgentBase({
@@ -32,7 +32,7 @@ support.defineTool({
     ticket_id: { type: 'string', description: 'The ticket ID' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(`Ticket ${args.ticket_id}: Status is "In Progress", assigned to Team B.`);
+    return new FunctionResult(`Ticket ${args.ticket_id}: Status is "In Progress", assigned to Team B.`);
   },
 });
 
@@ -62,7 +62,7 @@ sales.defineTool({
       enterprise: 'Custom pricing - schedule a call',
     };
     const price = prices[args.product?.toLowerCase()] ?? 'Product not found';
-    return new SwaigFunctionResult(`Pricing for ${args.product}: ${price}`);
+    return new FunctionResult(`Pricing for ${args.product}: ${price}`);
   },
 });
 

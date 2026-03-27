@@ -6,7 +6,7 @@
  * Run: npx tsx examples/pom-prompt.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'support-agent',
@@ -61,7 +61,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for the transfer' },
   },
   handler: (_args) => {
-    return new SwaigFunctionResult('Transferring you to a human agent now.')
+    return new FunctionResult('Transferring you to a human agent now.')
       .connect('+15551234567');
   },
 });

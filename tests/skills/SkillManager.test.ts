@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SkillManager } from '../../src/skills/SkillManager.js';
 import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 class MockSkill extends SkillBase {
@@ -20,7 +20,7 @@ class MockSkill extends SkillBase {
     return [{
       name: `${this.skillName}_tool`,
       description: 'Mock tool',
-      handler: () => new SwaigFunctionResult('mock result'),
+      handler: () => new FunctionResult('mock result'),
     }];
   }
 

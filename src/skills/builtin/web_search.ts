@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 
@@ -154,20 +154,20 @@ export class WebSearchSkill extends SkillBase {
           const numResults = args.num_results as number | undefined;
 
           if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a search query.',
             );
           }
 
           if (query.length > MAX_SKILL_INPUT_LENGTH) {
-            return new SwaigFunctionResult('Search query is too long.');
+            return new FunctionResult('Search query is too long.');
           }
 
           const apiKey = process.env['GOOGLE_SEARCH_API_KEY'];
           const cx = process.env['GOOGLE_SEARCH_CX'];
 
           if (!apiKey || !cx) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
             );
           }
@@ -193,13 +193,13 @@ export class WebSearchSkill extends SkillBase {
 
             if (data.error) {
               log.error('web_search_api_error', { code: data.error.code });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The web search service encountered an error. Please try again later.',
               );
             }
 
             if (!data.items || data.items.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No results found for "${query}".`,
               );
             }
@@ -222,10 +222,10 @@ export class WebSearchSkill extends SkillBase {
               parts.push('');
             }
 
-            return new SwaigFunctionResult(parts.join('\n').trim());
+            return new FunctionResult(parts.join('\n').trim());
           } catch (err) {
             log.error('web_search_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

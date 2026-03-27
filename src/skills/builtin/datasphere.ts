@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('DataSphereSkill');
@@ -160,7 +160,7 @@ export class DataSphereSkill extends SkillBase {
           const documentId = args.document_id as string | undefined;
 
           if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a query to search the knowledge base.',
             );
           }
@@ -170,7 +170,7 @@ export class DataSphereSkill extends SkillBase {
           const space = process.env['SIGNALWIRE_SPACE'];
 
           if (!projectId || !token || !space) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'DataSphere is not configured. The SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, and SIGNALWIRE_SPACE environment variables are required.',
             );
           }
@@ -210,7 +210,7 @@ export class DataSphereSkill extends SkillBase {
 
             if (!response.ok) {
               log.error('datasphere_api_error', { status: response.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The knowledge base search service encountered an error. Please try again later.',
               );
             }
@@ -218,7 +218,7 @@ export class DataSphereSkill extends SkillBase {
             const data = (await response.json()) as DataSphereResponse;
 
             if (!data.results || data.results.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No relevant results found in the knowledge base for "${query}".`,
               );
             }
@@ -239,10 +239,10 @@ export class DataSphereSkill extends SkillBase {
               parts.push('');
             }
 
-            return new SwaigFunctionResult(parts.join('\n').trim());
+            return new FunctionResult(parts.join('\n').trim());
           } catch (err) {
             log.error('search_datasphere_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

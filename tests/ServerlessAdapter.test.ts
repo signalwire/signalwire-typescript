@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ServerlessAdapter } from '../src/ServerlessAdapter.js';
 import { AgentBase } from '../src/AgentBase.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 import { suppressAllLogs } from '../src/Logger.js';
 
 describe('ServerlessAdapter', () => {
@@ -61,7 +61,7 @@ describe('ServerlessAdapter', () => {
       name: 'echo',
       description: 'Echo back',
       parameters: { msg: { type: 'string' } },
-      handler: (args) => new SwaigFunctionResult(`Echo: ${args['msg']}`),
+      handler: (args) => new FunctionResult(`Echo: ${args['msg']}`),
     });
     const app = agent.getApp();
     const adapter = new ServerlessAdapter('lambda');

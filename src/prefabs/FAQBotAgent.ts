@@ -5,7 +5,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ export class FAQBotAgent extends AgentBase {
       handler: (_args: Record<string, unknown>) => {
         const query = _args['query'] as string;
         if (!query) {
-          return new SwaigFunctionResult('A query is required to search the FAQ.');
+          return new FunctionResult('A query is required to search the FAQ.');
         }
 
         // Score all FAQs
@@ -188,7 +188,7 @@ export class FAQBotAgent extends AgentBase {
         const best = scored[0];
 
         if (!best || best.score < this.threshold) {
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `No FAQ matched the query "${query}" with sufficient confidence (best score: ${best ? best.score.toFixed(2) : '0.00'}, threshold: ${this.threshold.toFixed(2)}). ${this.escalationMessage}`,
           );
         }
@@ -206,7 +206,7 @@ export class FAQBotAgent extends AgentBase {
           response += ` Also related: ${alsoStr}`;
         }
 
-        return new SwaigFunctionResult(response);
+        return new FunctionResult(response);
       },
     });
 
@@ -226,7 +226,7 @@ export class FAQBotAgent extends AgentBase {
         },
         handler: (_args: Record<string, unknown>) => {
           const reason = (_args['reason'] as string) || 'Caller needs assistance beyond FAQ';
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             `Transferring caller to a live agent. Reason: ${reason}`,
           );
           result.connect(this.escalationNumber!);

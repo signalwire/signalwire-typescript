@@ -5,9 +5,9 @@ Typed HTTP client for managing SignalWire resources, controlling live calls, and
 ## Quick Start
 
 ```typescript
-import { SignalWireClient } from 'signalwire-agents';
+import { RestClient } from '@signalwire/sdk';
 
-const client = new SignalWireClient({
+const client = new RestClient({
   project: 'your-project-id',
   token: 'your-api-token',
   host: 'example.signalwire.com',
@@ -32,7 +32,7 @@ await client.calling.dial({
 
 ## Features
 
-- Single `SignalWireClient` with namespaced sub-objects for every API
+- Single `RestClient` with namespaced sub-objects for every API
 - All 37 calling commands: dial, play, record, collect, detect, tap, stream, AI, transcribe, and more
 - Full Fabric API: 17 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
@@ -75,7 +75,7 @@ await client.calling.dial({
 
 ```
 src/rest/
-    index.ts             # SignalWireClient + public exports
+    index.ts             # RestClient + public exports
     HttpClient.ts        # fetch-based HTTP with Basic Auth
     RestError.ts         # Error class: statusCode, body, url, method
     pagination.ts        # paginate<T>() async generator + paginateAll()

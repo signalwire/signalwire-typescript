@@ -7,7 +7,7 @@
  * Run: npx tsx examples/dynamic-config.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'dynamic-agent',
@@ -24,7 +24,7 @@ agent.defineTool({
   name: 'greet',
   description: 'Greet the user by name',
   parameters: {},
-  handler: () => new SwaigFunctionResult('Hello!'),
+  handler: () => new FunctionResult('Hello!'),
 });
 
 // Customize the agent per-request

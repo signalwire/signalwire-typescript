@@ -7,7 +7,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
@@ -264,24 +264,24 @@ export class SurveyAgent extends AgentBase {
         const answer = args['answer'] as string;
 
         if (!questionId || !answer) {
-          return new SwaigFunctionResult('Both question_id and answer are required.');
+          return new FunctionResult('Both question_id and answer are required.');
         }
 
         const question = this.questionMap.get(questionId);
         if (!question) {
-          return new SwaigFunctionResult(`Unknown question ID "${questionId}".`);
+          return new FunctionResult(`Unknown question ID "${questionId}".`);
         }
 
         const session = this.getSession(rawData);
 
         if (session.completed) {
-          return new SwaigFunctionResult('The survey has already been completed.');
+          return new FunctionResult('The survey has already been completed.');
         }
 
         // Validate the answer
         const validationError = this.validateAnswer(question, answer);
         if (validationError) {
-          return new SwaigFunctionResult(validationError);
+          return new FunctionResult(validationError);
         }
 
         // Normalize and save
@@ -306,7 +306,7 @@ export class SurveyAgent extends AgentBase {
             }
           }
           const answeredCount = Object.keys(session.responses).length;
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Answer recorded. The survey is now complete! ${answeredCount} questions answered, total score: ${session.score}. ${this.completionMessage}`,
           );
         }
@@ -326,7 +326,7 @@ export class SurveyAgent extends AgentBase {
           nextInfo += ' (Yes/No)';
         }
 
-        return new SwaigFunctionResult(nextInfo);
+        return new FunctionResult(nextInfo);
       },
     });
 
@@ -342,12 +342,12 @@ export class SurveyAgent extends AgentBase {
         const session = this.getSession(rawData);
 
         if (session.completed) {
-          return new SwaigFunctionResult('The survey has been completed. No more questions.');
+          return new FunctionResult('The survey has been completed. No more questions.');
         }
 
         const question = this.questionMap.get(session.currentQuestionId);
         if (!question) {
-          return new SwaigFunctionResult('No current question available.');
+          return new FunctionResult('No current question available.');
         }
 
         let info = `Current question [${question.id}] (${question.type}): "${question.text}"`;
@@ -359,7 +359,7 @@ export class SurveyAgent extends AgentBase {
           info += ' (Caller should answer yes or no)';
         }
 
-        return new SwaigFunctionResult(info);
+        return new FunctionResult(info);
       },
     });
 
@@ -393,7 +393,7 @@ export class SurveyAgent extends AgentBase {
           progress += ` Answers so far: ${answered}`;
         }
 
-        return new SwaigFunctionResult(progress);
+        return new FunctionResult(progress);
       },
     });
   }

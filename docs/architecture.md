@@ -8,7 +8,7 @@
   - [PromptManager and PomBuilder](#promptmanager-and-pombuilder)
   - [SwmlBuilder](#swmlbuilder)
   - [SwaigFunction](#swaigfunction)
-  - [SwaigFunctionResult](#swaigfunctionresult)
+  - [FunctionResult](#swaigfunctionresult)
   - [SessionManager](#sessionmanager)
   - [ContextBuilder](#contextbuilder)
   - [DataMap](#datamap)
@@ -237,17 +237,17 @@ class SwaigFunction {
 Two primary operations:
 
 1. **`execute(args, rawData)`** -- Invokes the handler and normalizes the result:
-   - `SwaigFunctionResult` -> `result.toDict()`
+   - `FunctionResult` -> `result.toDict()`
    - Object with `response` key -> returned as-is
    - Plain object -> wrapped with "Function completed successfully" message
-   - String -> wrapped in `SwaigFunctionResult`
+   - String -> wrapped in `FunctionResult`
    - Exception -> returns a generic error message
 
 2. **`toSwaig(baseUrl, token?, callId?)`** -- Serializes to the SWAIG wire format for SWML.
 
-### SwaigFunctionResult
+### FunctionResult
 
-**File**: `src/SwaigFunctionResult.ts` (~864 lines)
+**File**: `src/FunctionResult.ts` (~864 lines)
 
 A fluent builder for SWAIG function responses. Carries:
 
@@ -319,7 +319,7 @@ Fluent builder for server-side SWAIG tools that execute on SignalWire without we
 
 - **Webhooks**: HTTP calls to external APIs with response template interpolation.
 - **Expressions**: Pattern-matching rules evaluated against template variables.
-- **Output templates**: `SwaigFunctionResult` instances serialized for response formatting.
+- **Output templates**: `FunctionResult` instances serialized for response formatting.
 
 DataMap tools are registered as raw dictionary objects in the tool registry (not `SwaigFunction` instances).
 
@@ -551,8 +551,8 @@ During SWML rendering, the registry is iterated. `SwaigFunction` instances are s
 type SwaigHandler = (
   args: Record<string, unknown>,      // AI-extracted arguments
   rawData: Record<string, unknown>,    // Full request payload
-) => SwaigFunctionResult | Record<string, unknown> | string
-   | Promise<SwaigFunctionResult | Record<string, unknown> | string>;
+) => FunctionResult | Record<string, unknown> | string
+   | Promise<FunctionResult | Record<string, unknown> | string>;
 ```
 
 The handler is intentionally flexible in its return type. The `execute()` method normalizes all return types into a consistent dict format.
@@ -564,14 +564,14 @@ The `execute()` method in `SwaigFunction` handles all return type normalization:
 ```
 Handler returns:
   |
-  |-- SwaigFunctionResult  -->  result.toDict()
+  |-- FunctionResult  -->  result.toDict()
   |-- { response: "..." }  -->  returned as-is
-  |-- { ... } (no response) --> SwaigFunctionResult("Function completed successfully").toDict()
-  |-- "string"              --> SwaigFunctionResult(string).toDict()
-  |-- throws Error          --> SwaigFunctionResult("Sorry, I couldn't...").toDict()
+  |-- { ... } (no response) --> FunctionResult("Function completed successfully").toDict()
+  |-- "string"              --> FunctionResult(string).toDict()
+  |-- throws Error          --> FunctionResult("Sorry, I couldn't...").toDict()
 ```
 
-`SwaigFunctionResult.toDict()` produces:
+`FunctionResult.toDict()` produces:
 
 ```json
 {

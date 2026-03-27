@@ -79,7 +79,7 @@ No traffic flows to your server for DataMap tool invocations. Your server only s
 The `DataMap` constructor takes a single argument: the function name.
 
 ```typescript
-import { DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const tool = new DataMap('get_weather');
 ```
@@ -95,8 +95,8 @@ const tool = new DataMap('get_weather')
   .purpose('Get current weather for a city')
   .parameter('city', 'string', 'The city name', { required: true })
   .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
-  .output(new SwaigFunctionResult('Temperature: ${response.temp_F}F'))
-  .fallbackOutput(new SwaigFunctionResult('Weather data unavailable.'));
+  .output(new FunctionResult('Temperature: ${response.temp_F}F'))
+  .fallbackOutput(new FunctionResult('Weather data unavailable.'));
 ```
 
 ---
@@ -326,8 +326,8 @@ Add a pattern-matching expression that evaluates a test value against a regex pa
 expression(
   testValue: string,
   pattern: string | RegExp,
-  output: SwaigFunctionResult,
-  nomatchOutput?: SwaigFunctionResult
+  output: FunctionResult,
+  nomatchOutput?: FunctionResult
 ): this
 ```
 
@@ -335,8 +335,8 @@ expression(
 |-----------------|----------------------------|----------------------------------------------------------|
 | `testValue`     | `string`                   | The string or template variable to test (e.g., `"${args.input}"`). |
 | `pattern`       | `string \| RegExp`       | Regex pattern to match against. If a `RegExp`, the `.source` is used. |
-| `output`        | `SwaigFunctionResult`      | Result returned when the pattern matches.                |
-| `nomatchOutput` | `SwaigFunctionResult`      | Optional result returned when the pattern does not match.|
+| `output`        | `FunctionResult`      | Result returned when the pattern matches.                |
+| `nomatchOutput` | `FunctionResult`      | Optional result returned when the pattern does not match.|
 
 **Returns:** `this` for chaining.
 
@@ -349,8 +349,8 @@ const tool = new DataMap('validate_email')
   .expression(
     '${args.email}',
     /^[^@]+@[^@]+\.[^@]+$/,
-    new SwaigFunctionResult('The email address ${args.email} is valid.'),
-    new SwaigFunctionResult('The email address ${args.email} is not valid. Please ask for a correct email.'),
+    new FunctionResult('The email address ${args.email} is valid.'),
+    new FunctionResult('The email address ${args.email} is not valid. Please ask for a correct email.'),
   );
 ```
 
@@ -363,13 +363,13 @@ const tool = new DataMap('classify_input')
   .expression(
     '${args.input}',
     '^(what|how|why|when|where|who|is|are|can|do|does)',
-    new SwaigFunctionResult('The input is a question.'),
+    new FunctionResult('The input is a question.'),
   )
   .expression(
     '${args.input}',
     '^(please|set|change|update|delete|create|send)',
-    new SwaigFunctionResult('The input is a command.'),
-    new SwaigFunctionResult('The input type could not be determined.'),
+    new FunctionResult('The input is a command.'),
+    new FunctionResult('The input type could not be determined.'),
   );
 ```
 
@@ -382,12 +382,12 @@ const tool = new DataMap('classify_input')
 Set the output template for the most recently added webhook. The template uses `${response.*}` variables to reference fields in the webhook's JSON response and `${args.*}` to reference the tool's input arguments.
 
 ```typescript
-output(result: SwaigFunctionResult): this
+output(result: FunctionResult): this
 ```
 
 | Parameter | Type                  | Description                                          |
 |-----------|-----------------------|------------------------------------------------------|
-| `result`  | `SwaigFunctionResult` | The result template. Use template variables in the response text. |
+| `result`  | `FunctionResult` | The result template. Use template variables in the response text. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
@@ -399,7 +399,7 @@ const tool = new DataMap('get_weather')
   .parameter('city', 'string', 'City name', { required: true })
   .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
   .output(
-    new SwaigFunctionResult(
+    new FunctionResult(
       'Weather in ${args.city}: ' +
       'Temperature: ${response.current_condition[0].temp_F}F, ' +
       'Conditions: ${response.current_condition[0].weatherDesc[0].value}, ' +
@@ -408,7 +408,7 @@ const tool = new DataMap('get_weather')
   );
 ```
 
-The `output()` method calls `toDict()` on the `SwaigFunctionResult`, so you can also include actions:
+The `output()` method calls `toDict()` on the `FunctionResult`, so you can also include actions:
 
 ```typescript
 const tool = new DataMap('urgent_alert')
@@ -417,7 +417,7 @@ const tool = new DataMap('urgent_alert')
   .webhook('POST', 'https://api.alerts.example.com/send')
   .body({ message: '${args.message}' })
   .output(
-    new SwaigFunctionResult('Alert sent: ${response.alert_id}')
+    new FunctionResult('Alert sent: ${response.alert_id}')
       .setMetadata({ alert_id: '${response.alert_id}' }),
   );
 ```
@@ -449,27 +449,27 @@ const tool = new DataMap('check_order_status')
     {
       string: '${response.status}',
       pattern: 'shipped',
-      output: new SwaigFunctionResult(
+      output: new FunctionResult(
         'Order ${args.order_id} has shipped! Tracking: ${response.tracking_number}'
       ).toDict(),
     },
     {
       string: '${response.status}',
       pattern: 'processing',
-      output: new SwaigFunctionResult(
+      output: new FunctionResult(
         'Order ${args.order_id} is being processed. Estimated ship date: ${response.est_ship_date}'
       ).toDict(),
     },
     {
       string: '${response.status}',
       pattern: 'delivered',
-      output: new SwaigFunctionResult(
+      output: new FunctionResult(
         'Order ${args.order_id} was delivered on ${response.delivery_date}.'
       ).toDict(),
     },
   ])
   .output(
-    new SwaigFunctionResult('Order ${args.order_id} status: ${response.status}'),
+    new FunctionResult('Order ${args.order_id} status: ${response.status}'),
   );
 ```
 
@@ -482,12 +482,12 @@ const tool = new DataMap('check_order_status')
 Set a fallback output used when no webhook succeeds or no expression matches. This ensures the AI always gets a response even when the tool encounters an error.
 
 ```typescript
-fallbackOutput(result: SwaigFunctionResult): this
+fallbackOutput(result: FunctionResult): this
 ```
 
 | Parameter | Type                  | Description                                   |
 |-----------|-----------------------|-----------------------------------------------|
-| `result`  | `SwaigFunctionResult` | The fallback result.                          |
+| `result`  | `FunctionResult` | The fallback result.                          |
 
 **Returns:** `this` for chaining.
 
@@ -496,9 +496,9 @@ const tool = new DataMap('get_price')
   .purpose('Get the price of a product')
   .parameter('product', 'string', 'Product name', { required: true })
   .webhook('GET', 'https://api.store.example.com/price/${args.product}')
-  .output(new SwaigFunctionResult('${args.product} costs $${response.price}'))
+  .output(new FunctionResult('${args.product} costs $${response.price}'))
   .fallbackOutput(
-    new SwaigFunctionResult('Sorry, I could not look up the price for ${args.product}. Please try again later.'),
+    new FunctionResult('Sorry, I could not look up the price for ${args.product}. Please try again later.'),
   );
 ```
 
@@ -526,8 +526,8 @@ const tool = new DataMap('api_lookup')
   .parameter('id', 'string', 'Record ID', { required: true })
   .webhook('GET', 'https://api.example.com/data/${args.id}')
   .errorKeys(['error', 'error_message', 'fault'])
-  .output(new SwaigFunctionResult('Found: ${response.name}'))
-  .fallbackOutput(new SwaigFunctionResult('Lookup failed. Please try again.'));
+  .output(new FunctionResult('Found: ${response.name}'))
+  .fallbackOutput(new FunctionResult('Lookup failed. Please try again.'));
 ```
 
 ---
@@ -551,10 +551,10 @@ const tool = new DataMap('multi_api')
   .purpose('Call multiple APIs')
   .globalErrorKeys(['error', 'err'])
   .webhook('GET', 'https://api1.example.com/data')
-  .output(new SwaigFunctionResult('API 1: ${response.value}'))
+  .output(new FunctionResult('API 1: ${response.value}'))
   .webhook('GET', 'https://api2.example.com/data')
-  .output(new SwaigFunctionResult('API 2: ${response.value}'))
-  .fallbackOutput(new SwaigFunctionResult('Both APIs failed.'));
+  .output(new FunctionResult('API 2: ${response.value}'))
+  .fallbackOutput(new FunctionResult('Both APIs failed.'));
 ```
 
 ---
@@ -599,10 +599,10 @@ const tool = new DataMap('list_orders')
     max: 5,
   })
   .output(
-    new SwaigFunctionResult('Recent orders for customer ${args.customer_id}:\n${order_list}'),
+    new FunctionResult('Recent orders for customer ${args.customer_id}:\n${order_list}'),
   )
   .fallbackOutput(
-    new SwaigFunctionResult('Could not retrieve orders for customer ${args.customer_id}.'),
+    new FunctionResult('Could not retrieve orders for customer ${args.customer_id}.'),
   );
 ```
 
@@ -660,7 +660,7 @@ const tool = new DataMap('secure_lookup')
       'Authorization': 'Bearer ${ENV.API_KEY}',
     },
   })
-  .output(new SwaigFunctionResult('Result: ${response.data}'));
+  .output(new FunctionResult('Result: ${response.data}'));
 ```
 
 When `toSwaigFunction()` is called, `${ENV.API_KEY}` is replaced with the value of `process.env.API_KEY`. If the environment variable is not set, it is replaced with an empty string.
@@ -688,7 +688,7 @@ registerWithAgent(agent: {
 **Returns:** `this` for chaining.
 
 ```typescript
-import { AgentBase, DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
@@ -696,8 +696,8 @@ new DataMap('get_time')
   .purpose('Get the current time in a timezone')
   .parameter('timezone', 'string', 'IANA timezone', { required: true })
   .webhook('GET', 'https://worldtimeapi.org/api/timezone/${args.timezone}')
-  .output(new SwaigFunctionResult('Current time: ${response.datetime}'))
-  .fallbackOutput(new SwaigFunctionResult('Could not get time for that timezone.'))
+  .output(new FunctionResult('Current time: ${response.datetime}'))
+  .fallbackOutput(new FunctionResult('Could not get time for that timezone.'))
   .registerWithAgent(agent);
 
 agent.run();
@@ -722,7 +722,7 @@ const tool = new DataMap('echo')
   .expression(
     '${args.text}',
     '.*',
-    new SwaigFunctionResult('You said: ${args.text}'),
+    new FunctionResult('You said: ${args.text}'),
   );
 
 const swaigDef = tool.toSwaigFunction();
@@ -769,7 +769,7 @@ agent.registerSwaigFunction(tool.toSwaigFunction());
 Create a DataMap tool that calls a single API endpoint and formats the response. This is a convenience function for the most common DataMap pattern: one GET/POST request with a response template.
 
 ```typescript
-import { createSimpleApiTool } from '@anthropic/signalwire-agents';
+import { createSimpleApiTool } from '@anthropic/@signalwire/sdk';
 
 createSimpleApiTool(opts: {
   name: string;
@@ -801,7 +801,7 @@ createSimpleApiTool(opts: {
 **Returns:** A configured `DataMap` instance ready for registration.
 
 ```typescript
-import { createSimpleApiTool } from '@anthropic/signalwire-agents';
+import { createSimpleApiTool } from '@anthropic/@signalwire/sdk';
 
 // Minimal: a single GET endpoint
 const jokeTool = createSimpleApiTool({
@@ -842,11 +842,11 @@ agent.registerSwaigFunction(searchTool.toSwaigFunction());
 Create a DataMap tool that evaluates expressions against patterns without making any HTTP calls. Useful for validation, classification, and simple lookups.
 
 ```typescript
-import { createExpressionTool } from '@anthropic/signalwire-agents';
+import { createExpressionTool } from '@anthropic/@signalwire/sdk';
 
 createExpressionTool(opts: {
   name: string;
-  patterns: Record<string, [string, SwaigFunctionResult]>;
+  patterns: Record<string, [string, FunctionResult]>;
   parameters?: Record<string, {
     type?: string;
     description?: string;
@@ -858,20 +858,20 @@ createExpressionTool(opts: {
 | Parameter        | Type                                                  | Description                                            |
 |------------------|-------------------------------------------------------|--------------------------------------------------------|
 | `opts.name`      | `string`                                              | Tool name.                                             |
-| `opts.patterns`  | `Record<string, [string, SwaigFunctionResult]>`       | Map of test values to `[pattern, output]` tuples.      |
+| `opts.patterns`  | `Record<string, [string, FunctionResult]>`       | Map of test values to `[pattern, output]` tuples.      |
 | `opts.parameters`| `Record<string, {...}>`                               | Parameter definitions.                                 |
 
 The `patterns` object maps test values (template strings) to tuples of `[regexPattern, result]`:
 
 ```typescript
-import { createExpressionTool, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { createExpressionTool, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const validator = createExpressionTool({
   name: 'validate_phone',
   patterns: {
     '${args.phone}': [
       '^\\+?1?\\d{10,15}$',
-      new SwaigFunctionResult('The phone number ${args.phone} is valid.'),
+      new FunctionResult('The phone number ${args.phone} is valid.'),
     ],
   },
   parameters: {
@@ -938,7 +938,7 @@ The `${lc:...}` and `${uc:...}` prefixes can be applied to argument variables to
 ### Example 1: Weather lookup with DataMap builder
 
 ```typescript
-import { AgentBase, DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'weather-agent',
@@ -953,13 +953,13 @@ const weatherTool = new DataMap('get_weather')
   .parameter('city', 'string', 'The city name', { required: true })
   .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
   .output(
-    new SwaigFunctionResult(
+    new FunctionResult(
       'Weather in ${args.city}: ${response.current_condition[0].temp_F}F, ' +
       '${response.current_condition[0].weatherDesc[0].value}'
     ),
   )
   .fallbackOutput(
-    new SwaigFunctionResult('Sorry, could not fetch weather for that city.'),
+    new FunctionResult('Sorry, could not fetch weather for that city.'),
   );
 
 agent.registerSwaigFunction(weatherTool.toSwaigFunction());
@@ -969,7 +969,7 @@ agent.run();
 ### Example 2: Expression-only tool (no HTTP)
 
 ```typescript
-import { AgentBase, DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'validator-agent',
@@ -985,8 +985,8 @@ const emailValidator = new DataMap('validate_email')
   .expression(
     '${args.email}',
     /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-    new SwaigFunctionResult('The email ${args.email} is valid.'),
-    new SwaigFunctionResult('The email ${args.email} is invalid. Please provide a correct email address.'),
+    new FunctionResult('The email ${args.email} is valid.'),
+    new FunctionResult('The email ${args.email} is invalid. Please provide a correct email address.'),
   );
 
 emailValidator.registerWithAgent(agent);
@@ -996,7 +996,7 @@ agent.run();
 ### Example 3: API tool with POST body and error handling
 
 ```typescript
-import { AgentBase, DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'ticket-agent',
@@ -1029,12 +1029,12 @@ const ticketTool = new DataMap('create_ticket')
   })
   .errorKeys(['error', 'message'])
   .output(
-    new SwaigFunctionResult(
+    new FunctionResult(
       'Ticket #${response.ticket_id} created successfully with ${args.priority} priority.'
     ),
   )
   .fallbackOutput(
-    new SwaigFunctionResult('Failed to create the ticket. Please try again or contact support via email.'),
+    new FunctionResult('Failed to create the ticket. Please try again or contact support via email.'),
   );
 
 ticketTool.registerWithAgent(agent);
@@ -1044,7 +1044,7 @@ agent.run();
 ### Example 4: Iteration over array responses
 
 ```typescript
-import { AgentBase, DataMap, SwaigFunctionResult } from '@anthropic/signalwire-agents';
+import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'store-agent',
@@ -1065,10 +1065,10 @@ const ordersTool = new DataMap('list_orders')
     max: 10,
   })
   .output(
-    new SwaigFunctionResult('Here are your recent orders:\n${order_summary}'),
+    new FunctionResult('Here are your recent orders:\n${order_summary}'),
   )
   .fallbackOutput(
-    new SwaigFunctionResult('No orders found for ${args.email}.'),
+    new FunctionResult('No orders found for ${args.email}.'),
   );
 
 ordersTool.registerWithAgent(agent);
@@ -1078,7 +1078,7 @@ agent.run();
 ### Example 5: Quick setup with createSimpleApiTool
 
 ```typescript
-import { AgentBase, createSimpleApiTool } from '@anthropic/signalwire-agents';
+import { AgentBase, createSimpleApiTool } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'fun-agent',
@@ -1112,8 +1112,8 @@ agent.run();
 import {
   AgentBase,
   createExpressionTool,
-  SwaigFunctionResult,
-} from '@anthropic/signalwire-agents';
+  FunctionResult,
+} from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'validator-agent',
@@ -1128,7 +1128,7 @@ const zipValidator = createExpressionTool({
   patterns: {
     '${args.zip}': [
       '^\\d{5}(-\\d{4})?$',
-      new SwaigFunctionResult('${args.zip} is a valid US zip code.'),
+      new FunctionResult('${args.zip} is a valid US zip code.'),
     ],
   },
   parameters: {

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/call-flow.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'call-flow-agent',
@@ -54,7 +54,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for the appointment' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Appointment scheduled for ${args.date} at ${args.time}. Reason: ${args.reason}`,
     );
   },

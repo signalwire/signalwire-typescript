@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { SpiderSkill, createSpiderSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -51,7 +51,7 @@ describe('SpiderSkill', () => {
   it('should return error when API key is missing', async () => {
     delete process.env['SPIDER_API_KEY'];
     const handler = new SpiderSkill().getTools()[0].handler;
-    const result = await handler({ url: 'https://example.com' }, {}) as SwaigFunctionResult;
+    const result = await handler({ url: 'https://example.com' }, {}) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 

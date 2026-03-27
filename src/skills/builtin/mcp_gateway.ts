@@ -15,7 +15,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /**
  * Placeholder skill for future Model Context Protocol (MCP) server integration.
@@ -85,7 +85,7 @@ export class McpGatewaySkill extends SkillBase {
         },
         required: ['server', 'method'],
         handler: () => {
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             'MCP gateway is not yet implemented. Configure MCP servers to use this skill.',
           );
         },

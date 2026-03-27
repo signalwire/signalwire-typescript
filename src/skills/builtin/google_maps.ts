@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 
@@ -155,20 +155,20 @@ export class GoogleMapsSkill extends SkillBase {
           const mode = (args.mode as string | undefined) ?? defaultMode;
 
           if (!origin || typeof origin !== 'string' || origin.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a starting location (origin).');
+            return new FunctionResult('Please provide a starting location (origin).');
           }
 
           if (!destination || typeof destination !== 'string' || destination.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a destination.');
+            return new FunctionResult('Please provide a destination.');
           }
 
           if (origin.length > MAX_SKILL_INPUT_LENGTH || destination.length > MAX_SKILL_INPUT_LENGTH) {
-            return new SwaigFunctionResult('Input is too long.');
+            return new FunctionResult('Input is too long.');
           }
 
           const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
             );
           }
@@ -196,13 +196,13 @@ export class GoogleMapsSkill extends SkillBase {
 
             if (data.status !== 'OK') {
               log.error('directions_api_error', { status: data.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Could not get directions from "${origin}" to "${destination}". Please check the locations and try again.`,
               );
             }
 
             if (data.routes.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No routes found from "${origin}" to "${destination}".`,
               );
             }
@@ -243,10 +243,10 @@ export class GoogleMapsSkill extends SkillBase {
               parts.push(`Note: ${route.warnings.join(' ')}`);
             }
 
-            return new SwaigFunctionResult(parts.join('\n'));
+            return new FunctionResult(parts.join('\n'));
           } catch (err) {
             log.error('get_directions_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }
@@ -268,16 +268,16 @@ export class GoogleMapsSkill extends SkillBase {
           const query = args.query as string | undefined;
 
           if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a place to search for.');
+            return new FunctionResult('Please provide a place to search for.');
           }
 
           if (query.length > MAX_SKILL_INPUT_LENGTH) {
-            return new SwaigFunctionResult('Search query is too long.');
+            return new FunctionResult('Search query is too long.');
           }
 
           const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
             );
           }
@@ -303,13 +303,13 @@ export class GoogleMapsSkill extends SkillBase {
 
             if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
               log.error('places_api_error', { status: data.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The place search service encountered an error. Please try again later.',
               );
             }
 
             if (!data.candidates || data.candidates.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No places found for "${query}". Try a different search term.`,
               );
             }
@@ -350,10 +350,10 @@ export class GoogleMapsSkill extends SkillBase {
               parts.push(`Coordinates: ${lat}, ${lng}`);
             }
 
-            return new SwaigFunctionResult(parts.join('\n'));
+            return new FunctionResult(parts.join('\n'));
           } catch (err) {
             log.error('find_place_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

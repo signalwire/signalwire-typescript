@@ -41,7 +41,7 @@ Every `AgentBase` instance applies Hono's `basicAuth` middleware to all routes (
 3. **Auto-generated** -- the agent name as the username and a random 16-character hex string as the password.
 
 ```typescript
-import { AgentBase } from '@anthropic/signalwire-agents';
+import { AgentBase } from '@anthropic/@signalwire/sdk';
 
 // Explicit credentials
 const agent = new AgentBase({
@@ -85,7 +85,7 @@ class SecureAgent extends AgentBase {
 For advanced use cases beyond basic auth, `AuthHandler` (`src/AuthHandler.ts`) supports multiple authentication methods with timing-safe credential comparison to prevent timing attacks:
 
 ```typescript
-import { AuthHandler } from '@anthropic/signalwire-agents';
+import { AuthHandler } from '@anthropic/@signalwire/sdk';
 
 const auth = new AuthHandler({
   // Method 1: Bearer token (Authorization: Bearer <token>)
@@ -127,7 +127,7 @@ The `SslConfig` class (`src/SslConfig.ts`) manages SSL/TLS configuration for HTT
 SSL can be configured via constructor options or environment variables:
 
 ```typescript
-import { SslConfig } from '@anthropic/signalwire-agents';
+import { SslConfig } from '@anthropic/@signalwire/sdk';
 
 // Via constructor
 const ssl = new SslConfig({
@@ -357,7 +357,7 @@ agent.defineTool({
   secure: true,  // Enables HMAC token protection
   handler: async (args, rawData) => {
     // Only reachable with a valid, unexpired token
-    const result = new SwaigFunctionResult();
+    const result = new FunctionResult();
     result.setResponse('Transfer completed.');
     return result;
   },
@@ -382,7 +382,7 @@ const agent = new AgentBase({
 ### Debugging Tokens
 
 ```typescript
-import { SessionManager } from '@anthropic/signalwire-agents';
+import { SessionManager } from '@anthropic/@signalwire/sdk';
 
 const sm = new SessionManager(3600);
 const token = sm.generateToken('my_function', 'call-123');

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/gather-info.ts
  */
 
-import { AgentBase, SwaigFunctionResult, GatherInfo, GatherQuestion } from '../src/index.js';
+import { AgentBase, FunctionResult, GatherInfo, GatherQuestion } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'intake-agent',
@@ -31,7 +31,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for visit' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Intake form submitted for ${args.patient_name}. Reason: ${args.reason}. ` +
       'A nurse will be with you shortly.',
     );

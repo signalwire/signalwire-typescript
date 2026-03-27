@@ -14,8 +14,8 @@ export { SWMLService } from './SWMLService.js';
 export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
 
 // Tool results & functions
-export { SwaigFunctionResult } from './SwaigFunctionResult.js';
-export type { PaymentPrompt, PaymentAction, PaymentParameter } from './SwaigFunctionResult.js';
+export { FunctionResult } from './FunctionResult.js';
+export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
 export { SwaigFunction } from './SwaigFunction.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 

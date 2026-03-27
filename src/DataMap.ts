@@ -5,7 +5,7 @@
  * without requiring webhook endpoints.
  */
 
-import { SwaigFunctionResult } from './SwaigFunctionResult.js';
+import { FunctionResult } from './FunctionResult.js';
 
 const ENV_PATTERN = /\$\{ENV\.([^}]+)\}/g;
 
@@ -164,8 +164,8 @@ export class DataMap {
   expression(
     testValue: string,
     pattern: string | RegExp,
-    output: SwaigFunctionResult,
-    nomatchOutput?: SwaigFunctionResult,
+    output: FunctionResult,
+    nomatchOutput?: FunctionResult,
   ): this {
     const patternStr = typeof pattern === 'string' ? pattern : pattern.source;
     const expr: Record<string, unknown> = {
@@ -257,10 +257,10 @@ export class DataMap {
 
   /**
    * Set the output template for the most recently added webhook.
-   * @param result - The SwaigFunctionResult to use as the output template.
+   * @param result - The FunctionResult to use as the output template.
    * @returns This instance for chaining.
    */
-  output(result: SwaigFunctionResult): this {
+  output(result: FunctionResult): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting output');
     this._webhooks[this._webhooks.length - 1]['output'] = result.toDict();
     return this;
@@ -268,10 +268,10 @@ export class DataMap {
 
   /**
    * Set a fallback output used when no webhook or expression matches.
-   * @param result - The SwaigFunctionResult to use as the fallback.
+   * @param result - The FunctionResult to use as the fallback.
    * @returns This instance for chaining.
    */
-  fallbackOutput(result: SwaigFunctionResult): this {
+  fallbackOutput(result: FunctionResult): this {
     this._output = result.toDict();
     return this;
   }
@@ -381,7 +381,7 @@ export function createSimpleApiTool(opts: {
   dm.webhook(opts.method ?? 'GET', opts.url, { headers: opts.headers });
   if (opts.body) dm.body(opts.body);
   if (opts.errorKeys) dm.errorKeys(opts.errorKeys);
-  dm.output(new SwaigFunctionResult(opts.responseTemplate));
+  dm.output(new FunctionResult(opts.responseTemplate));
   return dm;
 }
 
@@ -392,7 +392,7 @@ export function createSimpleApiTool(opts: {
  */
 export function createExpressionTool(opts: {
   name: string;
-  patterns: Record<string, [string, SwaigFunctionResult]>;
+  patterns: Record<string, [string, FunctionResult]>;
   parameters?: Record<string, { type?: string; description?: string; required?: boolean }>;
 }): DataMap {
   const dm = new DataMap(opts.name);

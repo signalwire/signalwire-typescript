@@ -17,7 +17,7 @@
  *   - Connect Claude Desktop to http://your-server:3000/agent/mcp
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 const agent = new AgentBase({
   name: 'mcp-agent',
@@ -64,7 +64,7 @@ agent.defineTool({
   parameters: { location: { type: 'string', description: 'City name or zip code' } },
   handler: (args: Record<string, unknown>) => {
     const location = (args['location'] as string) || 'unknown';
-    return new SwaigFunctionResult(`Currently 72F and sunny in ${location}.`);
+    return new FunctionResult(`Currently 72F and sunny in ${location}.`);
   },
 });
 
@@ -77,7 +77,7 @@ agent.defineTool({
   },
   handler: (args: Record<string, unknown>) => {
     const subject = (args['subject'] as string) || 'No subject';
-    return new SwaigFunctionResult(`Ticket created: '${subject}'. Reference: TK-12345.`);
+    return new FunctionResult(`Ticket created: '${subject}'. Reference: TK-12345.`);
   },
 });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseFunctionParams, inferSchema, createTypedHandlerWrapper } from '../src/TypeInference.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 describe('parseFunctionParams', () => {
   it('parses arrow function with defaults', () => {
@@ -122,7 +122,7 @@ describe('createTypedHandlerWrapper', () => {
     const captured: unknown[] = [];
     const fn = (city: string, count: number) => {
       captured.push(city, count);
-      return new SwaigFunctionResult('ok');
+      return new FunctionResult('ok');
     };
     const wrapper = createTypedHandlerWrapper(fn, ['city', 'count'], false);
     wrapper({ city: 'NYC', count: 3 }, {});
@@ -133,7 +133,7 @@ describe('createTypedHandlerWrapper', () => {
     const captured: unknown[] = [];
     const fn = (city: string, rawData: Record<string, unknown>) => {
       captured.push(city, rawData);
-      return new SwaigFunctionResult('ok');
+      return new FunctionResult('ok');
     };
     const wrapper = createTypedHandlerWrapper(fn, ['city'], true);
     const rawData = { call_id: '123' };
@@ -145,7 +145,7 @@ describe('createTypedHandlerWrapper', () => {
     const captured: unknown[] = [];
     const fn = (city: string, count: number) => {
       captured.push(city, count);
-      return new SwaigFunctionResult('ok');
+      return new FunctionResult('ok');
     };
     const wrapper = createTypedHandlerWrapper(fn, ['city', 'count'], false);
     wrapper({ city: 'SF' }, {});
@@ -156,7 +156,7 @@ describe('createTypedHandlerWrapper', () => {
     const captured: unknown[] = [];
     const fn = (...allArgs: unknown[]) => {
       captured.push(...allArgs);
-      return new SwaigFunctionResult('ok');
+      return new FunctionResult('ok');
     };
     const wrapper = createTypedHandlerWrapper(fn, ['city'], false);
     wrapper({ city: 'Boston' }, { call_id: 'abc' });

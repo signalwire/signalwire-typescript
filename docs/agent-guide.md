@@ -12,7 +12,7 @@
   - [Defining Tools](#defining-tools)
   - [Tool Parameters](#tool-parameters)
   - [Secure Tools](#secure-tools)
-  - [SwaigFunctionResult](#swaigfunctionresult)
+  - [FunctionResult](#swaigfunctionresult)
   - [DataMap (Server-Side Tools)](#datamap-server-side-tools)
 - [Speech and Languages](#speech-and-languages)
   - [Hints](#hints)
@@ -51,7 +51,7 @@ npm install signalwire-ai-agents
 ### Quick Start
 
 ```typescript
-import { AgentBase, SwaigFunctionResult } from 'signalwire-ai-agents';
+import { AgentBase, FunctionResult } from 'signalwire-ai-agents';
 
 const agent = new AgentBase({ name: 'my-agent' });
 
@@ -65,7 +65,7 @@ agent.defineTool({
   },
   handler: async (args) => {
     const status = await lookupOrder(args.order_id as string);
-    return new SwaigFunctionResult(`Order ${args.order_id} is ${status}.`);
+    return new FunctionResult(`Order ${args.order_id} is ${status}.`);
   },
 });
 
@@ -280,7 +280,7 @@ agent.defineTool({
   required: ['city'],
   handler: async (args, rawData) => {
     const weather = await fetchWeather(args.city as string, args.units as string);
-    return new SwaigFunctionResult(`The weather in ${args.city} is ${weather.temp} degrees and ${weather.condition}.`);
+    return new FunctionResult(`The weather in ${args.city} is ${weather.temp} degrees and ${weather.condition}.`);
   },
 });
 ```
@@ -294,7 +294,7 @@ The `handler` function receives two arguments:
 
 The handler can return:
 
-- A `SwaigFunctionResult` instance (recommended)
+- A `FunctionResult` instance (recommended)
 - A plain object with a `response` key
 - A plain string (wrapped automatically)
 
@@ -336,38 +336,38 @@ agent.defineTool({
   handler: async (args) => {
     // This handler only executes if the token is valid
     await doTransfer(args.amount as number, args.to_account as string);
-    return new SwaigFunctionResult('Transfer completed successfully.');
+    return new FunctionResult('Transfer completed successfully.');
   },
 });
 ```
 
 When `secure: true` is set, the SWML document includes a `__token` query parameter in the tool's webhook URL. On each `/swaig` request, the SDK validates the token's HMAC signature, call ID binding, and expiry before executing the handler.
 
-### SwaigFunctionResult
+### FunctionResult
 
-`SwaigFunctionResult` is a fluent builder for tool responses. It carries response text and an ordered list of actions:
+`FunctionResult` is a fluent builder for tool responses. It carries response text and an ordered list of actions:
 
 ```typescript
-import { SwaigFunctionResult } from 'signalwire-ai-agents';
+import { FunctionResult } from 'signalwire-ai-agents';
 
 // Simple text response
-const result = new SwaigFunctionResult('The order has been placed.');
+const result = new FunctionResult('The order has been placed.');
 
 // Response with actions
-const result = new SwaigFunctionResult('Transferring you now.')
+const result = new FunctionResult('Transferring you now.')
   .connect('+15551234567')    // Transfer the call
   .hangup();                  // Then hang up
 
 // Update global data from within a tool
-const result = new SwaigFunctionResult('Account verified.')
+const result = new FunctionResult('Account verified.')
   .updateGlobalData({ verified: true, customer_id: '12345' });
 
 // Context switch
-const result = new SwaigFunctionResult('Let me transfer you to billing.')
+const result = new FunctionResult('Let me transfer you to billing.')
   .switchContext({ systemPrompt: 'You are now a billing specialist.' });
 ```
 
-Key `SwaigFunctionResult` methods:
+Key `FunctionResult` methods:
 
 | Method | Description |
 |--------|-------------|
@@ -395,7 +395,7 @@ Serialization fallback: if both `response` and `action` are empty, `toDict()` re
 DataMap tools execute entirely on the SignalWire platform without requiring a webhook. They are useful for simple API calls and pattern-matching:
 
 ```typescript
-import { DataMap, SwaigFunctionResult } from 'signalwire-ai-agents';
+import { DataMap, FunctionResult } from 'signalwire-ai-agents';
 
 const weatherTool = new DataMap('get_weather')
   .purpose('Look up weather for a city')
@@ -403,7 +403,7 @@ const weatherTool = new DataMap('get_weather')
   .webhook('GET', 'https://api.weather.com/v1/current?q=${args.city}', {
     headers: { 'Authorization': 'Bearer ${ENV.WEATHER_API_KEY}' },
   })
-  .output(new SwaigFunctionResult('The weather is ${temp}F and ${condition}.'))
+  .output(new FunctionResult('The weather is ${temp}F and ${condition}.'))
   .enableEnvExpansion();
 
 weatherTool.registerWithAgent(agent);
@@ -557,7 +557,7 @@ Within a tool handler, you can update global data dynamically:
 
 ```typescript
 handler: async (args) => {
-  return new SwaigFunctionResult('Customer verified.')
+  return new FunctionResult('Customer verified.')
     .updateGlobalData({ customer_verified: true, customer_name: args.name });
 }
 ```
@@ -752,7 +752,7 @@ await server.run();
 For reusable, self-contained agents, extend `AgentBase`:
 
 ```typescript
-import { AgentBase, SwaigFunctionResult } from 'signalwire-ai-agents';
+import { AgentBase, FunctionResult } from 'signalwire-ai-agents';
 
 class RestaurantBot extends AgentBase {
   // Declarative prompt sections
@@ -795,7 +795,7 @@ class RestaurantBot extends AgentBase {
       required: ['date', 'time', 'party_size', 'name'],
       handler: async (args) => {
         const id = await createReservation(args);
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Reservation confirmed for ${args.party_size} on ${args.date} at ${args.time}. ` +
           `Confirmation number: ${id}.`
         );

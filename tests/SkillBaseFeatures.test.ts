@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Minimal concrete skill for testing base features. */
 class TestSkill extends SkillBase {
@@ -16,7 +16,7 @@ class TestSkill extends SkillBase {
     return [{
       name: 'test_tool',
       description: 'A test tool',
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     }];
   }
 
@@ -118,7 +118,7 @@ describe('SkillBase Features', () => {
   describe('updateSkillData', () => {
     it('calls updateGlobalData with namespaced key', () => {
       const skill = new TestSkill();
-      const result = new SwaigFunctionResult('test');
+      const result = new FunctionResult('test');
       const updated = skill.updateSkillData(result, { count: 10 });
       expect(updated).toBe(result);
       const dict = result.toDict();

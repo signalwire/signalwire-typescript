@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 
@@ -116,18 +116,18 @@ export class WeatherApiSkill extends SkillBase {
           const location = args.location as string | undefined;
 
           if (!location || typeof location !== 'string' || location.trim().length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a location to get the weather for.',
             );
           }
 
           if (location.length > MAX_SKILL_INPUT_LENGTH) {
-            return new SwaigFunctionResult('Input is too long.');
+            return new FunctionResult('Input is too long.');
           }
 
           const apiKey = process.env['WEATHER_API_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
             );
           }
@@ -148,7 +148,7 @@ export class WeatherApiSkill extends SkillBase {
 
             if (!response.ok || data.cod !== 200) {
               log.error('weather_api_error', { status: response.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Could not retrieve weather for "${location}". Please check the location name and try again.`,
               );
             }
@@ -180,10 +180,10 @@ export class WeatherApiSkill extends SkillBase {
               parts.push(`Cloud cover: ${data.clouds.all}%.`);
             }
 
-            return new SwaigFunctionResult(parts.join(' '));
+            return new FunctionResult(parts.join(' '));
           } catch (err) {
             log.error('get_weather_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

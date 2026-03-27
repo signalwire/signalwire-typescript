@@ -4,7 +4,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ export class ReceptionistAgent extends AgentBase {
       },
       handler: () => {
         if (this.departments.length === 0) {
-          return new SwaigFunctionResult('No departments are currently listed in the directory.');
+          return new FunctionResult('No departments are currently listed in the directory.');
         }
 
         const lines = this.departments.map((dept) => {
@@ -158,7 +158,7 @@ export class ReceptionistAgent extends AgentBase {
           return line;
         });
 
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Department directory for ${this.companyName}:\n${lines.join('\n')}`,
         );
       },
@@ -181,18 +181,18 @@ export class ReceptionistAgent extends AgentBase {
       handler: (_args: Record<string, unknown>) => {
         const deptName = _args['department_name'] as string;
         if (!deptName) {
-          return new SwaigFunctionResult('Please provide a department name to transfer to.');
+          return new FunctionResult('Please provide a department name to transfer to.');
         }
 
         const dept = this.findDepartment(deptName);
         if (!dept) {
           const available = this.departments.map((d) => d.name).join(', ');
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Department "${deptName}" not found in the directory. Available departments: ${available}`,
           );
         }
 
-        const result = new SwaigFunctionResult(
+        const result = new FunctionResult(
           `Transferring you to ${dept.name} at extension ${dept.extension}. One moment please.`,
         );
         result.connect(dept.extension);
@@ -229,7 +229,7 @@ export class ReceptionistAgent extends AgentBase {
           const visiting = _args['visiting'] as string;
 
           if (!visitorName || !purpose || !visiting) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide the visitor\'s name, purpose of visit, and who they are visiting.',
             );
           }
@@ -254,7 +254,7 @@ export class ReceptionistAgent extends AgentBase {
             }
           }
 
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Visitor checked in successfully! Name: ${visitorName}, Purpose: ${purpose}, Visiting: ${visiting}. Welcome to ${this.companyName}!`,
           );
         },

@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { DateTimeSkill, createDateTimeSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -69,16 +69,16 @@ describe('DateTimeSkill', () => {
   it('should execute handler with a valid timezone', () => {
     const skill = new DateTimeSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ timezone: 'America/New_York' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('America/New_York');
   });
 
   it('should execute handler with an invalid timezone', () => {
     const skill = new DateTimeSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ timezone: 'Invalid/Zone' }, {}) as SwaigFunctionResult;
-    expect(result).toBeInstanceOf(SwaigFunctionResult);
+    const result = handler({ timezone: 'Invalid/Zone' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Invalid');
   });
 

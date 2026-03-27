@@ -13,7 +13,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /** Internal representation of a joke with setup and punchline. */
 interface Joke {
@@ -134,7 +134,7 @@ export class JokeSkill extends SkillBase {
             const normalized = category.toLowerCase().trim();
 
             if (!VALID_CATEGORIES.includes(normalized)) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Unknown joke category "${category}". Available categories are: ${VALID_CATEGORIES.join(', ')}.`,
               );
             }
@@ -143,14 +143,14 @@ export class JokeSkill extends SkillBase {
           }
 
           if (pool.length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Sorry, I could not find any jokes for that category.',
             );
           }
 
           const joke = pool[Math.floor(Math.random() * pool.length)]!;
 
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `${joke.setup} ... ${joke.punchline}`,
           );
         },

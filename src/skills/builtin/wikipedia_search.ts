@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('WikipediaSearchSkill');
@@ -131,7 +131,7 @@ export class WikipediaSearchSkill extends SkillBase {
           const sentences = args.sentences as number | undefined;
 
           if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please provide a topic to search for on Wikipedia.',
             );
           }
@@ -179,7 +179,7 @@ export class WikipediaSearchSkill extends SkillBase {
                   parts.push(`Read more: ${pageUrl}`);
                 }
 
-                return new SwaigFunctionResult(parts.join('\n').trim());
+                return new FunctionResult(parts.join('\n').trim());
               }
             }
 
@@ -200,7 +200,7 @@ export class WikipediaSearchSkill extends SkillBase {
 
             if (!searchResponse.ok) {
               log.error('wikipedia_search_api_error', { status: searchResponse.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'Wikipedia search could not be completed. Please try a different search term.',
               );
             }
@@ -208,7 +208,7 @@ export class WikipediaSearchSkill extends SkillBase {
             const searchData = (await searchResponse.json()) as WikipediaSearchResponse;
 
             if (!searchData.pages || searchData.pages.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `No Wikipedia article found for "${query}". Try a different search term.`,
               );
             }
@@ -234,7 +234,7 @@ export class WikipediaSearchSkill extends SkillBase {
               const excerpt = bestMatch.excerpt
                 ? bestMatch.excerpt.replace(/<[^>]*>/g, '').trim()
                 : 'No summary available.';
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 `Wikipedia: ${bestMatch.title}\n\n${excerpt}`,
               );
             }
@@ -258,10 +258,10 @@ export class WikipediaSearchSkill extends SkillBase {
               parts.push(`Read more: ${pageUrl}`);
             }
 
-            return new SwaigFunctionResult(parts.join('\n').trim());
+            return new FunctionResult(parts.join('\n').trim());
           } catch (err) {
             log.error('search_wikipedia_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

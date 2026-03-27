@@ -7,7 +7,7 @@
  * Run: npx tsx examples/tap.ts
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'tap-agent',
@@ -35,7 +35,7 @@ agent.defineTool({
     },
   },
   handler: (args) => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       'Audio streaming started. Call audio is now being sent to the external system.',
     );
     result.tap({
@@ -54,7 +54,7 @@ agent.defineTool({
   description: 'Stop streaming call audio to the external endpoint',
   parameters: {},
   handler: () => {
-    const result = new SwaigFunctionResult(
+    const result = new FunctionResult(
       'Audio streaming stopped.',
     );
     result.stopTap('main-tap');

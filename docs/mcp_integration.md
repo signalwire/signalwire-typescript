@@ -12,7 +12,7 @@ These features are independent and can be used separately or together.
 Use `addMcpServer()` to connect your agent to remote MCP servers. Tools are discovered at call start via the MCP protocol and added to the AI's tool list alongside your defined tools.
 
 ```typescript
-import { AgentBase } from 'signalwire-agents';
+import { AgentBase } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent', route: '/agent' });
 
@@ -63,7 +63,7 @@ agent.defineTool({
   name: 'get_weather',
   description: 'Get weather for a location',
   parameters: { location: { type: 'string', description: 'City' } },
-  handler: (args) => new SwaigFunctionResult(`72F sunny in ${args.location}`),
+  handler: (args) => new FunctionResult(`72F sunny in ${args.location}`),
 });
 ```
 

@@ -4,7 +4,7 @@
 
 // Protocol version
 export const PROTOCOL_VERSION = { major: 2, minor: 0, revision: 0 };
-export const AGENT_STRING = 'signalwire-agents-typescript/1.0';
+export const AGENT_STRING = '@signalwire/sdk-typescript/2.0';
 
 // JSON-RPC methods
 export const METHOD_SIGNALWIRE_CONNECT = 'signalwire.connect';

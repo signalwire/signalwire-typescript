@@ -1,24 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { SwaigFunctionResult } from '../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
-describe('SwaigFunctionResult', () => {
+describe('FunctionResult', () => {
   it('returns default response when empty', () => {
-    const r = new SwaigFunctionResult();
+    const r = new FunctionResult();
     expect(r.toDict()).toEqual({ response: 'Action completed.' });
   });
 
   it('stores response from constructor', () => {
-    const r = new SwaigFunctionResult('hello');
+    const r = new FunctionResult('hello');
     expect(r.toDict()).toEqual({ response: 'hello' });
   });
 
   it('supports setResponse', () => {
-    const r = new SwaigFunctionResult().setResponse('hi');
+    const r = new FunctionResult().setResponse('hi');
     expect(r.toDict()).toEqual({ response: 'hi' });
   });
 
   it('supports addAction chaining', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .addAction('hangup', true)
       .addAction('stop', true);
     const d = r.toDict();
@@ -27,7 +27,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('supports addActions', () => {
-    const r = new SwaigFunctionResult('ok').addActions([
+    const r = new FunctionResult('ok').addActions([
       { set_global_data: { k: 'v' } },
       { play: { url: 'music.mp3' } },
     ]);
@@ -35,18 +35,18 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('includes post_process only when true and actions present', () => {
-    const r1 = new SwaigFunctionResult('hi', true);
+    const r1 = new FunctionResult('hi', true);
     expect(r1.toDict()).toEqual({ response: 'hi' }); // no actions = no post_process
 
-    const r2 = new SwaigFunctionResult('hi', true).hangup();
+    const r2 = new FunctionResult('hi', true).hangup();
     expect(r2.toDict().post_process).toBe(true);
 
-    const r3 = new SwaigFunctionResult('hi', false).hangup();
+    const r3 = new FunctionResult('hi', false).hangup();
     expect(r3.toDict().post_process).toBeUndefined();
   });
 
   it('connect builds correct SWML', () => {
-    const r = new SwaigFunctionResult('transferring').connect('+15551234567');
+    const r = new FunctionResult('transferring').connect('+15551234567');
     const act = (r.toDict().action as Record<string, unknown>[])[0];
     expect(act['transfer']).toBe('true');
     const swml = act['SWML'] as Record<string, unknown>;
@@ -54,7 +54,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('connect with from address', () => {
-    const r = new SwaigFunctionResult('t').connect('+1555', false, '+1666');
+    const r = new FunctionResult('t').connect('+1555', false, '+1666');
     const act = (r.toDict().action as Record<string, unknown>[])[0];
     expect(act['transfer']).toBe('false');
     const swml = act['SWML'] as Record<string, unknown>;
@@ -64,13 +64,13 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('swmlTransfer', () => {
-    const r = new SwaigFunctionResult('ok').swmlTransfer('https://example.com', 'bye', false);
+    const r = new FunctionResult('ok').swmlTransfer('https://example.com', 'bye', false);
     const act = (r.toDict().action as Record<string, unknown>[])[0];
     expect(act['transfer']).toBe('false');
   });
 
   it('hangup / stop / hold', () => {
-    const r = new SwaigFunctionResult('bye').hangup().stop().hold(60);
+    const r = new FunctionResult('bye').hangup().stop().hold(60);
     const acts = r.toDict().action as Record<string, unknown>[];
     expect(acts[0]).toEqual({ hangup: true });
     expect(acts[1]).toEqual({ stop: true });
@@ -78,23 +78,23 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('hold clamps timeout', () => {
-    const r = new SwaigFunctionResult().hold(9999);
+    const r = new FunctionResult().hold(9999);
     expect((r.toDict().action as Record<string, unknown>[])[0]).toEqual({ hold: 900 });
   });
 
   it('waitForUser variants', () => {
-    expect(new SwaigFunctionResult('w').waitForUser().toDict().action)
+    expect(new FunctionResult('w').waitForUser().toDict().action)
       .toEqual([{ wait_for_user: true }]);
-    expect(new SwaigFunctionResult('w').waitForUser({ answerFirst: true }).toDict().action)
+    expect(new FunctionResult('w').waitForUser({ answerFirst: true }).toDict().action)
       .toEqual([{ wait_for_user: 'answer_first' }]);
-    expect(new SwaigFunctionResult('w').waitForUser({ timeout: 10 }).toDict().action)
+    expect(new FunctionResult('w').waitForUser({ timeout: 10 }).toDict().action)
       .toEqual([{ wait_for_user: 10 }]);
-    expect(new SwaigFunctionResult('w').waitForUser({ enabled: false }).toDict().action)
+    expect(new FunctionResult('w').waitForUser({ enabled: false }).toDict().action)
       .toEqual([{ wait_for_user: false }]);
   });
 
   it('say / playBackgroundFile / stopBackgroundFile', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .say('hello')
       .playBackgroundFile('music.mp3')
       .playBackgroundFile('bg.mp3', true)
@@ -107,7 +107,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('speech hints', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .addDynamicHints(['word1', { pattern: 'w', replace: 'W' }])
       .clearDynamicHints()
       .setEndOfSpeechTimeout(500)
@@ -120,7 +120,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('global data / metadata', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .updateGlobalData({ key: 'val' })
       .removeGlobalData(['key'])
       .setMetadata({ m: 1 })
@@ -133,14 +133,14 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('swmlChangeStep / swmlChangeContext', () => {
-    const r = new SwaigFunctionResult('ok').swmlChangeStep('step2').swmlChangeContext('ctx2');
+    const r = new FunctionResult('ok').swmlChangeStep('step2').swmlChangeContext('ctx2');
     const acts = r.toDict().action as Record<string, unknown>[];
     expect(acts[0]).toEqual({ change_step: 'step2' });
     expect(acts[1]).toEqual({ change_context: 'ctx2' });
   });
 
   it('swmlUserEvent', () => {
-    const r = new SwaigFunctionResult('ok').swmlUserEvent({ type: 'test', val: 1 });
+    const r = new FunctionResult('ok').swmlUserEvent({ type: 'test', val: 1 });
     const acts = r.toDict().action as Record<string, unknown>[];
     expect(acts[0]).toEqual({
       SWML: {
@@ -151,14 +151,14 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('switchContext simple string', () => {
-    const r = new SwaigFunctionResult('ok').switchContext({ systemPrompt: 'new prompt' });
+    const r = new FunctionResult('ok').switchContext({ systemPrompt: 'new prompt' });
     expect((r.toDict().action as Record<string, unknown>[])[0]).toEqual({
       context_switch: 'new prompt',
     });
   });
 
   it('switchContext advanced object', () => {
-    const r = new SwaigFunctionResult('ok').switchContext({
+    const r = new FunctionResult('ok').switchContext({
       systemPrompt: 'sp',
       userPrompt: 'up',
       consolidate: true,
@@ -169,7 +169,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('toggleFunctions / enableFunctionsOnTimeout / updateSettings', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .toggleFunctions([{ function: 'fn1', active: false }])
       .enableFunctionsOnTimeout()
       .updateSettings({ temperature: 0.5 });
@@ -180,7 +180,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('simulateUserInput / enableExtensiveData / replaceInHistory', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .simulateUserInput('hi')
       .enableExtensiveData()
       .replaceInHistory('replaced');
@@ -191,7 +191,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('sendSms', () => {
-    const r = new SwaigFunctionResult('sent').sendSms({
+    const r = new FunctionResult('sent').sendSms({
       toNumber: '+1555',
       fromNumber: '+1666',
       body: 'hi',
@@ -203,26 +203,26 @@ describe('SwaigFunctionResult', () => {
 
   it('sendSms throws without body or media', () => {
     expect(() => {
-      new SwaigFunctionResult().sendSms({ toNumber: '+1', fromNumber: '+2' });
+      new FunctionResult().sendSms({ toNumber: '+1', fromNumber: '+2' });
     }).toThrow('Either body or media must be provided');
   });
 
   it('recordCall / stopRecordCall', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .recordCall({ format: 'mp3', stereo: true })
       .stopRecordCall('ctrl1');
     expect((r.toDict().action as unknown[]).length).toBe(2);
   });
 
   it('tap / stopTap', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .tap({ uri: 'wss://example.com' })
       .stopTap();
     expect((r.toDict().action as unknown[]).length).toBe(2);
   });
 
   it('joinRoom', () => {
-    const r = new SwaigFunctionResult('ok').joinRoom('room1');
+    const r = new FunctionResult('ok').joinRoom('room1');
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
@@ -230,7 +230,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('sipRefer', () => {
-    const r = new SwaigFunctionResult('ok').sipRefer('sip:user@example.com');
+    const r = new FunctionResult('ok').sipRefer('sip:user@example.com');
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
@@ -238,7 +238,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('joinConference simple', () => {
-    const r = new SwaigFunctionResult('ok').joinConference('conf1');
+    const r = new FunctionResult('ok').joinConference('conf1');
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
@@ -246,7 +246,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('joinConference with options', () => {
-    const r = new SwaigFunctionResult('ok').joinConference('conf1', { muted: true });
+    const r = new FunctionResult('ok').joinConference('conf1', { muted: true });
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
@@ -256,7 +256,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('executeRpc', () => {
-    const r = new SwaigFunctionResult('ok').executeRpc({
+    const r = new FunctionResult('ok').executeRpc({
       method: 'ai_message',
       callId: 'call-1',
       params: { role: 'system', message_text: 'hi' },
@@ -265,7 +265,7 @@ describe('SwaigFunctionResult', () => {
   });
 
   it('rpcDial / rpcAiMessage / rpcAiUnhold', () => {
-    const r = new SwaigFunctionResult('ok')
+    const r = new FunctionResult('ok')
       .rpcDial('+1555', '+1666', 'https://example.com/swml')
       .rpcAiMessage('call-1', 'hello')
       .rpcAiUnhold('call-1');
@@ -274,25 +274,25 @@ describe('SwaigFunctionResult', () => {
 
   it('executeSwml with string', () => {
     const swml = JSON.stringify({ version: '1.0.0', sections: { main: [] } });
-    const r = new SwaigFunctionResult('ok').executeSwml(swml, true);
+    const r = new FunctionResult('ok').executeSwml(swml, true);
     const acts = r.toDict().action as Record<string, unknown>[];
     const action = acts[0]['SWML'] as Record<string, unknown>;
     expect(action['transfer']).toBe('true');
   });
 
   it('static payment helpers', () => {
-    const action = SwaigFunctionResult.createPaymentAction('Say', 'Enter card');
+    const action = FunctionResult.createPaymentAction('Say', 'Enter card');
     expect(action).toEqual({ type: 'Say', phrase: 'Enter card' });
 
-    const prompt = SwaigFunctionResult.createPaymentPrompt('payment-card-number', [action]);
+    const prompt = FunctionResult.createPaymentPrompt('payment-card-number', [action]);
     expect(prompt['for']).toBe('payment-card-number');
 
-    const param = SwaigFunctionResult.createPaymentParameter('k', 'v');
+    const param = FunctionResult.createPaymentParameter('k', 'v');
     expect(param).toEqual({ name: 'k', value: 'v' });
   });
 
   it('setPostProcess', () => {
-    const r = new SwaigFunctionResult('hi').setPostProcess(true).hangup();
+    const r = new FunctionResult('hi').setPostProcess(true).hangup();
     expect(r.toDict().post_process).toBe(true);
   });
 });

@@ -14,7 +14,7 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
-import { SwaigFunctionResult } from './SwaigFunctionResult.js';
+import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
@@ -1532,14 +1532,14 @@ export class AgentBase {
         const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
         if (!token) {
           reqLog.warn('missing_token');
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             'The security token for this function is missing or expired. This action cannot be completed.'
           );
           return c.json(result.toDict());
         }
         if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
           reqLog.warn('token_invalid');
-          const result = new SwaigFunctionResult(
+          const result = new FunctionResult(
             'The security token for this function is invalid or expired. This action cannot be completed.'
           );
           return c.json(result.toDict());

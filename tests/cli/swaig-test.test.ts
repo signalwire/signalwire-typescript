@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../../src/AgentBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 
 describe('agent introspection', () => {
   function createAgent() {
@@ -10,13 +10,13 @@ describe('agent introspection', () => {
       name: 'greet',
       description: 'Say hello',
       parameters: { name: { type: 'string', description: 'Name' } },
-      handler: (args) => new SwaigFunctionResult('Hello ' + (args['name'] || 'world')),
+      handler: (args) => new FunctionResult('Hello ' + (args['name'] || 'world')),
     });
     agent.defineTool({
       name: 'get_time',
       description: 'Get current time',
       parameters: {},
-      handler: () => new SwaigFunctionResult('12:00 PM'),
+      handler: () => new FunctionResult('12:00 PM'),
     });
     return agent;
   }

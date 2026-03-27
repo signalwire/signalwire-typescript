@@ -5,9 +5,9 @@ The SignalWire REST client provides typed HTTP access to all SignalWire platform
 ## Quick Start
 
 ```typescript
-import { SignalWireClient } from 'signalwire-agents';
+import { RestClient } from '@signalwire/sdk';
 
-const client = new SignalWireClient({
+const client = new RestClient({
   project: 'your-project-id',
   token: 'your-api-token',
   host: 'your-space.signalwire.com',
@@ -35,7 +35,7 @@ The client uses HTTP Basic Auth with your project ID and API token. Credentials 
 
 ```typescript
 // Using environment variables (no args needed)
-const client = new SignalWireClient();
+const client = new RestClient();
 ```
 
 ## Namespaces
@@ -257,7 +257,7 @@ The client provides two pagination utilities that work with both standard (`link
 ### Async Generator
 
 ```typescript
-import { SignalWireClient, paginate, HttpClient } from 'signalwire-agents';
+import { RestClient, paginate, HttpClient } from '@signalwire/sdk';
 
 // paginate() yields items one at a time across pages
 for await (const number of paginate(httpClient, '/api/relay/rest/phone_numbers')) {
@@ -268,7 +268,7 @@ for await (const number of paginate(httpClient, '/api/relay/rest/phone_numbers')
 ### Collect All
 
 ```typescript
-import { paginateAll } from 'signalwire-agents';
+import { paginateAll } from '@signalwire/sdk';
 
 const allNumbers = await paginateAll(httpClient, '/api/relay/rest/phone_numbers');
 console.log(`Total: ${allNumbers.length}`);
@@ -288,7 +288,7 @@ const allCalls = await paginateAll(httpClient, '/api/laml/.../Calls', undefined,
 All HTTP errors throw `RestError` with status code, body, URL, and method:
 
 ```typescript
-import { RestError } from 'signalwire-agents';
+import { RestError } from '@signalwire/sdk';
 
 try {
   await client.phoneNumbers.get('nonexistent');
@@ -307,7 +307,7 @@ For testing, inject a custom `fetch` implementation:
 ```typescript
 const mockFetch = async (url, init) => new Response(JSON.stringify({ data: [] }));
 
-const client = new SignalWireClient({
+const client = new RestClient({
   project: 'test',
   token: 'test',
   host: 'test.signalwire.com',
@@ -320,7 +320,7 @@ This follows the same pattern as the RELAY client's `_wsFactory` injection.
 ## Architecture
 
 ```
-SignalWireClient
+RestClient
   ├── HttpClient (fetch + Basic Auth)
   ├── fabric: FabricNamespace (17 sub-resources)
   ├── calling: CallingNamespace (37 commands)

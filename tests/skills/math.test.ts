@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { MathSkill, createMathSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -51,13 +51,13 @@ describe('MathSkill', () => {
 
   it('should evaluate a simple expression', () => {
     const handler = new MathSkill().getTools()[0].handler;
-    const result = handler({ expression: '2 + 3' }, {}) as SwaigFunctionResult;
+    const result = handler({ expression: '2 + 3' }, {}) as FunctionResult;
     expect(result.response).toContain('5');
   });
 
   it('should reject invalid expressions', () => {
     const handler = new MathSkill().getTools()[0].handler;
-    const result = handler({ expression: 'DROP TABLE' }, {}) as SwaigFunctionResult;
+    const result = handler({ expression: 'DROP TABLE' }, {}) as FunctionResult;
     expect(result.response).toContain('Could not evaluate');
   });
 

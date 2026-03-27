@@ -15,7 +15,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /** A named transfer destination pattern with a friendly name and underlying address. */
 interface TransferPattern {
@@ -150,7 +150,7 @@ export class SwmlTransferSkill extends SkillBase {
             typeof destination !== 'string' ||
             destination.trim().length === 0
           ) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Please specify a destination for the transfer.',
             );
           }
@@ -161,7 +161,7 @@ export class SwmlTransferSkill extends SkillBase {
           const matchedPattern = patternMap.get(trimmedDest.toLowerCase());
 
           if (matchedPattern) {
-            const result = new SwaigFunctionResult(message);
+            const result = new FunctionResult(message);
             result.swmlTransfer(matchedPattern.destination, message);
             return result;
           }
@@ -171,13 +171,13 @@ export class SwmlTransferSkill extends SkillBase {
             const availableNames = patterns
               .map((p) => `"${p.name}"`)
               .join(', ');
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Unknown transfer destination "${trimmedDest}". Available destinations: ${availableNames}.`,
             );
           }
 
           // Arbitrary transfer
-          const result = new SwaigFunctionResult(message);
+          const result = new FunctionResult(message);
           result.swmlTransfer(trimmedDest, message);
           return result;
         },
@@ -197,7 +197,7 @@ export class SwmlTransferSkill extends SkillBase {
             return `${p.name}${desc}`;
           });
 
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Available transfer destinations:\n${lines.join('\n')}`,
           );
         },

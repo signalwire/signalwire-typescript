@@ -38,14 +38,14 @@ const logger = getLogger('rest_client');
  *
  * @example
  * ```ts
- * const client = new SignalWireClient({
+ * const client = new RestClient({
  *   project: 'your-project-id',
  *   token: 'your-api-token',
  *   host: 'your-space.signalwire.com',
  * });
  *
  * // Or use env vars: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
- * const client = new SignalWireClient();
+ * const client = new RestClient();
  *
  * // Use namespaced resources
  * await client.fabric.aiAgents.list();
@@ -55,7 +55,7 @@ const logger = getLogger('rest_client');
  * await client.compat.calls.list();
  * ```
  */
-export class SignalWireClient {
+export class RestClient {
   // Fabric API
   readonly fabric: FabricNamespace;
 
@@ -118,7 +118,7 @@ export class SignalWireClient {
       fetchImpl: options.fetchImpl,
     });
 
-    logger.info('SignalWireClient initialized', { host });
+    logger.info('RestClient initialized', { host });
 
     // Fabric API
     this.fabric = new FabricNamespace(http);

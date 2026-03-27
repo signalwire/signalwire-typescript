@@ -15,7 +15,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { DataMap } from '../../DataMap.js';
 
 /**
@@ -158,7 +158,7 @@ export class DataSphereServerlessSkill extends SkillBase {
     dm.body(requestBody);
 
     dm.output(
-      new SwaigFunctionResult(
+      new FunctionResult(
         'Knowledge base results for the query: %{array[0].text} %{array[1].text} %{array[2].text}',
       ),
     );
@@ -166,7 +166,7 @@ export class DataSphereServerlessSkill extends SkillBase {
     dm.errorKeys(['error', 'message']);
 
     dm.fallbackOutput(
-      new SwaigFunctionResult(
+      new FunctionResult(
         'No relevant results found in the knowledge base. Try rephrasing your question.',
       ),
     );
@@ -197,7 +197,7 @@ export class DataSphereServerlessSkill extends SkillBase {
         },
         required: ['query'],
         handler: () => {
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             'This tool is configured for serverless DataMap execution. ' +
             'It should be registered as a data_map function, not invoked via webhook.',
           );

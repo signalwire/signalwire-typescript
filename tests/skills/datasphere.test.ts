@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { DataSphereSkill, createDataSphereSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
@@ -60,7 +60,7 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
     const handler = new DataSphereSkill().getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as SwaigFunctionResult;
+    const result = await handler({ query: 'test' }, {}) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 

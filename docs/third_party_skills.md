@@ -20,7 +20,7 @@ Third-party skills follow the same structure as built-in skills. Here's a minima
 ```python
 # my_weather_skill/skill.py
 from signalwire_agents.core.skill_base import SkillBase
-from signalwire_agents.core.function_result import SwaigFunctionResult
+from signalwire_agents.core.function_result import FunctionResult
 from typing import Dict, Any, List
 
 class WeatherSkill(SkillBase):
@@ -98,11 +98,11 @@ class WeatherSkill(SkillBase):
         location = args.get('location', '').strip()
         
         if not location:
-            return SwaigFunctionResult("Please provide a location")
+            return FunctionResult("Please provide a location")
         
         # Implementation would call weather API here
         # This is just an example
-        return SwaigFunctionResult(
+        return FunctionResult(
             f"The weather in {location} is sunny and 22°{self.units[0].upper()}"
         )
 ```
@@ -169,7 +169,7 @@ setup(
     version="1.0.0",
     packages=find_packages(),
     install_requires=[
-        "signalwire-agents",
+        "@signalwire/sdk",
         "requests",
     ],
     entry_points={
@@ -504,7 +504,7 @@ setup(
     description="Custom skills for SignalWire AI Agents",
     packages=find_packages(),
     install_requires=[
-        "signalwire-agents>=1.0.12",
+        "@signalwire/sdk>=1.0.12",
         "requests>=2.25.0",
     ],
     entry_points={

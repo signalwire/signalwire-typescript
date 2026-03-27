@@ -1,5 +1,5 @@
 /**
- * SwaigFunctionResult - Builder for SWAIG function responses.
+ * FunctionResult - Builder for SWAIG function responses.
  *
  * Carries response text and a list of structured actions (connect, hangup, SMS, etc.).
  * Every mutating method returns `this` for fluent chaining.
@@ -39,7 +39,7 @@ export interface PaymentParameter {
  * Carries response text and a list of structured actions (connect, hangup, SMS, etc.).
  * Every mutating method returns `this` for fluent chaining.
  */
-export class SwaigFunctionResult {
+export class FunctionResult {
   /** The text response returned to the AI agent. */
   response: string;
   /** Ordered list of actions to execute after the response. */

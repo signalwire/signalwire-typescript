@@ -14,7 +14,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('AskClaudeSkill');
@@ -157,12 +157,12 @@ export class AskClaudeSkill extends SkillBase {
           const systemPrompt = args.system_prompt as string | undefined;
 
           if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-            return new SwaigFunctionResult('Please provide a prompt for Claude.');
+            return new FunctionResult('Please provide a prompt for Claude.');
           }
 
           const apiKey = process.env['ANTHROPIC_API_KEY'];
           if (!apiKey) {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'Claude AI is not configured. The ANTHROPIC_API_KEY environment variable is required.',
             );
           }
@@ -202,7 +202,7 @@ export class AskClaudeSkill extends SkillBase {
 
             if (!response.ok) {
               log.error('claude_api_error', { status: response.status });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The AI service encountered an error. Please try again later.',
               );
             }
@@ -211,7 +211,7 @@ export class AskClaudeSkill extends SkillBase {
 
             if (data.error) {
               log.error('claude_response_error', { type: data.error.type });
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'The AI service returned an error. Please try again later.',
               );
             }
@@ -222,16 +222,16 @@ export class AskClaudeSkill extends SkillBase {
               .map((block) => block.text!);
 
             if (textParts.length === 0) {
-              return new SwaigFunctionResult(
+              return new FunctionResult(
                 'Claude returned an empty response. Try rephrasing your prompt.',
               );
             }
 
             const responseText = textParts.join('\n\n');
-            return new SwaigFunctionResult(responseText);
+            return new FunctionResult(responseText);
           } catch (err) {
             log.error('ask_claude_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               'The request could not be completed. Please try again.',
             );
           }

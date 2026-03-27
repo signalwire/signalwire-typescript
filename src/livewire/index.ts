@@ -9,7 +9,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { SwaigHandler } from '../SwaigFunction.js';
 
 // ---------------------------------------------------------------------------
@@ -236,9 +236,9 @@ export class AgentSession<UserData = any> {
       const handler: SwaigHandler = async (args, rawData) => {
         const ctx = new RunContext<UserData>(this);
         const result = await toolDef.execute(args, { ctx });
-        if (result instanceof SwaigFunctionResult) return result;
-        if (typeof result === 'string') return new SwaigFunctionResult(result);
-        return new SwaigFunctionResult(JSON.stringify(result));
+        if (result instanceof FunctionResult) return result;
+        if (typeof result === 'string') return new FunctionResult(result);
+        return new FunctionResult(JSON.stringify(result));
       };
       swAgent.defineTool({
         name,

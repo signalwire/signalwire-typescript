@@ -22,7 +22,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('ClaudeSkillsSkill');
@@ -833,11 +833,11 @@ export class ClaudeSkillsSkill extends SkillBase {
   ): (
     args: Record<string, unknown>,
     rawData: Record<string, unknown>,
-  ) => SwaigFunctionResult {
+  ) => FunctionResult {
     return (
       args: Record<string, unknown>,
       rawData: Record<string, unknown>,
-    ): SwaigFunctionResult => {
+    ): FunctionResult => {
       const section = args['section'] as string | undefined;
       const arguments_ = (args['arguments'] as string) ?? '';
 
@@ -884,7 +884,7 @@ export class ClaudeSkillsSkill extends SkillBase {
         content = parts.join('\n\n');
       }
 
-      return new SwaigFunctionResult(content);
+      return new FunctionResult(content);
     };
   }
 

@@ -12,7 +12,7 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
-import { SwaigFunctionResult } from '../../SwaigFunctionResult.js';
+import { FunctionResult } from '../../FunctionResult.js';
 
 /**
  * Provides the current date and time with optional timezone support.
@@ -81,11 +81,11 @@ export class DateTimeSkill extends SkillBase {
             const dateStr = dateFormatter.format(now);
             const timeStr = timeFormatter.format(now);
 
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `The current date and time in ${timezone} is: ${dateStr}, ${timeStr}.`,
             );
           } catch {
-            return new SwaigFunctionResult(
+            return new FunctionResult(
               `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier such as America/New_York, Europe/London, or Asia/Tokyo.`,
             );
           }

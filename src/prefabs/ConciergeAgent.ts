@@ -4,7 +4,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
-import { SwaigFunctionResult } from '../SwaigFunctionResult.js';
+import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export class ConciergeAgent extends AgentBase {
       },
       handler: () => {
         if (this.departments.length === 0) {
-          return new SwaigFunctionResult('No departments are currently configured.');
+          return new FunctionResult('No departments are currently configured.');
         }
 
         const lines = this.departments.map((dept) => {
@@ -144,7 +144,7 @@ export class ConciergeAgent extends AgentBase {
           return line;
         });
 
-        return new SwaigFunctionResult(
+        return new FunctionResult(
           `Available departments at ${this.companyName}:\n${lines.join('\n')}`,
         );
       },
@@ -167,13 +167,13 @@ export class ConciergeAgent extends AgentBase {
       handler: (_args: Record<string, unknown>) => {
         const deptName = _args['department_name'] as string;
         if (!deptName) {
-          return new SwaigFunctionResult('Please provide a department name.');
+          return new FunctionResult('Please provide a department name.');
         }
 
         const dept = this.findDepartment(deptName);
         if (!dept) {
           const available = this.departments.map((d) => d.name).join(', ');
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Department "${deptName}" not found. Available departments: ${available}`,
           );
         }
@@ -189,7 +189,7 @@ export class ConciergeAgent extends AgentBase {
           info += `\nRelated topics: ${dept.keywords.join(', ')}`;
         }
 
-        return new SwaigFunctionResult(info);
+        return new FunctionResult(info);
       },
     });
 
@@ -210,24 +210,24 @@ export class ConciergeAgent extends AgentBase {
       handler: (_args: Record<string, unknown>) => {
         const deptName = _args['department_name'] as string;
         if (!deptName) {
-          return new SwaigFunctionResult('Please provide a department name.');
+          return new FunctionResult('Please provide a department name.');
         }
 
         const dept = this.findDepartment(deptName);
         if (!dept) {
           const available = this.departments.map((d) => d.name).join(', ');
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `Department "${deptName}" not found. Available departments: ${available}`,
           );
         }
 
         if (!dept.transferNumber) {
-          return new SwaigFunctionResult(
+          return new FunctionResult(
             `The ${dept.name} department does not have a direct transfer number. ${this.afterHoursMessage}`,
           );
         }
 
-        const result = new SwaigFunctionResult(
+        const result = new FunctionResult(
           `Transferring you to the ${dept.name} department now.`,
         );
         result.connect(dept.transferNumber);

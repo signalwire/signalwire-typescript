@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SkillRegistry } from '../../src/skills/SkillRegistry.js';
 import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
-import { SwaigFunctionResult } from '../../src/SwaigFunctionResult.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 class SimpleSkill extends SkillBase {
@@ -15,7 +15,7 @@ class SimpleSkill extends SkillBase {
     return [{
       name: 'simple_tool',
       description: 'Simple tool',
-      handler: () => new SwaigFunctionResult('ok'),
+      handler: () => new FunctionResult('ok'),
     }];
   }
 }

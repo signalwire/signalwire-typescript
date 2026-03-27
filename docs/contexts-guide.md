@@ -52,7 +52,7 @@ All classes are exported from `src/ContextBuilder.ts`.
 The primary entry point is the `defineContexts()` method on `AgentBase`. It returns a `ContextBuilder` that you use to add contexts.
 
 ```typescript
-import { AgentBase } from 'signalwire-agents';
+import { AgentBase } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent' });
 
@@ -68,7 +68,7 @@ const farewell = cb.addContext('farewell');
 You can also pass an existing `ContextBuilder` instance:
 
 ```typescript
-import { ContextBuilder } from 'signalwire-agents';
+import { ContextBuilder } from '@signalwire/sdk';
 
 const cb = new ContextBuilder();
 cb.addContext('default');
@@ -116,7 +116,7 @@ bad.addContext('main'); // validate() will throw
 For the common single-context case, a standalone helper is available:
 
 ```typescript
-import { createSimpleContext } from 'signalwire-agents';
+import { createSimpleContext } from '@signalwire/sdk';
 
 const ctx = createSimpleContext(); // name defaults to 'default'
 const step = ctx.addStep('welcome');
@@ -607,7 +607,7 @@ const swml = cb.toDict(); // calls validate() internally
 A complete customer service agent with three contexts: greeting, troubleshooting, and resolution.
 
 ```typescript
-import { AgentBase, ContextBuilder } from 'signalwire-agents';
+import { AgentBase, ContextBuilder } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'customer-service',

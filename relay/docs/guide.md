@@ -5,7 +5,7 @@ The RELAY client provides real-time call and message control over a persistent W
 ## Authentication
 
 ```typescript
-import { RelayClient } from 'signalwire-agents';
+import { RelayClient } from '@signalwire/sdk';
 
 const client = new RelayClient({
   project: 'your-project-id',    // or env: SIGNALWIRE_PROJECT_ID
@@ -251,7 +251,7 @@ await client.unreceive(['sales']);
 ## Error Handling
 
 ```typescript
-import { RelayError } from 'signalwire-agents';
+import { RelayError } from '@signalwire/sdk';
 
 try {
   await call.answer();
@@ -276,7 +276,7 @@ const action = await call.play([{ type: 'tts', text: 'hello' }]);
 All events are parsed into typed classes:
 
 ```typescript
-import { CallStateEvent, PlayEvent, parseEvent } from 'signalwire-agents';
+import { CallStateEvent, PlayEvent, parseEvent } from '@signalwire/sdk';
 
 call.on('calling.call.state', (event) => {
   const stateEvent = event as CallStateEvent;

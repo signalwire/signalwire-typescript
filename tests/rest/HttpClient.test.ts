@@ -27,7 +27,7 @@ describe('HttpClient', () => {
 
     const reqs = getRequests();
     expect(reqs[0].headers['Accept']).toBe('application/json');
-    expect(reqs[0].headers['User-Agent']).toContain('signalwire-agents-ts');
+    expect(reqs[0].headers['User-Agent']).toContain('@signalwire/sdk-ts');
   });
 
   it('sends Content-Type for POST with body', async () => {

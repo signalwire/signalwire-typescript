@@ -10,7 +10,7 @@ npm run build
 ```
 
 ```typescript
-import { AgentBase, SwaigFunctionResult } from 'signalwire-agents';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'my-agent',
@@ -24,7 +24,7 @@ agent.defineTool({
   name: 'get_time',
   description: 'Get the current time',
   parameters: {},
-  handler: () => new SwaigFunctionResult(`It is ${new Date().toLocaleTimeString()}`),
+  handler: () => new FunctionResult(`It is ${new Date().toLocaleTimeString()}`),
 });
 
 agent.run(); // Starts HTTP server on port 3000
@@ -45,7 +45,7 @@ SignalWire ──POST /post_prompt──> Agent (sends call summary)
 ## Installation
 
 ```bash
-npm install signalwire-agents
+npm install @signalwire/sdk
 ```
 
 Requires Node.js >= 18.
@@ -84,12 +84,12 @@ agent.defineTool({
   },
   handler: async (args, fullBody) => {
     const order = await db.findOrder(args.order_id);
-    return new SwaigFunctionResult(`Order ${order.id}: status is ${order.status}`);
+    return new FunctionResult(`Order ${order.id}: status is ${order.status}`);
   },
 });
 ```
 
-Handlers receive the parsed arguments and the full request body. They can be async. The return value must be a `SwaigFunctionResult`.
+Handlers receive the parsed arguments and the full request body. They can be async. The return value must be a `FunctionResult`.
 
 #### Secure Tools
 
@@ -101,24 +101,24 @@ agent.defineTool({
   description: 'Charge the customer credit card',
   parameters: { amount: { type: 'string', description: 'Amount to charge' } },
   secure: true,
-  handler: (args) => new SwaigFunctionResult(`Charged $${args.amount}`),
+  handler: (args) => new FunctionResult(`Charged $${args.amount}`),
 });
 ```
 
-### SwaigFunctionResult
+### FunctionResult
 
 The response builder for tool handlers. Carries response text plus structured platform actions. All methods return `this` for chaining.
 
 ```typescript
 // Simple response
-return new SwaigFunctionResult('Done.');
+return new FunctionResult('Done.');
 
 // Transfer the call
-return new SwaigFunctionResult('Transferring you now.')
+return new FunctionResult('Transferring you now.')
   .connect('+15551234567');
 
 // Multiple actions
-return new SwaigFunctionResult('Noted.')
+return new FunctionResult('Noted.')
   .updateGlobalData({ last_action: 'sms' })
   .sendSms({
     toNumber: '+15551234567',
@@ -127,7 +127,7 @@ return new SwaigFunctionResult('Noted.')
   });
 
 // Hang up
-return new SwaigFunctionResult('Goodbye!').hangup();
+return new FunctionResult('Goodbye!').hangup();
 ```
 
 **Available actions:** `connect`, `hangup`, `hold`, `stop`, `waitForUser`, `say`, `playBackgroundFile`, `stopBackgroundFile`, `sendSms`, `recordCall`, `stopRecordCall`, `tap`, `stopTap`, `joinRoom`, `joinConference`, `sipRefer`, `pay`, `executeSwml`, `switchContext`, `swmlChangeStep`, `swmlChangeContext`, `updateGlobalData`, `removeGlobalData`, `setMetadata`, `removeMetadata`, `toggleFunctions`, `simulateUserInput`, `replaceInHistory`, `addDynamicHints`, `clearDynamicHints`, `setEndOfSpeechTimeout`, `executeRpc`, and more.
@@ -178,14 +178,14 @@ agent.promptAddSubsection('Guidelines', 'Tone', { body: 'Use a conversational to
 DataMap tools execute on the SignalWire platform without hitting your server. They map API responses to AI-consumable text using templates:
 
 ```typescript
-import { DataMap, SwaigFunctionResult } from 'signalwire-agents';
+import { DataMap, FunctionResult } from '@signalwire/sdk';
 
 const weather = new DataMap('get_weather')
   .purpose('Get weather for a city')
   .parameter('city', 'string', 'City name', { required: true })
   .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
-  .output(new SwaigFunctionResult('Weather: ${response.current_condition[0].temp_F}°F'))
-  .fallbackOutput(new SwaigFunctionResult('Could not fetch weather.'));
+  .output(new FunctionResult('Weather: ${response.current_condition[0].temp_F}°F'))
+  .fallbackOutput(new FunctionResult('Could not fetch weather.'));
 
 agent.registerSwaigFunction(weather.toSwaigFunction());
 ```
@@ -193,7 +193,7 @@ agent.registerSwaigFunction(weather.toSwaigFunction());
 Or use the helper for simple cases:
 
 ```typescript
-import { createSimpleApiTool } from 'signalwire-agents';
+import { createSimpleApiTool } from '@signalwire/sdk';
 
 const joke = createSimpleApiTool({
   name: 'get_joke',
@@ -327,7 +327,7 @@ class MyAgent extends AgentBase {
 Host multiple agents under a single HTTP server:
 
 ```typescript
-import { AgentServer, AgentBase } from 'signalwire-agents';
+import { AgentServer, AgentBase } from '@signalwire/sdk';
 
 const support = new AgentBase({ name: 'support', route: '/support', basicAuth: ['u', 'p'] });
 support.setPromptText('You are a support agent.');
@@ -374,7 +374,7 @@ Comprehensive guides and API reference are in the [`docs/`](docs/) directory:
 |-------|-------------|
 | [Agent Guide](docs/agent-guide.md) | Getting started — creating agents, prompts, tools, call flow, dynamic config |
 | [Architecture](docs/architecture.md) | System design, component relationships, SWML rendering pipeline |
-| [SWAIG Reference](docs/swaig-reference.md) | Complete SwaigFunctionResult API — all call control, audio, data, and action methods |
+| [SWAIG Reference](docs/swaig-reference.md) | Complete FunctionResult API — all call control, audio, data, and action methods |
 | [DataMap Guide](docs/datamap-guide.md) | Server-side tools — webhooks, expressions, templates, environment variables |
 | [Contexts & Steps](docs/contexts-guide.md) | Multi-step conversation workflows, navigation, gather_info |
 | [Skills Guide](docs/skills-guide.md) | Skills framework — 18 built-in skills, custom skill development |

@@ -29,7 +29,7 @@ These layers follow a well-defined priority order (see [Priority Order](#priorit
 Pass an `AgentOptions` object to the `AgentBase` constructor to configure agent behavior. The interface is defined in `src/types.ts`.
 
 ```typescript
-import { AgentBase } from '@anthropic/signalwire-agents';
+import { AgentBase } from '@anthropic/@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'support-bot',
@@ -137,7 +137,7 @@ The `ConfigLoader` class (`src/ConfigLoader.ts`) provides JSON configuration fil
 ### Loading a Config File
 
 ```typescript
-import { ConfigLoader } from '@anthropic/signalwire-agents';
+import { ConfigLoader } from '@anthropic/@signalwire/sdk';
 
 // Load by explicit path
 const config = new ConfigLoader('./config/agent.json');
@@ -269,7 +269,7 @@ class MyAgent extends AgentBase {
 The `AuthHandler` class (`src/AuthHandler.ts`) supports multiple authentication methods with constant-time (timing-safe) credential comparison:
 
 ```typescript
-import { AuthHandler } from '@anthropic/signalwire-agents';
+import { AuthHandler } from '@anthropic/@signalwire/sdk';
 
 const auth = new AuthHandler({
   bearerToken: 'my-secret-token',        // Authorization: Bearer my-secret-token
@@ -317,7 +317,7 @@ Four severity levels are supported, in ascending order:
 ### Basic Usage
 
 ```typescript
-import { getLogger } from '@anthropic/signalwire-agents';
+import { getLogger } from '@anthropic/@signalwire/sdk';
 
 const log = getLogger('MyModule');
 
@@ -371,7 +371,7 @@ import {
   setGlobalLogFormat,
   setGlobalLogColor,
   resetLoggingConfiguration,
-} from '@anthropic/signalwire-agents';
+} from '@anthropic/@signalwire/sdk';
 
 // Change log level at runtime
 setGlobalLogLevel('debug');

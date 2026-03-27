@@ -11,7 +11,7 @@
  *   curl http://localhost:3000/health
  */
 
-import { AgentBase, AgentServer, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, AgentServer, FunctionResult } from '../src/index.js';
 
 // --- Billing Agent ---
 const billing = new AgentBase({
@@ -34,7 +34,7 @@ billing.defineTool({
     account_id: { type: 'string', description: 'Customer account ID' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Account ${args.account_id}: Balance is $142.50. Last payment: $50.00 on Jan 15.`,
     );
   },
@@ -63,7 +63,7 @@ techSupport.defineTool({
     device_id: { type: 'string', description: 'Device serial number' },
   },
   handler: (args) => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `Diagnostic for device ${args.device_id}: All systems normal. Firmware: v2.3.1 (up to date).`,
     );
   },

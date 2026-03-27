@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Options for constructing a SignalWireClient. */
+/** Options for constructing a RestClient. */
 export interface ClientOptions {
   /** SignalWire project ID. Falls back to SIGNALWIRE_PROJECT_ID env var. */
   project?: string;

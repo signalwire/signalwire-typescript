@@ -18,7 +18,7 @@ LiveWire lets you run LiveKit-style voice agents on SignalWire's infrastructure 
 import {
   Agent, AgentSession, tool, RunContext,
   defineAgent, JobContext, runApp,
-} from 'signalwire-agents/livewire';
+} from '@signalwire/sdk/livewire';
 
 const getWeather = tool({
   description: 'Get weather for a location',

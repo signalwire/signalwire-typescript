@@ -7,7 +7,7 @@
  * Test: curl http://user:pass@localhost:3000/my-custom-agent
  */
 
-import { AgentBase, SwaigFunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'custom-path-agent',
@@ -29,7 +29,7 @@ agent.defineTool({
   description: 'Get information about this agent including its URL path',
   parameters: {},
   handler: () => {
-    return new SwaigFunctionResult(
+    return new FunctionResult(
       `This agent is running at the custom path /my-custom-agent on port 3000.`,
     );
   },
