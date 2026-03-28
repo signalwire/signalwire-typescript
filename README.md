@@ -1,417 +1,254 @@
-# SignalWire AI Agents SDK for TypeScript
+<!-- Header -->
+<div align="center">
+    <a href="https://signalwire.com" target="_blank">
+        <img src="https://github.com/user-attachments/assets/0c8ed3b9-8c50-4dc6-9cc4-cc6cd137fd50" width="500" />
+    </a>
 
-Build AI voice agents as HTTP microservices that serve [SWML](https://developer.signalwire.com/sdks/reference/swml/methods/) documents and handle [SWAIG](https://developer.signalwire.com/sdks/reference/swml/methods/ai/swaig/) function callbacks.
+# SignalWire SDK for TypeScript
 
-## Quick Start
+_Build AI voice agents, control live calls over WebSocket, and manage every SignalWire resource over REST -- all from one package._
+
+<p align="center">
+  <a href="https://developer.signalwire.com/sdks/agents-sdk" target="_blank">Documentation</a> &middot;
+  <a href="https://github.com/signalwire/signalwire-docs/issues/new/choose" target="_blank">Report an Issue</a> &middot;
+  <a href="https://www.npmjs.com/package/@signalwire/sdk" target="_blank">npm</a>
+</p>
+
+<a href="https://discord.com/invite/F2WNYTNjuF" target="_blank"><img src="https://img.shields.io/badge/Discord%20Community-5865F2" alt="Discord" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/MIT-License-blue" alt="MIT License" /></a>
+<a href="https://github.com/signalwire/signalwire-typescript" target="_blank"><img src="https://img.shields.io/github/stars/signalwire/signalwire-typescript" alt="GitHub Stars" /></a>
+
+</div>
+
+---
+
+## What's in this SDK
+
+| Capability | What it does | Quick link |
+|-----------|-------------|------------|
+| **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
+| **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 17+ API namespaces | [REST docs](rest/README.md) |
 
 ```bash
-npm install
-npm run build
+npm install @signalwire/sdk
 ```
+
+---
+
+## AI Agents
+
+Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig-reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
 
 ```typescript
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'my-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
+  route: '/agent',
 });
 
-agent.setPromptText('You are a helpful assistant.');
+agent.addLanguage({ name: 'English', code: 'en-US', voice: 'inworld.Mark' });
+agent.promptAddSection('Role', { body: 'You are a helpful assistant.' });
 
 agent.defineTool({
   name: 'get_time',
   description: 'Get the current time',
   parameters: {},
-  handler: () => new FunctionResult(`It is ${new Date().toLocaleTimeString()}`),
+  handler: () => new FunctionResult(`The time is ${new Date().toLocaleTimeString()}`),
 });
 
 agent.run(); // Starts HTTP server on port 3000
 ```
 
-Point your SignalWire phone number's SWML webhook at `http://user:pass@your-host:3000/` and the agent will answer calls.
+Test locally without running a server:
 
-## How It Works
-
-When a call comes in, SignalWire requests a SWML document from your agent's HTTP endpoint. The SDK builds this document with your configured prompt, tools, languages, and call flow verbs. During the call, the AI can invoke your tools via SWAIG callbacks to the same server.
-
+```bash
+swaig-test examples/simple-agent.ts --list-tools
+swaig-test examples/simple-agent.ts --dump-swml
+swaig-test examples/simple-agent.ts --exec get_time
 ```
-SignalWire ──GET /──> Agent (returns SWML JSON)
-SignalWire ──POST /swaig──> Agent (calls your tool handlers)
-SignalWire ──POST /post_prompt──> Agent (sends call summary)
+
+### Agent Features
+
+- **Prompt Object Model (POM)** -- structured prompt composition via `promptAddSection()`
+- **SWAIG tools** -- define functions with `defineTool()` that the AI calls mid-conversation, with native access to the call's media stack
+- **Skills system** -- add capabilities with one-liners: `agent.addSkill('datetime')`
+- **Contexts and steps** -- structured multi-step workflows with navigation control
+- **DataMap tools** -- tools that execute on SignalWire's servers, calling REST APIs without your own webhook
+- **Dynamic configuration** -- per-request agent customization for multi-tenant deployments
+- **Call flow control** -- pre-answer, post-answer, and post-AI verb insertion
+- **Prefab agents** -- ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
+- **Multi-agent hosting** -- serve multiple agents on a single server with `AgentServer`
+- **SIP routing** -- route SIP calls to agents based on usernames
+- **Session state** -- persistent conversation state with global data and post-prompt summaries
+- **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
+- **Serverless** -- auto-detects Lambda, CGI, Google Cloud Functions, Azure Functions
+
+### Agent Examples
+
+The [`examples/`](examples/) directory contains 35+ working examples:
+
+| Example | What it demonstrates |
+|---------|---------------------|
+| [simple-agent.ts](examples/simple-agent.ts) | POM prompts, SWAIG tools, multilingual support, LLM tuning |
+| [contexts-steps.ts](examples/contexts-steps.ts) | Multi-step workflow with context switching and step navigation |
+| [datamap-tools.ts](examples/datamap-tools.ts) | Server-side API tools without webhooks |
+| [skills-demo.ts](examples/skills-demo.ts) | Loading built-in skills (datetime, math) |
+| [call-flow.ts](examples/call-flow.ts) | Call flow verbs, debug events, FunctionResult actions |
+| [session-state.ts](examples/session-state.ts) | onSummary, global data, post-prompt summaries |
+| [multi-agent.ts](examples/multi-agent.ts) | Multiple agents on one server |
+| [serverless-lambda.ts](examples/serverless-lambda.ts) | AWS Lambda deployment |
+| [dynamic-config.ts](examples/dynamic-config.ts) | Per-request dynamic configuration, multi-tenant routing |
+
+---
+
+## RELAY Client
+
+Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you imperative, async control over live phone calls and SMS/MMS.
+
+```typescript
+import { RelayClient, Call } from '@signalwire/sdk';
+
+const client = new RelayClient({
+  contexts: ['default'],
+});
+
+client.onCall(async (call: Call) => {
+  await call.answer();
+  const action = await call.play([
+    { type: 'tts', text: 'Welcome to SignalWire!' },
+  ]);
+  await action.wait();
+  await call.hangup();
+});
+
+client.run();
 ```
+
+- 40+ calling methods (play, record, collect, detect, tap, stream, AI, conferencing, and more)
+- SMS/MMS messaging with delivery tracking
+- Action objects with `wait()`, `stop()`, `pause()`, `resume()`
+- Auto-reconnect with exponential backoff
+
+See the **[RELAY documentation](relay/README.md)** for the full guide, API reference, and examples.
+
+---
+
+## REST Client
+
+Typed HTTP client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required -- just standard `fetch` requests.
+
+```typescript
+import { RestClient } from '@signalwire/sdk';
+
+const client = new RestClient({
+  project: '...',
+  token: '...',
+  host: 'example.signalwire.com',
+});
+
+await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
+await client.calling.play(callId, { play: [{ type: 'tts', text: 'Hello!' }] });
+await client.phoneNumbers.search({ area_code: '512' });
+await client.datasphere.documents.search({ query_string: 'billing policy' });
+```
+
+- 17 namespaced API surfaces: Fabric (17 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Zero dependencies -- uses built-in `fetch` (Node 18+)
+- Dict returns -- raw JSON, no wrapper objects
+
+See the **[REST documentation](rest/README.md)** for the full guide, API reference, and examples.
+
+---
 
 ## Installation
 
 ```bash
+# Core SDK (agents, RELAY, REST)
 npm install @signalwire/sdk
 ```
 
 Requires Node.js >= 18.
 
-## Core Concepts
+## Documentation
 
-### AgentBase
+Full reference documentation is available at **[developer.signalwire.com/sdks/agents-sdk](https://developer.signalwire.com/sdks/agents-sdk)**.
 
-The main class. Each agent is an HTTP server that serves SWML and handles tool callbacks.
+Guides are also available in the [`docs/`](docs/) directory:
 
-```typescript
-const agent = new AgentBase({
-  name: 'my-agent',        // Agent name (required)
-  route: '/',               // HTTP route path
-  port: 3000,               // Server port
-  basicAuth: ['u', 'p'],    // HTTP basic auth credentials
-  autoAnswer: true,         // Auto-answer incoming calls
-  recordCall: false,        // Record calls
-  recordFormat: 'mp4',      // Recording format
-  nativeFunctions: [],      // Platform-native functions (e.g., 'check_time')
-});
-```
+### Getting Started
 
-Auth credentials can also be set via environment variables `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD`. If neither is provided, credentials are auto-generated and logged at startup.
+- [Agent Guide](docs/agent-guide.md) -- creating agents, prompt configuration, dynamic setup
+- [Architecture](docs/architecture.md) -- SDK architecture and core concepts
+- [SDK Features](docs/sdk_features.md) -- feature overview, SDK vs raw SWML comparison
 
-### Tools (SWAIG Functions)
+### Core Features
 
-Tools let the AI perform actions during a call. Define them with `defineTool()`:
+- [SWAIG Reference](docs/swaig-reference.md) -- function results, actions, post_data lifecycle
+- [Contexts and Steps](docs/contexts-guide.md) -- structured workflows, navigation, gather mode
+- [DataMap Guide](docs/datamap-guide.md) -- serverless API tools without webhooks
+- [LLM Parameters](docs/llm_parameters.md) -- temperature, top_p, barge confidence tuning
+- [SWML Service Guide](docs/swml_service_guide.md) -- low-level construction of SWML documents
 
-```typescript
-agent.defineTool({
-  name: 'lookup_order',
-  description: 'Look up an order by ID',
-  parameters: {
-    order_id: { type: 'string', description: 'The order ID' },
-  },
-  handler: async (args, fullBody) => {
-    const order = await db.findOrder(args.order_id);
-    return new FunctionResult(`Order ${order.id}: status is ${order.status}`);
-  },
-});
-```
+### Skills and Extensions
 
-Handlers receive the parsed arguments and the full request body. They can be async. The return value must be a `FunctionResult`.
+- [Skills System](docs/skills-guide.md) -- built-in skills and the modular framework
+- [Third-Party Skills](docs/third_party_skills.md) -- creating and publishing custom skills
+- [MCP Gateway](docs/mcp_gateway_reference.md) -- Model Context Protocol integration
+- [MCP Integration](docs/mcp_integration.md) -- MCP agent setup and configuration
 
-#### Secure Tools
+### Deployment
 
-Mark a tool as `secure: true` to require per-call HMAC tokens:
+- [CLI Guide](docs/cli-guide.md) -- `swaig-test` command reference
+- [Cloud Functions](docs/cloud_functions_guide.md) -- Lambda, Cloud Functions, Azure deployment
+- [Serverless Guide](docs/serverless-guide.md) -- deploy to AWS Lambda, Google Cloud Functions, Azure Functions, CGI
+- [Configuration](docs/configuration.md) -- environment variables, SSL, proxy setup
+- [Security](docs/security.md) -- authentication and security model
 
-```typescript
-agent.defineTool({
-  name: 'charge_card',
-  description: 'Charge the customer credit card',
-  parameters: { amount: { type: 'string', description: 'Amount to charge' } },
-  secure: true,
-  handler: (args) => new FunctionResult(`Charged $${args.amount}`),
-});
-```
+### Reference
 
-### FunctionResult
-
-The response builder for tool handlers. Carries response text plus structured platform actions. All methods return `this` for chaining.
-
-```typescript
-// Simple response
-return new FunctionResult('Done.');
-
-// Transfer the call
-return new FunctionResult('Transferring you now.')
-  .connect('+15551234567');
-
-// Multiple actions
-return new FunctionResult('Noted.')
-  .updateGlobalData({ last_action: 'sms' })
-  .sendSms({
-    toNumber: '+15551234567',
-    fromNumber: '+15559876543',
-    body: 'Your order has shipped!',
-  });
-
-// Hang up
-return new FunctionResult('Goodbye!').hangup();
-```
-
-**Available actions:** `connect`, `hangup`, `hold`, `stop`, `waitForUser`, `say`, `playBackgroundFile`, `stopBackgroundFile`, `sendSms`, `recordCall`, `stopRecordCall`, `tap`, `stopTap`, `joinRoom`, `joinConference`, `sipRefer`, `pay`, `executeSwml`, `switchContext`, `swmlChangeStep`, `swmlChangeContext`, `updateGlobalData`, `removeGlobalData`, `setMetadata`, `removeMetadata`, `toggleFunctions`, `simulateUserInput`, `replaceInHistory`, `addDynamicHints`, `clearDynamicHints`, `setEndOfSpeechTimeout`, `executeRpc`, and more.
-
-### Prompts
-
-#### Raw Text
-
-```typescript
-agent.setPromptText('You are a helpful assistant.');
-```
-
-#### Prompt Object Model (POM)
-
-Build structured prompts with sections, bullets, and subsections:
-
-```typescript
-agent.promptAddSection('Role', {
-  body: 'You are a customer support agent.',
-});
-
-agent.promptAddSection('Rules', {
-  bullets: [
-    'Always be polite',
-    'Never share internal data',
-    'Escalate if unsure',
-  ],
-});
-
-agent.promptAddSection('Guidelines', {
-  body: 'Follow these interaction patterns:',
-  subsections: [
-    { title: 'Greeting', body: 'Always start with a warm greeting.' },
-    { title: 'Closing', body: 'Ask if there is anything else before ending.' },
-  ],
-});
-```
-
-You can also append to existing sections:
-
-```typescript
-agent.promptAddToSection('Rules', { bullet: 'Keep responses under 2 sentences' });
-agent.promptAddSubsection('Guidelines', 'Tone', { body: 'Use a conversational tone.' });
-```
-
-### DataMap (Server-Side Tools)
-
-DataMap tools execute on the SignalWire platform without hitting your server. They map API responses to AI-consumable text using templates:
-
-```typescript
-import { DataMap, FunctionResult } from '@signalwire/sdk';
-
-const weather = new DataMap('get_weather')
-  .purpose('Get weather for a city')
-  .parameter('city', 'string', 'City name', { required: true })
-  .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
-  .output(new FunctionResult('Weather: ${response.current_condition[0].temp_F}°F'))
-  .fallbackOutput(new FunctionResult('Could not fetch weather.'));
-
-agent.registerSwaigFunction(weather.toSwaigFunction());
-```
-
-Or use the helper for simple cases:
-
-```typescript
-import { createSimpleApiTool } from '@signalwire/sdk';
-
-const joke = createSimpleApiTool({
-  name: 'get_joke',
-  url: 'https://official-joke-api.appspot.com/random_joke',
-  responseTemplate: '${response.setup} ... ${response.punchline}',
-});
-
-agent.registerSwaigFunction(joke.toSwaigFunction());
-```
-
-### Contexts & Steps
-
-Define multi-step conversation workflows where the AI follows a structured sequence:
-
-```typescript
-const ctx = agent.defineContexts();
-const flow = ctx.addContext('default');
-
-flow.addStep('greeting', { task: 'Greet the user and ask how you can help.' })
-  .setStepCriteria('User has stated their request')
-  .setFunctions('none')
-  .setValidSteps(['help', 'goodbye']);
-
-flow.addStep('help', { task: 'Help the user with their request.' })
-  .setFunctions(['lookup_order', 'check_status'])
-  .setValidSteps(['goodbye']);
-
-flow.addStep('goodbye', { task: 'Thank the user and end the call.' })
-  .setEnd(true);
-```
-
-Steps support gather_info for structured data collection:
-
-```typescript
-flow.addStep('collect_info')
-  .setText('Collect the caller information.')
-  .setGatherInfo({ outputKey: 'caller_info' })
-  .addGatherQuestion({ key: 'name', question: 'What is your name?' })
-  .addGatherQuestion({ key: 'email', question: 'What is your email?', type: 'string', confirm: true })
-  .setValidSteps(['process']);
-```
-
-### Call Flow (5-Phase Rendering)
-
-Control what happens at each stage of the call:
-
-```typescript
-// Phase 1: Before answering (e.g., play ringing)
-agent.addPreAnswerVerb('play', { urls: ['ring:us'], auto_answer: false });
-
-// Phase 2: Answer (automatic if autoAnswer: true)
-
-// Phase 3: After answer, before AI (e.g., welcome message, recording)
-agent.addPostAnswerVerb('play', { url: 'say:Welcome!' });
-
-// Phase 4: AI conversation (automatic - built from your prompt, tools, etc.)
-
-// Phase 5: After AI ends (e.g., cleanup)
-agent.addPostAiVerb('hangup', {});
-```
-
-### AI Configuration
-
-```typescript
-// Speech hints for better recognition
-agent.addHints(['SignalWire', 'SWML', 'SWAIG']);
-
-// Languages and voices
-agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
-
-// Pronunciation corrections
-agent.addPronunciation({ replace: 'API', with: 'A P I' });
-
-// LLM parameters
-agent.setParam('temperature', 0.7);
-agent.setParams({ top_p: 0.9, frequency_penalty: 0.3 });
-agent.setPromptLlmParams({ temperature: 0.5 }); // per-prompt params
-
-// Global data accessible to all tools
-agent.setGlobalData({ company: 'Acme Corp', plan: 'enterprise' });
-
-// Native platform functions
-agent.setNativeFunctions(['check_time']);
-```
-
-### Dynamic Configuration
-
-Customize agent behavior per-request based on caller info, query params, or headers:
-
-```typescript
-agent.setDynamicConfigCallback(async (queryParams, bodyParams, headers, agentCopy) => {
-  const copy = agentCopy as AgentBase;
-
-  // Different prompt based on query param
-  if (queryParams['lang'] === 'es') {
-    copy.setPromptText('Responde en español.');
-    copy.setLanguages([{ name: 'Spanish', code: 'es-ES', voice: 'polly.Lucia' }]);
-  }
-
-  // Add caller-specific data
-  const callerId = bodyParams['caller_id_number'] as string;
-  if (callerId) {
-    copy.setGlobalData({ caller_phone: callerId });
-  }
-});
-```
-
-Each request gets an ephemeral copy of the agent, so modifications don't affect other callers.
-
-### Post-Prompt (Call Summaries)
-
-Get a summary after each call:
-
-```typescript
-agent.setPostPrompt('Summarize this call as JSON with: topic, resolution, follow_up_needed');
-```
-
-Override `onSummary()` in a subclass to process summaries:
-
-```typescript
-class MyAgent extends AgentBase {
-  async onSummary(summary: Record<string, unknown> | null, rawData: Record<string, unknown>) {
-    console.log('Call summary:', summary);
-    // Save to database, send notification, etc.
-  }
-}
-```
-
-### Multi-Agent Server
-
-Host multiple agents under a single HTTP server:
-
-```typescript
-import { AgentServer, AgentBase } from '@signalwire/sdk';
-
-const support = new AgentBase({ name: 'support', route: '/support', basicAuth: ['u', 'p'] });
-support.setPromptText('You are a support agent.');
-
-const sales = new AgentBase({ name: 'sales', route: '/sales', basicAuth: ['u', 'p'] });
-sales.setPromptText('You are a sales agent.');
-
-const server = new AgentServer({ port: 3000 });
-server.register(support);
-server.register(sales);
-server.run();
-```
-
-The root `/` returns a JSON listing of all registered agents. Health checks are at `/health` and `/ready`.
-
-## HTTP Endpoints
-
-Each agent exposes these endpoints:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET/POST | Returns SWML document |
-| `/swaig` | GET/POST | SWAIG function dispatcher |
-| `/post_prompt` | GET/POST | Post-prompt summary handler |
-| `/health` | GET | Health check |
-| `/ready` | GET | Readiness check |
-
-All endpoints (except health/ready) require basic auth.
+- [API Reference](docs/api-reference.md) -- complete class and method reference
+- [Web Service](docs/web_service.md) -- HTTP server and endpoint details
+- [Skills Parameter Schema](docs/skills_parameter_schema.md) -- skill parameter definitions
+- [Prefabs Guide](docs/prefabs-guide.md) -- pre-built agents: InfoGatherer, Survey, FAQ, Concierge, Receptionist
+- [Migration Guide](docs/MIGRATION-2.0.md) -- upgrading to SDK 2.0
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default: 3000) |
-| `SWML_BASIC_AUTH_USER` | Basic auth username |
-| `SWML_BASIC_AUTH_PASSWORD` | Basic auth password |
-| `SWML_PROXY_URL_BASE` | Proxy/tunnel base URL for webhook URLs |
+| Variable | Used by | Description |
+|----------|---------|-------------|
+| `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
+| `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
+| `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
+| `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |
+| `SWML_PROXY_URL_BASE` | Agents | Base URL when behind a reverse proxy |
+| `SWML_SSL_ENABLED` | Agents | Enable HTTPS (`true`, `1`, `yes`) |
+| `SWML_SSL_CERT_PATH` | Agents | Path to SSL certificate |
+| `SWML_SSL_KEY_PATH` | Agents | Path to SSL private key |
+| `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
+| `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 
-## Documentation
-
-Comprehensive guides and API reference are in the [`docs/`](docs/) directory:
-
-| Guide | Description |
-|-------|-------------|
-| [Agent Guide](docs/agent-guide.md) | Getting started — creating agents, prompts, tools, call flow, dynamic config |
-| [Architecture](docs/architecture.md) | System design, component relationships, SWML rendering pipeline |
-| [SWAIG Reference](docs/swaig-reference.md) | Complete FunctionResult API — all call control, audio, data, and action methods |
-| [DataMap Guide](docs/datamap-guide.md) | Server-side tools — webhooks, expressions, templates, environment variables |
-| [Contexts & Steps](docs/contexts-guide.md) | Multi-step conversation workflows, navigation, gather_info |
-| [Skills Guide](docs/skills-guide.md) | Skills framework — 18 built-in skills, custom skill development |
-| [Prefabs Guide](docs/prefabs-guide.md) | Pre-built agents — InfoGatherer, Survey, FAQ, Concierge, Receptionist |
-| [CLI Guide](docs/cli-guide.md) | Testing tool — dump SWML, execute tools, simulate serverless |
-| [Configuration](docs/configuration.md) | Constructor options, environment variables, ConfigLoader, AuthHandler |
-| [Security](docs/security.md) | Authentication, SSL/TLS, CORS, rate limiting, production checklist |
-| [Serverless Guide](docs/serverless-guide.md) | Deploy to AWS Lambda, Google Cloud Functions, Azure Functions, CGI |
-| [API Reference](docs/api-reference.md) | Complete reference for every exported class, method, and interface |
-
-## Examples
-
-See the [`examples/`](examples/) directory:
-
-- [`simple-agent.ts`](examples/simple-agent.ts) - Minimal agent with a tool
-- [`pom-prompt.ts`](examples/pom-prompt.ts) - Structured prompts with POM
-- [`datamap-tools.ts`](examples/datamap-tools.ts) - Server-side API tools with DataMap
-- [`contexts-steps.ts`](examples/contexts-steps.ts) - Multi-step conversation workflows
-- [`multi-agent.ts`](examples/multi-agent.ts) - Multiple agents on one server
-- [`dynamic-config.ts`](examples/dynamic-config.ts) - Per-request agent customization
-- [`call-flow.ts`](examples/call-flow.ts) - Call flow verbs and recording
-
-Run any example:
+## Testing
 
 ```bash
-npx tsx examples/simple-agent.ts
-```
+# Install dependencies
+npm install
 
-## Development
+# Run the test suite
+npm test
 
-```bash
-npm run build        # Compile TypeScript
-npm test             # Run tests
-npm run test:watch   # Watch mode
-npm run dev          # Watch + rebuild
+# Watch mode
+npm run test:watch
+
+# Build
+npm run build
+
+# Dev mode (watch + rebuild)
+npm run dev
 ```
 
 ## License
 
-MIT
+MIT -- see [LICENSE](LICENSE) for details.
