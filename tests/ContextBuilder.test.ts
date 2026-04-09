@@ -79,7 +79,7 @@ describe('ContextBuilder', () => {
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     ctx.addStep('step2', { task: 'Second step' });
     expect(() => cb.validate()).toThrow(
-      "Step 'step1' in context 'default' has gather_info completion_action='nonexistent' but step 'nonexistent' does not exist in this context",
+      /Step 'step1' in context 'default' has gather_info completion_action='nonexistent' but 'nonexistent' is not a step in this context/,
     );
   });
 

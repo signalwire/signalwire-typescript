@@ -8,6 +8,25 @@
 const MAX_CONTEXTS = 50;
 const MAX_STEPS_PER_CONTEXT = 100;
 
+/**
+ * Reserved tool names auto-injected by the runtime when contexts/steps are
+ * present. User-defined SWAIG tools must not collide with these names.
+ *
+ * - `next_step` / `change_context` are injected when valid_steps or
+ *   valid_contexts is set so the model can navigate the flow.
+ * - `gather_submit` is injected while a step's gather_info is collecting
+ *   answers.
+ *
+ * ContextBuilder.validate() rejects any agent that registers a user tool
+ * sharing one of these names — the runtime would never call the user tool
+ * because the native one wins.
+ */
+export const RESERVED_NATIVE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'next_step',
+  'change_context',
+  'gather_submit',
+]);
+
 // ── GatherQuestion ──────────────────────────────────────────────────
 
 /** Represents a single question within a gather operation. */
@@ -210,9 +229,41 @@ export class Step {
   }
 
   /**
-   * Restricts which SWAIG functions are available during this step.
-   * @param functions - A function name, list of names, or "*" for all.
+   * Set which non-internal functions are callable while this step is active.
+   *
+   * IMPORTANT — inheritance behavior:
+   *   If you do NOT call this method, the step inherits whichever function
+   *   set was active on the previous step (or the previous context's last
+   *   step). The server-side runtime only resets the active set when a
+   *   step explicitly declares its `functions` field. This is by design,
+   *   but it is the most common source of bugs in multi-step agents:
+   *   forgetting setFunctions() on a later step lets the previous step's
+   *   tools leak through.
+   *
+   *   Best practice: call setFunctions() explicitly on every step that
+   *   should have a different toolset than the previous one.
+   *
+   * Keep the per-step active set small: LLM tool selection accuracy
+   * degrades noticeably past ~7-8 simultaneously-active tools per call.
+   * Use per-step whitelisting to partition large tool collections.
+   *
+   * Internal functions (e.g. `startup_hook`, `hangup_hook`, `gather_submit`)
+   * are ALWAYS protected and cannot be deactivated by this whitelist. The
+   * native navigation tools `next_step` and `change_context` are injected
+   * automatically when validSteps/validContexts is set; they are not
+   * affected by this list and do not need to appear in it.
+   *
+   * @param functions - One of:
+   *   - `string[]` — whitelist of function names allowed in this step.
+   *     Functions not in the list become inactive.
+   *   - `[]` — explicit disable-all (no user functions callable).
+   *   - `"none"` — synonym for `[]`, same effect.
    * @returns This step for chaining.
+   *
+   * @example
+   * step.setFunctions(['lookup_account', 'check_balance']); // whitelist
+   * step.setFunctions([]);                                  // disable all
+   * step.setFunctions('none');                              // disable all (alt)
    */
   setFunctions(functions: string | string[]): this {
     this.functions = functions;
@@ -240,8 +291,18 @@ export class Step {
   }
 
   /**
-   * Marks this step as an end step, terminating the conversation when reached.
-   * @param end - Whether this is an end step.
+   * Mark this step as terminal for the step flow.
+   *
+   * IMPORTANT: `end=true` does NOT end the conversation or hang up the
+   * call. It exits step mode entirely after this step executes — clearing
+   * the steps list, current step index, validSteps, and validContexts.
+   * The agent keeps running, but operates only under the base system
+   * prompt and the context-level prompt; no more step instructions are
+   * injected and no more `next_step` tool is offered.
+   *
+   * To actually end the call, call a hangup tool or define a hangup hook.
+   *
+   * @param end - True to exit step mode after this step.
    * @returns This step for chaining.
    */
   setEnd(end: boolean): this {
@@ -280,7 +341,25 @@ export class Step {
   }
 
   /**
-   * Adds a question to this step's gather info operation.
+   * Add a question to this step's gather_info configuration.
+   * setGatherInfo() must be called before this method.
+   *
+   * IMPORTANT — gather mode locks function access:
+   *   While the model is asking gather questions, the runtime forcibly
+   *   deactivates ALL of the step's other functions. The only callable
+   *   tools during a gather question are:
+   *
+   *     - `gather_submit` (the native answer-submission tool)
+   *     - Whatever names you list in this question's `functions` option
+   *
+   *   `next_step` and `change_context` are also filtered out — the model
+   *   cannot navigate away until the gather completes. This is by design:
+   *   it forces a tight ask → submit → next-question loop.
+   *
+   *   If a question needs to call out to a tool (e.g. validate an email,
+   *   geocode a ZIP), list that tool name in this question's `functions`.
+   *   Functions listed here are active ONLY for this question.
+   *
    * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
    * @returns This step for chaining.
    */
@@ -563,8 +642,27 @@ export class Context {
   }
 
   /**
-   * Sets whether this context is isolated from other contexts' conversation history.
-   * @param isolated - Whether to isolate.
+   * Mark this context as isolated — entering it wipes conversation history.
+   *
+   * When `isolated=true` and the context is entered via change_context, the
+   * runtime wipes the conversation array. The model starts fresh with only
+   * the new context's systemPrompt + step instructions, with no memory of
+   * prior turns.
+   *
+   * EXCEPTION — `reset` overrides the wipe:
+   *   If the context also has a `reset` configuration (via consolidate or
+   *   full_reset), the wipe is skipped in favor of the reset behavior. Use
+   *   reset with consolidate=true to summarize prior history into a single
+   *   message instead of dropping it entirely.
+   *
+   * Use cases:
+   *   - Switching to a sensitive billing flow that should not see prior
+   *     small-talk
+   *   - Handing off to a different agent persona
+   *   - Resetting after a long off-topic detour
+   *
+   * @param isolated - True to wipe conversation history on context entry
+   *   (subject to the reset exception above).
    * @returns This context for chaining.
    */
   setIsolated(isolated: boolean): this {
@@ -744,10 +842,69 @@ export class Context {
 
 // ── ContextBuilder ──────────────────────────────────────────────────
 
-/** Builds and validates a collection of named contexts for multi-step AI workflows. */
+/**
+ * Builder for multi-step, multi-context AI agent workflows.
+ *
+ * A ContextBuilder owns one or more Contexts; each Context owns an ordered
+ * list of Steps. Only one context and one step is active at a time. Per
+ * chat turn, the runtime injects the current step's instructions as a
+ * system message, then asks the LLM for a response.
+ *
+ * ## Native tools auto-injected by the runtime
+ *
+ * When a step (or its enclosing context) declares `validSteps` or
+ * `validContexts`, the runtime auto-injects two native tools so the model
+ * can navigate the flow:
+ *
+ *   - `next_step(step: enum)`         — present when validSteps is set
+ *   - `change_context(context: enum)` — present when validContexts is set
+ *
+ * Their `enum` schemas are rewritten on every turn to match whatever
+ * validSteps / validContexts apply to the current step. You do NOT need
+ * to define these tools yourself; they appear automatically.
+ *
+ * A third native tool — `gather_submit` — is injected during gather_info
+ * questioning (see Step.setGatherInfo / addGatherQuestion).
+ *
+ * These three names — `next_step`, `change_context`, `gather_submit` —
+ * are reserved. ContextBuilder.validate() will reject any agent that
+ * defines a SWAIG tool with one of these names.
+ *
+ * ## Function whitelisting (Step.setFunctions)
+ *
+ * Each step may declare a `functions` whitelist. The whitelist is applied
+ * in-memory at the start of each LLM turn. CRITICALLY: if a step does NOT
+ * declare a `functions` field, it INHERITS the previous step's active set.
+ * See Step.setFunctions() for details and examples.
+ *
+ * ## Validation
+ *
+ * Call validate() (or toDict(), which calls it) to check that:
+ *
+ *   - At least one context is defined
+ *   - A single context must be named "default"
+ *   - Every context has at least one step
+ *   - validSteps references resolve to real step names (or "next")
+ *   - validContexts references resolve to real context names
+ *   - gather_info questions are non-empty and have unique keys
+ *   - gather_info completion_action targets a reachable step
+ *   - No user-defined SWAIG tool collides with a reserved native name
+ */
 export class ContextBuilder {
   private contexts: Map<string, Context> = new Map();
   private contextOrder: string[] = [];
+  private agent: { getTool?: (name: string) => unknown; [k: string]: unknown } | null = null;
+
+  /**
+   * Attach an agent reference so validate() can check user tool names
+   * against reserved native tool names. Called internally by
+   * AgentBase.defineContexts().
+   * @internal
+   */
+  attachAgent(agent: unknown): this {
+    this.agent = agent as typeof this.agent;
+    return this;
+  }
 
   /**
    * Adds a new named context to the builder.
@@ -812,14 +969,50 @@ export class ContextBuilder {
         if (action === 'next_step') {
           if (i === stepOrder.length - 1) {
             throw new Error(
-              `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='next_step' but it is the last step in the context`,
+              `Step '${stepName}' in context '${ctxName}' has gather_info ` +
+                `completion_action='next_step' but it is the last step in the context. ` +
+                `Either (1) add another step after '${stepName}', ` +
+                `(2) set completion_action to the name of an existing step in this ` +
+                `context to jump to it, or (3) omit completion_action (default) to ` +
+                `stay in '${stepName}' after gathering completes.`,
             );
           }
         } else if (!steps.has(action)) {
+          const available = [...steps.keys()].sort();
           throw new Error(
-            `Step '${stepName}' in context '${ctxName}' has gather_info completion_action='${action}' but step '${action}' does not exist in this context`,
+            `Step '${stepName}' in context '${ctxName}' has gather_info ` +
+              `completion_action='${action}' but '${action}' is not a step in this ` +
+              `context. Valid options: 'next_step' (advance to the next sequential ` +
+              `step), undefined (stay in the current step), or one of ` +
+              `[${available.map((n) => `'${n}'`).join(', ')}].`,
           );
         }
+      }
+    }
+
+    // Validate that user-defined tools do not collide with reserved native
+    // tool names. The runtime auto-injects next_step / change_context /
+    // gather_submit when contexts/steps are present, so user tools sharing
+    // those names would never be called.
+    if (this.agent && typeof (this.agent as { getRegisteredTools?: unknown }).getRegisteredTools === 'function') {
+      const getRegisteredTools = (this.agent as { getRegisteredTools: () => Array<{ name: string }> }).getRegisteredTools.bind(this.agent);
+      const registered = getRegisteredTools();
+      const colliding: string[] = [];
+      for (const tool of registered) {
+        if (tool && typeof tool.name === 'string' && RESERVED_NATIVE_TOOL_NAMES.has(tool.name)) {
+          colliding.push(tool.name);
+        }
+      }
+      colliding.sort();
+      if (colliding.length > 0) {
+        const reserved = [...RESERVED_NATIVE_TOOL_NAMES].sort();
+        throw new Error(
+          `Tool name(s) [${colliding.map((n) => `'${n}'`).join(', ')}] collide ` +
+            `with reserved native tools auto-injected by contexts/steps. The ` +
+            `names [${reserved.join(', ')}] are reserved and cannot be used ` +
+            `for user-defined SWAIG tools when contexts/steps are in use. ` +
+            `Rename your tool(s) to avoid the collision.`,
+        );
       }
     }
   }

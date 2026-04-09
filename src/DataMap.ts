@@ -107,8 +107,26 @@ export class DataMap {
   }
 
   /**
-   * Set the purpose (description) of this data map tool shown to the AI.
-   * @param description - A human-readable description of the tool.
+   * Set the purpose (description) for this data-map tool — READ BY THE LLM.
+   *
+   * This string is rendered into the OpenAI tool schema `description`
+   * field and sent to the model on every turn. The model uses it to
+   * decide WHEN to call this tool. It is **prompt engineering**, not
+   * developer documentation.
+   *
+   * A vague `purpose()` is the #1 cause of "the model has the right tool
+   * but doesn't call it" failures with data-map tools.
+   *
+   * ### Bad vs good
+   *
+   * ```text
+   * BAD : .purpose('weather api')
+   * GOOD: .purpose('Get the current weather conditions and forecast for
+   *       a specific city. Use this whenever the user asks about weather,
+   *       temperature, rain, or similar conditions in a named location.')
+   * ```
+   *
+   * @param description - Prompt-engineering description of when to call this tool.
    * @returns This instance for chaining.
    */
   purpose(description: string): this {
@@ -117,8 +135,12 @@ export class DataMap {
   }
 
   /**
-   * Alias for {@link purpose}; sets the tool description.
-   * @param description - A human-readable description of the tool.
+   * Alias for {@link purpose}; sets the LLM-facing tool description.
+   *
+   * This string is read by the model to decide WHEN to call this tool.
+   * See {@link purpose} for bad-vs-good examples.
+   *
+   * @param description - Prompt-engineering description of when to call this tool.
    * @returns This instance for chaining.
    */
   description(description: string): this {
@@ -126,10 +148,27 @@ export class DataMap {
   }
 
   /**
-   * Define a parameter for this data map tool.
-   * @param name - The parameter name.
+   * Define a parameter for this data-map tool — `description` is READ BY THE LLM.
+   *
+   * Each parameter `description` is rendered into the OpenAI tool schema
+   * under `parameters.properties.<name>.description` and sent to the
+   * model. The model uses it to decide HOW to fill in the argument from
+   * user speech. It is **prompt engineering**, not developer FYI.
+   *
+   * ### Bad vs good
+   *
+   * ```text
+   * BAD : .parameter('city', 'string', 'the city')
+   * GOOD: .parameter('city', 'string',
+   *         'The name of the city to get weather for, e.g. "San Francisco".
+   *          Ask the user if they did not provide one. Include the state
+   *          or country if the city name is ambiguous.')
+   * ```
+   *
+   * @param name - The parameter name (JSON object key).
    * @param paramType - The JSON Schema type (e.g., "string", "number").
-   * @param description - A description of the parameter shown to the AI.
+   * @param description - Prompt-engineering description telling the model
+   *   how to extract this value from the user's utterance. Read by the LLM.
    * @param opts - Optional flags for required and enum constraints.
    * @returns This instance for chaining.
    */

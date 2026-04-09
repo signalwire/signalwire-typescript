@@ -47,19 +47,44 @@ export interface SwaigFunctionOptions {
 }
 
 /**
- * Wraps a tool handler function with metadata for SWAIG registration.
+ * A SWAIG function — exactly the same concept as a "tool" in native
+ * OpenAI / Anthropic tool calling.
  *
- * Manages the tool's name, description, parameter schema, and handler,
- * and serializes the definition into the SWAIG wire format.
+ * Each SwaigFunction is rendered, on every LLM turn, into the OpenAI
+ * tool schema:
+ *
+ * ```json
+ * {
+ *   "type": "function",
+ *   "function": {
+ *     "name":        "<this.name>",
+ *     "description": "<this.description>",
+ *     "parameters":  { "type": "object", "properties": { ... } }
+ *   }
+ * }
+ * ```
+ *
+ * The `name`, `description`, and every per-parameter `description` inside
+ * `parameters` are **read by the model** and directly determine whether
+ * the model picks this tool when a matching user request comes in.
+ * They are prompt engineering, not developer comments.
  */
 export class SwaigFunction {
-  /** Unique name used to register and invoke this tool. */
+  /** Unique name — read by the LLM; use snake_case verbs. */
   name: string;
   /** The handler function called when the tool is invoked. */
   handler: SwaigHandler;
-  /** Human-readable description shown to the AI. */
+  /**
+   * LLM-facing description. Tells the model WHEN to call this tool.
+   * A vague description is the #1 cause of "model has the tool but
+   * doesn't call it" failures.
+   */
   description: string;
-  /** JSON Schema properties describing the tool's parameters. */
+  /**
+   * JSON Schema properties describing the tool's parameters. Each
+   * property's `description` field is ALSO LLM-facing — it tells the
+   * model HOW to extract that argument from the user's utterance.
+   */
   parameters: Record<string, unknown>;
   /** Whether this tool requires session token authentication. */
   secure: boolean;
@@ -129,12 +154,19 @@ export class SwaigFunction {
       if (result instanceof FunctionResult) {
         return result.toDict();
       }
-      if (typeof result === 'object' && result !== null && 'response' in result) {
+      if (typeof result === 'object' && result !== null) {
         return result as Record<string, unknown>;
       }
-      if (typeof result === 'object' && result !== null) {
-        return new FunctionResult('Function completed successfully').toDict();
-      }
+      // Neither a FunctionResult nor a dict — warn and fall back to
+      // wrapping the stringified value. See Python's web_mixin /
+      // serverless_mixin / tool_mixin for the equivalent check.
+      log.warn(
+        `SWAIG function "${this.name}" returned a value of type "${typeof result}" ` +
+          `that is neither FunctionResult nor object; falling back to str(result). ` +
+          `The AI will see the stringified value as its tool response. Wrap your ` +
+          `return in new FunctionResult(...) or return an object with at least a ` +
+          `"response" key.`,
+      );
       return new FunctionResult(String(result)).toDict();
     } catch (err) {
       log.error(`Error executing SWAIG function ${this.name}: ${err}`);
