@@ -317,6 +317,22 @@ export class AgentBase {
     return this.contextsBuilder;
   }
 
+  /**
+   * Remove all contexts, returning the agent to a no-contexts state.
+   *
+   * This is a convenience wrapper around `defineContexts().reset()`.
+   * Use it in a dynamic config callback when you need to rebuild
+   * contexts from scratch for a specific request.
+   *
+   * @returns This agent instance for chaining.
+   */
+  resetContexts(): this {
+    if (this.contextsBuilder) {
+      this.contextsBuilder.reset();
+    }
+    return this;
+  }
+
   // ── AI config methods ───────────────────────────────────────────────
 
   /**

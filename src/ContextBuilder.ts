@@ -495,6 +495,7 @@ export class Context {
   private _isolated = false;
   private promptText: string | null = null;
   private promptSections: StepSection[] = [];
+  private _initialStep: string | null = null;
   private _enterFillers: Record<string, string[]> | null = null;
   private _exitFillers: Record<string, string[]> | null = null;
 
@@ -642,6 +643,20 @@ export class Context {
   }
 
   /**
+   * Set which step the context starts on when entered.
+   *
+   * By default, a context starts on its first step (index 0). Use this to
+   * skip a preamble step on re-entry via `change_context`.
+   *
+   * @param stepName - Name of the step to start on. Must exist in this context (validated by ContextBuilder.validate()).
+   * @returns This context for chaining.
+   */
+  setInitialStep(stepName: string): this {
+    this._initialStep = stepName;
+    return this;
+  }
+
+  /**
    * Mark this context as isolated — entering it wipes conversation history.
    *
    * When `isolated=true` and the context is entered via change_context, the
@@ -784,6 +799,11 @@ export class Context {
   }
 
   /** @internal */
+  getInitialStep(): string | null {
+    return this._initialStep;
+  }
+
+  /** @internal */
   getValidContexts(): string[] | null {
     return this._validContexts;
   }
@@ -822,6 +842,7 @@ export class Context {
     };
     if (this._validContexts !== null) d['valid_contexts'] = this._validContexts;
     if (this._validSteps !== null) d['valid_steps'] = this._validSteps;
+    if (this._initialStep !== null) d['initial_step'] = this._initialStep;
     if (this._postPrompt !== null) d['post_prompt'] = this._postPrompt;
     const sp = this.renderSystemPrompt();
     if (sp !== null) d['system_prompt'] = sp;
@@ -907,6 +928,18 @@ export class ContextBuilder {
   }
 
   /**
+   * Removes all contexts, returning the builder to its initial state.
+   * Use this in a dynamic config callback when you need to rebuild
+   * contexts from scratch for a specific request.
+   * @returns This builder for chaining.
+   */
+  reset(): this {
+    this.contexts.clear();
+    this.contextOrder = [];
+    return this;
+  }
+
+  /**
    * Adds a new named context to the builder.
    * @param name - The unique context name.
    * @returns The newly created Context for further configuration.
@@ -943,6 +976,17 @@ export class ContextBuilder {
     }
     for (const [name, ctx] of this.contexts) {
       if (!ctx.getSteps().size) throw new Error(`Context '${name}' must have at least one step`);
+    }
+    // Validate initial_step references a real step in the context
+    for (const [name, ctx] of this.contexts) {
+      const initialStep = ctx.getInitialStep();
+      if (initialStep !== null && !ctx.getSteps().has(initialStep)) {
+        const available = [...ctx.getSteps().keys()].sort();
+        throw new Error(
+          `Context '${name}' has initial_step='${initialStep}' but that step does not exist. ` +
+            `Available steps: [${available.map((n) => `'${n}'`).join(', ')}]`,
+        );
+      }
     }
     // Validate context references
     for (const [, ctx] of this.contexts) {
