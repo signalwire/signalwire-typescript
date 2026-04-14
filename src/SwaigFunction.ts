@@ -2,8 +2,11 @@
  * SwaigFunction - Wraps a handler function with metadata for SWAIG registration.
  */
 
+import Ajv from 'ajv';
 import { FunctionResult } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
+
+const ajv = new Ajv({ allErrors: true });
 
 const log = getLogger('SwaigFunction');
 
@@ -140,12 +143,17 @@ export class SwaigFunction {
   }
 
   /**
-   * Validate arguments against the parameter JSON schema.
+   * Validate arguments against the parameter JSON schema using full
+   * JSON Schema Draft-7 validation (via ajv).
    *
-   * Performs a best-effort validation: checks that required properties are
-   * present and that the argument types match the declared schema types.
+   * Mirrors Python's `validate_args` which tries `jsonschema_rs` (Rust-based
+   * Draft-7 validator) then falls back to `jsonschema` (pure Python Draft-7).
+   * All JSON Schema constraint keywords are honoured: `required`, `type`,
+   * `minLength`, `maxLength`, `pattern`, `format`, `minimum`, `maximum`,
+   * `enum`, `anyOf`, `oneOf`, `$ref`, nested object/array validation, etc.
+   *
    * If the schema has no properties, validation is skipped and the args are
-   * considered valid.
+   * considered valid — matching Python's early-return path.
    *
    * @param args - Arguments to validate.
    * @returns A tuple of `[isValid, errors]`. When no validation is needed
@@ -153,60 +161,23 @@ export class SwaigFunction {
    */
   validateArgs(args: Record<string, unknown>): [boolean, string[]] {
     const schema = this.ensureParameterStructure();
-    const properties = schema['properties'] as Record<string, Record<string, unknown>> | undefined;
+    const properties = schema['properties'] as Record<string, unknown> | undefined;
     if (!properties || Object.keys(properties).length === 0) {
       return [true, []];
     }
 
-    const errors: string[] = [];
-
-    // Check required fields
-    const requiredFields = (schema['required'] as string[] | undefined) ?? [];
-    for (const field of requiredFields) {
-      if (!(field in args)) {
-        errors.push(`'${field}' is a required property`);
-      }
+    const validate = ajv.compile(schema);
+    const valid = validate(args);
+    if (valid) {
+      return [true, []];
     }
-
-    // Type-check each provided arg against schema
-    for (const [key, value] of Object.entries(args)) {
-      const propSchema = properties[key];
-      if (!propSchema) continue;
-
-      const expectedType = propSchema['type'] as string | undefined;
-      if (!expectedType) continue;
-
-      const actual = value;
-      let typeOk = true;
-
-      switch (expectedType) {
-        case 'string':
-          typeOk = typeof actual === 'string';
-          break;
-        case 'number':
-        case 'integer':
-          typeOk = typeof actual === 'number';
-          break;
-        case 'boolean':
-          typeOk = typeof actual === 'boolean';
-          break;
-        case 'array':
-          typeOk = Array.isArray(actual);
-          break;
-        case 'object':
-          typeOk = typeof actual === 'object' && actual !== null && !Array.isArray(actual);
-          break;
-        default:
-          // Unknown type — skip
-          break;
-      }
-
-      if (!typeOk && actual !== null && actual !== undefined) {
-        errors.push(`'${key}' expected type '${expectedType}' but got '${typeof actual}'`);
-      }
-    }
-
-    return errors.length === 0 ? [true, []] : [false, errors];
+    const errors = (validate.errors ?? []).map((e) => {
+      // Produce messages similar to Python's jsonschema:
+      // "instancePath message" or just "message" when path is empty.
+      const path = e.instancePath ? e.instancePath.replace(/^\//, '').replace(/\//g, '.') : '';
+      return path ? `'${path}' ${e.message}` : (e.message ?? String(e));
+    });
+    return [false, errors];
   }
 
   /**
