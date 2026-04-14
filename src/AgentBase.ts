@@ -31,12 +31,16 @@ import type {
 } from './types.js';
 
 /**
- * Callback invoked to determine routing based on POST data.
- * Return a route string to redirect, or null for normal processing.
+ * Callback invoked at a registered routing endpoint to determine how to handle an
+ * incoming request. Return a route string to redirect to that agent route, or
+ * null / undefined to let normal SWML processing continue.
+ *
+ * Mirrors Python `web_mixin.register_routing_callback` callback signature (body-only
+ * variant — Hono request object is not forwarded; use the parsed body instead).
  */
 export type RoutingCallback = (
   body: Record<string, unknown>,
-) => string | null | Promise<string | null>;
+) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
  * Core agent class that composes an HTTP server, prompt management, session handling,
@@ -133,7 +137,7 @@ export class AgentBase {
   private _configFile: string | null = null;
   private _schemaPath: string | null = null;
 
-  // Routing callbacks (for registerRoutingCallback)
+  // Routing callbacks (registered via registerRoutingCallback)
   private _routingCallbacks: Map<string, RoutingCallback> = new Map();
 
   // Hono app
@@ -840,6 +844,38 @@ export class AgentBase {
   }
 
   /**
+   * Register a callback at a specific HTTP path that decides how to route an
+   * incoming request.
+   *
+   * When called, the endpoint at `path` will invoke `callback` with the parsed
+   * request body. If `callback` returns a non-empty route string the server
+   * responds with `{ action: "redirect", route }` so the platform can forward the
+   * request to the right agent. If `callback` returns `null` / `undefined` the
+   * agent's own SWML is returned instead (normal processing).
+   *
+   * Mirrors Python `swml_service.register_routing_callback` /
+   * `web_mixin.register_routing_callback`.
+   *
+   * @param callback - Function receiving the parsed request body and returning a
+   *   route string to redirect, or null/undefined for normal processing.
+   * @param path - HTTP path where this callback endpoint is registered
+   *   (default: '/sip').
+   * @returns This agent instance for chaining.
+   */
+  registerRoutingCallback(
+    callback: RoutingCallback,
+    path = '/sip',
+  ): this {
+    // Normalize path: ensure leading slash, strip trailing slash
+    let normalized = path.replace(/\/+$/, '') || '/';
+    if (!normalized.startsWith('/')) normalized = `/${normalized}`;
+    this._routingCallbacks.set(normalized, callback);
+    // Invalidate cached app so getApp() re-registers routes with the new callback
+    this._app = null;
+    return this;
+  }
+
+  /**
    * Extract the SIP username from a request body's call.to field.
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
@@ -1421,24 +1457,6 @@ export class AgentBase {
    *
    * When a routing callback is registered, an endpoint at the specified path
    * is created in `getApp()`. The callback receives the request body and returns
-   * a route string to redirect to, or null for normal processing.
-   *
-   * @param callback - Function receiving the request body and returning a route or null.
-   * @param path - The HTTP path where this callback is registered (default: "/sip").
-   * @returns This agent instance for chaining.
-   */
-  registerRoutingCallback(
-    callback: RoutingCallback,
-    path = '/sip',
-  ): this {
-    const normalized = path.replace(/\/+$/, '') || '/';
-    this._routingCallbacks.set(normalized, callback);
-    // Reset the cached app so getApp() will re-create it with the new route
-    this._app = null;
-    return this;
-  }
-
-  /**
    * Enable debug routes for testing and development.
    *
    * This is a backward-compatibility stub matching the Python SDK.
@@ -2180,6 +2198,7 @@ export class AgentBase {
       app.post(`${basePath}/check_for_input`, authMw, handleCheckForInput);
     }
 
+
     // Routing callbacks (registered via registerRoutingCallback)
     for (const [callbackPath, callback] of this._routingCallbacks) {
       const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
@@ -2188,7 +2207,7 @@ export class AgentBase {
         reqLog.debug('routing_callback_called');
 
         let body: Record<string, unknown> = {};
-        try { body = await c.req.json(); } catch { /* empty */ }
+        try { body = await c.req.json(); } catch { /* GET or no body */ }
 
         try {
           const route = await callback(body);
