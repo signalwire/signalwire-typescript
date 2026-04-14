@@ -163,7 +163,7 @@ export class SwmlTransferSkill extends SkillBase {
     return `${this.skillName}_${toolName}`;
   }
 
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     this.toolName = this.getConfig<string>('tool_name', 'transfer_call');
     this.toolDescription = this.getConfig<string>(
       'description',
@@ -224,6 +224,7 @@ export class SwmlTransferSkill extends SkillBase {
 
     // TS-style patterns array
     this.patterns = this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+    return true;
   }
 
   override getHints(): string[] {

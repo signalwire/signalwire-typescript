@@ -143,7 +143,7 @@ export class WikipediaSearchSkill extends SkillBase {
    * Extract config values into instance state. Clamps `num_results` to the
    * 1-5 range (matching Python's `max(1, ...)` floor plus the schema cap).
    */
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     const configured = this.getConfig<number>('num_results', 1);
     this._numResults = Math.max(1, Math.min(5, Math.floor(configured)));
 
@@ -159,6 +159,7 @@ export class WikipediaSearchSkill extends SkillBase {
 
     const rawLen = this.getConfig<number>('max_content_length', 5000);
     this._maxContentLength = Math.max(100, Math.floor(rawLen));
+    return true;
   }
 
   /** @returns A `search_wiki` tool that fetches article summaries from Wikipedia. */

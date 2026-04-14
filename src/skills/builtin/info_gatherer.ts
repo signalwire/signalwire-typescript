@@ -231,11 +231,11 @@ export class InfoGathererSkill extends SkillBase {
    * Validate sequential question config and initialize derived state. A no-op
    * when `questions` is not configured (field-only mode).
    */
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     const questions = this.getConfig<unknown>('questions', undefined);
     if (questions === undefined || questions === null) {
       // No sequential config — field-only mode is handled in getTools/_getPromptSections.
-      return;
+      return true;
     }
 
     try {
@@ -244,7 +244,7 @@ export class InfoGathererSkill extends SkillBase {
       log.error(
         `info_gatherer: ${err instanceof Error ? err.message : String(err)}`,
       );
-      return;
+      return false;
     }
 
     this.questions = questions as QuestionDefinition[];
@@ -262,6 +262,7 @@ export class InfoGathererSkill extends SkillBase {
       'completion_message',
       "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
     );
+    return true;
   }
 
   /**

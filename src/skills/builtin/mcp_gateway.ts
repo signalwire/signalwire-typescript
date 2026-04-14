@@ -156,7 +156,7 @@ export class McpGatewaySkill extends SkillBase {
     };
   }
 
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     this.authToken =
       this.getConfig<string | undefined>('auth_token', undefined) ??
       process.env['MCP_GATEWAY_AUTH_TOKEN'];
@@ -164,7 +164,7 @@ export class McpGatewaySkill extends SkillBase {
     const gatewayUrl = this.getConfig<string | undefined>('gateway_url', undefined);
     if (!gatewayUrl) {
       log.error('mcp_gateway: missing required parameter: gateway_url');
-      return;
+      return false;
     }
 
     if (!this.authToken) {
@@ -178,7 +178,7 @@ export class McpGatewaySkill extends SkillBase {
         log.error(
           'mcp_gateway: missing required parameters: auth_token or (auth_user + auth_password)',
         );
-        return;
+        return false;
       }
     }
 
@@ -200,24 +200,26 @@ export class McpGatewaySkill extends SkillBase {
         log.error('mcp_gateway: gateway health check failed', {
           status: health.status,
         });
-        return;
+        return false;
       }
       log.info('mcp_gateway: connected', { url: this.gatewayUrl });
     } catch (err) {
       log.error('mcp_gateway: failed to connect to gateway', {
         error: err instanceof Error ? err.message : String(err),
       });
-      return;
+      return false;
     }
 
     // Discover tools (equivalent of Python register_tools())
     try {
       await this._discoverTools();
       this._ready = true;
+      return true;
     } catch (err) {
       log.error('mcp_gateway: tool discovery failed', {
         error: err instanceof Error ? err.message : String(err),
       });
+      return false;
     }
   }
 

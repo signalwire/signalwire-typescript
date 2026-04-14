@@ -383,7 +383,7 @@ export class NativeVectorSearchSkill extends SkillBase {
     return `${this.skillName}_${toolName}_${indexFile}`;
   }
 
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     // Config
     this.toolName = this.getConfig<string>('tool_name', 'search_knowledge');
     this.backend = this.getConfig<string>('backend', 'sqlite');
@@ -445,7 +445,7 @@ export class NativeVectorSearchSkill extends SkillBase {
             url: this.remoteBaseUrl,
           });
           this.searchAvailable = true;
-          return;
+          return true;
         }
         if (response.status === 401) {
           log.error('native_vector_search: remote auth failed');
@@ -461,7 +461,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         });
         this.searchAvailable = false;
       }
-      return;
+      return this.searchAvailable;
     }
 
     // Local / in-memory mode
@@ -475,6 +475,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         indexed: this._indexed,
       });
     }
+    return this.searchAvailable;
   }
 
   override getHints(): string[] {

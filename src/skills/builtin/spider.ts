@@ -200,7 +200,7 @@ export class SpiderSkill extends SkillBase {
     return `${this.skillName}_${toolName}`;
   }
 
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     // Performance
     this.delay = this.getConfig<number>('delay', 0.1);
     this.concurrentRequests = this.getConfig<number>('concurrent_requests', 5);
@@ -239,22 +239,22 @@ export class SpiderSkill extends SkillBase {
     // Validate numeric ranges
     if (this.delay < 0) {
       log.error('spider: delay cannot be negative', { delay: this.delay });
-      return;
+      return false;
     }
     if (this.concurrentRequests < 1 || this.concurrentRequests > 20) {
       log.error(
         'spider: concurrent_requests must be between 1 and 20',
         { concurrent_requests: this.concurrentRequests },
       );
-      return;
+      return false;
     }
     if (this.maxPages < 1) {
       log.error('spider: max_pages must be at least 1', { max_pages: this.maxPages });
-      return;
+      return false;
     }
     if (this.maxDepth < 0) {
       log.error('spider: max_depth cannot be negative', { max_depth: this.maxDepth });
-      return;
+      return false;
     }
 
     // Pre-compile follow patterns
@@ -276,6 +276,7 @@ export class SpiderSkill extends SkillBase {
       max_pages: this.maxPages,
       max_depth: this.maxDepth,
     });
+    return true;
   }
 
   override getHints(): string[] {

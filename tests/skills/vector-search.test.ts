@@ -16,8 +16,11 @@ describe('NativeVectorSearchSkill', () => {
     expect(createNativeVectorSearchSkill()).toBeInstanceOf(NativeVectorSearchSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new NativeVectorSearchSkill().setup()).resolves.toBe(true);
+  it('should return false from setup when no remote_url and no local index', async () => {
+    // Python parity: an empty/unconfigured native vector search has no remote
+    // backend and no local index, so searchAvailable=false and setup returns
+    // false. Configured modes are exercised in the per-mode tests below.
+    await expect(new NativeVectorSearchSkill().setup()).resolves.toBe(false);
   });
 
   it('should register a search tool using configured tool_name', async () => {
