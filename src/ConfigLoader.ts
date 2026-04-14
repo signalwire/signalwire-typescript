@@ -7,6 +7,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { homedir } from 'node:os';
 
 const ENV_VAR_PATTERN = /\$\{([^}|]+)(?:\|([^}]*))?\}/g;
 
@@ -17,14 +18,43 @@ export class ConfigLoader {
   private data: Record<string, unknown> = {};
   private filePath: string | null = null;
 
+  /** The ordered list of config file paths that were searched or provided. */
+  private _configPaths: string[] = [];
+
   /**
    * Create a new ConfigLoader, optionally loading a JSON file immediately.
-   * @param filePath - Path to a JSON config file to load on construction.
+   *
+   * Accepts a single file path or an array of paths. When given an array,
+   * the loader iterates in order and loads the first file that exists
+   * (mirroring Python's ordered-search behaviour).
+   *
+   * @param filePaths - Path(s) to a JSON config file to load on construction.
    */
-  constructor(filePath?: string) {
-    if (filePath) {
-      this.load(filePath);
+  constructor(filePaths?: string | string[]) {
+    if (filePaths) {
+      if (Array.isArray(filePaths)) {
+        this._configPaths = filePaths;
+        for (const fp of filePaths) {
+          const absPath = resolve(fp);
+          if (existsSync(absPath)) {
+            this.load(absPath);
+            return;
+          }
+        }
+        // No file found in array — store paths but don't throw
+      } else {
+        this._configPaths = [filePaths];
+        this.load(filePaths);
+      }
     }
+  }
+
+  /**
+   * Get the ordered list of config file paths that were passed/searched.
+   * @returns The array of config paths.
+   */
+  get configPaths(): string[] {
+    return [...this._configPaths];
   }
 
   /**
@@ -45,24 +75,102 @@ export class ConfigLoader {
   }
 
   /**
-   * Search for a config file in standard locations (CWD, `./config`, `$HOME/.signalwire`).
+   * Search for a config file in standard locations.
+   *
+   * Default search paths: CWD, `./config`, `$HOME/.signalwire`,
+   * `.swml/`, `$HOME/.swml/`, `/etc/swml/`.
+   *
    * @param filename - The config file name to search for.
+   * @param additionalPaths - Extra directories to search before the defaults.
+   * @param serviceName - Optional service name; prepends service-specific filenames to the search.
    * @returns A loaded ConfigLoader if found, or null if the file does not exist in any search path.
    */
-  static search(filename: string): ConfigLoader | null {
-    const searchPaths = [
-      process.cwd(),
-      join(process.cwd(), 'config'),
-      join(process.env['HOME'] ?? '', '.signalwire'),
-    ];
+  static search(filename: string, additionalPaths?: string[], serviceName?: string): ConfigLoader | null {
+    const searchPaths = ConfigLoader._buildSearchPaths(filename, additionalPaths, serviceName);
 
-    for (const dir of searchPaths) {
-      const filePath = join(dir, filename);
-      if (existsSync(filePath)) {
-        return new ConfigLoader(filePath);
+    for (const fp of searchPaths) {
+      if (existsSync(fp)) {
+        return new ConfigLoader(fp);
       }
     }
     return null;
+  }
+
+  /**
+   * Find a config file path without loading it.
+   *
+   * Searches service-specific filenames, additional paths, and default paths.
+   * Returns the first found path string or null.
+   *
+   * @param serviceName - Optional service name for service-specific config filenames.
+   * @param additionalPaths - Additional file paths to check.
+   * @returns Path to the first config file found, or null.
+   */
+  static findConfigFile(serviceName?: string, additionalPaths?: string[]): string | null {
+    const paths: string[] = [];
+
+    // Service-specific config
+    if (serviceName) {
+      paths.push(
+        `${serviceName}_config.json`,
+        join('.swml', `${serviceName}_config.json`),
+      );
+    }
+
+    // Additional paths
+    if (additionalPaths) {
+      paths.push(...additionalPaths);
+    }
+
+    // Default paths
+    paths.push(
+      'config.json',
+      'agent_config.json',
+      join('.swml', 'config.json'),
+      join(homedir(), '.swml', 'config.json'),
+      join('/etc', 'swml', 'config.json'),
+    );
+
+    for (const p of paths) {
+      const abs = resolve(p);
+      if (existsSync(abs)) {
+        return abs;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Build the list of file paths to search.
+   */
+  private static _buildSearchPaths(filename: string, additionalPaths?: string[], serviceName?: string): string[] {
+    const paths: string[] = [];
+
+    // Service-specific variants
+    if (serviceName) {
+      paths.push(join(process.cwd(), `${serviceName}_${filename}`));
+      paths.push(join(process.cwd(), '.swml', `${serviceName}_${filename}`));
+    }
+
+    // Additional caller-provided directories
+    if (additionalPaths) {
+      for (const dir of additionalPaths) {
+        paths.push(join(dir, filename));
+      }
+    }
+
+    // Default search directories
+    paths.push(
+      join(process.cwd(), filename),
+      join(process.cwd(), 'config', filename),
+      join(homedir(), '.signalwire', filename),
+      join(process.cwd(), '.swml', filename),
+      join(homedir(), '.swml', filename),
+      join('/etc', 'swml', filename),
+    );
+
+    return paths;
   }
 
   /**
@@ -149,6 +257,105 @@ export class ConfigLoader {
   }
 
   /**
+   * Check if a configuration was loaded (from file or object).
+   * @returns True if configuration data exists.
+   */
+  hasConfig(): boolean {
+    return this.filePath !== null || Object.keys(this.data).length > 0;
+  }
+
+  /**
+   * Get an entire configuration section with all environment variables substituted.
+   * @param section - The top-level section name (e.g. 'security', 'server').
+   * @returns The configuration section as an object, or an empty object if not found.
+   */
+  getSection(section: string): Record<string, unknown> {
+    const value = this.get<Record<string, unknown>>(section);
+    if (value === undefined || value === null || typeof value !== 'object') {
+      return {};
+    }
+    return this.substituteVars(value) as Record<string, unknown>;
+  }
+
+  /**
+   * Recursively substitute `${VAR|default}` environment variables in any value.
+   *
+   * Walks strings, objects, and arrays. Coerces result strings to boolean
+   * (`"true"` / `"false"`) or number when appropriate.
+   *
+   * @param value - The value to process (string, object, array, or primitive).
+   * @param maxDepth - Maximum recursion depth to prevent infinite loops (default: 10).
+   * @returns The value with all environment variables substituted.
+   */
+  substituteVars(value: unknown, maxDepth = 10): unknown {
+    if (maxDepth <= 0) {
+      throw new Error('Maximum variable substitution depth exceeded');
+    }
+
+    if (typeof value === 'string') {
+      const result = value.replace(ENV_VAR_PATTERN, (_match, varName: string, defaultValue?: string) => {
+        const envVal = process.env[varName.trim()];
+        if (envVal !== undefined) return envVal;
+        if (defaultValue !== undefined) return defaultValue;
+        return '';
+      });
+
+      // Coerce to boolean
+      if (result.toLowerCase() === 'true') return true;
+      if (result.toLowerCase() === 'false') return false;
+      // Coerce to integer
+      if (/^\d+$/.test(result)) return parseInt(result, 10);
+      // Coerce to float
+      if (/^\d+\.\d+$/.test(result)) return parseFloat(result);
+
+      return result;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(item => this.substituteVars(item, maxDepth - 1));
+    }
+
+    if (value !== null && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        result[k] = this.substituteVars(v, maxDepth - 1);
+      }
+      return result;
+    }
+
+    return value;
+  }
+
+  /**
+   * Merge configuration with environment variables that match a prefix.
+   *
+   * Config file values take precedence over environment variables.
+   * Environment variable keys are stripped of the prefix and lowercased
+   * (e.g. `SWML_FOO_BAR` becomes `foo_bar`).
+   *
+   * @param envPrefix - Prefix for environment variables to consider (default: 'SWML_').
+   * @returns Merged configuration dictionary.
+   */
+  mergeWithEnv(envPrefix = 'SWML_'): Record<string, unknown> {
+    // Start with substituted config
+    const result = (Object.keys(this.data).length > 0
+      ? this.substituteVars(this.data)
+      : {}) as Record<string, unknown>;
+
+    // Add env vars not already present in config
+    for (const [key, value] of Object.entries(process.env)) {
+      if (key.startsWith(envPrefix) && value !== undefined) {
+        const configKey = key.slice(envPrefix.length).toLowerCase();
+        if (!(configKey in result)) {
+          result[configKey] = value;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Load configuration from a plain object instead of a file, useful for testing or programmatic setup.
    * @param obj - The configuration object to use.
    * @returns This instance for chaining.
@@ -160,9 +367,11 @@ export class ConfigLoader {
   }
 
   /**
-   * Interpolate ${VAR|default} patterns in a string.
+   * Interpolate ${VAR|default} patterns in a raw string.
+   * @param input - The string containing env var references.
+   * @returns The string with all env var references resolved.
    */
-  private interpolateEnvVars(input: string): string {
+  interpolateEnvVars(input: string): string {
     return input.replace(ENV_VAR_PATTERN, (_match, varName: string, defaultValue?: string) => {
       const envVal = process.env[varName.trim()];
       if (envVal !== undefined) return envVal;
