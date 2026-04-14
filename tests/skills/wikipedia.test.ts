@@ -17,7 +17,7 @@ describe('WikipediaSearchSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new WikipediaSearchSkill().setup()).resolves.toBeUndefined();
+    await expect(new WikipediaSearchSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a search_wikipedia tool', () => {

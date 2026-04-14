@@ -16,7 +16,7 @@ describe('DataSphereServerlessSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new DataSphereServerlessSkill().setup()).resolves.toBeUndefined();
+    await expect(new DataSphereServerlessSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

@@ -110,9 +110,9 @@ describe('SkillBase', () => {
     expect(skill.getConfig('missing', 'default')).toBe('default');
   });
 
-  it('setup and cleanup are no-op by default', async () => {
+  it('setup returns true by default and cleanup is no-op', async () => {
     const skill = new TestSkill();
-    await expect(skill.setup()).resolves.toBeUndefined();
+    await expect(skill.setup()).resolves.toBe(true);
     await expect(skill.cleanup()).resolves.toBeUndefined();
   });
 });

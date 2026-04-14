@@ -6,6 +6,7 @@
  */
 
 import { SkillBase, type SkillConfig } from './SkillBase.js';
+import { SkillRegistry } from './SkillRegistry.js';
 import { getLogger } from '../Logger.js';
 
 const log = getLogger('SkillManager');
@@ -29,6 +30,16 @@ interface SkillMetaEntry {
 export class SkillManager {
   private skills: Map<string, SkillBase> = new Map();
   private skillMeta: Map<string, SkillMetaEntry> = new Map();
+
+  /**
+   * Public read-only view of all loaded skill instances, keyed by instance key.
+   * Python equivalent: `self.loaded_skills` (public `Dict[str, SkillBase]`).
+   *
+   * Use this to iterate or inspect loaded skills without mutating the internal map.
+   */
+  get loadedSkills(): ReadonlyMap<string, SkillBase> {
+    return this.skills;
+  }
 
   /**
    * Add a skill to the manager, validating env vars and calling setup().
@@ -61,8 +72,11 @@ export class SkillManager {
       log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
     }
 
-    // Setup
-    await skill.setup();
+    // Setup — returns boolean indicating success (matches Python behavior)
+    const setupOk = await skill.setup();
+    if (!setupOk) {
+      log.warn(`Skill '${name}' setup() returned false — skill may not function correctly`);
+    }
     skill.markInitialized();
 
     this.skills.set(instanceKey, skill);
@@ -132,6 +146,71 @@ export class SkillManager {
       if (skill.skillName === skillName) return true;
     }
     return false;
+  }
+
+  /**
+   * Check if a skill with the given instance key is currently loaded.
+   * This matches Python's `has_skill` semantics, which performs a direct
+   * dictionary key lookup (`skill_identifier in self.loaded_skills`).
+   *
+   * Use `hasSkill(name)` to check by skill name (iterates values).
+   * Use `hasSkillByKey(key)` to check by instance key (direct map lookup).
+   *
+   * @param instanceKey - The instance key to look up.
+   * @returns True if a skill with this exact instance key is loaded.
+   */
+  hasSkillByKey(instanceKey: string): boolean {
+    return this.skills.has(instanceKey);
+  }
+
+  /**
+   * Load a skill by name from the global SkillRegistry, construct it, and add it.
+   * This is the TypeScript equivalent of Python's `load_skill(skill_name)` path
+   * where `skill_class=None` triggers a registry lookup.
+   *
+   * @param skillName - The registered skill name to look up in the SkillRegistry.
+   * @param config - Optional configuration to pass to the skill factory.
+   * @returns A tuple `[success, errorMessage]` matching Python's `load_skill` return
+   *          contract. `errorMessage` is an empty string on success.
+   */
+  async loadSkillByName(skillName: string, config?: SkillConfig): Promise<[boolean, string]> {
+    const registry = SkillRegistry.getInstance();
+
+    if (!registry.has(skillName)) {
+      const errorMsg = `Skill '${skillName}' not found in registry`;
+      log.error(errorMsg);
+      return [false, errorMsg];
+    }
+
+    const skill = registry.create(skillName, config);
+    if (!skill) {
+      const errorMsg = `Failed to create skill '${skillName}' from registry`;
+      log.error(errorMsg);
+      return [false, errorMsg];
+    }
+
+    try {
+      await this.addSkill(skill);
+      return [true, ''];
+    } catch (err) {
+      const errorMsg = `Error loading skill '${skillName}': ${err instanceof Error ? err.message : String(err)}`;
+      log.error(errorMsg);
+      return [false, errorMsg];
+    }
+  }
+
+  /**
+   * List the instance keys of all currently loaded skills.
+   * Python equivalent: `list_loaded_skills() -> List[str]` which returns
+   * `list(self.loaded_skills.keys())`.
+   *
+   * Use `listSkills()` for richer objects (name, instanceId, initialized).
+   * Use `listSkillKeys()` for a flat list of instance key strings.
+   *
+   * @returns Array of instance key strings.
+   */
+  listSkillKeys(): string[] {
+    return Array.from(this.skills.keys());
   }
 
   /**

@@ -17,7 +17,7 @@ describe('SwmlTransferSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new SwmlTransferSkill().setup()).resolves.toBeUndefined();
+    await expect(new SwmlTransferSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

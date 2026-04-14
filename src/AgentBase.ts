@@ -1069,6 +1069,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
+    skill.setAgent(this);
     await this.skillManager.addSkill(skill);
 
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
@@ -1498,6 +1499,7 @@ export class AgentBase {
     for (const entry of this.skillManager.getLoadedSkillEntries()) {
       try {
         const skill = new (entry.SkillClass as any)(entry.config);
+        skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
         copy.skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });

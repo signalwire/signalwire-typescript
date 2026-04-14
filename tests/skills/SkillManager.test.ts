@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SkillManager } from '../../src/skills/SkillManager.js';
 import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
+import { SkillRegistry } from '../../src/skills/SkillRegistry.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
@@ -38,6 +39,7 @@ class MockSkill extends SkillBase {
 
   async setup() {
     this.setupCalled = true;
+    return true;
   }
 
   async cleanup() {
@@ -60,6 +62,10 @@ describe('SkillManager', () => {
   beforeEach(() => {
     suppressAllLogs(true);
     manager = new SkillManager();
+  });
+
+  afterEach(() => {
+    SkillRegistry.resetInstance();
   });
 
   it('adds a skill', async () => {
@@ -169,5 +175,73 @@ describe('SkillManager', () => {
     await manager.addSkill(s2);
     expect(manager.size).toBe(2);
     expect(manager.hasSkill('weather')).toBe(true);
+  });
+
+  // ── New gap-fix tests ──────────────────────────────────────────────
+
+  it('loadedSkills exposes a read-only map of loaded skills', async () => {
+    const skill = new MockSkill('datetime');
+    await manager.addSkill(skill);
+    const map = manager.loadedSkills;
+    expect(map.size).toBe(1);
+    expect(map.get('datetime')).toBe(skill);
+    // Ensure the map is the same reference as the internal map
+    expect(map.has('datetime')).toBe(true);
+  });
+
+  it('hasSkillByKey checks by instance key (Python has_skill semantics)', async () => {
+    const skill = new MockSkill('weather');
+    await manager.addSkill(skill);
+    // Instance key for a default MockSkill is the skillName
+    expect(manager.hasSkillByKey('weather')).toBe(true);
+    expect(manager.hasSkillByKey('nonexistent')).toBe(false);
+    // hasSkillByKey does NOT search by skillName across values — it's a direct key lookup
+    expect(manager.hasSkillByKey(skill.instanceId)).toBe(false);
+  });
+
+  it('listSkillKeys returns flat array of instance key strings', async () => {
+    await manager.addSkill(new MockSkill('a'));
+    await manager.addSkill(new MockSkill('b'));
+    const keys = manager.listSkillKeys();
+    expect(keys).toEqual(['a', 'b']);
+  });
+
+  it('loadSkillByName loads a skill from the registry', async () => {
+    const registry = SkillRegistry.getInstance();
+    registry.register('mock_registry_skill', (config) => new MockSkill('mock_registry_skill', config));
+
+    const [success, errorMsg] = await manager.loadSkillByName('mock_registry_skill');
+    expect(success).toBe(true);
+    expect(errorMsg).toBe('');
+    expect(manager.size).toBe(1);
+    expect(manager.hasSkill('mock_registry_skill')).toBe(true);
+  });
+
+  it('loadSkillByName returns [false, error] when skill not in registry', async () => {
+    const [success, errorMsg] = await manager.loadSkillByName('nonexistent');
+    expect(success).toBe(false);
+    expect(errorMsg).toContain('not found in registry');
+  });
+
+  it('loadSkillByName returns [false, error] on duplicate skill', async () => {
+    const registry = SkillRegistry.getInstance();
+    registry.register('dup_skill', (config) => new MockSkill('dup_skill', config));
+
+    await manager.loadSkillByName('dup_skill');
+    const [success, errorMsg] = await manager.loadSkillByName('dup_skill');
+    expect(success).toBe(false);
+    expect(errorMsg).toContain('already loaded');
+  });
+
+  it('loadSkillByName passes config to the skill factory', async () => {
+    const registry = SkillRegistry.getInstance();
+    let receivedConfig: Record<string, unknown> | undefined;
+    registry.register('config_skill', (config) => {
+      receivedConfig = config;
+      return new MockSkill('config_skill', config);
+    });
+
+    await manager.loadSkillByName('config_skill', { api_key: 'test123' });
+    expect(receivedConfig).toEqual({ api_key: 'test123' });
   });
 });

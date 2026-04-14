@@ -17,7 +17,7 @@ describe('MathSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new MathSkill().setup()).resolves.toBeUndefined();
+    await expect(new MathSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a calculate tool', () => {

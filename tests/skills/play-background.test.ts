@@ -17,7 +17,7 @@ describe('PlayBackgroundFileSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBeUndefined();
+    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

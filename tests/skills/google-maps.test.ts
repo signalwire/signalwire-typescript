@@ -17,7 +17,7 @@ describe('GoogleMapsSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+    await expect(new GoogleMapsSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

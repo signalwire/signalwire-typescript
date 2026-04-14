@@ -17,7 +17,7 @@ describe('JokeSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new JokeSkill().setup()).resolves.toBeUndefined();
+    await expect(new JokeSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a tell_joke tool', () => {

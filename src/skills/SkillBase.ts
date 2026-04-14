@@ -8,6 +8,8 @@
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FunctionResult } from '../FunctionResult.js';
+import type { AgentBase } from '../AgentBase.js';
+import { getLogger } from '../Logger.js';
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -125,6 +127,12 @@ export abstract class SkillBase {
   protected config: SkillConfig;
   /** Additional SWAIG fields extracted from config, merged into tool definitions. */
   readonly swaigFields: Record<string, unknown>;
+  /**
+   * Reference to the agent that owns this skill.
+   * Set via `setAgent()` when the skill is added to an agent.
+   * Python equivalent: `self.agent` (set in `__init__`).
+   */
+  protected agent?: AgentBase;
   private _initialized = false;
 
   /**
@@ -151,9 +159,11 @@ export abstract class SkillBase {
   /**
    * Setup the skill. Called when the skill is added to an agent.
    * Override to perform initialization (API connections, config validation, etc.)
+   * @returns `true` if setup succeeded, `false` otherwise.
+   *          Python equivalent: abstract `setup() -> bool`.
    */
-  async setup(): Promise<void> {
-    // Default no-op
+  async setup(): Promise<boolean> {
+    return true;
   }
 
   /**
@@ -287,5 +297,50 @@ export abstract class SkillBase {
    */
   getConfig<T = unknown>(key: string, defaultValue?: T): T {
     return (this.config[key] !== undefined ? this.config[key] : defaultValue) as T;
+  }
+
+  /**
+   * Set the agent reference for this skill.
+   * Called by the SkillManager/AgentBase when the skill is attached to an agent.
+   * Python equivalent: `self.agent = agent` in `__init__`.
+   * @param agent - The agent that owns this skill.
+   */
+  setAgent(agent: AgentBase): void {
+    this.agent = agent;
+  }
+
+  /**
+   * Check if all required environment variables are present.
+   * Convenience wrapper around `validateEnvVars()` that returns a boolean,
+   * matching the Python `validate_env_vars() -> bool` return type.
+   * @returns `true` if all required env vars are set, `false` otherwise.
+   */
+  hasAllEnvVars(): boolean {
+    return this.validateEnvVars().length === 0;
+  }
+
+  /**
+   * Validate that all required packages declared in the manifest are available.
+   * Attempts a dynamic `import()` for each package in `manifest.requiredPackages`.
+   * Python equivalent: `validate_packages() -> bool` using `importlib.import_module`.
+   * @returns Array of package names that could not be imported (empty if all present).
+   */
+  async validatePackages(): Promise<string[]> {
+    const manifest = this.getManifest();
+    const missing: string[] = [];
+    if (manifest.requiredPackages) {
+      const log = getLogger(`signalwire.skills.${this.skillName}`);
+      for (const pkg of manifest.requiredPackages) {
+        try {
+          await import(pkg);
+        } catch {
+          missing.push(pkg);
+        }
+      }
+      if (missing.length > 0) {
+        log.error(`Missing required packages: ${missing.join(', ')}`);
+      }
+    }
+    return missing;
   }
 }

@@ -15,8 +15,8 @@ describe('ClaudeSkillsSkill', () => {
     expect(createClaudeSkillsSkill()).toBeInstanceOf(ClaudeSkillsSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new ClaudeSkillsSkill().setup()).resolves.toBeUndefined();
+  it('should return false from setup when skills_path is not configured', async () => {
+    await expect(new ClaudeSkillsSkill().setup()).resolves.toBe(false);
   });
 
   it('should return empty tools when no skills_path is configured', () => {

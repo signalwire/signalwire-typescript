@@ -181,18 +181,18 @@ export class ClaudeSkillsSkill extends SkillBase {
   }
 
   /** Setup the Claude skills loader — discovers and parses all SKILL.md files. */
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     const skillsPath = this.getConfig<string>('skills_path');
     if (!skillsPath) {
       log.error('claude_skills: skills_path parameter is required');
-      return;
+      return false;
     }
 
     this._skillsPath = resolve(skillsPath);
 
     if (!existsSync(this._skillsPath)) {
       log.error(`claude_skills: skills_path does not exist: ${this._skillsPath}`);
-      return;
+      return false;
     }
 
     let stat;
@@ -200,13 +200,13 @@ export class ClaudeSkillsSkill extends SkillBase {
       stat = statSync(this._skillsPath);
     } catch {
       log.error(`claude_skills: cannot stat skills_path: ${this._skillsPath}`);
-      return;
+      return false;
     }
     if (!stat.isDirectory()) {
       log.error(
         `claude_skills: skills_path is not a directory: ${this._skillsPath}`,
       );
-      return;
+      return false;
     }
 
     // Load include/exclude patterns
@@ -245,6 +245,7 @@ export class ClaudeSkillsSkill extends SkillBase {
     log.info(
       `claude_skills: loaded ${this._skills.length} skills from ${this._skillsPath}`,
     );
+    return true;
   }
 
   // ---------------------------------------------------------------------------
