@@ -16,6 +16,16 @@ export class PhoneNumbersResource extends CrudResource {
     super(http, '/api/relay/rest/phone_numbers');
   }
 
+  /** Create a phone number resource. Body is optional to match Python **kwargs. */
+  override async create(body: any = {}): Promise<any> {
+    return this._http.post(this._basePath, body);
+  }
+
+  /** Update a phone number resource by ID. Body is optional to match Python **kwargs. */
+  override async update(resourceId: string, body: any = {}): Promise<any> {
+    return this._http.put(this._path(resourceId), body);
+  }
+
   /** Search available phone numbers for purchase. */
   async search(params?: QueryParams): Promise<any> {
     return this._http.get(this._path('search'), params);
