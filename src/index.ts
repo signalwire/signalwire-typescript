@@ -15,6 +15,8 @@ export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
 
 // Tool results & functions
 export { FunctionResult } from './FunctionResult.js';
+/** @deprecated Use {@link FunctionResult} instead. */
+export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
 export { SwaigFunction } from './SwaigFunction.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
