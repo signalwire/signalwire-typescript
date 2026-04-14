@@ -16,7 +16,7 @@ describe('InfoGathererSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new InfoGathererSkill().setup()).resolves.toBeUndefined();
+    await expect(new InfoGathererSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools with configured fields', () => {

@@ -16,7 +16,7 @@ describe('CustomSkillsSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new CustomSkillsSkill().setup()).resolves.toBeUndefined();
+    await expect(new CustomSkillsSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

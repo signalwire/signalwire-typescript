@@ -21,7 +21,7 @@ describe('DataSphereSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new DataSphereSkill().setup()).resolves.toBeUndefined();
+    await expect(new DataSphereSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a search_datasphere tool', () => {

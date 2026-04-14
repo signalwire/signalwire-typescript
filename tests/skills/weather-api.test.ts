@@ -17,7 +17,7 @@ describe('WeatherApiSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new WeatherApiSkill().setup()).resolves.toBeUndefined();
+    await expect(new WeatherApiSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a get_weather tool', () => {

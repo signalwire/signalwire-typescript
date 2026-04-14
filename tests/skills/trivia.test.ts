@@ -17,7 +17,7 @@ describe('ApiNinjasTriviaSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new ApiNinjasTriviaSkill().setup()).resolves.toBeUndefined();
+    await expect(new ApiNinjasTriviaSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

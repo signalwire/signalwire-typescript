@@ -6,11 +6,9 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import { createRequire } from 'node:module';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FunctionResult } from '../FunctionResult.js';
-
-const _skillBaseRequire = createRequire(import.meta.url);
+import { getLogger } from '../Logger.js';
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -158,16 +156,11 @@ export abstract class SkillBase {
   /**
    * Setup the skill. Called when the skill is added to an agent.
    * Override to perform initialization (API connections, config validation, etc.)
-   *
-   * Return `true` on success and `false` on failure. Python's equivalent
-   * (`SkillBase.setup`) returns a `bool`; the SkillManager treats `false` as
-   * a fatal failure. Throwing an Error is also treated as failure.
-   *
-   * The previous void-returning signature is still accepted — a skill that
-   * returns `undefined` (implicitly or explicitly) is treated as successful.
+   * @returns `true` if setup succeeded, `false` otherwise.
+   *          Python equivalent: abstract `setup() -> bool`.
    */
-  async setup(): Promise<boolean | void> {
-    // Default no-op — implicit success (undefined return is treated as success)
+  async setup(): Promise<boolean> {
+    return true;
   }
 
   /**
@@ -309,32 +302,35 @@ export abstract class SkillBase {
   }
 
   /**
-   * Boolean form of {@link validateEnvVars}. Mirrors Python's
-   * `SkillBase.validate_env_vars() -> bool`, returning `true` when all
-   * required environment variables are set.
-   * @returns True if no required env vars are missing.
+   * Check if all required environment variables are present.
+   * Convenience wrapper around `validateEnvVars()` that returns a boolean,
+   * matching the Python `validate_env_vars() -> bool` return type.
+   * @returns `true` if all required env vars are set, `false` otherwise.
    */
-  hasRequiredEnvVars(): boolean {
+  hasAllEnvVars(): boolean {
     return this.validateEnvVars().length === 0;
   }
 
   /**
-   * Validate that all npm packages listed in the manifest's
-   * `requiredPackages` can be resolved. Mirrors Python's
-   * `SkillBase.validate_packages()` runtime check.
-   * @returns Array of package names that could not be resolved (empty if all
-   *   packages are available).
+   * Validate that all required packages declared in the manifest are available.
+   * Attempts a dynamic `import()` for each package in `manifest.requiredPackages`.
+   * Python equivalent: `validate_packages() -> bool` using `importlib.import_module`.
+   * @returns Array of package names that could not be imported (empty if all present).
    */
-  validatePackages(): string[] {
+  async validatePackages(): Promise<string[]> {
     const manifest = this.getManifest();
     const missing: string[] = [];
     if (manifest.requiredPackages) {
+      const log = getLogger(`signalwire.skills.${this.skillName}`);
       for (const pkg of manifest.requiredPackages) {
         try {
-          _skillBaseRequire.resolve(pkg);
+          await import(pkg);
         } catch {
           missing.push(pkg);
         }
+      }
+      if (missing.length > 0) {
+        log.error(`Missing required packages: ${missing.join(', ')}`);
       }
     }
     return missing;

@@ -17,7 +17,7 @@ describe('McpGatewaySkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new McpGatewaySkill().setup()).resolves.toBeUndefined();
+    await expect(new McpGatewaySkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {

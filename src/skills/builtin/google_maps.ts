@@ -113,15 +113,15 @@ export class GoogleMapsSkill extends SkillBase {
 
   /**
    * Validate that the Google Maps API key is available in the environment.
-   * Mirrors Python's fail-fast behavior on missing credentials.
+   * Returns `false` (non-fatal warning) if the API key is missing.
+   * @returns `true` if setup succeeded, `false` if the API key is absent.
    */
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
     if (!apiKey) {
-      throw new Error(
-        'GoogleMapsSkill: GOOGLE_MAPS_API_KEY environment variable is required',
-      );
+      return false;
     }
+    return true;
   }
 
   /** @returns Speech recognition hints for maps/directions keywords. */

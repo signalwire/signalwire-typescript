@@ -22,7 +22,7 @@ describe('DateTimeSkill', () => {
 
   it('should complete setup without errors', async () => {
     const skill = new DateTimeSkill();
-    await expect(skill.setup()).resolves.toBeUndefined();
+    await expect(skill.setup()).resolves.toBe(true);
   });
 
   it('should register get_current_time and get_current_date tools', () => {

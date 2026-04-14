@@ -16,17 +16,15 @@ describe('GoogleMapsSkill', () => {
     expect(createGoogleMapsSkill()).toBeInstanceOf(GoogleMapsSkill);
   });
 
-  it('should throw during setup when GOOGLE_MAPS_API_KEY is missing', async () => {
+  it('should return false during setup when GOOGLE_MAPS_API_KEY is missing', async () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
-    await expect(new GoogleMapsSkill().setup()).rejects.toThrow(
-      /GOOGLE_MAPS_API_KEY/,
-    );
+    await expect(new GoogleMapsSkill().setup()).resolves.toBe(false);
   });
 
-  it('should complete setup when GOOGLE_MAPS_API_KEY is set', async () => {
+  it('should return true during setup when GOOGLE_MAPS_API_KEY is set', async () => {
     process.env['GOOGLE_MAPS_API_KEY'] = 'test-key';
     try {
-      await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+      await expect(new GoogleMapsSkill().setup()).resolves.toBe(true);
     } finally {
       delete process.env['GOOGLE_MAPS_API_KEY'];
     }

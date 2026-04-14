@@ -17,7 +17,7 @@ describe('SpiderSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new SpiderSkill().setup()).resolves.toBeUndefined();
+    await expect(new SpiderSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a scrape_url tool', () => {
