@@ -87,32 +87,61 @@ describe('SessionManager', () => {
     expect(sm.tokenExpirySecs).toBe(900);
   });
 
-  // ── Pass 1: debugToken + session metadata ────────────────────────
+  // ── debugToken ──────────────────────────────────────────────────
 
-  it('debugToken decodes token components', () => {
+  it('debugToken returns error when debugMode is false (default)', () => {
     const sm = new SessionManager();
     const token = sm.generateToken('get_time', 'call-42');
     const info = sm.debugToken(token);
-    expect(info).not.toBeNull();
-    expect(info!.callId).toBe('call-42');
-    expect(info!.functionName).toBe('get_time');
-    expect(typeof info!.expiry).toBe('number');
-    expect(typeof info!.nonce).toBe('string');
-    expect(typeof info!.signature).toBe('string');
-    expect(info!.expired).toBe(false);
+    expect(info.error).toBe('debug mode not enabled');
+    expect(info.valid_format).toBe(false);
   });
 
-  it('debugToken returns null for invalid token', () => {
+  it('debugToken decodes token components when debugMode is true', () => {
     const sm = new SessionManager();
-    expect(sm.debugToken('not-valid')).toBeNull();
+    sm.debugMode = true;
+    const token = sm.generateToken('get_time', 'call-42');
+    const info = sm.debugToken(token);
+    expect(info.valid_format).toBe(true);
+    expect(info.components).toBeDefined();
+    expect(info.components!.function).toBe('get_time');
+    // call_id should be truncated to 8 chars + "..." since 'call-42' is 7 chars, no truncation
+    expect(info.components!.call_id).toBe('call-42');
+    expect(typeof info.components!.expiry).toBe('string');
+    expect(typeof info.components!.nonce).toBe('string');
+    // signature is 64 hex chars, so it should be truncated
+    expect(info.components!.signature).toMatch(/^[0-9a-f]{8}\.\.\.$/);
+    expect(info.status).toBeDefined();
+    expect(info.status!.is_expired).toBe(false);
+    expect(typeof info.status!.current_time).toBe('number');
+    expect(typeof info.status!.expires_in_seconds).toBe('number');
   });
 
-  it('debugToken shows expired status for expired tokens', () => {
-    const sm = new SessionManager(0); // 0 second expiry
+  it('debugToken returns invalid format for malformed token when debugMode is true', () => {
+    const sm = new SessionManager();
+    sm.debugMode = true;
+    const info = sm.debugToken('not-valid');
+    expect(info.valid_format).toBe(false);
+  });
+
+  it('debugToken shows expired status for expired tokens when debugMode is true', () => {
+    // Use a negative expiry offset so the token is definitively in the past
+    const sm = new SessionManager(-10); // already 10 seconds expired at creation
+    sm.debugMode = true;
     const token = sm.generateToken('fn', 'call-1');
     const info = sm.debugToken(token);
-    expect(info).not.toBeNull();
-    expect(info!.expired).toBe(true);
+    expect(info.valid_format).toBe(true);
+    expect(info.status!.is_expired).toBe(true);
+    expect(info.status!.expires_in_seconds).toBe(0);
+  });
+
+  it('debugToken truncates long call_id and signature', () => {
+    const sm = new SessionManager();
+    sm.debugMode = true;
+    const token = sm.generateToken('fn', 'a-very-long-call-id-string');
+    const info = sm.debugToken(token);
+    expect(info.valid_format).toBe(true);
+    expect(info.components!.call_id).toBe('a-very-l...');
   });
 
   it('setSessionMetadata stores and retrieves metadata', () => {
@@ -146,11 +175,11 @@ describe('SessionManager', () => {
 
   it('token round-trip works with full-length HMAC', () => {
     const sm = new SessionManager();
+    sm.debugMode = true;
     const token = sm.generateToken('fn_a', 'call-99');
     const info = sm.debugToken(token);
-    expect(info).not.toBeNull();
-    // Full SHA-256 hex digest is 64 chars
-    expect(info!.signature.length).toBe(64);
+    expect(info.valid_format).toBe(true);
+    // Signature is truncated to 8 chars + "..." in debug output; validate via round-trip instead
     expect(sm.validateToken('call-99', 'fn_a', token)).toBe(true);
   });
 
@@ -177,5 +206,52 @@ describe('SessionManager', () => {
     const token = sm.generateToken('fn', 'call-1');
     // With <= comparison, a token expiring at exactly now should be invalid
     expect(sm.validateToken('call-1', 'fn', token)).toBe(false);
+  });
+
+  // ── SDK alignment gap fixes ─────────────────────────────────────
+
+  it('secretKey is publicly accessible (Python SDK parity)', () => {
+    const sm = new SessionManager(900, 'my-secret');
+    // secretKey must be a public property, not private
+    expect(sm.secretKey).toBe('my-secret');
+  });
+
+  it('secretKey is auto-generated when not provided', () => {
+    const sm = new SessionManager();
+    expect(typeof sm.secretKey).toBe('string');
+    expect(sm.secretKey.length).toBeGreaterThan(0);
+  });
+
+  it('activateSession is a legacy no-op returning true', () => {
+    const sm = new SessionManager();
+    expect(sm.activateSession('call-1')).toBe(true);
+    expect(sm.activateSession('any-id')).toBe(true);
+  });
+
+  it('endSession is a legacy no-op returning true', () => {
+    const sm = new SessionManager();
+    expect(sm.endSession('call-1')).toBe(true);
+    expect(sm.endSession('any-id')).toBe(true);
+  });
+
+  it('setSessionMetadata accepts (sessionId, key, value) overload and returns true', () => {
+    const sm = new SessionManager();
+    const result = sm.setSessionMetadata('session-1', 'caller', 'John');
+    expect(result).toBe(true);
+    const meta = sm.getSessionMetadata('session-1');
+    expect(meta).toEqual({ caller: 'John' });
+  });
+
+  it('setSessionMetadata key/value overload merges with existing metadata', () => {
+    const sm = new SessionManager();
+    sm.setSessionMetadata('session-1', { existing: 'data' });
+    sm.setSessionMetadata('session-1', 'newKey', 42);
+    const meta = sm.getSessionMetadata('session-1');
+    expect(meta).toEqual({ existing: 'data', newKey: 42 });
+  });
+
+  it('debugMode defaults to false', () => {
+    const sm = new SessionManager();
+    expect(sm.debugMode).toBe(false);
   });
 });
