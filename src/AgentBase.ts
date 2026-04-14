@@ -12,7 +12,6 @@ import { randomBytes } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
-import { SchemaUtils } from './SchemaUtils.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
@@ -21,7 +20,8 @@ import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
-import type { SkillBase } from './skills/SkillBase.js';
+import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
+import { SkillRegistry } from './skills/SkillRegistry.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -59,8 +59,6 @@ export class AgentBase {
   private sessionManager: SessionManager;
   private swmlBuilder: SwmlBuilder;
   private toolRegistry: Map<string, SwaigFunction | Record<string, unknown>> = new Map();
-  private _schemaUtils: SchemaUtils | null = null;
-
   // Auth
   private basicAuthCreds: [string, string];
   private basicAuthSource: 'provided' | 'environment' | 'generated' = 'generated';
@@ -193,13 +191,13 @@ export class AgentBase {
     this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
     this.swmlBuilder = new SwmlBuilder();
 
-    // Initialize schema validation
-    if (this._schemaValidation) {
-      try {
-        this._schemaUtils = new SchemaUtils({ skipValidation: false });
-      } catch {
-        // Schema loading failed — validation disabled
-      }
+    // Wire schema validation: propagate the agent-level schemaValidation flag into SwmlBuilder.
+    // Python's schema_validation=False disables per-verb validation in add_verb(); we match that
+    // by disabling SwmlBuilder's internal validation when the flag is false.
+    // schemaPath is accepted for API parity with Python but is not currently forwarded — the
+    // TypeScript SchemaUtils always loads the bundled schema.json and does not support a custom path.
+    if (!this._schemaValidation) {
+      this.swmlBuilder.setValidation(false);
     }
 
     // Setup auth
@@ -1313,6 +1311,26 @@ export class AgentBase {
   }
 
   /**
+   * Add a skill by its registered name, looking it up in the global SkillRegistry.
+   *
+   * Matches Python's `add_skill(skill_name, params)` which loads skills by string
+   * name via the SkillManager registry. Throws a `ValueError`-equivalent if the
+   * skill name is not found in the registry.
+   *
+   * @param skillName - The name the skill was registered under in the SkillRegistry.
+   * @param params - Optional configuration parameters forwarded to the skill factory.
+   * @returns This agent instance for chaining.
+   * @throws Error if no skill with the given name is registered.
+   */
+  async addSkillByName(skillName: string, params?: SkillConfig): Promise<this> {
+    const skill = SkillRegistry.getInstance().create(skillName, params);
+    if (!skill) {
+      throw new Error(`Failed to load skill '${skillName}': skill not found in registry`);
+    }
+    return this.addSkill(skill);
+  }
+
+  /**
    * Remove a previously added skill by its instance ID.
    * @param instanceId - The unique instance ID of the skill to remove.
    * @returns True if the skill was found and removed.
@@ -1621,10 +1639,14 @@ export class AgentBase {
   /**
    * Render the complete SWML document by assembling all 5 phases: pre-answer, answer,
    * post-answer, AI, and post-AI verbs.
+   *
    * @param callId - Optional call ID to use for session tokens; auto-generated if omitted.
+   * @param modifications - Optional dict returned from `onSwmlRequest` to merge into the AI
+   *   verb config before rendering. Matches Python's `_render_swml(modifications)` semantics:
+   *   `global_data` is deep-merged; all other keys override the AI config directly.
    * @returns The rendered SWML document as a JSON string.
    */
-  renderSwml(callId?: string): string {
+  renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
     this.swmlBuilder.reset();
 
     const prompt = this.getPrompt();
@@ -1759,6 +1781,22 @@ export class AgentBase {
     if (this.debugEventsEnabled) {
       aiConfig['debug_webhook_url'] = this.buildWebhookUrl('debug_events');
       aiConfig['debug_webhook_level'] = this.debugEventsLevel;
+    }
+
+    // Apply modifications from onSwmlRequest (Python parity: merge into AI verb config).
+    // global_data is deep-merged; all other keys override AI config fields directly.
+    if (modifications && typeof modifications === 'object') {
+      if (modifications['global_data'] && typeof modifications['global_data'] === 'object') {
+        aiConfig['global_data'] = {
+          ...(aiConfig['global_data'] as Record<string, unknown> ?? {}),
+          ...(modifications['global_data'] as Record<string, unknown>),
+        };
+      }
+      for (const [key, value] of Object.entries(modifications)) {
+        if (key !== 'global_data') {
+          aiConfig[key] = value;
+        }
+      }
     }
 
     this.swmlBuilder.addVerb('ai', aiConfig);
@@ -1946,7 +1984,14 @@ export class AgentBase {
       reqLog.debug('request_body_received', { body_size: JSON.stringify(body).length });
 
       this.detectProxyFromRequest(c);
-      await this.onSwmlRequest(body);
+      const callbackPath = (body['callback_path'] as string) ?? undefined;
+      let swmlMods: Record<string, unknown> | void = undefined;
+      try {
+        swmlMods = await this.onSwmlRequest(body, callbackPath);
+        if (swmlMods) reqLog.debug('on_swml_request_modifications_applied');
+      } catch (err) {
+        reqLog.error('error_in_on_swml_request', { error: err instanceof Error ? err.message : String(err) });
+      }
 
       const callId = (body['call_id'] as string) || undefined;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
@@ -1964,7 +2009,7 @@ export class AgentBase {
         reqLog.debug('dynamic_config_complete');
       }
 
-      const swml = agentToUse.renderSwml(callId);
+      const swml = agentToUse.renderSwml(callId, swmlMods || undefined);
       reqLog.debug('swml_rendered', { swml_size: swml.length });
       reqLog.info('request_successful');
       return c.json(JSON.parse(swml));

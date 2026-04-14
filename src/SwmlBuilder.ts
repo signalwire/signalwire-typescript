@@ -20,11 +20,28 @@ export class SwmlBuilder {
   private static _schemaUtils: SchemaUtils | null = null;
   private enableValidation: boolean;
 
-  /** Creates a new SwmlBuilder with an empty SWML document. */
-  constructor() {
+  /**
+   * Creates a new SwmlBuilder with an empty SWML document.
+   * @param enableValidation - When false, disables verb schema validation.
+   *   Defaults to true unless `SWML_SKIP_SCHEMA_VALIDATION=true` is set in the environment.
+   */
+  constructor(enableValidation?: boolean) {
     this.document = this.createEmpty();
-    this.enableValidation = process.env['SWML_SKIP_SCHEMA_VALIDATION'] !== 'true';
+    if (enableValidation !== undefined) {
+      this.enableValidation = enableValidation;
+    } else {
+      this.enableValidation = process.env['SWML_SKIP_SCHEMA_VALIDATION'] !== 'true';
+    }
     this._installVerbMethods();
+  }
+
+  /**
+   * Enable or disable verb schema validation at runtime.
+   * Matches the Python `schema_validation` constructor parameter on AgentBase.
+   * @param enabled - True to enable validation, false to disable.
+   */
+  setValidation(enabled: boolean): void {
+    this.enableValidation = enabled;
   }
 
   private createEmpty() {
