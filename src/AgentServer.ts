@@ -9,7 +9,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
-import { AgentBase } from './AgentBase.js';
+import { AgentBase, type RoutingCallback } from './AgentBase.js';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
 
 /** Common MIME types for static file serving. */
@@ -63,6 +63,10 @@ export class AgentServer {
   private _sipAutoMap = false;
   private _sipUsernameMapping: Map<string, string> = new Map();
   private _sipRoutingCallback: ((req: Request, body: Record<string, unknown>) => string | undefined) | null = null;
+
+  // Global routing callbacks registered via registerGlobalRoutingCallback
+  // Stored so they can be applied to agents registered after the call.
+  private _globalRoutingCallbacks: Array<{ callbackFn: RoutingCallback; path: string }> = [];
 
   /**
    * Create an AgentServer.
@@ -130,6 +134,11 @@ export class AgentServer {
         this._autoMapAgentSipUsernames(agent, r);
       }
       agent.enableSipRouting(this._sipAutoMap, this._sipRoute);
+    }
+
+    // Apply any global routing callbacks registered before this agent was added
+    for (const { callbackFn, path } of this._globalRoutingCallbacks) {
+      agent.registerRoutingCallback(callbackFn, path);
     }
   }
 
@@ -277,18 +286,20 @@ export class AgentServer {
    * @param path - The path to register the callback at.
    */
   registerGlobalRoutingCallback(
-    callbackFn: (req: Request, body: Record<string, unknown>) => string | undefined,
+    callbackFn: RoutingCallback,
     path: string,
   ): void {
-    // Normalize the path
+    // Normalize path: ensure leading slash, strip trailing slash
     let p = path;
     if (!p.startsWith('/')) p = `/${p}`;
     p = p.replace(/\/+$/, '') || '/';
 
-    // Register with all existing agents via enableSipRouting as a proxy
-    // (The TS AgentBase uses enableSipRouting for routing callbacks)
+    // Store so agents registered after this call also receive the callback
+    this._globalRoutingCallbacks.push({ callbackFn, path: p });
+
+    // Register with all currently registered agents
     for (const agent of this.agents.values()) {
-      agent.enableSipRouting(false, p);
+      agent.registerRoutingCallback(callbackFn, p);
     }
 
     this.log.info(`Registered global routing callback at ${p} on all agents`);

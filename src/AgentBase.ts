@@ -29,6 +29,18 @@ import type {
 } from './types.js';
 
 /**
+ * Callback invoked at a registered routing endpoint to determine how to handle an
+ * incoming request. Return a route string to redirect to that agent route, or
+ * null / undefined to let normal SWML processing continue.
+ *
+ * Mirrors Python `web_mixin.register_routing_callback` callback signature (body-only
+ * variant — Hono request object is not forwarded; use the parsed body instead).
+ */
+export type RoutingCallback = (
+  body: Record<string, unknown>,
+) => string | null | undefined | Promise<string | null | undefined>;
+
+/**
  * Core agent class that composes an HTTP server, prompt management, session handling,
  * SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
  */
@@ -116,6 +128,9 @@ export class AgentBase {
 
   // Skills
   private skillManager = new SkillManager();
+
+  // Routing callbacks (registered via registerRoutingCallback)
+  private _routingCallbacks: Map<string, RoutingCallback> = new Map();
 
   // Hono app
   private _app: Hono | null = null;
@@ -634,6 +649,38 @@ export class AgentBase {
   registerSipUsername(username: string): this {
     if (!this._sipUsernames) this._sipUsernames = new Map();
     this._sipUsernames.set(username, this.route);
+    return this;
+  }
+
+  /**
+   * Register a callback at a specific HTTP path that decides how to route an
+   * incoming request.
+   *
+   * When called, the endpoint at `path` will invoke `callback` with the parsed
+   * request body. If `callback` returns a non-empty route string the server
+   * responds with `{ action: "redirect", route }` so the platform can forward the
+   * request to the right agent. If `callback` returns `null` / `undefined` the
+   * agent's own SWML is returned instead (normal processing).
+   *
+   * Mirrors Python `swml_service.register_routing_callback` /
+   * `web_mixin.register_routing_callback`.
+   *
+   * @param callback - Function receiving the parsed request body and returning a
+   *   route string to redirect, or null/undefined for normal processing.
+   * @param path - HTTP path where this callback endpoint is registered
+   *   (default: '/sip').
+   * @returns This agent instance for chaining.
+   */
+  registerRoutingCallback(
+    callback: RoutingCallback,
+    path = '/sip',
+  ): this {
+    // Normalize path: ensure leading slash, strip trailing slash
+    let normalized = path.replace(/\/+$/, '') || '/';
+    if (!normalized.startsWith('/')) normalized = `/${normalized}`;
+    this._routingCallbacks.set(normalized, callback);
+    // Invalidate cached app so getApp() re-registers routes with the new callback
+    this._app = null;
     return this;
   }
 
@@ -1793,6 +1840,36 @@ export class AgentBase {
         const result = await this.handleMcpRequest(body);
         return c.json(result);
       });
+    }
+
+    // Routing callbacks (registered via registerRoutingCallback)
+    for (const [callbackPath, callback] of this._routingCallbacks) {
+      const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
+      const handleRouting = async (c: any) => {
+        const reqLog = this.log.bind({ endpoint: fullPath });
+        reqLog.debug('routing_callback_called');
+
+        let body: Record<string, unknown> = {};
+        try { body = await c.req.json(); } catch { /* GET or no body */ }
+
+        try {
+          const route = await callback(body);
+          if (route) {
+            reqLog.info('routing_callback_redirect', { route });
+            return c.json({ action: 'redirect', route });
+          }
+          // No redirect — return SWML for this agent
+          this.detectProxyFromRequest(c);
+          const swml = this.renderSwml();
+          return c.json(JSON.parse(swml));
+        } catch (err) {
+          reqLog.error('routing_callback_error', { error: err instanceof Error ? err.message : String(err) });
+          return c.json({ error: 'Routing callback failed' }, 500);
+        }
+      };
+
+      app.get(fullPath, authMw, handleRouting);
+      app.post(fullPath, authMw, handleRouting);
     }
 
     // Health / Ready

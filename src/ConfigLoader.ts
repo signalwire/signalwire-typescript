@@ -257,8 +257,18 @@ export class ConfigLoader {
   }
 
   /**
-   * Check if a configuration was loaded (from file or object).
-   * @returns True if configuration data exists.
+   * Check if a configuration was loaded.
+   *
+   * **Deliberate deviation from Python `has_config()`:** Python returns `True`
+   * only when a file was loaded (`self._config is not None`). This TypeScript
+   * implementation also returns `true` when data was loaded via
+   * {@link loadFromObject}, because `loadFromObject` is an extra TS-only method
+   * with no Python equivalent. Treating object-loaded data as "configured" is
+   * the correct semantic for the TS API surface.
+   *
+   * If you need file-load-only detection, check `this.getFilePath() !== null`.
+   *
+   * @returns True if configuration data exists (from file or object).
    */
   hasConfig(): boolean {
     return this.filePath !== null || Object.keys(this.data).length > 0;
@@ -333,8 +343,17 @@ export class ConfigLoader {
    * Environment variable keys are stripped of the prefix and lowercased
    * (e.g. `SWML_FOO_BAR` becomes `foo_bar`).
    *
+   * **Deliberate deviation from Python `merge_with_env()`:** Python splits the
+   * lowercased key on `_` and writes nested dicts (e.g. `SWML_FOO_BAR` →
+   * `{ foo: { bar: v } }`). This TypeScript implementation stores flat keys
+   * (`foo_bar`) because the nested-split behaviour causes surprising aliasing
+   * when env-var names contain legitimate underscores (e.g. `SWML_SSL_ENABLED`
+   * would create `{ ssl: { enabled: v } }` colliding with an `ssl_enabled` config
+   * key). Flat keys are unambiguous and predictable. Callers that need nested
+   * access can use {@link get} with dot-notation after loading.
+   *
    * @param envPrefix - Prefix for environment variables to consider (default: 'SWML_').
-   * @returns Merged configuration dictionary.
+   * @returns Merged configuration dictionary with flat keys.
    */
   mergeWithEnv(envPrefix = 'SWML_'): Record<string, unknown> {
     // Start with substituted config
