@@ -16,16 +16,37 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 
+/** A pre-configured file entry as supplied via the `files` config parameter. */
+interface PreConfiguredFile {
+  /** Unique identifier for the file (alphanumeric, underscores, hyphens). */
+  key: string;
+  /** Human-readable description of the file. */
+  description: string;
+  /** URL of the audio/video file to play. */
+  url: string;
+  /** Whether to wait for the file to finish playing. */
+  wait?: boolean;
+}
+
 /**
  * Controls background audio playback during calls via SWML actions.
  *
  * Tier 2 built-in skill with no external dependencies. Provides tools to play
  * and stop background audio files (e.g., hold music, ambient sounds). Supports
- * `default_file_url` and `allowed_domains` config options.
+ * two configuration modes:
+ *
+ *  - Pre-configured `files` array (matches the Python skill): emits a single
+ *    configurable tool whose `action` enum maps to `start_<key>` / `stop`
+ *    values that trigger the corresponding file playback.
+ *  - Free-form `default_file_url` / `allowed_domains`: emits two tools,
+ *    `play_background` (arbitrary URL) and `stop_background`.
  */
 export class PlayBackgroundFileSkill extends SkillBase {
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
+
   /**
-   * @param config - Optional configuration; supports `default_file_url` and `allowed_domains`.
+   * @param config - Optional configuration; supports `tool_name`, `files`,
+   *   `default_file_url`, and `allowed_domains`.
    */
   constructor(config?: SkillConfig) {
     super('play_background_file', config);
@@ -34,19 +55,55 @@ export class PlayBackgroundFileSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      tool_name: {
+        type: 'string',
+        description:
+          'Custom name for the generated SWAIG function (enables multiple instances).',
+        default: 'play_background_file',
+      },
+      files: {
+        type: 'array',
+        description:
+          'Array of pre-configured file entries to make available for playback.',
+        required: true,
+        items: {
+          type: 'object',
+          properties: {
+            key: {
+              type: 'string',
+              description: 'Unique identifier for the file',
+            },
+            description: {
+              type: 'string',
+              description: 'Human-readable description of the file',
+            },
+            url: {
+              type: 'string',
+              description: 'URL of the audio/video file to play',
+            },
+            wait: {
+              type: 'boolean',
+              description: 'Whether to wait for the file to finish playing',
+              default: false,
+            },
+          },
+          required: ['key', 'description', 'url'],
+        },
+      },
       default_file_url: {
         type: 'string',
-        description: 'Default audio file URL to use when no URL is specified.',
+        description:
+          'Default audio file URL to use when no URL is specified (free-form mode).',
       },
       allowed_domains: {
         type: 'array',
-        description: 'List of allowed domains for audio file URLs.',
+        description: 'List of allowed domains for audio file URLs (free-form mode).',
         items: { type: 'string' },
       },
     };
   }
 
-  /** @returns Manifest with config schema for default_file_url and allowed_domains. */
+  /** @returns Manifest with config schema for tool_name, files, default_file_url, and allowed_domains. */
   getManifest(): SkillManifest {
     return {
       name: 'play_background_file',
@@ -56,6 +113,17 @@ export class PlayBackgroundFileSkill extends SkillBase {
       author: 'SignalWire',
       tags: ['audio', 'playback', 'background', 'music', 'call-control'],
       configSchema: {
+        tool_name: {
+          type: 'string',
+          description:
+            'Custom name for the generated SWAIG function (enables multiple instances).',
+          default: 'play_background_file',
+        },
+        files: {
+          type: 'array',
+          description:
+            'Array of pre-configured file entries, each with key, description, url, and optional wait.',
+        },
         default_file_url: {
           type: 'string',
           description:
@@ -70,8 +138,110 @@ export class PlayBackgroundFileSkill extends SkillBase {
     };
   }
 
-  /** @returns Two tools: `play_background` to start audio and `stop_background` to stop it. */
+  /**
+   * Produce a compound instance key so multiple copies of the skill with
+   * distinct `tool_name` values can coexist in a single agent.
+   */
+  override getInstanceKey(): string {
+    const toolName = this.getConfig<string>('tool_name', 'play_background_file');
+    return `${this.skillName}_${toolName}`;
+  }
+
+  private _getFiles(): PreConfiguredFile[] {
+    const raw = this.getConfig<unknown>('files', undefined);
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(
+      (f): f is PreConfiguredFile =>
+        typeof f === 'object' &&
+        f !== null &&
+        typeof (f as PreConfiguredFile).key === 'string' &&
+        typeof (f as PreConfiguredFile).description === 'string' &&
+        typeof (f as PreConfiguredFile).url === 'string',
+    );
+  }
+
+  /**
+   * @returns Either a single enum-based tool (when pre-configured `files` are
+   *   supplied — matches Python), or two free-form tools (`play_background`
+   *   and `stop_background`) when only `default_file_url`/`allowed_domains`
+   *   are configured.
+   */
   getTools(): SkillToolDefinition[] {
+    const files = this._getFiles();
+    if (files.length > 0) {
+      return this._getPreConfiguredTools(files);
+    }
+    return this._getFreeFormTools();
+  }
+
+  private _getPreConfiguredTools(
+    files: PreConfiguredFile[],
+  ): SkillToolDefinition[] {
+    const toolName = this.getConfig<string>('tool_name', 'play_background_file');
+
+    const enumValues: string[] = [];
+    const descriptions: string[] = [];
+    for (const file of files) {
+      const actionKey = `start_${file.key}`;
+      enumValues.push(actionKey);
+      descriptions.push(`${actionKey}: ${file.description}`);
+    }
+    enumValues.push('stop');
+    descriptions.push('stop: Stop any currently playing background file');
+
+    const description = `Action to perform. Options: ${descriptions.join('; ')}`;
+    const byAction = new Map<string, PreConfiguredFile>(
+      files.map((f) => [`start_${f.key}`, f]),
+    );
+
+    return [
+      {
+        name: toolName,
+        description: `Control background file playback for ${toolName.replace(/_/g, ' ')}`,
+        parameters: {
+          action: {
+            type: 'string',
+            description,
+            enum: enumValues,
+          },
+        },
+        required: ['action'],
+        wait_for_fillers: true,
+        skip_fillers: true,
+        handler: (args: Record<string, unknown>) => {
+          const action = args['action'] as string | undefined;
+          if (!action || typeof action !== 'string') {
+            return new FunctionResult(
+              'Please specify an action to perform.',
+            );
+          }
+
+          if (action === 'stop') {
+            const result = new FunctionResult(
+              'Tell the user you have stopped the background file playback.',
+            );
+            result.stopBackgroundFile();
+            return result;
+          }
+
+          const file = byAction.get(action);
+          if (!file) {
+            return new FunctionResult(
+              `Unknown action "${action}". Valid actions: ${enumValues.join(', ')}.`,
+            );
+          }
+
+          const result = new FunctionResult(
+            `Tell the user you are now going to play ${file.description} for them.`,
+          );
+          result.playBackgroundFile(file.url, file.wait ?? false);
+          return result;
+        },
+      },
+    ];
+  }
+
+  private _getFreeFormTools(): SkillToolDefinition[] {
     const defaultFileUrl = this.getConfig<string | undefined>(
       'default_file_url',
       undefined,
@@ -99,6 +269,8 @@ export class PlayBackgroundFileSkill extends SkillBase {
           },
         },
         required: defaultFileUrl ? [] : ['file_url'],
+        wait_for_fillers: true,
+        skip_fillers: true,
         handler: (args: Record<string, unknown>) => {
           let fileUrl = (args.file_url as string | undefined) ?? defaultFileUrl;
           const wait = (args.wait as boolean | undefined) ?? false;
@@ -153,6 +325,8 @@ export class PlayBackgroundFileSkill extends SkillBase {
         description:
           'Stop any audio file currently playing in the background. Use this when the caller is ready to resume the conversation or when background audio is no longer needed.',
         parameters: {},
+        wait_for_fillers: true,
+        skip_fillers: true,
         handler: () => {
           const result = new FunctionResult(
             'Background audio playback has been stopped.',
@@ -166,6 +340,26 @@ export class PlayBackgroundFileSkill extends SkillBase {
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
+    const files = this._getFiles();
+    const toolName = this.getConfig<string>('tool_name', 'play_background_file');
+
+    if (files.length > 0) {
+      const bullets: string[] = [
+        `Use the ${toolName} tool to control pre-configured background file playback.`,
+        `Set action to one of: ${files.map((f) => `start_${f.key}`).join(', ')}, or "stop" to stop playback.`,
+      ];
+      for (const file of files) {
+        bullets.push(`start_${file.key}: ${file.description}`);
+      }
+      return [
+        {
+          title: 'Background Audio Playback',
+          body: 'You can control pre-configured background audio playback during the call.',
+          bullets,
+        },
+      ];
+    }
+
     const defaultFileUrl = this.getConfig<string | undefined>(
       'default_file_url',
       undefined,

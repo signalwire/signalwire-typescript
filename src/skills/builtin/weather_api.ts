@@ -65,6 +65,11 @@ export class WeatherApiSkill extends SkillBase {
         env_var: 'WEATHER_API_KEY',
         required: true,
       },
+      tool_name: {
+        type: 'string',
+        description: 'Custom name for the generated weather tool.',
+        default: 'get_weather',
+      },
       units: {
         type: 'string',
         description: 'Temperature units: "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin).',
@@ -95,13 +100,14 @@ export class WeatherApiSkill extends SkillBase {
     };
   }
 
-  /** @returns A single `get_weather` tool that fetches current weather for a location. */
+  /** @returns A single weather tool (configurable name) that fetches current weather for a location. */
   getTools(): SkillToolDefinition[] {
     const units = this.getConfig<string>('units', 'metric');
+    const toolName = this.getConfig<string>('tool_name', 'get_weather');
 
     return [
       {
-        name: 'get_weather',
+        name: toolName,
         description:
           'Get the current weather conditions for a specified location. Returns temperature, humidity, wind speed, and weather description.',
         parameters: {

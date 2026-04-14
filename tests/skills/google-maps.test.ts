@@ -16,8 +16,20 @@ describe('GoogleMapsSkill', () => {
     expect(createGoogleMapsSkill()).toBeInstanceOf(GoogleMapsSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+  it('should throw during setup when GOOGLE_MAPS_API_KEY is missing', async () => {
+    delete process.env['GOOGLE_MAPS_API_KEY'];
+    await expect(new GoogleMapsSkill().setup()).rejects.toThrow(
+      /GOOGLE_MAPS_API_KEY/,
+    );
+  });
+
+  it('should complete setup when GOOGLE_MAPS_API_KEY is set', async () => {
+    process.env['GOOGLE_MAPS_API_KEY'] = 'test-key';
+    try {
+      await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+    } finally {
+      delete process.env['GOOGLE_MAPS_API_KEY'];
+    }
   });
 
   it('should register tools', () => {
@@ -35,9 +47,16 @@ describe('GoogleMapsSkill', () => {
     expect(new GoogleMapsSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
+  it('should return maps-related hints and empty global data', () => {
     const skill = new GoogleMapsSkill();
-    expect(skill.getHints()).toEqual([]);
+    expect(skill.getHints()).toEqual([
+      'address',
+      'location',
+      'route',
+      'directions',
+      'miles',
+      'distance',
+    ]);
     expect(skill.getGlobalData()).toEqual({});
   });
 

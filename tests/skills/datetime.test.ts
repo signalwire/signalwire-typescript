@@ -25,20 +25,24 @@ describe('DateTimeSkill', () => {
     await expect(skill.setup()).resolves.toBeUndefined();
   });
 
-  it('should register a get_datetime tool', () => {
+  it('should register get_current_time and get_current_date tools', () => {
     const skill = new DateTimeSkill();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_datetime');
-    expect(tools[0].description).toBeTruthy();
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools).toHaveLength(2);
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('get_current_time');
+    expect(names).toContain('get_current_date');
+    for (const tool of tools) {
+      expect(tool.description).toBeTruthy();
+      expect(tool.handler).toBeTypeOf('function');
+    }
   });
 
   it('should provide prompt sections', () => {
     const skill = new DateTimeSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Date and Time');
+    expect(sections[0].title).toBe('Date and Time Information');
     expect(sections[0].bullets).toBeDefined();
     expect(sections[0].bullets!.length).toBeGreaterThan(0);
   });
@@ -66,12 +70,20 @@ describe('DateTimeSkill', () => {
     expect(manifest.description).toBeTruthy();
   });
 
-  it('should execute handler with a valid timezone', () => {
+  it('should execute get_current_time handler with a valid timezone', () => {
     const skill = new DateTimeSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    const timeTool = skill.getTools().find((t) => t.name === 'get_current_time')!;
+    const result = timeTool.handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('America/New_York');
+    expect(result.response).toContain('current time');
+  });
+
+  it('should execute get_current_date handler with a valid timezone', () => {
+    const skill = new DateTimeSkill();
+    const dateTool = skill.getTools().find((t) => t.name === 'get_current_date')!;
+    const result = dateTool.handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
+    expect(result.response).toContain("Today's date");
   });
 
   it('should execute handler with an invalid timezone', () => {

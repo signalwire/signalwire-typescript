@@ -75,30 +75,39 @@ describe('DateTimeSkill', () => {
     expect(manifest.description).toBeTruthy();
   });
 
-  it('should return a get_datetime tool', () => {
+  it('should return get_current_time and get_current_date tools', () => {
     const skill = createDateTimeSkill();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_datetime');
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools).toHaveLength(2);
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('get_current_time');
+    expect(names).toContain('get_current_date');
+    for (const tool of tools) {
+      expect(tool.handler).toBeTypeOf('function');
+    }
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createDateTimeSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Date and Time');
+    expect(sections[0].title).toBe('Date and Time Information');
     expect(sections[0].bullets).toBeDefined();
     expect(sections[0].bullets!.length).toBeGreaterThan(0);
   });
 
-  it('should execute handler and return datetime for a timezone', () => {
+  it('should execute handlers and return time/date for a timezone', () => {
     const skill = createDateTimeSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
-    expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('America/New_York');
-    expect(result.response).toContain('current date and time');
+    const timeTool = skill.getTools().find((t) => t.name === 'get_current_time')!;
+    const dateTool = skill.getTools().find((t) => t.name === 'get_current_date')!;
+
+    const timeResult = timeTool.handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    expect(timeResult).toBeInstanceOf(FunctionResult);
+    expect(timeResult.response).toContain('current time');
+
+    const dateResult = dateTool.handler({ timezone: 'America/New_York' }, {}) as FunctionResult;
+    expect(dateResult).toBeInstanceOf(FunctionResult);
+    expect(dateResult.response).toContain("Today's date");
   });
 });
 
@@ -382,7 +391,35 @@ describe('ApiNinjasTriviaSkill', () => {
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('api_ninjas_trivia');
     expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('API_NINJAS_KEY');
+    // API key can be supplied via config (`api_key`) OR the API_NINJAS_KEY
+    // env var, matching Python's `REQUIRED_ENV_VARS = []` contract.
+    expect(manifest.requiredEnvVars ?? []).toEqual([]);
+  });
+
+  it('should accept api_key via config as a fallback for the env var', async () => {
+    const originalKey = process.env['API_NINJAS_KEY'];
+    delete process.env['API_NINJAS_KEY'];
+    try {
+      const skill = createApiNinjasTriviaSkill({ api_key: 'config-key' });
+      const handler = skill.getTools()[0].handler;
+      // Intercept fetch to avoid a real network call; we only need to assert
+      // that the handler treats the config value as present (no "not configured").
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = (async () => new Response(
+        JSON.stringify([
+          { category: 'general', question: 'q?', answer: 'a' },
+        ]),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )) as typeof fetch;
+      try {
+        const result = await handler({}, {}) as FunctionResult;
+        expect(result.response).not.toContain('not configured');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    } finally {
+      if (originalKey !== undefined) process.env['API_NINJAS_KEY'] = originalKey;
+    }
   });
 
   it('should return a get_trivia tool', () => {
@@ -652,20 +689,30 @@ describe('GoogleMapsSkill', () => {
     expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
   });
 
-  it('should return get_directions and find_place tools', () => {
+  it('should return compute_route and lookup_address tools by default', () => {
     const skill = createGoogleMapsSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(2);
     const names = tools.map((t) => t.name);
+    expect(names).toContain('compute_route');
+    expect(names).toContain('lookup_address');
+  });
+
+  it('should honor configurable route_tool_name / lookup_tool_name', () => {
+    const skill = createGoogleMapsSkill({
+      route_tool_name: 'get_directions',
+      lookup_tool_name: 'find_place',
+    });
+    const names = skill.getTools().map((t) => t.name);
     expect(names).toContain('get_directions');
     expect(names).toContain('find_place');
   });
 
-  it('should return error from get_directions when API key is not set', async () => {
+  it('should return error from the route tool when API key is not set', async () => {
     const origKey = process.env['GOOGLE_MAPS_API_KEY'];
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
-    const dirTool = skill.getTools().find((t) => t.name === 'get_directions')!;
+    const dirTool = skill.getTools().find((t) => t.name === 'compute_route')!;
     const result = await dirTool.handler(
       { origin: 'New York', destination: 'Boston' },
       {},
@@ -675,11 +722,11 @@ describe('GoogleMapsSkill', () => {
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
   });
 
-  it('should return error from find_place when API key is not set', async () => {
+  it('should return error from the lookup tool when API key is not set', async () => {
     const origKey = process.env['GOOGLE_MAPS_API_KEY'];
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
-    const placeTool = skill.getTools().find((t) => t.name === 'find_place')!;
+    const placeTool = skill.getTools().find((t) => t.name === 'lookup_address')!;
     const result = await placeTool.handler(
       { query: 'pizza near me' },
       {},

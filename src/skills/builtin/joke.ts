@@ -98,7 +98,14 @@ export class JokeSkill extends SkillBase {
   }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
-    return { ...super.getParameterSchema() };
+    return {
+      ...super.getParameterSchema(),
+      tool_name: {
+        type: 'string',
+        description: 'Custom name for the joke tool',
+        default: 'tell_joke',
+      },
+    };
   }
 
   /** @returns Manifest with skill metadata and tags. */
@@ -111,11 +118,18 @@ export class JokeSkill extends SkillBase {
     };
   }
 
-  /** @returns A single `tell_joke` tool that returns a random joke with optional category filter. */
+  /** @returns Global data flag indicating the joke skill is enabled. */
+  override getGlobalData(): Record<string, unknown> {
+    return { joke_skill_enabled: true };
+  }
+
+  /** @returns A single joke tool (configurable name) that returns a random joke with optional category filter. */
   getTools(): SkillToolDefinition[] {
+    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
+
     return [
       {
-        name: 'tell_joke',
+        name: toolName,
         description:
           'Tell a random joke. Optionally specify a category to get a joke from that category.',
         parameters: {
@@ -159,12 +173,13 @@ export class JokeSkill extends SkillBase {
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
+    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
     return [
       {
         title: 'Jokes',
         body: 'You have the ability to tell jokes to lighten the mood.',
         bullets: [
-          'Use the tell_joke tool when a user asks for a joke or when humor is appropriate.',
+          `Use the ${toolName} tool when a user asks for a joke or when humor is appropriate.`,
           'Available joke categories: general, programming, and dad jokes.',
           'If the user asks for a specific type of joke, pass the category parameter.',
           'Deliver the joke naturally: say the setup, pause briefly, then deliver the punchline.',

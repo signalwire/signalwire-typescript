@@ -6,8 +6,11 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FunctionResult } from '../FunctionResult.js';
+
+const _skillBaseRequire = createRequire(import.meta.url);
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -30,6 +33,10 @@ export interface SkillToolDefinition {
   fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
+  /** If true, wait for any in-flight fillers to complete before executing the tool. */
+  wait_for_fillers?: boolean;
+  /** If true, suppress filler phrases while the tool executes. */
+  skip_fillers?: boolean;
 }
 
 /** A section of prompt content injected into the agent's system prompt by a skill. */
@@ -151,9 +158,46 @@ export abstract class SkillBase {
   /**
    * Setup the skill. Called when the skill is added to an agent.
    * Override to perform initialization (API connections, config validation, etc.)
+   *
+   * Return `true` on success and `false` on failure. Python's equivalent
+   * (`SkillBase.setup`) returns a `bool`; the SkillManager treats `false` as
+   * a fatal failure. Throwing an Error is also treated as failure.
+   *
+   * The previous void-returning signature is still accepted — a skill that
+   * returns `undefined` (implicitly or explicitly) is treated as successful.
    */
-  async setup(): Promise<void> {
-    // Default no-op
+  async setup(): Promise<boolean | void> {
+    // Default no-op — implicit success (undefined return is treated as success)
+  }
+
+  /**
+   * Collected tool definitions registered via `defineTool()`. Subclasses that
+   * prefer the imperative Python-style registration API can push definitions
+   * here; `getTools()` in such subclasses should include these entries.
+   */
+  protected _dynamicTools: SkillToolDefinition[] = [];
+
+  /**
+   * Imperative tool registration helper that mirrors Python's
+   * `SkillBase.define_tool()`. Merges `this.swaigFields` into the provided
+   * tool definition and stores it on the skill. Subclasses that call this
+   * should ensure their `getTools()` override returns the collected
+   * definitions (e.g. by returning `this._dynamicTools`).
+   *
+   * @param def - Tool definition to register.
+   */
+  protected defineTool(def: SkillToolDefinition): void {
+    const merged: SkillToolDefinition = {
+      ...def,
+      // Shallow-merge swaig_fields into the definition so they flow to SWAIG.
+      ...(this.swaigFields as Partial<SkillToolDefinition>),
+      // Preserve the definition's own name/description/handler/parameters.
+      name: def.name,
+      description: def.description,
+      handler: def.handler,
+      parameters: def.parameters,
+    };
+    this._dynamicTools.push(merged);
   }
 
   /**
@@ -258,6 +302,38 @@ export abstract class SkillBase {
       for (const envVar of manifest.requiredEnvVars) {
         if (!process.env[envVar]) {
           missing.push(envVar);
+        }
+      }
+    }
+    return missing;
+  }
+
+  /**
+   * Boolean form of {@link validateEnvVars}. Mirrors Python's
+   * `SkillBase.validate_env_vars() -> bool`, returning `true` when all
+   * required environment variables are set.
+   * @returns True if no required env vars are missing.
+   */
+  hasRequiredEnvVars(): boolean {
+    return this.validateEnvVars().length === 0;
+  }
+
+  /**
+   * Validate that all npm packages listed in the manifest's
+   * `requiredPackages` can be resolved. Mirrors Python's
+   * `SkillBase.validate_packages()` runtime check.
+   * @returns Array of package names that could not be resolved (empty if all
+   *   packages are available).
+   */
+  validatePackages(): string[] {
+    const manifest = this.getManifest();
+    const missing: string[] = [];
+    if (manifest.requiredPackages) {
+      for (const pkg of manifest.requiredPackages) {
+        try {
+          _skillBaseRequire.resolve(pkg);
+        } catch {
+          missing.push(pkg);
         }
       }
     }

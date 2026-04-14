@@ -55,14 +55,25 @@ export class SkillManager {
       log.warn(`Skill '${name}' missing env vars: ${missingEnvVars.join(', ')}`);
     }
 
+    // Validate required npm packages (best-effort — mirrors Python behavior)
+    const missingPackages = skill.validatePackages();
+    if (missingPackages.length) {
+      log.warn(
+        `Skill '${name}' missing packages: ${missingPackages.join(', ')}`,
+      );
+    }
+
     // Log parameter schema info (non-fatal)
     const schema = SkillClass.getParameterSchema();
     if (schema && Object.keys(schema).length > 0) {
       log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
     }
 
-    // Setup
-    await skill.setup();
+    // Setup — treat explicit `false` return as failure (mirrors Python's bool contract)
+    const setupResult = await skill.setup();
+    if (setupResult === false) {
+      throw new Error(`Skill '${name}' setup() returned false`);
+    }
     skill.markInitialized();
 
     this.skills.set(instanceKey, skill);

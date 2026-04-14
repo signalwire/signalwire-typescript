@@ -53,8 +53,11 @@ const VALID_CATEGORIES = [
  * Supports optional `default_category` and `reveal_answer` config options.
  */
 export class ApiNinjasTriviaSkill extends SkillBase {
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
+
   /**
-   * @param config - Optional configuration; supports `default_category` and `reveal_answer`.
+   * @param config - Optional configuration; supports `tool_name`, `api_key`,
+   *   `categories`, `default_category`, and `reveal_answer`.
    */
   constructor(config?: SkillConfig) {
     super('api_ninjas_trivia', config);
@@ -63,12 +66,29 @@ export class ApiNinjasTriviaSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      tool_name: {
+        type: 'string',
+        description:
+          'Custom name for the SWAIG trivia tool (enables multiple instances).',
+        default: 'get_trivia',
+      },
       api_key: {
         type: 'string',
         description: 'API Ninjas API key.',
         hidden: true,
         env_var: 'API_NINJAS_KEY',
         required: true,
+      },
+      categories: {
+        type: 'array',
+        description:
+          'Subset of trivia categories to enable. Defaults to all categories.',
+        required: false,
+        default: [...VALID_CATEGORIES],
+        items: {
+          type: 'string',
+          enum: [...VALID_CATEGORIES],
+        },
       },
       default_category: {
         type: 'string',
@@ -82,7 +102,21 @@ export class ApiNinjasTriviaSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest declaring API_NINJAS_KEY as required and config schema for category/reveal. */
+  /**
+   * Produce a compound instance key so multiple copies of the skill with
+   * distinct `tool_name` values can coexist in a single agent.
+   */
+  override getInstanceKey(): string {
+    const toolName = this.getConfig<string>('tool_name', 'get_trivia');
+    return `${this.skillName}_${toolName}`;
+  }
+
+  /**
+   * @returns Manifest for the API Ninjas Trivia skill. The API key may be
+   *   supplied via the `api_key` config parameter OR via the
+   *   `API_NINJAS_KEY` environment variable, so `requiredEnvVars` is empty
+   *   to match Python's contract (which accepts the key through params only).
+   */
   getManifest(): SkillManifest {
     return {
       name: 'api_ninjas_trivia',
@@ -91,8 +125,19 @@ export class ApiNinjasTriviaSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['trivia', 'api', 'entertainment', 'quiz', 'external'],
-      requiredEnvVars: ['API_NINJAS_KEY'],
+      requiredEnvVars: [],
       configSchema: {
+        tool_name: {
+          type: 'string',
+          description:
+            'Custom name for the SWAIG trivia tool (enables multiple instances).',
+          default: 'get_trivia',
+        },
+        categories: {
+          type: 'array',
+          description:
+            'Subset of trivia categories to enable. Defaults to all categories.',
+        },
         default_category: {
           type: 'string',
           description:
@@ -108,17 +153,28 @@ export class ApiNinjasTriviaSkill extends SkillBase {
     };
   }
 
-  /** @returns A single `get_trivia` tool that fetches a random trivia question with optional category. */
+  /** @returns A single trivia tool (configurable name) that fetches a random trivia question with optional category. */
   getTools(): SkillToolDefinition[] {
+    const toolName = this.getConfig<string>('tool_name', 'get_trivia');
     const defaultCategory = this.getConfig<string | undefined>(
       'default_category',
       undefined,
     );
     const revealAnswer = this.getConfig<boolean>('reveal_answer', false);
+    const configuredCategories = this.getConfig<string[] | undefined>(
+      'categories',
+      undefined,
+    );
+    const enabledCategories =
+      Array.isArray(configuredCategories) && configuredCategories.length > 0
+        ? configuredCategories.filter((c): c is string =>
+            (VALID_CATEGORIES as readonly string[]).includes(c),
+          )
+        : [...VALID_CATEGORIES];
 
     return [
       {
-        name: 'get_trivia',
+        name: toolName,
         description:
           'Get a random trivia question. Optionally specify a category to narrow the topic.',
         parameters: {
@@ -126,12 +182,15 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             type: 'string',
             description:
               'Trivia category. Available categories: ' +
-              VALID_CATEGORIES.join(', ') +
+              enabledCategories.join(', ') +
               '. If not specified, a random category is used.',
+            enum: enabledCategories,
           },
         },
         handler: async (args: Record<string, unknown>) => {
-          const apiKey = process.env['API_NINJAS_KEY'];
+          const apiKey =
+            this.getConfig<string | undefined>('api_key', undefined) ??
+            process.env['API_NINJAS_KEY'];
           if (!apiKey) {
             return new FunctionResult(
               'Trivia service is not configured. The API_NINJAS_KEY environment variable is missing.',
@@ -144,12 +203,10 @@ export class ApiNinjasTriviaSkill extends SkillBase {
           if (category && typeof category === 'string') {
             const normalized = category.toLowerCase().trim().replace(/[\s_-]/g, '');
             if (
-              !VALID_CATEGORIES.includes(
-                normalized as (typeof VALID_CATEGORIES)[number],
-              )
+              !enabledCategories.includes(normalized)
             ) {
               return new FunctionResult(
-                `Unknown trivia category "${category}". Available categories: ${VALID_CATEGORIES.join(', ')}.`,
+                `Unknown trivia category "${category}". Available categories: ${enabledCategories.join(', ')}.`,
               );
             }
             category = normalized;

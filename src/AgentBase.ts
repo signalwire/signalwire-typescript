@@ -1074,9 +1074,16 @@ export class AgentBase {
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
     for (const toolDef of skill.getTools()) {
       this.defineTool(toolDef);
-      if (Object.keys(skill.swaigFields).length > 0) {
-        const fn = this.toolRegistry.get(toolDef.name);
-        if (fn instanceof SwaigFunction) {
+      const fn = this.toolRegistry.get(toolDef.name);
+      if (fn instanceof SwaigFunction) {
+        // Pass through tool-level filler control flags as SWAIG extra fields.
+        if (toolDef.wait_for_fillers !== undefined) {
+          fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
+        }
+        if (toolDef.skip_fillers !== undefined) {
+          fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
+        }
+        if (Object.keys(skill.swaigFields).length > 0) {
           safeAssign(fn.extraFields, skill.swaigFields);
         }
       }
@@ -1504,9 +1511,15 @@ export class AgentBase {
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
-          if (Object.keys(skill.swaigFields).length > 0) {
-            const fn = copy.toolRegistry.get(toolDef.name);
-            if (fn instanceof SwaigFunction) {
+          const fn = copy.toolRegistry.get(toolDef.name);
+          if (fn instanceof SwaigFunction) {
+            if (toolDef.wait_for_fillers !== undefined) {
+              fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
+            }
+            if (toolDef.skip_fillers !== undefined) {
+              fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
+            }
+            if (Object.keys(skill.swaigFields).length > 0) {
               safeAssign(fn.extraFields, skill.swaigFields);
             }
           }

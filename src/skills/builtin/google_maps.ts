@@ -92,6 +92,16 @@ export class GoogleMapsSkill extends SkillBase {
         env_var: 'GOOGLE_MAPS_API_KEY',
         required: true,
       },
+      lookup_tool_name: {
+        type: 'string',
+        description: 'Name for the address lookup tool',
+        default: 'lookup_address',
+      },
+      route_tool_name: {
+        type: 'string',
+        description: 'Name for the route computation tool',
+        default: 'compute_route',
+      },
       default_mode: {
         type: 'string',
         description: 'Default travel mode.',
@@ -99,6 +109,24 @@ export class GoogleMapsSkill extends SkillBase {
         enum: ['driving', 'walking', 'bicycling', 'transit'],
       },
     };
+  }
+
+  /**
+   * Validate that the Google Maps API key is available in the environment.
+   * Mirrors Python's fail-fast behavior on missing credentials.
+   */
+  override async setup(): Promise<void> {
+    const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+    if (!apiKey) {
+      throw new Error(
+        'GoogleMapsSkill: GOOGLE_MAPS_API_KEY environment variable is required',
+      );
+    }
+  }
+
+  /** @returns Speech recognition hints for maps/directions keywords. */
+  override getHints(): string[] {
+    return ['address', 'location', 'route', 'directions', 'miles', 'distance'];
   }
 
   /** @returns Manifest declaring GOOGLE_MAPS_API_KEY as required and config schema for default_mode. */
@@ -125,10 +153,18 @@ export class GoogleMapsSkill extends SkillBase {
   /** @returns Two tools: `get_directions` for route info and `find_place` for place discovery. */
   getTools(): SkillToolDefinition[] {
     const defaultMode = this.getConfig<string>('default_mode', 'driving');
+    const routeToolName = this.getConfig<string>(
+      'route_tool_name',
+      'compute_route',
+    );
+    const lookupToolName = this.getConfig<string>(
+      'lookup_tool_name',
+      'lookup_address',
+    );
 
     return [
       {
-        name: 'get_directions',
+        name: routeToolName,
         description:
           'Get directions between two locations. Returns distance, duration, and step-by-step directions summary.',
         parameters: {
@@ -253,7 +289,7 @@ export class GoogleMapsSkill extends SkillBase {
         },
       },
       {
-        name: 'find_place',
+        name: lookupToolName,
         description:
           'Search for a place by name or description. Returns the place name, address, rating, and whether it is currently open.',
         parameters: {
