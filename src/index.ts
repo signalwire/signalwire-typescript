@@ -12,7 +12,7 @@ export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)
 export { SWMLService, SecurityConfig, VerbHandlerRegistry } from './SWMLService.js';
-export type { OnRequestCallback, SWMLServiceOptions, SWMLVerbHandler, RoutingCallback } from './SWMLService.js';
+export type { OnRequestCallback, SWMLServiceOptions, SWMLVerbHandler } from './SWMLService.js';
 
 // Tool results & functions
 export { FunctionResult } from './FunctionResult.js';

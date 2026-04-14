@@ -141,10 +141,11 @@ export type OnRequestCallback = (
   headers: Record<string, string>,
 ) => SwmlBuilder | Promise<SwmlBuilder>;
 
-/** Routing callback invoked to determine routing based on request body. */
-export type RoutingCallback = (
+// RoutingCallback is owned by AgentBase.ts; SWMLService uses a structurally
+// compatible local alias to avoid an import cycle and stay independent.
+type RoutingCallback = (
   requestBody: Record<string, unknown>,
-) => string | null;
+) => string | null | undefined | Promise<string | null | undefined>;
 
 // ── Options ────────────────────────────────────────────────────────────
 
