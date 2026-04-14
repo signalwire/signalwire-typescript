@@ -7,6 +7,7 @@
 
 // Core agent
 export { AgentBase } from './AgentBase.js';
+export type { RoutingCallback } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)

@@ -12,6 +12,8 @@ import { randomBytes } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
+import { SchemaUtils } from './SchemaUtils.js';
+import { ConfigLoader } from './ConfigLoader.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
@@ -27,6 +29,14 @@ import type {
   FunctionInclude,
   DynamicConfigCallback,
 } from './types.js';
+
+/**
+ * Callback invoked to determine routing based on POST data.
+ * Return a route string to redirect, or null for normal processing.
+ */
+export type RoutingCallback = (
+  body: Record<string, unknown>,
+) => string | null | Promise<string | null>;
 
 /**
  * Core agent class that composes an HTTP server, prompt management, session handling,
@@ -45,10 +55,11 @@ export class AgentBase {
   agentId: string;
 
   // Internal managers
-  private promptManager: PromptManager;
+  private _promptManager: PromptManager;
   private sessionManager: SessionManager;
   private swmlBuilder: SwmlBuilder;
   private toolRegistry: Map<string, SwaigFunction | Record<string, unknown>> = new Map();
+  private _schemaUtils: SchemaUtils | null = null;
 
   // Auth
   private basicAuthCreds: [string, string];
@@ -60,7 +71,7 @@ export class AgentBase {
   private recordFormat: string;
   private recordStereo: boolean;
   private defaultWebhookUrl: string | null;
-  private nativeFunctions: string[];
+  private _nativeFunctions: string[];
 
   // AI config
   private hints: string[] = [];
@@ -112,10 +123,20 @@ export class AgentBase {
   private _enforceHttps = process.env['SWML_ENFORCE_HTTPS'] === 'true';
 
   /** Structured logger instance for this agent, configurable via SIGNALWIRE_LOG_LEVEL. */
-  protected log = getLogger('AgentBase');
+  log = getLogger('AgentBase');
 
   // Skills
-  private skillManager = new SkillManager();
+  private _skillManager = new SkillManager();
+
+  // New constructor params (P1 gaps)
+  private _enablePostPromptOverride = false;
+  private _checkForInputOverride = false;
+  private _schemaValidation = true;
+  private _configFile: string | null = null;
+  private _schemaPath: string | null = null;
+
+  // Routing callbacks (for registerRoutingCallback)
+  private _routingCallbacks: Map<string, RoutingCallback> = new Map();
 
   // Hono app
   private _app: Hono | null = null;
@@ -125,10 +146,27 @@ export class AgentBase {
    * @param opts - Agent configuration options including name, route, auth, and call settings.
    */
   constructor(opts: AgentOptions) {
-    this.name = opts.name;
-    this.route = (opts.route ?? '/').replace(/\/+$/, '') || '/';
-    this.host = opts.host ?? '0.0.0.0';
-    const parsedPort = opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
+    // Load config file if provided — values are defaults, constructor args take precedence
+    let serviceConfig: Record<string, unknown> = {};
+    if (opts.configFile) {
+      this._configFile = opts.configFile;
+      try {
+        const loader = new ConfigLoader(opts.configFile);
+        serviceConfig = (loader.get<Record<string, unknown>>('service') ?? {});
+      } catch {
+        // Config file not found or invalid — continue with constructor args
+      }
+    }
+
+    // Config file values: constructor args take precedence unless at default values
+    // (matching Python's behavior where non-default constructor args always win)
+    this.name = (serviceConfig['name'] as string | undefined) ?? opts.name;
+    const routeArg = opts.route ?? '/';
+    this.route = (routeArg !== '/' ? routeArg : ((serviceConfig['route'] as string | undefined) ?? routeArg)).replace(/\/+$/, '') || '/';
+    const hostArg = opts.host ?? '0.0.0.0';
+    this.host = hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
+    const configPort = serviceConfig['port'] as number | undefined;
+    const parsedPort = opts.port ?? configPort ?? parseInt(process.env['PORT'] ?? '3000', 10);
     if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
       throw new Error(`Invalid port: ${opts.port ?? process.env['PORT']}. Must be between 1 and 65535.`);
     }
@@ -139,15 +177,30 @@ export class AgentBase {
     this.recordFormat = opts.recordFormat ?? 'mp4';
     this.recordStereo = opts.recordStereo ?? true;
     this.defaultWebhookUrl = opts.defaultWebhookUrl ?? null;
-    this.nativeFunctions = opts.nativeFunctions ?? [];
+    this._nativeFunctions = opts.nativeFunctions ?? [];
+
+    // Store new constructor params
+    this._enablePostPromptOverride = opts.enablePostPromptOverride ?? false;
+    this._checkForInputOverride = opts.checkForInputOverride ?? false;
+    this._schemaValidation = opts.schemaValidation ?? true;
+    this._schemaPath = opts.schemaPath ?? null;
 
     if (opts.suppressLogs) {
       suppressAllLogs(true);
     }
 
-    this.promptManager = new PromptManager(opts.usePom ?? true);
-    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 900);
+    this._promptManager = new PromptManager(opts.usePom ?? true);
+    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
     this.swmlBuilder = new SwmlBuilder();
+
+    // Initialize schema validation
+    if (this._schemaValidation) {
+      try {
+        this._schemaUtils = new SchemaUtils({ skipValidation: false });
+      } catch {
+        // Schema loading failed — validation disabled
+      }
+    }
 
     // Setup auth
     if (opts.basicAuth) {
@@ -205,6 +258,59 @@ export class AgentBase {
     // Default no-op — subclasses override
   }
 
+  /**
+   * Public access to the list of registered tools.
+   *
+   * In Python, `define_tools()` is public and returns `List[SWAIGFunction]`.
+   * In TypeScript, `defineTools()` is a protected setup hook (void). This
+   * method provides the equivalent public "get all tools" capability.
+   * @returns Array of all registered SwaigFunction instances.
+   */
+  getTools(): SwaigFunction[] {
+    const tools: SwaigFunction[] = [];
+    for (const [, fn] of this.toolRegistry) {
+      if (fn instanceof SwaigFunction) tools.push(fn);
+    }
+    return tools;
+  }
+
+  // ── Public getters for Python-public properties ────────────────────
+
+  /**
+   * Public accessor for the PromptManager (POM).
+   *
+   * Python exposes `self.pom` as a public attribute. This getter
+   * provides equivalent access for direct POM manipulation.
+   */
+  get promptManager(): PromptManager {
+    return this._promptManager;
+  }
+
+  /**
+   * Public accessor for the native functions list.
+   *
+   * Python exposes `self.native_functions` as a public read/write attribute.
+   * @returns A copy of the native functions list.
+   */
+  get nativeFunctions(): string[] {
+    return this._nativeFunctions;
+  }
+
+  /** Set the native functions list. */
+  set nativeFunctions(fns: string[]) {
+    this._nativeFunctions = fns;
+  }
+
+  /**
+   * Public read-only accessor for the SkillManager.
+   *
+   * Python exposes `self.skill_manager` as a public attribute. This getter
+   * provides equivalent read access.
+   */
+  get skillManager(): SkillManager {
+    return this._skillManager;
+  }
+
   // ── Prompt methods ──────────────────────────────────────────────────
 
   /**
@@ -213,7 +319,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setPromptText(text: string): this {
-    this.promptManager.setPromptText(text);
+    this._promptManager.setPromptText(text);
     return this;
   }
 
@@ -223,7 +329,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setPostPrompt(text: string): this {
-    this.promptManager.setPostPrompt(text);
+    this._promptManager.setPostPrompt(text);
     return this;
   }
 
@@ -243,7 +349,7 @@ export class AgentBase {
       subsections?: { title: string; body?: string; bullets?: string[] }[];
     },
   ): this {
-    this.promptManager.addSection(title, opts);
+    this._promptManager.addSection(title, opts);
     return this;
   }
 
@@ -257,7 +363,7 @@ export class AgentBase {
     title: string,
     opts?: { body?: string; bullet?: string; bullets?: string[] },
   ): this {
-    this.promptManager.addToSection(title, opts);
+    this._promptManager.addToSection(title, opts);
     return this;
   }
 
@@ -269,7 +375,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   promptAddSubsection(parentTitle: string, title: string, opts?: { body?: string; bullets?: string[] }): this {
-    this.promptManager.addSubsection(parentTitle, title, opts);
+    this._promptManager.addSubsection(parentTitle, title, opts);
     return this;
   }
 
@@ -279,7 +385,7 @@ export class AgentBase {
    * @returns True if the section exists.
    */
   promptHasSection(title: string): boolean {
-    return this.promptManager.hasSection(title);
+    return this._promptManager.hasSection(title);
   }
 
   /**
@@ -287,7 +393,7 @@ export class AgentBase {
    * @returns The assembled prompt string.
    */
   getPrompt(): string {
-    return this.promptManager.getPrompt();
+    return this._promptManager.getPrompt();
   }
 
   /**
@@ -295,7 +401,38 @@ export class AgentBase {
    * @returns The post-prompt string, or null if not configured.
    */
   getPostPrompt(): string | null {
-    return this.promptManager.getPostPrompt();
+    return this._promptManager.getPostPrompt();
+  }
+
+  /**
+   * Set the prompt as a POM (Prompt Object Model) dictionary.
+   *
+   * Replaces the current POM sections with the provided structured data.
+   * Each entry should have `title`, and optionally `body`, `bullets`,
+   * `numbered`, `numberedBullets`, and `subsections`.
+   *
+   * @param pom - Array of POM section dictionaries.
+   * @returns This agent instance for chaining.
+   * @throws Error if POM mode is not enabled (`usePom: false`).
+   */
+  setPromptPom(pom: Record<string, unknown>[]): this {
+    const pomBuilder = this._promptManager.getPomBuilder();
+    if (!pomBuilder) {
+      throw new Error('usePom must be true to use setPromptPom');
+    }
+    // Clear existing sections and rebuild from the provided POM array
+    pomBuilder.reset();
+    for (const section of pom) {
+      const title = (section['title'] as string) ?? '';
+      pomBuilder.addSection(title, {
+        body: section['body'] as string | undefined,
+        bullets: section['bullets'] as string[] | undefined,
+        numbered: section['numbered'] as boolean | undefined,
+        numberedBullets: section['numberedBullets'] as boolean | undefined,
+        subsections: section['subsections'] as { title: string; body?: string; bullets?: string[] }[] | undefined,
+      });
+    }
+    return this;
   }
 
   // ── Contexts ────────────────────────────────────────────────────────
@@ -357,11 +494,18 @@ export class AgentBase {
 
   /**
    * Add a pattern-based speech-recognition hint with find-and-replace behavior.
-   * @param opts - Pattern hint configuration with regex pattern, replacement, and optional case flag.
+   * @param opts - Pattern hint configuration with a descriptive hint label,
+   *   regex pattern, replacement string, and optional case-insensitive flag.
    * @returns This agent instance for chaining.
    */
-  addPatternHint(opts: { pattern: string; replace: string; ignoreCase?: boolean }): this {
-    this.hints.push(opts as unknown as string);
+  addPatternHint(opts: { hint: string; pattern: string; replace: string; ignoreCase?: boolean }): this {
+    const entry: Record<string, unknown> = {
+      hint: opts.hint,
+      pattern: opts.pattern,
+      replace: opts.replace,
+    };
+    if (opts.ignoreCase) entry['ignore_case'] = true;
+    this.hints.push(entry as unknown as string);
     return this;
   }
 
@@ -404,6 +548,19 @@ export class AgentBase {
     const r: Record<string, unknown> = { replace: rule.replace, with: rule.with };
     if (rule.ignoreCase) r['ignore_case'] = rule.ignoreCase;
     this.pronounce.push(r as unknown as PronunciationRule);
+    return this;
+  }
+
+  /**
+   * Replace all pronunciation rules with a new list.
+   * @param rules - Array of pronunciation rule objects.
+   * @returns This agent instance for chaining.
+   */
+  setPronunciations(rules: PronunciationRule[]): this {
+    this.pronounce = [];
+    for (const rule of rules) {
+      this.addPronunciation(rule);
+    }
     return this;
   }
 
@@ -454,7 +611,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   setNativeFunctions(funcs: string[]): this {
-    this.nativeFunctions = funcs;
+    this._nativeFunctions = funcs;
     return this;
   }
 
@@ -579,6 +736,19 @@ export class AgentBase {
   }
 
   /**
+   * Replace the entire list of function includes.
+   * Each include must have a `url` and `functions` array.
+   * @param includes - Array of function include objects.
+   * @returns This agent instance for chaining.
+   */
+  setFunctionIncludes(includes: FunctionInclude[]): this {
+    this.functionIncludes = includes.filter(
+      (inc) => inc.url && Array.isArray(inc.functions),
+    );
+    return this;
+  }
+
+  /**
    * Merge LLM-specific parameters into the main prompt configuration (e.g. model, temperature).
    * @param params - Key-value LLM parameters to merge.
    * @returns This agent instance for chaining.
@@ -622,6 +792,7 @@ export class AgentBase {
     this._sipRoute = path;
     if (autoMap) {
       this._sipAutoMap = true;
+      this.autoMapSipUsernames();
     }
     return this;
   }
@@ -633,7 +804,44 @@ export class AgentBase {
    */
   registerSipUsername(username: string): this {
     if (!this._sipUsernames) this._sipUsernames = new Map();
-    this._sipUsernames.set(username, this.route);
+    this._sipUsernames.set(username.toLowerCase(), this.route);
+    return this;
+  }
+
+  /**
+   * Automatically register common SIP usernames based on this agent's
+   * name and route. Derives cleaned variants (alphanumeric + underscore)
+   * and registers each via `registerSipUsername()`.
+   *
+   * Port of Python's `auto_map_sip_usernames()`:
+   * - Registers a cleaned version of the agent name
+   * - Registers a cleaned version of the route (if different from name)
+   * - For names longer than 3 characters, also registers a vowel-stripped variant
+   *
+   * @returns This agent instance for chaining.
+   */
+  autoMapSipUsernames(): this {
+    // Register username based on agent name
+    const cleanName = this.name.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (cleanName) {
+      this.registerSipUsername(cleanName);
+    }
+
+    // Register username based on route (without slashes)
+    const cleanRoute = this.route.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (cleanRoute && cleanRoute !== cleanName) {
+      this.registerSipUsername(cleanRoute);
+    }
+
+    // Register common variations if they make sense
+    if (cleanName.length > 3) {
+      // Register without vowels
+      const noVowels = cleanName.replace(/[aeiou]/g, '');
+      if (noVowels !== cleanName && noVowels.length > 2) {
+        this.registerSipUsername(noVowels);
+      }
+    }
+
     return this;
   }
 
@@ -860,6 +1068,10 @@ export class AgentBase {
     waitFile?: string;
     waitFileLoops?: number;
     required?: string[];
+    /** External webhook URL; makes this an externally-hosted tool. */
+    webhookUrl?: string;
+    /** Additional fields to pass through to the SWAIG function definition (Python `**swaig_fields` equivalent). */
+    extraFields?: Record<string, unknown>;
   }): this {
     const fn = new SwaigFunction({
       name: opts.name,
@@ -871,6 +1083,8 @@ export class AgentBase {
       waitFile: opts.waitFile,
       waitFileLoops: opts.waitFileLoops,
       required: opts.required,
+      webhookUrl: opts.webhookUrl,
+      extraFields: opts.extraFields,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
@@ -1069,7 +1283,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
-    await this.skillManager.addSkill(skill);
+    await this._skillManager.addSkill(skill);
 
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
     for (const toolDef of skill.getTools()) {
@@ -1104,7 +1318,7 @@ export class AgentBase {
    * @returns True if the skill was found and removed.
    */
   async removeSkill(instanceId: string): Promise<boolean> {
-    return this.skillManager.removeSkill(instanceId);
+    return this._skillManager.removeSkill(instanceId);
   }
 
   /**
@@ -1112,7 +1326,7 @@ export class AgentBase {
    * @returns Array of skill descriptors.
    */
   listSkills(): { name: string; instanceId: string; initialized: boolean }[] {
-    return this.skillManager.listSkills();
+    return this._skillManager.listSkills();
   }
 
   /**
@@ -1121,7 +1335,27 @@ export class AgentBase {
    * @returns True if a skill with that name exists.
    */
   hasSkill(skillName: string): boolean {
-    return this.skillManager.hasSkill(skillName);
+    return this._skillManager.hasSkill(skillName);
+  }
+
+  /**
+   * Remove a skill by its name (Python parity).
+   *
+   * Python's `remove_skill(skill_name)` removes by skill name.
+   * The existing `removeSkill(instanceId)` removes by instance ID.
+   * This method provides name-based removal for cross-SDK parity.
+   *
+   * @param skillName - The skill name to remove.
+   * @returns True if a skill with that name was found and removed.
+   */
+  async removeSkillByName(skillName: string): Promise<boolean> {
+    const entries = this._skillManager.listSkills();
+    for (const entry of entries) {
+      if (entry.name === skillName) {
+        return this._skillManager.removeSkill(entry.instanceId);
+      }
+    }
+    return false;
   }
 
   // ── Dynamic config ──────────────────────────────────────────────────
@@ -1146,6 +1380,15 @@ export class AgentBase {
     return this;
   }
 
+  /**
+   * Clear all SWAIG query parameters.
+   * @returns This agent instance for chaining.
+   */
+  clearSwaigQueryParams(): this {
+    this.swaigQueryParams = {};
+    return this;
+  }
+
   // ── Proxy detection ────────────────────────────────────────────────
 
   /**
@@ -1156,6 +1399,42 @@ export class AgentBase {
   manualSetProxyUrl(url: string): this {
     this._proxyUrlBase = url.replace(/\/+$/, '');
     this._proxyUrlBaseFromEnv = false;
+    return this;
+  }
+
+  /**
+   * Register a callback function that determines routing based on POST data.
+   *
+   * When a routing callback is registered, an endpoint at the specified path
+   * is created in `getApp()`. The callback receives the request body and returns
+   * a route string to redirect to, or null for normal processing.
+   *
+   * @param callback - Function receiving the request body and returning a route or null.
+   * @param path - The HTTP path where this callback is registered (default: "/sip").
+   * @returns This agent instance for chaining.
+   */
+  registerRoutingCallback(
+    callback: RoutingCallback,
+    path = '/sip',
+  ): this {
+    const normalized = path.replace(/\/+$/, '') || '/';
+    this._routingCallbacks.set(normalized, callback);
+    // Reset the cached app so getApp() will re-create it with the new route
+    this._app = null;
+    return this;
+  }
+
+  /**
+   * Enable debug routes for testing and development.
+   *
+   * This is a backward-compatibility stub matching the Python SDK.
+   * In the TypeScript SDK, debug routes (health, ready, debug_events)
+   * are automatically registered in `getApp()`.
+   *
+   * @returns This agent instance for chaining.
+   */
+  enableDebugRoutes(): this {
+    // No-op: debug routes are auto-registered in getApp()
     return this;
   }
 
@@ -1281,9 +1560,18 @@ export class AgentBase {
 
   /**
    * Lifecycle hook called on every SWML request before rendering. Override in subclasses.
+   *
+   * May optionally return a modification dict that will be merged into the
+   * rendered SWML document (matching Python's `Optional[dict]` return type).
+   *
    * @param _rawData - The parsed request body.
+   * @param _callbackPath - Optional callback path from the request.
+   * @returns Optionally a dict of SWML modifications, or void.
    */
-  onSwmlRequest(_rawData: Record<string, unknown>): void | Promise<void> {
+  onSwmlRequest(
+    _rawData: Record<string, unknown>,
+    _callbackPath?: string,
+  ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }
 
@@ -1306,12 +1594,25 @@ export class AgentBase {
   }
 
   /**
-   * Pre-execution hook called before each SWAIG function. Override in subclasses.
+   * Hook called before each SWAIG function execution. Override in subclasses.
+   *
+   * **Behavioral note:** In the Python SDK, `on_function_call` IS the dispatcher
+   * — it retrieves and executes the function, returning the result. In TypeScript,
+   * `fn.execute()` is called separately after this hook. However, if this method
+   * returns a non-void value, it is used as the result and the default execution
+   * is skipped, enabling dispatch interception parity with Python.
+   *
    * @param _name - Name of the function about to execute.
    * @param _args - Parsed arguments for the function.
    * @param _rawData - The full raw SWAIG request payload.
+   * @returns Optionally a result dict to short-circuit default execution,
+   *   or void/undefined to proceed normally.
    */
-  onFunctionCall(_name: string, _args: Record<string, unknown>, _rawData: Record<string, unknown>): void | Promise<void> {
+  onFunctionCall(
+    _name: string,
+    _args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
+  ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }
 
@@ -1337,7 +1638,7 @@ export class AgentBase {
 
     // Build SWAIG object
     const swaigObj: Record<string, unknown> = {};
-    if (this.nativeFunctions.length) swaigObj['native_functions'] = this.nativeFunctions;
+    if (this._nativeFunctions.length) swaigObj['native_functions'] = this._nativeFunctions;
     if (this.functionIncludes.length) swaigObj['includes'] = this.functionIncludes;
     if (Object.keys(this.internalFillers).length) swaigObj['internal_fillers'] = this.internalFillers;
 
@@ -1476,12 +1777,12 @@ export class AgentBase {
     const copy = Object.create(Object.getPrototypeOf(this)) as AgentBase;
     Object.assign(copy, this);
     // Deep-copy mutable state
-    copy.promptManager = new PromptManager(true);
+    copy._promptManager = new PromptManager(true);
     // Carry over the current prompt
     const p = this.getPrompt();
-    if (p) copy.promptManager.setPromptText(p);
+    if (p) copy._promptManager.setPromptText(p);
     const pp = this.getPostPrompt();
-    if (pp) copy.promptManager.setPostPrompt(pp);
+    if (pp) copy._promptManager.setPostPrompt(pp);
     copy.toolRegistry = new Map(this.toolRegistry);
     copy.hints = [...this.hints];
     copy.languages = [...this.languages];
@@ -1494,13 +1795,13 @@ export class AgentBase {
     copy.swmlBuilder = new SwmlBuilder();
 
     // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
-    copy.skillManager = new SkillManager();
-    for (const entry of this.skillManager.getLoadedSkillEntries()) {
+    copy._skillManager = new SkillManager();
+    for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
         const skill = new (entry.SkillClass as any)(entry.config);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
-        copy.skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
+        copy._skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
@@ -1731,7 +2032,13 @@ export class AgentBase {
           ? rawArgs as Record<string, unknown>
           : {};
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
-      await this.onFunctionCall(fnName, args, body);
+      const hookResult = await this.onFunctionCall(fnName, args, body);
+
+      // If onFunctionCall returned a result, use it (dispatch interception)
+      if (hookResult !== undefined && hookResult !== null) {
+        reqLog.info('function_intercepted_by_hook');
+        return c.json(hookResult);
+      }
 
       try {
         const result = await fn.execute(args, body);
@@ -1795,6 +2102,73 @@ export class AgentBase {
       });
     }
 
+    // Post-prompt override endpoint (enabled via constructor option)
+    if (this._enablePostPromptOverride) {
+      const handlePostPromptOverride = async (c: any) => {
+        const reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt_override` });
+        reqLog.debug('endpoint_called');
+
+        let body: Record<string, unknown> = {};
+        try { body = await c.req.json(); } catch { /* empty */ }
+
+        const newPostPrompt = body['post_prompt'] as string | undefined;
+        if (newPostPrompt !== undefined) {
+          this.setPostPrompt(newPostPrompt);
+          reqLog.info('post_prompt_overridden');
+        }
+        return c.json({ ok: true });
+      };
+
+      app.post(`${basePath}/post_prompt_override`, authMw, handlePostPromptOverride);
+    }
+
+    // Check-for-input endpoint (enabled via constructor option)
+    if (this._checkForInputOverride) {
+      const handleCheckForInput = async (c: any) => {
+        const reqLog = this.log.bind({ endpoint: `${basePath}/check_for_input` });
+        reqLog.debug('endpoint_called');
+
+        let body: Record<string, unknown> = {};
+        try { body = await c.req.json(); } catch { /* empty */ }
+
+        reqLog.info('check_for_input_received');
+        return c.json({ ok: true, received: body });
+      };
+
+      app.get(`${basePath}/check_for_input`, authMw, handleCheckForInput);
+      app.post(`${basePath}/check_for_input`, authMw, handleCheckForInput);
+    }
+
+    // Routing callbacks (registered via registerRoutingCallback)
+    for (const [callbackPath, callback] of this._routingCallbacks) {
+      const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
+      const handleRouting = async (c: any) => {
+        const reqLog = this.log.bind({ endpoint: fullPath });
+        reqLog.debug('routing_callback_called');
+
+        let body: Record<string, unknown> = {};
+        try { body = await c.req.json(); } catch { /* empty */ }
+
+        try {
+          const route = await callback(body);
+          if (route) {
+            reqLog.info('routing_callback_redirect', { route });
+            return c.json({ action: 'redirect', route });
+          }
+          // No redirect — return SWML for this agent
+          this.detectProxyFromRequest(c);
+          const swml = this.renderSwml();
+          return c.json(JSON.parse(swml));
+        } catch (err) {
+          reqLog.error('routing_callback_error', { error: err instanceof Error ? err.message : String(err) });
+          return c.json({ error: 'Routing callback failed' }, 500);
+        }
+      };
+
+      app.get(fullPath, authMw, handleRouting);
+      app.post(fullPath, authMw, handleRouting);
+    }
+
     // Health / Ready
     app.get(`${basePath}/health`, (c: any) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: any) => c.json({ status: 'ready' }));
@@ -1815,27 +2189,31 @@ export class AgentBase {
    * Start the HTTP server and begin listening for requests.
    * @returns A promise that resolves once the server is running.
    */
-  async serve(): Promise<void> {
+  async serve(opts?: { host?: string; port?: number }): Promise<void> {
     // When loaded by the CLI tool, skip server startup — only the agent config is needed.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
 
+    const host = opts?.host ?? this.host;
+    const port = opts?.port ?? this.port;
+
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
-    const listenUrl = `http://${this.host}:${this.port}${this.route}`;
+    const listenUrl = `http://${host}:${port}${this.route}`;
     this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
     this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);
     if (this._proxyUrlBase) {
       this.log.info(`Proxy URL: ${redactUrl(this._proxyUrlBase)}`);
     }
-    honoServe({ fetch: app.fetch, port: this.port, hostname: this.host });
+    honoServe({ fetch: app.fetch, port, hostname: host });
   }
 
   /**
    * Alias for {@link serve}. Starts the HTTP server.
+   * @param opts - Optional host and port overrides.
    * @returns A promise that resolves once the server is running.
    */
-  async run(): Promise<void> {
-    return this.serve();
+  async run(opts?: { host?: string; port?: number }): Promise<void> {
+    return this.serve(opts);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────

@@ -150,6 +150,16 @@ export class PomBuilder {
   private sectionMap: Map<string, PomSection> = new Map();
 
   /**
+   * Clears all sections, returning the builder to its initial empty state.
+   * @returns This builder for chaining.
+   */
+  reset(): this {
+    this.sections = [];
+    this.sectionMap.clear();
+    return this;
+  }
+
+  /**
    * Adds a new top-level section to the prompt.
    * @param title - The section heading.
    * @param opts - Optional body, bullets, numbering, and subsection configuration.
