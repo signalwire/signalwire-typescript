@@ -1,10 +1,13 @@
 /**
- * SWML Transfer Skill - Transfers calls using SWML transfer actions.
+ * SWML Transfer Skill - Transfer calls between agents using SWML with pattern matching.
  *
- * Tier 2 built-in skill: no external dependencies required.
- * Supports both direct destination transfers and named pattern-based transfers.
- * Named patterns allow configuring a set of known transfer destinations
- * that the AI can use by name rather than requiring raw phone numbers or SIP URIs.
+ * Port of the Python `SWMLTransferSkill`. Supports the Python `transfers`
+ * config (regex-keyed dict of per-destination configs with url/address,
+ * message, return_message, post_process, final, from_addr) as well as the
+ * TypeScript-native `patterns` array of friendly-named destinations.
+ *
+ * Either configuration shape works; when both are provided `transfers`
+ * takes precedence (matching the Python API).
  */
 
 import { SkillBase } from '../SkillBase.js';
@@ -16,175 +19,434 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import { getLogger } from '../../Logger.js';
 
-/** A named transfer destination pattern with a friendly name and underlying address. */
+const log = getLogger('SwmlTransferSkill');
+
+/** A named transfer destination pattern (TS-style). */
 interface TransferPattern {
-  /** Friendly name for the destination (used by the AI to refer to it). */
+  /** Friendly name for the destination. */
   name: string;
   /** SIP URI, phone number, or agent URL to transfer to. */
   destination: string;
-  /** Optional human-readable description of this destination. */
+  /** Optional description. */
   description?: string;
+  /** Optional pre-transfer message override. */
+  message?: string;
+  /** Optional message shown when returning from the transfer. */
+  returnMessage?: string;
+  /** Whether to AI-process the message. */
+  postProcess?: boolean;
+  /** Whether the transfer is permanent (default) or temporary. */
+  final?: boolean;
+  /** Optional caller-ID override for connect actions. */
+  fromAddr?: string;
+}
+
+/** Per-destination entry in the Python-style `transfers` map. */
+interface TransferConfig {
+  url?: string;
+  address?: string;
+  message?: string;
+  return_message?: string;
+  post_process?: boolean;
+  final?: boolean;
+  from_addr?: string;
 }
 
 /**
- * Transfers calls using SWML transfer actions.
+ * Transfer calls between agents based on pattern matching.
  *
- * Tier 2 built-in skill with no external dependencies. Supports both direct
- * destination transfers and named pattern-based transfers configured via the
- * `patterns` config array. Optionally restricts to named destinations only
- * via `allow_arbitrary`.
+ * Multi-instance capable (distinguished by `tool_name`).
+ * Accepts either Python-style `transfers` config (regex → per-entry config)
+ * or TypeScript-style `patterns` array of named destinations.
  */
 export class SwmlTransferSkill extends SkillBase {
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
+
+  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    return {
+      ...super.getParameterSchema(),
+      transfers: {
+        type: 'object',
+        description:
+          'Transfer configurations mapping patterns (regex or name) to destination configs. Each value has either url or address, plus optional message/return_message/post_process/final/from_addr.',
+        required: false,
+      },
+      patterns: {
+        type: 'array',
+        description:
+          'Array of named transfer patterns: { name, destination, description?, message?, returnMessage?, postProcess?, final?, fromAddr? }.',
+        required: false,
+        items: { type: 'object' },
+      },
+      allow_arbitrary: {
+        type: 'boolean',
+        description:
+          'Whether to allow transfers to arbitrary destinations not in patterns list.',
+        required: false,
+      },
+      tool_name: {
+        type: 'string',
+        description: 'Name of the transfer tool exposed to the AI.',
+        default: 'transfer_call',
+        required: false,
+      },
+      description: {
+        type: 'string',
+        description: 'Description for the transfer tool',
+        default: 'Transfer call based on pattern matching',
+        required: false,
+      },
+      parameter_name: {
+        type: 'string',
+        description: 'Name of the parameter that accepts the transfer type',
+        default: 'destination',
+        required: false,
+      },
+      parameter_description: {
+        type: 'string',
+        description: 'Description for the transfer type parameter',
+        default: 'The type of transfer to perform',
+        required: false,
+      },
+      default_message: {
+        type: 'string',
+        description: 'Default pre-transfer message said before every transfer.',
+        default: 'Transferring your call now.',
+        required: false,
+      },
+      no_match_message: {
+        type: 'string',
+        description: 'Message returned when no transfer pattern matches.',
+        default: 'Please specify a valid transfer type.',
+        required: false,
+      },
+      default_post_process: {
+        type: 'boolean',
+        description: 'Whether to process no-match message with AI',
+        default: false,
+        required: false,
+      },
+      required_fields: {
+        type: 'object',
+        description:
+          'Additional required fields to collect before transfer (name -> description).',
+        default: {},
+        required: false,
+      },
+    };
+  }
+
+  // Runtime state
+  private transfers: Record<string, TransferConfig> = {};
+  private patterns: TransferPattern[] = [];
+  private toolName = 'transfer_call';
+  private toolDescription = 'Transfer call based on pattern matching';
+  private parameterName = 'destination';
+  private parameterDescription = 'The type of transfer to perform';
+  private defaultMessage = 'Transferring your call now.';
+  private noMatchMessage = 'Please specify a valid transfer type.';
+  private defaultPostProcess = false;
+  private requiredFields: Record<string, string> = {};
+  private allowArbitraryOverride: boolean | undefined;
+
   /**
-   * @param config - Optional configuration; supports `patterns`, `allow_arbitrary`, `default_message`.
+   * @param config - Optional configuration (see `getParameterSchema()`).
    */
   constructor(config?: SkillConfig) {
     super('swml_transfer', config);
   }
 
-  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
-    return {
-      ...super.getParameterSchema(),
-      patterns: {
-        type: 'array',
-        description: 'Array of named transfer patterns: { name, destination, description? }.',
-        items: { type: 'object', properties: { name: { type: 'string' }, destination: { type: 'string' }, description: { type: 'string' } } },
-      },
-      allow_arbitrary: {
-        type: 'boolean',
-        description: 'Whether to allow transfers to arbitrary destinations not in patterns list.',
-      },
-      default_message: {
-        type: 'string',
-        description: 'Default message to say before transferring.',
-        default: 'Transferring your call now.',
-      },
-    };
+  override getInstanceKey(): string {
+    const toolName = this.getConfig<string>('tool_name', 'transfer_call');
+    return `${this.skillName}_${toolName}`;
   }
 
-  /** @returns Manifest with config schema for patterns, allow_arbitrary, and default_message. */
+  override async setup(): Promise<void> {
+    this.toolName = this.getConfig<string>('tool_name', 'transfer_call');
+    this.toolDescription = this.getConfig<string>(
+      'description',
+      'Transfer call based on pattern matching',
+    );
+    this.parameterName = this.getConfig<string>('parameter_name', 'destination');
+    this.parameterDescription = this.getConfig<string>(
+      'parameter_description',
+      'The type of transfer to perform',
+    );
+    this.defaultMessage = this.getConfig<string>(
+      'default_message',
+      'Transferring your call now.',
+    );
+    this.noMatchMessage = this.getConfig<string>(
+      'no_match_message',
+      'Please specify a valid transfer type.',
+    );
+    this.defaultPostProcess = this.getConfig<boolean>('default_post_process', false);
+    this.requiredFields =
+      this.getConfig<Record<string, string>>('required_fields', {}) ?? {};
+    this.allowArbitraryOverride = this.getConfig<boolean | undefined>(
+      'allow_arbitrary',
+      undefined,
+    );
+
+    // Python-style `transfers` config
+    const transfers =
+      this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+    this.transfers = {};
+    for (const [pattern, rawConfig] of Object.entries(transfers)) {
+      if (!rawConfig || typeof rawConfig !== 'object') {
+        log.error('swml_transfer: transfer config is not an object', { pattern });
+        continue;
+      }
+      const config = { ...rawConfig };
+      if (!('url' in config) && !('address' in config)) {
+        log.error(
+          'swml_transfer: transfer config must include either url or address',
+          { pattern },
+        );
+        continue;
+      }
+      if ('url' in config && 'address' in config) {
+        log.error(
+          'swml_transfer: transfer config cannot have both url and address',
+          { pattern },
+        );
+        continue;
+      }
+      if (config.message === undefined) config.message = 'Transferring you now...';
+      if (config.return_message === undefined)
+        config.return_message = 'The transfer is complete. How else can I help you?';
+      if (config.post_process === undefined) config.post_process = true;
+      if (config.final === undefined) config.final = true;
+      this.transfers[pattern] = config;
+    }
+
+    // TS-style patterns array
+    this.patterns = this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+  }
+
+  override getHints(): string[] {
+    const hints: string[] = [];
+
+    // Extract words from regex patterns (Python-style)
+    for (const pattern of Object.keys(this.transfers)) {
+      let clean = pattern;
+      if (clean.startsWith('/')) clean = clean.slice(1);
+      if (clean.endsWith('/')) clean = clean.slice(0, -1);
+      else if (clean.endsWith('/i')) clean = clean.slice(0, -2);
+
+      if (clean && !clean.startsWith('.')) {
+        if (clean.includes('|')) {
+          for (const part of clean.split('|')) {
+            hints.push(part.trim().toLowerCase());
+          }
+        } else {
+          hints.push(clean.toLowerCase());
+        }
+      }
+    }
+
+    // Extract friendly names from patterns
+    for (const p of this.patterns) {
+      if (p && p.name) hints.push(p.name.toLowerCase());
+    }
+
+    hints.push('transfer', 'connect', 'speak to', 'talk to');
+    return hints;
+  }
+
+  /** @returns Manifest for the SWML transfer skill. */
   getManifest(): SkillManifest {
     return {
       name: 'swml_transfer',
-      description:
-        'Transfers calls using SWML transfer actions. Supports direct destination transfers and named pattern-based routing.',
+      description: 'Transfer calls between agents based on pattern matching',
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['call-control', 'transfer', 'swml', 'routing'],
-      configSchema: {
-        patterns: {
-          type: 'array',
-          description:
-            'Array of named transfer patterns: { name, destination, description? }. When configured, the AI can transfer to named destinations.',
-          items: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', description: 'Friendly name for the destination.' },
-              destination: { type: 'string', description: 'SIP URI, phone number, or agent URL.' },
-              description: { type: 'string', description: 'Optional description of this destination.' },
-            },
-            required: ['name', 'destination'],
-          },
-        },
-        allow_arbitrary: {
-          type: 'boolean',
-          description:
-            'Whether to allow transfers to arbitrary destinations not in the patterns list. Defaults to true if no patterns are configured, false if patterns are configured.',
-        },
-        default_message: {
-          type: 'string',
-          description:
-            'Default message to say before transferring. Defaults to "Transferring your call now.".',
-        },
-      },
+      requiredEnvVars: [],
     };
   }
 
   /** @returns A `transfer_call` tool, plus `list_transfer_destinations` when patterns are configured. */
   getTools(): SkillToolDefinition[] {
-    const patterns = this.getConfig<TransferPattern[]>('patterns', []);
+    // Rehydrate config for cases where getTools is called without setup()
+    const toolName = this.toolName !== 'transfer_call'
+      ? this.toolName
+      : this.getConfig<string>('tool_name', 'transfer_call');
+    const toolDescription = this.getConfig<string>(
+      'description',
+      this.toolDescription,
+    );
+    const parameterName = this.getConfig<string>(
+      'parameter_name',
+      this.parameterName,
+    );
+    const parameterDescription = this.getConfig<string>(
+      'parameter_description',
+      this.parameterDescription,
+    );
     const defaultMessage = this.getConfig<string>(
       'default_message',
-      'Transferring your call now.',
+      this.defaultMessage,
     );
+    const noMatchMessage = this.getConfig<string>(
+      'no_match_message',
+      this.noMatchMessage,
+    );
+    const defaultPostProcess = this.getConfig<boolean>(
+      'default_post_process',
+      this.defaultPostProcess,
+    );
+    const requiredFields =
+      this.getConfig<Record<string, string>>('required_fields', this.requiredFields) ?? {};
+    const transfers =
+      Object.keys(this.transfers).length > 0
+        ? this.transfers
+        : this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+    const patterns =
+      this.patterns.length > 0
+        ? this.patterns
+        : this.getConfig<TransferPattern[]>('patterns', []) ?? [];
     const allowArbitrary = this.getConfig<boolean | undefined>(
       'allow_arbitrary',
-      undefined,
+      this.allowArbitraryOverride,
     );
-
-    // If patterns are defined and allow_arbitrary is not explicitly set, default to false
     const canUseArbitrary =
       allowArbitrary !== undefined
         ? allowArbitrary
-        : patterns.length === 0;
+        : patterns.length === 0 && Object.keys(transfers).length === 0;
 
-    // Build the pattern lookup map
-    const patternMap = new Map<string, TransferPattern>();
-    for (const pattern of patterns) {
-      patternMap.set(pattern.name.toLowerCase(), pattern);
+    // Build tool parameters — include required_fields + primary destination param
+    const parameters: Record<string, unknown> = {
+      [parameterName]: {
+        type: 'string',
+        description: parameterDescription,
+      },
+      message: {
+        type: 'string',
+        description:
+          'An optional message to say to the caller before the transfer. If not provided, a default transfer message is used.',
+      },
+    };
+    const required = [parameterName];
+    for (const [fieldName, fieldDescription] of Object.entries(requiredFields)) {
+      parameters[fieldName] = {
+        type: 'string',
+        description: fieldDescription,
+      };
+      required.push(fieldName);
     }
+
+    // Pattern map for TS-style destinations (friendly-name lookup)
+    const patternMap = new Map<string, TransferPattern>();
+    for (const p of patterns) {
+      patternMap.set(p.name.toLowerCase(), p);
+    }
+
+    // Compile regex entries from Python-style transfers config
+    const compiledTransfers: Array<{ regex: RegExp; raw: string; config: TransferConfig }> = [];
+    for (const [patternKey, config] of Object.entries(transfers)) {
+      // Accept /.../ /i suffix as JS-style flags
+      let body = patternKey;
+      let flags = 'i';
+      if (body.startsWith('/')) body = body.slice(1);
+      if (body.endsWith('/i')) {
+        flags = 'i';
+        body = body.slice(0, -2);
+      } else if (body.endsWith('/')) {
+        flags = 'i';
+        body = body.slice(0, -1);
+      }
+      try {
+        compiledTransfers.push({
+          regex: new RegExp(body, flags),
+          raw: patternKey,
+          config,
+        });
+      } catch (err) {
+        log.error('swml_transfer: invalid transfer pattern', {
+          pattern: patternKey,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    const description = this._buildTransferDescription(
+      toolDescription,
+      patterns,
+      transfers,
+      canUseArbitrary,
+    );
 
     const tools: SkillToolDefinition[] = [
       {
-        name: 'transfer_call',
-        description: this._buildTransferDescription(patterns, canUseArbitrary),
-        parameters: {
-          destination: {
-            type: 'string',
-            description: this._buildDestinationDescription(patterns, canUseArbitrary),
-          },
-          message: {
-            type: 'string',
-            description:
-              'An optional message to say to the caller before the transfer. If not provided, a default transfer message is used.',
-          },
-        },
-        required: ['destination'],
+        name: toolName,
+        description,
+        parameters,
+        required,
         handler: (args: Record<string, unknown>) => {
-          const destination = args.destination as string | undefined;
-          const message = (args.message as string | undefined) ?? defaultMessage;
+          const rawDest = args[parameterName];
+          const callerMessage = args['message'];
+          const messageOverride =
+            typeof callerMessage === 'string' && callerMessage.trim().length > 0
+              ? callerMessage
+              : undefined;
 
-          if (
-            !destination ||
-            typeof destination !== 'string' ||
-            destination.trim().length === 0
-          ) {
-            return new FunctionResult(
-              'Please specify a destination for the transfer.',
+          if (typeof rawDest !== 'string' || rawDest.trim().length === 0) {
+            return new FunctionResult('Please specify a destination for the transfer.');
+          }
+          const destination = rawDest.trim();
+
+          // Build call_data for required fields
+          const callData: Record<string, unknown> = {};
+          for (const fieldName of Object.keys(requiredFields)) {
+            if (fieldName in args) callData[fieldName] = args[fieldName];
+          }
+
+          // 1. Try Python-style transfers (regex match)
+          for (const entry of compiledTransfers) {
+            if (entry.regex.test(destination)) {
+              return this._buildTransferResult(
+                entry.config,
+                messageOverride,
+                callData,
+              );
+            }
+          }
+
+          // 2. Try TS-style named patterns
+          const matchedPattern = patternMap.get(destination.toLowerCase());
+          if (matchedPattern) {
+            return this._buildPatternResult(
+              matchedPattern,
+              messageOverride ?? defaultMessage,
+              callData,
             );
           }
 
-          const trimmedDest = destination.trim();
-
-          // Check if this matches a named pattern
-          const matchedPattern = patternMap.get(trimmedDest.toLowerCase());
-
-          if (matchedPattern) {
-            const result = new FunctionResult(message);
-            result.swmlTransfer(matchedPattern.destination, message);
+          // 3. Arbitrary destinations
+          if (canUseArbitrary) {
+            const msg = messageOverride ?? defaultMessage;
+            const result = new FunctionResult(msg);
+            result.swmlTransfer(destination, msg, true);
+            if (Object.keys(callData).length > 0) {
+              result.updateGlobalData({ call_data: callData });
+            }
             return result;
           }
 
-          // No matching pattern - check if arbitrary transfers are allowed
-          if (!canUseArbitrary) {
-            const availableNames = patterns
-              .map((p) => `"${p.name}"`)
-              .join(', ');
-            return new FunctionResult(
-              `Unknown transfer destination "${trimmedDest}". Available destinations: ${availableNames}.`,
-            );
+          // 4. No match — return fallback message
+          const fallback = new FunctionResult(noMatchMessage);
+          fallback.postProcess = defaultPostProcess;
+          if (Object.keys(callData).length > 0) {
+            fallback.updateGlobalData({ call_data: callData });
           }
-
-          // Arbitrary transfer
-          const result = new FunctionResult(message);
-          result.swmlTransfer(trimmedDest, message);
-          return result;
+          return fallback;
         },
       },
     ];
 
-    // Add a list_destinations tool if patterns are configured
     if (patterns.length > 0) {
       tools.push({
         name: 'list_transfer_destinations',
@@ -196,7 +458,6 @@ export class SwmlTransferSkill extends SkillBase {
             const desc = p.description ? ` - ${p.description}` : '';
             return `${p.name}${desc}`;
           });
-
           return new FunctionResult(
             `Available transfer destinations:\n${lines.join('\n')}`,
           );
@@ -208,90 +469,178 @@ export class SwmlTransferSkill extends SkillBase {
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
-    const patterns = this.getConfig<TransferPattern[]>('patterns', []);
+    const toolName = this.getConfig<string>('tool_name', this.toolName);
+    const parameterName = this.getConfig<string>(
+      'parameter_name',
+      this.parameterName,
+    );
+    const transfers =
+      Object.keys(this.transfers).length > 0
+        ? this.transfers
+        : this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+    const patterns =
+      this.patterns.length > 0
+        ? this.patterns
+        : this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+    const requiredFields =
+      this.getConfig<Record<string, string>>('required_fields', this.requiredFields) ?? {};
     const allowArbitrary = this.getConfig<boolean | undefined>(
       'allow_arbitrary',
-      undefined,
+      this.allowArbitraryOverride,
     );
     const canUseArbitrary =
       allowArbitrary !== undefined
         ? allowArbitrary
-        : patterns.length === 0;
+        : patterns.length === 0 && Object.keys(transfers).length === 0;
 
-    const bullets: string[] = [
-      'Use the transfer_call tool to transfer the current call to another destination.',
-      'You can optionally provide a message to say to the caller before the transfer.',
-    ];
+    const sections: SkillPromptSection[] = [];
 
-    if (patterns.length > 0) {
-      const patternNames = patterns.map((p) => `"${p.name}"`).join(', ');
-      bullets.push(
-        `Named transfer destinations are available: ${patternNames}. Use these names as the destination.`,
-      );
+    // Build "Transferring" section with destinations
+    const transferBullets: string[] = [];
 
-      for (const pattern of patterns) {
-        if (pattern.description) {
-          bullets.push(`${pattern.name}: ${pattern.description}`);
+    for (const [patternKey, config] of Object.entries(transfers)) {
+      let clean = patternKey;
+      if (clean.startsWith('/')) clean = clean.slice(1);
+      if (clean.endsWith('/')) clean = clean.slice(0, -1);
+      else if (clean.endsWith('/i')) clean = clean.slice(0, -2);
+
+      if (clean && !clean.startsWith('.')) {
+        const destination = config.url ?? config.address ?? '';
+        transferBullets.push(`"${clean}" - transfers to ${destination}`);
+      }
+    }
+
+    for (const p of patterns) {
+      const desc = p.description ? ` - ${p.description}` : ` - transfers to ${p.destination}`;
+      transferBullets.push(`"${p.name}"${desc}`);
+    }
+
+    if (transferBullets.length > 0) {
+      sections.push({
+        title: 'Transferring',
+        body: `You can transfer calls using the ${toolName} function with the following destinations:`,
+        bullets: transferBullets,
+      });
+
+      const instructionBullets: string[] = [
+        `Use the ${toolName} function when a transfer is needed`,
+        `Pass the destination type to the '${parameterName}' parameter`,
+      ];
+
+      if (Object.keys(requiredFields).length > 0) {
+        instructionBullets.push(
+          'You must provide the following information before transferring:',
+        );
+        for (const [fieldName, description] of Object.entries(requiredFields)) {
+          instructionBullets.push(`  - ${fieldName}: ${description}`);
         }
+        instructionBullets.push(
+          "All required information will be saved under 'call_data' for the next agent",
+        );
       }
 
       if (canUseArbitrary) {
-        bullets.push(
+        instructionBullets.push(
           'You can also transfer to arbitrary phone numbers or SIP URIs.',
         );
       }
 
-      bullets.push(
-        'Use list_transfer_destinations to see all available named destinations.',
+      instructionBullets.push(
+        'The system will match patterns and handle the transfer automatically',
+        "After transfer completes, you'll regain control of the conversation",
       );
-    } else {
-      bullets.push(
-        'Provide a phone number, SIP URI, or agent URL as the transfer destination.',
-      );
-    }
 
-    return [
-      {
+      sections.push({
+        title: 'Transfer Instructions',
+        body: 'How to use the transfer capability:',
+        bullets: instructionBullets,
+      });
+    } else {
+      sections.push({
         title: 'Call Transfer',
         body: 'You can transfer the current call to another destination.',
-        bullets,
-      },
-    ];
-  }
-
-  /**
-   * Build the tool description based on available patterns.
-   */
-  private _buildTransferDescription(
-    patterns: TransferPattern[],
-    canUseArbitrary: boolean,
-  ): string {
-    if (patterns.length === 0) {
-      return 'Transfer the current call to a specified destination (phone number, SIP URI, or agent URL).';
+        bullets: [
+          `Use the ${toolName} function to transfer the current call to another destination.`,
+          'You can optionally provide a message to say to the caller before the transfer.',
+          'Provide a phone number, SIP URI, or agent URL as the transfer destination.',
+        ],
+      });
     }
 
-    const names = patterns.map((p) => `"${p.name}"`).join(', ');
-    const base = `Transfer the current call. Named destinations: ${names}.`;
+    return sections;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  /** Build a FunctionResult for a Python-style TransferConfig. */
+  private _buildTransferResult(
+    config: TransferConfig,
+    messageOverride: string | undefined,
+    callData: Record<string, unknown>,
+  ): FunctionResult {
+    const message = messageOverride ?? config.message ?? 'Transferring you now...';
+    const returnMessage =
+      config.return_message ?? 'The transfer is complete. How else can I help you?';
+    const postProcess = config.post_process ?? true;
+    const final = config.final ?? true;
+
+    const result = new FunctionResult(message, postProcess);
+    if (Object.keys(callData).length > 0) {
+      result.updateGlobalData({ call_data: callData });
+    }
+
+    if (config.url) {
+      result.swmlTransfer(config.url, returnMessage, final);
+    } else if (config.address) {
+      result.connect(config.address, final, config.from_addr);
+    }
+    return result;
+  }
+
+  /** Build a FunctionResult for a TS-style named TransferPattern. */
+  private _buildPatternResult(
+    pattern: TransferPattern,
+    message: string,
+    callData: Record<string, unknown>,
+  ): FunctionResult {
+    const returnMessage =
+      pattern.returnMessage ?? 'The transfer is complete. How else can I help you?';
+    const postProcess = pattern.postProcess ?? true;
+    const final = pattern.final ?? true;
+
+    const result = new FunctionResult(message, postProcess);
+    if (Object.keys(callData).length > 0) {
+      result.updateGlobalData({ call_data: callData });
+    }
+
+    // If destination looks like a URL, use swmlTransfer; otherwise use connect
+    if (/^https?:\/\//i.test(pattern.destination)) {
+      result.swmlTransfer(pattern.destination, returnMessage, final);
+    } else {
+      result.connect(pattern.destination, final, pattern.fromAddr);
+    }
+    return result;
+  }
+
+  private _buildTransferDescription(
+    baseDescription: string,
+    patterns: TransferPattern[],
+    transfers: Record<string, TransferConfig>,
+    canUseArbitrary: boolean,
+  ): string {
+    const names = [
+      ...Object.keys(transfers).map((k) => `"${k}"`),
+      ...patterns.map((p) => `"${p.name}"`),
+    ];
+    if (names.length === 0) {
+      return baseDescription;
+    }
+    const base = `${baseDescription}. Named destinations: ${names.join(', ')}.`;
     return canUseArbitrary
       ? `${base} You may also use arbitrary phone numbers or SIP URIs.`
       : base;
-  }
-
-  /**
-   * Build the destination parameter description based on available patterns.
-   */
-  private _buildDestinationDescription(
-    patterns: TransferPattern[],
-    canUseArbitrary: boolean,
-  ): string {
-    if (patterns.length === 0) {
-      return 'The transfer destination: a phone number (e.g., +15551234567), SIP URI, or agent URL.';
-    }
-
-    const names = patterns.map((p) => `"${p.name}"`).join(', ');
-    return canUseArbitrary
-      ? `A named destination (${names}) or an arbitrary phone number / SIP URI.`
-      : `One of the named destinations: ${names}.`;
   }
 }
 
