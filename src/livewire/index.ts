@@ -122,15 +122,30 @@ export class Agent<UserData = any> {
   instructions: string;
   tools: Record<string, FunctionTool>;
   userData?: UserData;
+  /** Agent-level override for allow_interruptions (undefined = use session value). */
+  readonly allowInterruptions?: boolean;
+  /** Agent-level override for min_endpointing_delay in seconds (undefined = use session value). */
+  readonly minEndpointingDelay?: number;
+  /** Agent-level override for max_endpointing_delay in seconds (undefined = use session value). */
+  readonly maxEndpointingDelay?: number;
 
   constructor(options: {
     instructions: string;
     tools?: Record<string, FunctionTool>;
     userData?: UserData;
+    /** When set, overrides the session-level allowInterruptions. */
+    allowInterruptions?: boolean;
+    /** When set, overrides the session-level minEndpointingDelay (seconds). */
+    minEndpointingDelay?: number;
+    /** When set, overrides the session-level maxEndpointingDelay (seconds). */
+    maxEndpointingDelay?: number;
   }) {
     this.instructions = options.instructions;
     this.tools = options.tools ?? {};
     this.userData = options.userData;
+    this.allowInterruptions = options.allowInterruptions;
+    this.minEndpointingDelay = options.minEndpointingDelay;
+    this.maxEndpointingDelay = options.maxEndpointingDelay;
   }
 }
 
@@ -280,17 +295,34 @@ export class AgentSession<UserData = any> {
       swAgent.setParam('model', model);
     }
 
-    // Map interruption / barge-in setting
-    if (!this._allowInterruptions) {
+    // Map interruption / barge-in setting.
+    // Agent-level value takes precedence over session-level (mirrors Python's
+    // getattr(agent, "_allow_interruptions", NOT_GIVEN) override logic).
+    const allowInterruptions =
+      params.agent.allowInterruptions !== undefined
+        ? params.agent.allowInterruptions
+        : this._allowInterruptions;
+    if (!allowInterruptions) {
       swAgent.setParam('barge_confidence', 1.0);
     }
 
-    // Map endpointing delays
-    if (this._minEndpointingDelay > 0) {
-      swAgent.setParam('end_of_speech_timeout', Math.round(this._minEndpointingDelay * 1000));
+    // Map endpointing delays.
+    // Agent-level values take precedence over session-level values (mirrors
+    // Python's getattr(agent, "_min_endpointing_delay", NOT_GIVEN) logic).
+    const minEndpointingDelay =
+      params.agent.minEndpointingDelay !== undefined
+        ? params.agent.minEndpointingDelay
+        : this._minEndpointingDelay;
+    if (minEndpointingDelay > 0) {
+      swAgent.setParam('end_of_speech_timeout', Math.round(minEndpointingDelay * 1000));
     }
-    if (this._maxEndpointingDelay > 0) {
-      swAgent.setParam('attention_timeout', Math.round(this._maxEndpointingDelay * 1000));
+
+    const maxEndpointingDelay =
+      params.agent.maxEndpointingDelay !== undefined
+        ? params.agent.maxEndpointingDelay
+        : this._maxEndpointingDelay;
+    if (maxEndpointingDelay > 0) {
+      swAgent.setParam('attention_timeout', Math.round(maxEndpointingDelay * 1000));
     }
 
     // Map record param
