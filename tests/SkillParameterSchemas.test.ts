@@ -93,12 +93,12 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.api_key.required).toBe(true);
     });
 
-    it('WebSearchSkill has max_results with min/max', () => {
+    it('WebSearchSkill has num_results with min/max', () => {
       const schema = WebSearchSkill.getParameterSchema();
-      expect(schema.max_results).toBeDefined();
-      expect(schema.max_results.min).toBe(1);
-      expect(schema.max_results.max).toBe(10);
-      expect(schema.max_results.default).toBe(5);
+      expect(schema.num_results).toBeDefined();
+      expect(schema.num_results.min).toBe(1);
+      expect(schema.num_results.max).toBe(10);
+      expect(schema.num_results.default).toBe(3);
     });
 
     it('AskClaudeSkill has model with default', () => {
@@ -113,11 +113,11 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.skills_path.required).toBe(true);
     });
 
-    it('DataSphereSkill has distance_threshold with min/max', () => {
+    it('DataSphereSkill has distance with min/max', () => {
       const schema = DataSphereSkill.getParameterSchema();
-      expect(schema.distance_threshold).toBeDefined();
-      expect(schema.distance_threshold.min).toBe(0);
-      expect(schema.distance_threshold.max).toBe(1);
+      expect(schema.distance).toBeDefined();
+      expect(schema.distance.min).toBe(0);
+      expect(schema.distance.max).toBe(10);
     });
 
     it('SwmlTransferSkill has patterns array', () => {

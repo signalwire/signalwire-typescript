@@ -33,10 +33,17 @@ describe('DataSphereServerlessSkill', () => {
     expect(new DataSphereServerlessSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
+  it('should return empty hints', () => {
     const skill = new DataSphereServerlessSkill();
     expect(skill.getHints()).toEqual([]);
-    expect(skill.getGlobalData()).toEqual({});
+  });
+
+  it('should expose DataSphere metadata via global data', () => {
+    const skill = new DataSphereServerlessSkill({ document_id: 'doc-1' });
+    const globalData = skill.getGlobalData();
+    expect(globalData['datasphere_serverless_enabled']).toBe(true);
+    expect(globalData['document_id']).toBe('doc-1');
+    expect(globalData['knowledge_provider']).toBe('SignalWire DataSphere (Serverless)');
   });
 
   it('should return correct manifest', () => {

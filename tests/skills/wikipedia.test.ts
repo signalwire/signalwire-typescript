@@ -20,10 +20,10 @@ describe('WikipediaSearchSkill', () => {
     await expect(new WikipediaSearchSkill().setup()).resolves.toBeUndefined();
   });
 
-  it('should register a search_wikipedia tool', () => {
+  it('should register a search_wiki tool', () => {
     const tools = new WikipediaSearchSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wikipedia');
+    expect(tools[0].name).toBe('search_wiki');
     expect(tools[0].required).toContain('query');
   });
 
@@ -52,12 +52,14 @@ describe('WikipediaSearchSkill', () => {
   it('should reject empty query', async () => {
     const handler = new WikipediaSearchSkill().getTools()[0].handler;
     const result = await handler({ query: '' }, {}) as FunctionResult;
-    expect(result.response).toContain('provide a topic');
+    expect(result.response).toContain('provide a search query');
   });
 
   it('should have a parameter schema', () => {
     const schema = WikipediaSearchSkill.getParameterSchema();
+    expect(schema['num_results']).toBeDefined();
+    expect(schema['no_results_message']).toBeDefined();
     expect(schema['language']).toBeDefined();
-    expect(schema['max_results']).toBeDefined();
+    expect(schema['max_content_length']).toBeDefined();
   });
 });

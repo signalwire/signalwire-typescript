@@ -30,28 +30,35 @@ describe('WebSearchSkill', () => {
   it('should provide prompt sections', () => {
     const sections = new WebSearchSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Web Search');
+    expect(sections[0].title).toContain('Web Search');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
     expect(new WebSearchSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
+  it('should return empty hints', () => {
     const skill = new WebSearchSkill();
     expect(skill.getHints()).toEqual([]);
-    expect(skill.getGlobalData()).toEqual({});
+  });
+
+  it('should expose web search metadata via global data', () => {
+    const globalData = new WebSearchSkill().getGlobalData();
+    expect(globalData['web_search_enabled']).toBe(true);
+    expect(globalData['search_provider']).toBe('Google Custom Search');
   });
 
   it('should return correct manifest with required env vars', () => {
     const manifest = new WebSearchSkill().getManifest();
     expect(manifest.name).toBe('web_search');
+    expect(manifest.version).toBe('2.0.0');
     expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_API_KEY');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_CX');
+    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_ENGINE_ID');
   });
 
   it('should return error when API keys are missing', async () => {
     delete process.env['GOOGLE_SEARCH_API_KEY'];
+    delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const handler = new WebSearchSkill().getTools()[0].handler;
     const result = await handler({ query: 'test' }, {}) as FunctionResult;
@@ -64,9 +71,24 @@ describe('WebSearchSkill', () => {
     expect(result.response).toContain('provide a search query');
   });
 
+  it('should support multiple instances', () => {
+    expect(WebSearchSkill.SUPPORTS_MULTIPLE_INSTANCES).toBe(true);
+  });
+
+  it('should compute instance key from search_engine_id and tool_name', () => {
+    const skill = new WebSearchSkill({ search_engine_id: 'cx-1', tool_name: 'custom' });
+    expect(skill.getInstanceKey()).toBe('web_search_cx-1_custom');
+  });
+
   it('should have a parameter schema', () => {
     const schema = WebSearchSkill.getParameterSchema();
-    expect(schema['max_results']).toBeDefined();
+    expect(schema['num_results']).toBeDefined();
+    expect(schema['tool_name']).toBeDefined();
+    expect(schema['no_results_message']).toBeDefined();
     expect(schema['safe_search']).toBeDefined();
+    expect(schema['delay']).toBeDefined();
+    expect(schema['max_content_length']).toBeDefined();
+    expect(schema['oversample_factor']).toBeDefined();
+    expect(schema['min_quality_score']).toBeDefined();
   });
 });

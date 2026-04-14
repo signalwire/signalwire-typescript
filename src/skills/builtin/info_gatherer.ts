@@ -1,10 +1,16 @@
 /**
  * Info Gatherer Skill - Collects structured information from the user.
  *
- * Tier 2 built-in skill: no external dependencies required.
- * Dynamically generates a save_info tool based on configured fields.
- * Fields can have optional validation patterns and required/optional flags.
- * Useful for collecting user details like name, email, phone, address, etc.
+ * Tier 2 built-in skill: no external dependencies required. Supports two
+ * collection modes:
+ *
+ * 1. Sequential question flow (Python-aligned): configure `questions` and the
+ *    skill registers `start_questions` / `submit_answer` tools that guide the
+ *    agent one question at a time. State lives in SWAIG `global_data` under a
+ *    namespaced key (e.g. `skill:info_gatherer`).
+ * 2. Single-shot field collection (TS-native): configure `fields` to get a
+ *    dynamic `save_info` tool plus a `get_gathered_info` retrieval tool. State
+ *    lives in an in-memory map keyed by `call_id`.
  */
 
 import { SkillBase } from '../SkillBase.js';
@@ -16,6 +22,9 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('InfoGathererSkill');
 
 /** Definition of a single data field to be collected from the user. */
 interface FieldDefinition {
@@ -31,24 +40,50 @@ interface FieldDefinition {
   type?: string;
 }
 
+/** Definition of a single question in the sequential question flow. */
+interface QuestionDefinition {
+  /** Key name used to store the answer. */
+  key_name: string;
+  /** Question text read to the user. */
+  question_text: string;
+  /** When true, the agent must confirm the answer with the user before submitting. */
+  confirm?: boolean;
+  /** Optional extra instruction appended to the question prompt. */
+  prompt_add?: string;
+}
+
 /** Key-value map of information gathered from a user during a call. */
 interface GatheredInfo {
   [key: string]: unknown;
 }
 
 /**
- * Collects structured information from the user based on configurable fields.
+ * Collects structured information from the user.
  *
- * Tier 2 built-in skill with no external dependencies. Dynamically generates
- * a `save_info` tool based on the `fields` config array. Fields support
- * optional validation patterns and required/optional flags. Data is stored
- * per-call and optionally merged into global data.
+ * Tier 2 built-in skill with no external dependencies. Supports the
+ * Python-aligned sequential question flow (`questions` config) and the
+ * TS-native single-shot field collection (`fields` config).
  */
 export class InfoGathererSkill extends SkillBase {
+  /** Python SDK parity: multiple instances can coexist with different prefixes. */
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
+
+  /** Sequential flow: list of question definitions populated in `setup()`. */
+  private questions: QuestionDefinition[] = [];
+  /** Sequential flow: derived tool name for the start tool (prefix-aware). */
+  private startToolName: string = 'start_questions';
+  /** Sequential flow: derived tool name for the submit tool (prefix-aware). */
+  private submitToolName: string = 'submit_answer';
+  /** Sequential flow: message returned once all questions are answered. */
+  private completionMessage: string = '';
+
+  /** Single-shot flow: in-memory storage keyed by call_id. */
   private gatheredData: Map<string, GatheredInfo> = new Map();
 
   /**
-   * @param config - Optional configuration; supports `fields`, `purpose`, `confirmation_message`, `store_globally`.
+   * @param config - Optional configuration; supports `questions`, `prefix`,
+   *   `completion_message`, `fields`, `purpose`, `confirmation_message`,
+   *   `store_globally`.
    */
   constructor(config?: SkillConfig) {
     super('info_gatherer', config);
@@ -57,9 +92,36 @@ export class InfoGathererSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      questions: {
+        type: 'array',
+        description:
+          "List of question objects. Each must have 'key_name' (str) and 'question_text' (str). Optional 'confirm' (bool) asks the agent to confirm the answer before proceeding.",
+        required: true,
+        items: {
+          type: 'object',
+          properties: {
+            key_name: { type: 'string' },
+            question_text: { type: 'string' },
+            confirm: { type: 'boolean' },
+            prompt_add: { type: 'string' },
+          },
+        },
+      },
+      prefix: {
+        type: 'string',
+        description:
+          "Optional prefix for tool names and namespace. When set, tools are named <prefix>_start_questions / <prefix>_submit_answer and state is stored under 'skill:<prefix>' in global_data.",
+      },
+      completion_message: {
+        type: 'string',
+        description: 'Message returned after all questions are answered',
+        default:
+          "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
+      },
       fields: {
         type: 'array',
-        description: 'Array of field definitions to collect: { name, description, required?, validation?, type? }.',
+        description:
+          'Array of field definitions to collect: { name, description, required?, validation?, type? }.',
         items: { type: 'object' },
       },
       purpose: {
@@ -79,16 +141,41 @@ export class InfoGathererSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest with config schema for fields, purpose, confirmation_message, and store_globally. */
+  /** @returns Manifest with config schema for both collection modes. */
   getManifest(): SkillManifest {
     return {
       name: 'info_gatherer',
       description:
-        'Collects structured information from the user based on configurable fields. Validates and stores gathered data.',
+        'Gather answers to a configurable list of questions, or collect structured information from the user based on configurable fields.',
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['data-collection', 'form', 'information', 'utility'],
       configSchema: {
+        questions: {
+          type: 'array',
+          description:
+            "List of question objects. Each must have 'key_name' and 'question_text'. Optional 'confirm' asks the agent to confirm before proceeding; 'prompt_add' appends a note.",
+          items: {
+            type: 'object',
+            properties: {
+              key_name: { type: 'string' },
+              question_text: { type: 'string' },
+              confirm: { type: 'boolean' },
+              prompt_add: { type: 'string' },
+            },
+            required: ['key_name', 'question_text'],
+          },
+        },
+        prefix: {
+          type: 'string',
+          description:
+            'Optional prefix for tool names and namespace. Enables multi-instance use.',
+        },
+        completion_message: {
+          type: 'string',
+          description:
+            'Message returned after all sequential questions are answered.',
+        },
         fields: {
           type: 'array',
           description:
@@ -119,19 +206,119 @@ export class InfoGathererSkill extends SkillBase {
         confirmation_message: {
           type: 'string',
           description:
-            'Custom message returned after successful info collection.',
+            'Custom message returned after successful save_info call (single-shot mode).',
         },
         store_globally: {
           type: 'boolean',
           description:
-            'Whether to store gathered info in global data. Defaults to false.',
+            'Whether to store gathered info in global data (single-shot mode). Defaults to false.',
         },
       },
     };
   }
 
-  /** @returns A `save_info` tool (dynamic params from config) and a `get_gathered_info` retrieval tool. */
+  /**
+   * Instance key for the SkillManager. When `prefix` is configured, returns
+   * `info_gatherer_<prefix>` to support multi-instance use. Matches Python's
+   * `get_instance_key()`.
+   */
+  override getInstanceKey(): string {
+    const prefix = this.getConfig<string>('prefix', '');
+    return prefix ? `info_gatherer_${prefix}` : 'info_gatherer';
+  }
+
+  /**
+   * Validate sequential question config and initialize derived state. A no-op
+   * when `questions` is not configured (field-only mode).
+   */
+  override async setup(): Promise<void> {
+    const questions = this.getConfig<unknown>('questions', undefined);
+    if (questions === undefined || questions === null) {
+      // No sequential config — field-only mode is handled in getTools/_getPromptSections.
+      return;
+    }
+
+    try {
+      InfoGathererSkill._validateQuestions(questions);
+    } catch (err) {
+      log.error(
+        `info_gatherer: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+
+    this.questions = questions as QuestionDefinition[];
+
+    const prefix = this.getConfig<string>('prefix', '');
+    if (prefix) {
+      this.startToolName = `${prefix}_start_questions`;
+      this.submitToolName = `${prefix}_submit_answer`;
+    } else {
+      this.startToolName = 'start_questions';
+      this.submitToolName = 'submit_answer';
+    }
+
+    this.completionMessage = this.getConfig<string>(
+      'completion_message',
+      "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
+    );
+  }
+
+  /**
+   * Seed SWAIG global_data with the initial sequential-question state. Returns
+   * an empty object when sequential mode is not active.
+   */
+  override getGlobalData(): Record<string, unknown> {
+    if (this.questions.length === 0) {
+      return {};
+    }
+    return {
+      [this.getSkillNamespace()]: {
+        questions: this.questions,
+        question_index: 0,
+        answers: [],
+      },
+    };
+  }
+
+  /** Tools for the configured collection mode. */
   getTools(): SkillToolDefinition[] {
+    // Sequential question flow takes precedence when configured.
+    if (this.questions.length > 0) {
+      return this._getSequentialTools();
+    }
+    return this._getFieldTools();
+  }
+
+  private _getSequentialTools(): SkillToolDefinition[] {
+    return [
+      {
+        name: this.startToolName,
+        description: 'Start the question sequence with the first question',
+        parameters: {},
+        handler: (args, rawData) => this._handleStartQuestions(args, rawData),
+      },
+      {
+        name: this.submitToolName,
+        description:
+          'Submit an answer to the current question and move to the next one',
+        parameters: {
+          answer: {
+            type: 'string',
+            description: "The user's answer to the current question",
+          },
+          confirmed_by_user: {
+            type: 'boolean',
+            description:
+              "Only set to true when the user has explicitly said 'yes' or confirmed the answer is correct in their own words in their most recent response. Never set this to true on your own.",
+          },
+        },
+        handler: (args, rawData) => this._handleSubmitAnswer(args, rawData),
+      },
+    ];
+  }
+
+  private _getFieldTools(): SkillToolDefinition[] {
     const fields = this.getConfig<FieldDefinition[]>('fields', []);
     const confirmationMessage = this.getConfig<string>(
       'confirmation_message',
@@ -158,7 +345,7 @@ export class InfoGathererSkill extends SkillBase {
       }
     }
 
-    const tools: SkillToolDefinition[] = [
+    return [
       {
         name: 'save_info',
         description:
@@ -169,24 +356,24 @@ export class InfoGathererSkill extends SkillBase {
           const errors: string[] = [];
           const collected: GatheredInfo = {};
 
-          // Validate each field
           for (const field of fields) {
             const value = args[field.name];
 
-            // Check required fields
             if (field.required) {
-              if (value === undefined || value === null || (typeof value === 'string' && value.trim().length === 0)) {
+              if (
+                value === undefined ||
+                value === null ||
+                (typeof value === 'string' && value.trim().length === 0)
+              ) {
                 errors.push(`"${field.name}" is required but was not provided.`);
                 continue;
               }
             }
 
-            // Skip optional fields that weren't provided
             if (value === undefined || value === null) {
               continue;
             }
 
-            // Validate against pattern if specified
             if (field.validation && typeof value === 'string') {
               try {
                 const regex = new RegExp(field.validation);
@@ -197,11 +384,12 @@ export class InfoGathererSkill extends SkillBase {
                   continue;
                 }
               } catch {
-                // If regex is invalid, skip validation
+                // Invalid regex — skip validation
               }
             }
 
-            collected[field.name] = typeof value === 'string' ? value.trim() : value;
+            collected[field.name] =
+              typeof value === 'string' ? value.trim() : value;
           }
 
           if (errors.length > 0) {
@@ -216,14 +404,12 @@ export class InfoGathererSkill extends SkillBase {
             );
           }
 
-          // Store the gathered data keyed by call ID if available
           const callId = (rawData['call_id'] as string | undefined) ?? 'default';
           this.gatheredData.set(callId, {
             ...this.gatheredData.get(callId),
             ...collected,
           });
 
-          // Build confirmation with collected fields summary
           const fieldSummary = Object.entries(collected)
             .map(([key, val]) => `${key}: ${val}`)
             .join(', ');
@@ -232,7 +418,6 @@ export class InfoGathererSkill extends SkillBase {
             `${confirmationMessage} Saved: ${fieldSummary}.`,
           );
 
-          // Optionally store in global data
           if (storeGlobally) {
             result.updateGlobalData({ gathered_info: collected });
           }
@@ -265,12 +450,191 @@ export class InfoGathererSkill extends SkillBase {
         },
       },
     ];
-
-    return tools;
   }
 
-  /** @returns Prompt section listing required/optional fields and collection instructions. */
+  /**
+   * Handle the `start_questions` tool: read state from global_data and return
+   * an instruction for the first question.
+   */
+  private _handleStartQuestions(
+    _args: Record<string, unknown>,
+    rawData: Record<string, unknown>,
+  ): FunctionResult {
+    const state = this.getSkillData(rawData);
+    const questions = (state['questions'] as QuestionDefinition[] | undefined) ?? [];
+    const questionIndex = (state['question_index'] as number | undefined) ?? 0;
+
+    if (questions.length === 0 || questionIndex >= questions.length) {
+      return new FunctionResult("I don't have any questions to ask.");
+    }
+
+    const current = questions[questionIndex];
+    const instruction = InfoGathererSkill._generateQuestionInstruction(
+      current.question_text ?? '',
+      current.confirm ?? false,
+      true,
+      current.prompt_add ?? '',
+      this.submitToolName,
+      questionIndex + 1,
+      questions.length,
+    );
+    return new FunctionResult(instruction);
+  }
+
+  /**
+   * Handle the `submit_answer` tool: validate confirmation, record the answer,
+   * advance the index, and either return the next question or the completion
+   * message (disabling both tools on completion).
+   */
+  private _handleSubmitAnswer(
+    args: Record<string, unknown>,
+    rawData: Record<string, unknown>,
+  ): FunctionResult {
+    const answer = (args['answer'] as string | undefined) ?? '';
+    const confirmed = (args['confirmed_by_user'] as boolean | undefined) ?? false;
+    const state = this.getSkillData(rawData);
+
+    const questions = (state['questions'] as QuestionDefinition[] | undefined) ?? [];
+    const questionIndex = (state['question_index'] as number | undefined) ?? 0;
+    const answers = (state['answers'] as Array<{ key_name: string; answer: string }> | undefined) ?? [];
+
+    if (questionIndex >= questions.length) {
+      return new FunctionResult('All questions have already been answered.');
+    }
+
+    const current = questions[questionIndex];
+    const keyName = current.key_name ?? '';
+
+    // Enforce confirmation: reject the submission if the question requires
+    // confirmation but the confirmed flag was not set to true.
+    if ((current.confirm ?? false) && !confirmed) {
+      return new FunctionResult(
+        `Before submitting, you must read the answer "${answer}" back to the user ` +
+          `and ask them to confirm it is correct. Then call this function again with ` +
+          `confirmed set to true. If the user says it is wrong, ask the question again.`,
+      );
+    }
+
+    const newAnswers = [...answers, { key_name: keyName, answer }];
+    const newIndex = questionIndex + 1;
+
+    let result: FunctionResult;
+
+    if (newIndex < questions.length) {
+      const nextQ = questions[newIndex];
+      const instruction = InfoGathererSkill._generateQuestionInstruction(
+        nextQ.question_text ?? '',
+        nextQ.confirm ?? false,
+        false,
+        nextQ.prompt_add ?? '',
+        this.submitToolName,
+        newIndex + 1,
+        questions.length,
+      );
+      result = new FunctionResult(instruction);
+    } else {
+      result = new FunctionResult(this.completionMessage);
+      result.toggleFunctions([
+        { function: this.startToolName, active: false },
+        { function: this.submitToolName, active: false },
+      ]);
+    }
+
+    const newState = {
+      questions,
+      question_index: newIndex,
+      answers: newAnswers,
+    };
+    this.updateSkillData(result, newState);
+    return result;
+  }
+
+  /** Generate the per-question instruction returned to the agent. */
+  private static _generateQuestionInstruction(
+    questionText: string,
+    needsConfirmation: boolean,
+    isFirstQuestion: boolean,
+    promptAdd: string,
+    submitToolName: string,
+    questionNumber: number,
+    totalQuestions: number,
+  ): string {
+    let instruction: string;
+    if (isFirstQuestion) {
+      instruction =
+        `Ask each question one at a time, wait for the user's answer, ` +
+        `then call ${submitToolName} with their answer. Do not reuse previous answers.\n\n` +
+        `[Question ${questionNumber} of ${totalQuestions}]: "${questionText}"`;
+    } else {
+      instruction = `Previous answer saved. [Question ${questionNumber} of ${totalQuestions}]: "${questionText}"`;
+    }
+
+    if (promptAdd) {
+      instruction += `\nNote: ${promptAdd}`;
+    }
+
+    if (needsConfirmation) {
+      instruction +=
+        `\nThis question requires confirmation. Read the answer back to the user ` +
+        `and ask them to confirm it is correct before calling ${submitToolName}. ` +
+        `If they say it is wrong, ask the question again.`;
+    }
+
+    return instruction;
+  }
+
+  /**
+   * Validate that `questions` is a non-empty array of objects each having
+   * `key_name` and `question_text`. Throws on invalid input.
+   */
+  private static _validateQuestions(questions: unknown): void {
+    if (!Array.isArray(questions)) {
+      throw new Error('Questions must be a list');
+    }
+    if (questions.length === 0) {
+      throw new Error('At least one question is required');
+    }
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q || typeof q !== 'object' || Array.isArray(q)) {
+        throw new Error(`Question ${i + 1} must be a dictionary`);
+      }
+      const obj = q as Record<string, unknown>;
+      if (!('key_name' in obj)) {
+        throw new Error(`Question ${i + 1} is missing 'key_name' field`);
+      }
+      if (!('question_text' in obj)) {
+        throw new Error(`Question ${i + 1} is missing 'question_text' field`);
+      }
+    }
+  }
+
+  /** Prompt sections depend on the active collection mode. */
   protected override _getPromptSections(): SkillPromptSection[] {
+    if (this.questions.length > 0) {
+      return this._getSequentialPromptSections();
+    }
+    return this._getFieldPromptSections();
+  }
+
+  private _getSequentialPromptSections(): SkillPromptSection[] {
+    return [
+      {
+        title: `Info Gatherer (${this.getInstanceKey()})`,
+        body:
+          `You need to gather answers to a series of questions from the user. ` +
+          `Start by introducing yourself and asking the user if they are ready ` +
+          `to answer some questions. Once the user confirms they are ready, ` +
+          `call the ${this.startToolName} function to get the first question. ` +
+          `Ask the user that question, wait for their response, then call ` +
+          `${this.submitToolName} with the answer they gave you. ` +
+          `Each call to ${this.submitToolName} will return the next question ` +
+          `to ask. Repeat this process until all questions are complete.`,
+      },
+    ];
+  }
+
+  private _getFieldPromptSections(): SkillPromptSection[] {
     const fields = this.getConfig<FieldDefinition[]>('fields', []);
     const purpose = this.getConfig<string | undefined>('purpose', undefined);
 
@@ -293,19 +657,14 @@ export class InfoGathererSkill extends SkillBase {
 
     if (requiredFields.length > 0) {
       const reqNames = requiredFields.map((f) => `"${f.name}"`).join(', ');
-      bullets.push(
-        `Required fields (must be collected): ${reqNames}.`,
-      );
+      bullets.push(`Required fields (must be collected): ${reqNames}.`);
     }
 
     if (optionalFields.length > 0) {
       const optNames = optionalFields.map((f) => `"${f.name}"`).join(', ');
-      bullets.push(
-        `Optional fields (collect if available): ${optNames}.`,
-      );
+      bullets.push(`Optional fields (collect if available): ${optNames}.`);
     }
 
-    // Add field descriptions
     for (const field of fields) {
       const reqLabel = field.required ? ' (required)' : ' (optional)';
       bullets.push(`${field.name}${reqLabel}: ${field.description}`);
@@ -327,7 +686,7 @@ export class InfoGathererSkill extends SkillBase {
   }
 
   /**
-   * Get all gathered data, keyed by call ID.
+   * Get all gathered data (single-shot mode), keyed by call ID.
    * @returns A copy of the internal gathered data map.
    */
   getAllGatheredData(): Map<string, GatheredInfo> {
@@ -335,7 +694,7 @@ export class InfoGathererSkill extends SkillBase {
   }
 
   /**
-   * Clear gathered data for a specific call or all calls.
+   * Clear gathered data (single-shot mode) for a specific call or all calls.
    * @param callId - If provided, clear data for this call only; otherwise clear all.
    */
   clearGatheredData(callId?: string): void {

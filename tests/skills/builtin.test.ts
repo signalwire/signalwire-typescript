@@ -558,9 +558,9 @@ describe('WebSearchSkill', () => {
     const skill = createWebSearchSkill();
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('web_search');
-    expect(manifest.version).toBe('1.0.0');
+    expect(manifest.version).toBe('2.0.0');
     expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_API_KEY');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_CX');
+    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_ENGINE_ID');
   });
 
   it('should return a web_search tool', () => {
@@ -575,13 +575,15 @@ describe('WebSearchSkill', () => {
     const skill = createWebSearchSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Web Search');
+    expect(sections[0].title).toContain('Web Search');
   });
 
   it('should return error when API keys are not set', async () => {
     const origKey = process.env['GOOGLE_SEARCH_API_KEY'];
+    const origEngine = process.env['GOOGLE_SEARCH_ENGINE_ID'];
     const origCx = process.env['GOOGLE_SEARCH_CX'];
     delete process.env['GOOGLE_SEARCH_API_KEY'];
+    delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const skill = createWebSearchSkill();
     const handler = skill.getTools()[0].handler;
@@ -589,6 +591,7 @@ describe('WebSearchSkill', () => {
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_SEARCH_API_KEY'] = origKey;
+    if (origEngine !== undefined) process.env['GOOGLE_SEARCH_ENGINE_ID'] = origEngine;
     if (origCx !== undefined) process.env['GOOGLE_SEARCH_CX'] = origCx;
   });
 });
@@ -610,11 +613,11 @@ describe('WikipediaSearchSkill', () => {
     expect(manifest.version).toBe('1.0.0');
   });
 
-  it('should return a search_wikipedia tool', () => {
+  it('should return a search_wiki tool', () => {
     const skill = createWikipediaSearchSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wikipedia');
+    expect(tools[0].name).toBe('search_wiki');
     expect(tools[0].required).toContain('query');
   });
 
@@ -722,7 +725,7 @@ describe('DataSphereSkill', () => {
     const skill = createDataSphereSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('DataSphere');
+    expect(sections[0].title).toContain('Knowledge Search');
   });
 
   it('should return error when env vars are not set', async () => {
@@ -759,9 +762,8 @@ describe('DataSphereServerlessSkill', () => {
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('datasphere_serverless');
     expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_PROJECT_ID');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_TOKEN');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_SPACE');
+    // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
+    expect(manifest.requiredEnvVars ?? []).toEqual([]);
   });
 
   it('should return a search_datasphere tool stub', () => {

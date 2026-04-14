@@ -236,7 +236,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
 | `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_CX` | `max_results`, `safe_search` |
-| `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wikipedia` | None | None |
+| `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
 | `google_maps` | `GoogleMapsSkill` | Directions and place search | `get_directions`, `find_place` | `GOOGLE_MAPS_API_KEY` | `default_mode` |
 | `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold` |
 | `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold`, `document_id` |
