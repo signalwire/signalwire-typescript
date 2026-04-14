@@ -208,7 +208,7 @@ export class SWMLService {
   private _server: Server | null = null;
   private onRequestCallback?: OnRequestCallback;
   private authCredentials?: [string, string];
-  private authSource: 'provided' | 'environment' | 'generated' = 'generated';
+  private authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
   private _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   private _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
   private _routingCallbacks = new Map<string, RoutingCallback>();
@@ -235,9 +235,13 @@ export class SWMLService {
     this.sslCertPath = this.security.sslCertPath ?? undefined;
     this.sslKeyPath = this.security.sslKeyPath ?? undefined;
 
-    // Schema utils
+    // Schema utils — pass through schemaPath so callers can supply a custom schema file.
+    // Mirrors Python's SchemaUtils(schema_path, schema_validation=...) call in SWMLService.__init__.
     const skipValidation = opts?.schemaValidation === false || process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
-    this.schemaUtils = new SchemaUtils({ skipValidation });
+    this.schemaUtils = new SchemaUtils({
+      skipValidation,
+      ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
+    });
 
     // Verb handler registry
     this.verbRegistry = new VerbHandlerRegistry();
@@ -266,7 +270,7 @@ export class SWMLService {
           // Auto-generate credentials like AgentBase does
           const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
           this.authCredentials = [username, randomBytes(16).toString('hex')];
-          this.authSource = 'generated';
+          this.authSource = 'auto-generated';
           // Not enforced on HTTP — available via getBasicAuthCredentials()
         }
       }
@@ -556,8 +560,8 @@ export class SWMLService {
    * @returns A tuple of [username, password] or [username, password, source].
    */
   getBasicAuthCredentials(includeSource?: false): [string, string];
-  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
-  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'auto-generated'];
+  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'auto-generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;

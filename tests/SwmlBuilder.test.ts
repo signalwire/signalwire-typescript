@@ -358,7 +358,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
   describe('hangup reason type widened to string', () => {
     it('accepts arbitrary string reasons', () => {
-      builder.hangup({ reason: 'custom_reason' as any });
+      builder.hangup({ reason: 'custom_reason' });
       const doc = builder.getDocument() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
     });
