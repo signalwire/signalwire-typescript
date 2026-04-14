@@ -352,18 +352,18 @@ describe('SwmlTransferSkill', () => {
     expect(result.action.length).toBeGreaterThan(0);
   });
 
-  it('should reject unknown named destinations when patterns configured and arbitrary disallowed', () => {
+  it('should use no-match message when patterns configured and arbitrary disallowed', () => {
     const skill = createSwmlTransferSkill({
       patterns: [
         { name: 'sales', destination: 'sip:sales@example.com' },
       ],
       allow_arbitrary: false,
+      no_match_message: 'Please specify a valid transfer type.',
     });
     const handler = skill.getTools()[0].handler;
     const result = handler({ destination: 'unknown_dept' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('Unknown transfer destination');
-    expect(result.response).toContain('sales');
+    expect(result.response).toContain('valid transfer type');
   });
 });
 
@@ -815,27 +815,36 @@ describe('NativeVectorSearchSkill', () => {
     expect(manifest.version).toBe('1.0.0');
   });
 
-  it('should return a search_documents tool', () => {
+  it('should return a search_knowledge tool (Python-aligned default name)', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_documents');
+    expect(tools[0].name).toBe('search_knowledge');
     expect(tools[0].required).toContain('query');
   });
 
-  it('should execute search and find relevant documents', () => {
+  it('should execute search and find relevant documents', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'TypeScript programming language' }, {}) as FunctionResult;
+    const result = (await handler(
+      { query: 'TypeScript programming language' },
+      {},
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('doc1');
     expect(result.response).toContain('TypeScript');
   });
 
-  it('should rank relevant documents higher (scoring works)', () => {
+  it('should rank relevant documents higher (scoring works)', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'programming language', top_k: 4 }, {}) as FunctionResult;
+    const result = (await handler(
+      { query: 'programming language', count: 4 },
+      {},
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     // Programming-related docs should appear; weather doc should not (no overlap)
     expect(result.response).toContain('programming');
@@ -859,26 +868,28 @@ describe('SpiderSkill', () => {
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('spider');
     expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SPIDER_API_KEY');
   });
 
-  it('should return a scrape_url tool', () => {
+  it('should return the three Python-aligned tools (scrape_url, crawl_site, extract_structured_data)', async () => {
     const skill = createSpiderSkill();
+    await skill.setup();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('scrape_url');
-    expect(tools[0].required).toContain('url');
+    expect(tools).toHaveLength(3);
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('scrape_url');
+    expect(names).toContain('crawl_site');
+    expect(names).toContain('extract_structured_data');
+    const scrape = tools.find((t) => t.name === 'scrape_url')!;
+    expect(scrape.required).toContain('url');
   });
 
-  it('should return error when API key is not set', async () => {
-    const origKey = process.env['SPIDER_API_KEY'];
-    delete process.env['SPIDER_API_KEY'];
+  it('should reject invalid URL in scrape_url handler', async () => {
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'https://example.com' }, {}) as FunctionResult;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    const result = (await handler({ url: 'not-a-url' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('not configured');
-    if (origKey !== undefined) process.env['SPIDER_API_KEY'] = origKey;
+    expect(result.response).toMatch(/Invalid URL/i);
   });
 });
 
@@ -1330,15 +1341,15 @@ describe('McpGatewaySkill', () => {
     const skill = createMcpGatewaySkill();
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('mcp_gateway');
-    expect(manifest.version).toBe('0.1.0');
+    expect(manifest.version).toBe('1.0.0');
   });
 
-  it('should return not implemented message from handler', () => {
+  it('should return a configuration-prompt message when unconfigured', async () => {
     const skill = createMcpGatewaySkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ server: 'test', method: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ server: 'test', method: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('not yet implemented');
+    expect(result.response).toMatch(/not configured|configure/i);
   });
 });
 
@@ -1376,18 +1387,20 @@ describe('SpiderSkill - SSRF protection', () => {
     const saved = process.env['SWML_ALLOW_PRIVATE_URLS'];
     delete process.env['SWML_ALLOW_PRIVATE_URLS'];
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'http://127.0.0.1/secret' }, {}) as FunctionResult;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    const result = (await handler({ url: 'http://127.0.0.1/secret' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('could not be validated');
+    expect(result.response).toMatch(/private or internal URLs/);
     if (saved) process.env['SWML_ALLOW_PRIVATE_URLS'] = saved;
   });
 
   it('should reject overly long input', async () => {
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
     const longUrl = 'https://example.com/' + 'a'.repeat(2000);
-    const result = await handler({ url: longUrl }, {}) as FunctionResult;
+    const result = (await handler({ url: longUrl }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('too long');
   });

@@ -32,6 +32,13 @@ export interface SkillToolDefinition {
   fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
+  /**
+   * When true, the SignalWire platform automatically invokes this tool when
+   * the call ends (hangup), regardless of whether the AI explicitly calls it.
+   * Equivalent to Python's `is_hangup_hook=True` in `define_tool()`.
+   * The flag is serialised as `"is_hangup_hook": true` in the SWAIG JSON.
+   */
+  isHangupHook?: boolean;
 }
 
 /** A section of prompt content injected into the agent's system prompt by a skill. */

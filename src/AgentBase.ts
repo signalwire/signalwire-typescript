@@ -1075,10 +1075,15 @@ export class AgentBase {
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
     for (const toolDef of skill.getTools()) {
       this.defineTool(toolDef);
-      if (Object.keys(skill.swaigFields).length > 0) {
-        const fn = this.toolRegistry.get(toolDef.name);
-        if (fn instanceof SwaigFunction) {
+      const fn = this.toolRegistry.get(toolDef.name);
+      if (fn instanceof SwaigFunction) {
+        if (Object.keys(skill.swaigFields).length > 0) {
           safeAssign(fn.extraFields, skill.swaigFields);
+        }
+        // Propagate is_hangup_hook so the SignalWire platform auto-fires this
+        // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
+        if (toolDef.isHangupHook) {
+          fn.extraFields['is_hangup_hook'] = true;
         }
       }
     }
@@ -1506,10 +1511,13 @@ export class AgentBase {
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
-          if (Object.keys(skill.swaigFields).length > 0) {
-            const fn = copy.toolRegistry.get(toolDef.name);
-            if (fn instanceof SwaigFunction) {
+          const fn = copy.toolRegistry.get(toolDef.name);
+          if (fn instanceof SwaigFunction) {
+            if (Object.keys(skill.swaigFields).length > 0) {
               safeAssign(fn.extraFields, skill.swaigFields);
+            }
+            if (toolDef.isHangupHook) {
+              fn.extraFields['is_hangup_hook'] = true;
             }
           }
         }
