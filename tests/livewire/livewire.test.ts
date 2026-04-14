@@ -275,10 +275,14 @@ describe('JobContext', () => {
     await expect(ctx.connect()).resolves.toBeUndefined();
   });
 
-  it('waitForParticipant() resolves', async () => {
+  it('waitForParticipant() resolves (noop)', async () => {
     const ctx = new JobContext();
-    const participant = await ctx.waitForParticipant();
-    expect(participant).toBeDefined();
+    await expect(ctx.waitForParticipant()).resolves.toBeUndefined();
+  });
+
+  it('waitForParticipant() accepts identity option', async () => {
+    const ctx = new JobContext();
+    await expect(ctx.waitForParticipant({ identity: 'caller' })).resolves.toBeUndefined();
   });
 
   it('has room and proc', () => {

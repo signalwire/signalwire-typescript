@@ -141,9 +141,16 @@ export class Agent<UserData = any> {
 /** Mirrors a LiveKit RunContext -- available inside tool handlers. */
 export class RunContext<UserData = any> {
   readonly session: AgentSession<UserData>;
+  readonly speechHandle: any;
+  readonly functionCall: any;
 
-  constructor(session: AgentSession<UserData>) {
+  constructor(session: AgentSession<UserData>, options?: {
+    speechHandle?: any;
+    functionCall?: any;
+  }) {
     this.session = session;
+    this.speechHandle = options?.speechHandle ?? null;
+    this.functionCall = options?.functionCall ?? null;
   }
 
   get userData(): UserData {
@@ -162,10 +169,19 @@ export class AgentSession<UserData = any> {
   private _llm: any;
   private _vad: any;
   private _turnDetection: any;
+  private _tools: FunctionTool[];
+  private _mcpServers: any;
   private _userData: UserData;
+  private _allowInterruptions: boolean;
+  private _minInterruptionDuration: number;
+  private _minEndpointingDelay: number;
+  private _maxEndpointingDelay: number;
+  private _maxToolSteps: number;
+  private _preemptiveGeneration: boolean;
   private _voiceOptions?: Partial<VoiceOptions>;
   private _agent?: Agent<UserData>;
   private _swAgent?: AgentBase;
+  private _history: Array<{ role: string; content: string }> = [];
   private noop = new NoopTracker();
 
   constructor(options?: {
@@ -174,7 +190,15 @@ export class AgentSession<UserData = any> {
     llm?: any;
     vad?: any;
     turnDetection?: any;
+    tools?: FunctionTool[];
+    mcpServers?: any;
     userData?: UserData;
+    allowInterruptions?: boolean;
+    minInterruptionDuration?: number;
+    minEndpointingDelay?: number;
+    maxEndpointingDelay?: number;
+    maxToolSteps?: number;
+    preemptiveGeneration?: boolean;
     voiceOptions?: Partial<VoiceOptions>;
   }) {
     this._stt = options?.stt;
@@ -182,7 +206,15 @@ export class AgentSession<UserData = any> {
     this._llm = options?.llm;
     this._vad = options?.vad;
     this._turnDetection = options?.turnDetection;
+    this._tools = options?.tools ?? [];
+    this._mcpServers = options?.mcpServers;
     this._userData = (options?.userData ?? {}) as UserData;
+    this._allowInterruptions = options?.allowInterruptions ?? true;
+    this._minInterruptionDuration = options?.minInterruptionDuration ?? 0.5;
+    this._minEndpointingDelay = options?.minEndpointingDelay ?? 0.5;
+    this._maxEndpointingDelay = options?.maxEndpointingDelay ?? 3.0;
+    this._maxToolSteps = options?.maxToolSteps ?? 3;
+    this._preemptiveGeneration = options?.preemptiveGeneration ?? false;
     this._voiceOptions = options?.voiceOptions;
 
     if (options?.stt != null) {
@@ -209,10 +241,27 @@ export class AgentSession<UserData = any> {
         `WithTurnDetection("${options.turnDetection}"): SignalWire's control plane handles turn detection at scale automatically`,
       );
     }
+    if (options?.mcpServers != null) {
+      this.noop.once(
+        'mcp_servers',
+        "AgentSession(mcpServers=...): MCP servers are not yet supported in LiveWire — tools should be registered via tool()",
+      );
+    }
+    if (options?.maxToolSteps != null && options.maxToolSteps !== 3) {
+      this.noop.once(
+        'max_tool_steps',
+        `AgentSession(maxToolSteps=${options.maxToolSteps}): SignalWire's control plane handles tool execution depth at scale automatically`,
+      );
+    }
+  }
+
+  /** Read-only access to conversation history accumulated during the session. */
+  get history(): Array<{ role: string; content: string }> {
+    return this._history;
   }
 
   /** Start the session by binding the agent to a SignalWire AgentBase. */
-  async start(params: { agent: Agent<UserData>; room?: any }): Promise<void> {
+  async start(params: { agent: Agent<UserData>; room?: any; record?: boolean }): Promise<void> {
     this._agent = params.agent;
 
     // Build a real SignalWire AgentBase
@@ -231,8 +280,30 @@ export class AgentSession<UserData = any> {
       swAgent.setParam('model', model);
     }
 
-    // Register all tools from the agent
-    for (const [name, toolDef] of Object.entries(params.agent.tools)) {
+    // Map interruption / barge-in setting
+    if (!this._allowInterruptions) {
+      swAgent.setParam('barge_confidence', 1.0);
+    }
+
+    // Map endpointing delays
+    if (this._minEndpointingDelay > 0) {
+      swAgent.setParam('end_of_speech_timeout', Math.round(this._minEndpointingDelay * 1000));
+    }
+    if (this._maxEndpointingDelay > 0) {
+      swAgent.setParam('attention_timeout', Math.round(this._maxEndpointingDelay * 1000));
+    }
+
+    // Map record param
+    if (params.record) {
+      swAgent.setParam('record', true);
+    }
+
+    // Register all tools from the agent + session-level tools
+    const allTools: Array<[string, FunctionTool]> = [
+      ...Object.entries(params.agent.tools),
+      ...this._tools.map((t) => [t.name, t] as [string, FunctionTool]),
+    ];
+    for (const [name, toolDef] of allTools) {
       const handler: SwaigHandler = async (args, rawData) => {
         const ctx = new RunContext<UserData>(this);
         const result = await toolDef.execute(args, { ctx });
@@ -376,18 +447,27 @@ export class JobProcess {
 }
 
 // ---------------------------------------------------------------------------
+// Room
+// ---------------------------------------------------------------------------
+
+/** Stub -- SignalWire doesn't use the LiveKit room abstraction. */
+export class Room {
+  name = 'livewire-room';
+}
+
+// ---------------------------------------------------------------------------
 // JobContext
 // ---------------------------------------------------------------------------
 
 /** Mirrors a LiveKit JobContext -- provides room and connection info. */
 export class JobContext {
-  room: any;
+  room: Room;
   proc: JobProcess;
   /** @internal */
   _swAgent?: AgentBase;
 
   constructor() {
-    this.room = { name: 'livewire-room' };
+    this.room = new Room();
     this.proc = new JobProcess();
   }
 
@@ -399,9 +479,12 @@ export class JobContext {
     );
   }
 
-  /** Wait for a participant -- noop on SignalWire. */
-  async waitForParticipant(): Promise<any> {
-    return { identity: 'caller' };
+  /** Wait for a participant -- noop on SignalWire (handles participant management automatically). */
+  async waitForParticipant(options?: { identity?: string }): Promise<void> {
+    globalNoop.once(
+      'wait_for_participant',
+      "JobContext.waitForParticipant(): SignalWire's control plane handles participant management automatically",
+    );
   }
 }
 
@@ -564,12 +647,22 @@ export const voice = {
   AgentSessionEventTypes: {} as Record<string, string>,
 };
 
+/** Minimal stub mirroring LiveKit ChatContext. */
+export class ChatContext {
+  messages: Array<{ role: string; content: string }> = [];
+
+  append({ role = 'user', text = '' }: { role?: string; text?: string } = {}): this {
+    this.messages.push({ role, content: text });
+    return this;
+  }
+}
+
 /** LiveKit llm namespace equivalent. */
 export const llm = {
   tool,
   handoff,
   ToolError,
-  ChatContext: class ChatContext {},
+  ChatContext,
 };
 
 /** LiveKit cli namespace equivalent. */
