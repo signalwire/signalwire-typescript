@@ -463,10 +463,12 @@ export class AgentSession<UserData = any> {
 
   /** Queue text to be spoken by the agent. */
   say(text: string): void {
-    // In a full implementation this would inject into the SWML flow.
-    // For now we append a prompt section so the AI speaks the text.
+    // If the session is already started, inject directly into the SWML flow.
+    // Otherwise queue the text so it is replayed when start() is called.
     if (this._swAgent) {
       this._swAgent.promptAddSection('Say', { body: text });
+    } else {
+      this._sayQueue.push(text);
     }
   }
 
