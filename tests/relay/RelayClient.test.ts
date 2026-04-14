@@ -30,16 +30,16 @@ describe('RelayClient', () => {
 
     it('throws if project/token missing', () => {
       const origProject = process.env.SIGNALWIRE_PROJECT_ID;
-      const origToken = process.env.SIGNALWIRE_TOKEN;
+      const origToken = process.env.SIGNALWIRE_API_TOKEN;
       const origJwt = process.env.SIGNALWIRE_JWT_TOKEN;
       delete process.env.SIGNALWIRE_PROJECT_ID;
-      delete process.env.SIGNALWIRE_TOKEN;
+      delete process.env.SIGNALWIRE_API_TOKEN;
       delete process.env.SIGNALWIRE_JWT_TOKEN;
       try {
         expect(() => new RelayClient({})).toThrow('project and token are required');
       } finally {
         if (origProject !== undefined) process.env.SIGNALWIRE_PROJECT_ID = origProject;
-        if (origToken !== undefined) process.env.SIGNALWIRE_TOKEN = origToken;
+        if (origToken !== undefined) process.env.SIGNALWIRE_API_TOKEN = origToken;
         if (origJwt !== undefined) process.env.SIGNALWIRE_JWT_TOKEN = origJwt;
       }
     });
@@ -330,8 +330,8 @@ describe('RelayClient', () => {
       await client.connect();
 
       const msgPromise = client.sendMessage({
-        to: '+222',
-        from: '+111',
+        toNumber: '+222',
+        fromNumber: '+111',
         body: 'Hello',
       });
 
@@ -357,7 +357,7 @@ describe('RelayClient', () => {
       const { client } = createClient();
       await client.connect();
 
-      await expect(client.sendMessage({ to: '+222', from: '+111' }))
+      await expect(client.sendMessage({ toNumber: '+222', fromNumber: '+111' }))
         .rejects.toThrow('At least one of body or media');
 
       await client.disconnect();
@@ -583,7 +583,7 @@ describe('RelayClient', () => {
       await client.connect();
 
       // Send a message first
-      const msgPromise = client.sendMessage({ to: '+222', from: '+111', body: 'Hi' });
+      const msgPromise = client.sendMessage({ toNumber: '+222', fromNumber: '+111', body: 'Hi' });
 
       await new Promise((r) => setTimeout(r, 10));
       const sendReq = ws.getAllSent().find((m) => m.method === 'messaging.send');

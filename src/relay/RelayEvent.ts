@@ -856,9 +856,9 @@ export class MessageStateEvent extends RelayEvent {
 
 // ─── Event Class Map & Parser ────────────────────────────────────────
 
-type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
+export type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
 
-const EVENT_CLASS_MAP: Record<string, EventClass> = {
+export const EVENT_CLASS_MAP: Record<string, EventClass> = {
   'calling.call.state': CallStateEvent,
   'calling.call.receive': CallReceiveEvent,
   'calling.call.play': PlayEvent,

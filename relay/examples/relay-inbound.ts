@@ -5,7 +5,7 @@
  *
  * Required env vars:
  *   SIGNALWIRE_PROJECT_ID - Your SignalWire project ID
- *   SIGNALWIRE_TOKEN      - Your SignalWire API token
+ *   SIGNALWIRE_API_TOKEN   - Your SignalWire API token
  *   SIGNALWIRE_SPACE      - Your SignalWire space (e.g. example.signalwire.com)
  *
  * Usage:

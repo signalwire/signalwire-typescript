@@ -55,7 +55,9 @@ export {
   MessageReceiveEvent,
   MessageStateEvent,
   parseEvent,
+  EVENT_CLASS_MAP,
 } from './RelayEvent.js';
+export type { EventClass } from './RelayEvent.js';
 
 // Deferred utility
 export { createDeferred, withTimeout } from './Deferred.js';

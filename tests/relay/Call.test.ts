@@ -26,7 +26,7 @@ function goneClient(): RelayClientLike {
 // Mock client that throws a RelayError
 function errorClient(code: number, msg: string): RelayClientLike {
   return {
-    async execute() { throw new RelayError(msg, code); },
+    async execute() { throw new RelayError(code, msg); },
   };
 }
 
