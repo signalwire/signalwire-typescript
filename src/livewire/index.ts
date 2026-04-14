@@ -123,14 +123,144 @@ export class Agent<UserData = any> {
   tools: Record<string, FunctionTool>;
   userData?: UserData;
 
-  constructor(options: {
-    instructions: string;
+  /** @internal Pipeline hint stored for AgentSession mapping. */
+  _llmHint: unknown;
+  /** @internal */
+  _allowInterruptions: unknown;
+  /** @internal */
+  _minEndpointingDelay: unknown;
+  /** @internal */
+  _maxEndpointingDelay: unknown;
+
+  private _session?: AgentSession<UserData>;
+
+  constructor(options?: {
+    instructions?: string;
     tools?: Record<string, FunctionTool>;
     userData?: UserData;
+    chatCtx?: unknown;
+    stt?: unknown;
+    tts?: unknown;
+    llm?: unknown;
+    vad?: unknown;
+    turnDetection?: unknown;
+    mcpServers?: unknown;
+    allowInterruptions?: boolean;
+    minEndpointingDelay?: number;
+    maxEndpointingDelay?: number;
   }) {
-    this.instructions = options.instructions;
-    this.tools = options.tools ?? {};
-    this.userData = options.userData;
+    this.instructions = options?.instructions ?? '';
+    this.tools = options?.tools ?? {};
+    this.userData = options?.userData;
+
+    // Pipeline noop advisories (matching Python behavior)
+    if (options?.stt != null) {
+      globalNoop.once(
+        'agent_stt',
+        "Agent(stt=...): SignalWire's control plane handles speech recognition at scale -- no configuration needed",
+      );
+    }
+    if (options?.tts != null) {
+      globalNoop.once(
+        'agent_tts',
+        "Agent(tts=...): SignalWire's control plane handles text-to-speech at scale -- no configuration needed",
+      );
+    }
+    if (options?.vad != null) {
+      globalNoop.once(
+        'agent_vad',
+        "Agent(vad=...): SignalWire's control plane handles voice activity detection at scale automatically",
+      );
+    }
+    if (options?.turnDetection != null) {
+      globalNoop.once(
+        'agent_turn_detection',
+        "Agent(turnDetection=...): SignalWire's control plane handles turn detection at scale automatically",
+      );
+    }
+    if (options?.mcpServers != null) {
+      globalNoop.once(
+        'agent_mcp_servers',
+        'Agent(mcpServers=...): MCP servers are not yet supported in LiveWire -- tools should be registered via tool()',
+      );
+    }
+
+    // Store pipeline hints for later mapping (used by AgentSession.start)
+    this._llmHint = options?.llm;
+    this._allowInterruptions = options?.allowInterruptions;
+    this._minEndpointingDelay = options?.minEndpointingDelay;
+    this._maxEndpointingDelay = options?.maxEndpointingDelay;
+  }
+
+  // ------------------------------------------------------------------
+  // session property
+  // ------------------------------------------------------------------
+
+  get session(): AgentSession<UserData> | undefined {
+    return this._session;
+  }
+
+  set session(value: AgentSession<UserData> | undefined) {
+    this._session = value;
+  }
+
+  // ------------------------------------------------------------------
+  // Lifecycle hooks (override in subclass)
+  // ------------------------------------------------------------------
+
+  /** Called when the agent enters. Override in subclass. */
+  async onEnter(): Promise<void> {}
+
+  /** Called when the agent exits. Override in subclass. */
+  async onExit(): Promise<void> {}
+
+  /** Called when the user finishes speaking. Override in subclass. */
+  async onUserTurnCompleted(turnCtx?: unknown, newMessage?: unknown): Promise<void> {}
+
+  // ------------------------------------------------------------------
+  // Pipeline nodes -- all noop + log (SignalWire handles these)
+  // ------------------------------------------------------------------
+
+  /** Noop -- SignalWire handles STT in its control plane. */
+  async sttNode(audio?: unknown, modelSettings?: unknown): Promise<void> {
+    globalNoop.once(
+      'stt_node',
+      "Agent.sttNode(): SignalWire's control plane handles speech recognition -- this node is a no-op",
+    );
+  }
+
+  /** Noop -- SignalWire handles LLM in its control plane. */
+  async llmNode(chatCtx?: unknown, tools?: unknown, modelSettings?: unknown): Promise<void> {
+    globalNoop.once(
+      'llm_node',
+      "Agent.llmNode(): SignalWire's control plane handles LLM inference -- this node is a no-op",
+    );
+  }
+
+  /** Noop -- SignalWire handles TTS in its control plane. */
+  async ttsNode(text?: unknown, modelSettings?: unknown): Promise<void> {
+    globalNoop.once(
+      'tts_node',
+      "Agent.ttsNode(): SignalWire's control plane handles text-to-speech -- this node is a no-op",
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // Dynamic updates
+  // ------------------------------------------------------------------
+
+  /** Update the agent's instructions mid-session. */
+  async updateInstructions(instructions: string): Promise<void> {
+    this.instructions = instructions;
+  }
+
+  /** Update the agent's tool list mid-session. */
+  async updateTools(tools: FunctionTool[]): Promise<void> {
+    const record: Record<string, FunctionTool> = {};
+    for (const t of tools) {
+      record[t.name] = t;
+    }
+    this.tools = record;
   }
 }
 
@@ -141,9 +271,16 @@ export class Agent<UserData = any> {
 /** Mirrors a LiveKit RunContext -- available inside tool handlers. */
 export class RunContext<UserData = any> {
   readonly session: AgentSession<UserData>;
+  speechHandle?: unknown;
+  functionCall?: unknown;
 
-  constructor(session: AgentSession<UserData>) {
+  constructor(
+    session: AgentSession<UserData>,
+    options?: { speechHandle?: unknown; functionCall?: unknown },
+  ) {
     this.session = session;
+    this.speechHandle = options?.speechHandle;
+    this.functionCall = options?.functionCall;
   }
 
   get userData(): UserData {
@@ -162,10 +299,19 @@ export class AgentSession<UserData = any> {
   private _llm: any;
   private _vad: any;
   private _turnDetection: any;
+  private _tools: FunctionTool[];
   private _userData: UserData;
   private _voiceOptions?: Partial<VoiceOptions>;
   private _agent?: Agent<UserData>;
   private _swAgent?: AgentBase;
+  private _allowInterruptions: boolean;
+  private _minInterruptionDuration: number;
+  private _minEndpointingDelay: number;
+  private _maxEndpointingDelay: number;
+  private _maxToolSteps: number;
+  private _preemptiveGeneration: boolean;
+  private _history: Array<Record<string, string>> = [];
+  private _sayQueue: string[] = [];
   private noop = new NoopTracker();
 
   constructor(options?: {
@@ -174,7 +320,15 @@ export class AgentSession<UserData = any> {
     llm?: any;
     vad?: any;
     turnDetection?: any;
+    tools?: FunctionTool[];
+    mcpServers?: unknown;
     userData?: UserData;
+    allowInterruptions?: boolean;
+    minInterruptionDuration?: number;
+    minEndpointingDelay?: number;
+    maxEndpointingDelay?: number;
+    maxToolSteps?: number;
+    preemptiveGeneration?: boolean;
     voiceOptions?: Partial<VoiceOptions>;
   }) {
     this._stt = options?.stt;
@@ -182,8 +336,15 @@ export class AgentSession<UserData = any> {
     this._llm = options?.llm;
     this._vad = options?.vad;
     this._turnDetection = options?.turnDetection;
+    this._tools = options?.tools ? [...options.tools] : [];
     this._userData = (options?.userData ?? {}) as UserData;
     this._voiceOptions = options?.voiceOptions;
+    this._allowInterruptions = options?.allowInterruptions ?? true;
+    this._minInterruptionDuration = options?.minInterruptionDuration ?? 0.5;
+    this._minEndpointingDelay = options?.minEndpointingDelay ?? 0.5;
+    this._maxEndpointingDelay = options?.maxEndpointingDelay ?? 3.0;
+    this._maxToolSteps = options?.maxToolSteps ?? 3;
+    this._preemptiveGeneration = options?.preemptiveGeneration ?? false;
 
     if (options?.stt != null) {
       this.noop.once(
@@ -209,11 +370,24 @@ export class AgentSession<UserData = any> {
         `WithTurnDetection("${options.turnDetection}"): SignalWire's control plane handles turn detection at scale automatically`,
       );
     }
+    if (options?.mcpServers != null) {
+      this.noop.once(
+        'mcp_servers',
+        'AgentSession(mcpServers=...): MCP servers are not yet supported in LiveWire -- tools should be registered via tool()',
+      );
+    }
+    if (options?.maxToolSteps != null && options.maxToolSteps !== 3) {
+      this.noop.once(
+        'max_tool_steps',
+        `AgentSession(maxToolSteps=${options.maxToolSteps}): SignalWire's control plane handles tool execution depth at scale automatically`,
+      );
+    }
   }
 
   /** Start the session by binding the agent to a SignalWire AgentBase. */
-  async start(params: { agent: Agent<UserData>; room?: any }): Promise<void> {
+  async start(params: { agent: Agent<UserData>; room?: any; record?: boolean }): Promise<void> {
     this._agent = params.agent;
+    params.agent.session = this;
 
     // Build a real SignalWire AgentBase
     const swAgent = new AgentBase({
@@ -223,16 +397,47 @@ export class AgentSession<UserData = any> {
 
     swAgent.setPromptText(params.agent.instructions);
 
-    // Map LLM model if provided
-    if (this._llm) {
-      let model = String(this._llm);
+    // Map LLM model if provided (session-level takes priority, then agent-level hint)
+    const llmModel = this._llm ?? params.agent._llmHint;
+    if (llmModel != null) {
+      let model = String(llmModel);
       const slashIdx = model.indexOf('/');
       if (slashIdx >= 0) model = model.slice(slashIdx + 1);
       swAgent.setParam('model', model);
     }
 
-    // Register all tools from the agent
-    for (const [name, toolDef] of Object.entries(params.agent.tools)) {
+    // Map interruption / barge settings
+    let allowInterruptions = this._allowInterruptions;
+    if (params.agent._allowInterruptions != null) {
+      allowInterruptions = params.agent._allowInterruptions as boolean;
+    }
+    if (!allowInterruptions) {
+      swAgent.setParam('barge_confidence', 1.0);
+    }
+
+    // Map endpointing delays
+    let minEp: number = this._minEndpointingDelay;
+    if (params.agent._minEndpointingDelay != null) {
+      minEp = params.agent._minEndpointingDelay as number;
+    }
+    if (minEp > 0) {
+      swAgent.setParam('end_of_speech_timeout', Math.round(minEp * 1000));
+    }
+
+    let maxEp: number = this._maxEndpointingDelay;
+    if (params.agent._maxEndpointingDelay != null) {
+      maxEp = params.agent._maxEndpointingDelay as number;
+    }
+    if (maxEp > 0) {
+      swAgent.setParam('attention_timeout', Math.round(maxEp * 1000));
+    }
+
+    // Register all tools from the agent + session-level tools
+    const allTools: [string, FunctionTool][] = [
+      ...Object.entries(params.agent.tools),
+      ...this._tools.map((t) => [t.name, t] as [string, FunctionTool]),
+    ];
+    for (const [name, toolDef] of allTools) {
       const handler: SwaigHandler = async (args, rawData) => {
         const ctx = new RunContext<UserData>(this);
         const result = await toolDef.execute(args, { ctx });
@@ -246,6 +451,11 @@ export class AgentSession<UserData = any> {
         parameters: toolDef.parameters,
         handler,
       });
+    }
+
+    // Initial greeting (say queue)
+    for (const text of this._sayQueue) {
+      swAgent.promptAddSection('Initial Greeting', { body: text });
     }
 
     this._swAgent = swAgent;
@@ -275,6 +485,7 @@ export class AgentSession<UserData = any> {
   /** Update the agent bound to this session. */
   updateAgent(agent: Agent<UserData>): void {
     this._agent = agent;
+    agent.session = this;
     if (this._swAgent) {
       this._swAgent.setPromptText(agent.instructions);
     }
@@ -286,6 +497,11 @@ export class AgentSession<UserData = any> {
 
   set userData(val: UserData) {
     this._userData = val;
+  }
+
+  /** Conversation history entries. */
+  get history(): Array<Record<string, string>> {
+    return this._history;
   }
 
   /** Return the underlying SignalWire AgentBase (for testing / advanced use). */
@@ -409,8 +625,8 @@ export class JobContext {
   }
 
   /** Wait for a participant -- noop on SignalWire. */
-  async waitForParticipant(): Promise<any> {
-    return { identity: 'caller' };
+  async waitForParticipant(options?: { identity?: string }): Promise<any> {
+    return { identity: options?.identity ?? 'caller' };
   }
 }
 
@@ -599,12 +815,22 @@ export const voice = {
   AgentSessionEventTypes: {} as Record<string, string>,
 };
 
+/** Minimal ChatContext matching livekit ChatContext. */
+export class ChatContext {
+  messages: Array<Record<string, string>> = [];
+
+  append(options: { role?: string; text?: string }): this {
+    this.messages.push({ role: options.role ?? 'user', content: options.text ?? '' });
+    return this;
+  }
+}
+
 /** LiveKit llm namespace equivalent. */
 export const llm = {
   tool,
   handoff,
   ToolError,
-  ChatContext: class ChatContext {},
+  ChatContext,
 };
 
 /** LiveKit cli namespace equivalent. */
