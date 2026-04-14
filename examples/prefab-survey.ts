@@ -11,11 +11,13 @@ import { SurveyAgent } from '../src/index.js';
 
 export const agent = new SurveyAgent({
   name: 'csat-survey',
+  surveyName: 'Customer Satisfaction Survey',
   questions: [
     {
       id: 'satisfaction',
       text: 'Overall, how satisfied are you with our service?',
       type: 'rating',
+      scale: 10,
       points: { '9': 3, '10': 3, '7': 2, '8': 2 },
     },
     {
@@ -47,8 +49,8 @@ export const agent = new SurveyAgent({
       type: 'open_ended',
     },
   ],
-  introMessage: 'Thank you for calling! We\'d love your feedback. This survey takes about 2 minutes.',
-  completionMessage: 'Thank you for your feedback! It helps us improve.',
+  introduction: 'Thank you for calling! We\'d love your feedback. This survey takes about 2 minutes.',
+  conclusion: 'Thank you for your feedback! It helps us improve.',
   onComplete: (responses, score) => {
     console.log('Survey complete:', { responses, score });
   },

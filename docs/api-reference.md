@@ -1756,29 +1756,29 @@ Pre-built agent templates with declarative configuration, built-in tools, and pr
 import { InfoGathererAgent, createInfoGathererAgent } from '@anthropic/@signalwire/sdk';
 ```
 
-Sequentially collects named fields from a caller with optional validation and completion callback.
+Asks the caller a sequence of questions one at a time. Supports static mode (questions provided at construction) and dynamic mode (questions resolved per request via a callback).
 
 #### InfoGathererConfig
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `name` | `string` | `'InfoGatherer'` | Agent display name |
-| `fields` | `InfoGathererField[]` | -- | Fields to collect (required) |
-| `introMessage` | `string` | Generic greeting | Opening message |
-| `confirmationMessage` | `string` | Generic thank you | Message after all fields gathered |
-| `onComplete` | `(data: Record<string, string>) => void \| Promise<void>` | -- | Completion callback |
+| `name` | `string` | `'info_gatherer'` | Agent display name |
+| `route` | `string` | `'/info_gatherer'` | HTTP route for this agent |
+| `questions` | `InfoGathererQuestion[]` | -- | Questions to ask (static mode). Omit for dynamic mode. |
+| `questionCallback` | `InfoGathererQuestionCallback` | -- | Resolves questions per request (dynamic mode). |
 | `agentOptions` | `Partial<AgentOptions>` | -- | Passed to `AgentBase` |
 
-#### InfoGathererField
+#### InfoGathererQuestion
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `name` | `string` | -- | Unique field name |
-| `description` | `string` | -- | Description shown to AI |
-| `required` | `boolean` | `true` | Whether field must be collected |
-| `validation` | `RegExp \| string` | -- | Optional validation pattern |
+| Property | Type | Description |
+|----------|------|-------------|
+| `key_name` | `string` | Identifier used as the key when storing the caller's answer |
+| `question_text` | `string` | Question text spoken to the caller |
+| `confirm` | `boolean` | When true, the agent insists on confirmation before submitting |
 
-**Built-in tools:** `save_field`, `get_status`
+**Built-in tools:** `start_questions`, `submit_answer`
+
+**Dynamic mode:** call `agent.setQuestionCallback(cb)` or pass `questionCallback` in the config. The callback receives `(queryParams, bodyParams, headers)` and returns the list of questions for that request. When no callback is registered, a default two-question fallback is used.
 
 **Factory:** `createInfoGathererAgent(config: InfoGathererConfig): InfoGathererAgent`
 
@@ -1794,10 +1794,14 @@ Conducts surveys with branching logic, answer scoring, and conditional question 
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `name` | `string` | `'SurveyAgent'` | Agent display name |
+| `name` | `string` | `'survey'` | Agent display name |
+| `route` | `string` | `'/survey'` | HTTP route |
+| `surveyName` | `string` | -- | Survey name used in prompts and global data (required) |
 | `questions` | `SurveyQuestion[]` | -- | Ordered list of survey questions (required) |
-| `introMessage` | `string` | Generic greeting | Opening message |
-| `completionMessage` | `string` | Generic thank you | Completion message |
+| `introduction` | `string` | Welcome message | Opening message (also used as a non-bargeable static greeting) |
+| `conclusion` | `string` | Thank-you message | Closing message |
+| `brandName` | `string` | `'Our Company'` | Brand or company name the agent represents |
+| `maxRetries` | `number` | `2` | Maximum retries for invalid answers |
 | `onComplete` | `(responses, score) => void \| Promise<void>` | -- | Completion callback |
 | `agentOptions` | `Partial<AgentOptions>` | -- | Passed to `AgentBase` |
 
@@ -1809,10 +1813,12 @@ Conducts surveys with branching logic, answer scoring, and conditional question 
 | `text` | `string` | Question text to ask |
 | `type` | `'multiple_choice' \| 'open_ended' \| 'rating' \| 'yes_no'` | Question type |
 | `options` | `string[]` | Options for `multiple_choice` |
+| `scale` | `number` | For `rating`, upper bound of the 1..scale range (default `5`) |
+| `required` | `boolean` | Whether the question requires an answer (default `true`) |
 | `nextQuestion` | `string \| Record<string, string>` | Branching logic: fixed next or answer-based map |
 | `points` | `number \| Record<string, number>` | Scoring: fixed or per-answer |
 
-**Built-in tools:** `answer_question`, `get_current_question`, `get_survey_progress`
+**Built-in tools:** `validate_response`, `log_response`, `answer_question`, `get_current_question`, `get_survey_progress`
 
 **Factory:** `createSurveyAgent(config: SurveyConfig): SurveyAgent`
 
@@ -1853,30 +1859,23 @@ Answers frequently asked questions using keyword/word-overlap matching with opti
 import { ConciergeAgent, createConciergeAgent } from '@anthropic/@signalwire/sdk';
 ```
 
-Multi-department routing with a knowledge base of department info, hours, and transfer capabilities.
+Virtual concierge for a venue or business. Provides information about services, amenities, hours of operation, and answers availability and directions questions.
 
 #### ConciergeConfig
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `name` | `string` | `'Concierge'` | Agent display name |
-| `departments` | `Department[]` | -- | Departments for routing (required) |
-| `companyName` | `string` | `'our company'` | Company name in prompts |
-| `generalInfo` | `string` | `''` | General company information |
-| `afterHoursMessage` | `string` | Generic closed message | Message when department is unavailable |
+| `name` | `string` | `'concierge'` | Agent display name |
+| `route` | `string` | `'/concierge'` | HTTP route |
+| `venueName` | `string` | -- | Name of the venue or business (required) |
+| `services` | `string[]` | -- | List of services offered (required) |
+| `amenities` | `Record<string, Record<string, string>>` | -- | Amenities with per-amenity detail pairs (required) |
+| `hoursOfOperation` | `Record<string, string>` | `{ default: '9 AM - 5 PM' }` | Hours of operation by category |
+| `specialInstructions` | `string[]` | `[]` | Extra instruction bullets to append |
+| `welcomeMessage` | `string` | -- | When set, installed as a non-bargeable static greeting |
 | `agentOptions` | `Partial<AgentOptions>` | -- | Passed to `AgentBase` |
 
-#### Department
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `name` | `string` | Department name |
-| `description` | `string` | What the department handles |
-| `transferNumber` | `string` | Phone/SIP for transfers |
-| `keywords` | `string[]` | Routing keywords |
-| `hoursOfOperation` | `string` | Human-readable hours |
-
-**Built-in tools:** `list_departments`, `get_department_info`, `transfer_to_department`
+**Built-in tools:** `check_availability`, `get_directions`
 
 **Factory:** `createConciergeAgent(config: ConciergeConfig): ConciergeAgent`
 
@@ -1886,17 +1885,19 @@ Multi-department routing with a knowledge base of department info, hours, and tr
 import { ReceptionistAgent, createReceptionistAgent } from '@anthropic/@signalwire/sdk';
 ```
 
-Front-desk agent that handles visitor check-in, department directory lookup, and call transfers by extension.
+Front-desk agent that greets callers, collects basic info, and transfers them to the appropriate department.
 
 #### ReceptionistConfig
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `name` | `string` | `'Receptionist'` | Agent display name |
-| `companyName` | `string` | -- | Company name (required) |
-| `departments` | `ReceptionistDepartment[]` | -- | Departments with extensions (required) |
-| `welcomeMessage` | `string` | Auto-generated | Custom welcome message |
-| `checkInEnabled` | `boolean` | `true` | Enable visitor check-in |
+| `name` | `string` | `'receptionist'` | Agent display name |
+| `route` | `string` | `'/receptionist'` | HTTP route |
+| `departments` | `ReceptionistDepartment[]` | -- | Departments (required) |
+| `greeting` | `string` | `'Thank you for calling. How can I help you today?'` | Initial greeting |
+| `voice` | `string` | `'rime.spore'` | Voice identifier passed to `addLanguage` |
+| `companyName` | `string` | -- | Optional company name appended to the greeting |
+| `checkInEnabled` | `boolean` | `false` | Register the optional `check_in_visitor` tool |
 | `onVisitorCheckIn` | `(visitor: Record<string, string>) => void \| Promise<void>` | -- | Check-in callback |
 | `agentOptions` | `Partial<AgentOptions>` | -- | Passed to `AgentBase` |
 
@@ -1904,11 +1905,11 @@ Front-desk agent that handles visitor check-in, department directory lookup, and
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `name` | `string` | Department name |
-| `extension` | `string` | Internal extension or SIP address |
-| `description` | `string` | Optional description |
+| `name` | `string` | Department identifier |
+| `description` | `string` | Description (shown to the AI) |
+| `number` | `string` | Phone number or SIP address dialed on transfer |
 
-**Built-in tools:** `get_department_list`, `transfer_to_department`, `check_in_visitor` (if enabled)
+**Built-in tools:** `collect_caller_info`, `transfer_call`, `check_in_visitor` (when `checkInEnabled`)
 
 **Factory:** `createReceptionistAgent(config: ReceptionistConfig): ReceptionistAgent`
 

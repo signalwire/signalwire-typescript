@@ -2,6 +2,10 @@
  * FAQBotAgent - A prefab agent that answers frequently asked questions using
  * keyword/word-overlap matching with configurable similarity thresholds
  * and optional escalation to a live agent.
+ *
+ * Ported from the Python SDK `signalwire.prefabs.faq_bot.FAQBotAgent`. Keeps
+ * TS-specific enhancements (configurable similarity threshold, word-overlap
+ * matcher, escalation tool) alongside the Python prefab's public surface.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -17,13 +21,21 @@ export interface FAQEntry {
   answer: string;
   /** Additional keywords to boost matching accuracy. */
   keywords?: string[];
+  /** Taxonomy categories this FAQ belongs to (used for filtering and hints). */
+  categories?: string[];
 }
 
 export interface FAQBotConfig {
-  /** Agent display name. */
+  /** Agent display name (defaults to `"faq_bot"`). */
   name?: string;
+  /** HTTP route for this agent (defaults to `"/faq"`). */
+  route?: string;
   /** List of FAQ entries for the knowledge base. */
   faqs: FAQEntry[];
+  /** Whether to suggest related questions alongside a match. Default `true`. */
+  suggestRelated?: boolean;
+  /** Custom personality description for the agent's "Personality" prompt section. */
+  persona?: string;
   /** Minimum match score (0-1) for an FAQ to be considered a match. Default 0.5. */
   threshold?: number;
   /** Message spoken when no FAQ matches the query. */
@@ -38,63 +50,147 @@ export interface FAQBotConfig {
 
 /** Prefab agent that answers frequently asked questions using keyword matching with optional escalation to a live agent. */
 export class FAQBotAgent extends AgentBase {
-  private faqs: FAQEntry[];
+  /** The configured FAQ entries. */
+  public faqs: FAQEntry[];
+  /** Whether runner-up FAQ suggestions are appended to matches. */
+  public suggestRelated: boolean;
+  /** The personality description used in the prompt. */
+  public persona: string;
   private threshold: number;
   private escalationMessage: string;
   private escalationNumber: string | null;
-
-  /** Declarative prompt sections merged by AgentBase constructor. */
-  static override PROMPT_SECTIONS = [
-    {
-      title: 'Role',
-      body: 'You are a helpful FAQ assistant. Answer the caller\'s questions by searching the knowledge base. If you cannot find a satisfactory answer, offer to escalate to a human agent.',
-    },
-    {
-      title: 'Rules',
-      bullets: [
-        'Always use the search_faq tool to find answers. Do not make up answers.',
-        'If the search returns a good match, relay the answer naturally to the caller.',
-        'If the match score is low or no match is found, let the caller know and offer to escalate.',
-        'Be concise and helpful in your responses.',
-        'If the caller asks a follow-up, search again with the new query.',
-      ],
-    },
-  ];
 
   /**
    * Create a FAQBotAgent with the specified FAQ entries and matching threshold.
    * @param config - Configuration including FAQ entries, threshold, and escalation settings.
    */
   constructor(config: FAQBotConfig) {
-    const agentName = config.name ?? 'FAQBot';
+    const agentName = config.name ?? 'faq_bot';
     super({
       name: agentName,
+      route: config.route ?? '/faq',
+      usePom: true,
       ...config.agentOptions,
     });
 
     this.faqs = config.faqs;
+    this.suggestRelated = config.suggestRelated ?? true;
+    this.persona =
+      config.persona ??
+      'You are a helpful FAQ bot that provides accurate answers to common questions.';
     this.threshold = config.threshold ?? 0.5;
-    this.escalationMessage = config.escalationMessage ?? 'I\'m sorry, I couldn\'t find an answer to your question. Let me transfer you to someone who can help.';
+    this.escalationMessage =
+      config.escalationMessage ??
+      "I'm sorry, I couldn't find an answer to your question. Let me transfer you to someone who can help.";
     this.escalationNumber = config.escalationNumber ?? null;
 
-    // Build FAQ topics section for the prompt
-    const topicBullets = this.faqs.map((faq) => {
-      const kw = faq.keywords ? ` (keywords: ${faq.keywords.join(', ')})` : '';
-      return `${faq.question}${kw}`;
-    });
-    this.promptAddSection('Available FAQ Topics', { bullets: topicBullets });
-
-    // Add hints from FAQ keywords for speech recognition
-    const allKeywords: string[] = [];
-    for (const faq of this.faqs) {
-      if (faq.keywords) allKeywords.push(...faq.keywords);
-    }
-    if (allKeywords.length > 0) {
-      this.addHints(allKeywords);
-    }
+    this.buildPrompt();
+    this.configureAgentSettings();
 
     // Register tools after all fields are initialized
     this.defineTools();
+  }
+
+  // ── Prompt construction (mirrors Python _build_faq_bot_prompt) ────────
+
+  private buildPrompt(): void {
+    // Personality
+    this.promptAddSection('Personality', { body: this.persona });
+
+    // Goal
+    this.promptAddSection('Goal', {
+      body:
+        'Answer user questions by matching them to the most similar FAQ in your database.',
+    });
+
+    // Instructions
+    const instructions = [
+      'Compare user questions to your FAQ database and find the best match.',
+      'Provide the answer from the FAQ database for the matching question.',
+      'If no close match exists, politely say you don\'t have that information.',
+      'Be concise and factual in your responses.',
+    ];
+    if (this.suggestRelated) {
+      instructions.push(
+        'When appropriate, suggest other related questions from the FAQ database that might be helpful.',
+      );
+    }
+    this.promptAddSection('Instructions', { bullets: instructions });
+
+    // FAQ Database (each FAQ as a subsection with optional categories line)
+    const faqSubsections = this.faqs
+      .filter((faq) => faq.question && faq.answer)
+      .map((faq) => {
+        let body = faq.answer;
+        if (faq.categories && faq.categories.length > 0) {
+          body = `${body}\n\nCategories: ${faq.categories.join(', ')}`;
+        }
+        return { title: faq.question, body };
+      });
+    this.promptAddSection('FAQ Database', {
+      body: 'Here is your database of frequently asked questions and answers:',
+      subsections: faqSubsections,
+    });
+
+    if (this.suggestRelated) {
+      this.promptAddSection('Related Questions', {
+        body:
+          'When appropriate, suggest other related questions from the FAQ database that might be helpful.',
+      });
+    }
+  }
+
+  // ── Agent settings (mirrors Python _configure_agent_settings + _setup_post_prompt) ─
+
+  private configureAgentSettings(): void {
+    // Post-prompt summary template
+    this.setPostPrompt(`
+        Return a JSON summary of this interaction:
+        {
+            "question": "MAIN_QUESTION_ASKED",
+            "matched_faq": "MATCHED_FAQ_QUESTION_OR_null",
+            "answered_successfully": true/false,
+            "suggested_related": []
+        }
+        `);
+
+    // Hints: 4+ char question words, FAQ keywords, and categories
+    const hints: string[] = [];
+    for (const faq of this.faqs) {
+      const question = faq.question ?? '';
+      if (question) {
+        const words = question
+          .split(/\s+/)
+          .map((w) => w.replace(/^[.,?!]+|[.,?!]+$/g, ''))
+          .filter((w) => w.length >= 4);
+        hints.push(...words);
+      }
+      if (faq.keywords) hints.push(...faq.keywords);
+      if (faq.categories) hints.push(...faq.categories);
+    }
+    const unique = Array.from(new Set(hints));
+    if (unique.length > 0) this.addHints(unique);
+
+    // AI behavior parameters
+    this.setParams({
+      wait_for_user: false,
+      end_of_speech_timeout: 1000,
+      ai_volume: 5,
+    });
+
+    // Global data: faq count and categories
+    const categories = Array.from(
+      new Set(
+        this.faqs.flatMap((faq) => faq.categories ?? []),
+      ),
+    );
+    this.setGlobalData({
+      faq_count: this.faqs.length,
+      categories,
+    });
+
+    // Native functions
+    this.setNativeFunctions(['check_time']);
   }
 
   // ── Matching engine ───────────────────────────────────────────────────
@@ -154,12 +250,12 @@ export class FAQBotAgent extends AgentBase {
 
   // ── Tool registration ─────────────────────────────────────────────────
 
-  /** Register the search_faq and optional escalate SWAIG tools. */
+  /** Register the search_faqs and optional escalate SWAIG tools. */
   protected override defineTools(): void {
-    // Tool: search_faq
+    // Tool: search_faqs (matches Python name; supports optional category filter)
     this.defineTool({
-      name: 'search_faq',
-      description: 'Search the FAQ knowledge base for an answer to the caller\'s question. Returns the best matching FAQ entry with a confidence score.',
+      name: 'search_faqs',
+      description: 'Search the FAQ knowledge base for answers matching a query, optionally filtered by category.',
       parameters: {
         type: 'object',
         properties: {
@@ -167,17 +263,36 @@ export class FAQBotAgent extends AgentBase {
             type: 'string',
             description: 'The caller\'s question or search query.',
           },
+          category: {
+            type: 'string',
+            description: 'Optional category to filter the FAQ list by.',
+          },
         },
         required: ['query'],
       },
-      handler: (_args: Record<string, unknown>) => {
-        const query = _args['query'] as string;
+      handler: (args: Record<string, unknown>) => {
+        const query = (args['query'] as string) ?? '';
+        const category = ((args['category'] as string) ?? '').toLowerCase().trim();
         if (!query) {
           return new FunctionResult('A query is required to search the FAQ.');
         }
 
-        // Score all FAQs
-        const scored = this.faqs.map((faq) => ({
+        // Optionally filter by category
+        const pool = category
+          ? this.faqs.filter(
+              (faq) =>
+                (faq.categories ?? []).some((c) => c.toLowerCase().trim() === category),
+            )
+          : this.faqs;
+
+        if (pool.length === 0) {
+          return new FunctionResult(
+            `No FAQs found in category "${category}". ${this.escalationMessage}`,
+          );
+        }
+
+        // Score all FAQs in the (possibly filtered) pool
+        const scored = pool.map((faq) => ({
           faq,
           score: this.computeMatchScore(query, faq),
         }));
@@ -196,14 +311,16 @@ export class FAQBotAgent extends AgentBase {
         // Return the best match
         let response = `FAQ Match (confidence: ${best.score.toFixed(2)}): Q: "${best.faq.question}" A: ${best.faq.answer}`;
 
-        // If there are close runner-ups, mention them
-        const runnerUps = scored.filter((s, i) => i > 0 && s.score >= this.threshold);
-        if (runnerUps.length > 0) {
-          const alsoStr = runnerUps
-            .slice(0, 2)
-            .map((s) => `"${s.faq.question}" (${s.score.toFixed(2)})`)
-            .join(', ');
-          response += ` Also related: ${alsoStr}`;
+        // Runner-ups: only suggested when `suggestRelated` is true
+        if (this.suggestRelated) {
+          const runnerUps = scored.filter((s, i) => i > 0 && s.score >= this.threshold);
+          if (runnerUps.length > 0) {
+            const alsoStr = runnerUps
+              .slice(0, 2)
+              .map((s) => `"${s.faq.question}" (${s.score.toFixed(2)})`)
+              .join(', ');
+            response += ` Also related: ${alsoStr}`;
+          }
         }
 
         return new FunctionResult(response);
@@ -233,6 +350,27 @@ export class FAQBotAgent extends AgentBase {
           return result;
         },
       });
+    }
+  }
+
+  // ── Lifecycle hooks ───────────────────────────────────────────────────
+
+  /**
+   * Process the interaction summary returned at the end of a call.
+   * Logs structured summaries as JSON. Subclasses may override to persist or process.
+   */
+  override onSummary(
+    summary: Record<string, unknown> | null,
+    _rawData: Record<string, unknown>,
+  ): void | Promise<void> {
+    if (summary) {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`FAQ interaction summary: ${JSON.stringify(summary, null, 2)}`);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(`Error processing summary: ${String(err)}`);
+      }
     }
   }
 }

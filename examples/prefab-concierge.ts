@@ -1,41 +1,38 @@
 /**
  * Concierge Prefab Example
  *
- * Multi-department routing with knowledge base, hours of operation,
- * and call transfer capabilities.
+ * Virtual concierge for a venue. Answers questions about services,
+ * amenities, and hours, and checks availability and directions.
+ *
  * Run: npx tsx examples/prefab-concierge.ts
  */
 
 import { ConciergeAgent } from '../src/index.js';
 
 export const agent = new ConciergeAgent({
-  name: 'office-concierge',
-  companyName: 'Acme Technologies',
-  generalInfo: 'Acme Technologies is a leading provider of cloud communications. Founded in 2010, we serve over 10,000 customers worldwide.',
-  departments: [
-    {
-      name: 'Sales',
-      description: 'New accounts, pricing, and product demos',
-      transferNumber: '+18005551001',
-      keywords: ['buy', 'pricing', 'demo', 'trial', 'purchase'],
-      hoursOfOperation: 'Mon-Fri 8am-6pm EST',
-    },
-    {
-      name: 'Technical Support',
-      description: 'Product issues, troubleshooting, and bug reports',
-      transferNumber: '+18005551002',
-      keywords: ['help', 'broken', 'error', 'bug', 'issue', 'problem'],
-      hoursOfOperation: 'Mon-Fri 9am-9pm EST, Sat 10am-4pm EST',
-    },
-    {
-      name: 'Billing',
-      description: 'Invoices, payments, and account changes',
-      transferNumber: '+18005551003',
-      keywords: ['invoice', 'payment', 'charge', 'bill', 'subscription'],
-      hoursOfOperation: 'Mon-Fri 9am-5pm EST',
-    },
+  name: 'hotel-concierge',
+  venueName: 'Grand Plaza Hotel',
+  services: [
+    'room service',
+    'spa bookings',
+    'restaurant reservations',
+    'airport shuttle',
   ],
-  afterHoursMessage: 'This department is currently closed. Please call back during business hours or leave a message.',
+  amenities: {
+    pool: { hours: '7 AM - 10 PM', location: '2nd Floor (West Wing)' },
+    gym: { hours: '24 hours', location: '3rd Floor' },
+    spa: { hours: '9 AM - 8 PM', location: 'Ground Floor' },
+    'business center': { hours: '24 hours', location: 'Lobby Level' },
+  },
+  hoursOfOperation: {
+    weekday: '6 AM - 11 PM',
+    weekend: '7 AM - midnight',
+  },
+  specialInstructions: [
+    'Encourage guests to ask about our weekly wine tasting event.',
+    'Mention our partnership with local attractions when asked for recommendations.',
+  ],
+  welcomeMessage: 'Welcome to the Grand Plaza Hotel concierge! How may I assist you today?',
   agentOptions: {
     route: '/',
     basicAuth: [

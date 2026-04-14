@@ -1,8 +1,11 @@
 /**
  * InfoGatherer Prefab Example
  *
- * Collects structured data from callers: name, email, phone.
- * Validates each field with regex, fires onComplete when done.
+ * Collects information from callers by asking a sequence of questions.
+ * Each question has a `key_name` used to store the answer and a
+ * `question_text` spoken to the caller. The `confirm` flag forces the AI
+ * to verify the answer before submitting.
+ *
  * Run: npx tsx examples/prefab-info-gatherer.ts
  */
 
@@ -10,35 +13,12 @@ import { InfoGathererAgent } from '../src/index.js';
 
 export const agent = new InfoGathererAgent({
   name: 'intake-agent',
-  fields: [
-    {
-      name: 'full_name',
-      description: 'The caller\'s full name (first and last)',
-      required: true,
-    },
-    {
-      name: 'email',
-      description: 'The caller\'s email address',
-      required: true,
-      validation: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    },
-    {
-      name: 'phone',
-      description: 'A callback phone number',
-      required: true,
-      validation: /^\+?[\d\s\-()]{7,15}$/,
-    },
-    {
-      name: 'company',
-      description: 'The caller\'s company or organization',
-      required: false,
-    },
+  questions: [
+    { key_name: 'full_name', question_text: 'What is your full name?' },
+    { key_name: 'email', question_text: 'What is your email address?', confirm: true },
+    { key_name: 'phone', question_text: 'What is a good callback number?', confirm: true },
+    { key_name: 'reason', question_text: 'How can we help you today?' },
   ],
-  introMessage: 'Hi there! I need to collect a few details from you. Let\'s start with your name.',
-  confirmationMessage: 'Great, I have everything I need. Thank you for your time!',
-  onComplete: (data) => {
-    console.log('All fields collected:', data);
-  },
   agentOptions: {
     route: '/',
     basicAuth: [

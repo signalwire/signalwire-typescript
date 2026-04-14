@@ -68,7 +68,7 @@ import {
 
 ## InfoGathererAgent
 
-A conversational agent that sequentially collects named fields from a caller, validates each value against optional regex patterns, and fires a completion callback once all required fields are gathered.
+A conversational agent that asks the caller a sequence of questions one at a time and records each answer in `global_data`. Supports both static configuration (questions defined at construction) and dynamic configuration (questions resolved per request via a callback).
 
 **Source:** `src/prefabs/InfoGathererAgent.ts`
 
@@ -78,64 +78,68 @@ The constructor accepts an `InfoGathererConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"InfoGatherer"` | Agent display name. |
-| `fields` | `InfoGathererField[]` | **Yes** | -- | Fields to collect from the caller. |
-| `introMessage` | `string` | No | `"Hello! I need to collect some information from you. Let me walk you through it."` | Opening message the agent speaks when the call starts. |
-| `confirmationMessage` | `string` | No | `"Thank you! I have collected all the required information."` | Message spoken after all required fields are gathered. |
-| `onComplete` | `(data: Record<string, string>) => void \| Promise<void>` | No | -- | Callback fired when all required fields have been collected. Receives a copy of the collected data. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options forwarded to `super()` (e.g., `route`, `port`, `basicAuth`). |
+| `name` | `string` | No | `"info_gatherer"` | Agent display name. |
+| `route` | `string` | No | `"/info_gatherer"` | HTTP route for this agent. |
+| `questions` | `InfoGathererQuestion[]` | No | -- | Questions to ask (static mode). Omit for dynamic mode. |
+| `questionCallback` | `InfoGathererQuestionCallback` | No | -- | Resolves questions per request (dynamic mode); equivalent to calling `setQuestionCallback()` after construction. |
+| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options forwarded to `super()` (e.g., `port`, `basicAuth`). |
 
-### InfoGatherer Fields
+### InfoGatherer Questions
 
-Each entry in the `fields` array is an `InfoGathererField`:
+Each entry in the `questions` array is an `InfoGathererQuestion`:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | **Yes** | -- | Unique field name, used as the key in collected data. |
-| `description` | `string` | **Yes** | -- | Human-readable description shown to the AI agent. |
-| `required` | `boolean` | No | `true` | Whether this field must be collected before completion. |
-| `validation` | `RegExp \| string` | No | -- | Optional validation pattern. Strings are compiled to `RegExp`. |
-
-Fields are presented to the AI prompt as a numbered list, each annotated with `(required)` or `(optional)` and the validation pattern source if present.
+| `key_name` | `string` | **Yes** | -- | Identifier used as the key when storing the caller's answer. |
+| `question_text` | `string` | **Yes** | -- | The question text spoken to the caller. |
+| `confirm` | `boolean` | No | `false` | When `true`, the agent insists the caller confirms the answer before submitting. |
 
 ### InfoGatherer Tools
 
 The agent registers two SWAIG tools:
 
-#### `save_field`
+#### `start_questions`
 
-Saves a collected field value from the caller. Validates the value if a validation pattern is configured.
+Retrieves the first question from `global_data.questions` and returns an instruction asking the caller to answer it.
+
+**Parameters:** None.
+
+**Returns:** A formatted instruction including the first question's text and confirmation guidance when `confirm` is set. Also sets `replace_in_history` to the generic "Welcome" prompt.
+
+#### `submit_answer`
+
+Records the caller's answer to the current question and advances to the next.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `field_name` | `string` | Yes | The name of the field to save. |
-| `value` | `string` | Yes | The value provided by the caller. |
+| `answer` | `string` | Yes | The caller's answer to the current question. |
 
 **Behavior:**
-- Returns an error if the field name is unknown, listing available fields.
-- Runs the value against the field's validation regex (if configured). Returns a validation error with the expected pattern if it fails.
-- Saves the value into the per-call session.
-- If this save completes all required fields and `onComplete` has not yet fired, fires the `onComplete` callback with a shallow copy of the collected data and returns the confirmation message with a summary.
-- Otherwise, returns the list of remaining required fields.
+- Appends `{ key_name, answer }` to `global_data.answers`.
+- Increments `global_data.question_index`.
+- If more questions remain, returns the next question's instruction text.
+- If all questions are answered, returns the completion message.
 
-#### `get_status`
+### Dynamic Mode
 
-Returns the current status of information gathering.
+Omit `questions` and register a callback to resolve the question list per incoming request:
 
-**Parameters:** None.
+```typescript
+const agent = new InfoGathererAgent({ name: 'dynamic-intake' });
+agent.setQuestionCallback((queryParams, bodyParams, headers) => {
+  if (queryParams['set'] === 'support') {
+    return [
+      { key_name: 'name', question_text: 'What is your name?' },
+      { key_name: 'issue', question_text: "What's the issue?" },
+    ];
+  }
+  return [{ key_name: 'name', question_text: 'What is your name?' }];
+});
+```
 
-**Returns:** A string summarizing collected fields, remaining required fields, and remaining optional fields.
-
-### InfoGatherer Session Tracking
-
-Session state is keyed by `call_id` from the raw POST data. Each session tracks:
-
-- `collected` -- a `Record<string, string>` of field name to value.
-- `completeFired` -- a boolean ensuring the `onComplete` callback fires at most once per call.
-
-When a call comes in without a `call_id`, the fallback key `"default"` is used.
+The callback runs on every SWML request, and its return value populates `global_data.questions` for that call. If no callback is registered or the callback throws, a default two-question fallback (`name`, `message`) is used.
 
 ### InfoGatherer Example
 
@@ -144,43 +148,19 @@ import { InfoGathererAgent } from '@signalwire/sdk';
 
 const agent = new InfoGathererAgent({
   name: 'PatientIntake',
-  introMessage: 'Welcome to our clinic! I need to collect some information before your appointment.',
-  confirmationMessage: 'Thank you! Your information has been saved. A nurse will be with you shortly.',
-  fields: [
-    {
-      name: 'full_name',
-      description: 'The patient\'s full legal name',
-      required: true,
-    },
-    {
-      name: 'date_of_birth',
-      description: 'Date of birth in MM/DD/YYYY format',
-      required: true,
-      validation: /^\d{2}\/\d{2}\/\d{4}$/,
-    },
-    {
-      name: 'phone_number',
-      description: 'Contact phone number',
-      required: true,
-      validation: '^\\+?\\d{10,15}$',
-    },
-    {
-      name: 'insurance_provider',
-      description: 'Name of the insurance provider',
-      required: false,
-    },
+  questions: [
+    { key_name: 'full_name', question_text: 'What is your full legal name?' },
+    { key_name: 'date_of_birth', question_text: 'What is your date of birth?', confirm: true },
+    { key_name: 'phone_number', question_text: 'What is a good callback number?', confirm: true },
+    { key_name: 'insurance_provider', question_text: 'Who is your insurance provider?' },
   ],
-  onComplete: async (data) => {
-    console.log('Patient intake complete:', data);
-    // Save to database, send notification, etc.
-  },
   agentOptions: {
     port: 3001,
     route: '/intake',
   },
 });
 
-agent.start();
+agent.run();
 ```
 
 ---
@@ -197,10 +177,14 @@ The constructor accepts a `SurveyConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"SurveyAgent"` | Agent display name. |
+| `name` | `string` | No | `"survey"` | Agent display name. |
+| `route` | `string` | No | `"/survey"` | HTTP route for this agent. |
+| `surveyName` | `string` | **Yes** | -- | Human-readable survey name used in prompts and global data. |
 | `questions` | `SurveyQuestion[]` | **Yes** | -- | Ordered list of survey questions. |
-| `introMessage` | `string` | No | `"Thank you for taking our survey. I have a few questions for you."` | Opening message before the first question. |
-| `completionMessage` | `string` | No | `"Thank you for completing the survey! Your responses have been recorded."` | Message spoken after the survey is complete. |
+| `introduction` | `string` | No | `"Welcome to our ${surveyName}. We appreciate your participation."` | Opening message before the first question (used as a non-bargeable static greeting). |
+| `conclusion` | `string` | No | `"Thank you for completing our survey. Your feedback is valuable to us."` | Message spoken after the survey is complete. |
+| `brandName` | `string` | No | `"Our Company"` | Brand or company name the agent represents. |
+| `maxRetries` | `number` | No | `2` | Maximum number of times to retry invalid answers. |
 | `onComplete` | `(responses: Record<string, unknown>, score: number) => void \| Promise<void>` | No | -- | Callback fired when the survey is finished. Receives all responses and the total score. |
 | `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
 
@@ -212,6 +196,8 @@ Each `SurveyQuestion` has the following shape:
 | `text` | `string` | **Yes** | The question text to ask the caller. |
 | `type` | `'multiple_choice' \| 'open_ended' \| 'rating' \| 'yes_no'` | **Yes** | Question type; determines validation and display. |
 | `options` | `string[]` | No | Answer options (used when `type` is `multiple_choice`). |
+| `scale` | `number` | No | For `rating` questions, the upper bound of the 1..scale range. Defaults to `5`. |
+| `required` | `boolean` | No | Whether the question requires an answer. Defaults to `true`. |
 | `nextQuestion` | `string \| Record<string, string>` | No | Controls flow after this question (see Branching Logic). |
 | `points` | `number \| Record<string, number>` | No | Points awarded for answers (see Scoring). |
 
@@ -221,7 +207,7 @@ Each `SurveyQuestion` has the following shape:
 |---|---|---|
 | `multiple_choice` | Answer must exactly match one of the `options` (case-insensitive). | All options are read aloud. |
 | `open_ended` | No validation; any answer is accepted. | Free-form response. |
-| `rating` | Must be an integer between 1 and 10. | The AI specifies the scale to the caller. |
+| `rating` | Must be an integer between 1 and the question's `scale` (default `5`). | The AI specifies the scale to the caller. |
 | `yes_no` | Must be a recognized affirmative or negative word. | Accepts: `yes`, `y`, `yeah`, `yep`, `sure`, `absolutely`, `correct`, `true`, `no`, `n`, `nah`, `nope`, `negative`, `false`. Normalized to `"yes"` or `"no"` before storage. |
 
 ### Survey Branching Logic
@@ -248,7 +234,33 @@ The total score is accumulated across all answered questions and passed to the `
 
 ### Survey Tools
 
-The agent registers three SWAIG tools:
+The agent registers the following SWAIG tools:
+
+#### `validate_response`
+
+Validates whether a response satisfies the question's type and constraints without recording or advancing.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `question_id` | `string` | Yes | The ID of the question to validate against. |
+| `response` | `string` | Yes | The candidate response. |
+
+**Returns:** A confirmation message when valid, or a type-specific error describing why the response is invalid.
+
+#### `log_response`
+
+Acknowledges that a validated response has been recorded for the specified question.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `question_id` | `string` | Yes | The ID of the question. |
+| `response` | `string` | Yes | The validated response. |
+
+**Returns:** A confirmation message referencing the question's text.
 
 #### `answer_question`
 
@@ -292,8 +304,9 @@ import { SurveyAgent } from '@signalwire/sdk';
 
 const agent = new SurveyAgent({
   name: 'CustomerSatisfaction',
-  introMessage: 'Hi! We would love to hear your feedback about our service.',
-  completionMessage: 'Thanks for your feedback! We really appreciate it.',
+  surveyName: 'Customer Satisfaction Survey',
+  introduction: 'Hi! We would love to hear your feedback about our service.',
+  conclusion: 'Thanks for your feedback! We really appreciate it.',
   questions: [
     {
       id: 'overall',
@@ -457,7 +470,7 @@ agent.start();
 
 ## ConciergeAgent
 
-A multi-department routing agent that provides callers with department information, hours of operation, and call transfer capabilities.
+A virtual concierge for a venue or business. Provides information about services, amenities, and hours of operation, and answers availability and directions questions.
 
 **Source:** `src/prefabs/ConciergeAgent.ts`
 
@@ -467,62 +480,45 @@ The constructor accepts a `ConciergeConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"Concierge"` | Agent display name. |
-| `departments` | `Department[]` | **Yes** | -- | List of departments available for routing. |
-| `companyName` | `string` | No | `"our company"` | Company name used in greetings and prompts. |
-| `generalInfo` | `string` | No | `""` | General company information the agent can share. |
-| `afterHoursMessage` | `string` | No | `"This department is currently closed. Please try again during business hours."` | Message spoken when a department is closed or has no transfer number. |
+| `name` | `string` | No | `"concierge"` | Agent display name. |
+| `route` | `string` | No | `"/concierge"` | HTTP route for this agent. |
+| `venueName` | `string` | **Yes** | -- | Name of the venue or business. |
+| `services` | `string[]` | **Yes** | -- | List of services offered. |
+| `amenities` | `Record<string, Record<string, string>>` | **Yes** | -- | Amenities as an object of amenity-name → detail-pairs. |
+| `hoursOfOperation` | `Record<string, string>` | No | `{ default: '9 AM - 5 PM' }` | Operating hours by category. |
+| `specialInstructions` | `string[]` | No | `[]` | Extra instruction bullets to append. |
+| `welcomeMessage` | `string` | No | -- | When set, installed as a non-bargeable static greeting. |
 | `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
 
-Each `Department` has the following shape:
-
-| Property | Type | Required | Description |
-|---|---|---|---|
-| `name` | `string` | **Yes** | Department name (e.g., "Sales", "Support"). |
-| `description` | `string` | **Yes** | Description of what the department handles. |
-| `transferNumber` | `string` | No | Phone number or SIP address for transfers. |
-| `keywords` | `string[]` | No | Keywords that help route callers to this department. |
-| `hoursOfOperation` | `string` | No | Human-readable hours (e.g., "Mon-Fri 9am-5pm EST"). |
-
-Department names and keywords are added as speech recognition hints. Department lookup supports matching by name or by keyword (both case-insensitive).
+The venue name, all services, and amenity names are added as speech recognition hints.
 
 ### Concierge Tools
 
-#### `list_departments`
+#### `check_availability`
 
-Lists all available departments with their descriptions and hours of operation.
-
-**Parameters:** None.
-
-**Returns:** A formatted list of every department including name, description, hours, and whether direct transfer is available.
-
-#### `get_department_info`
-
-Gets detailed information about a specific department.
+Checks whether a given service is offered on a specified date and time.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `department_name` | `string` | Yes | The name of the department to look up. |
+| `service` | `string` | Yes | The service to check. |
+| `date` | `string` | Yes | The date in `YYYY-MM-DD` format. |
+| `time` | `string` | Yes | The time in `HH:MM` 24-hour format. |
 
-**Returns:** Department name, description, hours of operation, transfer availability, and related topics (keywords). Returns an error with available department names if the department is not found.
+**Returns:** A confirmation or a list of offered services when the requested service is not available.
 
-#### `transfer_to_department`
+#### `get_directions`
 
-Transfers the caller to a specific department.
+Looks up directions for an amenity by name.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `department_name` | `string` | Yes | The name of the department to transfer to. |
+| `location` | `string` | Yes | The amenity or location to get directions to. |
 
-**Behavior:**
-- Looks up the department by name or keyword (case-insensitive).
-- Returns an error if the department is not found.
-- Returns the `afterHoursMessage` if the department has no `transferNumber`.
-- Uses `FunctionResult.connect()` to initiate the transfer.
+**Returns:** Directions referencing the amenity's `location` detail, or a fallback pointing the caller to the front desk.
 
 ### Concierge Example
 
@@ -530,49 +526,25 @@ Transfers the caller to a specific department.
 import { ConciergeAgent } from '@signalwire/sdk';
 
 const agent = new ConciergeAgent({
-  name: 'MainLine',
-  companyName: 'Acme Corporation',
-  generalInfo: 'Acme Corporation is a leading provider of innovative solutions since 1985.',
-  afterHoursMessage: 'That department is currently closed. Please call back during business hours or leave a voicemail.',
-  departments: [
-    {
-      name: 'Sales',
-      description: 'New product inquiries, pricing, and demos',
-      transferNumber: '+15551001001',
-      keywords: ['buy', 'purchase', 'pricing', 'demo', 'quote'],
-      hoursOfOperation: 'Mon-Fri 8am-6pm EST',
-    },
-    {
-      name: 'Technical Support',
-      description: 'Help with existing products, troubleshooting, and bug reports',
-      transferNumber: '+15551001002',
-      keywords: ['help', 'broken', 'issue', 'bug', 'problem', 'error'],
-      hoursOfOperation: 'Mon-Fri 9am-9pm EST, Sat 10am-4pm EST',
-    },
-    {
-      name: 'Billing',
-      description: 'Invoices, payments, and subscription management',
-      transferNumber: '+15551001003',
-      keywords: ['invoice', 'payment', 'bill', 'subscription', 'charge'],
-      hoursOfOperation: 'Mon-Fri 9am-5pm EST',
-    },
-    {
-      name: 'Human Resources',
-      description: 'Employment opportunities and employee services',
-      keywords: ['job', 'career', 'hiring', 'employment'],
-      // No transferNumber -- caller will get afterHoursMessage
-    },
-  ],
+  venueName: 'Grand Hotel',
+  services: ['room service', 'spa bookings', 'restaurant reservations'],
+  amenities: {
+    pool: { hours: '7 AM - 10 PM', location: '2nd Floor' },
+    gym: { hours: '24 hours', location: '3rd Floor' },
+  },
+  hoursOfOperation: { weekday: '9 AM - 9 PM', weekend: '10 AM - 6 PM' },
+  specialInstructions: ['Always mention the weekly wine tasting.'],
+  welcomeMessage: 'Welcome to the Grand Hotel! How may I assist you?',
 });
 
-agent.start();
+agent.run();
 ```
 
 ---
 
 ## ReceptionistAgent
 
-A front-desk agent that handles visitor check-in, department directory lookup, and call transfers by extension.
+A front-desk agent that greets callers, collects their name and reason for calling, and transfers them to the appropriate department. Optionally supports visitor check-in as a TS-specific enhancement.
 
 **Source:** `src/prefabs/ReceptionistAgent.ts`
 
@@ -582,11 +554,13 @@ The constructor accepts a `ReceptionistConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"Receptionist"` | Agent display name. |
-| `companyName` | `string` | **Yes** | -- | Company name displayed in greetings and prompts. |
-| `departments` | `ReceptionistDepartment[]` | **Yes** | -- | Departments with extensions for the directory. |
-| `welcomeMessage` | `string` | No | `"Welcome to {companyName}! How may I help you today?"` | Custom welcome message. |
-| `checkInEnabled` | `boolean` | No | `true` | Whether visitor check-in functionality is enabled. |
+| `name` | `string` | No | `"receptionist"` | Agent display name. |
+| `route` | `string` | No | `"/receptionist"` | HTTP route for this agent. |
+| `departments` | `ReceptionistDepartment[]` | **Yes** | -- | Departments the agent can transfer callers to. |
+| `greeting` | `string` | No | `"Thank you for calling. How can I help you today?"` | Initial greeting message. |
+| `voice` | `string` | No | `"rime.spore"` | Voice identifier passed to `addLanguage`. |
+| `companyName` | `string` | No | -- | Optional company name appended to the greeting and used as a speech hint. |
+| `checkInEnabled` | `boolean` | No | `false` | Whether the TS-specific `check_in_visitor` tool is registered. |
 | `onVisitorCheckIn` | `(visitor: Record<string, string>) => void \| Promise<void>` | No | -- | Callback fired when a visitor checks in. |
 | `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
 
@@ -594,40 +568,44 @@ Each `ReceptionistDepartment` has the following shape:
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `name` | `string` | **Yes** | Department name (e.g., "Engineering", "HR"). |
-| `extension` | `string` | **Yes** | Internal extension number or SIP address. |
-| `description` | `string` | No | Description of the department. |
-
-The company name and all department names are added as speech recognition hints. Department lookup is by name (case-insensitive).
+| `name` | `string` | **Yes** | Department identifier (used as enum value in `transfer_call`). |
+| `description` | `string` | **Yes** | Description of the department (shown to the AI). |
+| `number` | `string` | **Yes** | Phone number (or SIP address) to dial on transfer. |
 
 ### Receptionist Tools
 
-#### `get_department_list`
+#### `collect_caller_info`
 
-Lists all departments with their extensions and descriptions.
-
-**Parameters:** None.
-
-**Returns:** A formatted department directory for the company.
-
-#### `transfer_to_department`
-
-Transfers the caller to a department by dialing its extension.
+Records the caller's name and reason for calling in `global_data.caller_info` via `set_global_data`.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `department_name` | `string` | Yes | The name of the department to transfer to. |
+| `name` | `string` | Yes | The caller's name. |
+| `reason` | `string` | Yes | The reason for the call. |
+
+**Returns:** An acknowledgement referencing the caller by name.
+
+#### `transfer_call`
+
+Transfers the caller to the selected department.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `department` | `string` (enum over department names) | Yes | The department to transfer to. |
 
 **Behavior:**
-- Looks up the department by name (case-insensitive).
-- Returns an error with the list of available departments if not found.
-- Uses `FunctionResult.connect()` to dial the extension.
+- Uses `post_process=true` so the AI speaks the response before executing the transfer.
+- Uses `FunctionResult.connect(number, final=true)` to make the transfer permanent.
+- Reads `global_data.caller_info.name` (populated by `collect_caller_info`) to personalize the hand-off message.
+- Returns an error if the department name is unknown.
 
-#### `check_in_visitor`
+#### `check_in_visitor` (TS enhancement)
 
-Checks in a visitor by recording their details. **Only registered when `checkInEnabled` is `true` (the default).**
+Only registered when `checkInEnabled` is `true`. Records a visitor in the per-call session and fires the `onVisitorCheckIn` callback.
 
 **Parameters:**
 
@@ -637,13 +615,6 @@ Checks in a visitor by recording their details. **Only registered when `checkInE
 | `purpose` | `string` | Yes | Purpose of the visit. |
 | `visiting` | `string` | Yes | Name of the person or department the visitor is here to see. |
 
-**Behavior:**
-- Validates that all three parameters are provided.
-- Creates a visitor record including `visitor_name`, `purpose`, `visiting`, and `checked_in_at` (ISO timestamp).
-- Stores the record in the per-call session.
-- Fires the `onVisitorCheckIn` callback with the visitor record.
-- Returns a confirmation message.
-
 ### Receptionist Example
 
 ```typescript
@@ -651,28 +622,29 @@ import { ReceptionistAgent } from '@signalwire/sdk';
 
 const agent = new ReceptionistAgent({
   companyName: 'Acme Corporation',
-  welcomeMessage: 'Hello and welcome to Acme Corporation! I can help you find a department, transfer your call, or check you in as a visitor.',
+  greeting: 'Thank you for calling Acme Corporation. How can I help you today?',
+  voice: 'rime.spore',
   checkInEnabled: true,
   departments: [
     {
-      name: 'Engineering',
-      extension: '1001',
+      name: 'engineering',
       description: 'Software development and technical teams',
+      number: '+15551001001',
     },
     {
-      name: 'Human Resources',
-      extension: '1002',
+      name: 'hr',
       description: 'Employee services, benefits, and recruiting',
+      number: '+15551001002',
     },
     {
-      name: 'Marketing',
-      extension: '1003',
+      name: 'marketing',
       description: 'Brand, communications, and events',
+      number: '+15551001003',
     },
     {
-      name: 'Executive Office',
-      extension: '1004',
+      name: 'executive',
       description: 'CEO and executive leadership',
+      number: '+15551001004',
     },
   ],
   onVisitorCheckIn: async (visitor) => {
@@ -751,12 +723,10 @@ class SpanishInfoGatherer extends InfoGathererAgent {
     {
       title: 'Rules',
       bullets: [
-        'Ask for one field at a time, in the order listed.',
-        'If the caller provides information for a later field, accept it and move on.',
-        'Always confirm each piece of information before saving it using the save_field tool.',
+        'Ask one question at a time, in the order provided by start_questions.',
+        'Use submit_answer to record each response and advance to the next question.',
+        'If a question has confirm=true, insist on confirmation before submitting.',
         'If validation fails, politely ask the caller to try again in their language.',
-        'Use the get_status tool when you need to check progress.',
-        'Once all required fields are collected, summarize the information and confirm with the caller.',
       ],
     },
   ];

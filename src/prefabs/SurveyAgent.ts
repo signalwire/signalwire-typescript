@@ -2,8 +2,9 @@
  * SurveyAgent - A prefab agent that conducts surveys with branching logic,
  * scoring, and conditional question flow.
  *
- * Supports multiple question types (multiple choice, open ended, rating,
- * yes/no), conditional branching based on answers, and per-answer scoring.
+ * Ported from the Python SDK `signalwire.prefabs.survey.SurveyAgent`. Keeps
+ * TS-specific enhancements (per-call session state, branching via
+ * `nextQuestion`, answer scoring via `points`) alongside the Python surface.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -22,6 +23,16 @@ export interface SurveyQuestion {
   /** Options for multiple_choice questions. */
   options?: string[];
   /**
+   * For `rating` questions, the upper bound of the scale (1..scale).
+   * Defaults to 5 (matching the Python prefab) when unspecified.
+   */
+  scale?: number;
+  /**
+   * Whether the question requires an answer. Defaults to `true`.
+   * Mirrors the Python `required` flag on each question dict.
+   */
+  required?: boolean;
+  /**
    * Next question ID after this one.
    * - string: always go to that question
    * - Record<string, string>: map from answer value to next question ID
@@ -37,14 +48,22 @@ export interface SurveyQuestion {
 }
 
 export interface SurveyConfig {
-  /** Agent display name. */
-  name?: string;
+  /** Human-readable survey name, used in prompts and global data. */
+  surveyName: string;
   /** Ordered list of survey questions. */
   questions: SurveyQuestion[];
-  /** Opening message before the first question. */
-  introMessage?: string;
-  /** Message after the survey is complete. */
-  completionMessage?: string;
+  /** Opening message before the first question (matches Python `introduction`). */
+  introduction?: string;
+  /** Message after the survey is complete (matches Python `conclusion`). */
+  conclusion?: string;
+  /** Brand or company name the agent represents (matches Python `brand_name`). */
+  brandName?: string;
+  /** Maximum number of times to retry invalid answers. Defaults to 2. */
+  maxRetries?: number;
+  /** Agent display name (defaults to `"survey"`). */
+  name?: string;
+  /** HTTP route for this agent (defaults to `"/survey"`). */
+  route?: string;
   /** Callback fired when the survey is finished. */
   onComplete?: (responses: Record<string, unknown>, score: number) => void | Promise<void>;
   /** Additional AgentBase options forwarded to super(). */
@@ -65,66 +84,177 @@ interface SurveySession {
 
 /** Prefab agent that conducts surveys with branching logic, answer scoring, and conditional question flow. */
 export class SurveyAgent extends AgentBase {
-  private questions: SurveyQuestion[];
+  /** Human-readable survey name. */
+  public surveyName: string;
+  /** The configured survey questions (public, matching Python). */
+  public questions: SurveyQuestion[];
+  /** Brand/company name used in prompts. */
+  public brandName: string;
+  /** Maximum number of times to retry invalid answers. */
+  public maxRetries: number;
+  /** Opening message before the first question. */
+  public introduction: string;
+  /** Closing message shown when the survey completes. */
+  public conclusion: string;
+
   private questionMap: Map<string, SurveyQuestion>;
-  private introMessage: string;
-  private completionMessage: string;
   private onCompleteCallback?: (responses: Record<string, unknown>, score: number) => void | Promise<void>;
   private sessions: Map<string, SurveySession> = new Map();
-
-  /** Declarative prompt sections merged by AgentBase constructor. */
-  static override PROMPT_SECTIONS = [
-    {
-      title: 'Role',
-      body: 'You are a friendly survey agent. Your job is to ask the caller a series of questions and record their answers accurately.',
-    },
-    {
-      title: 'Rules',
-      bullets: [
-        'Always start by calling get_current_question to know which question to ask.',
-        'Ask one question at a time.',
-        'For multiple choice questions, read all available options to the caller.',
-        'For rating questions, specify the scale (1-5 or 1-10 as appropriate).',
-        'For yes/no questions, accept variations like "yeah", "nope", "sure", etc.',
-        'After each answer, use answer_question to record the response.',
-        'Use get_survey_progress to check how far along the survey is.',
-        'Do not skip questions unless the branching logic directs you to.',
-        'When the survey is complete, thank the caller for their time.',
-      ],
-    },
-  ];
 
   /**
    * Create a SurveyAgent with the specified questions and callbacks.
    * @param config - Configuration including questions, messages, and completion callback.
    */
   constructor(config: SurveyConfig) {
-    const agentName = config.name ?? 'SurveyAgent';
+    const agentName = config.name ?? 'survey';
     super({
       name: agentName,
+      route: config.route ?? '/survey',
+      usePom: true,
       ...config.agentOptions,
     });
 
+    // Store configuration (matches Python __init__)
+    this.surveyName = config.surveyName;
     this.questions = config.questions;
-    this.questionMap = new Map(config.questions.map((q) => [q.id, q]));
-    this.introMessage = config.introMessage ?? 'Thank you for taking our survey. I have a few questions for you.';
-    this.completionMessage = config.completionMessage ?? 'Thank you for completing the survey! Your responses have been recorded.';
+    this.brandName = config.brandName ?? 'Our Company';
+    this.maxRetries = config.maxRetries ?? 2;
+    this.introduction =
+      config.introduction ?? `Welcome to our ${config.surveyName}. We appreciate your participation.`;
+    this.conclusion =
+      config.conclusion ?? 'Thank you for completing our survey. Your feedback is valuable to us.';
     this.onCompleteCallback = config.onComplete;
 
-    // Build questions overview for the prompt
-    const questionBullets = this.questions.map((q) => {
-      let desc = `[${q.id}] (${q.type}) ${q.text}`;
-      if (q.options) desc += ` Options: ${q.options.join(', ')}`;
-      return desc;
-    });
-    this.promptAddSection('Survey Questions', { bullets: questionBullets, numbered: true });
+    // Validate and default questions (mirrors Python _validate_questions)
+    this.validateQuestions();
 
-    this.promptAddSection('Introduction', {
-      body: `Begin the conversation with: "${this.introMessage}"`,
-    });
+    this.questionMap = new Map(this.questions.map((q) => [q.id, q]));
+
+    this.setupSurveyAgent();
 
     // Register tools after all fields are initialized
     this.defineTools();
+  }
+
+  // ── Question validation (mirrors Python _validate_questions) ──────────
+
+  private validateQuestions(): void {
+    const validTypes = new Set(['rating', 'multiple_choice', 'yes_no', 'open_ended']);
+
+    for (let i = 0; i < this.questions.length; i++) {
+      const q = this.questions[i];
+      if (!q.id) q.id = `question_${i + 1}`;
+      if (!q.text) throw new Error(`Question ${i + 1} is missing the 'text' field`);
+      if (!q.type || !validTypes.has(q.type)) {
+        throw new Error(
+          `Question ${i + 1} has an invalid type. Must be one of: ${Array.from(validTypes).join(', ')}`,
+        );
+      }
+      if (q.required === undefined) q.required = true;
+      if (q.type === 'multiple_choice' && (!q.options || q.options.length === 0)) {
+        throw new Error(`Multiple choice question '${q.id}' must have options`);
+      }
+      if (q.type === 'rating' && q.scale === undefined) q.scale = 5;
+    }
+  }
+
+  // ── Prompt + settings (mirrors Python _setup_survey_agent) ────────────
+
+  private setupSurveyAgent(): void {
+    // Personality
+    this.promptAddSection('Personality', {
+      body: `You are a friendly and professional survey agent representing ${this.brandName}.`,
+    });
+
+    // Goal
+    this.promptAddSection('Goal', {
+      body: `Conduct the '${this.surveyName}' survey by asking questions and collecting responses.`,
+    });
+
+    // Instructions
+    const instructions = [
+      'Guide the user through each survey question in sequence.',
+      'Ask only one question at a time and wait for a response.',
+      'For rating questions, explain the scale (e.g., 1-5, where 5 is best).',
+      'For multiple choice questions, list all the options.',
+      `If a response is invalid, explain and retry up to ${this.maxRetries} times.`,
+      'Be conversational but stay focused on collecting the survey data.',
+      'After all questions are answered, thank the user for their participation.',
+    ];
+    this.promptAddSection('Instructions', { bullets: instructions });
+
+    // Introduction
+    this.promptAddSection('Introduction', {
+      body: `Begin with this introduction: ${this.introduction}`,
+    });
+
+    // Questions subsection
+    const questionsSubsections = this.questions.map((q) => {
+      let description = `ID: ${q.id}\nType: ${q.type}\nRequired: ${q.required}`;
+      if (q.type === 'rating') description += `\nScale: 1-${q.scale}`;
+      if (q.type === 'multiple_choice' && q.options) {
+        description += `\nOptions: ${q.options.join(', ')}`;
+      }
+      return { title: q.text, body: description };
+    });
+    this.promptAddSection('Survey Questions', {
+      body: 'Ask these questions in order:',
+      subsections: questionsSubsections,
+    });
+
+    // Conclusion
+    this.promptAddSection('Conclusion', {
+      body: `End with this conclusion: ${this.conclusion}`,
+    });
+
+    // Post-prompt summary template
+    this.setPostPrompt(`
+        Return a JSON summary of the survey responses:
+        {
+            "survey_name": "SURVEY_NAME",
+            "responses": {
+                "QUESTION_ID_1": "RESPONSE_1",
+                "QUESTION_ID_2": "RESPONSE_2",
+                ...
+            },
+            "completion_status": "complete/incomplete",
+            "timestamp": "CURRENT_TIMESTAMP"
+        }
+        `);
+
+    // Hints: rating numbers, MC options, yes/no, plus the names
+    const typeTerms: string[] = [];
+    for (const q of this.questions) {
+      if (q.type === 'rating') {
+        const scale = q.scale ?? 5;
+        for (let i = 1; i <= scale; i++) typeTerms.push(String(i));
+      } else if (q.type === 'multiple_choice' && q.options) {
+        typeTerms.push(...q.options);
+      } else if (q.type === 'yes_no') {
+        typeTerms.push('yes', 'no');
+      }
+    }
+    this.addHints([this.surveyName, this.brandName, ...typeTerms]);
+
+    // AI behavior parameters (includes non-bargeable static greeting = introduction)
+    this.setParams({
+      wait_for_user: false,
+      end_of_speech_timeout: 1500,
+      ai_volume: 5,
+      static_greeting: this.introduction,
+      static_greeting_no_barge: true,
+    });
+
+    // Global data
+    this.setGlobalData({
+      survey_name: this.surveyName,
+      brand_name: this.brandName,
+      questions: this.questions,
+      max_retries: this.maxRetries,
+    });
+
+    // Native functions
+    this.setNativeFunctions(['check_time']);
   }
 
   // ── Session helpers ───────────────────────────────────────────────────
@@ -148,19 +278,17 @@ export class SurveyAgent extends AgentBase {
 
   private resolveNextQuestion(question: SurveyQuestion, answer: string): string | null {
     if (!question.nextQuestion) {
-      // Default: find next in array order
       const idx = this.questions.findIndex((q) => q.id === question.id);
       if (idx >= 0 && idx < this.questions.length - 1) {
         return this.questions[idx + 1].id;
       }
-      return null; // end of survey
+      return null;
     }
 
     if (typeof question.nextQuestion === 'string') {
       return question.nextQuestion;
     }
 
-    // Conditional branching: try exact match first, then case-insensitive
     const normalizedAnswer = answer.toLowerCase().trim();
     for (const [key, nextId] of Object.entries(question.nextQuestion)) {
       if (key.toLowerCase().trim() === normalizedAnswer) {
@@ -168,7 +296,6 @@ export class SurveyAgent extends AgentBase {
       }
     }
 
-    // If no branch matches, try default key or fall through to next in order
     if ('_default' in question.nextQuestion) {
       return question.nextQuestion['_default'];
     }
@@ -184,7 +311,6 @@ export class SurveyAgent extends AgentBase {
     if (question.points === undefined) return 0;
     if (typeof question.points === 'number') return question.points;
 
-    // Per-answer scoring
     const normalizedAnswer = answer.toLowerCase().trim();
     for (const [key, pts] of Object.entries(question.points)) {
       if (key.toLowerCase().trim() === normalizedAnswer) {
@@ -194,6 +320,11 @@ export class SurveyAgent extends AgentBase {
     return 0;
   }
 
+  /**
+   * Validate an answer against the question's type and constraints.
+   * Mirrors the Python `validate_response` tool body.
+   * @returns error message string if invalid, or `null` if valid.
+   */
   private validateAnswer(question: SurveyQuestion, answer: string): string | null {
     switch (question.type) {
       case 'multiple_choice': {
@@ -201,14 +332,16 @@ export class SurveyAgent extends AgentBase {
         const normalized = answer.toLowerCase().trim();
         const match = question.options.find((o) => o.toLowerCase().trim() === normalized);
         if (!match) {
-          return `Invalid answer. Please choose one of: ${question.options.join(', ')}`;
+          return `Invalid choice. Please select one of: ${question.options.join(', ')}.`;
         }
         return null;
       }
       case 'rating': {
-        const num = parseInt(answer, 10);
-        if (isNaN(num) || num < 1 || num > 10) {
-          return 'Please provide a rating between 1 and 10.';
+        const scale = question.scale ?? 5;
+        const trimmed = answer.trim();
+        const num = parseInt(trimmed, 10);
+        if (!/^-?\d+$/.test(trimmed) || isNaN(num) || num < 1 || num > scale) {
+          return `Invalid rating. Please provide a number between 1 and ${scale}.`;
         }
         return null;
       }
@@ -221,8 +354,13 @@ export class SurveyAgent extends AgentBase {
         }
         return null;
       }
-      case 'open_ended':
-        return null; // Accept anything
+      case 'open_ended': {
+        // Python: required open_ended with empty response is invalid.
+        if (!answer.trim() && question.required !== false) {
+          return 'A response is required for this question.';
+        }
+        return null;
+      }
       default:
         return null;
     }
@@ -239,12 +377,86 @@ export class SurveyAgent extends AgentBase {
 
   // ── Tool registration ─────────────────────────────────────────────────
 
-  /** Register the answer_question, get_current_question, and get_survey_progress SWAIG tools. */
+  /**
+   * Register SWAIG tools:
+   *   - Python-parity tools: `validate_response`, `log_response`
+   *   - TS-specific session tools: `answer_question`, `get_current_question`, `get_survey_progress`
+   */
   protected override defineTools(): void {
-    // Tool: answer_question
+    // Tool: validate_response (Python parity)
+    this.defineTool({
+      name: 'validate_response',
+      description: 'Validate if a response meets the requirements for a specific question',
+      parameters: {
+        type: 'object',
+        properties: {
+          question_id: {
+            type: 'string',
+            description: 'The ID of the question',
+          },
+          response: {
+            type: 'string',
+            description: "The user's response to validate",
+          },
+        },
+        required: ['question_id', 'response'],
+      },
+      handler: (args: Record<string, unknown>) => {
+        const questionId = (args['question_id'] as string) ?? '';
+        const response = (args['response'] as string) ?? '';
+
+        const question = this.questionMap.get(questionId);
+        if (!question) {
+          return new FunctionResult(`Error: Question with ID '${questionId}' not found.`);
+        }
+
+        const error = this.validateAnswer(question, response);
+        if (error) return new FunctionResult(error);
+        return new FunctionResult(`Response to '${questionId}' is valid.`);
+      },
+    });
+
+    // Tool: log_response (Python parity — acknowledge recording)
+    this.defineTool({
+      name: 'log_response',
+      description: 'Log a validated response to a survey question',
+      parameters: {
+        type: 'object',
+        properties: {
+          question_id: {
+            type: 'string',
+            description: 'The ID of the question',
+          },
+          response: {
+            type: 'string',
+            description: "The user's validated response",
+          },
+        },
+        required: ['question_id', 'response'],
+      },
+      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+        const questionId = (args['question_id'] as string) ?? '';
+        const response = (args['response'] as string) ?? '';
+
+        const question = this.questionMap.get(questionId);
+        const questionText = question ? question.text : '';
+
+        // Record on the per-call session for observability.
+        const session = this.getSession(rawData);
+        if (question) {
+          session.responses[questionId] = this.normalizeAnswer(question, response);
+        }
+
+        return new FunctionResult(
+          `Response to '${questionText}' has been recorded.`,
+        );
+      },
+    });
+
+    // Tool: answer_question (TS-specific atomic validate+record+advance)
     this.defineTool({
       name: 'answer_question',
-      description: 'Record the caller\'s answer to the current survey question. Validates the answer based on question type and advances to the next question.',
+      description: "Record the caller's answer to the current survey question. Validates the answer based on question type and advances to the next question.",
       parameters: {
         type: 'object',
         properties: {
@@ -254,7 +466,7 @@ export class SurveyAgent extends AgentBase {
           },
           answer: {
             type: 'string',
-            description: 'The caller\'s answer to the question.',
+            description: "The caller's answer to the question.",
           },
         },
         required: ['question_id', 'answer'],
@@ -278,25 +490,20 @@ export class SurveyAgent extends AgentBase {
           return new FunctionResult('The survey has already been completed.');
         }
 
-        // Validate the answer
         const validationError = this.validateAnswer(question, answer);
         if (validationError) {
           return new FunctionResult(validationError);
         }
 
-        // Normalize and save
         const normalizedAnswer = this.normalizeAnswer(question, answer);
         session.responses[questionId] = normalizedAnswer;
 
-        // Calculate and add points
         const points = this.calculatePoints(question, normalizedAnswer);
         session.score += points;
 
-        // Determine next question
         const nextId = this.resolveNextQuestion(question, normalizedAnswer);
 
         if (!nextId || !this.questionMap.has(nextId)) {
-          // Survey complete
           session.completed = true;
           if (this.onCompleteCallback) {
             try {
@@ -307,11 +514,10 @@ export class SurveyAgent extends AgentBase {
           }
           const answeredCount = Object.keys(session.responses).length;
           return new FunctionResult(
-            `Answer recorded. The survey is now complete! ${answeredCount} questions answered, total score: ${session.score}. ${this.completionMessage}`,
+            `Answer recorded. The survey is now complete! ${answeredCount} questions answered, total score: ${session.score}. ${this.conclusion}`,
           );
         }
 
-        // Advance to next question
         session.currentQuestionId = nextId;
         const nextQ = this.questionMap.get(nextId)!;
         const nextIdx = this.questions.findIndex((q) => q.id === nextId);
@@ -321,7 +527,7 @@ export class SurveyAgent extends AgentBase {
         if (nextQ.type === 'multiple_choice' && nextQ.options) {
           nextInfo += ` (Options: ${nextQ.options.join(', ')})`;
         } else if (nextQ.type === 'rating') {
-          nextInfo += ' (Rating: 1-10)';
+          nextInfo += ` (Rating: 1-${nextQ.scale ?? 5})`;
         } else if (nextQ.type === 'yes_no') {
           nextInfo += ' (Yes/No)';
         }
@@ -354,7 +560,7 @@ export class SurveyAgent extends AgentBase {
         if (question.type === 'multiple_choice' && question.options) {
           info += ` Options: ${question.options.join(', ')}`;
         } else if (question.type === 'rating') {
-          info += ' (Caller should provide a rating from 1 to 10)';
+          info += ` (Caller should provide a rating from 1 to ${question.scale ?? 5})`;
         } else if (question.type === 'yes_no') {
           info += ' (Caller should answer yes or no)';
         }
@@ -385,7 +591,6 @@ export class SurveyAgent extends AgentBase {
           progress += ` Current question: ${session.currentQuestionId}.`;
         }
 
-        // List answered questions
         if (answeredCount > 0) {
           const answered = Object.entries(session.responses)
             .map(([qId, ans]) => `${qId}: ${ans}`)
@@ -396,6 +601,27 @@ export class SurveyAgent extends AgentBase {
         return new FunctionResult(progress);
       },
     });
+  }
+
+  // ── Lifecycle hooks ───────────────────────────────────────────────────
+
+  /**
+   * Process the survey results summary returned at the end of a call.
+   * Logs the structured summary as JSON (mirrors Python `on_summary`).
+   */
+  override onSummary(
+    summary: Record<string, unknown> | null,
+    _rawData: Record<string, unknown>,
+  ): void | Promise<void> {
+    if (summary) {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(`Error processing survey summary: ${String(err)}`);
+      }
+    }
   }
 }
 

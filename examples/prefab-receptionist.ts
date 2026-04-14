@@ -1,8 +1,10 @@
 /**
  * Receptionist Prefab Example
  *
- * Front-desk agent with visitor check-in, department directory,
- * and call transfers by extension.
+ * Front-desk agent that greets callers, collects their name + reason for
+ * calling, and transfers them to the appropriate department by phone
+ * number. Optionally supports visitor check-in.
+ *
  * Run: npx tsx examples/prefab-receptionist.ts
  */
 
@@ -12,12 +14,12 @@ export const agent = new ReceptionistAgent({
   name: 'front-desk',
   companyName: 'Acme Technologies',
   departments: [
-    { name: 'Engineering', extension: '1001', description: 'Software development team' },
-    { name: 'Marketing', extension: '1002', description: 'Marketing and communications' },
-    { name: 'Human Resources', extension: '1003', description: 'HR, hiring, and benefits' },
-    { name: 'Finance', extension: '1004', description: 'Accounting and finance' },
+    { name: 'engineering', description: 'Software development team', number: '+15551001001' },
+    { name: 'marketing', description: 'Marketing and communications', number: '+15551001002' },
+    { name: 'hr', description: 'Hiring and benefits', number: '+15551001003' },
+    { name: 'finance', description: 'Accounting and finance', number: '+15551001004' },
   ],
-  welcomeMessage: 'Welcome to Acme Technologies! I\'m the front desk assistant. How can I help you today?',
+  greeting: 'Welcome to Acme Technologies! How can I help you today?',
   checkInEnabled: true,
   onVisitorCheckIn: (visitor) => {
     console.log('Visitor checked in:', visitor);
@@ -30,7 +32,5 @@ export const agent = new ReceptionistAgent({
     ],
   },
 });
-
-agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 
 agent.run();

@@ -1,8 +1,9 @@
 /**
  * Dynamic InfoGatherer Example
  *
- * Shows how to use InfoGathererAgent with a callback function to dynamically
- * choose questions based on request parameters (query string).
+ * Shows how to use InfoGathererAgent in dynamic mode with a callback
+ * function that chooses the question set based on the request's query
+ * string.
  *
  * Run: npx tsx examples/dynamic-info-gatherer.ts
  * Test:
@@ -11,46 +12,42 @@
  */
 
 import { InfoGathererAgent } from '../src/index.js';
+import type { InfoGathererQuestion } from '../src/index.js';
 
-const questionSets: Record<string, Array<{ name: string; description: string; required?: boolean }>> = {
+const questionSets: Record<string, InfoGathererQuestion[]> = {
   default: [
-    { name: 'name', description: 'Full name', required: true },
-    { name: 'phone', description: 'Phone number', required: true },
-    { name: 'reason', description: 'How can I help you today?' },
+    { key_name: 'name', question_text: 'What is your full name?' },
+    { key_name: 'phone', question_text: 'What is a good callback number?' },
+    { key_name: 'reason', question_text: 'How can I help you today?' },
   ],
   support: [
-    { name: 'customer_name', description: 'Your name', required: true },
-    { name: 'account_number', description: 'Account number', required: true },
-    { name: 'issue', description: 'Describe the issue you are experiencing' },
-    { name: 'priority', description: 'Urgency level: Low, Medium, or High' },
+    { key_name: 'customer_name', question_text: 'What is your name?' },
+    { key_name: 'account_number', question_text: 'What is your account number?', confirm: true },
+    { key_name: 'issue', question_text: 'Describe the issue you are experiencing.' },
+    { key_name: 'priority', question_text: 'Is this low, medium, or high priority?' },
   ],
   medical: [
-    { name: 'patient_name', description: 'Patient full name', required: true },
-    { name: 'symptoms', description: 'Current symptoms', required: true },
-    { name: 'duration', description: 'How long have you had these symptoms?' },
-    { name: 'medications', description: 'Are you taking any medications?' },
+    { key_name: 'patient_name', question_text: 'What is the patient\'s full name?' },
+    { key_name: 'symptoms', question_text: 'What are the current symptoms?' },
+    { key_name: 'duration', question_text: 'How long have these symptoms been present?' },
+    { key_name: 'medications', question_text: 'Is the patient taking any medications?' },
   ],
   onboarding: [
-    { name: 'full_name', description: 'Your full name', required: true },
-    { name: 'email', description: 'Email address', required: true },
-    { name: 'company', description: 'Company name' },
-    { name: 'department', description: 'Department you will be working in' },
-    { name: 'start_date', description: 'Your start date' },
+    { key_name: 'full_name', question_text: 'What is your full name?' },
+    { key_name: 'email', question_text: 'What is your email address?', confirm: true },
+    { key_name: 'company', question_text: 'What company do you work for?' },
+    { key_name: 'department', question_text: 'What department will you be working in?' },
+    { key_name: 'start_date', question_text: 'What is your start date?' },
   ],
 };
 
 export const agent = new InfoGathererAgent({
   name: 'dynamic-intake',
-  fields: [], // dynamic mode: fields resolved per request
-  introMessage: 'Hi! I need to collect some information from you.',
-  confirmationMessage: 'Thank you, I have everything I need!',
+  // No `questions` → dynamic mode. Callback resolves them per request.
   questionCallback: (queryParams) => {
-    const set = queryParams.set ?? 'default';
+    const set = queryParams['set'] ?? 'default';
     console.log(`Dynamic question set: ${set}`);
-    return questionSets[set] ?? questionSets.default;
-  },
-  onComplete: (data) => {
-    console.log('All fields collected:', data);
+    return questionSets[set] ?? questionSets['default'];
   },
   agentOptions: {
     route: '/',
