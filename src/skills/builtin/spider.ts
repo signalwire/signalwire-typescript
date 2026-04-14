@@ -212,8 +212,10 @@ export class SpiderSkill extends SkillBase {
 
     // Content processing
     this.extractType = this.getConfig<string>('extract_type', 'fast_text');
-    // Match Python __init__ fallback (3000) even though schema default is 10000
-    this.maxTextLength = this.getConfig<number>('max_text_length', 3000);
+    // Use schema-authoritative default (10000). Python has an internal
+    // inconsistency (schema: 10000, __init__ fallback: 3000); the schema is
+    // the API contract per the validated findings.
+    this.maxTextLength = this.getConfig<number>('max_text_length', 10000);
     this.cleanText = this.getConfig<boolean>('clean_text', true);
 
     // Features

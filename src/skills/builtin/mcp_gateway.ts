@@ -281,7 +281,8 @@ export class McpGatewaySkill extends SkillBase {
       ];
     }
 
-    // Append hangup hook tool
+    // Append hangup hook tool — isHangupHook causes the platform to auto-fire
+    // this on call hangup (Python: is_hangup_hook=True in define_tool).
     const tools = [...this._discoveredTools];
     tools.push({
       name: '_mcp_gateway_hangup',
@@ -289,6 +290,7 @@ export class McpGatewaySkill extends SkillBase {
       parameters: {},
       handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
         this._hangupHandler(args, rawData),
+      isHangupHook: true,
     });
     return tools;
   }
