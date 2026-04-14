@@ -14,25 +14,69 @@ import type { ValidationResult } from './SchemaUtils.js';
 // Ensure module augmentation from generated file is active
 import './SwmlVerbMethods.generated.js';
 
+/** Options for constructing a SwmlBuilder. */
+export interface SwmlBuilderOptions {
+  /** An initial SWML document to seed the builder with, enabling document injection.
+   *  When provided, the builder uses this document instead of creating an empty one.
+   *  This mirrors the Python SDK's pattern of injecting an SWMLService instance. */
+  initialDocument?: { version?: string; sections?: Record<string, unknown[]> };
+  /** When false, disables verb schema validation.
+   *  Defaults to true unless `SWML_SKIP_SCHEMA_VALIDATION=true` is set in the environment. */
+  enableValidation?: boolean;
+  /** Optional path to a custom SWML schema JSON file. When set, the builder uses
+   *  a per-instance SchemaUtils loaded from this path instead of the bundled schema.
+   *  Mirrors Python's `schema_path` constructor parameter on `SWMLService`/`AgentBase`. */
+  schemaPath?: string;
+}
+
 /** Builds SWML documents composed of verb instructions organized into named sections. */
 export class SwmlBuilder {
-  private document: { version: string; sections: Record<string, unknown[]> };
+  private _document: { version: string; sections: Record<string, unknown[]> };
   private static _schemaUtils: SchemaUtils | null = null;
+  /** Per-instance SchemaUtils used when a custom `schemaPath` was supplied. */
+  private _instanceSchemaUtils: SchemaUtils | null = null;
   private enableValidation: boolean;
 
   /**
-   * Creates a new SwmlBuilder with an empty SWML document.
-   * @param enableValidation - When false, disables verb schema validation.
-   *   Defaults to true unless `SWML_SKIP_SCHEMA_VALIDATION=true` is set in the environment.
+   * Creates a new SwmlBuilder.
+   * @param opts - Optional configuration.
+   *   - `initialDocument`: inject an existing document (mirrors Python SDK's `SWMLService` injection pattern).
+   *   - `enableValidation`: explicit override for verb schema validation (falls back to env var).
+   *   - `schemaPath`: load SWML schema from a custom JSON file instead of the bundled one.
    */
-  constructor(enableValidation?: boolean) {
-    this.document = this.createEmpty();
-    if (enableValidation !== undefined) {
-      this.enableValidation = enableValidation;
+  constructor(opts?: SwmlBuilderOptions) {
+    if (opts?.initialDocument) {
+      this._document = {
+        version: opts.initialDocument.version ?? '1.0.0',
+        sections: opts.initialDocument.sections ?? { main: [] },
+      };
+    } else {
+      this._document = this.createEmpty();
+    }
+    if (opts?.enableValidation !== undefined) {
+      this.enableValidation = opts.enableValidation;
     } else {
       this.enableValidation = process.env['SWML_SKIP_SCHEMA_VALIDATION'] !== 'true';
     }
+    if (opts?.schemaPath) {
+      this._instanceSchemaUtils = new SchemaUtils({ schemaPath: opts.schemaPath });
+    }
     this._installVerbMethods();
+  }
+
+  /** Returns the SchemaUtils for this builder — per-instance if a custom
+   *  `schemaPath` was supplied, otherwise the shared singleton. */
+  private getSchemaUtils(): SchemaUtils {
+    return this._instanceSchemaUtils ?? SwmlBuilder.getSchemaUtils();
+  }
+
+  /**
+   * Public read-only accessor for the underlying SWML document.
+   * Provides direct access to the document, equivalent to the Python SDK's
+   * `service` property on `SWMLBuilder`.
+   */
+  get document(): { version: string; sections: Record<string, unknown[]> } {
+    return this._document;
   }
 
   /**
@@ -65,7 +109,7 @@ export class SwmlBuilder {
    * Mirrors Python SDK's `_create_verb_methods()`.
    */
   private _installVerbMethods(): void {
-    const schemaUtils = SwmlBuilder.getSchemaUtils();
+    const schemaUtils = this.getSchemaUtils();
     const verbNames = schemaUtils.getVerbNames();
 
     for (const verbName of verbNames) {
@@ -99,9 +143,13 @@ export class SwmlBuilder {
     }
   }
 
-  /** Resets the document to an empty SWML structure. */
-  reset(): void {
-    this.document = this.createEmpty();
+  /**
+   * Resets the document to an empty SWML structure.
+   * @returns this for fluent chaining.
+   */
+  reset(): this {
+    this._document = this.createEmpty();
+    return this;
   }
 
   /**
@@ -112,7 +160,7 @@ export class SwmlBuilder {
    */
   addVerb(verbName: string, config: unknown): void {
     if (this.enableValidation) {
-      const schemaUtils = SwmlBuilder.getSchemaUtils();
+      const schemaUtils = this.getSchemaUtils();
       if (schemaUtils.hasVerb(verbName)) {
         const result: ValidationResult = schemaUtils.validateVerb(verbName, config);
         if (!result.valid) {
@@ -120,7 +168,7 @@ export class SwmlBuilder {
         }
       }
     }
-    this.document.sections['main'].push({ [verbName]: config });
+    this._document.sections['main'].push({ [verbName]: config });
   }
 
   /**
@@ -130,10 +178,46 @@ export class SwmlBuilder {
    * @param config - The verb's configuration payload.
    */
   addVerbToSection(sectionName: string, verbName: string, config: unknown): void {
-    if (!this.document.sections[sectionName]) {
-      this.document.sections[sectionName] = [];
+    if (!this._document.sections[sectionName]) {
+      this._document.sections[sectionName] = [];
     }
-    this.document.sections[sectionName].push({ [verbName]: config });
+    this._document.sections[sectionName].push({ [verbName]: config });
+  }
+
+  /**
+   * Add a 'play' verb with say: prefix for text-to-speech.
+   * Convenience wrapper matching Python SDK's `say()` method.
+   *
+   * @param text - Text to speak.
+   * @param opts - Optional TTS parameters (voice, language, gender, volume).
+   * @returns this for fluent chaining.
+   */
+  say(
+    text: string,
+    opts?: { voice?: string; language?: string; gender?: string; volume?: number },
+  ): this {
+    const config: Record<string, unknown> = { url: `say:${text}` };
+    if (opts?.voice !== undefined) config['say_voice'] = opts.voice;
+    if (opts?.language !== undefined) config['say_language'] = opts.language;
+    if (opts?.gender !== undefined) config['say_gender'] = opts.gender;
+    if (opts?.volume !== undefined) config['volume'] = opts.volume;
+    this.addVerb('play', config);
+    return this;
+  }
+
+  /**
+   * Creates a new empty named section in the document.
+   * If the section already exists, this is a no-op.
+   * Matches Python SDK's `add_section(section_name)`.
+   *
+   * @param sectionName - The name of the section to create.
+   * @returns this for fluent chaining.
+   */
+  addSection(sectionName: string): this {
+    if (!this._document.sections[sectionName]) {
+      this._document.sections[sectionName] = [];
+    }
+    return this;
   }
 
   /**
@@ -141,7 +225,17 @@ export class SwmlBuilder {
    * @returns The document with version and sections.
    */
   getDocument(): Record<string, unknown> {
-    return this.document;
+    return this._document;
+  }
+
+  /**
+   * Alias for {@link getDocument}. Matches the Python SDK's `build()` method.
+   * Build and return the SWML document as a dictionary/object.
+   *
+   * @returns The document with version and sections.
+   */
+  build(): Record<string, unknown> {
+    return this.getDocument();
   }
 
   /**
@@ -149,6 +243,16 @@ export class SwmlBuilder {
    * @returns The JSON-encoded SWML document.
    */
   renderDocument(): string {
-    return JSON.stringify(this.document);
+    return JSON.stringify(this._document);
+  }
+
+  /**
+   * Alias for {@link renderDocument}. Matches the Python SDK's `render()` method.
+   * Build and render the SWML document as a JSON string.
+   *
+   * @returns The JSON-encoded SWML document.
+   */
+  render(): string {
+    return this.renderDocument();
   }
 }

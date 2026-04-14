@@ -239,7 +239,7 @@ describe('AgentBase', () => {
       const agent = new AgentBase({ name: 'test', route: '/test' });
       const [user, , source] = agent.getBasicAuthCredentials(true);
       expect(user).toBe('test');
-      expect(source).toBe('generated');
+      expect(source).toBe('auto-generated');
     } finally {
       if (savedUser) process.env['SWML_BASIC_AUTH_USER'] = savedUser;
       if (savedPass) process.env['SWML_BASIC_AUTH_PASSWORD'] = savedPass;

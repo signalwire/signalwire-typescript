@@ -50,7 +50,7 @@ declare module './SwmlBuilder.js' {
     action: unknown }): this;
     /** End the call with an optional reason. */
     hangup(config?: {  /** The reason for hanging up the call. */
-    reason?: 'hangup' | 'busy' | 'decline' }): this;
+    reason?: string }): this;
     /** Join a RELAY room. If the room doesn't exist, it creates a new room. */
     join_room(config: {  /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
     name: string }): this;

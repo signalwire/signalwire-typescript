@@ -11,8 +11,8 @@ export type { RoutingCallback } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)
-export { SWMLService } from './SWMLService.js';
-export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
+export { SWMLService, SecurityConfig, VerbHandlerRegistry } from './SWMLService.js';
+export type { OnRequestCallback, SWMLServiceOptions, SWMLVerbHandler, RoutingCallback } from './SWMLService.js';
 
 // Tool results & functions
 export { FunctionResult } from './FunctionResult.js';
@@ -29,6 +29,7 @@ export type { PomSectionData } from './PomBuilder.js';
 
 // SWML builder
 export { SwmlBuilder } from './SwmlBuilder.js';
+export type { SwmlBuilderOptions } from './SwmlBuilder.js';
 import './SwmlVerbMethods.generated.js';
 
 // Prompt management

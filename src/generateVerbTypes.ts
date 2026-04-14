@@ -37,10 +37,17 @@ interface Schema {
   $defs: Record<string, SchemaProperty>;
 }
 
-/** Map JSON Schema type to TypeScript type string. */
-function mapType(prop: SchemaProperty): string {
+/**
+ * Map JSON Schema type to TypeScript type string.
+ * @param prop - The schema property to map.
+ * @param opts - Optional per-property overrides.
+ */
+function mapType(prop: SchemaProperty, opts?: { widenStringEnum?: boolean }): string {
   // Handle const values
   if (prop.const !== undefined) {
+    // If the caller wants a widened string type, emit 'string' instead of the literal.
+    // Used for fields like hangup.reason where Python accepts any string.
+    if (opts?.widenStringEnum && typeof prop.const === 'string') return 'string';
     return typeof prop.const === 'string' ? `'${prop.const}'` : String(prop.const);
   }
 
@@ -51,8 +58,12 @@ function mapType(prop: SchemaProperty): string {
 
   // Handle anyOf
   if (prop.anyOf) {
+    // If wideningStringEnum, and every branch is a string const, collapse to 'string'
+    if (opts?.widenStringEnum && prop.anyOf.every(p => p.const !== undefined && typeof p.const === 'string')) {
+      return 'string';
+    }
     const types = prop.anyOf
-      .map(p => mapType(p))
+      .map(p => mapType(p, opts))
       .filter((t, i, arr) => arr.indexOf(t) === i); // deduplicate
     // Filter out 'unknown' from SWMLVar refs if there are concrete types
     const concreteTypes = types.filter(t => t !== 'unknown');
@@ -92,6 +103,17 @@ function mapType(prop: SchemaProperty): string {
   }
 }
 
+/**
+ * Properties that should be widened from a string-const enum to `string` in TypeScript.
+ * Python accepts any string for these; the schema's enum values are documentation-only hints.
+ * Keyed by verbName, value is the set of property names to widen.
+ */
+const WIDEN_TO_STRING: Record<string, Set<string>> = {
+  // Python's SWMLService accepts any string for hangup.reason; the three schema values
+  // ('hangup', 'busy', 'decline') are the common platform values, not an exhaustive set.
+  hangup: new Set(['reason']),
+};
+
 /** Generate the interface for a verb's config parameter. */
 function generateVerbConfig(
   verbName: string,
@@ -122,10 +144,11 @@ function generateVerbConfig(
   if (innerSchema.type === 'object' && innerSchema.properties) {
     const props = innerSchema.properties;
     const required = new Set(innerSchema.required ?? []);
+    const widenProps = WIDEN_TO_STRING[verbName] ?? new Set<string>();
     const lines: string[] = [];
 
     for (const [propName, propDef] of Object.entries(props)) {
-      const tsType = mapType(propDef);
+      const tsType = mapType(propDef, { widenStringEnum: widenProps.has(propName) });
       const opt = required.has(propName) ? '' : '?';
       const desc = propDef.description
         ? ` /** ${propDef.description.replace(/\n/g, ' ').replace(/\*\//g, '* /')} */\n    `
