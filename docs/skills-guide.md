@@ -53,7 +53,7 @@ const agent = new AgentBase({ name: 'my-agent' });
 
 // Add skills (async)
 await agent.addSkill(new DateTimeSkill());
-await agent.addSkill(new WebSearchSkill({ max_results: 3 }));
+await agent.addSkill(new WebSearchSkill({ num_results: 3 }));
 ```
 
 When `addSkill()` is called, the agent:
@@ -235,11 +235,11 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
-| `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_CX` | `max_results`, `safe_search` |
+| `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID` | `num_results`, `tool_name`, `no_results_message`, `safe_search`, `delay`, `max_content_length`, `oversample_factor`, `min_quality_score` |
 | `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
 | `google_maps` | `GoogleMapsSkill` | Directions and place search | `get_directions`, `find_place` | `GOOGLE_MAPS_API_KEY` | `default_mode` |
-| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold` |
-| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold`, `document_id` |
+| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
+| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
 | `spider` | `SpiderSkill` | Web page scraping via Spider API | `scrape_url` | `SPIDER_API_KEY` | `max_content_length` |
 | `claude_skills` | `ClaudeSkillsSkill` | Load Claude SKILL.md files as tools | (dynamic) | None | `skills_path`, `include`, `exclude`, `tool_prefix` |
@@ -251,7 +251,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 ```typescript
 import { WebSearchSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WebSearchSkill({
-  max_results: 5,
+  num_results: 5,
   safe_search: 'medium', // 'off' | 'medium' | 'high'
 }));
 ```
@@ -275,8 +275,9 @@ await agent.addSkill(new GoogleMapsSkill({ default_mode: 'walking' }));
 ```typescript
 import { DataSphereSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new DataSphereSkill({
-  max_results: 5,
-  distance_threshold: 0.7, // 0-1, lower is more similar
+  document_id: 'my-doc-id',
+  count: 5,
+  distance: 3.0, // 0-10, lower is more similar
 }));
 ```
 
@@ -285,9 +286,9 @@ await agent.addSkill(new DataSphereSkill({
 ```typescript
 import { DataSphereServerlessSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new DataSphereServerlessSkill({
-  max_results: 5,
-  distance_threshold: 0.7,
-  document_id: 'specific-doc-id', // optional: restrict to one document
+  document_id: 'specific-doc-id',
+  count: 5,
+  distance: 3.0, // 0-10, lower is more similar
 }));
 ```
 
@@ -820,7 +821,7 @@ const missing = skill.validateEnvVars();
 if (missing.length > 0) {
   console.warn(`Missing env vars: ${missing.join(', ')}`);
 }
-// missing might be ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX']
+// missing might be ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID']
 ```
 
 ### Runtime Handling
@@ -848,7 +849,7 @@ This two-layer approach (warn at registration, error at call time) allows agents
 | `WEATHER_API_KEY` | `weather_api` |
 | `API_NINJAS_KEY` | `api_ninjas_trivia` |
 | `GOOGLE_SEARCH_API_KEY` | `web_search` |
-| `GOOGLE_SEARCH_CX` | `web_search` |
+| `GOOGLE_SEARCH_ENGINE_ID` | `web_search` |
 | `GOOGLE_MAPS_API_KEY` | `google_maps` |
 | `SIGNALWIRE_PROJECT_ID` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_TOKEN` | `datasphere`, `datasphere_serverless` |
