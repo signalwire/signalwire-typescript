@@ -222,11 +222,16 @@ export class SessionManager {
 
   /**
    * Retrieve metadata associated with a session.
+   *
+   * Returns an empty object when no metadata has been stored for the session,
+   * matching Python SDK behavior (`get_session_metadata` always returns `{}`).
+   * Callers can safely check truthiness or iterate keys without a null guard.
+   *
    * @param sessionId - The session identifier.
-   * @returns The metadata record, or undefined if no metadata exists.
+   * @returns The metadata record for the session, or `{}` if no metadata exists.
    */
-  getSessionMetadata(sessionId: string): Record<string, unknown> | undefined {
-    return this.sessionMetadata.get(sessionId);
+  getSessionMetadata(sessionId: string): Record<string, unknown> {
+    return this.sessionMetadata.get(sessionId) ?? {};
   }
 
   /**

@@ -159,16 +159,16 @@ describe('SessionManager', () => {
     expect(meta).toEqual({ caller: 'John', topic: 'billing' });
   });
 
-  it('getSessionMetadata returns undefined for unknown session', () => {
+  it('getSessionMetadata returns empty object for unknown session', () => {
     const sm = new SessionManager();
-    expect(sm.getSessionMetadata('nope')).toBeUndefined();
+    expect(sm.getSessionMetadata('nope')).toEqual({});
   });
 
   it('deleteSessionMetadata removes metadata', () => {
     const sm = new SessionManager();
     sm.setSessionMetadata('session-1', { key: 'val' });
     expect(sm.deleteSessionMetadata('session-1')).toBe(true);
-    expect(sm.getSessionMetadata('session-1')).toBeUndefined();
+    expect(sm.getSessionMetadata('session-1')).toEqual({});
   });
 
   // ── Security remediation tests ─────────────────────────────────────
@@ -189,7 +189,7 @@ describe('SessionManager', () => {
     // Artificially age the entry by overwriting its timestamp
     (sm as any).sessionTimestamps.set('old-session', Date.now() - 5000);
     sm.cleanup();
-    expect(sm.getSessionMetadata('old-session')).toBeUndefined();
+    expect(sm.getSessionMetadata('old-session')).toEqual({});
   });
 
   it('cleanup(0) removes all entries', () => {
@@ -197,8 +197,8 @@ describe('SessionManager', () => {
     sm.setSessionMetadata('s1', { a: 1 });
     sm.setSessionMetadata('s2', { b: 2 });
     sm.cleanup(0);
-    expect(sm.getSessionMetadata('s1')).toBeUndefined();
-    expect(sm.getSessionMetadata('s2')).toBeUndefined();
+    expect(sm.getSessionMetadata('s1')).toEqual({});
+    expect(sm.getSessionMetadata('s2')).toEqual({});
   });
 
   it('boundary expiry token is rejected (expiry <= now)', () => {
