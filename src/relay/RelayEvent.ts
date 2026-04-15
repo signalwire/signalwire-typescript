@@ -222,10 +222,10 @@ export class CollectEvent extends RelayEvent {
     params: Record<string, any>,
     callId: string,
     timestamp: number,
-    controlId: string,
-    state: string,
-    result: Record<string, any>,
-    final_: boolean | undefined,
+    controlId: string = '',
+    state: string = '',
+    result: Record<string, any> = {},
+    final_: boolean | undefined = undefined,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
