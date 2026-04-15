@@ -112,6 +112,50 @@ export class AuthHandler {
   }
 
   /**
+   * Verify a Basic Auth username/password pair against the configured credentials.
+   *
+   * Returns false immediately if Basic Auth is not configured.
+   * Uses constant-time comparison to prevent timing attacks.
+   *
+   * @param username - The username to verify.
+   * @param password - The password to verify.
+   * @returns True if the credentials match the configured Basic Auth credentials.
+   */
+  verifyBasicAuth(username: string, password: string): boolean {
+    if (!this.config.basicAuth) return false;
+    const [expectedUser, expectedPass] = this.config.basicAuth;
+    return safeCompare(username, expectedUser) && safeCompare(password, expectedPass);
+  }
+
+  /**
+   * Verify a Bearer token against the configured token.
+   *
+   * Returns false immediately if Bearer token auth is not configured.
+   * Uses constant-time comparison to prevent timing attacks.
+   *
+   * @param token - The Bearer token string to verify (without the "Bearer " prefix).
+   * @returns True if the token matches the configured Bearer token.
+   */
+  verifyBearerToken(token: string): boolean {
+    if (!this.config.bearerToken) return false;
+    return safeCompare(token, this.config.bearerToken);
+  }
+
+  /**
+   * Verify an API key against the configured key.
+   *
+   * Returns false immediately if API key auth is not configured.
+   * Uses constant-time comparison to prevent timing attacks.
+   *
+   * @param key - The API key string to verify.
+   * @returns True if the key matches the configured API key.
+   */
+  verifyApiKey(key: string): boolean {
+    if (!this.config.apiKey) return false;
+    return safeCompare(key, this.config.apiKey);
+  }
+
+  /**
    * Create a Hono-compatible middleware that rejects unauthorized requests with a 401 response.
    * @param optional - When true, unauthenticated requests are allowed through instead of being rejected (default: false).
    * @returns A middleware function suitable for use with Hono's `app.use()`.

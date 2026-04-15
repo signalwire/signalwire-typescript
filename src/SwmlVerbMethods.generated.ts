@@ -8,6 +8,36 @@
 
 /* eslint-disable @typescript-eslint/no-empty-interface */
 
+export interface AiVerbConfig {
+  /** Text prompt for the AI agent (mutually exclusive with prompt when using POM). */
+  prompt?: string | Array<Record<string, unknown>>;
+  /** Optional post-prompt text sent to the LLM after the conversation ends. */
+  post_prompt?: string;
+  /** URL to receive post-prompt status callbacks. */
+  post_prompt_url?: string;
+  /** SignalWire AI Gateway (SWAIG) configuration for custom function/tool definitions. */
+  SWAIG?: Record<string, unknown>;
+  /** Additional AI parameters passed through to the platform. */
+  [key: string]: unknown;
+}
+
+export interface PlayVerbConfig {
+  /** Single URL to play (mutually exclusive with urls). */
+  url?: string;
+  /** Array of URLs to play (mutually exclusive with url). */
+  urls?: string[];
+  /** Volume level for audio playback. Valid range -40 to 40. Default 0. */
+  volume?: number;
+  /** Voice name to use for text-to-speech (e.g. "Polly.Joanna"). */
+  say_voice?: string;
+  /** Language code for text-to-speech (e.g. "en-US"). */
+  say_language?: string;
+  /** Gender for text-to-speech ("male" or "female"). */
+  say_gender?: string;
+  /** If true, auto-answer the call before playing audio. Default true. */
+  auto_answer?: boolean;
+}
+
 declare module './SwmlBuilder.js' {
   interface SwmlBuilder {
     /** Answer incoming call and set an optional maximum duration. */
@@ -17,7 +47,7 @@ declare module './SwmlBuilder.js' {
     username?: string;  /** Password to use for SIP authentication. */
     password?: string }): this;
     /** Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR), large language models (LLMs), and text-to-speech (TTS) synthesis. The agent processes caller speech in real-time, generates contextually appropriate responses, and can execute custom functions to interact with external systems through SignalWire AI Gateway (SWAIG). */
-    ai(config?: unknown): this;
+    ai(config?: AiVerbConfig): this;
     /** Creates a new Bedrock AI Agent */
     amazon_bedrock(config?: unknown): this;
     /** Execute a sequence of instructions depending on the value of a JavaScript condition. */
@@ -57,7 +87,7 @@ declare module './SwmlBuilder.js' {
     /** Join an ad-hoc audio conference started on either the SignalWire or Compatibility API. This method allows you to connect the current call to a named conference where multiple participants can communicate simultaneously. */
     join_conference(config?: unknown): this;
     /** Play file(s), ringtones, speech or silence. */
-    play(config: Record<string, unknown>): this;
+    play(config?: PlayVerbConfig): this;
     /** Play a prompt and wait for input. The input can be received either as digits from the keypad, or from speech, or both depending on what parameters are set. By default, only digit input is enabled. To enable speech input, set at least one speech parameter. To enable both digit and speech input, set at least one parameter for each. */
     prompt(config: {  /** URL or array of URLs to play. Allowed URLs are:     http:// or https:// - audio file to GET     ring:[duration:]<country code> - ring tone to play. For example: ring:us to play single ring or ring:20.0:us to play ring for 20 seconds.     say:<text to speak> - Sentence to say     silence: <duration> - seconds of silence to play */
     play: unknown[];  /** Volume level for the audio file. Default is `0`. Valid range is -40 to 40. */

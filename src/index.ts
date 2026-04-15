@@ -65,13 +65,13 @@ export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './T
 export type { InferredSchema, ParsedParam } from './TypeInference.js';
 
 // Security utilities
-export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH } from './SecurityUtils.js';
+export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl } from './SecurityUtils.js';
 
 // Config
 export { ConfigLoader } from './ConfigLoader.js';
 
 // Logging
-export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode } from './Logger.js';
+export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode, stripControlChars } from './Logger.js';
 
 // Serverless
 export { ServerlessAdapter } from './ServerlessAdapter.js';
@@ -120,3 +120,37 @@ export * from './rest/index.js';
 
 // LiveWire (LiveKit-compatible agents powered by SignalWire)
 export * as livewire from './livewire/index.js';
+
+// CLI helpers — convenience wrappers matching Python's start_agent / run_agent API
+import type { AgentBase as _AgentBase } from './AgentBase.js';
+
+/**
+ * Start an agent's HTTP server.
+ *
+ * Equivalent to Python's `start_agent(agent)`. Delegates to `agent.serve(options)`.
+ *
+ * @param agent   The AgentBase instance to start.
+ * @param options Optional host/port overrides.
+ */
+export async function startAgent(
+  agent: _AgentBase,
+  options?: { port?: number; host?: string },
+): Promise<void> {
+  return agent.serve(options);
+}
+
+/**
+ * Run an agent's HTTP server.
+ *
+ * Alias for {@link startAgent} — equivalent to Python's `run_agent(agent)`.
+ * Delegates to `agent.serve(options)`.
+ *
+ * @param agent   The AgentBase instance to run.
+ * @param options Optional host/port overrides.
+ */
+export async function runAgent(
+  agent: _AgentBase,
+  options?: { port?: number; host?: string },
+): Promise<void> {
+  return agent.serve(options);
+}

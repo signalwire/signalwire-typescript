@@ -22,6 +22,7 @@ import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from '
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
+import { ServerlessAdapter, type ServerlessEvent, type ServerlessResponse } from './ServerlessAdapter.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -395,6 +396,26 @@ export class AgentBase {
   }
 
   /**
+   * Get the raw POM (Prompt Object Model) structure as an array of section data objects,
+   * when the agent is in POM mode and has at least one section.
+   *
+   * Matches Python `get_prompt()` which returns `Union[str, List[Dict]]` — a raw list when
+   * in POM mode (via `pom.to_list()` / `pom.render_dict()`), or a string otherwise.
+   * The TS `getPrompt()` always returns a string (rendered Markdown), so this companion
+   * method exposes the raw POM structure for callers that need it for serialisation or
+   * inspection (e.g. skills that inspect prompt sections).
+   *
+   * @returns An array of POM section data objects, or null if not in POM mode or POM is empty.
+   */
+  getPromptPom(): Record<string, unknown>[] | null {
+    const pom = this._promptManager.getPomBuilder();
+    if (!pom) return null;
+    const sections = pom.toDict();
+    if (!sections.length) return null;
+    return sections as Record<string, unknown>[];
+  }
+
+  /**
    * Get the post-prompt text, if one has been set.
    * @returns The post-prompt string, or null if not configured.
    */
@@ -584,12 +605,20 @@ export class AgentBase {
   }
 
   /**
-   * Replace the entire global_data object passed into the AI configuration.
-   * @param data - New global data object.
+   * Merge data into the global_data object passed into the AI configuration.
+   *
+   * Matches Python `set_global_data` which calls `.update()` on the internal dict —
+   * existing keys are preserved; incoming keys overwrite on collision. Skills and
+   * other callers can each contribute keys without clobbering one another.
+   *
+   * If you need to replace the entire object, assign a new agent instance or use
+   * `Object.assign(agent.globalData, {})` to clear first.
+   *
+   * @param data - Key-value pairs to merge into global data.
    * @returns This agent instance for chaining.
    */
   setGlobalData(data: Record<string, unknown>): this {
-    this.globalData = data;
+    safeAssign(this.globalData, data);
     return this;
   }
 
@@ -1596,13 +1625,20 @@ export class AgentBase {
    * May optionally return a modification dict that will be merged into the
    * rendered SWML document (matching Python's `Optional[dict]` return type).
    *
+   * Matches Python `on_swml_request(request_data, callback_path, request)` — the third
+   * parameter is the FastAPI `Request` in Python; here it is the raw Hono context object
+   * so that subclasses can access query parameters (`context.req.query()`), raw request
+   * headers (`context.req.raw.headers`), etc.
+   *
    * @param _rawData - The parsed request body.
    * @param _callbackPath - Optional callback path from the request.
+   * @param _context - The raw Hono context object (c), providing access to headers and query params.
    * @returns Optionally a dict of SWML modifications, or void.
    */
   onSwmlRequest(
     _rawData: Record<string, unknown>,
     _callbackPath?: string,
+    _context?: any,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }
@@ -2001,7 +2037,7 @@ export class AgentBase {
       const callbackPath = (body['callback_path'] as string) ?? undefined;
       let swmlMods: Record<string, unknown> | void = undefined;
       try {
-        swmlMods = await this.onSwmlRequest(body, callbackPath);
+        swmlMods = await this.onSwmlRequest(body, callbackPath, c);
         if (swmlMods) reqLog.debug('on_swml_request_modifications_applied');
       } catch (err) {
         reqLog.error('error_in_on_swml_request', { error: err instanceof Error ? err.message : String(err) });
@@ -2274,6 +2310,42 @@ export class AgentBase {
    */
   async run(opts?: { host?: string; port?: number }): Promise<void> {
     return this.serve(opts);
+  }
+
+  /**
+   * Handle a single serverless invocation (AWS Lambda, Google Cloud Functions, Azure Functions, or CGI).
+   *
+   * Matches Python `run(event, context)` when executed in a serverless environment. Python's
+   * `run()` auto-detects the platform via `get_execution_mode()` and dispatches accordingly;
+   * in TypeScript the serverless path is an **explicit** method so that `run()` keeps its
+   * HTTP-server semantics and callers opt in to serverless dispatch deliberately.
+   *
+   * Platform detection follows the same environment-variable heuristics as Python's
+   * `ServerlessMixin`: `AWS_LAMBDA_FUNCTION_NAME` → Lambda, `K_SERVICE` → GCF,
+   * `FUNCTIONS_WORKER_RUNTIME` → Azure, `GATEWAY_INTERFACE` → CGI.
+   *
+   * Usage in a Lambda handler file:
+   * ```ts
+   * export const handler = (event: any, context: any) => agent.runServerless(event, context);
+   * ```
+   *
+   * @param event - The serverless event payload (Lambda event, GCF request body, etc.).
+   * @param context - The serverless context object (Lambda context, Azure context, etc.).
+   * @param platform - Optional platform override; defaults to 'auto' (environment detection).
+   * @returns The normalized serverless response object.
+   */
+  async runServerless(
+    event: ServerlessEvent,
+    context?: unknown,
+    platform?: 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto',
+  ): Promise<ServerlessResponse> {
+    void context; // context is available for subclasses; not used in base routing
+    const adapter = new ServerlessAdapter(platform ?? 'auto');
+    const app = this.getApp();
+    // Wrap Hono's fetch (which returns `Response | Promise<Response>`) into a plain
+    // `Promise<Response>` so it satisfies ServerlessAdapter.handleRequest's type constraint.
+    const fetchFn = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
+    return adapter.handleRequest({ fetch: fetchFn }, event);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────

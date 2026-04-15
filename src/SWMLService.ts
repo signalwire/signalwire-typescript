@@ -311,23 +311,30 @@ export class SWMLService {
     const handler = async (c: any) => {
       let doc: Record<string, unknown>;
 
-      if (this.onRequestCallback) {
-        const url = new URL(c.req.url);
-        const queryParams: Record<string, string> = {};
-        url.searchParams.forEach((v, k) => { queryParams[k] = v; });
+      // Always parse request params so onRequest() hook and onRequestCallback
+      // can both receive them (mirrors Python's _handle_request param extraction).
+      const url = new URL(c.req.url);
+      const queryParams: Record<string, string> = {};
+      url.searchParams.forEach((v, k) => { queryParams[k] = v; });
 
-        let bodyParams: Record<string, unknown> = {};
-        if (c.req.method === 'POST') {
-          try {
-            bodyParams = await c.req.json();
-          } catch {
-            // empty body is fine
-          }
+      let bodyParams: Record<string, unknown> = {};
+      if (c.req.method === 'POST') {
+        try {
+          bodyParams = await c.req.json();
+        } catch {
+          // empty body is fine
         }
+      }
 
-        const headers: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
+      const headers: Record<string, string> = {};
+      c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
 
+      // Protected override hook (mirrors Python's on_request subclass pattern).
+      // Try onRequest() first; if it returns a SwmlBuilder use that document.
+      const hookResult = this.onRequest(queryParams, bodyParams, headers);
+      if (hookResult !== null) {
+        doc = hookResult.getDocument();
+      } else if (this.onRequestCallback) {
         const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
         doc = builder.getDocument();
       } else {
@@ -541,6 +548,32 @@ export class SWMLService {
   // ── Dynamic request callback ──────────────────────────────────────
 
   /**
+   * Protected override hook called on every inbound SWML request.
+   * Mirrors Python SDK's `on_request(request_data, callback_path)` subclass
+   * override pattern. Subclasses return a `SwmlBuilder` to use for this
+   * request, or `null` to fall through to `setOnRequestCallback` or the
+   * static builder.
+   *
+   * Default implementation returns `null` (no-op), preserving existing
+   * behaviour for classes that do not override.
+   *
+   * @param queryParams - URL query parameters from the request.
+   * @param bodyParams  - Parsed POST body (empty object for GET requests).
+   * @param headers     - HTTP request headers.
+   * @param callbackPath - The callback sub-path being handled, if any.
+   * @returns A `SwmlBuilder` whose document is sent as the response, or
+   *          `null` to delegate to the next handler in the chain.
+   */
+  protected onRequest(
+    _queryParams: Record<string, string>,
+    _bodyParams: Record<string, unknown>,
+    _headers: Record<string, string>,
+    _callbackPath?: string,
+  ): SwmlBuilder | null {
+    return null;
+  }
+
+  /**
    * Set a callback invoked per-request to dynamically build SWML.
    * When set, the static SwmlBuilder is ignored and the callback's
    * returned SwmlBuilder is used instead.
@@ -589,10 +622,24 @@ export class SWMLService {
 
   /**
    * Get the Hono application for mounting or testing.
+   * This is the TypeScript equivalent of Python's `as_router()`, which returns
+   * a FastAPI `APIRouter`. Both expose the underlying app/router so callers can
+   * mount it into a larger framework. Use `asRouter()` when porting Python code
+   * that calls `as_router()` directly.
    * @returns The configured Hono app.
    */
   getApp(): Hono {
     return this._app;
+  }
+
+  /**
+   * Alias for `getApp()`. Provided for cross-SDK consistency with Python's
+   * `as_router()` method — allows Python callers porting to TypeScript to use
+   * the familiar name without changes.
+   * @returns The configured Hono app.
+   */
+  asRouter(): Hono {
+    return this.getApp();
   }
 
   /**
@@ -644,6 +691,17 @@ export class SWMLService {
       this.log.info(`${this.name} starting on http://${h}:${p}${this.route}`);
       this._server = serve({ fetch: this._app.fetch, port: p, hostname: h }) as unknown as Server;
     }
+  }
+
+  /**
+   * Start the HTTP server. Alias for `run()` provided for cross-SDK
+   * consistency with Python's `serve()` method — callers porting from
+   * Python can use this name without changes.
+   *
+   * All parameters are forwarded unchanged to `run()`.
+   */
+  async serve(...args: Parameters<SWMLService['run']>): Promise<void> {
+    return this.run(...args);
   }
 
   /**

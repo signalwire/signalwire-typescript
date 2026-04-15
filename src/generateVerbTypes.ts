@@ -114,6 +114,56 @@ const WIDEN_TO_STRING: Record<string, Set<string>> = {
   hangup: new Set(['reason']),
 };
 
+/**
+ * Custom typed interface definitions for verbs whose schema shape (e.g., $ref or oneOf)
+ * cannot be fully expressed by the generic generateVerbConfig() logic.
+ *
+ * These interfaces match the Python SDK's named parameters for each verb:
+ *   - AiVerbConfig mirrors: prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs
+ *   - PlayVerbConfig mirrors: url, urls, volume, say_voice, say_language, say_gender, auto_answer
+ *
+ * Keyed by verbName. interfaceName is emitted as a top-level export in the generated file;
+ * configType references that name; isOptional=true because all Python params are optional.
+ */
+const CUSTOM_VERB_TYPES: Record<string, { interfaceName: string; interfaceBody: string; isOptional: boolean }> = {
+  ai: {
+    interfaceName: 'AiVerbConfig',
+    interfaceBody: [
+      '  /** Text prompt for the AI agent (mutually exclusive with prompt when using POM). */',
+      '  prompt?: string | Array<Record<string, unknown>>;',
+      '  /** Optional post-prompt text sent to the LLM after the conversation ends. */',
+      '  post_prompt?: string;',
+      '  /** URL to receive post-prompt status callbacks. */',
+      '  post_prompt_url?: string;',
+      '  /** SignalWire AI Gateway (SWAIG) configuration for custom function/tool definitions. */',
+      '  SWAIG?: Record<string, unknown>;',
+      '  /** Additional AI parameters passed through to the platform. */',
+      '  [key: string]: unknown;',
+    ].join('\n'),
+    isOptional: true,
+  },
+  play: {
+    interfaceName: 'PlayVerbConfig',
+    interfaceBody: [
+      '  /** Single URL to play (mutually exclusive with urls). */',
+      '  url?: string;',
+      '  /** Array of URLs to play (mutually exclusive with url). */',
+      '  urls?: string[];',
+      '  /** Volume level for audio playback. Valid range -40 to 40. Default 0. */',
+      '  volume?: number;',
+      '  /** Voice name to use for text-to-speech (e.g. "Polly.Joanna"). */',
+      '  say_voice?: string;',
+      '  /** Language code for text-to-speech (e.g. "en-US"). */',
+      '  say_language?: string;',
+      '  /** Gender for text-to-speech ("male" or "female"). */',
+      '  say_gender?: string;',
+      '  /** If true, auto-answer the call before playing audio. Default true. */',
+      '  auto_answer?: boolean;',
+    ].join('\n'),
+    isOptional: true,
+  },
+};
+
 /** Generate the interface for a verb's config parameter. */
 function generateVerbConfig(
   verbName: string,
@@ -221,12 +271,27 @@ function generate(): void {
       continue;
     }
 
+    // Use custom typed interface if defined for this verb (e.g. ai, play)
+    if (CUSTOM_VERB_TYPES[verbName]) {
+      const { interfaceName, isOptional } = CUSTOM_VERB_TYPES[verbName];
+      const paramSig = isOptional ? `config?: ${interfaceName}` : `config: ${interfaceName}`;
+      methods.push(`    /** ${cleanDesc} */`);
+      methods.push(`    ${verbName}(${paramSig}): this;`);
+      continue;
+    }
+
     const { configType, isOptional } = generateVerbConfig(verbName, innerSchema);
     const paramSig = isOptional ? `config?: ${configType}` : `config: ${configType}`;
 
     methods.push(`    /** ${cleanDesc} */`);
     methods.push(`    ${verbName}(${paramSig}): this;`);
   }
+
+  // Collect custom interface definitions to emit before the module augmentation
+  const customInterfaces = Object.values(CUSTOM_VERB_TYPES)
+    .map(({ interfaceName, interfaceBody }) =>
+      `export interface ${interfaceName} {\n${interfaceBody}\n}`)
+    .join('\n\n');
 
   const output = `/**
  * AUTO-GENERATED FILE — do not edit manually.
@@ -237,6 +302,8 @@ function generate(): void {
  */
 
 /* eslint-disable @typescript-eslint/no-empty-interface */
+
+${customInterfaces}
 
 declare module './SwmlBuilder.js' {
   interface SwmlBuilder {

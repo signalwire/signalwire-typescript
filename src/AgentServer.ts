@@ -277,6 +277,34 @@ export class AgentServer {
   }
 
   /**
+   * Register a mapping from a SIP username to an agent route at the server level.
+   *
+   * Allows callers to manually route an arbitrary SIP username to any already-registered
+   * agent route, independent of the automatic mapping performed by `setupSipRouting`.
+   *
+   * @param username - The SIP username to map (stored lowercase).
+   * @param route - The agent route to map the username to (leading `/` added if missing; trailing slashes stripped).
+   */
+  registerSipUsername(username: string, route: string): void {
+    if (!this._sipRoutingEnabled) {
+      this.log.warn('SIP routing is not enabled. Call setupSipRouting() first.');
+      return;
+    }
+
+    // Normalize route: ensure leading slash, strip trailing slashes
+    let r = route.startsWith('/') ? route : `/${route}`;
+    r = r.replace(/\/+$/, '');
+
+    // Warn if the target route has no registered agent
+    if (!this.agents.has(r)) {
+      this.log.warn(`Route '${r}' not found. SIP username will be registered but may not work.`);
+    }
+
+    this._sipUsernameMapping.set(username.toLowerCase(), r);
+    this.log.info(`Registered SIP username '${username}' to route '${r}'`);
+  }
+
+  /**
    * Register a routing callback across all agents at the given path.
    *
    * This allows unified routing logic to be applied to all agents from
