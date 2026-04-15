@@ -689,13 +689,15 @@ describe('GoogleMapsSkill', () => {
     expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
   });
 
-  it('should return compute_route and lookup_address tools by default', () => {
+  it('should return compute_route, lookup_address, geocode_address, and compute_route_by_coords tools by default', () => {
     const skill = createGoogleMapsSkill();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(2);
+    expect(tools).toHaveLength(4);
     const names = tools.map((t) => t.name);
     expect(names).toContain('compute_route');
     expect(names).toContain('lookup_address');
+    expect(names).toContain('geocode_address');
+    expect(names).toContain('compute_route_by_coords');
   });
 
   it('should honor configurable route_tool_name / lookup_tool_name', () => {

@@ -68,6 +68,32 @@ interface PlacesResponse {
   error_message?: string;
 }
 
+/** A single geocoding result from the Google Geocoding API. */
+interface GeocodingResult {
+  formatted_address: string;
+  geometry: { location: { lat: number; lng: number } };
+  types?: string[];
+}
+
+/** Response shape from the Google Geocoding API. */
+interface GeocodingResponse {
+  results: GeocodingResult[];
+  status: string;
+  error_message?: string;
+}
+
+/** Response shape from the Google Routes API v2. */
+interface RoutesV2Route {
+  distanceMeters?: number;
+  duration?: string;
+}
+
+/** Response shape from the Google Routes API v2 computeRoutes endpoint. */
+interface RoutesV2Response {
+  routes?: RoutesV2Route[];
+  error?: { message: string };
+}
+
 /**
  * Provides driving/walking/transit directions and place search via Google Maps APIs.
  *
@@ -101,6 +127,16 @@ export class GoogleMapsSkill extends SkillBase {
         type: 'string',
         description: 'Name for the route computation tool',
         default: 'compute_route',
+      },
+      geocode_tool_name: {
+        type: 'string',
+        description: 'Name for the geocode-address-to-coordinates tool',
+        default: 'geocode_address',
+      },
+      route_by_coords_tool_name: {
+        type: 'string',
+        description: 'Name for the coordinate-based route computation tool',
+        default: 'compute_route_by_coords',
       },
       default_mode: {
         type: 'string',
@@ -160,6 +196,14 @@ export class GoogleMapsSkill extends SkillBase {
     const lookupToolName = this.getConfig<string>(
       'lookup_tool_name',
       'lookup_address',
+    );
+    const geocodeToolName = this.getConfig<string>(
+      'geocode_tool_name',
+      'geocode_address',
+    );
+    const routeByCoordsToolName = this.getConfig<string>(
+      'route_by_coords_tool_name',
+      'compute_route_by_coords',
     );
 
     return [
@@ -395,6 +439,198 @@ export class GoogleMapsSkill extends SkillBase {
           }
         },
       },
+      {
+        name: geocodeToolName,
+        description:
+          'Geocode an address or business name to geographic coordinates (latitude and longitude). ' +
+          'Optionally bias results toward a known location to find the nearest matching place. ' +
+          'Returns the formatted address, latitude, and longitude.',
+        parameters: {
+          address: {
+            type: 'string',
+            description: 'The address or business name to geocode.',
+          },
+          bias_lat: {
+            type: 'number',
+            description: 'Latitude to bias results toward (optional).',
+          },
+          bias_lng: {
+            type: 'number',
+            description: 'Longitude to bias results toward (optional).',
+          },
+        },
+        required: ['address'],
+        handler: async (args: Record<string, unknown>) => {
+          const address = args.address as string | undefined;
+
+          if (!address || typeof address !== 'string' || address.trim().length === 0) {
+            return new FunctionResult('Please provide an address or business name to look up.');
+          }
+
+          if (address.length > MAX_SKILL_INPUT_LENGTH) {
+            return new FunctionResult('Input is too long.');
+          }
+
+          const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+          if (!apiKey) {
+            return new FunctionResult(
+              'Service is not configured. Please contact your administrator.',
+            );
+          }
+
+          const biasLat = typeof args.bias_lat === 'number' ? args.bias_lat : undefined;
+          const biasLng = typeof args.bias_lng === 'number' ? args.bias_lng : undefined;
+
+          try {
+            let urlStr =
+              `https://maps.googleapis.com/maps/api/geocode/json` +
+              `?address=${encodeURIComponent(address.trim())}` +
+              `&key=${apiKey}`;
+
+            if (biasLat !== undefined && biasLng !== undefined) {
+              // Bias toward a 50 km radius around the given coordinates
+              const delta = 0.45; // ~50 km in degrees
+              urlStr +=
+                `&bounds=${biasLat - delta},${biasLng - delta}|${biasLat + delta},${biasLng + delta}`;
+            }
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(urlStr, { signal: controller.signal });
+            } finally {
+              clearTimeout(timeout);
+            }
+            const data = (await response.json()) as GeocodingResponse;
+
+            if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+              log.error('geocoding_api_error', { status: data.status });
+              return new FunctionResult(
+                `I couldn't find that address. Could you provide a more specific address?`,
+              );
+            }
+
+            const result = data.results[0];
+            const { lat, lng } = result.geometry.location;
+            const parts: string[] = [
+              `Address: ${result.formatted_address}`,
+              `Coordinates: ${lat}, ${lng}`,
+            ];
+
+            return new FunctionResult(parts.join('\n'));
+          } catch (err) {
+            log.error('geocode_address_failed', { error: err instanceof Error ? err.message : String(err) });
+            return new FunctionResult(
+              'The request could not be completed. Please try again.',
+            );
+          }
+        },
+      },
+      {
+        name: routeByCoordsToolName,
+        description:
+          'Compute a driving route between two geographic coordinates using the Google Routes API. ' +
+          'Returns distance in meters and estimated travel time in seconds.',
+        parameters: {
+          origin_latitude: {
+            type: 'number',
+            description: 'Origin latitude.',
+          },
+          origin_longitude: {
+            type: 'number',
+            description: 'Origin longitude.',
+          },
+          destination_latitude: {
+            type: 'number',
+            description: 'Destination latitude.',
+          },
+          destination_longitude: {
+            type: 'number',
+            description: 'Destination longitude.',
+          },
+        },
+        required: ['origin_latitude', 'origin_longitude', 'destination_latitude', 'destination_longitude'],
+        handler: async (args: Record<string, unknown>) => {
+          const originLat = typeof args.origin_latitude === 'number' ? args.origin_latitude : undefined;
+          const originLng = typeof args.origin_longitude === 'number' ? args.origin_longitude : undefined;
+          const destLat = typeof args.destination_latitude === 'number' ? args.destination_latitude : undefined;
+          const destLng = typeof args.destination_longitude === 'number' ? args.destination_longitude : undefined;
+
+          if (originLat === undefined || originLng === undefined || destLat === undefined || destLng === undefined) {
+            return new FunctionResult(
+              'All four coordinates are required: origin_latitude, origin_longitude, destination_latitude, destination_longitude.',
+            );
+          }
+
+          const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+          if (!apiKey) {
+            return new FunctionResult(
+              'Service is not configured. Please contact your administrator.',
+            );
+          }
+
+          try {
+            const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+            const body = {
+              origin: {
+                location: {
+                  latLng: { latitude: originLat, longitude: originLng },
+                },
+              },
+              destination: {
+                location: {
+                  latLng: { latitude: destLat, longitude: destLng },
+                },
+              },
+              travelMode: 'DRIVE',
+              routingPreference: 'TRAFFIC_AWARE',
+            };
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30_000);
+            let response: Response;
+            try {
+              response = await fetch(url, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Goog-Api-Key': apiKey,
+                  'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration',
+                },
+                body: JSON.stringify(body),
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
+            const data = (await response.json()) as RoutesV2Response;
+
+            if (!data.routes || data.routes.length === 0) {
+              log.error('routes_api_error', { error: data.error?.message });
+              return new FunctionResult(
+                "I couldn't compute a route between those locations. Please verify the coordinates.",
+              );
+            }
+
+            const route = data.routes[0];
+            const distanceMeters = route.distanceMeters ?? 0;
+            const durationSeconds = route.duration ? parseInt(route.duration.replace(/s$/, ''), 10) : 0;
+            const distanceMiles = distanceMeters / 1609.344;
+            const durationMin = durationSeconds / 60.0;
+
+            return new FunctionResult(
+              `Distance: ${distanceMiles.toFixed(1)} miles\n` +
+              `Estimated travel time: ${Math.floor(durationMin)} minutes`,
+            );
+          } catch (err) {
+            log.error('compute_route_by_coords_failed', { error: err instanceof Error ? err.message : String(err) });
+            return new FunctionResult(
+              'The request could not be completed. Please try again.',
+            );
+          }
+        },
+      },
     ];
   }
 
@@ -412,6 +648,8 @@ export class GoogleMapsSkill extends SkillBase {
           'Directions include total distance, estimated duration, and step-by-step navigation.',
           'Use the find_place tool to search for businesses, landmarks, or any point of interest.',
           'Place results include address, rating, and whether the place is currently open.',
+          'Use the geocode_address tool to convert an address or business name into latitude and longitude coordinates.',
+          'Use the compute_route_by_coords tool to get driving distance and travel time between two sets of coordinates.',
           'Summarize directions naturally rather than reading each step verbatim unless the user asks for details.',
         ],
       },
