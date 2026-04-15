@@ -43,7 +43,24 @@ export interface SwaigFunctionOptions {
   webhookUrl?: string;
   /** List of required parameter names. */
   required?: string[];
-  /** Additional fields to include in the SWAIG definition output. */
+  /**
+   * Additional fields to merge directly into the SWAIG function definition.
+   *
+   * **Python equivalent:** `**extra_swaig_fields` kwargs on the constructor.
+   * In Python these are passed as bare keyword arguments and merged directly
+   * into the output dict via `function_def.update(self.extra_swaig_fields)`.
+   * In TypeScript the same fields are collected under this single options key
+   * and merged identically in `toSwaig()` — the wire format is identical.
+   *
+   * @example
+   * ```typescript
+   * // Python: SWAIGFunction(..., meta_data_token="abc", web_hook_auth_user="u")
+   * new SwaigFunction({
+   *   ...,
+   *   extraFields: { meta_data_token: 'abc', web_hook_auth_user: 'u' },
+   * });
+   * ```
+   */
   extraFields?: Record<string, unknown>;
   /** Whether this tool uses a typed handler with named parameters. */
   isTypedHandler?: boolean;
@@ -109,7 +126,14 @@ export class SwaigFunction {
   isExternal: boolean;
 
   /**
+   * Create a new SwaigFunction.
+   *
    * @param opts - Configuration options for the SWAIG function.
+   *   Use `opts.extraFields` to pass any additional SWAIG-only fields
+   *   (e.g. `meta_data_token`, `web_hook_auth_user`, `web_hook_auth_password`).
+   *   This mirrors the Python constructor's `**extra_swaig_fields` kwargs:
+   *   both are merged directly into the serialized SWAIG definition, so the
+   *   wire format is identical — only the call-site syntax differs.
    */
   constructor(opts: SwaigFunctionOptions) {
     this.name = opts.name;
@@ -194,6 +218,12 @@ export class SwaigFunction {
       const result = await this.handler(args, rawData ?? {});
       if (result instanceof FunctionResult) {
         return result.toDict();
+      }
+      if (typeof result === 'object' && result !== null && !('response' in result)) {
+        // Plain object without a "response" key — matches Python's behavior:
+        // `elif isinstance(result, dict): return FunctionResult("Function completed successfully").to_dict()`
+        // Python replaces such dicts entirely; do the same here.
+        return new FunctionResult('Function completed successfully').toDict();
       }
       if (typeof result === 'object' && result !== null) {
         return result as Record<string, unknown>;
