@@ -45,7 +45,7 @@ describe('Agent', () => {
     });
     const agent = new Agent({
       instructions: 'Weather bot',
-      tools: { get_weather: { ...myTool, name: 'get_weather' } },
+      tools: [{ ...myTool, name: 'get_weather' }],
     });
     expect(agent.instructions).toBe('Weather bot');
     expect(agent.tools['get_weather']).toBeDefined();
@@ -106,7 +106,7 @@ describe('AgentSession', () => {
     });
     const agent = new Agent({
       instructions: 'Weather assistant',
-      tools: { get_weather: { ...weatherTool, name: 'get_weather' } },
+      tools: [{ ...weatherTool, name: 'get_weather' }],
     });
     await session.start({ agent });
     const sw = session.getSwAgent();
@@ -773,8 +773,8 @@ describe('Plugin alignment gaps', () => {
     expect(llmPlugin.model).toBe('gpt-4');
   });
 
-  it('OpenAILLM model is undefined when not provided', () => {
+  it('OpenAILLM model defaults to empty string when not provided', () => {
     const llmPlugin = new plugins.OpenAILLM();
-    expect(llmPlugin.model).toBeUndefined();
+    expect(llmPlugin.model).toBe('');
   });
 });

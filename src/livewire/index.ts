@@ -136,7 +136,7 @@ export class Agent<UserData = any> {
 
   constructor(options?: {
     instructions?: string;
-    tools?: Record<string, FunctionTool>;
+    tools?: FunctionTool[];
     userData?: UserData;
     chatCtx?: unknown;
     stt?: unknown;
@@ -150,7 +150,17 @@ export class Agent<UserData = any> {
     maxEndpointingDelay?: number;
   }) {
     this.instructions = options?.instructions ?? '';
-    this.tools = options?.tools ?? {};
+    // Mirror Python: tools is Optional[List[Any]], stored internally as a name-keyed map.
+    // Build the record from the array using the same pattern as updateTools().
+    if (options?.tools) {
+      const record: Record<string, FunctionTool> = {};
+      for (const t of options.tools) {
+        record[t.name] = t;
+      }
+      this.tools = record;
+    } else {
+      this.tools = {};
+    }
     this.userData = options?.userData;
 
     // Pipeline noop advisories (matching Python behavior)
@@ -270,12 +280,12 @@ export class Agent<UserData = any> {
 
 /** Mirrors a LiveKit RunContext -- available inside tool handlers. */
 export class RunContext<UserData = any> {
-  readonly session: AgentSession<UserData>;
+  session?: AgentSession<UserData>;
   speechHandle?: unknown;
   functionCall?: unknown;
 
   constructor(
-    session: AgentSession<UserData>,
+    session?: AgentSession<UserData>,
     options?: { speechHandle?: unknown; functionCall?: unknown },
   ) {
     this.session = session;
@@ -284,7 +294,7 @@ export class RunContext<UserData = any> {
   }
 
   get userData(): UserData {
-    return this.session.userData;
+    return (this.session?.userData ?? {}) as UserData;
   }
 }
 
@@ -664,7 +674,10 @@ export function defineAgent(agent: {
 export function runApp(options: any): void {
   printBanner();
 
-  const agentDef = options?.agent ?? options;
+  // If passed an AgentServer instance, convert it to an agentDef-compatible object
+  const agentDef = options instanceof AgentServer
+    ? options._toAgentDef()
+    : (options?.agent ?? options);
 
   // Run prewarm if registered
   if (agentDef?.prewarm) {
@@ -711,6 +724,107 @@ export class WorkerOptions {
 /** Stub for LiveKit ServerOptions. */
 export class ServerOptions {
   constructor(_opts?: any) {}
+}
+
+// ---------------------------------------------------------------------------
+// AgentServer
+// ---------------------------------------------------------------------------
+
+/**
+ * Mirrors a LiveKit AgentServer -- registers entrypoints and starts.
+ *
+ * Usage:
+ *   const server = new AgentServer();
+ *   server.setupFnc = async (proc) => { ... };
+ *
+ *   // Bare decorator usage:
+ *   server.rtcSession(myEntryFn);
+ *
+ *   // Parameterized decorator usage:
+ *   server.rtcSession({ agentName: 'myAgent' })(myEntryFn);
+ *
+ *   cli.runApp(server);
+ */
+export class AgentServer {
+  /** Optional prewarm hook called before the entrypoint. Mirrors Python's setup_fnc. */
+  setupFnc?: (proc: JobProcess) => void;
+
+  /** @internal Registered entrypoint function. */
+  private _entryFn?: (ctx: JobContext) => Promise<void>;
+
+  /** @internal Agent name hint registered via rtcSession(). */
+  private _agentName: string = '';
+
+  constructor(_opts?: any) {}
+
+  /**
+   * Decorator that registers the session entrypoint.
+   *
+   * Supports both bare and parameterized usage:
+   *   server.rtcSession(fn)                       // bare
+   *   server.rtcSession(fn, { agentName: 'x' })   // with opts, explicit fn
+   *   server.rtcSession({ agentName: 'x' })(fn)   // parameterized decorator
+   *   @server.rtcSession                           // decorator (bare)
+   *   @server.rtcSession({ agentName: 'x' })       // decorator (parameterized)
+   */
+  rtcSession(
+    fnOrOpts?:
+      | ((ctx: JobContext) => Promise<void>)
+      | {
+          agentName?: string;
+          type?: string;
+          onRequest?: ((...args: any[]) => any) | null;
+          onSessionEnd?: ((...args: any[]) => any) | null;
+        },
+    opts?: {
+      agentName?: string;
+      type?: string;
+      onRequest?: ((...args: any[]) => any) | null;
+      onSessionEnd?: ((...args: any[]) => any) | null;
+    },
+  ): ((fn: (ctx: JobContext) => Promise<void>) => (ctx: JobContext) => Promise<void>) | void {
+    // Determine whether first arg is a function or an options object
+    let fn: ((ctx: JobContext) => Promise<void>) | undefined;
+    let resolvedOpts: typeof opts;
+
+    if (typeof fnOrOpts === 'function') {
+      fn = fnOrOpts;
+      resolvedOpts = opts;
+    } else {
+      // fnOrOpts is an options object (or undefined) — parameterized decorator usage
+      resolvedOpts = fnOrOpts;
+    }
+
+    if (resolvedOpts?.type && resolvedOpts.type !== 'room') {
+      globalNoop.once(
+        'server_type',
+        `AgentServer.rtcSession(type=${JSON.stringify(resolvedOpts.type)}): SignalWire's control plane handles server topology at scale automatically`,
+      );
+    }
+
+    const register = (entryFn: (ctx: JobContext) => Promise<void>) => {
+      this._entryFn = entryFn;
+      if (resolvedOpts?.agentName) this._agentName = resolvedOpts.agentName;
+      return entryFn;
+    };
+
+    if (fn) {
+      register(fn);
+      return;
+    }
+    return register;
+  }
+
+  /** @internal Extract agentDef-compatible shape for use by runApp. */
+  _toAgentDef(): {
+    entry: (ctx: JobContext) => Promise<void>;
+    prewarm?: (proc: JobProcess) => void;
+  } {
+    return {
+      entry: this._entryFn ?? (async (_ctx: JobContext) => {}),
+      prewarm: this.setupFnc,
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
