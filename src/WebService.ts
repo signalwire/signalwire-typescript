@@ -203,6 +203,22 @@ export class WebService {
   }
 
   /**
+   * The SSL/TLS configuration for this service.
+   *
+   * Mirrors the Python SDK's `security` attribute (`SecurityConfig`), which
+   * exposes SSL settings for post-construction inspection.  In the Python SDK
+   * `SecurityConfig` also covers CORS origins, HSTS, allowed hosts, and rate
+   * limiting; in this SDK those concerns are configured via their own
+   * constructor options (`enableCors`, `ssl`, etc.) and Hono middleware rather
+   * than a single combined object.
+   *
+   * @returns The `SslConfig` instance used by this service.
+   */
+  get sslConfig(): SslConfig {
+    return this._ssl;
+  }
+
+  /**
    * Start the HTTP(S) service.
    * @param host - Bind address. Default: '0.0.0.0'.
    * @param port - Port override. Default: this.port.
