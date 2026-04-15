@@ -157,7 +157,7 @@ export class DataSphereSkill extends SkillBase {
     return `${this.skillName}_${toolName}`;
   }
 
-  /** @returns Manifest declaring SignalWire credentials as required env vars. */
+  /** @returns Manifest for this skill. No required env vars — all credentials come from params with env fallback. */
   getManifest(): SkillManifest {
     return {
       name: 'datasphere',
@@ -165,7 +165,7 @@ export class DataSphereSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['search', 'datasphere', 'signalwire', 'knowledge', 'rag', 'external'],
-      requiredEnvVars: ['SIGNALWIRE_PROJECT_ID', 'SIGNALWIRE_TOKEN', 'SIGNALWIRE_SPACE'],
+      requiredEnvVars: [],
       configSchema: {
         space_name: {
           type: 'string',
@@ -232,9 +232,9 @@ export class DataSphereSkill extends SkillBase {
     };
   }
 
-  /** Resolve the tool name (defaults to `search_datasphere`, TS convention). */
+  /** Resolve the tool name (defaults to `search_knowledge`, matching Python SDK). */
   private getToolName(): string {
-    return this.getConfig<string>('tool_name', 'search_datasphere');
+    return this.getConfig<string>('tool_name', 'search_knowledge');
   }
 
   /** @returns A single tool (named via `tool_name`) that performs semantic search. */

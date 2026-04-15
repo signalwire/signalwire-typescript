@@ -81,7 +81,7 @@ interface WikipediaActionExtractsResponse {
  */
 export class WikipediaSearchSkill extends SkillBase {
   /** Resolved `num_results` value (populated in `setup()`). */
-  private _numResults: number = 1;
+  protected numResults: number = 1;
   /** Resolved `no_results_message` template (populated in `setup()`). */
   private _noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
   /** Resolved Wikipedia language edition code (populated in `setup()`). */
@@ -145,7 +145,7 @@ export class WikipediaSearchSkill extends SkillBase {
    */
   override async setup(): Promise<boolean> {
     const configured = this.getConfig<number>('num_results', 1);
-    this._numResults = Math.max(1, Math.min(5, Math.floor(configured)));
+    this.numResults = Math.max(1, Math.min(5, Math.floor(configured)));
 
     const rawMessage = this.getConfig<string | undefined>(
       'no_results_message',
@@ -229,7 +229,7 @@ export class WikipediaSearchSkill extends SkillBase {
     try {
       // Fast path: when only one article is requested, try the REST page
       // summary endpoint. It returns cleanly-structured data including a URL.
-      if (this._numResults === 1) {
+      if (this.numResults === 1) {
         const summary = await this._fetchDirectSummary(trimmedQuery, sentenceCount);
         if (summary !== null) {
           return this._clampContent(summary);
@@ -241,7 +241,7 @@ export class WikipediaSearchSkill extends SkillBase {
       const searchUrl =
         `${baseUrl}?action=query&list=search&format=json` +
         `&srsearch=${encodeURIComponent(trimmedQuery)}` +
-        `&srlimit=${this._numResults}`;
+        `&srlimit=${this.numResults}`;
 
       const searchData = await this._fetchJson<WikipediaActionSearchResponse>(
         searchUrl,
@@ -257,7 +257,7 @@ export class WikipediaSearchSkill extends SkillBase {
 
       const articles: string[] = [];
 
-      for (const result of searchResults.slice(0, this._numResults)) {
+      for (const result of searchResults.slice(0, this.numResults)) {
         const title = result.title;
         const extractUrl =
           `${baseUrl}?action=query&prop=extracts&exintro&explaintext&format=json` +
@@ -369,7 +369,7 @@ export class WikipediaSearchSkill extends SkillBase {
     return [
       {
         title: 'Wikipedia Search',
-        body: `You can search Wikipedia for factual information using search_wiki. This will return up to ${this._numResults} Wikipedia article summaries.`,
+        body: `You can search Wikipedia for factual information using search_wiki. This will return up to ${this.numResults} Wikipedia article summaries.`,
         bullets: [
           'Use search_wiki for factual, encyclopedic information',
           'Great for answering questions about people, places, concepts, and history',

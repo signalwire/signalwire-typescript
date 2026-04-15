@@ -18,6 +18,9 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { DataMap } from '../../DataMap.js';
+import { getLogger } from '../../Logger.js';
+
+const log = getLogger('DataSphereServerlessSkill');
 
 const DEFAULT_NO_RESULTS_MESSAGE =
   "I couldn't find any relevant information for '{query}' in the knowledge base. " +
@@ -195,6 +198,25 @@ export class DataSphereServerlessSkill extends SkillBase {
   }
 
   /**
+   * Validate required configuration parameters before the skill becomes active.
+   *
+   * Mirrors Python's `setup()` which checks `space_name`, `project_id`, `token`,
+   * and `document_id` and returns `False` (logging an error) if any are absent.
+   * @returns `true` if all required params are present, `false` otherwise.
+   */
+  override async setup(): Promise<boolean> {
+    const requiredParams = ['space_name', 'project_id', 'token', 'document_id'] as const;
+    const missing = requiredParams.filter(
+      (param) => !this.getConfig<string | undefined>(param, undefined),
+    );
+    if (missing.length > 0) {
+      log.error('datasphere_serverless: missing required parameters', { missing });
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Global data injected into the agent's SWML/SWAIG context. Matches
    * Python's `get_global_data()` shape so downstream consumers can
    * detect DataSphere availability.
@@ -209,10 +231,10 @@ export class DataSphereServerlessSkill extends SkillBase {
 
   /**
    * Resolve the tool name used in DataMap registration. Defaults to
-   * `search_datasphere` (TS convention) when `tool_name` is not provided.
+   * `search_knowledge` to match the Python SDK default.
    */
   private getToolName(): string {
-    return this.getConfig<string>('tool_name', 'search_datasphere');
+    return this.getConfig<string>('tool_name', 'search_knowledge');
   }
 
   /**

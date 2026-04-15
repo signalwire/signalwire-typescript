@@ -26,6 +26,21 @@ interface SkillMetaEntry {
  *
  * Handles loading, unloading, validation, and aggregation of skill tools,
  * hints, global data, and prompt sections.
+ *
+ * @remarks
+ * **Architectural note — push vs pull model:**
+ * Python's `SkillManager.__init__(self, agent)` stores the agent reference and
+ * uses a **push model**: when a skill is loaded via `load_skill()`, the manager
+ * immediately calls `agent.add_hints()`, `agent.update_global_data()`, and
+ * `agent.prompt_add_section()` to inject skill data into the agent.
+ *
+ * This TypeScript implementation uses a **pull model** instead: `SkillManager`
+ * has no agent reference and no constructor. `AgentBase` owns the manager and
+ * calls `getAllHints()`, `getMergedGlobalData()`, and `getAllPromptSections()`
+ * at render time. Both approaches produce the same observable behavior at the
+ * SWML / SWAIG level. The pull model avoids circular-reference issues between
+ * `AgentBase` and `SkillManager` and is better suited to TypeScript's
+ * import-graph constraints.
  */
 export class SkillManager {
   private skills: Map<string, SkillBase> = new Map();
@@ -60,10 +75,11 @@ export class SkillManager {
       return;
     }
 
-    // Validate required env vars
+    // Validate required env vars — hard-fail matches Python's load_skill behavior
+    // (skill_manager.py lines 114-118: `if missing_env_vars: return False, error_msg`)
     const missingEnvVars = skill.validateEnvVars();
-    if (missingEnvVars.length) {
-      log.warn(`Skill '${name}' missing env vars: ${missingEnvVars.join(', ')}`);
+    if (missingEnvVars.length > 0) {
+      throw new Error(`Cannot load skill '${name}': missing environment variables: ${missingEnvVars.join(', ')}`);
     }
 
     // Log parameter schema info (non-fatal)
@@ -92,6 +108,10 @@ export class SkillManager {
    * Remove a skill by its instance key or instance ID, calling cleanup() before removal.
    * @param keyOrId - The instance key or instance ID of the skill to remove.
    * @returns True if the skill was found and removed, false otherwise.
+   *
+   * @remarks Equivalent to Python's `unload_skill(skill_identifier)`. Callers porting
+   *          from Python should change `skill_manager.unload_skill(id)` →
+   *          `skillManager.removeSkill(id)`.
    */
   async removeSkill(keyOrId: string): Promise<boolean> {
     // Try by instance key first
@@ -158,9 +178,47 @@ export class SkillManager {
    *
    * @param instanceKey - The instance key to look up.
    * @returns True if a skill with this exact instance key is loaded.
+   *
+   * @remarks Equivalent to Python's `has_skill(skill_identifier)`. Callers porting
+   *          from Python should change `skill_manager.has_skill(key)` →
+   *          `skillManager.hasSkillByKey(key)`.
    */
   hasSkillByKey(instanceKey: string): boolean {
     return this.skills.has(instanceKey);
+  }
+
+  /**
+   * Load a skill by providing the class constructor directly, bypassing the registry.
+   * This is the TypeScript equivalent of Python's `load_skill(skill_name, skill_class, params)`
+   * path where a caller-provided `skill_class` is used instead of a registry lookup.
+   *
+   * @param skillClass - The skill class constructor (a subclass of `SkillBase`).
+   * @param config - Optional configuration to pass to the skill constructor.
+   * @returns A tuple `[success, errorMessage]` matching Python's `load_skill` return
+   *          contract. `errorMessage` is an empty string on success.
+   *
+   * @remarks Equivalent to Python's `load_skill(skill_name, skill_class=MySkillClass, params)`.
+   *
+   * @example
+   * ```ts
+   * const [ok, err] = await manager.loadSkill(MyCustomSkill, { api_key: 'secret' });
+   * if (!ok) console.error(err);
+   * ```
+   */
+  async loadSkill(skillClass: typeof SkillBase, config?: SkillConfig): Promise<[boolean, string]> {
+    try {
+      // Concrete skill subclasses override the constructor to take only (config?: SkillConfig).
+      // Cast to reflect actual runtime signature — the base class requires `skillName` but
+      // concrete subclasses hardcode it in super(...), so only config is needed at the call site.
+      const SkillCtor = skillClass as unknown as new (config?: SkillConfig) => SkillBase;
+      const skill = new SkillCtor(config);
+      await this.addSkill(skill);
+      return [true, ''];
+    } catch (err) {
+      const errorMsg = `Error loading skill: ${err instanceof Error ? err.message : String(err)}`;
+      log.error(errorMsg);
+      return [false, errorMsg];
+    }
   }
 
   /**
@@ -172,6 +230,10 @@ export class SkillManager {
    * @param config - Optional configuration to pass to the skill factory.
    * @returns A tuple `[success, errorMessage]` matching Python's `load_skill` return
    *          contract. `errorMessage` is an empty string on success.
+   *
+   * @remarks Equivalent to Python's `load_skill(skill_name)` (registry path, where
+   *          `skill_class=None`). Callers porting from Python should change
+   *          `skill_manager.load_skill(name)` → `skillManager.loadSkillByName(name)`.
    */
   async loadSkillByName(skillName: string, config?: SkillConfig): Promise<[boolean, string]> {
     const registry = SkillRegistry.getInstance();
@@ -208,6 +270,10 @@ export class SkillManager {
    * Use `listSkillKeys()` for a flat list of instance key strings.
    *
    * @returns Array of instance key strings.
+   *
+   * @remarks Equivalent to Python's `list_loaded_skills()`. Callers porting from
+   *          Python should change `skill_manager.list_loaded_skills()` →
+   *          `skillManager.listSkillKeys()`.
    */
   listSkillKeys(): string[] {
     return Array.from(this.skills.keys());

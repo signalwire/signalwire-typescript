@@ -23,14 +23,31 @@ import type {
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
+import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('NativeVectorSearchSkill');
 
-/** Callback signature for customizing the formatted search response. */
+/**
+ * Callback signature for customizing the formatted search response.
+ *
+ * The context object is the TypeScript idiom for Python's positional-args
+ * convention: `(response, agent, query, results, args)`. All Python fields are
+ * present plus TS-specific additions (`count`, `skill`):
+ *
+ * - `response`  — pre-formatted response string (same as Python arg 1)
+ * - `agent`     — the AgentBase instance that owns this skill (same as Python arg 2)
+ * - `query`     — the search query string (same as Python arg 3)
+ * - `results`   — array of search results (same as Python arg 4)
+ * - `args`      — raw tool call arguments (same as Python arg 5)
+ * - `count`     — requested result count (TS addition)
+ * - `skill`     — this skill instance (TS addition)
+ */
 export type ResponseFormatCallback = (ctx: {
   response: string;
+  /** The AgentBase instance that owns this skill. Equivalent to Python's `agent` positional arg. */
+  agent?: AgentBase;
   query: string;
   results: Array<{ content: string; score: number; metadata: Record<string, unknown>; tags?: string[] }>;
   args: Record<string, unknown>;
@@ -358,6 +375,8 @@ export class NativeVectorSearchSkill extends SkillBase {
   private responseFormatCallback: ResponseFormatCallback | undefined;
   private description = 'Search the knowledge base for information';
   private verbose = false;
+  /** Hybrid scoring weight: 0.0 = pure TF-IDF, 1.0 = pure keyword overlap. */
+  private keywordWeight = 0.0;
   private searchAvailable = false;
   private useRemote = false;
   private remoteBaseUrl: string | undefined;
@@ -407,6 +426,10 @@ export class NativeVectorSearchSkill extends SkillBase {
       'Search the knowledge base for information',
     );
     this.verbose = this.getConfig<boolean>('verbose', false);
+    this.keywordWeight = Math.min(
+      1.0,
+      Math.max(0.0, this.getConfig<number>('keyword_weight', 0.0)),
+    );
 
     // Remote search configuration
     this.remoteUrl = this.getConfig<string | undefined>('remote_url', undefined);
@@ -655,6 +678,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         try {
           const formatted = this.responseFormatCallback({
             response: msg,
+            agent: this.agent,
             query,
             results: [],
             args,
@@ -714,6 +738,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       try {
         const formatted = this.responseFormatCallback({
           response,
+          agent: this.agent,
           query,
           results,
           args,
@@ -741,10 +766,27 @@ export class NativeVectorSearchSkill extends SkillBase {
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) return [];
 
-    const scored = this._documents.map((doc, i) => ({
-      doc,
-      score: scoreTfIdf(queryTokens, this._docTfs[i], this._idf),
-    }));
+    const weight = this.keywordWeight;
+    const scored = this._documents.map((doc, i) => {
+      const tfidf = scoreTfIdf(queryTokens, this._docTfs[i], this._idf);
+      let score: number;
+      if (weight > 0) {
+        // Keyword-overlap component: fraction of unique query terms present in doc.
+        // Mirrors Python: `keyword_weight=self.keyword_weight` passed to
+        // `search_engine.search()` for hybrid TF-IDF + keyword scoring.
+        const docTokenSet = new Set(this._tokenizedDocs[i]);
+        const uniqueQueryTokens = new Set(queryTokens);
+        let matches = 0;
+        for (const t of uniqueQueryTokens) {
+          if (docTokenSet.has(t)) matches++;
+        }
+        const keywordOverlap = uniqueQueryTokens.size > 0 ? matches / uniqueQueryTokens.size : 0;
+        score = tfidf * (1 - weight) + keywordOverlap * weight;
+      } else {
+        score = tfidf;
+      }
+      return { doc, score };
+    });
 
     const filtered = scored
       .filter((s) => s.score > this.similarityThreshold)

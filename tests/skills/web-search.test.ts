@@ -16,8 +16,16 @@ describe('WebSearchSkill', () => {
     expect(createWebSearchSkill()).toBeInstanceOf(WebSearchSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new WebSearchSkill().setup()).resolves.toBe(true);
+  it('should return false from setup() when credentials are missing', async () => {
+    delete process.env['GOOGLE_SEARCH_API_KEY'];
+    delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
+    delete process.env['GOOGLE_SEARCH_CX'];
+    await expect(new WebSearchSkill().setup()).resolves.toBe(false);
+  });
+
+  it('should return true from setup() when credentials are provided via config', async () => {
+    const skill = new WebSearchSkill({ api_key: 'test-key', search_engine_id: 'test-cx' });
+    await expect(skill.setup()).resolves.toBe(true);
   });
 
   it('should register a web_search tool', () => {

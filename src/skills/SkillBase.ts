@@ -138,9 +138,38 @@ export abstract class SkillBase {
    * Reference to the agent that owns this skill.
    * Set via `setAgent()` when the skill is added to an agent.
    * Python equivalent: `self.agent` (set in `__init__`).
+   *
+   * In the Python SDK `agent` is always non-null because it is injected in the
+   * constructor.  In the TypeScript SDK the SkillManager always calls
+   * `setAgent()` before `setup()`, so subclasses can rely on `getAgent()` being
+   * safe to call inside `setup()` and any method invoked after it.
    */
   protected agent?: AgentBase;
   private _initialized = false;
+
+  /**
+   * Return the agent that owns this skill, asserting it is non-null.
+   * Equivalent to accessing `self.agent` in Python, where the agent reference
+   * is always set before `setup()` is called.
+   *
+   * The SkillManager lifecycle guarantees that `setAgent()` is called before
+   * `setup()`, so this method is safe to use inside `setup()` and in any
+   * tool handler invoked during an active agent session.
+   *
+   * @returns The owning `AgentBase` instance.
+   * @throws {Error} If called before `setAgent()` (i.e., before the skill is
+   *   attached to an agent by the SkillManager).
+   */
+  protected getAgent(): AgentBase {
+    if (!this.agent) {
+      throw new Error(
+        `SkillBase.getAgent() called before setAgent() on skill "${this.skillName}". ` +
+          'Ensure getAgent() is only called from setup() or tool handlers, ' +
+          'where the SkillManager has already attached the agent.',
+      );
+    }
+    return this.agent;
+  }
 
   /**
    * Create a new skill instance.
@@ -266,6 +295,12 @@ export abstract class SkillBase {
 
   /**
    * Validate that all required environment variables declared in the manifest are set.
+   *
+   * Returns the list of missing variable names so callers can produce actionable
+   * error messages.  This differs from the Python SDK's `validate_env_vars() -> bool`,
+   * which only returns a boolean.  If you need boolean semantics (e.g. `if skill.hasAllEnvVars()`),
+   * use {@link hasAllEnvVars} instead — it is the direct boolean equivalent.
+   *
    * @returns Array of missing environment variable names (empty if all are present).
    */
   validateEnvVars(): string[] {
@@ -349,5 +384,15 @@ export abstract class SkillBase {
       }
     }
     return missing;
+  }
+
+  /**
+   * Check if all required packages declared in the manifest are available.
+   * Convenience wrapper around `validatePackages()` that returns a boolean,
+   * matching the Python `validate_packages() -> bool` return type.
+   * @returns `true` if all required packages are importable, `false` otherwise.
+   */
+  async hasAllPackages(): Promise<boolean> {
+    return (await this.validatePackages()).length === 0;
   }
 }

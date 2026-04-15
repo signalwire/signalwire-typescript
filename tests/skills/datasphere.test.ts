@@ -24,10 +24,10 @@ describe('DataSphereSkill', () => {
     await expect(new DataSphereSkill().setup()).resolves.toBe(true);
   });
 
-  it('should register a search_datasphere tool', () => {
+  it('should register a search_knowledge tool', () => {
     const tools = new DataSphereSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_datasphere');
+    expect(tools[0].name).toBe('search_knowledge');
     expect(tools[0].required).toContain('query');
   });
 
@@ -54,12 +54,10 @@ describe('DataSphereSkill', () => {
     expect(globalData['knowledge_provider']).toBe('SignalWire DataSphere');
   });
 
-  it('should return correct manifest with required env vars', () => {
+  it('should return correct manifest with no required env vars', () => {
     const manifest = new DataSphereSkill().getManifest();
     expect(manifest.name).toBe('datasphere');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_PROJECT_ID');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_TOKEN');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_SPACE');
+    expect(manifest.requiredEnvVars).toEqual([]);
   });
 
   it('should return error when credentials are missing', async () => {

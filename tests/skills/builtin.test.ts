@@ -708,16 +708,15 @@ describe('DataSphereSkill', () => {
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('datasphere');
     expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_PROJECT_ID');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_TOKEN');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_SPACE');
+    // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
+    expect(manifest.requiredEnvVars).toEqual([]);
   });
 
-  it('should return a search_datasphere tool', () => {
+  it('should return a search_knowledge tool', () => {
     const skill = createDataSphereSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_datasphere');
+    expect(tools[0].name).toBe('search_knowledge');
     expect(tools[0].required).toContain('query');
   });
 
@@ -766,11 +765,11 @@ describe('DataSphereServerlessSkill', () => {
     expect(manifest.requiredEnvVars ?? []).toEqual([]);
   });
 
-  it('should return a search_datasphere tool stub', () => {
+  it('should return a search_knowledge tool stub', () => {
     const skill = createDataSphereServerlessSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_datasphere');
+    expect(tools[0].name).toBe('search_knowledge');
   });
 
   it('should return stub handler message indicating DataMap mode', () => {

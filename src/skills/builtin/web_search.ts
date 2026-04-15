@@ -229,6 +229,36 @@ export class WebSearchSkill extends SkillBase {
   }
 
   /**
+   * Validate required credentials before the skill becomes active.
+   *
+   * Mirrors Python's `setup()` (skill.py:559-600) which checks `api_key` and
+   * `search_engine_id` and returns `False` (logging an error) if either is
+   * absent. In the TS SDK credentials may also arrive via environment variables
+   * (`GOOGLE_SEARCH_API_KEY` / `GOOGLE_SEARCH_ENGINE_ID` or the legacy alias
+   * `GOOGLE_SEARCH_CX`), so both config params and env vars are checked.
+   * @returns `true` if all required credentials are present, `false` otherwise.
+   */
+  override async setup(): Promise<boolean> {
+    const apiKey =
+      this.getConfig<string | undefined>('api_key', undefined) ??
+      process.env['GOOGLE_SEARCH_API_KEY'];
+    const searchEngineId =
+      this.getConfig<string | undefined>('search_engine_id', undefined) ??
+      process.env['GOOGLE_SEARCH_ENGINE_ID'] ??
+      process.env['GOOGLE_SEARCH_CX'];
+
+    const missing: string[] = [];
+    if (!apiKey) missing.push('api_key / GOOGLE_SEARCH_API_KEY');
+    if (!searchEngineId) missing.push('search_engine_id / GOOGLE_SEARCH_ENGINE_ID');
+
+    if (missing.length > 0) {
+      log.error('web_search: missing required parameters', { missing });
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Instance key for the SkillManager. Includes the configured
    * `search_engine_id` (or `"default"`) and `tool_name` (or `"web_search"`)
    * to match Python's `"{SKILL_NAME}_{search_engine_id}_{tool_name}"` scheme.
