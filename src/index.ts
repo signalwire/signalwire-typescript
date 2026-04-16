@@ -14,6 +14,10 @@ export { AgentServer } from './AgentServer.js';
 export { SWMLService, SecurityConfig, VerbHandlerRegistry } from './SWMLService.js';
 export type { OnRequestCallback, SWMLServiceOptions, SWMLVerbHandler } from './SWMLService.js';
 
+// Web Service (static file serving)
+export { WebService } from './WebService.js';
+export type { WebServiceOptions } from './WebService.js';
+
 // Tool results & functions
 export { FunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
@@ -31,6 +35,10 @@ export type { PomSectionData } from './PomBuilder.js';
 export { SwmlBuilder } from './SwmlBuilder.js';
 export type { SwmlBuilderOptions } from './SwmlBuilder.js';
 import './SwmlVerbMethods.generated.js';
+
+// SWML Verb Handlers
+export { SWMLVerbHandler, AIVerbHandler, VerbHandlerRegistry } from './SWMLHandler.js';
+export type { AIVerbBuildOptions } from './SWMLHandler.js';
 
 // Prompt management
 export { PromptManager } from './PromptManager.js';
