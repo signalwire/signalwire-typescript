@@ -325,6 +325,31 @@ export class PomBuilder {
   }
 
   /**
+   * Appends every top-level section of another PomBuilder as subsections of a target section.
+   * @param target - The heading of the target section, or the PomSection to append into.
+   * @param pomToAdd - The PomBuilder whose sections should be appended as subsections.
+   * @returns This builder for chaining.
+   * @throws {Error} If target is a string and no section with that title is found.
+   */
+  addPomAsSubsection(target: string | PomSection, pomToAdd: PomBuilder): this {
+    let targetSection: PomSection;
+    if (typeof target === 'string') {
+      const found = this.findSection(target);
+      if (!found) {
+        throw new Error(`No section with title '${target}' found.`);
+      }
+      targetSection = found;
+    } else {
+      targetSection = target;
+    }
+
+    for (const section of pomToAdd.sections) {
+      targetSection.subsections.push(section);
+    }
+    return this;
+  }
+
+  /**
    * Serializes all sections to an array of plain data objects.
    * @returns An array of PomSectionData representing all top-level sections.
    */
