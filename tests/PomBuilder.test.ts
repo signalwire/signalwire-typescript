@@ -121,6 +121,70 @@ describe('PomBuilder', () => {
   });
 });
 
+describe('addPomAsSubsection', () => {
+  it('appends sections of another PomBuilder by target title', () => {
+    const target = new PomBuilder().addSection('Parent', { body: 'parent body' });
+    const other = new PomBuilder()
+      .addSection('Child A', { body: 'a' })
+      .addSection('Child B', { bullets: ['x', 'y'] });
+
+    target.addPomAsSubsection('Parent', other);
+
+    const parent = target.getSection('Parent')!;
+    expect(parent.subsections.length).toBe(2);
+    expect(parent.subsections[0].title).toBe('Child A');
+    expect(parent.subsections[0].body).toBe('a');
+    expect(parent.subsections[1].title).toBe('Child B');
+    expect(parent.subsections[1].bullets).toEqual(['x', 'y']);
+  });
+
+  it('appends sections when target is a PomSection reference', () => {
+    const target = new PomBuilder().addSection('Parent');
+    const parent = target.getSection('Parent')!;
+    const other = new PomBuilder()
+      .addSection('One')
+      .addSection('Two');
+
+    target.addPomAsSubsection(parent, other);
+
+    expect(parent.subsections.length).toBe(2);
+    expect(parent.subsections[0].title).toBe('One');
+    expect(parent.subsections[1].title).toBe('Two');
+  });
+
+  it('throws when target title does not match any section', () => {
+    const target = new PomBuilder().addSection('Exists');
+    const other = new PomBuilder().addSection('Anything');
+
+    expect(() => target.addPomAsSubsection('Missing', other)).toThrow(
+      "No section with title 'Missing' found.",
+    );
+  });
+
+  it('preserves order and count of appended sections', () => {
+    const target = new PomBuilder().addSection('Parent');
+    const other = new PomBuilder()
+      .addSection('First')
+      .addSection('Second')
+      .addSection('Third');
+
+    target.addPomAsSubsection('Parent', other);
+
+    const parent = target.getSection('Parent')!;
+    expect(parent.subsections.length).toBe(3);
+    expect(parent.subsections.map((s) => s.title)).toEqual(['First', 'Second', 'Third']);
+  });
+
+  it('returns this for fluent chaining', () => {
+    const builder = new PomBuilder().addSection('Parent');
+    const other = new PomBuilder().addSection('Child');
+
+    const result = builder.addPomAsSubsection('Parent', other);
+
+    expect(result).toBe(builder);
+  });
+});
+
 describe('SwmlBuilder', () => {
   it('creates empty document', () => {
     const b = new SwmlBuilder();
