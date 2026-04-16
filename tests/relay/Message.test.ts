@@ -144,14 +144,15 @@ describe('Message', () => {
     });
     await dispatchPromise;
 
-    const event = await msg.wait(5000);
+    const event = await msg.wait(5);
     expect(event).toBeInstanceOf(RelayEvent);
   });
 
   it('wait with timeout rejects on timeout', async () => {
     const msg = new Message({ messageId: 'm1' });
 
-    await expect(msg.wait(10)).rejects.toThrow('timed out');
+    // timeout is in seconds (0.01s = 10ms)
+    await expect(msg.wait(0.01)).rejects.toThrow('timed out');
   });
 
   it('toString returns human-readable string', () => {

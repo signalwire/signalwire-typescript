@@ -22,6 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@hono/node-server": "^1.11.0",
+    "ajv": "^8.18.0",
     "hono": "^4.4.0",
     "js-yaml": "^4.1.1",
     "ws": "^8.17.0"
