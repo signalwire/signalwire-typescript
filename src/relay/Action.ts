@@ -86,13 +86,17 @@ export class Action {
     }
   }
 
-  /** Wait for the action to complete. Returns the terminal event. */
+  /**
+   * Wait for the action to complete. Returns the terminal event.
+   * @param timeout - Maximum time to wait in seconds (matches Python SDK convention).
+   */
   async wait(timeout?: number): Promise<RelayEvent> {
     if (timeout != null) {
+      const ms = timeout * 1000;
       return new Promise<RelayEvent>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new Error(`Action wait timed out after ${timeout}ms`));
-        }, timeout);
+          reject(new Error(`Action wait timed out after ${timeout}s`));
+        }, ms);
 
         this._done.promise.then(
           (v) => { clearTimeout(timer); resolve(v); },
