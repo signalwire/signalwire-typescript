@@ -305,7 +305,7 @@ export class FunctionResult {
    * @param transfer - Whether this SWML execution should transfer the call.
    * @returns This instance for chaining.
    */
-  executeSwml(swmlContent: string | Record<string, unknown>, transfer = false): this {
+  executeSwml(swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> }, transfer = false): this {
     let swmlData: Record<string, unknown>;
     if (typeof swmlContent === 'string') {
       try {
@@ -313,8 +313,10 @@ export class FunctionResult {
       } catch {
         swmlData = { raw_swml: swmlContent };
       }
+    } else if (typeof (swmlContent as { toDict?: unknown }).toDict === 'function') {
+      swmlData = (swmlContent as { toDict(): Record<string, unknown> }).toDict();
     } else {
-      swmlData = { ...swmlContent };
+      swmlData = { ...(swmlContent as Record<string, unknown>) };
     }
     if (transfer) {
       swmlData['transfer'] = 'true';

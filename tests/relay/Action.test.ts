@@ -95,7 +95,7 @@ describe('Action (base)', () => {
     // Resolve it
     a._checkEvent(makeEvent('calling.call.play', { state: 'finished' }));
 
-    const result = await a.wait(5000);
+    const result = await a.wait(5);
     expect(result.eventType).toBe('calling.call.play');
   });
 
@@ -103,7 +103,8 @@ describe('Action (base)', () => {
     const call = mockCall();
     const a = new Action(call, 'ctrl1', 'calling.call.play', ['finished']);
 
-    await expect(a.wait(10)).rejects.toThrow('timed out');
+    // timeout is in seconds (0.01s = 10ms)
+    await expect(a.wait(0.01)).rejects.toThrow('timed out');
   });
 });
 
