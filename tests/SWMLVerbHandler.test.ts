@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SWMLVerbHandler } from '../src/SWMLVerbHandler.js';
-import { AIVerbHandler } from '../src/AIVerbHandler.js';
-import { VerbHandlerRegistry } from '../src/VerbHandlerRegistry.js';
+import { SWMLVerbHandler, AIVerbHandler, VerbHandlerRegistry } from '../src/SWMLHandler.js';
 
 // ---------- Mock handler for testing the abstract interface ----------
 

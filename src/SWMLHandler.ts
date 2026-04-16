@@ -1,13 +1,67 @@
 /**
- * AIVerbHandler - Handler for the SWML 'ai' verb.
+ * SWMLHandler - SWML verb handler framework.
  *
- * The 'ai' verb is complex and requires specialized handling, particularly
+ * Consolidates the abstract {@link SWMLVerbHandler} base class, the
+ * concrete {@link AIVerbHandler} for the SWML "ai" verb (including its
+ * {@link AIVerbBuildOptions} build signature), and the {@link VerbHandlerRegistry}
+ * that maps verb names to handler instances.
+ *
+ * Verb handlers provide specialized logic for complex SWML verbs that
+ * cannot be handled generically by the schema-driven SwmlBuilder.
+ * The "ai" verb is complex and requires specialized handling, particularly
  * for managing prompts, SWAIG functions, and AI configurations.
  *
- * Equivalent to Python SDK's `AIVerbHandler` in `swml_handler.py`.
+ * Register implementations via {@link VerbHandlerRegistry.registerHandler}.
+ *
+ * Mirrors Python SDK's single-file layout in
+ * `signalwire/signalwire/core/swml_handler.py`.
  */
 
-import { SWMLVerbHandler } from './SWMLVerbHandler.js';
+/**
+ * Abstract base class for pluggable SWML verb handlers.
+ *
+ * Each concrete handler owns one verb name and provides validate/build
+ * logic for that verb's configuration. Subclass this to create handlers
+ * for custom or complex SWML verbs that require specialized handling
+ * beyond generic schema-driven validation.
+ *
+ * @example
+ * ```ts
+ * class MyVerbHandler extends SWMLVerbHandler {
+ *   getVerbName(): string { return 'my_verb'; }
+ *   validateConfig(config: Record<string, unknown>): [boolean, string[]] {
+ *     const errors: string[] = [];
+ *     if (!config['url']) errors.push("Missing required field 'url'");
+ *     return [errors.length === 0, errors];
+ *   }
+ *   buildConfig(opts: Record<string, unknown>): Record<string, unknown> {
+ *     return { url: opts['url'] };
+ *   }
+ * }
+ * ```
+ */
+export abstract class SWMLVerbHandler {
+  /**
+   * Get the name of the SWML verb this handler handles.
+   * @returns The verb name as a string (e.g. "ai", "play").
+   */
+  abstract getVerbName(): string;
+
+  /**
+   * Validate the configuration for this verb.
+   * @param config - The configuration dictionary for this verb.
+   * @returns A `[isValid, errorMessages]` tuple where `isValid` is `true`
+   *          when the config is valid and `errorMessages` lists any issues found.
+   */
+  abstract validateConfig(config: Record<string, unknown>): [boolean, string[]];
+
+  /**
+   * Build a configuration object for this verb from the provided arguments.
+   * @param opts - Key-value arguments specific to this verb.
+   * @returns A configuration dictionary ready for inclusion in a SWML document.
+   */
+  abstract buildConfig(opts: Record<string, unknown>): Record<string, unknown>;
+}
 
 /** Options accepted by {@link AIVerbHandler.buildConfig}. */
 export interface AIVerbBuildOptions {
@@ -179,5 +233,66 @@ export class AIVerbHandler extends SWMLVerbHandler {
     }
 
     return config;
+  }
+}
+
+/**
+ * Registry for SWML verb handlers.
+ *
+ * This class maintains a registry of handlers for special SWML verbs
+ * and provides methods for accessing and using them. The "ai" verb handler
+ * ({@link AIVerbHandler}) is registered automatically on construction.
+ *
+ * @example
+ * ```ts
+ * const registry = new VerbHandlerRegistry();
+ *
+ * // The "ai" handler is already registered
+ * registry.hasHandler('ai'); // true
+ *
+ * // Register a custom handler
+ * registry.registerHandler(new MyCustomVerbHandler());
+ *
+ * // Look up a handler
+ * const handler = registry.getHandler('ai');
+ * if (handler) {
+ *   const [valid, errors] = handler.validateConfig(config);
+ * }
+ * ```
+ */
+export class VerbHandlerRegistry {
+  private handlers: Map<string, SWMLVerbHandler> = new Map();
+
+  /** Initialize the registry with default handlers. */
+  constructor() {
+    // Register default handlers (matches Python's __init__)
+    this.registerHandler(new AIVerbHandler());
+  }
+
+  /**
+   * Register a new verb handler, replacing any existing handler for the same verb name.
+   * @param handler - The handler to register.
+   */
+  registerHandler(handler: SWMLVerbHandler): void {
+    const verbName = handler.getVerbName();
+    this.handlers.set(verbName, handler);
+  }
+
+  /**
+   * Get the handler for a specific verb.
+   * @param verbName - The name of the verb (e.g. "ai").
+   * @returns The handler if found, or `undefined` otherwise.
+   */
+  getHandler(verbName: string): SWMLVerbHandler | undefined {
+    return this.handlers.get(verbName);
+  }
+
+  /**
+   * Check if a handler exists for a specific verb.
+   * @param verbName - The name of the verb.
+   * @returns `true` if a handler is registered for the verb, `false` otherwise.
+   */
+  hasHandler(verbName: string): boolean {
+    return this.handlers.has(verbName);
   }
 }

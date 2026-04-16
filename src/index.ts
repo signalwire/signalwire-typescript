@@ -35,10 +35,8 @@ export { SwmlBuilder } from './SwmlBuilder.js';
 import './SwmlVerbMethods.generated.js';
 
 // SWML Verb Handlers
-export { SWMLVerbHandler } from './SWMLVerbHandler.js';
-export { AIVerbHandler } from './AIVerbHandler.js';
-export type { AIVerbBuildOptions } from './AIVerbHandler.js';
-export { VerbHandlerRegistry } from './VerbHandlerRegistry.js';
+export { SWMLVerbHandler, AIVerbHandler, VerbHandlerRegistry } from './SWMLHandler.js';
+export type { AIVerbBuildOptions } from './SWMLHandler.js';
 
 // Prompt management
 export { PromptManager } from './PromptManager.js';

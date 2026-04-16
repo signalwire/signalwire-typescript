@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VerbHandlerRegistry } from '../src/VerbHandlerRegistry.js';
-import { SWMLVerbHandler } from '../src/SWMLVerbHandler.js';
-import { AIVerbHandler } from '../src/AIVerbHandler.js';
+import { VerbHandlerRegistry, SWMLVerbHandler, AIVerbHandler } from '../src/SWMLHandler.js';
 
 /** Minimal custom handler for testing registry operations. */
 class CustomVerbHandler extends SWMLVerbHandler {
