@@ -2,6 +2,7 @@
   "name": "@signalwire/sdk",
   "version": "2.0.0",
   "description": "SignalWire AI Agents SDK for TypeScript/Node.js",
+  "private": false,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +15,10 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "engines": {
     "node": ">=18.0.0"
