@@ -142,6 +142,63 @@ export class PomSection {
 
     return lines.join('\n');
   }
+
+  /**
+   * Renders this section and its subsections as an XML string.
+   * @param indent - The indentation depth (default 0).
+   * @param sectionNumber - Hierarchical numbering prefix for numbered sections.
+   * @returns The rendered XML string.
+   */
+  renderXml(indent = 0, sectionNumber: number[] = []): string {
+    const pad = '  '.repeat(indent);
+    const lines: string[] = [];
+
+    lines.push(`${pad}<section>`);
+
+    if (this.title !== null) {
+      const prefix = sectionNumber.length ? `${sectionNumber.join('.')}. ` : '';
+      lines.push(`${pad}  <title>${prefix}${this.title}</title>`);
+    }
+
+    if (this.body) {
+      lines.push(`${pad}  <body>${this.body}</body>`);
+    }
+
+    if (this.bullets.length) {
+      lines.push(`${pad}  <bullets>`);
+      for (let i = 0; i < this.bullets.length; i++) {
+        if (this.numberedBullets) {
+          lines.push(`${pad}    <bullet id="${i + 1}">${this.bullets[i]}</bullet>`);
+        } else {
+          lines.push(`${pad}    <bullet>${this.bullets[i]}</bullet>`);
+        }
+      }
+      lines.push(`${pad}  </bullets>`);
+    }
+
+    if (this.subsections.length) {
+      lines.push(`${pad}  <subsections>`);
+      const anyNumbered = this.subsections.some((s) => s.numbered);
+      for (let i = 0; i < this.subsections.length; i++) {
+        const sub = this.subsections[i];
+        let newNumber: number[];
+        if (this.title !== null || sectionNumber.length) {
+          if (anyNumbered && sub.numbered !== false) {
+            newNumber = [...sectionNumber, i + 1];
+          } else {
+            newNumber = sectionNumber;
+          }
+        } else {
+          newNumber = sectionNumber;
+        }
+        lines.push(sub.renderXml(indent + 2, newNumber));
+      }
+      lines.push(`${pad}  </subsections>`);
+    }
+
+    lines.push(`${pad}</section>`);
+    return lines.join('\n');
+  }
 }
 
 /** Builds a structured prompt by composing named POM sections, with Markdown and dict export. */
@@ -278,11 +335,63 @@ export class PomBuilder {
   }
 
   /**
+   * Appends every top-level section of another PomBuilder as subsections of a target section.
+   * @param target - The heading of the target section, or the PomSection to append into.
+   * @param pomToAdd - The PomBuilder whose sections should be appended as subsections.
+   * @returns This builder for chaining.
+   * @throws {Error} If target is a string and no section with that title is found.
+   */
+  addPomAsSubsection(target: string | PomSection, pomToAdd: PomBuilder): this {
+    let targetSection: PomSection;
+    if (typeof target === 'string') {
+      const found = this.findSection(target);
+      if (!found) {
+        throw new Error(`No section with title '${target}' found.`);
+      }
+      targetSection = found;
+    } else {
+      targetSection = target;
+    }
+
+    for (const section of pomToAdd.sections) {
+      targetSection.subsections.push(section);
+    }
+    return this;
+  }
+
+  /**
    * Serializes all sections to an array of plain data objects.
    * @returns An array of PomSectionData representing all top-level sections.
    */
   toDict(): PomSectionData[] {
     return this.sections.map((s) => s.toDict());
+  }
+
+  /**
+   * Serializes all sections to a JSON string.
+   * @returns A JSON string representation of all top-level sections.
+   */
+  toJson(): string {
+    return JSON.stringify(this.toDict());
+  }
+
+  /**
+   * Creates a PomBuilder from an array of section data objects.
+   * @param sections - Array of section data to reconstruct.
+   * @returns A new PomBuilder populated with the given sections.
+   */
+  static fromSections(sections: PomSectionData[]): PomBuilder {
+    const builder = new PomBuilder();
+    for (const s of sections) {
+      builder.addSection(s.title ?? '', {
+        body: s.body,
+        bullets: s.bullets,
+        numbered: s.numbered,
+        numberedBullets: s.numberedBullets,
+        subsections: s.subsections as { title: string; body?: string; bullets?: string[] }[],
+      });
+    }
+    return builder;
   }
 
   /**
@@ -304,5 +413,27 @@ export class PomBuilder {
       parts.push(section.renderMarkdown(2, sectionNumber));
     }
     return parts.join('\n');
+  }
+
+  /**
+   * Renders all sections as a combined XML string with a `<prompt>` root element.
+   * @returns The complete rendered XML prompt text.
+   */
+  renderXml(): string {
+    const anyNumbered = this.sections.some((s) => s.numbered);
+    const lines: string[] = ['<?xml version="1.0" encoding="UTF-8"?>', '<prompt>'];
+    let counter = 0;
+    for (const section of this.sections) {
+      let sectionNumber: number[] = [];
+      if (section.title !== null) {
+        counter++;
+        if (anyNumbered && section.numbered !== false) {
+          sectionNumber = [counter];
+        }
+      }
+      lines.push(section.renderXml(1, sectionNumber));
+    }
+    lines.push('</prompt>');
+    return lines.join('\n');
   }
 }
