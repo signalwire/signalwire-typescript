@@ -74,13 +74,17 @@ export class Message {
     this._listeners.push(handler);
   }
 
-  /** Wait for the message to reach a terminal state. */
+  /**
+   * Wait for the message to reach a terminal state.
+   * @param timeout - Maximum time to wait in seconds (matches Python SDK convention).
+   */
   async wait(timeout?: number): Promise<RelayEvent> {
     if (timeout != null) {
+      const ms = timeout * 1000;
       return new Promise<RelayEvent>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new Error(`Message wait timed out after ${timeout}ms`));
-        }, timeout);
+          reject(new Error(`Message wait timed out after ${timeout}s`));
+        }, ms);
 
         this._done.promise.then(
           (v) => { clearTimeout(timer); resolve(v); },

@@ -502,18 +502,37 @@ export namespace plugins {
   }
 
   export class OpenAILLM {
-    constructor(_opts?: any) {}
+    model: string;
+    constructor(_opts?: any) {
+      this.model = ((_opts as any)?.model as string) ?? '';
+      globalNoop.once(
+        'openai_llm',
+        'OpenAILLM(): model selection is mapped to SignalWire AI params -- OpenAI plugin wrapper is a no-op',
+      );
+    }
   }
 
   export class CartesiaTTS {
-    constructor(_opts?: any) {}
+    constructor(_opts?: any) {
+      globalNoop.once(
+        'cartesia_tts',
+        "CartesiaTTS: SignalWire's control plane handles the full media pipeline at scale",
+      );
+    }
   }
 
   export class ElevenLabsTTS {
-    constructor(_opts?: any) {}
+    constructor(_opts?: any) {
+      globalNoop.once(
+        'elevenlabs_tts',
+        "ElevenLabsTTS: SignalWire's control plane handles the full media pipeline at scale",
+      );
+    }
   }
 
   export class SileroVAD {
+    constructor(_opts?: Record<string, unknown>) {}
+
     static load(): SileroVAD {
       globalNoop.once(
         'vad_plugin',
@@ -531,7 +550,9 @@ export namespace plugins {
 /** Stub inference types matching LiveKit's inference namespace. */
 export namespace inference {
   export class STT {
-    constructor(_model: string, _opts?: any) {
+    model: string;
+    constructor(model: string = '', _opts?: any) {
+      this.model = model;
       globalNoop.once(
         'inference_stt',
         'inference.STT: SignalWire\'s control plane handles speech recognition at scale',
@@ -540,11 +561,16 @@ export namespace inference {
   }
 
   export class LLM {
-    constructor(_model: string, _opts?: any) {}
+    model: string;
+    constructor(model: string = '', _opts?: any) {
+      this.model = model;
+    }
   }
 
   export class TTS {
-    constructor(_model: string, _opts?: any) {
+    model: string;
+    constructor(model: string = '', _opts?: any) {
+      this.model = model;
       globalNoop.once(
         'inference_tts',
         'inference.TTS: SignalWire\'s control plane handles text-to-speech at scale',
