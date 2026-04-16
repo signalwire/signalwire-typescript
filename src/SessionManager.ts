@@ -8,11 +8,38 @@
 import { randomBytes, createHmac } from 'node:crypto';
 import { getLogger } from './Logger.js';
 
+/** Decoded token debug info matching the Python SDK's nested return structure. */
+export interface DebugTokenResult {
+  valid_format: boolean;
+  components?: {
+    call_id: string;
+    function: string;
+    expiry: string;
+    expiry_date: string | null;
+    nonce: string;
+    signature: string;
+  };
+  status?: {
+    current_time: number;
+    is_expired: boolean | null;
+    expires_in_seconds: number | null;
+  };
+  parts_count?: number;
+  token_length?: number;
+  error?: string;
+}
+
 /** Stateless HMAC-SHA256 token manager for SWAIG function call authentication and per-session metadata storage. */
 export class SessionManager {
   /** Token validity duration in seconds. */
   tokenExpirySecs: number;
-  private secretKey: string;
+  /** HMAC signing secret. */
+  secretKey: string;
+  /**
+   * When true, {@link debugToken} decodes token internals.
+   * When false (default), it returns `{ error: "debug mode not enabled" }`.
+   */
+  debugMode = false;
   private sessionMetadata: Map<string, Record<string, unknown>> = new Map();
   private sessionTimestamps: Map<string, number> = new Map();
   private log = getLogger('SessionManager');
@@ -131,46 +158,106 @@ export class SessionManager {
   }
 
   /**
-   * Decode token components for debugging without validating the signature.
+   * Debug a token without validating it.
+   *
+   * Requires {@link debugMode} to be `true`. When disabled, returns
+   * `{ error: "debug mode not enabled" }` matching the Python SDK behaviour.
+   *
    * @param token - The base64url-encoded token to decode.
-   * @returns The decoded token fields and expiration status, or null if malformed.
+   * @returns A nested debug structure matching the Python SDK, or an error object.
    */
-  debugToken(token: string): { callId: string; functionName: string; expiry: number; nonce: string; signature: string; expired: boolean } | null {
+  debugToken(token: string): DebugTokenResult {
+    if (!this.debugMode) {
+      return { valid_format: false, error: 'debug mode not enabled' };
+    }
     try {
       const decoded = Buffer.from(token, 'base64url').toString();
       const parts = decoded.split('.');
-      if (parts.length !== 5) return null;
-      const [callId, functionName, expiryStr, nonce, signature] = parts;
-      const expiry = parseInt(expiryStr, 10);
+      if (parts.length !== 5) {
+        return {
+          valid_format: false,
+          parts_count: parts.length,
+          token_length: token ? token.length : 0,
+        };
+      }
+      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
+
+      const currentTime = Math.floor(Date.now() / 1000);
+      let expiry: number | null = null;
+      let isExpired: boolean | null = null;
+      let expiresIn: number | null = null;
+      let expiryDate: string | null = null;
+      const parsed = parseInt(tokenExpiry, 10);
+      if (!Number.isNaN(parsed)) {
+        expiry = parsed;
+        isExpired = expiry < currentTime;
+        expiresIn = isExpired ? 0 : expiry - currentTime;
+        expiryDate = new Date(expiry * 1000).toISOString();
+      }
+
       return {
-        callId,
-        functionName,
-        expiry,
-        nonce,
-        signature,
-        expired: expiry < Date.now() / 1000,
+        valid_format: true,
+        components: {
+          call_id: tokenCallId.length > 8 ? tokenCallId.slice(0, 8) + '...' : tokenCallId,
+          function: tokenFunction,
+          expiry: tokenExpiry,
+          expiry_date: expiryDate,
+          nonce: tokenNonce,
+          signature: tokenSignature.length > 8 ? tokenSignature.slice(0, 8) + '...' : tokenSignature,
+        },
+        status: {
+          current_time: currentTime,
+          is_expired: isExpired,
+          expires_in_seconds: expiresIn,
+        },
       };
-    } catch {
-      return null;
+    } catch (e: unknown) {
+      return {
+        valid_format: false,
+        error: e instanceof Error ? e.message : String(e),
+        token_length: token ? token.length : 0,
+      };
     }
   }
 
   /**
    * Retrieve metadata associated with a session.
+   *
+   * Returns an empty object when no metadata has been stored for the session,
+   * matching Python SDK behavior (`get_session_metadata` always returns `{}`).
+   * Callers can safely check truthiness or iterate keys without a null guard.
+   *
    * @param sessionId - The session identifier.
-   * @returns The metadata record, or undefined if no metadata exists.
+   * @returns The metadata record for the session, or `{}` if no metadata exists.
    */
-  getSessionMetadata(sessionId: string): Record<string, unknown> | undefined {
-    return this.sessionMetadata.get(sessionId);
+  getSessionMetadata(sessionId: string): Record<string, unknown> {
+    return this.sessionMetadata.get(sessionId) ?? {};
   }
 
   /**
    * Merge metadata into a session, creating the entry if it does not exist.
+   *
+   * Supports two call signatures for Python SDK compatibility:
+   * - `setSessionMetadata(sessionId, metadata)` — bulk merge (TS-native)
+   * - `setSessionMetadata(sessionId, key, value)` — single key/value (Python-compatible)
+   *
    * @param sessionId - The session identifier.
-   * @param metadata - Key-value pairs to merge into the session metadata.
+   * @param metadataOrKey - A metadata record to merge, or a string key when called with three arguments.
+   * @param value - The value to set when called with a string key.
    */
-  setSessionMetadata(sessionId: string, metadata: Record<string, unknown>): void {
-    this.sessionMetadata.set(sessionId, { ...this.sessionMetadata.get(sessionId), ...metadata });
+  setSessionMetadata(sessionId: string, metadataOrKey: Record<string, unknown>): void;
+  setSessionMetadata(sessionId: string, key: string, value: unknown): boolean;
+  setSessionMetadata(sessionId: string, metadataOrKey: Record<string, unknown> | string, value?: unknown): void | boolean {
+    if (typeof metadataOrKey === 'string') {
+      // Python-compatible single key/value overload — returns bool for parity
+      this.sessionMetadata.set(sessionId, { ...this.sessionMetadata.get(sessionId), [metadataOrKey]: value });
+      this.sessionTimestamps.set(sessionId, Date.now());
+      if (this.sessionMetadata.size > 1000) {
+        this.cleanup();
+      }
+      return true;
+    }
+    this.sessionMetadata.set(sessionId, { ...this.sessionMetadata.get(sessionId), ...metadataOrKey });
     this.sessionTimestamps.set(sessionId, Date.now());
     // Auto-cleanup when map grows too large
     if (this.sessionMetadata.size > 1000) {
@@ -191,6 +278,26 @@ export class SessionManager {
         this.sessionTimestamps.delete(id);
       }
     }
+  }
+
+  /**
+   * Legacy method retained for API compatibility with the Python SDK.
+   * Does nothing and returns `true`.
+   * @param _callId - The call/session identifier (unused).
+   * @returns Always `true`.
+   */
+  activateSession(_callId: string): boolean {
+    return true;
+  }
+
+  /**
+   * Legacy method retained for API compatibility with the Python SDK.
+   * Does nothing and returns `true`.
+   * @param _callId - The call/session identifier (unused).
+   * @returns Always `true`.
+   */
+  endSession(_callId: string): boolean {
+    return true;
   }
 
   /**

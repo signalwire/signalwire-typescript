@@ -45,6 +45,7 @@ export {
 
 // Security
 export { SessionManager } from './SessionManager.js';
+export type { DebugTokenResult } from './SessionManager.js';
 
 // SSL
 export { SslConfig } from './SslConfig.js';
