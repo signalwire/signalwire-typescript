@@ -11,8 +11,8 @@ export type { RoutingCallback } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)
-export { SWMLService, SecurityConfig, VerbHandlerRegistry } from './SWMLService.js';
-export type { OnRequestCallback, SWMLServiceOptions, SWMLVerbHandler } from './SWMLService.js';
+export { SWMLService, SecurityConfig } from './SWMLService.js';
+export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
 
 // Web Service (static file serving)
 export { WebService } from './WebService.js';
