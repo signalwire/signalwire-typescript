@@ -153,6 +153,18 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       const doc = builder.getDocument() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(0);
     });
+
+    it('returns this for fluent chaining', () => {
+      const result = builder.answer().reset();
+      expect(result).toBe(builder);
+    });
+
+    it('chains reset with further verbs', () => {
+      builder.answer().hangup().reset().answer();
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main).toHaveLength(1);
+      expect(doc.sections.main[0]).toEqual({ answer: {} });
+    });
   });
 
   describe('validation', () => {
@@ -199,6 +211,156 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
       expect(doc.sections['greet']).toHaveLength(1);
       expect(doc.sections['greet'][0]).toEqual({ play: { url: 'https://example.com/hi.mp3' } });
+    });
+  });
+
+  describe('say() — text-to-speech convenience', () => {
+    it('adds a play verb with say: prefix', () => {
+      builder.say('Hello world');
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main).toHaveLength(1);
+      expect(doc.sections.main[0]).toEqual({ play: { url: 'say:Hello world' } });
+    });
+
+    it('passes voice option as say_voice', () => {
+      builder.say('Hello', { voice: 'en-US-Neural2-F' });
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main[0]).toEqual({
+        play: { url: 'say:Hello', say_voice: 'en-US-Neural2-F' },
+      });
+    });
+
+    it('passes all TTS options', () => {
+      builder.say('Test', { voice: 'v', language: 'en', gender: 'female', volume: 10 });
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main[0]).toEqual({
+        play: {
+          url: 'say:Test',
+          say_voice: 'v',
+          say_language: 'en',
+          say_gender: 'female',
+          volume: 10,
+        },
+      });
+    });
+
+    it('returns this for fluent chaining', () => {
+      const result = builder.say('Hi');
+      expect(result).toBe(builder);
+    });
+
+    it('chains say with other verbs', () => {
+      builder.answer().say('Welcome').hangup();
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main).toHaveLength(3);
+      expect(doc.sections.main[1]).toEqual({ play: { url: 'say:Welcome' } });
+    });
+  });
+
+  describe('addSection() — create empty section', () => {
+    it('creates an empty named section', () => {
+      builder.addSection('greetings');
+      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      expect(doc.sections['greetings']).toEqual([]);
+    });
+
+    it('is a no-op if section already exists', () => {
+      builder.addVerbToSection('greetings', 'play', { url: 'https://example.com/hi.mp3' });
+      builder.addSection('greetings');
+      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      expect(doc.sections['greetings']).toHaveLength(1);
+    });
+
+    it('returns this for fluent chaining', () => {
+      const result = builder.addSection('test');
+      expect(result).toBe(builder);
+    });
+
+    it('chains with addVerbToSection', () => {
+      builder.addSection('custom').addVerbToSection('custom', 'play', { url: 'say:hi' });
+      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      expect(doc.sections['custom']).toHaveLength(1);
+    });
+  });
+
+  describe('build() — alias for getDocument()', () => {
+    it('returns the same result as getDocument', () => {
+      builder.answer();
+      expect(builder.build()).toBe(builder.getDocument());
+    });
+
+    it('returns document with version and sections', () => {
+      builder.answer();
+      const doc = builder.build();
+      expect(doc).toHaveProperty('version', '1.0.0');
+      expect(doc).toHaveProperty('sections');
+    });
+  });
+
+  describe('render() — alias for renderDocument()', () => {
+    it('returns the same result as renderDocument', () => {
+      builder.answer();
+      expect(builder.render()).toBe(builder.renderDocument());
+    });
+
+    it('produces valid JSON', () => {
+      builder.answer().hangup();
+      const json = builder.render();
+      const parsed = JSON.parse(json);
+      expect(parsed.version).toBe('1.0.0');
+      expect(parsed.sections.main).toHaveLength(2);
+    });
+  });
+
+  describe('constructor with initialDocument', () => {
+    it('accepts an initial document', () => {
+      const initial = {
+        version: '1.0.0',
+        sections: { main: [{ answer: {} }] },
+      };
+      const b = new SwmlBuilder({ initialDocument: initial });
+      const doc = b.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main).toHaveLength(1);
+      expect(doc.sections.main[0]).toEqual({ answer: {} });
+    });
+
+    it('defaults version to 1.0.0 when omitted', () => {
+      const b = new SwmlBuilder({ initialDocument: { sections: { main: [] } } });
+      expect(b.getDocument()).toHaveProperty('version', '1.0.0');
+    });
+
+    it('defaults sections when omitted', () => {
+      const b = new SwmlBuilder({ initialDocument: {} });
+      const doc = b.getDocument() as { sections: Record<string, unknown[]> };
+      expect(doc.sections).toHaveProperty('main');
+    });
+
+    it('still works with no options', () => {
+      const b = new SwmlBuilder();
+      const doc = b.getDocument() as { sections: { main: unknown[] } };
+      expect(doc).toHaveProperty('version', '1.0.0');
+      expect(doc.sections.main).toHaveLength(0);
+    });
+  });
+
+  describe('document public accessor', () => {
+    it('exposes the internal document via getter', () => {
+      builder.answer();
+      const doc = builder.document;
+      expect(doc.version).toBe('1.0.0');
+      expect(doc.sections.main).toHaveLength(1);
+    });
+
+    it('returns the same reference as getDocument', () => {
+      expect(builder.document).toBe(builder.getDocument());
+    });
+  });
+
+  describe('hangup reason type widened to string', () => {
+    it('accepts arbitrary string reasons', () => {
+      builder.hangup({ reason: 'custom_reason' });
+      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
     });
   });
 

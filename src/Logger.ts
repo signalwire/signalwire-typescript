@@ -152,6 +152,40 @@ function formatKvPairs(data: Record<string, unknown>): string {
     .join(' ');
 }
 
+/** Regex matching control characters that should be stripped from log values. */
+const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
+
+/**
+ * Strip control characters from all string values in a data record to prevent
+ * log injection attacks. Mirrors Python SDK's `strip_control_chars` structlog
+ * processor. Processes nested objects and arrays recursively.
+ *
+ * @param data - The record whose string values should be sanitized.
+ * @returns A shallow copy of `data` with control characters removed from strings.
+ */
+export function stripControlChars<T extends Record<string, unknown>>(data: T): T {
+  const result = {} as T;
+  for (const key of Object.keys(data) as (keyof T)[]) {
+    const value = data[key];
+    if (typeof value === 'string') {
+      result[key] = value.replace(CONTROL_CHAR_RE, '') as T[keyof T];
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        typeof item === 'string'
+          ? item.replace(CONTROL_CHAR_RE, '')
+          : item !== null && typeof item === 'object' && !Array.isArray(item)
+            ? stripControlChars(item as Record<string, unknown>)
+            : item
+      ) as T[keyof T];
+    } else if (value !== null && typeof value === 'object') {
+      result[key] = stripControlChars(value as Record<string, unknown>) as T[keyof T];
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 /** Serialize Error instances in data to plain objects with message, name, stack. */
 function serializeErrors(data: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -229,8 +263,9 @@ export class Logger {
     if (globalSuppressed) return;
     if (LEVELS[level] < LEVELS[globalLevel]) return;
 
-    // Serialize Error instances before merging
-    const safeData = data ? serializeErrors(data) : data;
+    // Serialize Error instances then strip control characters before merging
+    const serialized = data ? serializeErrors(data) : data;
+    const safeData = serialized ? stripControlChars(serialized) : serialized;
 
     const merged = (safeData && Object.keys(safeData).length) || Object.keys(this.context).length
       ? { ...this.context, ...safeData }

@@ -385,6 +385,22 @@ export class Step {
   }
 
   /**
+   * Returns the valid steps list for this step, if any.
+   * @internal
+   */
+  getValidSteps(): string[] | null {
+    return this.validSteps;
+  }
+
+  /**
+   * Returns the valid contexts list for this step, if any.
+   * @internal
+   */
+  getStepValidContexts(): string[] | null {
+    return this.validContexts;
+  }
+
+  /**
    * Removes all POM sections and raw text from this step.
    * @returns This step for chaining.
    */
@@ -996,6 +1012,53 @@ export class ContextBuilder {
           if (!this.contexts.has(ref)) {
             throw new Error(`Context '${ctx.name}' references unknown context '${ref}'`);
           }
+        }
+      }
+    }
+    // Validate step references in valid_steps
+    for (const [ctxName, ctx] of this.contexts) {
+      const steps = ctx.getSteps();
+      for (const [stepName, step] of steps) {
+        const vs = step.getValidSteps();
+        if (vs) {
+          for (const ref of vs) {
+            if (ref !== 'next' && !steps.has(ref)) {
+              throw new Error(
+                `Step '${stepName}' in context '${ctxName}' references unknown step '${ref}'`,
+              );
+            }
+          }
+        }
+      }
+    }
+    // Validate context references in valid_contexts (step-level)
+    for (const [ctxName, ctx] of this.contexts) {
+      for (const [stepName, step] of ctx.getSteps()) {
+        const vc = step.getStepValidContexts();
+        if (vc) {
+          for (const ref of vc) {
+            if (!this.contexts.has(ref)) {
+              throw new Error(
+                `Step '${stepName}' in context '${ctxName}' references unknown context '${ref}'`,
+              );
+            }
+          }
+        }
+      }
+    }
+    // Validate gather_info: no duplicate question keys
+    for (const [ctxName, ctx] of this.contexts) {
+      for (const [stepName, step] of ctx.getSteps()) {
+        const gi = step.getGatherInfo();
+        if (!gi) continue;
+        const keysSeen = new Set<string>();
+        for (const q of gi.getQuestions()) {
+          if (keysSeen.has(q.key)) {
+            throw new Error(
+              `Step '${stepName}' in context '${ctxName}' has duplicate gather_info question key '${q.key}'`,
+            );
+          }
+          keysSeen.add(q.key);
         }
       }
     }
