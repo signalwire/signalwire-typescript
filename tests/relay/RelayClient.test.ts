@@ -614,4 +614,166 @@ describe('RelayClient', () => {
       await client.disconnect();
     });
   });
+
+  describe('jwtToken env precedence', () => {
+    let origJwt: string | undefined;
+
+    beforeEach(() => {
+      origJwt = process.env.SIGNALWIRE_JWT_TOKEN;
+    });
+    afterEach(() => {
+      if (origJwt === undefined) delete process.env.SIGNALWIRE_JWT_TOKEN;
+      else process.env.SIGNALWIRE_JWT_TOKEN = origJwt;
+    });
+
+    it('reads SIGNALWIRE_JWT_TOKEN from env when option omitted', () => {
+      process.env.SIGNALWIRE_JWT_TOKEN = 'env-jwt';
+      const client = new RelayClient({});
+      expect(client.jwtToken).toBe('env-jwt');
+    });
+
+    it('explicit jwtToken option wins over env', () => {
+      process.env.SIGNALWIRE_JWT_TOKEN = 'env-jwt';
+      const client = new RelayClient({ jwtToken: 'arg-jwt' });
+      expect(client.jwtToken).toBe('arg-jwt');
+    });
+  });
+
+  describe('maxActiveCalls env precedence', () => {
+    let origMax: string | undefined;
+
+    beforeEach(() => {
+      origMax = process.env.RELAY_MAX_ACTIVE_CALLS;
+    });
+    afterEach(() => {
+      if (origMax === undefined) delete process.env.RELAY_MAX_ACTIVE_CALLS;
+      else process.env.RELAY_MAX_ACTIVE_CALLS = origMax;
+    });
+
+    it('reads RELAY_MAX_ACTIVE_CALLS from env when option omitted', () => {
+      process.env.RELAY_MAX_ACTIVE_CALLS = '42';
+      const client = new RelayClient({ project: 'p', token: 't' });
+      expect((client as any)._maxActiveCalls).toBe(42);
+    });
+
+    it('explicit maxActiveCalls option wins over env', () => {
+      process.env.RELAY_MAX_ACTIVE_CALLS = '42';
+      const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: 7 });
+      expect((client as any)._maxActiveCalls).toBe(7);
+    });
+
+    it('invalid env value falls back to default 1000', () => {
+      process.env.RELAY_MAX_ACTIVE_CALLS = 'not-a-number';
+      const client = new RelayClient({ project: 'p', token: 't' });
+      expect((client as any)._maxActiveCalls).toBe(1000);
+    });
+
+    it('non-positive env value clamps to 1', () => {
+      process.env.RELAY_MAX_ACTIVE_CALLS = '0';
+      const client = new RelayClient({ project: 'p', token: 't' });
+      expect((client as any)._maxActiveCalls).toBe(1);
+    });
+
+    it('non-positive explicit option clamps to 1', () => {
+      const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: -5 });
+      expect((client as any)._maxActiveCalls).toBe(1);
+    });
+
+    it('defaults to 1000 when env and option are absent', () => {
+      delete process.env.RELAY_MAX_ACTIVE_CALLS;
+      const client = new RelayClient({ project: 'p', token: 't' });
+      expect((client as any)._maxActiveCalls).toBe(1000);
+    });
+  });
+
+  describe('Symbol.asyncDispose', () => {
+    it('exposes an asyncDispose method', () => {
+      const client = new RelayClient({ project: 'p', token: 't' });
+      expect(typeof (client as any)[Symbol.asyncDispose]).toBe('function');
+    });
+
+    it('invoking asyncDispose calls disconnect (removes from active set)', async () => {
+      const { client } = createClient();
+      await client.connect();
+      // Explicitly invoke the disposer
+      await (client as any)[Symbol.asyncDispose]();
+      // After disposal, a second client should be able to connect without
+      // tripping the _MAX_CONNECTIONS guard.
+      const { client: other } = createClient();
+      await expect(other.connect()).resolves.toBeUndefined();
+      await other.disconnect();
+    });
+  });
+
+  describe('_MAX_CONNECTIONS guard', () => {
+    it('rejects a second concurrent client.connect() with default limit of 1', async () => {
+      const { client: a } = createClient();
+      const { client: b } = createClient();
+      await a.connect();
+      try {
+        await expect(b.connect()).rejects.toThrow(/connection limit reached/);
+      } finally {
+        await a.disconnect();
+      }
+    });
+
+    it('reconnecting the same instance does not trip the guard', async () => {
+      const { client } = createClient();
+      await client.connect();
+      // Simulate the reconnect case — same instance reconnects after a drop.
+      // Don't disconnect() first (that would remove it from the set).
+      await expect(client.connect()).resolves.toBeUndefined();
+      await client.disconnect();
+    });
+
+    it('after disconnect, a new client can connect', async () => {
+      const { client: a } = createClient();
+      await a.connect();
+      await a.disconnect();
+      const { client: b } = createClient();
+      await expect(b.connect()).resolves.toBeUndefined();
+      await b.disconnect();
+    });
+
+    it('RELAY_MAX_CONNECTIONS env > 1 allows additional clients', async () => {
+      const origMaxConn = process.env.RELAY_MAX_CONNECTIONS;
+      process.env.RELAY_MAX_CONNECTIONS = '3';
+      // Module caches _MAX_CONNECTIONS at load time, so we re-import fresh.
+      vi.resetModules();
+      try {
+        const mod = await import('../../src/relay/RelayClient.js');
+        const { MockWebSocket: FreshMockWs } = await import('./helpers.js');
+        const freshCreate = (): { client: InstanceType<typeof mod.RelayClient>; ws: any } => {
+          const mockWs = new FreshMockWs();
+          const client = new mod.RelayClient({
+            project: 'p', token: 't', host: 'relay.test.com',
+          });
+          (client as any)._wsFactory = () => {
+            mockWs.autoAuthenticate();
+            return mockWs;
+          };
+          return { client, ws: mockWs };
+        };
+        const a = freshCreate().client;
+        const b = freshCreate().client;
+        const c = freshCreate().client;
+        await a.connect();
+        await b.connect();
+        await c.connect();
+        try {
+          // Fourth should fail
+          const d = freshCreate().client;
+          await expect(d.connect()).rejects.toThrow(/connection limit reached \(3\)/);
+        } finally {
+          await a.disconnect();
+          await b.disconnect();
+          await c.disconnect();
+        }
+      } finally {
+        if (origMaxConn === undefined) delete process.env.RELAY_MAX_CONNECTIONS;
+        else process.env.RELAY_MAX_CONNECTIONS = origMaxConn;
+        vi.resetModules();
+      }
+    });
+  });
 });

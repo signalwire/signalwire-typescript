@@ -59,6 +59,22 @@ const SUCCESS_CODE_RE = /^2\d{2}$/;
 // Safety limits
 const DEFAULT_MAX_ACTIVE_CALLS = 1000;
 
+// Max concurrent RelayClient connections per process (env: RELAY_MAX_CONNECTIONS)
+// Mirrors Python _MAX_CONNECTIONS (relay/client.py:81-88). Default 1, min 1,
+// invalid env values fall back to 1.
+function _parseMaxConnections(): number {
+  const raw = process.env.RELAY_MAX_CONNECTIONS;
+  if (raw == null || raw === '') return 1;
+  const parsed = parseInt(raw, 10);
+  if (isNaN(parsed)) return 1;
+  return Math.max(1, parsed);
+}
+const _MAX_CONNECTIONS = _parseMaxConnections();
+
+// Process-wide tracking of active RelayClient instances. Python uses id(self);
+// TS has no such helper, so we track instance refs — identity equality is fine.
+const _activeClients: Set<RelayClient> = new Set();
+
 type WsLike = {
   send(data: string): void;
   close(code?: number, reason?: string): void;
@@ -185,6 +201,23 @@ export class RelayClient {
 
   /** Connect to RELAY and authenticate. */
   async connect(): Promise<void> {
+    // Guard against connection leaks — enforce per-process limit.
+    // Don't count ourselves (allows reconnect without double-counting).
+    // Mirrors Python relay/client.py:216-228.
+    let otherCount = 0;
+    for (const c of _activeClients) {
+      if (c !== this) otherCount++;
+    }
+    if (otherCount >= _MAX_CONNECTIONS) {
+      throw new Error(
+        `RelayClient connection limit reached (${_MAX_CONNECTIONS}). ` +
+        `There are already ${otherCount} active connection(s) in this process. ` +
+        `Call disconnect() on existing clients first, or set ` +
+        `RELAY_MAX_CONNECTIONS env var to allow more.`,
+      );
+    }
+    _activeClients.add(this);
+
     const uri = `wss://${this.host}`;
     logger.info(`Connecting to ${uri}`);
 
@@ -289,6 +322,9 @@ export class RelayClient {
   async disconnect(): Promise<void> {
     this._closing = true;
     this._connected = false;
+    // Mirrors Python relay/client.py:290 — remove from per-process active set.
+    // Safe to call even if we never connected (Set.delete is idempotent).
+    _activeClients.delete(this);
     this._stopPingLoop();
     this._cancelServerPingTimeout();
 
