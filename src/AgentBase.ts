@@ -1249,6 +1249,7 @@ export class AgentBase {
     if (this._proxyUrlBase) {
       let base = this._proxyUrlBase.replace(/\/+$/, '');
       if (includeAuth) base = this.insertAuth(base);
+      if (this.route && this.route !== '/') base += this.route;
       return base;
     }
     const protocol = this._enforceHttps ? 'https' : 'http';
