@@ -355,49 +355,27 @@ export class ConfigLoader {
   /**
    * Merge configuration with environment variables that match a prefix.
    *
-   * Config file values take precedence over environment variables.
-   * Environment variable keys are stripped of the prefix and lowercased.
-   *
-   * **Flat mode (default — `nested` omitted or `false`):**
-   * The lowercased key is stored as-is (e.g. `SWML_FOO_BAR` → `{ foo_bar: v }`).
-   * Flat keys are unambiguous and predictable. Callers that need nested
-   * access can use {@link get} with dot-notation after loading.
-   *
-   * **Nested mode (`nested: true`):**
-   * Replicates Python's `merge_with_env()` behaviour: the lowercased key is
-   * split on `_` and the value is written into a nested dict
-   * (e.g. `SWML_FOO_BAR` → `{ foo: { bar: v } }`). The check for whether a
-   * key is already present in config also walks the same nested path, so
-   * config-file values still take precedence. Pass `nested: true` when
-   * porting Python callers that rely on this structure.
+   * Config file values take precedence over environment variables. Matching
+   * env var keys are stripped of the prefix, lowercased, split on `_`, and
+   * written into a nested object (e.g. `SWML_FOO_BAR` → `{ foo: { bar: v } }`).
+   * Mirrors Python's `merge_with_env` in
+   * `signalwire/signalwire/core/config_loader.py`.
    *
    * @param envPrefix - Prefix for environment variables to consider (default: `'SWML_'`).
-   * @param opts - Options object.
-   * @param opts.nested - When `true`, split the stripped key on `_` and write
-   *   values into nested objects (Python-compatible mode). Defaults to `false`.
    * @returns Merged configuration dictionary.
    */
-  mergeWithEnv(envPrefix?: string, opts?: { nested?: boolean }): Record<string, unknown>;
-  mergeWithEnv(envPrefix = 'SWML_', opts: { nested?: boolean } = {}): Record<string, unknown> {
+  mergeWithEnv(envPrefix = 'SWML_'): Record<string, unknown> {
     // Start with substituted config
     const result = (Object.keys(this.data).length > 0
       ? this.substituteVars(this.data)
       : {}) as Record<string, unknown>;
 
-    const useNested = opts.nested === true;
-
     // Add env vars not already present in config
     for (const [key, value] of Object.entries(process.env)) {
       if (key.startsWith(envPrefix) && value !== undefined) {
         const configKey = key.slice(envPrefix.length).toLowerCase();
-        if (useNested) {
-          if (!this._hasNestedKey(result, configKey)) {
-            this._setNestedKey(result, configKey, value);
-          }
-        } else {
-          if (!(configKey in result)) {
-            result[configKey] = value;
-          }
+        if (!this._hasNestedKey(result, configKey)) {
+          this._setNestedKey(result, configKey, value);
         }
       }
     }
@@ -407,7 +385,7 @@ export class ConfigLoader {
 
   /**
    * Check if a nested key (underscore-separated path) exists in a dict.
-   * Used by {@link mergeWithEnv} nested mode to mirror Python's `_has_nested_key`.
+   * Used by {@link mergeWithEnv} to mirror Python's `_has_nested_key`.
    */
   private _hasNestedKey(data: Record<string, unknown>, keyPath: string): boolean {
     const keys = keyPath.split('_');
@@ -427,7 +405,7 @@ export class ConfigLoader {
   /**
    * Set a value in a dict using an underscore-separated path, creating
    * intermediate objects as needed.
-   * Used by {@link mergeWithEnv} nested mode to mirror Python's `_set_nested_key`.
+   * Used by {@link mergeWithEnv} to mirror Python's `_set_nested_key`.
    */
   private _setNestedKey(data: Record<string, unknown>, keyPath: string, value: unknown): void {
     const keys = keyPath.split('_');
