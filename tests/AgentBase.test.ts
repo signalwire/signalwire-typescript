@@ -1031,4 +1031,63 @@ describe('AgentBase', () => {
       if (savedPass) process.env['SWML_BASIC_AUTH_PASSWORD'] = savedPass;
     }
   });
+
+  describe('validateToolToken', () => {
+    it('returns false for an unknown function', () => {
+      const agent = createAgent();
+      expect(agent.validateToolToken('missing', 'tok', 'call-1')).toBe(false);
+    });
+
+    it('returns true for a registered non-secure function without consulting SessionManager', () => {
+      const agent = createAgent();
+      agent.defineTool({
+        name: 'insecure_tool',
+        description: 'no auth needed',
+        parameters: {},
+        handler: () => new FunctionResult('ok'),
+        secure: false,
+      });
+
+      // Fail loudly if SessionManager is consulted — non-secure tools must short-circuit.
+      const sm = (agent as any).sessionManager;
+      const orig = sm.validateToolToken.bind(sm);
+      sm.validateToolToken = () => {
+        throw new Error('SessionManager.validateToolToken must not be called for non-secure tools');
+      };
+      try {
+        expect(agent.validateToolToken('insecure_tool', '', '')).toBe(true);
+      } finally {
+        sm.validateToolToken = orig;
+      }
+    });
+
+    it('returns true for a registered secure function with a valid token', () => {
+      const agent = createAgent();
+      agent.defineTool({
+        name: 'secure_tool',
+        description: 'auth required',
+        parameters: {},
+        handler: () => new FunctionResult('ok'),
+        secure: true,
+      });
+
+      const sm = (agent as any).sessionManager;
+      const callId = 'call-abc';
+      const token = sm.createToolToken('secure_tool', callId);
+      expect(agent.validateToolToken('secure_tool', token, callId)).toBe(true);
+    });
+
+    it('returns false for a registered secure function with an invalid token', () => {
+      const agent = createAgent();
+      agent.defineTool({
+        name: 'secure_tool',
+        description: 'auth required',
+        parameters: {},
+        handler: () => new FunctionResult('ok'),
+        secure: true,
+      });
+
+      expect(agent.validateToolToken('secure_tool', 'bogus-token', 'call-xyz')).toBe(false);
+    });
+  });
 });
