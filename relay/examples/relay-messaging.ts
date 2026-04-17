@@ -5,7 +5,7 @@
  *
  * Required env vars:
  *   SIGNALWIRE_PROJECT_ID - Your SignalWire project ID
- *   SIGNALWIRE_TOKEN      - Your SignalWire API token
+ *   SIGNALWIRE_API_TOKEN   - Your SignalWire API token
  *   SIGNALWIRE_SPACE      - Your SignalWire space (e.g. example.signalwire.com)
  *   MSG_TO                - Destination number in E.164 format
  *   MSG_FROM              - Sender number in E.164 format (must be owned by your project)
@@ -41,8 +41,8 @@ async function sendAndWait() {
   // Send outbound SMS
   console.log(`Sending SMS to ${to}...`);
   const message = await client.sendMessage({
-    to,
-    from,
+    toNumber: to,
+    fromNumber: from,
     body: 'Hello from SignalWire RELAY TypeScript SDK!',
   });
   console.log(`Message queued: id=${message.messageId}`);
