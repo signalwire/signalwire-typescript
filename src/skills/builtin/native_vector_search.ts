@@ -49,7 +49,7 @@ export type ResponseFormatCallback = (ctx: {
   /** The AgentBase instance that owns this skill. Equivalent to Python's `agent` positional arg. */
   agent?: AgentBase;
   query: string;
-  results: Array<{ content: string; score: number; metadata: Record<string, unknown>; tags?: string[] }>;
+  results: Array<{ content: string; score: number; metadata: Record<string, unknown> }>;
   args: Record<string, unknown>;
   count: number;
   skill: NativeVectorSearchSkill;
@@ -72,7 +72,6 @@ interface SearchResult {
   content: string;
   score: number;
   metadata: Record<string, unknown>;
-  tags?: string[];
 }
 
 /**
@@ -154,12 +153,6 @@ export class NativeVectorSearchSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
-      tool_name: {
-        type: 'string',
-        description: 'Custom tool name for this vector search instance.',
-        default: 'search_knowledge',
-        required: false,
-      },
       index_file: {
         type: 'string',
         description:
@@ -375,8 +368,13 @@ export class NativeVectorSearchSkill extends SkillBase {
   private responseFormatCallback: ResponseFormatCallback | undefined;
   private description = 'Search the knowledge base for information';
   private verbose = false;
-  /** Hybrid scoring weight: 0.0 = pure TF-IDF, 1.0 = pure keyword overlap. */
-  private keywordWeight = 0.0;
+  /**
+   * Hybrid scoring weight: 0.0 = pure TF-IDF, 1.0 = pure keyword overlap.
+   * `null` means "use Python default of 0.3 at search time" — matches
+   * Python `SearchEngine._merge_all_results` behavior when `keyword_weight`
+   * is None (see `search_engine.py` line 449).
+   */
+  private keywordWeight: number | null = null;
   private searchAvailable = false;
   private useRemote = false;
   private remoteBaseUrl: string | undefined;
@@ -426,10 +424,8 @@ export class NativeVectorSearchSkill extends SkillBase {
       'Search the knowledge base for information',
     );
     this.verbose = this.getConfig<boolean>('verbose', false);
-    this.keywordWeight = Math.min(
-      1.0,
-      Math.max(0.0, this.getConfig<number>('keyword_weight', 0.0)),
-    );
+    const kw = this.getConfig<number | null | undefined>('keyword_weight', null);
+    this.keywordWeight = kw == null ? null : Math.min(1.0, Math.max(0.0, kw));
 
     // Remote search configuration
     this.remoteUrl = this.getConfig<string | undefined>('remote_url', undefined);
@@ -721,7 +717,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       if (content.length > perResultLimit) {
         content = content.slice(0, perResultLimit) + '...';
       }
-      const tags = r.tags ?? (r.metadata['tags'] as string[] | undefined) ?? [];
+      const tags = (r.metadata['tags'] as string[] | undefined) ?? [];
 
       let text = `**Result ${i + 1}** (from ${filename}`;
       if (section) text += `, section: ${section}`;
@@ -766,7 +762,8 @@ export class NativeVectorSearchSkill extends SkillBase {
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) return [];
 
-    const weight = this.keywordWeight;
+    // Mirrors Python search_engine.py line 449: None → 0.3.
+    const weight = this.keywordWeight ?? 0.3;
     const scored = this._documents.map((doc, i) => {
       const tfidf = scoreTfIdf(queryTokens, this._docTfs[i], this._idf);
       let score: number;
@@ -806,7 +803,6 @@ export class NativeVectorSearchSkill extends SkillBase {
         ...(doc.metadata ?? {}),
         tags: doc.tags ?? [],
       },
-      tags: doc.tags ?? [],
     }));
   }
 
@@ -846,14 +842,12 @@ export class NativeVectorSearchSkill extends SkillBase {
           content: string;
           score: number;
           metadata: Record<string, unknown>;
-          tags?: string[];
         }>;
       };
       return (data.results ?? []).map((r) => ({
         content: r.content,
         score: r.score,
         metadata: r.metadata,
-        tags: r.tags,
       }));
     } catch (err) {
       log.error('native_vector_search: remote search error', {
