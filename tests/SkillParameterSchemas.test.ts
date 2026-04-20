@@ -18,7 +18,6 @@ import { SpiderSkill } from '../src/skills/builtin/spider.js';
 import { ClaudeSkillsSkill } from '../src/skills/builtin/claude_skills.js';
 import { AskClaudeSkill } from '../src/skills/builtin/ask_claude.js';
 import { McpGatewaySkill } from '../src/skills/builtin/mcp_gateway.js';
-import type { ParameterSchemaEntry } from '../src/skills/SkillBase.js';
 
 const ALL_SKILLS = [
   { name: 'DateTimeSkill', cls: DateTimeSkill },
@@ -78,10 +77,10 @@ describe('Skill Parameter Schemas', () => {
       expect(schema).toHaveProperty('tool_name');
     });
 
-    it('NativeVectorSearchSkill has tool_name param', () => {
-      const schema = NativeVectorSearchSkill.getParameterSchema();
-      expect(schema).toHaveProperty('tool_name');
-    });
+    // NativeVectorSearchSkill intentionally omits tool_name from
+    // getParameterSchema — Python reference schema does not include it
+    // either. The internal default 'search_knowledge' still applies via
+    // getConfig fallback.
   });
 
   describe('specific schema details', () => {
