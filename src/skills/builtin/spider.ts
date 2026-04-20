@@ -20,7 +20,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
-import { resolveAndValidateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
+import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 import * as cheerio from 'cheerio';
 
@@ -129,7 +129,8 @@ export class SpiderSkill extends SkillBase {
         description: 'Custom CSS/XPath selectors for structured extraction',
         default: {},
         required: false,
-      },
+        additionalProperties: { type: 'string' },
+      } as ParameterSchemaEntry & { additionalProperties?: unknown },
       follow_patterns: {
         type: 'array',
         description: 'URL patterns to follow when crawling',
@@ -148,11 +149,16 @@ export class SpiderSkill extends SkillBase {
         description: 'Additional HTTP headers',
         default: {},
         required: false,
-      },
+        additionalProperties: { type: 'string' },
+      } as ParameterSchemaEntry & { additionalProperties?: unknown },
       follow_robots_txt: {
         type: 'boolean',
-        description: 'Whether to respect robots.txt',
-        default: true,
+        // Matches Python's __init__ runtime fallback (skills/spider/skill.py:177
+        // uses `params.get('follow_robots_txt', False)`). Python's schema said
+        // True but the runtime and TS both use False — aligning the schema
+        // eliminates the cross-SDK contract mismatch.
+        description: 'Whether to respect robots.txt (default: false to match Python runtime)',
+        default: false,
         required: false,
       },
       cache_enabled: {
@@ -291,6 +297,7 @@ export class SpiderSkill extends SkillBase {
     if (this.cache) {
       this.cache.clear();
     }
+    log.info('spider: cleaned up');
   }
 
   /** @returns Manifest describing the Spider skill capabilities and config. */
@@ -302,6 +309,10 @@ export class SpiderSkill extends SkillBase {
       author: 'SignalWire',
       tags: ['scraping', 'web', 'spider', 'content', 'extraction'],
       requiredEnvVars: [],
+      // Python declares REQUIRED_PACKAGES = ["lxml"]; the TS equivalent is
+      // cheerio which we import at module load. Declaring it in the manifest
+      // lets validatePackages() surface missing-dep errors meaningfully.
+      requiredPackages: ['cheerio'],
     };
   }
 
@@ -419,37 +430,54 @@ export class SpiderSkill extends SkillBase {
    * need to branch on status/content-type.
    */
   private _fastTextExtract(response: CachedResponse): string {
-    let stripped = response.body;
-    for (const re of STRIP_TAG_REGEXES) {
-      stripped = stripped.replace(re, ' ');
-    }
-    // Remove all remaining tags
-    stripped = stripped.replace(/<[^>]+>/g, ' ');
-    // HTML entity decode (basic)
-    stripped = stripped
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+    try {
+      // Parse through cheerio so every named and numeric HTML entity is
+      // decoded (Python's lxml does this natively). Previously TS only
+      // decoded six hand-coded entities, leaving `&mdash;`, `&#8212;`, etc.
+      // literal in the output.
+      const $ = cheerio.load(response.body);
+      // Strip noise tags before extracting text — matches Python's
+      // lxml drop_tree() on the same 7 tags.
+      for (const tag of [
+        'script',
+        'style',
+        'nav',
+        'header',
+        'footer',
+        'aside',
+        'noscript',
+      ]) {
+        $(tag).remove();
+      }
+      let text = $('body').text();
+      if (!text || text.trim().length === 0) {
+        // Pages without <body> fall through to document-root text.
+        text = $.root().text();
+      }
+      if (this.cleanText) {
+        text = text.replace(WHITESPACE_REGEX, ' ').trim();
+      }
 
-    let text = stripped;
-    if (this.cleanText) {
-      text = text.replace(WHITESPACE_REGEX, ' ').trim();
-    }
+      // Smart truncation
+      if (text.length > this.maxTextLength) {
+        const keepStart = Math.floor((this.maxTextLength * 2) / 3);
+        const keepEnd = Math.floor(this.maxTextLength / 3);
+        text =
+          text.slice(0, keepStart) +
+          '\n\n[...CONTENT TRUNCATED...]\n\n' +
+          text.slice(-keepEnd);
+      }
 
-    // Smart truncation
-    if (text.length > this.maxTextLength) {
-      const keepStart = Math.floor((this.maxTextLength * 2) / 3);
-      const keepEnd = Math.floor(this.maxTextLength / 3);
-      text =
-        text.slice(0, keepStart) +
-        '\n\n[...CONTENT TRUNCATED...]\n\n' +
-        text.slice(-keepEnd);
+      return text;
+    } catch (err) {
+      // Python swallows extraction errors and returns '' so the handler
+      // emits a clean "no content extracted" message instead of bubbling
+      // a parse failure all the way up to the AI.
+      log.error('spider: fast-text extraction failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return '';
     }
-
-    return text;
   }
 
   /**
@@ -529,7 +557,18 @@ export class SpiderSkill extends SkillBase {
     cached: CachedResponse,
     selectors: Record<string, string>,
   ): Record<string, unknown> {
-    const $ = cheerio.load(cached.body);
+    let $: cheerio.CheerioAPI;
+    try {
+      $ = cheerio.load(cached.body);
+    } catch (err) {
+      // Python returns `{'error': str(e)}` from _structured_extract when the
+      // parser fails (skill.py). Surface the same shape so upstream handlers
+      // can branch on `'error' in result`.
+      log.error('spider: structured parse failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
     const result: Record<string, unknown> = {
       url: cached.url,
       status_code: cached.status,
@@ -695,15 +734,22 @@ export class SpiderSkill extends SkillBase {
         });
       }
 
-      // Extract links if not at max depth
+      // Extract links if not at max depth. Use cheerio so we correctly
+      // pick up unquoted and oddly-whitespaced href attributes that the
+      // regex path missed (Python skills/spider/skill.py:487 uses lxml
+      // xpath('//a[@href]/@href') which has the same robustness).
       if (depth < maxDepth) {
         try {
-          const hrefRe = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/gi;
-          let match: RegExpExecArray | null;
-          while ((match = hrefRe.exec(cached.body)) !== null) {
+          const $links = cheerio.load(cached.body);
+          const hrefs: string[] = [];
+          $links('a[href]').each((_, el) => {
+            const href = $links(el).attr('href');
+            if (href) hrefs.push(href);
+          });
+          for (const href of hrefs) {
             let absoluteUrl: string;
             try {
-              absoluteUrl = new URL(match[1], url).toString();
+              absoluteUrl = new URL(href, url).toString();
             } catch {
               continue;
             }
@@ -719,6 +765,16 @@ export class SpiderSkill extends SkillBase {
               const absHost = new URL(absoluteUrl).host;
               if (absHost !== startHost) continue;
             } catch {
+              continue;
+            }
+
+            // SSRF hardening — discovered links must pass the same
+            // validation the entry URL did. Prevents a crafted page from
+            // bouncing the crawler into internal/metadata endpoints.
+            if (!(await validateUrl(absoluteUrl))) {
+              log.debug('spider: skipping discovered URL rejected by SSRF', {
+                url: absoluteUrl,
+              });
               continue;
             }
 
