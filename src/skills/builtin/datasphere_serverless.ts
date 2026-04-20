@@ -3,9 +3,10 @@
  *
  * Tier 3 built-in skill. Matches the Python SDK's param-driven design: all
  * credentials (`space_name`, `project_id`, `token`) are supplied via skill
- * params. No environment variables are strictly required — the platform
- * resolves `${ENV.SIGNALWIRE_AUTH}` at execution time when the DataMap runs,
- * but standalone setup works from params alone.
+ * params. At `setup()` time the skill resolves these params, composes the
+ * full DataSphere API URL and a base64 Basic-auth header, and bakes both as
+ * literal values into the emitted DataMap SWAIG JSON (mirrors Python
+ * `skills/datasphere_serverless/skill.py:152-157, 182-201`).
  */
 
 import { SkillBase } from '../SkillBase.js';
