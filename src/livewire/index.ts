@@ -376,18 +376,27 @@ export class JobProcess {
 }
 
 // ---------------------------------------------------------------------------
+// Room
+// ---------------------------------------------------------------------------
+
+/** Stub -- SignalWire doesn't use the LiveKit room abstraction. */
+export class Room {
+  readonly name: string = 'livewire-room';
+}
+
+// ---------------------------------------------------------------------------
 // JobContext
 // ---------------------------------------------------------------------------
 
 /** Mirrors a LiveKit JobContext -- provides room and connection info. */
 export class JobContext {
-  room: any;
+  room: Room;
   proc: JobProcess;
   /** @internal */
   _swAgent?: AgentBase;
 
   constructor() {
-    this.room = { name: 'livewire-room' };
+    this.room = new Room();
     this.proc = new JobProcess();
   }
 

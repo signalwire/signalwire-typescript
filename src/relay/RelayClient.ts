@@ -47,6 +47,10 @@ import { Message } from './Message.js';
 import { RelayError } from './RelayError.js';
 import type { CallHandler, MessageHandler, RelayClientOptions } from './types.js';
 
+// Polyfill Symbol.asyncDispose for runtimes that don't have it yet (Node <20.4)
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+(Symbol as any).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
+
 const logger = getLogger('relay_client');
 
 // Any 2xx code is considered success
@@ -54,6 +58,22 @@ const SUCCESS_CODE_RE = /^2\d{2}$/;
 
 // Safety limits
 const DEFAULT_MAX_ACTIVE_CALLS = 1000;
+
+// Max concurrent RelayClient connections per process (env: RELAY_MAX_CONNECTIONS)
+// Mirrors Python _MAX_CONNECTIONS (relay/client.py:81-88). Default 1, min 1,
+// invalid env values fall back to 1.
+function _parseMaxConnections(): number {
+  const raw = process.env.RELAY_MAX_CONNECTIONS;
+  if (raw == null || raw === '') return 1;
+  const parsed = parseInt(raw, 10);
+  if (isNaN(parsed)) return 1;
+  return Math.max(1, parsed);
+}
+const _MAX_CONNECTIONS = _parseMaxConnections();
+
+// Process-wide tracking of active RelayClient instances. Python uses id(self);
+// TS has no such helper, so we track instance refs — identity equality is fine.
+const _activeClients: Set<RelayClient> = new Set();
 
 type WsLike = {
   send(data: string): void;
@@ -109,8 +129,8 @@ export class RelayClient {
 
   constructor(options: RelayClientOptions = {}) {
     this.project = options.project ?? process.env.SIGNALWIRE_PROJECT_ID ?? '';
-    this.token = options.token ?? process.env.SIGNALWIRE_TOKEN ?? '';
-    this.jwtToken = process.env.SIGNALWIRE_JWT_TOKEN ?? '';
+    this.token = options.token ?? process.env.SIGNALWIRE_API_TOKEN ?? '';
+    this.jwtToken = options.jwtToken ?? process.env.SIGNALWIRE_JWT_TOKEN ?? '';
     this.host = options.host ?? process.env.SIGNALWIRE_SPACE ?? DEFAULT_RELAY_HOST;
     this.contexts = options.contexts ?? [];
 
@@ -119,7 +139,7 @@ export class RelayClient {
     } else if (!this.project || !this.token) {
       throw new Error(
         'project and token are required (or provide jwt_token). ' +
-        'Pass them directly or set SIGNALWIRE_PROJECT_ID / SIGNALWIRE_TOKEN env vars.',
+        'Pass them directly or set SIGNALWIRE_PROJECT_ID / SIGNALWIRE_API_TOKEN env vars.',
       );
     }
 
@@ -127,28 +147,77 @@ export class RelayClient {
     if (/[@/?#\r\n ]/.test(this.host)) {
       throw new Error(`Invalid host: ${this.host}. Must be a hostname, not a URL.`);
     }
+
+    // Max concurrent calls (constructor > env var > default)
+    if (options.maxActiveCalls != null) {
+      this._maxActiveCalls = Math.max(1, options.maxActiveCalls);
+    } else {
+      const envVal = process.env.RELAY_MAX_ACTIVE_CALLS ?? '';
+      const parsed = parseInt(envVal, 10);
+      this._maxActiveCalls = envVal && !isNaN(parsed) ? Math.max(1, parsed) : DEFAULT_MAX_ACTIVE_CALLS;
+    }
   }
 
   get relayProtocol(): string {
     return this._relayProtocol;
   }
 
-  // ─── Handler Registration ──────────────────────────────────────
-
-  /** Register the inbound call handler. */
-  onCall(handler: CallHandler): void {
-    this._onCallHandler = handler;
+  /**
+   * Async disposable support — equivalent to Python's `__aexit__`.
+   *
+   * Enables usage with `await using`:
+   * ```ts
+   * await using client = new RelayClient({ ... });
+   * await client.connect();
+   * // ... automatically disconnects when scope exits
+   * ```
+   *
+   * For environments without `await using`, use try/finally:
+   * ```ts
+   * const client = new RelayClient({ ... });
+   * try { await client.connect(); ... }
+   * finally { await client.disconnect(); }
+   * ```
+   */
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.disconnect();
   }
 
-  /** Register the inbound message handler. */
-  onMessage(handler: MessageHandler): void {
+  // ─── Handler Registration ──────────────────────────────────────
+
+  /** Register the inbound call handler. Returns the handler to support decorator usage. */
+  onCall(handler: CallHandler): CallHandler {
+    this._onCallHandler = handler;
+    return handler;
+  }
+
+  /** Register the inbound message handler. Returns the handler to support decorator usage. */
+  onMessage(handler: MessageHandler): MessageHandler {
     this._onMessageHandler = handler;
+    return handler;
   }
 
   // ─── Connection Lifecycle ──────────────────────────────────────
 
   /** Connect to RELAY and authenticate. */
   async connect(): Promise<void> {
+    // Guard against connection leaks — enforce per-process limit.
+    // Don't count ourselves (allows reconnect without double-counting).
+    // Mirrors Python relay/client.py:216-228.
+    let otherCount = 0;
+    for (const c of _activeClients) {
+      if (c !== this) otherCount++;
+    }
+    if (otherCount >= _MAX_CONNECTIONS) {
+      throw new Error(
+        `RelayClient connection limit reached (${_MAX_CONNECTIONS}). ` +
+        `There are already ${otherCount} active connection(s) in this process. ` +
+        `Call disconnect() on existing clients first, or set ` +
+        `RELAY_MAX_CONNECTIONS env var to allow more.`,
+      );
+    }
+    _activeClients.add(this);
+
     const uri = `wss://${this.host}`;
     logger.info(`Connecting to ${uri}`);
 
@@ -253,6 +322,9 @@ export class RelayClient {
   async disconnect(): Promise<void> {
     this._closing = true;
     this._connected = false;
+    // Mirrors Python relay/client.py:290 — remove from per-process active set.
+    // Safe to call even if we never connected (Set.delete is idempotent).
+    _activeClients.delete(this);
     this._stopPingLoop();
     this._cancelServerPingTimeout();
 
@@ -268,7 +340,7 @@ export class RelayClient {
     // Cancel queued requests
     for (const { deferred } of this._executeQueue) {
       if (!deferred.settled) {
-        deferred.reject(new RelayError('Connection closed'));
+        deferred.reject(new RelayError(-1, 'Connection closed'));
         deferred.promise.catch(() => {});
       }
     }
@@ -277,7 +349,7 @@ export class RelayClient {
     // Cancel pending dials
     for (const deferred of Array.from(this._pendingDials.values())) {
       if (!deferred.settled) {
-        deferred.reject(new RelayError('Connection closed during dial'));
+        deferred.reject(new RelayError(-1, 'Connection closed during dial'));
         deferred.promise.catch(() => {});
       }
     }
@@ -294,12 +366,20 @@ export class RelayClient {
     return this._sendRequest(method, params);
   }
 
-  /** Initiate an outbound call. Returns a Call when answered. */
+  /**
+   * Initiate an outbound call. Returns a Call when answered.
+   *
+   * @param devices - Array of device lists (serial/parallel dial).
+   * @param options.tag - Client-provided tag for event correlation. Auto-generated if not supplied.
+   * @param options.maxDuration - Optional max call duration in minutes.
+   * @param options.dialTimeout - How long (seconds) to wait for the dial to complete. Defaults to 120.
+   */
   async dial(
     devices: Record<string, unknown>[][],
     options: {
       tag?: string;
       maxDuration?: number;
+      /** Dial timeout in seconds (default 120). */
       dialTimeout?: number;
     } = {},
   ): Promise<Call> {
@@ -318,11 +398,12 @@ export class RelayClient {
     try {
       await this.execute('calling.dial', params);
 
-      const timeout = options.dialTimeout ?? 120_000;
+      const timeoutSec = options.dialTimeout ?? 120;
+      const timeoutMs = timeoutSec * 1000;
       const call = await new Promise<Call>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new RelayError(`Dial timed out waiting for answer (tag=${dialTag})`));
-        }, timeout);
+          reject(new RelayError(-1, `Dial timed out waiting for answer (tag=${dialTag})`));
+        }, timeoutMs);
         dialDeferred.promise.then(
           (v) => { clearTimeout(timer); resolve(v); },
           (e) => { clearTimeout(timer); reject(e); },
@@ -341,10 +422,21 @@ export class RelayClient {
     }
   }
 
-  /** Send an outbound SMS/MMS message. Returns a Message. */
+  /**
+   * Send an outbound SMS/MMS message. Returns a Message.
+   *
+   * @param options.toNumber - Destination phone number in E.164 format.
+   * @param options.fromNumber - Sender phone number in E.164 format.
+   * @param options.context - Context for receiving state events. Defaults to the relay protocol.
+   * @param options.body - Text body of the message.
+   * @param options.media - List of media URLs for MMS.
+   * @param options.tags - Optional tags for the message.
+   * @param options.region - Optional origination region.
+   * @param options.onCompleted - Optional callback fired when a terminal state is reached.
+   */
   async sendMessage(options: {
-    to: string;
-    from: string;
+    toNumber: string;
+    fromNumber: string;
     context?: string;
     body?: string;
     media?: string[];
@@ -359,8 +451,8 @@ export class RelayClient {
     const msgContext = options.context ?? this._relayProtocol ?? 'default';
     const params: Record<string, unknown> = {
       context: msgContext,
-      to_number: options.to,
-      from_number: options.from,
+      to_number: options.toNumber,
+      from_number: options.fromNumber,
     };
     if (options.body) params.body = options.body;
     if (options.media) params.media = options.media;
@@ -374,8 +466,8 @@ export class RelayClient {
       messageId,
       context: msgContext,
       direction: 'outbound',
-      fromNumber: options.from,
-      toNumber: options.to,
+      fromNumber: options.fromNumber,
+      toNumber: options.toNumber,
       body: options.body ?? '',
       media: options.media ?? [],
       tags: options.tags ?? [],
@@ -495,7 +587,7 @@ export class RelayClient {
     try {
       if (!this._ws || !this._connected) {
         if (this._executeQueue.length >= EXECUTE_QUEUE_MAX) {
-          throw new RelayError('Execute queue full — too many requests while disconnected');
+          throw new RelayError(-1, 'Execute queue full — too many requests while disconnected');
         }
         this._executeQueue.push({ message, deferred });
         logger.debug(`Request queued (not connected): ${method}`);
@@ -508,7 +600,7 @@ export class RelayClient {
       // Timeout
       return await new Promise<Record<string, unknown>>((resolve, reject) => {
         const timer = setTimeout(() => {
-          reject(new RelayError(`Request timeout for ${method}`));
+          reject(new RelayError(-1, `Request timeout for ${method}`));
           if (method !== METHOD_SIGNALWIRE_CONNECT) {
             this._forceClose();
           }
@@ -538,7 +630,7 @@ export class RelayClient {
         this._ws!.send(raw);
       } catch (err) {
         if (!deferred.settled) {
-          deferred.reject(new RelayError(`Failed to send queued request: ${err}`));
+          deferred.reject(new RelayError(-1, `Failed to send queued request: ${err}`));
           deferred.promise.catch(() => {});
         }
       }
@@ -548,7 +640,7 @@ export class RelayClient {
   private _clearPendingRequests(): void {
     for (const deferred of Array.from(this._pending.values())) {
       if (!deferred.settled) {
-        deferred.reject(new RelayError('Connection closed'));
+        deferred.reject(new RelayError(-1, 'Connection closed'));
         deferred.promise.catch(() => {});
       }
     }
@@ -557,7 +649,7 @@ export class RelayClient {
 
     for (const deferred of Array.from(this._pendingDials.values())) {
       if (!deferred.settled) {
-        deferred.reject(new RelayError('Connection closed during dial'));
+        deferred.reject(new RelayError(-1, 'Connection closed during dial'));
         deferred.promise.catch(() => {});
       }
     }
@@ -580,8 +672,8 @@ export class RelayClient {
       if (deferred && !deferred.settled) {
         const error = typeof msg.error === 'object' ? msg.error : { code: -1, message: String(msg.error) };
         deferred.reject(new RelayError(
-          String(error.message ?? 'Unknown error'),
           error.code ?? -1,
+          String(error.message ?? 'Unknown error'),
         ));
       }
       return;
@@ -608,8 +700,8 @@ export class RelayClient {
             try { intCode = parseInt(codeStr, 10); } catch { intCode = -1; }
             if (isNaN(intCode)) intCode = -1;
             deferred.reject(new RelayError(
-              String(result.message ?? 'Unknown error'),
               intCode,
+              String(result.message ?? 'Unknown error'),
             ));
           } else {
             deferred.resolve(result);
@@ -865,7 +957,7 @@ export class RelayClient {
       }
       dialDeferred.resolve(call);
     } else if (dialState === 'failed') {
-      dialDeferred.reject(new RelayError(`Dial failed (tag=${tag})`));
+      dialDeferred.reject(new RelayError(-1, `Dial failed (tag=${tag})`));
       dialDeferred.promise.catch(() => {});
     }
     // "dialing" events are progress — don't resolve

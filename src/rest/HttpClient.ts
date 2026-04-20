@@ -19,7 +19,15 @@ export class HttpClient {
   private readonly _fetch: typeof globalThis.fetch;
 
   constructor(options: HttpClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    if (!options.host && !options.baseUrl) {
+      throw new Error('HttpClientOptions requires either "host" or "baseUrl".');
+    }
+
+    // host takes precedence (matches Python's HttpClient(project, token, host) convention
+    // where a bare hostname is expected and https:// is prepended automatically).
+    const rawUrl = options.host ? `https://${options.host}` : options.baseUrl!;
+    this.baseUrl = rawUrl.replace(/\/+$/, '');
+
     this._authHeader = 'Basic ' + Buffer.from(`${options.project}:${options.token}`).toString('base64');
     this._fetch = options.fetchImpl ?? globalThis.fetch;
   }
@@ -55,7 +63,13 @@ export class HttpClient {
 
     if (!resp.ok) {
       const text = await resp.text();
-      throw new RestError(resp.status, text, url, method);
+      let errBody: string | Record<string, unknown> = text;
+      try {
+        errBody = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        // Response was not valid JSON — keep as plain string.
+      }
+      throw new RestError(resp.status, errBody, url, method);
     }
 
     if (resp.status === 204) {

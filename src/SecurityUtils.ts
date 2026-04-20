@@ -132,3 +132,22 @@ export async function resolveAndValidateUrl(url: string, allowPrivate = false): 
     // DNS lookup failure - let the actual HTTP request handle it
   }
 }
+
+/**
+ * Validate that a URL is safe to fetch (not pointing to private/internal resources).
+ *
+ * Matches Python's `validate_url(url, allow_private=False) -> bool` — returns `true`
+ * if the URL is safe, `false` otherwise (never throws).
+ *
+ * @param url - The URL to validate.
+ * @param allowPrivate - When true, allow private IP ranges (default false).
+ * @returns `true` if the URL is safe to fetch, `false` otherwise.
+ */
+export async function validateUrl(url: string, allowPrivate = false): Promise<boolean> {
+  try {
+    await resolveAndValidateUrl(url, allowPrivate);
+    return true;
+  } catch {
+    return false;
+  }
+}

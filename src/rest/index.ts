@@ -165,7 +165,7 @@ export class RestClient {
 
 // Client
 export { HttpClient } from './HttpClient.js';
-export { RestError } from './RestError.js';
+export { RestError, SignalWireRestError } from './RestError.js';
 export { paginate, paginateAll } from './pagination.js';
 
 // Types

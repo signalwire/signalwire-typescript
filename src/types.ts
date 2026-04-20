@@ -34,6 +34,39 @@ export interface AgentOptions {
   agentId?: string;
   /** When true, suppresses all log output. */
   suppressLogs?: boolean;
+  /**
+   * Path to a JSON Schema file for SWML validation.
+   * When provided, rendered SWML documents are validated against this schema.
+   * Falls back to the built-in schema if omitted.
+   */
+  schemaPath?: string;
+  /**
+   * Whether to enable the post-prompt override endpoint.
+   * When true, a `/post_prompt_override` route is registered that allows
+   * external callers to replace the post-prompt text at runtime.
+   * Defaults to false.
+   */
+  enablePostPromptOverride?: boolean;
+  /**
+   * Whether to enable the check-for-input override endpoint.
+   * When true, a `/check_for_input` route is registered that allows
+   * external callers to inject input checks at runtime.
+   * Defaults to false.
+   */
+  checkForInputOverride?: boolean;
+  /**
+   * Path to a JSON configuration file.
+   * When provided, the file is loaded at construction time and its
+   * `service` section can override name, route, host, and port
+   * (constructor arguments still take precedence over file values).
+   */
+  configFile?: string;
+  /**
+   * Whether to validate rendered SWML against the schema.
+   * Can also be disabled via the `SWML_SKIP_SCHEMA_VALIDATION` env var.
+   * Defaults to true.
+   */
+  schemaValidation?: boolean;
 }
 
 /** Configuration for a supported language in the AI agent. */

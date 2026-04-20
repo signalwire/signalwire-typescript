@@ -37,21 +37,38 @@ export class SchemaUtils {
   private maxCacheSize: number;
   private schema: Record<string, unknown> | null = null;
   private verbs: Map<string, VerbDefinition> = new Map();
+  /** Path to the schema file, or null to use the bundled schema. */
+  private schemaPath: string | null;
 
   /**
    * Create a SchemaUtils instance.
-   * @param opts - Optional settings for skipping validation or limiting cache size.
+   * @param opts - Optional settings for skipping validation, limiting cache size, or overriding the schema file path.
    */
-  constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number }) {
+  constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number; schemaPath?: string }) {
     this.skipValidation = opts?.skipValidation ?? (process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true');
     this.maxCacheSize = opts?.maxCacheSize ?? 100;
+    this.schemaPath = opts?.schemaPath ?? null;
     this.loadSchema();
   }
 
   /**
-   * Load the bundled schema.json and extract verb definitions.
+   * Load the schema from the path specified in opts.schemaPath (if given) or fall back
+   * to the bundled schema.json.  Mirrors Python's SchemaUtils which accepts an explicit
+   * schema_path and falls back to _get_default_schema_path() when None is supplied.
    */
   private loadSchema(): void {
+    // Try custom schema path first (mirrors Python's schema_path parameter)
+    if (this.schemaPath) {
+      try {
+        const require = createRequire(import.meta.url);
+        this.schema = require(this.schemaPath) as Record<string, unknown>;
+        this.verbs = this.extractVerbDefinitions();
+        return;
+      } catch {
+        // Fall through to bundled schema on load failure
+      }
+    }
+    // Fall back to bundled schema.json
     try {
       const require = createRequire(import.meta.url);
       this.schema = require('./schema.json') as Record<string, unknown>;
