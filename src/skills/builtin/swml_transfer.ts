@@ -71,7 +71,7 @@ export class SwmlTransferSkill extends SkillBase {
         type: 'object',
         description:
           'Transfer configurations mapping patterns (regex or name) to destination configs. Each value has either url or address, plus optional message/return_message/post_process/final/from_addr.',
-        required: false,
+        required: true,
       },
       patterns: {
         type: 'array',
@@ -213,6 +213,20 @@ export class SwmlTransferSkill extends SkillBase {
 
     // TS-style patterns array
     this.patterns = this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+
+    // Python parity (skills/swml_transfer/skill.py:132-136): setup() returns
+    // false when `transfers` is absent. TS additionally supports a `patterns`
+    // config shape, so accept either — but not neither, otherwise the skill
+    // registers a transfer tool that matches nothing and always falls back.
+    if (
+      Object.keys(this.transfers).length === 0 &&
+      this.patterns.length === 0
+    ) {
+      log.error(
+        'swml_transfer: at least one of "transfers" or "patterns" must be configured',
+      );
+      return false;
+    }
     return true;
   }
 
@@ -303,16 +317,14 @@ export class SwmlTransferSkill extends SkillBase {
         ? allowArbitrary
         : patterns.length === 0 && Object.keys(transfers).length === 0;
 
-    // Build tool parameters — include required_fields + primary destination param
+    // Build tool parameters — include required_fields + primary destination param.
+    // Python's DataMap does NOT expose a `message` param to the AI
+    // (skill.py:227-236). Match that: the pre-transfer message is driven
+    // entirely by per-config defaults, not by AI override at call time.
     const parameters: Record<string, unknown> = {
       [parameterName]: {
         type: 'string',
         description: parameterDescription,
-      },
-      message: {
-        type: 'string',
-        description:
-          'An optional message to say to the caller before the transfer. If not provided, a default transfer message is used.',
       },
     };
     const required = [parameterName];
@@ -330,18 +342,23 @@ export class SwmlTransferSkill extends SkillBase {
       patternMap.set(p.name.toLowerCase(), p);
     }
 
-    // Compile regex entries from Python-style transfers config
+    // Compile regex entries from Python-style transfers config.
+    // Flag semantics match the platform regex engine (skill.py:245-258):
+    //   - /pattern/i → case-insensitive
+    //   - /pattern/  → case-sensitive (bare closing delimiter)
+    //   - pattern    → case-sensitive (no delimiters)
+    // Previously TS defaulted to 'i' regardless, silently changing routing
+    // semantics for configs ported from Python.
     const compiledTransfers: Array<{ regex: RegExp; raw: string; config: TransferConfig }> = [];
     for (const [patternKey, config] of Object.entries(transfers)) {
-      // Accept /.../ /i suffix as JS-style flags
       let body = patternKey;
-      let flags = 'i';
+      let flags = '';
       if (body.startsWith('/')) body = body.slice(1);
       if (body.endsWith('/i')) {
         flags = 'i';
         body = body.slice(0, -2);
       } else if (body.endsWith('/')) {
-        flags = 'i';
+        // bare closing delimiter — Python matches case-sensitively
         body = body.slice(0, -1);
       }
       try {
@@ -373,21 +390,19 @@ export class SwmlTransferSkill extends SkillBase {
         required,
         handler: (args: Record<string, unknown>) => {
           const rawDest = args[parameterName];
-          const callerMessage = args['message'];
-          const messageOverride =
-            typeof callerMessage === 'string' && callerMessage.trim().length > 0
-              ? callerMessage
-              : undefined;
 
           if (typeof rawDest !== 'string' || rawDest.trim().length === 0) {
             return new FunctionResult('Please specify a destination for the transfer.');
           }
           const destination = rawDest.trim();
 
-          // Build call_data for required fields
+          // Build call_data for required fields. Python's DataMap template
+          // always emits every required_fields key (platform fills missing
+          // with empty string). Match that: include the key even when the
+          // AI didn't supply it, using the empty string as the fallback.
           const callData: Record<string, unknown> = {};
           for (const fieldName of Object.keys(requiredFields)) {
-            if (fieldName in args) callData[fieldName] = args[fieldName];
+            callData[fieldName] = fieldName in args ? args[fieldName] : '';
           }
 
           // 1. Try Python-style transfers (regex match)
@@ -395,7 +410,7 @@ export class SwmlTransferSkill extends SkillBase {
             if (entry.regex.test(destination)) {
               return this._buildTransferResult(
                 entry.config,
-                messageOverride,
+                undefined,
                 callData,
               );
             }
@@ -406,14 +421,14 @@ export class SwmlTransferSkill extends SkillBase {
           if (matchedPattern) {
             return this._buildPatternResult(
               matchedPattern,
-              messageOverride ?? 'Transferring you now...',
+              'Transferring you now...',
               callData,
             );
           }
 
           // 3. Arbitrary destinations
           if (canUseArbitrary) {
-            const msg = messageOverride ?? 'Transferring you now...';
+            const msg = 'Transferring you now...';
             const result = new FunctionResult(msg);
             result.swmlTransfer(destination, msg, true);
             if (Object.keys(callData).length > 0) {
@@ -541,17 +556,11 @@ export class SwmlTransferSkill extends SkillBase {
         body: 'How to use the transfer capability:',
         bullets: instructionBullets,
       });
-    } else {
-      sections.push({
-        title: 'Call Transfer',
-        body: 'You can transfer the current call to another destination.',
-        bullets: [
-          `Use the ${toolName} function to transfer the current call to another destination.`,
-          'You can optionally provide a message to say to the caller before the transfer.',
-          'Provide a phone number, SIP URI, or agent URL as the transfer destination.',
-        ],
-      });
     }
+    // Python skills/swml_transfer/skill.py:297-358 returns [] when there are
+    // no transfers — no prompt injection for an unconfigured skill. Previously
+    // TS emitted a generic "Call Transfer" section here that Python would
+    // suppress, creating AI prompt drift for identical configs.
 
     return sections;
   }

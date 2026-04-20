@@ -16,12 +16,17 @@ describe('SwmlTransferSkill', () => {
     expect(createSwmlTransferSkill()).toBeInstanceOf(SwmlTransferSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new SwmlTransferSkill().setup()).resolves.toBe(true);
+  it('should return false from setup when neither transfers nor patterns configured', async () => {
+    // Python parity (skills/swml_transfer/skill.py:132-136): setup() returns
+    // false with an error log when `transfers` is absent. TS additionally
+    // accepts a `patterns` array, but requires at least one of the two.
+    await expect(new SwmlTransferSkill().setup()).resolves.toBe(false);
   });
 
-  it('should register transfer_call tool by default', async () => {
-    const skill = new SwmlTransferSkill();
+  it('should register transfer_call tool when patterns configured', async () => {
+    const skill = new SwmlTransferSkill({
+      patterns: [{ name: 'sales', destination: '+15551112222' }],
+    });
     await skill.setup();
     const tools = skill.getTools();
     expect(tools.length).toBeGreaterThan(0);
@@ -30,7 +35,10 @@ describe('SwmlTransferSkill', () => {
   });
 
   it('should use custom tool_name if provided', async () => {
-    const skill = new SwmlTransferSkill({ tool_name: 'my_transfer' });
+    const skill = new SwmlTransferSkill({
+      tool_name: 'my_transfer',
+      patterns: [{ name: 'sales', destination: '+15551112222' }],
+    });
     await skill.setup();
     expect(skill.getTools()[0].name).toBe('my_transfer');
   });
@@ -44,8 +52,18 @@ describe('SwmlTransferSkill', () => {
     expect(names).toContain('list_transfer_destinations');
   });
 
-  it('should provide prompt sections', () => {
+  it('should emit no prompt sections when unconfigured (Python parity)', () => {
+    // Python returns [] when self.transfers is empty; TS matches that so
+    // AI prompts aren't polluted by a generic "Call Transfer" section for
+    // a skill that has no destinations wired up.
     const sections = new SwmlTransferSkill().getPromptSections();
+    expect(sections).toEqual([]);
+  });
+
+  it('should provide prompt sections when patterns configured', () => {
+    const sections = new SwmlTransferSkill({
+      patterns: [{ name: 'sales', destination: '+15551112222' }],
+    }).getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
   });
 
