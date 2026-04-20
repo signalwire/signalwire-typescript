@@ -263,16 +263,10 @@ export class DataSphereSkill extends SkillBase {
             description:
               "The search query — what information you're looking for in the knowledge base.",
           },
-          document_id: {
-            type: 'string',
-            description:
-              'Optional: limit this search to a specific document by its ID (overrides the skill-level default).',
-          },
         },
         required: ['query'],
         handler: async (args: Record<string, unknown>) => {
           const rawQuery = args['query'];
-          const perCallDocumentId = args['document_id'];
 
           if (
             !rawQuery ||
@@ -302,16 +296,7 @@ export class DataSphereSkill extends SkillBase {
             );
           }
 
-          // Resolve document_id: per-call override > config default.
-          let documentId: string | undefined;
-          if (
-            typeof perCallDocumentId === 'string' &&
-            perCallDocumentId.trim().length > 0
-          ) {
-            documentId = perCallDocumentId.trim();
-          } else {
-            documentId = configDocumentId;
-          }
+          const documentId = configDocumentId;
 
           log.info('datasphere_search', { query, document_id: documentId });
 
