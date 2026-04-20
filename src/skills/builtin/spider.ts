@@ -16,13 +16,13 @@ import { SkillBase } from '../SkillBase.js';
 import type {
   SkillManifest,
   SkillToolDefinition,
-  SkillPromptSection,
   SkillConfig,
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { resolveAndValidateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
+import * as cheerio from 'cheerio';
 
 const log = getLogger('SpiderSkill');
 
@@ -108,7 +108,7 @@ export class SpiderSkill extends SkillBase {
         description: 'Content extraction method',
         default: 'fast_text',
         required: false,
-        enum: ['fast_text', 'clean_text', 'full_text', 'html', 'custom'],
+        enum: ['fast_text', 'clean_text', 'full_text', 'html', 'markdown', 'structured', 'custom'],
       },
       max_text_length: {
         type: 'integer',
@@ -359,24 +359,6 @@ export class SpiderSkill extends SkillBase {
     ];
   }
 
-  /** @returns Prompt section describing web scraping capabilities and content limits. */
-  protected override _getPromptSections(): SkillPromptSection[] {
-    return [
-      {
-        title: 'Web Page Scraping',
-        body: 'You can scrape and extract content from web pages.',
-        bullets: [
-          'Use the scrape_url tool to fetch content from any public web page.',
-          'Use the crawl_site tool to crawl multiple pages starting from a URL.',
-          'Use the extract_structured_data tool with configured selectors for structured data.',
-          'Provide a full URL starting with http:// or https://.',
-          `Text content is limited to ${this.maxTextLength} characters.`,
-          'Summarize the scraped content for the user rather than reading it verbatim.',
-        ],
-      },
-    ];
-  }
-
   // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
@@ -471,115 +453,94 @@ export class SpiderSkill extends SkillBase {
   }
 
   /**
-   * Extract a value for a CSS-like or XPath-like selector. Returns best-effort text
-   * from elements matched by a very small subset of selectors (tag name, `.class`,
-   * `#id`, or attribute-based `[attr="value"]`).
+   * Extract a value using a CSS selector (via cheerio) or XPath-like
+   * selector (`//tag`). Mirrors Python `_structured_extract`'s selector
+   * branching: selectors starting with `/` are treated as XPath (tag-name
+   * subset), everything else is full CSS via cheerio's querySelector-style
+   * engine.
    */
-  private _applySimpleSelector(html: string, selector: string): string[] {
-    // Very small CSS selector engine — tag name or tag + class/id selector
-    // Patterns like: "h1", "title", ".foo", "#id", "div.classname", "meta[name='description']"
-    const trimmedSel = selector.trim();
-    if (!trimmedSel) return [];
-
-    // Support XPath-like selectors like "//title/text()" by extracting tag names
-    if (trimmedSel.startsWith('/')) {
-      const tagMatch = /\/\/([a-zA-Z][a-zA-Z0-9]*)/.exec(trimmedSel);
-      if (tagMatch) {
-        return this._extractTagText(html, tagMatch[1]);
-      }
-      return [];
-    }
-
-    // ID selector: #id
-    const idMatch = /^#([a-zA-Z][\w-]*)$/.exec(trimmedSel);
-    if (idMatch) {
-      const id = idMatch[1];
-      const re = new RegExp(
-        `<([a-zA-Z][a-zA-Z0-9]*)[^>]*\\bid\\s*=\\s*["']${this._escapeRegex(id)}["'][^>]*>([\\s\\S]*?)</\\1>`,
-        'gi',
-      );
-      return this._collectInnerText(html, re);
-    }
-
-    // Class selector: .class
-    const classMatch = /^\.([a-zA-Z][\w-]*)$/.exec(trimmedSel);
-    if (classMatch) {
-      const cls = classMatch[1];
-      const re = new RegExp(
-        `<([a-zA-Z][a-zA-Z0-9]*)[^>]*\\bclass\\s*=\\s*["'][^"']*\\b${this._escapeRegex(cls)}\\b[^"']*["'][^>]*>([\\s\\S]*?)</\\1>`,
-        'gi',
-      );
-      return this._collectInnerText(html, re);
-    }
-
-    // Tag with attribute: tag[attr="value"]
-    const tagAttrMatch =
-      /^([a-zA-Z][a-zA-Z0-9]*)\[([a-zA-Z_][\w-]*)\s*=\s*["']([^"']*)["']\]$/.exec(
-        trimmedSel,
-      );
-    if (tagAttrMatch) {
-      const [, tag, attr, value] = tagAttrMatch;
-      const re = new RegExp(
-        `<${tag}[^>]*\\b${attr}\\s*=\\s*["']${this._escapeRegex(value)}["'][^>]*>([\\s\\S]*?)</${tag}>`,
-        'gi',
-      );
-      return this._collectInnerText(html, re, 1);
-    }
-
-    // Simple tag: h1, p, title, ...
-    const tagMatch = /^([a-zA-Z][a-zA-Z0-9]*)$/.exec(trimmedSel);
-    if (tagMatch) {
-      return this._extractTagText(html, tagMatch[1]);
-    }
-
-    return [];
-  }
-
-  private _extractTagText(html: string, tag: string): string[] {
-    const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'gi');
-    return this._collectInnerText(html, re, 1);
-  }
-
-  private _collectInnerText(
-    html: string,
-    re: RegExp,
-    groupIndex = 2,
+  private _applySelector(
+    $: cheerio.CheerioAPI,
+    selector: string,
   ): string[] {
-    const results: string[] = [];
-    let match: RegExpExecArray | null;
-    while ((match = re.exec(html)) !== null) {
-      const inner = match[groupIndex] ?? match[match.length - 1] ?? '';
-      const text = inner
-        .replace(/<[^>]+>/g, ' ')
-        .replace(WHITESPACE_REGEX, ' ')
-        .trim();
-      if (text) results.push(text);
+    const trimmed = selector.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('/')) {
+      // Subset of XPath supported in Python's lxml path — `//tag`, `//tag/text()`.
+      const tagMatch = /\/\/([a-zA-Z][a-zA-Z0-9]*)/.exec(trimmed);
+      if (!tagMatch) return [];
+      return $(tagMatch[1])
+        .toArray()
+        .map((el) => $(el).text().trim())
+        .filter((t) => t.length > 0);
     }
-    return results;
+
+    return $(trimmed)
+      .toArray()
+      .map((el) => $(el).text().trim())
+      .filter((t) => t.length > 0);
   }
 
-  private _escapeRegex(s: string): string {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  /** Markdown extraction using cheerio. Mirrors Python `_markdown_extract`. */
+  private _markdownExtract(response: CachedResponse): string {
+    try {
+      const $ = cheerio.load(response.body);
+
+      // Remove unwanted tags
+      for (const tag of ['script', 'style', 'nav', 'header', 'footer', 'aside']) {
+        $(tag).remove();
+      }
+
+      const parts: string[] = [];
+      const title = $('title').first().text().trim();
+      if (title) parts.push(`# ${title}\n`);
+
+      $('h1, h2, h3, h4, h5, h6, p, li, code, pre').each((_, el) => {
+        const tag = (el as { tagName: string }).tagName.toLowerCase();
+        const text = $(el).text().trim();
+        if (!text) return;
+        if (/^h[1-6]$/.test(tag)) {
+          const level = Number(tag[1]);
+          parts.push(`\n${'#'.repeat(level)} ${text}\n`);
+        } else if (tag === 'p') {
+          parts.push(`\n${text}\n`);
+        } else if (tag === 'li') {
+          parts.push(`- ${text}`);
+        } else if (tag === 'code' || tag === 'pre') {
+          parts.push(`\n\`\`\`\n${text}\n\`\`\`\n`);
+        }
+      });
+
+      let text = parts.join('\n');
+      if (text.length > this.maxTextLength) {
+        text = text.slice(0, this.maxTextLength) + '\n\n[...TRUNCATED...]';
+      }
+      return text;
+    } catch (err) {
+      log.error('spider: markdown extraction error', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return this._fastTextExtract(response);
+    }
   }
 
   private _structuredExtract(
     cached: CachedResponse,
     selectors: Record<string, string>,
   ): Record<string, unknown> {
+    const $ = cheerio.load(cached.body);
     const result: Record<string, unknown> = {
       url: cached.url,
       status_code: cached.status,
-      title: '',
+      title: $('title').first().text().trim(),
       data: {},
     };
-
-    const titleMatches = this._extractTagText(cached.body, 'title');
-    if (titleMatches.length > 0) result['title'] = titleMatches[0];
 
     const data: Record<string, unknown> = {};
     for (const [field, selector] of Object.entries(selectors)) {
       try {
-        const values = this._applySimpleSelector(cached.body, selector);
+        const values = this._applySelector($, selector);
         if (values.length === 0) {
           data[field] = null;
         } else if (values.length === 1) {
@@ -643,8 +604,10 @@ export class SpiderSkill extends SkillBase {
           `Extracted structured data from ${url}: ${JSON.stringify(result)}`,
         );
       }
-      // All other extract types fall through to fast-text-like extraction
-      const content = this._fastTextExtract(cached);
+      const content =
+        this.extractType === 'markdown'
+          ? this._markdownExtract(cached)
+          : this._fastTextExtract(cached);
 
       if (!content) {
         return new FunctionResult(`No content extracted from ${url}`);

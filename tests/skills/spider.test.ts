@@ -32,9 +32,9 @@ describe('SpiderSkill', () => {
     expect(tools[0].required).toContain('url');
   });
 
-  it('should provide prompt sections', () => {
+  it('should provide no prompt sections (matches Python — no override)', () => {
     const sections = new SpiderSkill().getPromptSections();
-    expect(sections.length).toBeGreaterThan(0);
+    expect(sections).toHaveLength(0);
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
