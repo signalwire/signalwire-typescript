@@ -1392,6 +1392,14 @@ export class AgentBase {
       }
     }
 
+    // Register DataMap-style tools — skills that build their own SWAIG JSON
+    // (e.g. DataSphereServerless) return them via getDataMapTools().
+    // Python equivalent: self.agent.register_swaig_function(swaig_function)
+    // inside register_tools() (skills/datasphere_serverless/skill.py:210).
+    for (const dmFn of skill.getDataMapTools()) {
+      this.registerSwaigFunction(dmFn);
+    }
+
     // Inject prompt sections
     for (const section of skill.getPromptSections()) {
       this.promptAddSection(section.title, section);
@@ -1953,6 +1961,9 @@ export class AgentBase {
               fn.extraFields['is_hangup_hook'] = true;
             }
           }
+        }
+        for (const dmFn of skill.getDataMapTools()) {
+          copy.registerSwaigFunction(dmFn);
         }
         for (const section of skill.getPromptSections()) {
           copy.promptAddSection(section.title, section);

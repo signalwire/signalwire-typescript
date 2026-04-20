@@ -231,6 +231,22 @@ export abstract class SkillBase {
   abstract getTools(): SkillToolDefinition[];
 
   /**
+   * Optional DataMap-style tool definitions. Skills that build their own
+   * SWAIG function dicts (e.g. via `DataMap.toSwaigFunction()`) return them
+   * here and `AgentBase.addSkill()` registers each via `registerSwaigFunction`.
+   *
+   * Python equivalent: the direct `self.agent.register_swaig_function(fn)`
+   * call inside `register_tools()` (e.g. `skills/datasphere_serverless/skill.py:210`).
+   * Default returns `[]` — skills using only the declarative `getTools()` path
+   * do not need to override this.
+   *
+   * @returns Array of fully-built SWAIG function dicts.
+   */
+  getDataMapTools(): Record<string, unknown>[] {
+    return [];
+  }
+
+  /**
    * Get prompt sections to inject into the agent's system prompt.
    * Respects the `skip_prompt` config option — returns `[]` if set to `true`.
    * Subclasses should override `_getPromptSections()` instead of this method.
