@@ -150,6 +150,8 @@ export class InfoGathererSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['data-collection', 'form', 'information', 'utility'],
+      requiredEnvVars: [],
+      requiredPackages: [],
       configSchema: {
         questions: {
           type: 'array',
