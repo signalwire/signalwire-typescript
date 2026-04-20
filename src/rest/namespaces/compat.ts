@@ -29,7 +29,7 @@ export class CompatAccounts extends BaseResource {
     return this._http.get(this._path(sid));
   }
 
-  async update(sid: string, body: any): Promise<any> {
+  async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 }
@@ -40,7 +40,7 @@ export class CompatCalls extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -48,7 +48,7 @@ export class CompatCalls extends CrudResource {
     return this._http.post(this._path(callSid, 'Recordings'), body);
   }
 
-  async updateRecording(callSid: string, recordingSid: string, body: any): Promise<any> {
+  async updateRecording(callSid: string, recordingSid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(callSid, 'Recordings', recordingSid), body);
   }
 
@@ -67,7 +67,7 @@ export class CompatMessages extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -90,7 +90,7 @@ export class CompatFaxes extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -121,7 +121,7 @@ export class CompatConferences extends BaseResource {
     return this._http.get(this._path(sid));
   }
 
-  async update(sid: string, body: any): Promise<any> {
+  async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -134,7 +134,7 @@ export class CompatConferences extends BaseResource {
     return this._http.get(this._path(conferenceSid, 'Participants', callSid));
   }
 
-  async updateParticipant(conferenceSid: string, callSid: string, body: any): Promise<any> {
+  async updateParticipant(conferenceSid: string, callSid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(conferenceSid, 'Participants', callSid), body);
   }
 
@@ -151,7 +151,7 @@ export class CompatConferences extends BaseResource {
     return this._http.get(this._path(conferenceSid, 'Recordings', recordingSid));
   }
 
-  async updateRecording(conferenceSid: string, recordingSid: string, body: any): Promise<any> {
+  async updateRecording(conferenceSid: string, recordingSid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(conferenceSid, 'Recordings', recordingSid), body);
   }
 
@@ -190,7 +190,7 @@ export class CompatPhoneNumbers extends BaseResource {
     return this._http.get(this._path(sid));
   }
 
-  async update(sid: string, body: any): Promise<any> {
+  async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -222,7 +222,7 @@ export class CompatApplications extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 }
@@ -233,7 +233,7 @@ export class CompatLamlBins extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 }
@@ -244,7 +244,7 @@ export class CompatQueues extends CrudResource {
     super(http, basePath);
   }
 
-  override async update(sid: string, body: any): Promise<any> {
+  override async update(sid: string, body: any = {}): Promise<any> {
     return this._http.post(this._path(sid), body);
   }
 
@@ -309,7 +309,7 @@ export class CompatTokens extends BaseResource {
     return this._http.post(this._basePath, body);
   }
 
-  async update(tokenId: string, body: any): Promise<any> {
+  async update(tokenId: string, body: any = {}): Promise<any> {
     return this._http.patch(this._path(tokenId), body);
   }
 
