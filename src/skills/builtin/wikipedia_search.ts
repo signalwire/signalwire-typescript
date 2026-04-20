@@ -3,9 +3,7 @@
  *
  * Tier 3 built-in skill: no external API key required. Uses the Wikipedia
  * REST API to fetch article summaries and extracts for any given topic.
- * Matches the Python SDK's `num_results` / `no_results_message` parity and
- * adds `language` + `max_content_length` for multi-language and output
- * trimming support.
+ * Matches the Python SDK's `num_results` / `no_results_message` parity.
  */
 
 import { SkillBase } from '../SkillBase.js';
@@ -24,33 +22,6 @@ const log = getLogger('WikipediaSearchSkill');
 const DEFAULT_NO_RESULTS_MESSAGE =
   "I couldn't find any Wikipedia articles for '{query}'. " +
   'Try rephrasing your search or using different keywords.';
-
-/** Response shape from the Wikipedia REST API page summary endpoint. */
-interface WikipediaSummaryResponse {
-  /** Page type (e.g., "standard", "disambiguation"). */
-  type: string;
-  /** Article title. */
-  title: string;
-  /** HTML-formatted display title. */
-  displaytitle?: string;
-  /** Plain-text article extract/summary. */
-  extract: string;
-  /** HTML-formatted extract. */
-  extract_html?: string;
-  /** Short description of the article. */
-  description?: string;
-  /** URLs to the full article. */
-  content_urls?: {
-    desktop?: { page: string };
-    mobile?: { page: string };
-  };
-  /** Thumbnail image information. */
-  thumbnail?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-}
 
 /** Response shape from the Wikipedia action=query search API. */
 interface WikipediaActionSearchResponse {
@@ -75,23 +46,17 @@ interface WikipediaActionExtractsResponse {
  *
  * Tier 3 built-in skill with no external API key required. The configured
  * `num_results` drives how many articles are aggregated; `no_results_message`
- * customizes the fallback text (supports `{query}` interpolation); `language`
- * selects the Wikipedia edition (`en`, `fr`, `de`, …); `max_content_length`
- * trims the final output.
+ * customizes the fallback text (supports `{query}` interpolation).
  */
 export class WikipediaSearchSkill extends SkillBase {
   /** Resolved `num_results` value (populated in `setup()`). */
   protected numResults: number = 1;
   /** Resolved `no_results_message` template (populated in `setup()`). */
   private _noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
-  /** Resolved Wikipedia language edition code (populated in `setup()`). */
-  private _language: string = 'en';
-  /** Resolved output length cap in characters (populated in `setup()`). */
-  private _maxContentLength: number = 5000;
 
   /**
-   * @param config - Optional configuration; supports `num_results`,
-   *   `no_results_message`, `language`, `max_content_length`.
+   * @param config - Optional configuration; supports `num_results` and
+   *   `no_results_message`.
    */
   constructor(config?: SkillConfig) {
     super('wikipedia_search', config);
@@ -111,18 +76,6 @@ export class WikipediaSearchSkill extends SkillBase {
         type: 'string',
         description: 'Custom message when no Wikipedia articles are found',
         default: DEFAULT_NO_RESULTS_MESSAGE,
-      },
-      language: {
-        type: 'string',
-        description:
-          'Wikipedia language edition to search (e.g., "en", "fr", "de").',
-        default: 'en',
-      },
-      max_content_length: {
-        type: 'integer',
-        description: 'Maximum length of returned content in characters.',
-        default: 5000,
-        min: 100,
       },
     };
   }
@@ -153,12 +106,6 @@ export class WikipediaSearchSkill extends SkillBase {
     );
     this._noResultsMessage =
       rawMessage && rawMessage.length > 0 ? rawMessage : DEFAULT_NO_RESULTS_MESSAGE;
-
-    const lang = this.getConfig<string>('language', 'en');
-    this._language = lang && lang.length > 0 ? lang : 'en';
-
-    const rawLen = this.getConfig<number>('max_content_length', 5000);
-    this._maxContentLength = Math.max(100, Math.floor(rawLen));
     return true;
   }
 
@@ -175,16 +122,10 @@ export class WikipediaSearchSkill extends SkillBase {
             description:
               'The search term or topic to look up on Wikipedia.',
           },
-          sentences: {
-            type: 'number',
-            description:
-              'Optional: number of sentences to return per article (1-10). Applied to the direct page-summary result; full extracts are used otherwise.',
-          },
         },
         required: ['query'],
         handler: async (args: Record<string, unknown>) => {
           const rawQuery = args['query'];
-          const sentences = args['sentences'];
 
           if (
             !rawQuery ||
@@ -196,12 +137,7 @@ export class WikipediaSearchSkill extends SkillBase {
             );
           }
 
-          const sentenceCount =
-            typeof sentences === 'number'
-              ? Math.max(1, Math.min(10, Math.floor(sentences)))
-              : undefined;
-
-          const result = await this.searchWiki(rawQuery.trim(), sentenceCount);
+          const result = await this.searchWiki(rawQuery.trim());
           return new FunctionResult(result);
         },
       },
@@ -213,31 +149,19 @@ export class WikipediaSearchSkill extends SkillBase {
    *
    * Mirrors the Python `search_wiki()` public entry point so the logic can be
    * tested and reused outside the SWAIG handler. Uses `num_results` to decide
-   * how many articles to aggregate and honors `language` / `max_content_length`.
+   * how many articles to aggregate.
    *
    * @param query - Plain-text search term.
-   * @param sentenceCount - Optional sentence cap used by the direct-summary
-   *   path (1-10).
    * @returns Formatted text ready for display to the caller.
    */
-  async searchWiki(query: string, sentenceCount?: number): Promise<string> {
+  async searchWiki(query: string): Promise<string> {
     const trimmedQuery = query.trim();
     if (trimmedQuery.length === 0) {
       return this._formatNoResults(trimmedQuery);
     }
 
     try {
-      // Fast path: when only one article is requested, try the REST page
-      // summary endpoint. It returns cleanly-structured data including a URL.
-      if (this.numResults === 1) {
-        const summary = await this._fetchDirectSummary(trimmedQuery, sentenceCount);
-        if (summary !== null) {
-          return this._clampContent(summary);
-        }
-      }
-
-      // Fallback / multi-result path: use the action=query search API.
-      const baseUrl = `https://${this._language}.wikipedia.org/w/api.php`;
+      const baseUrl = 'https://en.wikipedia.org/w/api.php';
       const searchUrl =
         `${baseUrl}?action=query&list=search&format=json` +
         `&srsearch=${encodeURIComponent(trimmedQuery)}` +
@@ -281,8 +205,11 @@ export class WikipediaSearchSkill extends SkillBase {
         return this._formatNoResults(trimmedQuery);
       }
 
+      if (articles.length === 1) {
+        return articles[0];
+      }
       const separator = '\n\n' + '='.repeat(50) + '\n\n';
-      return this._clampContent(articles.join(separator));
+      return articles.join(separator);
     } catch (err) {
       log.error('wikipedia_search_failed', {
         error: err instanceof Error ? err.message : String(err),
@@ -291,39 +218,6 @@ export class WikipediaSearchSkill extends SkillBase {
         err instanceof Error ? err.message : String(err)
       }`;
     }
-  }
-
-  /** Fetch and format a single direct page summary. Returns `null` to signal fallback. */
-  private async _fetchDirectSummary(
-    query: string,
-    sentenceCount?: number,
-  ): Promise<string | null> {
-    const encodedQuery = encodeURIComponent(query.replace(/\s+/g, '_'));
-    const summaryUrl = `https://${this._language}.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
-
-    const data = await this._fetchJson<WikipediaSummaryResponse>(summaryUrl);
-    if (!data || data.type === 'disambiguation' || !data.extract) {
-      return null;
-    }
-
-    let extractText = data.extract;
-    if (typeof sentenceCount === 'number') {
-      const pieces = extractText.split(/(?<=[.!?])\s+/);
-      extractText = pieces.slice(0, sentenceCount).join(' ').trim();
-    }
-
-    const pageUrl = data.content_urls?.desktop?.page ?? '';
-    const parts: string[] = [`Wikipedia: ${data.title}`];
-    if (data.description) {
-      parts.push(`(${data.description})`);
-    }
-    parts.push('');
-    parts.push(extractText);
-    if (pageUrl) {
-      parts.push('');
-      parts.push(`Read more: ${pageUrl}`);
-    }
-    return parts.join('\n').trim();
   }
 
   /** Fetch JSON with a 30-second timeout. Returns `null` on any failure. */
@@ -347,14 +241,6 @@ export class WikipediaSearchSkill extends SkillBase {
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  /** Clamp content to `max_content_length`. */
-  private _clampContent(content: string): string {
-    if (content.length <= this._maxContentLength) {
-      return content;
-    }
-    return content.slice(0, this._maxContentLength);
   }
 
   /** Render the configured no-results message, substituting `{query}`. */

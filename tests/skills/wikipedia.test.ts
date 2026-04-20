@@ -59,7 +59,5 @@ describe('WikipediaSearchSkill', () => {
     const schema = WikipediaSearchSkill.getParameterSchema();
     expect(schema['num_results']).toBeDefined();
     expect(schema['no_results_message']).toBeDefined();
-    expect(schema['language']).toBeDefined();
-    expect(schema['max_content_length']).toBeDefined();
   });
 });
