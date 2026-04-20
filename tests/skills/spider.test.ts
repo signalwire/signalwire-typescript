@@ -60,7 +60,6 @@ describe('SpiderSkill', () => {
 
   it('should have full parameter schema', () => {
     const schema = SpiderSkill.getParameterSchema();
-    expect(schema['api_key']).toBeDefined();
     expect(schema['delay']).toBeDefined();
     expect(schema['concurrent_requests']).toBeDefined();
     expect(schema['timeout']).toBeDefined();

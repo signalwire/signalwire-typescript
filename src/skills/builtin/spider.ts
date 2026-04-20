@@ -64,12 +64,6 @@ export class SpiderSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
-      api_key: {
-        type: 'string',
-        description: 'Spider API key (optional; empowers future hosted-Spider backend).',
-        hidden: true,
-        env_var: 'SPIDER_API_KEY',
-      },
       delay: {
         type: 'number',
         description: 'Delay between requests in seconds',
@@ -119,7 +113,7 @@ export class SpiderSkill extends SkillBase {
       max_text_length: {
         type: 'integer',
         description: 'Maximum text length to return',
-        default: 10000,
+        default: 3000,
         required: false,
         min: 100,
         max: 100000,
@@ -146,7 +140,7 @@ export class SpiderSkill extends SkillBase {
       user_agent: {
         type: 'string',
         description: 'User agent string for requests',
-        default: 'Spider/1.0 (SignalWire AI Agent)',
+        default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         required: false,
       },
       headers: {
@@ -173,16 +167,16 @@ export class SpiderSkill extends SkillBase {
   // Runtime state, populated in setup()
   private delay = 0.1;
   private concurrentRequests = 5;
-  private timeoutSec = 5;
+  private timeout = 5;
   private maxPages = 1;
   private maxDepth = 0;
   private extractType = 'fast_text';
-  private maxTextLength = 10000;
+  private maxTextLength = 3000;
   private cleanText = true;
   private cacheEnabled = true;
   private followRobotsTxt = true;
-  private userAgent = 'Spider/1.0 (SignalWire AI Agent)';
-  private extraHeaders: Record<string, string> = {};
+  private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+  private headers: Record<string, string> = {};
   private selectors: Record<string, string> = {};
   private compiledFollowPatterns: RegExp[] = [];
   private cache: Map<string, CachedResponse> | null = null;
@@ -204,7 +198,7 @@ export class SpiderSkill extends SkillBase {
     // Performance
     this.delay = this.getConfig<number>('delay', 0.1);
     this.concurrentRequests = this.getConfig<number>('concurrent_requests', 5);
-    this.timeoutSec = this.getConfig<number>('timeout', 5);
+    this.timeout = this.getConfig<number>('timeout', 5);
 
     // Crawl limits
     this.maxPages = this.getConfig<number>('max_pages', 1);
@@ -212,10 +206,11 @@ export class SpiderSkill extends SkillBase {
 
     // Content processing
     this.extractType = this.getConfig<string>('extract_type', 'fast_text');
-    // Use schema-authoritative default (10000). Python has an internal
-    // inconsistency (schema: 10000, __init__ fallback: 3000); the schema is
-    // the API contract per the validated findings.
-    this.maxTextLength = this.getConfig<number>('max_text_length', 10000);
+    // Python has an internal inconsistency (schema: 10000, __init__ fallback:
+    // 3000). The effective runtime default is 3000 because Python reads via
+    // `self.params.get('max_text_length', 3000)` and schema defaults are not
+    // applied. Use 3000 for parity. Follow-up: reconcile Python schema vs init.
+    this.maxTextLength = this.getConfig<number>('max_text_length', 3000);
     this.cleanText = this.getConfig<boolean>('clean_text', true);
 
     // Features
@@ -223,12 +218,12 @@ export class SpiderSkill extends SkillBase {
     this.followRobotsTxt = this.getConfig<boolean>('follow_robots_txt', false);
     this.userAgent = this.getConfig<string>(
       'user_agent',
-      'Spider/1.0 (SignalWire AI Agent)',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     );
 
     // Optional headers + user-agent merge
     const headers = this.getConfig<Record<string, string>>('headers', {}) ?? {};
-    this.extraHeaders = { ...headers, 'User-Agent': this.userAgent };
+    this.headers = { ...headers, 'User-Agent': this.userAgent };
 
     // Selectors for structured extraction
     this.selectors = this.getConfig<Record<string, string>>('selectors', {}) ?? {};
@@ -386,11 +381,11 @@ export class SpiderSkill extends SkillBase {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutSec * 1000);
+    const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
     try {
       const response = await fetch(url, {
         method: 'GET',
-        headers: this.extraHeaders,
+        headers: this.headers,
         signal: controller.signal,
       });
 
