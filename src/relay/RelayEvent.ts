@@ -222,10 +222,10 @@ export class CollectEvent extends RelayEvent {
     params: Record<string, any>,
     callId: string,
     timestamp: number,
-    controlId: string,
-    state: string,
-    result: Record<string, any>,
-    final_: boolean | undefined,
+    controlId: string = '',
+    state: string = '',
+    result: Record<string, any> = {},
+    final_: boolean | undefined = undefined,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -856,9 +856,9 @@ export class MessageStateEvent extends RelayEvent {
 
 // ─── Event Class Map & Parser ────────────────────────────────────────
 
-type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
+export type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
 
-const EVENT_CLASS_MAP: Record<string, EventClass> = {
+export const EVENT_CLASS_MAP: Record<string, EventClass> = {
   'calling.call.state': CallStateEvent,
   'calling.call.receive': CallReceiveEvent,
   'calling.call.play': PlayEvent,

@@ -1,6 +1,6 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RestError } from '../../src/rest/RestError.js';
-import { mockClientOptions } from './helpers.js';
+import { createMockFetch, mockClientOptions } from './helpers.js';
 
 describe('HttpClient', () => {
   it('sends Basic Auth header', async () => {
@@ -185,5 +185,90 @@ describe('HttpClient', () => {
 
     const reqs = getRequests();
     expect(reqs[0].url).toBe('https://other.signalwire.com/api/test?page=2');
+  });
+
+  it('accepts host option and prepends https://', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([
+      { status: 200, body: { ok: true } },
+    ]);
+    const http = new HttpClient({
+      host: 'example.signalwire.com',
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl,
+    });
+
+    expect(http.baseUrl).toBe('https://example.signalwire.com');
+
+    await http.get('/api/test');
+
+    const reqs = getRequests();
+    expect(reqs[0].url).toBe('https://example.signalwire.com/api/test');
+  });
+
+  it('host takes precedence over baseUrl when both are provided', () => {
+    const [fetchImpl] = createMockFetch();
+    const http = new HttpClient({
+      host: 'from-host.signalwire.com',
+      baseUrl: 'https://from-baseurl.signalwire.com',
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl,
+    });
+
+    expect(http.baseUrl).toBe('https://from-host.signalwire.com');
+  });
+
+  it('throws when neither host nor baseUrl is provided', () => {
+    const [fetchImpl] = createMockFetch();
+    expect(() => new HttpClient({
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl,
+    })).toThrow('HttpClientOptions requires either "host" or "baseUrl".');
+  });
+
+  it('RestError body is parsed JSON object when server returns JSON error', async () => {
+    const { options } = mockClientOptions([
+      { status: 422, body: { errors: ['invalid'] } },
+    ]);
+    const http = new HttpClient(options);
+
+    try {
+      await http.post('/api/test', { bad: true });
+      throw new Error('Should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RestError);
+      const err = e as RestError;
+      expect(typeof err.body).toBe('object');
+      expect(err.body).toEqual({ errors: ['invalid'] });
+    }
+  });
+
+  it('RestError body is plain string when server returns non-JSON error', async () => {
+    const [fetchImpl] = createMockFetch();
+    // Override the mock to return a non-JSON text body
+    const http = new HttpClient({
+      baseUrl: 'https://test.signalwire.com',
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl: async (input, init) => {
+        return new Response('Internal Server Error', {
+          status: 500,
+          statusText: 'Internal Server Error',
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      },
+    });
+
+    try {
+      await http.get('/api/test');
+      throw new Error('Should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RestError);
+      const err = e as RestError;
+      expect(typeof err.body).toBe('string');
+      expect(err.body).toBe('Internal Server Error');
+    }
   });
 });
