@@ -20,8 +20,22 @@ describe('DataSphereSkill', () => {
     expect(DataSphereSkill.SUPPORTS_MULTIPLE_INSTANCES).toBe(true);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new DataSphereSkill().setup()).resolves.toBe(true);
+  it('should return false from setup when credentials are missing', async () => {
+    // Python parity (skills/datasphere/skill.py:120-128): setup() returns false
+    // with an error log when any of space_name, project_id, token, document_id
+    // is missing. Fails closed so the skill never exposes broken tools to the AI.
+    await expect(new DataSphereSkill().setup()).resolves.toBe(false);
+  });
+
+  it('should complete setup when all credentials + document_id are provided', async () => {
+    await expect(
+      new DataSphereSkill({
+        space_name: 'test',
+        project_id: 'p',
+        token: 't',
+        document_id: 'd',
+      }).setup(),
+    ).resolves.toBe(true);
   });
 
   it('should register a search_knowledge tool', () => {

@@ -69,13 +69,14 @@ export class DataSphereSkill extends SkillBase {
       tool_name: {
         type: 'string',
         description: 'Custom tool name for this DataSphere instance.',
+        default: 'search_knowledge',
+        required: false,
       },
       space_name: {
         type: 'string',
         description:
           "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
         required: true,
-        env_var: 'SIGNALWIRE_SPACE',
       },
       project_id: {
         type: 'string',
@@ -99,6 +100,7 @@ export class DataSphereSkill extends SkillBase {
         type: 'integer',
         description: 'Number of search results to return',
         default: 1,
+        required: false,
         min: 1,
         max: 10,
       },
@@ -107,26 +109,31 @@ export class DataSphereSkill extends SkillBase {
         description:
           'Maximum distance threshold for results (lower is more relevant)',
         default: 3.0,
+        required: false,
         min: 0,
         max: 10,
       },
       tags: {
         type: 'array',
         description: 'Tags to filter search results',
+        required: false,
         items: { type: 'string' },
       },
       language: {
         type: 'string',
         description: "Language code for query expansion (e.g., 'en', 'es')",
+        required: false,
       },
       pos_to_expand: {
         type: 'array',
         description: 'Parts of speech to expand with synonyms',
+        required: false,
         items: { type: 'string', enum: ['NOUN', 'VERB', 'ADJ', 'ADV'] },
       },
       max_synonyms: {
         type: 'integer',
         description: 'Maximum number of synonyms to use for query expansion',
+        required: false,
         min: 1,
         max: 10,
       },
@@ -134,6 +141,7 @@ export class DataSphereSkill extends SkillBase {
         type: 'string',
         description: 'Message to return when no results are found',
         default: DEFAULT_NO_RESULTS_MESSAGE,
+        required: false,
       },
     };
   }
@@ -166,6 +174,7 @@ export class DataSphereSkill extends SkillBase {
       author: 'SignalWire',
       tags: ['search', 'datasphere', 'signalwire', 'knowledge', 'rag', 'external'],
       requiredEnvVars: [],
+      requiredPackages: [],
       configSchema: {
         space_name: {
           type: 'string',
@@ -232,6 +241,37 @@ export class DataSphereSkill extends SkillBase {
     };
   }
 
+  /**
+   * Validate required credentials before the skill becomes active.
+   *
+   * Mirrors Python skills/datasphere/skill.py:120-128: `setup()` returns false
+   * when any of `space_name`, `project_id`, `token`, or `document_id` is
+   * missing from either config or env. Fails closed so SkillManager refuses
+   * to register a skill that would break at call time.
+   */
+  override async setup(): Promise<boolean> {
+    const spaceName =
+      this.getConfig<string | undefined>('space_name', undefined) ??
+      process.env['SIGNALWIRE_SPACE'];
+    const projectId =
+      this.getConfig<string | undefined>('project_id', undefined) ??
+      process.env['SIGNALWIRE_PROJECT_ID'];
+    const token =
+      this.getConfig<string | undefined>('token', undefined) ??
+      process.env['SIGNALWIRE_TOKEN'];
+    const documentId = this.getConfig<string | undefined>('document_id', undefined);
+    const missing: string[] = [];
+    if (!spaceName) missing.push('space_name');
+    if (!projectId) missing.push('project_id');
+    if (!token) missing.push('token');
+    if (!documentId) missing.push('document_id');
+    if (missing.length > 0) {
+      log.error('datasphere: missing required parameters', { missing });
+      return false;
+    }
+    return true;
+  }
+
   /** Resolve the tool name (defaults to `search_knowledge`, matching Python SDK). */
   private getToolName(): string {
     return this.getConfig<string>('tool_name', 'search_knowledge');
@@ -265,7 +305,7 @@ export class DataSphereSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>) => {
+        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
           const rawQuery = args['query'];
 
           if (
@@ -296,7 +336,9 @@ export class DataSphereSkill extends SkillBase {
             );
           }
 
-          const documentId = configDocumentId;
+          // setup() validated document_id is present; always include it
+          // unconditionally, matching Python skill.py:186-191.
+          const documentId = configDocumentId ?? '';
 
           log.info('datasphere_search', { query, document_id: documentId });
 
@@ -305,14 +347,12 @@ export class DataSphereSkill extends SkillBase {
             const url = `https://${spaceHost}/api/datasphere/documents/search`;
 
             const requestBody: Record<string, unknown> = {
+              document_id: documentId,
               query_string: query,
               count,
               distance,
             };
 
-            if (documentId) {
-              requestBody['document_id'] = documentId;
-            }
             if (tags !== undefined) {
               requestBody['tags'] = tags;
             }
