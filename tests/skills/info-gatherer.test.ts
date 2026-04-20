@@ -17,8 +17,19 @@ describe('InfoGathererSkill', () => {
     expect(createInfoGathererSkill()).toBeInstanceOf(InfoGathererSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new InfoGathererSkill().setup()).resolves.toBe(true);
+  it('should return false from setup when neither questions nor fields configured', async () => {
+    // Python parity: skill.py:91-95 requires `questions`; TS supports either
+    // questions or fields but not neither, so setup() returns false without
+    // registering any tools or prompt sections.
+    await expect(new InfoGathererSkill().setup()).resolves.toBe(false);
+  });
+
+  it('should complete setup with fields configured', async () => {
+    await expect(
+      new InfoGathererSkill({
+        fields: [{ name: 'email', description: 'Email address', type: 'string' }],
+      }).setup(),
+    ).resolves.toBe(true);
   });
 
   it('should register tools with configured fields', () => {

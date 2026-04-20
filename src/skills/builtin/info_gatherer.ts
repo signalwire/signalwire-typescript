@@ -233,8 +233,17 @@ export class InfoGathererSkill extends SkillBase {
    */
   override async setup(): Promise<boolean> {
     const questions = this.getConfig<unknown>('questions', undefined);
+    const fields = this.getConfig<unknown[]>('fields', []);
+    if ((questions === undefined || questions === null) && (!Array.isArray(fields) || fields.length === 0)) {
+      // Python parity: `setup()` returns false when the skill has nothing to do
+      // (skill.py:91-95 requires `questions`). TS additionally supports a
+      // field-only mode, so we accept either — but not neither, otherwise the
+      // skill would register no tools and no prompt sections silently.
+      log.error('info_gatherer: at least one of "questions" or "fields" must be configured');
+      return false;
+    }
     if (questions === undefined || questions === null) {
-      // No sequential config — field-only mode is handled in getTools/_getPromptSections.
+      // Field-only mode — tools + prompt sections come from the fields path.
       return true;
     }
 
