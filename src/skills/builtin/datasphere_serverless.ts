@@ -43,13 +43,13 @@ export class DataSphereServerlessSkill extends SkillBase {
       tool_name: {
         type: 'string',
         description: 'Custom tool name for this DataSphere Serverless instance.',
+        default: 'search_knowledge',
       },
       space_name: {
         type: 'string',
         description:
           "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
         required: true,
-        env_var: 'SIGNALWIRE_SPACE',
       },
       project_id: {
         type: 'string',
@@ -144,6 +144,8 @@ export class DataSphereServerlessSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['search', 'datasphere', 'signalwire', 'knowledge', 'rag', 'serverless', 'datamap'],
+      requiredEnvVars: [],
+      requiredPackages: [],
       configSchema: {
         space_name: {
           type: 'string',
@@ -245,7 +247,7 @@ export class DataSphereServerlessSkill extends SkillBase {
   private buildDataMapFunction(): Record<string, unknown> {
     const count = this.getConfig<number>('count', 1);
     const distance = this.getConfig<number>('distance', 3.0);
-    const documentId = this.getConfig<string | undefined>('document_id', undefined);
+    const documentId = this.getConfig<string>('document_id', '');
     const tags = this.getConfig<string[] | undefined>('tags', undefined);
     const language = this.getConfig<string | undefined>('language', undefined);
     const posToExpand = this.getConfig<string[] | undefined>('pos_to_expand', undefined);
@@ -255,8 +257,16 @@ export class DataSphereServerlessSkill extends SkillBase {
       DEFAULT_NO_RESULTS_MESSAGE,
     );
 
+    // Match Python skills/datasphere_serverless/skill.py:152-157: bake the API URL
+    // and Basic-auth header directly from skill params. setup() has already
+    // validated that space_name/project_id/token/document_id are all present.
+    const spaceName = this.getConfig<string>('space_name', '');
+    const projectId = this.getConfig<string>('project_id', '');
+    const token = this.getConfig<string>('token', '');
+    const apiUrl = `https://${spaceName}.signalwire.com/api/datasphere/documents/search`;
+    const authHeader = Buffer.from(`${projectId}:${token}`).toString('base64');
+
     const dm = new DataMap(this.getToolName());
-    dm.enableEnvExpansion(true);
 
     dm.purpose(
       'Search the SignalWire DataSphere knowledge base for relevant information. ' +
@@ -270,16 +280,14 @@ export class DataSphereServerlessSkill extends SkillBase {
       { required: true },
     );
 
-    // Build the request body, mirroring Python's webhook params
+    // Build the request body, mirroring Python's webhook params ordering.
+    // document_id first (Python skill.py:165-170); conditional params last.
     const requestBody: Record<string, unknown> = {
+      document_id: documentId,
       query_string: '${args.query}',
       count,
       distance,
     };
-
-    if (documentId !== undefined) {
-      requestBody['document_id'] = documentId;
-    }
     if (tags !== undefined) {
       requestBody['tags'] = tags;
     }
@@ -293,17 +301,12 @@ export class DataSphereServerlessSkill extends SkillBase {
       requestBody['max_synonyms'] = maxSynonyms;
     }
 
-    // Configure the webhook to call the DataSphere API
-    dm.webhook(
-      'POST',
-      'https://${ENV.SIGNALWIRE_SPACE}.signalwire.com/api/datasphere/documents/search',
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Basic ${ENV.SIGNALWIRE_AUTH}',
-        },
+    dm.webhook('POST', apiUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${authHeader}`,
       },
-    );
+    });
 
     dm.params(requestBody);
 
@@ -330,7 +333,12 @@ export class DataSphereServerlessSkill extends SkillBase {
       new FunctionResult(noResultsMessage.replace('{query}', '${args.query}')),
     );
 
-    return dm.toSwaigFunction();
+    // Python skill.py:207 applies swaig_fields via swaig_function.update(self.swaig_fields)
+    // after building the DataMap. Match that merge — caller overrides win.
+    const fn = dm.toSwaigFunction();
+    return Object.keys(this.swaigFields).length > 0
+      ? { ...fn, ...this.swaigFields }
+      : fn;
   }
 
   /**
