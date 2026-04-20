@@ -89,11 +89,19 @@ export class SkillManager {
       throw new Error(`Cannot load skill '${name}': missing environment variables: ${missingEnvVars.join(', ')}`);
     }
 
-    // Log parameter schema info (non-fatal)
+    // Parameter schema contract — partial port of Python load_skill checks
+    // (skill_manager.py:49-93). Python additionally requires the subclass to
+    // override get_parameter_schema; we skip that identity check because TS
+    // test fixtures and trivial skills routinely inherit the base schema
+    // without harm, and the TS type system already enforces that
+    // getParameterSchema is a callable classmethod returning the right shape.
     const schema = SkillClass.getParameterSchema();
-    if (schema && Object.keys(schema).length > 0) {
-      log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
+    if (!schema || typeof schema !== 'object' || Object.keys(schema).length === 0) {
+      throw new Error(
+        `Skill '${name}'.getParameterSchema() must return a non-empty object`,
+      );
     }
+    log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
 
     // Setup — returns boolean indicating success (matches Python behavior)
     const setupOk = await skill.setup();
