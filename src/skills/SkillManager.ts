@@ -59,6 +59,12 @@ export class SkillManager {
   /**
    * Add a skill to the manager, validating env vars and calling setup().
    * Uses the skill's instance key for deduplication.
+   *
+   * Throws on duplicate (when multi-instance is disallowed), missing env vars,
+   * or setup errors. {@link loadSkill} / {@link loadSkillByName} wrap this and
+   * catch to return `[false, msg]`, matching Python `load_skill`'s return
+   * contract (`skill_manager.py` lines 114-118).
+   *
    * @param skill - The skill instance to add.
    */
   async addSkill(skill: SkillBase): Promise<void> {
@@ -75,8 +81,9 @@ export class SkillManager {
       return;
     }
 
-    // Validate required env vars — hard-fail matches Python's load_skill behavior
-    // (skill_manager.py lines 114-118: `if missing_env_vars: return False, error_msg`)
+    // Validate required env vars — throw on miss; loadSkill/loadSkillByName
+    // catch and convert to `[false, msg]` to match Python load_skill's return
+    // contract (skill_manager.py lines 114-118).
     const missingEnvVars = skill.validateEnvVars();
     if (missingEnvVars.length > 0) {
       throw new Error(`Cannot load skill '${name}': missing environment variables: ${missingEnvVars.join(', ')}`);
