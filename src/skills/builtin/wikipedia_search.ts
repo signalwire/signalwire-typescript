@@ -49,10 +49,18 @@ interface WikipediaActionExtractsResponse {
  * customizes the fallback text (supports `{query}` interpolation).
  */
 export class WikipediaSearchSkill extends SkillBase {
-  /** Resolved `num_results` value (populated in `setup()`). */
-  protected numResults: number = 1;
-  /** Resolved `no_results_message` template (populated in `setup()`). */
-  private _noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
+  /**
+   * Resolved `num_results` value (populated in `setup()`).
+   * Public to mirror Python's `self.num_results` — accessible to subclasses
+   * and external test code inspecting skill state.
+   */
+  public numResults: number = 1;
+  /**
+   * Resolved `no_results_message` template (populated in `setup()`).
+   * Protected to mirror Python's `self.no_results_message` public visibility
+   * within the class hierarchy.
+   */
+  protected noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
 
   /**
    * @param config - Optional configuration; supports `num_results` and
@@ -80,7 +88,7 @@ export class WikipediaSearchSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest with skill metadata (no required env vars). */
+  /** @returns Manifest with skill metadata (no required env vars or packages). */
   getManifest(): SkillManifest {
     return {
       name: 'wikipedia_search',
@@ -89,22 +97,33 @@ export class WikipediaSearchSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['search', 'wikipedia', 'encyclopedia', 'knowledge', 'external'],
+      requiredEnvVars: [],
+      // Python's REQUIRED_PACKAGES = ["requests"]; Node's native fetch replaces
+      // requests so there's no equivalent npm package to declare. Empty for parity.
+      requiredPackages: [],
     };
   }
 
   /**
-   * Extract config values into instance state. Clamps `num_results` to the
-   * 1-5 range (matching Python's `max(1, ...)` floor plus the schema cap).
+   * Extract config values into instance state. Enforces `num_results >= 1`
+   * (matching Python `skill.py:_setup` `max(1, ...)` floor). The schema's
+   * `max: 5` handles the upper bound at validation time — no runtime clamp
+   * here, so callers passing larger values get the raw value as in Python.
    */
   override async setup(): Promise<boolean> {
+    // Match Python setup() which validates required packages and returns false
+    // on missing. Node's native fetch needs no packages here, so this is a
+    // no-op unless a subclass declares requiredPackages.
+    if (!(await this.hasAllPackages())) return false;
+
     const configured = this.getConfig<number>('num_results', 1);
-    this.numResults = Math.max(1, Math.min(5, Math.floor(configured)));
+    this.numResults = Math.max(1, Math.floor(configured));
 
     const rawMessage = this.getConfig<string | undefined>(
       'no_results_message',
       undefined,
     );
-    this._noResultsMessage =
+    this.noResultsMessage =
       rawMessage && rawMessage.length > 0 ? rawMessage : DEFAULT_NO_RESULTS_MESSAGE;
     return true;
   }
@@ -211,19 +230,33 @@ export class WikipediaSearchSkill extends SkillBase {
       const separator = '\n\n' + '='.repeat(50) + '\n\n';
       return articles.join(separator);
     } catch (err) {
-      log.error('wikipedia_search_failed', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return `Error searching Wikipedia: ${
-        err instanceof Error ? err.message : String(err)
-      }`;
+      const message = err instanceof Error ? err.message : String(err);
+      // Python raises RequestException for network errors and Exception for
+      // the rest, so it emits two distinct user-facing strings (skill.py:85,91).
+      // Mirror that split: AbortError / fetch-layer errors → "accessing",
+      // everything else → "searching".
+      if (
+        err instanceof Error &&
+        (err.name === 'AbortError' ||
+          err.name === 'TypeError' /* fetch network failures */ ||
+          err.message.includes('fetch'))
+      ) {
+        log.error('wikipedia_access_failed', { error: message });
+        return `Error accessing Wikipedia: ${message}`;
+      }
+      log.error('wikipedia_search_failed', { error: message });
+      return `Error searching Wikipedia: ${message}`;
     }
   }
 
-  /** Fetch JSON with a 30-second timeout. Returns `null` on any failure. */
+  /**
+   * Fetch JSON with a 10-second timeout (matches Python `requests.get(..., timeout=10)`).
+   * Returns `null` on HTTP error or network failure, logging the cause so
+   * diagnostic signal isn't silently lost.
+   */
   private async _fetchJson<T>(url: string): Promise<T | null> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     try {
       const response = await fetch(url, {
         headers: {
@@ -233,10 +266,15 @@ export class WikipediaSearchSkill extends SkillBase {
         signal: controller.signal,
       });
       if (!response.ok) {
+        log.warn('wikipedia_fetch_http_error', { url, status: response.status });
         return null;
       }
       return (await response.json()) as T;
-    } catch {
+    } catch (err) {
+      log.warn('wikipedia_fetch_failed', {
+        url,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return null;
     } finally {
       clearTimeout(timeout);
@@ -245,9 +283,9 @@ export class WikipediaSearchSkill extends SkillBase {
 
   /** Render the configured no-results message, substituting `{query}`. */
   private _formatNoResults(query: string): string {
-    return this._noResultsMessage.includes('{query}')
-      ? this._noResultsMessage.replace(/\{query\}/g, query)
-      : this._noResultsMessage;
+    return this.noResultsMessage.includes('{query}')
+      ? this.noResultsMessage.replace(/\{query\}/g, query)
+      : this.noResultsMessage;
   }
 
   /** @returns Prompt section describing Wikipedia search capabilities and usage guidance. */

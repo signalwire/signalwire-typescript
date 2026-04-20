@@ -630,10 +630,10 @@ describe('WikipediaSearchSkill', () => {
     expect(sections[0].bullets!.length).toBeGreaterThan(0);
   });
 
-  it('should have no requiredEnvVars (free API)', () => {
+  it('should declare empty requiredEnvVars (free API, matches Python REQUIRED_ENV_VARS = [])', () => {
     const skill = createWikipediaSearchSkill();
     const manifest = skill.getManifest();
-    expect(manifest.requiredEnvVars).toBeUndefined();
+    expect(manifest.requiredEnvVars).toEqual([]);
   });
 });
 
