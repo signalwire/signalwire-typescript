@@ -66,10 +66,19 @@ interface GoogleSearchResponse {
  * Tier 3 built-in skill. Credentials can be supplied via the `api_key` and
  * `search_engine_id` params or `GOOGLE_SEARCH_API_KEY` /
  * `GOOGLE_SEARCH_ENGINE_ID` (legacy: `GOOGLE_SEARCH_CX`) environment variables.
- * Supports `tool_name`, `num_results`, `no_results_message`, `safe_search`,
- * and — for Python-parity — `delay`, `max_content_length`, `oversample_factor`,
- * and `min_quality_score` config options. The scraping-pipeline parameters are
- * accepted but only the API-snippet result path is implemented in TS.
+ *
+ * The handler mirrors Python's `search_and_scrape_best` pipeline: fetches
+ * `oversample_factor × num_results` candidates from Google, scrapes each
+ * result page (SSRF-guarded, cheerio-based text extraction), scores for
+ * quality (length + query relevance + boilerplate penalty), deduplicates by
+ * domain, and returns the top `num_results` above `min_quality_score` with
+ * full page content. If every scrape fails or falls below the threshold the
+ * handler falls back to raw API snippets so the agent still has something
+ * to say.
+ *
+ * Supported config: `tool_name`, `num_results`, `no_results_message`,
+ * `safe_search`, `delay`, `max_content_length`, `oversample_factor`,
+ * `min_quality_score`.
  */
 export class WebSearchSkill extends SkillBase {
   /** Python SDK parity: multiple instances can coexist with different tool names. */
