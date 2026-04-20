@@ -112,10 +112,14 @@ export class SkillManager {
       );
     }
 
-    // Setup — returns boolean indicating success (matches Python behavior)
+    // Setup — returns boolean indicating success. Matches Python load_skill
+    // (skill_manager.py:134-137): setup() returning false is fatal, the skill
+    // is NOT registered, and the caller gets [false, msg] via the wrappers.
+    // Python fails closed so the AI never sees a tool whose skill knows it
+    // isn't configured correctly.
     const setupOk = await skill.setup();
     if (!setupOk) {
-      log.warn(`Skill '${name}' setup() returned false — skill may not function correctly`);
+      throw new Error(`Failed to setup skill '${name}'`);
     }
     skill.markInitialized();
 
