@@ -110,20 +110,36 @@ export abstract class SkillBase {
   /**
    * Get the parameter schema for this skill class, describing all accepted configuration options.
    * Subclasses should override and call `super.getParameterSchema()` to include base parameters.
+   *
+   * Mirrors Python's `SkillBase.get_parameter_schema()` (skill_base.py:197-266):
+   * returns `swaig_fields` + `skip_prompt` for all skills, and additionally adds a
+   * `tool_name` entry for classes with `SUPPORTS_MULTIPLE_INSTANCES = true`.
+   *
    * @returns Record mapping parameter names to their schema entries.
    */
   static getParameterSchema(): Record<string, ParameterSchemaEntry> {
-    return {
+    const schema: Record<string, ParameterSchemaEntry> = {
       swaig_fields: {
         type: 'object',
         description: 'Additional SWAIG fields to merge into each tool definition provided by this skill.',
+        default: {},
+        required: false,
       },
       skip_prompt: {
         type: 'boolean',
         description: 'When true, suppress all prompt sections from this skill.',
         default: false,
+        required: false,
       },
     };
+    if (this.SUPPORTS_MULTIPLE_INSTANCES) {
+      schema['tool_name'] = {
+        type: 'string',
+        description: 'Custom name for this skill instance (for multiple instances).',
+        required: false,
+      };
+    }
+    return schema;
   }
 
   /** The registered name of this skill type. */
