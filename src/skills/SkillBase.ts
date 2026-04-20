@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FunctionResult } from '../FunctionResult.js';
 import type { AgentBase } from '../AgentBase.js';
-import { getLogger } from '../Logger.js';
+import { getLogger, type Logger } from '../Logger.js';
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -145,6 +145,11 @@ export abstract class SkillBase {
    * safe to call inside `setup()` and any method invoked after it.
    */
   protected agent?: AgentBase;
+  /**
+   * Logger scoped to this skill. Python equivalent: `self.logger = get_logger(...)`
+   * set in `SkillBase.__init__` so every subclass can call `self.logger.info(...)`.
+   */
+  protected readonly logger: Logger;
   private _initialized = false;
 
   /**
@@ -180,6 +185,7 @@ export abstract class SkillBase {
     this.skillName = skillName;
     this.config = { ...(config ?? {}) };
     this.instanceId = `${skillName}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
+    this.logger = getLogger(`signalwire.skills.${skillName}`);
 
     // Extract swaig_fields from config (matches Python's self.swaig_fields = self.params.pop('swaig_fields', {}))
     this.swaigFields = (this.config['swaig_fields'] as Record<string, unknown>) ?? {};
@@ -248,12 +254,24 @@ export abstract class SkillBase {
 
   /**
    * Get the instance key used for deduplication in the SkillManager.
-   * Default returns the skill name. Multi-instance skills should override
-   * to include a distinguishing suffix (e.g., tool_name).
+   *
+   * For single-instance skills (`SUPPORTS_MULTIPLE_INSTANCES = false`), returns
+   * the skill name. For multi-instance skills, returns `${skillName}_${toolName}`
+   * using the `tool_name` config (falls back to the skill name).
+   *
+   * Matches Python's `SkillBase.get_instance_key()` default (`skill_base.py:141-146`).
+   * Multi-instance subclasses only need to override when their key derivation
+   * depends on config beyond `tool_name`.
+   *
    * @returns A unique key identifying this skill instance.
    */
   getInstanceKey(): string {
-    return this.skillName;
+    const SkillClass = this.constructor as typeof SkillBase;
+    if (!SkillClass.SUPPORTS_MULTIPLE_INSTANCES) {
+      return this.skillName;
+    }
+    const toolName = (this.config['tool_name'] as string | undefined) ?? this.skillName;
+    return `${this.skillName}_${toolName}`;
   }
 
   /**
