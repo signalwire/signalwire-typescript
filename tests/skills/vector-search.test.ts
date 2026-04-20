@@ -16,11 +16,14 @@ describe('NativeVectorSearchSkill', () => {
     expect(createNativeVectorSearchSkill()).toBeInstanceOf(NativeVectorSearchSkill);
   });
 
-  it('should return false from setup when no remote_url and no local index', async () => {
-    // Python parity: an empty/unconfigured native vector search has no remote
-    // backend and no local index, so searchAvailable=false and setup returns
-    // false. Configured modes are exercised in the per-mode tests below.
-    await expect(new NativeVectorSearchSkill().setup()).resolves.toBe(false);
+  it('should return true from setup in local mode even without documents (Python parity)', async () => {
+    // Python skills/native_vector_search/skill.py always returns True from
+    // setup() for local mode even when no index is loaded. The "no results"
+    // fallback fires at query time. This lets operators fix config and hot-
+    // reload without having the SkillManager reject the skill entirely.
+    const skill = new NativeVectorSearchSkill();
+    await expect(skill.setup()).resolves.toBe(true);
+    // searchAvailable still reports the honest state so handler callers see false.
   });
 
   it('should register a search tool using configured tool_name', async () => {

@@ -26,6 +26,7 @@ import type {
 import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
+import { validateUrl } from '../../SecurityUtils.js';
 
 const log = getLogger('NativeVectorSearchSkill');
 
@@ -454,10 +455,25 @@ export class NativeVectorSearchSkill extends SkillBase {
     // Remote mode — validate and skip heavy local setup
     if (this.remoteUrl) {
       this.useRemote = true;
+
+      // SSRF protection — match Python skills/native_vector_search/skill.py:292-293
+      // which calls validate_url(self.remote_url) and refuses to connect to
+      // private/loopback/metadata-endpoint URLs in multi-tenant deployments.
+      const urlToValidate = this.remoteBaseUrl ?? this.remoteUrl;
+      if (!(await validateUrl(urlToValidate))) {
+        log.error('native_vector_search: remote_url rejected by SSRF protection', {
+          url: urlToValidate,
+        });
+        return false;
+      }
+
       try {
+        // Python uses timeout=5 for the health check (skill.py). Don't wait
+        // the default 30s if a misconfigured remote URL doesn't respond.
         const response = await this._fetchWithAuth(
           `${this.remoteBaseUrl}/health`,
           { method: 'GET' },
+          5000,
         );
         if (response.status === 200) {
           log.info('native_vector_search: remote server available', {
@@ -494,7 +510,12 @@ export class NativeVectorSearchSkill extends SkillBase {
         indexed: this._indexed,
       });
     }
-    return this.searchAvailable;
+    // Python parity (skill.py): local mode always returns True from setup()
+    // even when no documents are loaded. The skill stays registered and the
+    // "no information found" fallback fires at query time instead of the
+    // skill being rejected entirely. This lets a caller fix the config and
+    // reload without tearing down the agent.
+    return true;
   }
 
   override getHints(): string[] {
@@ -531,6 +552,8 @@ export class NativeVectorSearchSkill extends SkillBase {
       version: '1.0.0',
       author: 'SignalWire',
       tags: ['search', 'vector', 'tfidf', 'documents', 'local', 'knowledge'],
+      requiredEnvVars: [],
+      requiredPackages: [],
     };
   }
 
@@ -861,6 +884,7 @@ export class NativeVectorSearchSkill extends SkillBase {
   private async _fetchWithAuth(
     url: string,
     init: RequestInit = {},
+    timeoutMs = 30_000,
   ): Promise<Response> {
     const headers: Record<string, string> = {
       Accept: 'application/json',
@@ -873,7 +897,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       headers['Authorization'] = `Basic ${creds}`;
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, { ...init, headers, signal: controller.signal });
     } finally {
