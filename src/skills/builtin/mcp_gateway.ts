@@ -20,6 +20,7 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
+import { Agent as UndiciAgent } from 'undici';
 
 const log = getLogger('McpGatewaySkill');
 
@@ -362,7 +363,7 @@ export class McpGatewaySkill extends SkillBase {
       headers['Authorization'] = `Basic ${creds}`;
     }
 
-    const init: RequestInit = { method, headers };
+    const init: RequestInit & { dispatcher?: unknown } = { method, headers };
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(options.body);
@@ -375,8 +376,16 @@ export class McpGatewaySkill extends SkillBase {
     );
     init.signal = controller.signal;
 
+    // Mirror Python `requests.request(..., verify=self.verify_ssl)`. Node's
+    // built-in fetch has no SSL toggle, so use an undici Agent as dispatcher.
+    if (!this.verifySsl) {
+      init.dispatcher = new UndiciAgent({
+        connect: { rejectUnauthorized: false },
+      });
+    }
+
     try {
-      return await fetch(url, init);
+      return await fetch(url, init as RequestInit);
     } finally {
       clearTimeout(timer);
     }
@@ -509,7 +518,7 @@ export class McpGatewaySkill extends SkillBase {
       session_id: sessionId,
       timeout: this.sessionTimeout,
       metadata: {
-        agent_id: 'signalwire-typescript',
+        agent_id: this.agent?.name ?? 'signalwire-typescript',
         timestamp: rawData['timestamp'],
         call_id: rawData['call_id'],
       },
