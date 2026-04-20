@@ -100,7 +100,6 @@ describe('SwmlTransferSkill', () => {
     expect(schema['parameter_name']).toBeDefined();
     expect(schema['parameter_description']).toBeDefined();
     expect(schema['default_message']).toBeDefined();
-    expect(schema['no_match_message']).toBeDefined();
     expect(schema['default_post_process']).toBeDefined();
     expect(schema['required_fields']).toBeDefined();
     expect(schema['patterns']).toBeDefined();
@@ -113,19 +112,19 @@ describe('SwmlTransferSkill', () => {
     });
     await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const res = (await handler({ destination: 'sales' }, {})) as FunctionResult;
+    const res = (await handler({ transfer_type: 'sales' }, {})) as FunctionResult;
     expect(res.action.length).toBeGreaterThan(0);
   });
 
-  it('should use no_match_message when destination is unknown and arbitrary disallowed', async () => {
+  it('should use default_message when destination is unknown and arbitrary disallowed', async () => {
     const skill = new SwmlTransferSkill({
       patterns: [{ name: 'sales', destination: '+15551112222' }],
       allow_arbitrary: false,
-      no_match_message: 'I cannot transfer there.',
+      default_message: 'I cannot transfer there.',
     });
     await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const res = (await handler({ destination: 'unknown' }, {})) as FunctionResult;
+    const res = (await handler({ transfer_type: 'unknown' }, {})) as FunctionResult;
     expect(res.response).toContain('cannot transfer');
   });
 
@@ -137,7 +136,7 @@ describe('SwmlTransferSkill', () => {
     });
     await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const res = (await handler({ destination: 'sales' }, {})) as FunctionResult;
+    const res = (await handler({ transfer_type: 'sales' }, {})) as FunctionResult;
     expect(res.action.length).toBeGreaterThan(0);
   });
 
@@ -149,7 +148,7 @@ describe('SwmlTransferSkill', () => {
     await skill.setup();
     const handler = skill.getTools()[0].handler;
     const res = (await handler(
-      { destination: 'support', name: 'Alice', reason: 'Billing issue' },
+      { transfer_type: 'support', name: 'Alice', reason: 'Billing issue' },
       {},
     )) as FunctionResult;
     // Look for updateGlobalData action with call_data

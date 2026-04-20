@@ -101,7 +101,7 @@ export class SwmlTransferSkill extends SkillBase {
       parameter_name: {
         type: 'string',
         description: 'Name of the parameter that accepts the transfer type',
-        default: 'destination',
+        default: 'transfer_type',
         required: false,
       },
       parameter_description: {
@@ -112,19 +112,13 @@ export class SwmlTransferSkill extends SkillBase {
       },
       default_message: {
         type: 'string',
-        description: 'Default pre-transfer message said before every transfer.',
-        default: 'Transferring your call now.',
-        required: false,
-      },
-      no_match_message: {
-        type: 'string',
-        description: 'Message returned when no transfer pattern matches.',
+        description: 'Message when no pattern matches',
         default: 'Please specify a valid transfer type.',
         required: false,
       },
       default_post_process: {
         type: 'boolean',
-        description: 'Whether to process no-match message with AI',
+        description: 'Whether to process default message with AI',
         default: false,
         required: false,
       },
@@ -143,10 +137,9 @@ export class SwmlTransferSkill extends SkillBase {
   private patterns: TransferPattern[] = [];
   private toolName = 'transfer_call';
   private toolDescription = 'Transfer call based on pattern matching';
-  private parameterName = 'destination';
+  private parameterName = 'transfer_type';
   private parameterDescription = 'The type of transfer to perform';
-  private defaultMessage = 'Transferring your call now.';
-  private noMatchMessage = 'Please specify a valid transfer type.';
+  private defaultMessage = 'Please specify a valid transfer type.';
   private defaultPostProcess = false;
   private requiredFields: Record<string, string> = {};
   private allowArbitraryOverride: boolean | undefined;
@@ -169,17 +162,13 @@ export class SwmlTransferSkill extends SkillBase {
       'description',
       'Transfer call based on pattern matching',
     );
-    this.parameterName = this.getConfig<string>('parameter_name', 'destination');
+    this.parameterName = this.getConfig<string>('parameter_name', 'transfer_type');
     this.parameterDescription = this.getConfig<string>(
       'parameter_description',
       'The type of transfer to perform',
     );
     this.defaultMessage = this.getConfig<string>(
       'default_message',
-      'Transferring your call now.',
-    );
-    this.noMatchMessage = this.getConfig<string>(
-      'no_match_message',
       'Please specify a valid transfer type.',
     );
     this.defaultPostProcess = this.getConfig<boolean>('default_post_process', false);
@@ -290,10 +279,6 @@ export class SwmlTransferSkill extends SkillBase {
     const defaultMessage = this.getConfig<string>(
       'default_message',
       this.defaultMessage,
-    );
-    const noMatchMessage = this.getConfig<string>(
-      'no_match_message',
-      this.noMatchMessage,
     );
     const defaultPostProcess = this.getConfig<boolean>(
       'default_post_process',
@@ -421,14 +406,14 @@ export class SwmlTransferSkill extends SkillBase {
           if (matchedPattern) {
             return this._buildPatternResult(
               matchedPattern,
-              messageOverride ?? defaultMessage,
+              messageOverride ?? 'Transferring you now...',
               callData,
             );
           }
 
           // 3. Arbitrary destinations
           if (canUseArbitrary) {
-            const msg = messageOverride ?? defaultMessage;
+            const msg = messageOverride ?? 'Transferring you now...';
             const result = new FunctionResult(msg);
             result.swmlTransfer(destination, msg, true);
             if (Object.keys(callData).length > 0) {
@@ -438,7 +423,7 @@ export class SwmlTransferSkill extends SkillBase {
           }
 
           // 4. No match — return fallback message
-          const fallback = new FunctionResult(noMatchMessage);
+          const fallback = new FunctionResult(defaultMessage);
           fallback.postProcess = defaultPostProcess;
           if (Object.keys(callData).length > 0) {
             fallback.updateGlobalData({ call_data: callData });

@@ -317,15 +317,15 @@ describe('SwmlTransferSkill', () => {
     const tools = skill.getTools();
     expect(tools.length).toBeGreaterThanOrEqual(1);
     expect(tools[0].name).toBe('transfer_call');
-    expect(tools[0].required).toContain('destination');
+    expect(tools[0].required).toContain('transfer_type');
   });
 
   it('should execute transfer with arbitrary destination', () => {
     const skill = createSwmlTransferSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: '+15551234567' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: '+15551234567' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toBe('Transferring your call now.');
+    expect(result.response).toBe('Transferring you now...');
     // Should have a SWML transfer action
     expect(result.action.length).toBeGreaterThan(0);
     const swmlAction = result.action[0];
@@ -347,21 +347,21 @@ describe('SwmlTransferSkill', () => {
 
     // Transfer by name
     const handler = tools[0].handler;
-    const result = handler({ destination: 'sales' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: 'sales' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.action.length).toBeGreaterThan(0);
   });
 
-  it('should use no-match message when patterns configured and arbitrary disallowed', () => {
+  it('should use default_message when patterns configured and arbitrary disallowed', () => {
     const skill = createSwmlTransferSkill({
       patterns: [
         { name: 'sales', destination: 'sip:sales@example.com' },
       ],
       allow_arbitrary: false,
-      no_match_message: 'Please specify a valid transfer type.',
+      default_message: 'Please specify a valid transfer type.',
     });
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: 'unknown_dept' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: 'unknown_dept' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('valid transfer type');
   });
