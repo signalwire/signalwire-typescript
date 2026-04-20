@@ -321,7 +321,10 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (args: Record<string, unknown>) => this._scrapeUrlHandler(args),
+        handler: async (
+          args: Record<string, unknown>,
+          rawData: Record<string, unknown>,
+        ) => this._scrapeUrlHandler(args, rawData),
       },
       {
         name: `${prefix}crawl_site`,
@@ -333,7 +336,10 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['start_url'],
-        handler: async (args: Record<string, unknown>) => this._crawlSiteHandler(args),
+        handler: async (
+          args: Record<string, unknown>,
+          rawData: Record<string, unknown>,
+        ) => this._crawlSiteHandler(args, rawData),
       },
       {
         name: `${prefix}extract_structured_data`,
@@ -345,8 +351,10 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (args: Record<string, unknown>) =>
-          this._extractStructuredHandler(args),
+        handler: async (
+          args: Record<string, unknown>,
+          rawData: Record<string, unknown>,
+        ) => this._extractStructuredHandler(args, rawData),
       },
     ];
   }
@@ -420,9 +428,16 @@ export class SpiderSkill extends SkillBase {
     }
   }
 
-  /** Extract plain text from an HTML body using simple regex stripping. */
-  private _fastTextExtract(html: string): string {
-    let stripped = html;
+  /**
+   * Extract plain text from a fetched response using simple regex stripping.
+   *
+   * Takes a {@link CachedResponse} (TS equivalent of `requests.Response`) to
+   * match Python's `_fast_text_extract(response)` capability surface — the
+   * response-like object exposes `url`, `status`, and `body` for callers that
+   * need to branch on status/content-type.
+   */
+  private _fastTextExtract(response: CachedResponse): string {
+    let stripped = response.body;
     for (const re of STRIP_TAG_REGEXES) {
       stripped = stripped.replace(re, ' ');
     }
@@ -590,6 +605,7 @@ export class SpiderSkill extends SkillBase {
 
   private async _scrapeUrlHandler(
     args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
   ): Promise<FunctionResult> {
     const urlArg = args['url'];
     if (typeof urlArg !== 'string' || urlArg.trim().length === 0) {
@@ -628,7 +644,7 @@ export class SpiderSkill extends SkillBase {
         );
       }
       // All other extract types fall through to fast-text-like extraction
-      const content = this._fastTextExtract(cached.body);
+      const content = this._fastTextExtract(cached);
 
       if (!content) {
         return new FunctionResult(`No content extracted from ${url}`);
@@ -650,6 +666,7 @@ export class SpiderSkill extends SkillBase {
 
   private async _crawlSiteHandler(
     args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
   ): Promise<FunctionResult> {
     const startArg = args['start_url'];
     if (typeof startArg !== 'string' || startArg.trim().length === 0) {
@@ -704,7 +721,7 @@ export class SpiderSkill extends SkillBase {
 
       visited.add(url);
 
-      const content = this._fastTextExtract(cached.body);
+      const content = this._fastTextExtract(cached);
       if (content) {
         results.push({
           url,
@@ -785,6 +802,7 @@ export class SpiderSkill extends SkillBase {
 
   private async _extractStructuredHandler(
     args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
   ): Promise<FunctionResult> {
     const urlArg = args['url'];
     if (typeof urlArg !== 'string' || urlArg.trim().length === 0) {
