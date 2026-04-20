@@ -20,6 +20,7 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
+import { validateUrl } from '../../SecurityUtils.js';
 import { Agent as UndiciAgent } from 'undici';
 
 const log = getLogger('McpGatewaySkill');
@@ -88,7 +89,17 @@ export class McpGatewaySkill extends SkillBase {
           'List of MCP services to connect to (empty for all available)',
         default: [],
         required: false,
-        items: { type: 'object' },
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Service name' },
+            tools: {
+              type: ['string', 'array'],
+              description:
+                "Tools to expose ('*' for all, or list of tool names)",
+            },
+          },
+        },
       },
       session_timeout: {
         type: 'integer',
@@ -134,9 +145,14 @@ export class McpGatewaySkill extends SkillBase {
   private retryAttempts = 3;
   private requestTimeout = 30;
   private verifySsl = true;
-  private sessionId: string | undefined;
   private _discoveredTools: SkillToolDefinition[] = [];
   private _ready = false;
+  /**
+   * Cached undici Agent used when `verify_ssl=false`. Created once in
+   * `setup()` and reused across every `_makeRequest` call to avoid
+   * connection-pool churn (Python reuses `requests.Session` implicitly).
+   */
+  private _undiciAgent: UndiciAgent | undefined;
 
   /**
    * @param config - Optional configuration (see `getParameterSchema()`).
@@ -154,6 +170,9 @@ export class McpGatewaySkill extends SkillBase {
       author: 'SignalWire',
       tags: ['mcp', 'gateway', 'protocol', 'tools', 'integration'],
       requiredEnvVars: [],
+      // Python declares REQUIRED_PACKAGES = ["requests"]; undici is the TS
+      // equivalent (used for verify_ssl=false dispatcher overrides).
+      requiredPackages: ['undici'],
     };
   }
 
@@ -184,6 +203,17 @@ export class McpGatewaySkill extends SkillBase {
     }
 
     this.gatewayUrl = gatewayUrl.replace(/\/+$/, '');
+
+    // SSRF protection — match Python skills/mcp_gateway/skill.py:147-148 which
+    // calls validate_url(self.gateway_url) before the health check. Reject
+    // private/loopback/metadata-endpoint URLs in multi-tenant deployments.
+    if (!(await validateUrl(this.gatewayUrl))) {
+      log.error('mcp_gateway: gateway_url rejected by SSRF protection', {
+        url: this.gatewayUrl,
+      });
+      return false;
+    }
+
     this.services =
       this.getConfig<McpServiceConfig[]>('services', []) ?? [];
     this.sessionTimeout = this.getConfig<number>('session_timeout', 300);
@@ -192,7 +222,13 @@ export class McpGatewaySkill extends SkillBase {
     this.requestTimeout = this.getConfig<number>('request_timeout', 30);
     this.verifySsl = this.getConfig<boolean>('verify_ssl', true);
 
-    this.sessionId = undefined;
+    // Cache a single undici Agent for SSL-bypass mode so each request reuses
+    // the same connection pool (parity with Python requests.Session behavior).
+    if (!this.verifySsl) {
+      this._undiciAgent = new UndiciAgent({
+        connect: { rejectUnauthorized: false },
+      });
+    }
 
     // Validate gateway connectivity
     try {
@@ -240,12 +276,15 @@ export class McpGatewaySkill extends SkillBase {
 
   override getGlobalData(): Record<string, unknown> {
     if (!this._ready) return {};
+    // Python skill.py emits mcp_session_id = self.session_id, which Python
+    // initializes to None in setup() and never updates. Per-call session IDs
+    // live in local scope inside _call_mcp_tool — never mutate shared state.
     return {
       mcp_gateway_url: this.gatewayUrl,
-      mcp_session_id: this.sessionId ?? null,
-      mcp_services: this.services
-        .map((s) => (typeof s === 'object' && s !== null ? s.name : String(s)))
-        .filter(Boolean),
+      mcp_session_id: null,
+      mcp_services: this.services.map((s) =>
+        typeof s === 'object' && s !== null ? s.name : String(s),
+      ),
     };
   }
 
@@ -377,11 +416,10 @@ export class McpGatewaySkill extends SkillBase {
     init.signal = controller.signal;
 
     // Mirror Python `requests.request(..., verify=self.verify_ssl)`. Node's
-    // built-in fetch has no SSL toggle, so use an undici Agent as dispatcher.
-    if (!this.verifySsl) {
-      init.dispatcher = new UndiciAgent({
-        connect: { rejectUnauthorized: false },
-      });
+    // built-in fetch has no SSL toggle, so reuse the undici Agent cached in
+    // setup() rather than spinning up a fresh one on every call.
+    if (this._undiciAgent) {
+      init.dispatcher = this._undiciAgent;
     }
 
     try {
@@ -500,6 +538,8 @@ export class McpGatewaySkill extends SkillBase {
     rawData: Record<string, unknown>,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
+    log.debug('mcp_gateway: raw_data keys', { keys: Object.keys(rawData) });
+    log.debug('mcp_gateway: global_data keys', { keys: Object.keys(globalData) });
     let sessionId: string;
     if (typeof globalData['mcp_call_id'] === 'string') {
       sessionId = globalData['mcp_call_id'] as string;
@@ -510,7 +550,9 @@ export class McpGatewaySkill extends SkillBase {
       sessionId = (rawData['call_id'] as string) ?? 'unknown';
       log.info('mcp_gateway: using session ID from call_id', { sessionId });
     }
-    this.sessionId = sessionId;
+    // NB: do NOT mutate this.sessionId here — Python leaves self.session_id
+    // untouched after setup(). Per-call IDs stay local so concurrent tool
+    // calls don't race and overwrite each other's session metadata.
 
     const requestData: Record<string, unknown> = {
       tool: toolName,
@@ -518,7 +560,9 @@ export class McpGatewaySkill extends SkillBase {
       session_id: sessionId,
       timeout: this.sessionTimeout,
       metadata: {
-        agent_id: this.agent?.name ?? 'signalwire-typescript',
+        // Python sends self.agent.name; mirror that and fall back to the
+        // skill name when agent is not yet bound. No hardcoded SDK literal.
+        agent_id: this.agent?.name ?? this.skillName,
         timestamp: rawData['timestamp'],
         call_id: rawData['call_id'],
       },
@@ -537,10 +581,17 @@ export class McpGatewaySkill extends SkillBase {
           const resultData = (await response.json()) as {
             result?: unknown;
           };
-          const resultText =
-            typeof resultData.result === 'string'
-              ? resultData.result
-              : JSON.stringify(resultData.result ?? 'No response');
+          // Python returns result_data.get('result', 'No response') which yields
+          // the raw string 'No response' when the key is missing. Preserve that:
+          // only stringify when the value is defined and non-string.
+          let resultText: string;
+          if (typeof resultData.result === 'string') {
+            resultText = resultData.result;
+          } else if (resultData.result != null) {
+            resultText = JSON.stringify(resultData.result);
+          } else {
+            resultText = 'No response';
+          }
           return new FunctionResult(resultText);
         }
 
@@ -549,7 +600,12 @@ export class McpGatewaySkill extends SkillBase {
           const errorData = (await response.json()) as { error?: string };
           errorMsg = errorData.error ?? `HTTP ${response.status}`;
         } catch {
-          errorMsg = `HTTP ${response.status}`;
+          // Python includes the first 200 chars of the response body when the
+          // payload isn't valid JSON (skill.py error handler). Match that.
+          const bodyText = await response.text().catch(() => '');
+          errorMsg = bodyText
+            ? `HTTP ${response.status}: ${bodyText.slice(0, 200)}`
+            : `HTTP ${response.status}`;
         }
         lastError = errorMsg;
 
@@ -564,6 +620,21 @@ export class McpGatewaySkill extends SkillBase {
         break;
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
+        // Distinguish network/timeout errors (retriable) from programming
+        // errors like JSON parse failures on success responses (fatal).
+        // Python aborts the retry loop on non-network exceptions; mirror that.
+        const isNetwork =
+          err instanceof Error &&
+          (err.name === 'AbortError' ||
+            err.name === 'TypeError' ||
+            err.message.includes('fetch'));
+        if (!isNetwork) {
+          log.error('mcp_gateway: unexpected error, aborting retry', {
+            attempt: attempt + 1,
+            error: lastError,
+          });
+          break;
+        }
         log.warn('mcp_gateway: request error', {
           attempt: attempt + 1,
           error: lastError,
