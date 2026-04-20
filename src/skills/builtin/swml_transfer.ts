@@ -269,6 +269,7 @@ export class SwmlTransferSkill extends SkillBase {
       author: 'SignalWire',
       tags: ['call-control', 'transfer', 'swml', 'routing'],
       requiredEnvVars: [],
+      requiredPackages: [],
     };
   }
 
@@ -388,7 +389,7 @@ export class SwmlTransferSkill extends SkillBase {
         description,
         parameters,
         required,
-        handler: (args: Record<string, unknown>) => {
+        handler: (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
           const rawDest = args[parameterName];
 
           if (typeof rawDest !== 'string' || rawDest.trim().length === 0) {

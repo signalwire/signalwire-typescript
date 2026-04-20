@@ -143,7 +143,7 @@ export class WikipediaSearchSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>) => {
+        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
           const rawQuery = args['query'];
 
           if (
