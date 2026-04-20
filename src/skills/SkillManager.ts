@@ -103,6 +103,15 @@ export class SkillManager {
     }
     log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
 
+    // Validate required packages — Python equivalent at skill_manager.py:121-131.
+    // Throw on miss; wrappers catch and convert to [false, msg].
+    const missingPackages = await skill.validatePackages();
+    if (missingPackages.length > 0) {
+      throw new Error(
+        `Cannot load skill '${name}': missing required packages: ${missingPackages.join(', ')}`,
+      );
+    }
+
     // Setup — returns boolean indicating success (matches Python behavior)
     const setupOk = await skill.setup();
     if (!setupOk) {
