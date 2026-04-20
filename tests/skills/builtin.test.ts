@@ -559,8 +559,10 @@ describe('WebSearchSkill', () => {
     const manifest = skill.getManifest();
     expect(manifest.name).toBe('web_search');
     expect(manifest.version).toBe('2.0.0');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_API_KEY');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_ENGINE_ID');
+    // Python declares REQUIRED_ENV_VARS = [] because credentials may come from
+    // either config params or env vars — nothing is strictly required at the
+    // env-var layer. setup() enforces at least one source is populated.
+    expect(manifest.requiredEnvVars).toEqual([]);
   });
 
   it('should return a web_search tool', () => {

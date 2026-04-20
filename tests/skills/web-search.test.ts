@@ -60,8 +60,9 @@ describe('WebSearchSkill', () => {
     const manifest = new WebSearchSkill().getManifest();
     expect(manifest.name).toBe('web_search');
     expect(manifest.version).toBe('2.0.0');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_API_KEY');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_ENGINE_ID');
+    // Python REQUIRED_ENV_VARS = []: credentials come from either config
+    // params or env vars, so the manifest's env-var requirement is empty.
+    expect(manifest.requiredEnvVars).toEqual([]);
   });
 
   it('should return error when API keys are missing', async () => {
