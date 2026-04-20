@@ -274,7 +274,7 @@ export class WebSearchSkill extends SkillBase {
     return {
       web_search_enabled: true,
       search_provider: 'Google Custom Search',
-      quality_filtering: false,
+      quality_filtering: true,
     };
   }
 
@@ -307,15 +307,10 @@ export class WebSearchSkill extends SkillBase {
             description:
               "The search query — what you want to find information about",
           },
-          num_results: {
-            type: 'number',
-            description: `Optional: override the number of results to return (1-10). Defaults to ${configNumResults}.`,
-          },
         },
         required: ['query'],
         handler: async (args: Record<string, unknown>) => {
           const rawQuery = args['query'];
-          const perCallNumResults = args['num_results'];
 
           if (
             !rawQuery ||
@@ -347,15 +342,7 @@ export class WebSearchSkill extends SkillBase {
             );
           }
 
-          const count = Math.max(
-            1,
-            Math.min(
-              10,
-              typeof perCallNumResults === 'number'
-                ? perCallNumResults
-                : configNumResults,
-            ),
-          );
+          const count = Math.max(1, Math.min(10, configNumResults));
 
           try {
             const encodedQuery = encodeURIComponent(query);
