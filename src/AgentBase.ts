@@ -1928,7 +1928,19 @@ export class AgentBase {
         skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
-        copy._skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
+        copy._skillManager.addSkill(skill).catch((err: unknown) => {
+          // Swallow re-add errors in the cloning path — the primary agent already
+          // validated env vars / packages / schema / setup when this skill was first
+          // added, and the clone inherits that validation. Python's equivalent at
+          // skill_manager.py:161-170 specifically swallows "already exists"
+          // ValueErrors during cloning; TS has no such error class (toolRegistry
+          // uses Map.set which silently overwrites), so the blanket swallow is
+          // the closest parity. Log at debug so the error isn't entirely lost.
+          this.log.debug('Skipping re-add error during agent clone', {
+            skill: entry.skillName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
