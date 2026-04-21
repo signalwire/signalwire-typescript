@@ -75,6 +75,12 @@ interface AnthropicErrorResponse {
  * is used and the maximum response length.
  */
 export class AskClaudeSkill extends SkillBase {
+  // TS-only skill (no Python equivalent).
+  static override SKILL_NAME = 'ask_claude';
+  static override SKILL_DESCRIPTION =
+    'Provides access to Anthropic Claude AI for complex reasoning, analysis, and sub-queries.';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['ANTHROPIC_API_KEY'];
+
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
@@ -96,13 +102,6 @@ export class AskClaudeSkill extends SkillBase {
         default: 1024,
       },
     };
-  }
-
-  /**
-   * @param config - Optional configuration; supports `model` and `max_tokens`.
-   */
-  constructor(config?: SkillConfig) {
-    super('ask_claude', config);
   }
 
   /** @returns Manifest declaring ANTHROPIC_API_KEY as required and config schema for model/max_tokens. */

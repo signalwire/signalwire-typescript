@@ -17,7 +17,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -149,6 +148,13 @@ function scoreTfIdf(
  * Multi-instance capable (distinguished by `tool_name` + `index_file`).
  */
 export class NativeVectorSearchSkill extends SkillBase {
+  // Python ground truth: skills/native_vector_search/skill.py:~75-82
+  static override SKILL_NAME = 'native_vector_search';
+  static override SKILL_DESCRIPTION =
+    'Search document indexes using vector similarity and keyword search (local or remote)';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -388,13 +394,6 @@ export class NativeVectorSearchSkill extends SkillBase {
   private _idf: Map<string, number> = new Map();
   private _indexed = false;
 
-  /**
-   * @param config - Optional configuration (see `getParameterSchema()`).
-   */
-  constructor(config?: SkillConfig) {
-    super('native_vector_search', config);
-  }
-
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', 'search_knowledge');
     const indexFile = this.getConfig<string>('index_file', 'default');
@@ -541,20 +540,6 @@ export class NativeVectorSearchSkill extends SkillBase {
     this._docTfs = [];
     this._idf = new Map();
     this._indexed = false;
-  }
-
-  /** @returns Manifest for the native vector search skill. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'native_vector_search',
-      description:
-        'Search document indexes using vector similarity and keyword search (local or remote)',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['search', 'vector', 'tfidf', 'documents', 'local', 'knowledge'],
-      requiredEnvVars: [],
-      requiredPackages: [],
-    };
   }
 
   /**

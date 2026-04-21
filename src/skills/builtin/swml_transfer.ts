@@ -12,7 +12,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -62,6 +61,12 @@ interface TransferConfig {
  * or TypeScript-style `patterns` array of named destinations.
  */
 export class SwmlTransferSkill extends SkillBase {
+  // Python ground truth: skills/swml_transfer/skill.py:~60-67
+  static override SKILL_NAME = 'swml_transfer';
+  static override SKILL_DESCRIPTION = 'Transfer calls between agents based on pattern matching';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -143,13 +148,6 @@ export class SwmlTransferSkill extends SkillBase {
   private defaultPostProcess = false;
   private requiredFields: Record<string, string> = {};
   private allowArbitraryOverride: boolean | undefined;
-
-  /**
-   * @param config - Optional configuration (see `getParameterSchema()`).
-   */
-  constructor(config?: SkillConfig) {
-    super('swml_transfer', config);
-  }
 
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', 'transfer_call');
@@ -258,19 +256,6 @@ export class SwmlTransferSkill extends SkillBase {
 
     hints.push('transfer', 'connect', 'speak to', 'talk to');
     return hints;
-  }
-
-  /** @returns Manifest for the SWML transfer skill. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'swml_transfer',
-      description: 'Transfer calls between agents based on pattern matching',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['call-control', 'transfer', 'swml', 'routing'],
-      requiredEnvVars: [],
-      requiredPackages: [],
-    };
   }
 
   /** @returns A `transfer_call` tool, plus `list_transfer_destinations` when patterns are configured. */

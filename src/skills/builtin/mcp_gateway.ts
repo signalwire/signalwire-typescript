@@ -12,7 +12,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -52,6 +51,15 @@ interface McpToolDefinition {
  * tool cleans up MCP sessions when the call ends.
  */
 export class McpGatewaySkill extends SkillBase {
+  // Python ground truth: skills/mcp_gateway/skill.py:~70-76
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses undici for SSL dispatch.
+  // Python does not set SUPPORTS_MULTIPLE_INSTANCES so it inherits the default (False).
+  static override SKILL_NAME = 'mcp_gateway';
+  static override SKILL_DESCRIPTION = 'Bridge MCP servers with SWAIG functions';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = ['undici'];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
+
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
@@ -153,28 +161,6 @@ export class McpGatewaySkill extends SkillBase {
    * connection-pool churn (Python reuses `requests.Session` implicitly).
    */
   private _undiciAgent: UndiciAgent | undefined;
-
-  /**
-   * @param config - Optional configuration (see `getParameterSchema()`).
-   */
-  constructor(config?: SkillConfig) {
-    super('mcp_gateway', config);
-  }
-
-  /** @returns Manifest for the MCP gateway skill. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'mcp_gateway',
-      description: 'Bridge MCP servers with SWAIG functions',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['mcp', 'gateway', 'protocol', 'tools', 'integration'],
-      requiredEnvVars: [],
-      // Python declares REQUIRED_PACKAGES = ["requests"]; undici is the TS
-      // equivalent (used for verify_ssl=false dispatcher overrides).
-      requiredPackages: ['undici'],
-    };
-  }
 
   override async setup(): Promise<boolean> {
     this.authToken =

@@ -48,12 +48,13 @@ interface WeatherApiResponse {
  * standard temperature units via the `units` config option.
  */
 export class WeatherApiSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `units` ("metric"|"imperial"|"standard").
-   */
-  constructor(config?: SkillConfig) {
-    super('weather_api', config);
-  }
+  // Python ground truth: skills/weather_api/skill.py
+  // TS declares env var as required historically; Python declares [] explicitly.
+  // Preserving TS behavior — full Python parity is out-of-scope for this PR.
+  static override SKILL_NAME = 'weather_api';
+  static override SKILL_DESCRIPTION = 'Get current weather information from WeatherAPI.com';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['WEATHER_API_KEY'];
+  static override SUPPORTS_MULTIPLE_INSTANCES = false;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {

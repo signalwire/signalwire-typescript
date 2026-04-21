@@ -15,7 +15,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -65,7 +64,12 @@ interface GatheredInfo {
  * TS-native single-shot field collection (`fields` config).
  */
 export class InfoGathererSkill extends SkillBase {
-  /** Python SDK parity: multiple instances can coexist with different prefixes. */
+  // Python ground truth: skills/info_gatherer/skill.py:26-31
+  static override SKILL_NAME = 'info_gatherer';
+  static override SKILL_DESCRIPTION = 'Gather answers to a configurable list of questions';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   /** Sequential flow: list of question definitions populated in `setup()`. */
@@ -79,15 +83,6 @@ export class InfoGathererSkill extends SkillBase {
 
   /** Single-shot flow: in-memory storage keyed by call_id. */
   private gatheredData: Map<string, GatheredInfo> = new Map();
-
-  /**
-   * @param config - Optional configuration; supports `questions`, `prefix`,
-   *   `completion_message`, `fields`, `purpose`, `confirmation_message`,
-   *   `store_globally`.
-   */
-  constructor(config?: SkillConfig) {
-    super('info_gatherer', config);
-  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -137,84 +132,6 @@ export class InfoGathererSkill extends SkillBase {
         type: 'boolean',
         description: 'Whether to store gathered info in global data.',
         default: false,
-      },
-    };
-  }
-
-  /** @returns Manifest with config schema for both collection modes. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'info_gatherer',
-      description:
-        'Gather answers to a configurable list of questions, or collect structured information from the user based on configurable fields.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['data-collection', 'form', 'information', 'utility'],
-      requiredEnvVars: [],
-      requiredPackages: [],
-      configSchema: {
-        questions: {
-          type: 'array',
-          description:
-            "List of question objects. Each must have 'key_name' and 'question_text'. Optional 'confirm' asks the agent to confirm before proceeding; 'prompt_add' appends a note.",
-          items: {
-            type: 'object',
-            properties: {
-              key_name: { type: 'string' },
-              question_text: { type: 'string' },
-              confirm: { type: 'boolean' },
-              prompt_add: { type: 'string' },
-            },
-            required: ['key_name', 'question_text'],
-          },
-        },
-        prefix: {
-          type: 'string',
-          description:
-            'Optional prefix for tool names and namespace. Enables multi-instance use.',
-        },
-        completion_message: {
-          type: 'string',
-          description:
-            'Message returned after all sequential questions are answered.',
-        },
-        fields: {
-          type: 'array',
-          description:
-            'Array of field definitions to collect: { name, description, required?, validation?, type? }.',
-          items: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', description: 'Field name (used as the parameter key).' },
-              description: { type: 'string', description: 'Description of what this field collects.' },
-              required: { type: 'boolean', description: 'Whether this field is required. Defaults to false.' },
-              validation: {
-                type: 'string',
-                description: 'Optional regex pattern for validation (e.g., "^[\\\\w.+-]+@[\\\\w-]+\\\\.[\\\\w.]+$" for email).',
-              },
-              type: {
-                type: 'string',
-                description: 'Parameter type for the tool schema. Defaults to "string".',
-              },
-            },
-            required: ['name', 'description'],
-          },
-        },
-        purpose: {
-          type: 'string',
-          description:
-            'A description of why this information is being collected (shown in prompt).',
-        },
-        confirmation_message: {
-          type: 'string',
-          description:
-            'Custom message returned after successful save_info call (single-shot mode).',
-        },
-        store_globally: {
-          type: 'boolean',
-          description:
-            'Whether to store gathered info in global data (single-shot mode). Defaults to false.',
-        },
       },
     };
   }

@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -49,6 +48,16 @@ interface WikipediaActionExtractsResponse {
  * customizes the fallback text (supports `{query}` interpolation).
  */
 export class WikipediaSearchSkill extends SkillBase {
+  // Python ground truth: skills/wikipedia_search/skill.py:26-31
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses native fetch so [].
+  static override SKILL_NAME = 'wikipedia_search';
+  static override SKILL_DESCRIPTION =
+    'Search Wikipedia for information about a topic and get article summaries';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
+  // Python: SUPPORTS_MULTIPLE_INSTANCES = False (inherits default).
+
   /**
    * Resolved `num_results` value (populated in `setup()`).
    * Public to mirror Python's `self.num_results` — accessible to subclasses
@@ -61,14 +70,6 @@ export class WikipediaSearchSkill extends SkillBase {
    * within the class hierarchy.
    */
   protected noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
-
-  /**
-   * @param config - Optional configuration; supports `num_results` and
-   *   `no_results_message`.
-   */
-  constructor(config?: SkillConfig) {
-    super('wikipedia_search', config);
-  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -85,22 +86,6 @@ export class WikipediaSearchSkill extends SkillBase {
         description: 'Custom message when no Wikipedia articles are found',
         default: DEFAULT_NO_RESULTS_MESSAGE,
       },
-    };
-  }
-
-  /** @returns Manifest with skill metadata (no required env vars or packages). */
-  getManifest(): SkillManifest {
-    return {
-      name: 'wikipedia_search',
-      description:
-        'Search Wikipedia for information about a topic and get article summaries',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['search', 'wikipedia', 'encyclopedia', 'knowledge', 'external'],
-      requiredEnvVars: [],
-      // Python's REQUIRED_PACKAGES = ["requests"]; Node's native fetch replaces
-      // requests so there's no equivalent npm package to declare. Empty for parity.
-      requiredPackages: [],
     };
   }
 

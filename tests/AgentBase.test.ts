@@ -3,7 +3,7 @@ import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import { ContextBuilder } from '../src/ContextBuilder.js';
 import { DataMap } from '../src/DataMap.js';
-import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
 
 describe('AgentBase', () => {
   function createAgent(opts?: Partial<Parameters<typeof AgentBase.prototype.setPromptText>[0]>) {
@@ -632,8 +632,8 @@ describe('AgentBase', () => {
 
   it('addSkill registers skill tools and prompt sections', async () => {
     class TestSkill extends SkillBase {
-      constructor() { super('test_skill'); }
-      getManifest(): SkillManifest { return { name: 'test_skill', description: 'Test', version: '1.0.0' }; }
+      static override SKILL_NAME = 'test_skill';
+      static override SKILL_DESCRIPTION = 'Test';
       getTools(): SkillToolDefinition[] {
         return [{
           name: 'skill_tool',
@@ -656,8 +656,8 @@ describe('AgentBase', () => {
 
   it('removeSkill removes a skill', async () => {
     class RemoveSkill extends SkillBase {
-      constructor() { super('removable'); }
-      getManifest(): SkillManifest { return { name: 'removable', description: 'Test', version: '1.0.0' }; }
+      static override SKILL_NAME = 'removable';
+      static override SKILL_DESCRIPTION = 'Test';
       getTools(): SkillToolDefinition[] { return []; }
     }
 
@@ -671,8 +671,8 @@ describe('AgentBase', () => {
 
   it('addSkill returns this for chaining', async () => {
     class ChainSkill extends SkillBase {
-      constructor() { super('chain'); }
-      getManifest(): SkillManifest { return { name: 'chain', description: 'Test', version: '1.0.0' }; }
+      static override SKILL_NAME = 'chain';
+      static override SKILL_DESCRIPTION = 'Test';
       getTools(): SkillToolDefinition[] { return []; }
     }
 

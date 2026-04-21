@@ -53,12 +53,10 @@ const VALID_CATEGORIES = [
  * Supports optional `default_category` and `reveal_answer` config options.
  */
 export class ApiNinjasTriviaSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_category` and `reveal_answer`.
-   */
-  constructor(config?: SkillConfig) {
-    super('api_ninjas_trivia', config);
-  }
+  static override SKILL_NAME = 'api_ninjas_trivia';
+  static override SKILL_DESCRIPTION = 'Get trivia questions from API Ninjas';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['API_NINJAS_KEY'];
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {

@@ -1,16 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
 import { SkillManager } from '../src/skills/SkillManager.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Single-instance test skill. */
 class SingleInstanceSkill extends SkillBase {
-  constructor(config?: SkillConfig) {
-    super('single_skill', config);
-  }
-  getManifest(): SkillManifest {
-    return { name: 'single_skill', description: 'Single instance', version: '1.0.0' };
-  }
+  static override SKILL_NAME = 'single_skill';
+  static override SKILL_DESCRIPTION = 'Single instance';
+
   getTools(): SkillToolDefinition[] {
     return [{ name: 'single_tool', description: 'tool', handler: () => new FunctionResult('ok') }];
   }
@@ -18,6 +15,8 @@ class SingleInstanceSkill extends SkillBase {
 
 /** Multi-instance test skill. */
 class MultiInstanceSkill extends SkillBase {
+  static override SKILL_NAME = 'multi_skill';
+  static override SKILL_DESCRIPTION = 'Multi instance';
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -27,18 +26,11 @@ class MultiInstanceSkill extends SkillBase {
     };
   }
 
-  constructor(config?: SkillConfig) {
-    super('multi_skill', config);
-  }
-
   override getInstanceKey(): string {
     const toolName = this.getConfig<string | undefined>('tool_name', undefined);
     return toolName ? `${this.skillName}_${toolName}` : this.skillName;
   }
 
-  getManifest(): SkillManifest {
-    return { name: 'multi_skill', description: 'Multi instance', version: '1.0.0' };
-  }
   getTools(): SkillToolDefinition[] {
     const name = this.getConfig<string>('tool_name', 'multi_tool');
     return [{ name, description: 'tool', handler: () => new FunctionResult('ok') }];
@@ -90,8 +82,13 @@ describe('Skill Multi-Instance', () => {
     expect(entries[0].SkillClass).toBe(MultiInstanceSkill);
     expect(entries[0].config).toHaveProperty('tool_name');
 
-    // Entries should be usable to re-create skills
-    const recreated = new entries[0].SkillClass(entries[0].config);
+    // Entries should be usable to re-create skills.
+    // SkillManager stores concrete subclass references at runtime; the static
+    // type is abstract so we cast through unknown to drop the abstract flag.
+    const Ctor = entries[0].SkillClass as unknown as new (
+      config?: Record<string, unknown>,
+    ) => SkillBase;
+    const recreated = new Ctor(entries[0].config);
     expect(recreated).toBeInstanceOf(MultiInstanceSkill);
   });
 

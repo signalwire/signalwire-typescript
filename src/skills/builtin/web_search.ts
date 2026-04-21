@@ -9,7 +9,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -81,18 +80,15 @@ interface GoogleSearchResponse {
  * `min_quality_score`.
  */
 export class WebSearchSkill extends SkillBase {
-  /** Python SDK parity: multiple instances can coexist with different tool names. */
+  // Python ground truth: skills/web_search/skill.py:559-567
+  // REQUIRED_PACKAGES = ["bs4", "requests"] in Python; TS uses cheerio + fetch so [].
+  static override SKILL_NAME = 'web_search';
+  static override SKILL_DESCRIPTION =
+    'Search the web for information using Google Custom Search API';
+  static override SKILL_VERSION = '2.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
-
-  /**
-   * @param config - Optional configuration; supports `api_key`,
-   *   `search_engine_id`, `tool_name`, `num_results`, `no_results_message`,
-   *   `safe_search`, `delay`, `max_content_length`, `oversample_factor`,
-   *   `min_quality_score`.
-   */
-  constructor(config?: SkillConfig) {
-    super('web_search', config);
-  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -173,78 +169,6 @@ export class WebSearchSkill extends SkillBase {
    *   Reports `GOOGLE_SEARCH_ENGINE_ID` as the canonical name; `GOOGLE_SEARCH_CX`
    *   is still accepted as a legacy fallback at runtime.
    */
-  getManifest(): SkillManifest {
-    return {
-      name: 'web_search',
-      description:
-        'Search the web for information using Google Custom Search API',
-      version: '2.0.0',
-      author: 'SignalWire',
-      tags: ['search', 'web', 'google', 'api', 'external'],
-      // Python declares REQUIRED_ENV_VARS = [] — credentials may arrive via
-      // either config params OR env vars, so nothing is strictly required
-      // at the env-var layer. hasAllEnvVars() treats an empty list as "all
-      // present", letting the config-only path succeed. setup() still
-      // validates that at least one source is populated.
-      requiredEnvVars: [],
-      requiredPackages: [],
-      configSchema: {
-        api_key: {
-          type: 'string',
-          description: 'Google Custom Search API key.',
-        },
-        search_engine_id: {
-          type: 'string',
-          description: 'Google Custom Search Engine ID.',
-        },
-        tool_name: {
-          type: 'string',
-          description: 'Custom tool name for this instance.',
-        },
-        num_results: {
-          type: 'integer',
-          description: 'Number of results to return (1-10). Defaults to 3.',
-          default: 3,
-        },
-        delay: {
-          type: 'number',
-          description:
-            'Delay between scraping pages (Python parity; ignored in TS).',
-          default: 0.5,
-        },
-        max_content_length: {
-          type: 'integer',
-          description:
-            'Maximum total response size (Python parity; ignored in TS).',
-          default: 32768,
-        },
-        oversample_factor: {
-          type: 'number',
-          description:
-            'Oversampling factor for quality filtering (Python parity; ignored in TS).',
-          default: 2.5,
-        },
-        min_quality_score: {
-          type: 'number',
-          description:
-            'Minimum quality score (Python parity; ignored in TS).',
-          default: 0.3,
-        },
-        no_results_message: {
-          type: 'string',
-          description:
-            'Message returned when no results are found. Supports {query} interpolation.',
-        },
-        safe_search: {
-          type: 'string',
-          description:
-            'Safe search level: "off", "medium", or "high". Defaults to "medium".',
-          default: 'medium',
-        },
-      },
-    };
-  }
-
   /**
    * Validate required credentials before the skill becomes active.
    *

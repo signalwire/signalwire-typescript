@@ -14,7 +14,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillConfig,
   ParameterSchemaEntry,
@@ -59,6 +58,13 @@ const STRIP_TAG_REGEXES: RegExp[] = [
  * follow_patterns, user_agent, headers, follow_robots_txt, cache_enabled).
  */
 export class SpiderSkill extends SkillBase {
+  // Python ground truth: skills/spider/skill.py:~140-145
+  // REQUIRED_PACKAGES = ["lxml"] in Python; TS uses cheerio.
+  static override SKILL_NAME = 'spider';
+  static override SKILL_DESCRIPTION = 'Fast web scraping and crawling capabilities';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = ['cheerio'];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -188,13 +194,6 @@ export class SpiderSkill extends SkillBase {
   private cache: Map<string, CachedResponse> | null = null;
   private readonly cacheMaxSize = 100;
 
-  /**
-   * @param config - Optional configuration; see `getParameterSchema()` for accepted keys.
-   */
-  constructor(config?: SkillConfig) {
-    super('spider', config);
-  }
-
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', this.skillName);
     return `${this.skillName}_${toolName}`;
@@ -298,22 +297,6 @@ export class SpiderSkill extends SkillBase {
       this.cache.clear();
     }
     log.info('spider: cleaned up');
-  }
-
-  /** @returns Manifest describing the Spider skill capabilities and config. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'spider',
-      description: 'Fast web scraping and crawling capabilities',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['scraping', 'web', 'spider', 'content', 'extraction'],
-      requiredEnvVars: [],
-      // Python declares REQUIRED_PACKAGES = ["lxml"]; the TS equivalent is
-      // cheerio which we import at module load. Declaring it in the manifest
-      // lets validatePackages() surface missing-dep errors meaningfully.
-      requiredPackages: ['cheerio'],
-    };
   }
 
   /** @returns Three tools: `scrape_url`, `crawl_site`, and `extract_structured_data`. */

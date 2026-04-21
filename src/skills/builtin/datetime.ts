@@ -21,12 +21,13 @@ import { FunctionResult } from '../../FunctionResult.js';
  * timezone identifiers via the Intl.DateTimeFormat API.
  */
 export class DateTimeSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration (no config keys used by this skill).
-   */
-  constructor(config?: SkillConfig) {
-    super('datetime', config);
-  }
+  // Python ground truth: skills/datetime/skill.py
+  // REQUIRED_PACKAGES = ["pytz"] in Python; TS uses Intl + Date built-ins so [].
+  static override SKILL_NAME = 'datetime';
+  static override SKILL_DESCRIPTION = 'Get current date, time, and timezone information';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };

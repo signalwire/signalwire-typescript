@@ -5,12 +5,9 @@ import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
 class SimpleSkill extends SkillBase {
-  constructor(config?: Record<string, unknown>) {
-    super('simple', config);
-  }
-  getManifest(): SkillManifest {
-    return { name: 'simple', description: 'Simple skill', version: '1.0.0' };
-  }
+  static override SKILL_NAME = 'simple';
+  static override SKILL_DESCRIPTION = 'Simple skill';
+
   getTools(): SkillToolDefinition[] {
     return [{
       name: 'simple_tool',

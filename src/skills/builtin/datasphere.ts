@@ -9,7 +9,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -61,6 +60,13 @@ interface DataSphereResponse {
  * `max_synonyms`, and `no_results_message` config options.
  */
 export class DataSphereSkill extends SkillBase {
+  // Python ground truth: skills/datasphere/skill.py:20-27.
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses native fetch so [].
+  static override SKILL_NAME = 'datasphere';
+  static override SKILL_DESCRIPTION = 'Search knowledge using SignalWire DataSphere RAG stack';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -147,15 +153,6 @@ export class DataSphereSkill extends SkillBase {
   }
 
   /**
-   * @param config - Optional configuration; supports `space_name`, `project_id`,
-   *   `token`, `document_id`, `tool_name`, `count`, `distance`, `tags`,
-   *   `language`, `pos_to_expand`, `max_synonyms`, `no_results_message`.
-   */
-  constructor(config?: SkillConfig) {
-    super('datasphere', config);
-  }
-
-  /**
    * Instance key for the SkillManager. Defaults to `datasphere_search_knowledge`,
    * matching the Python SDK default. When `tool_name` is set, uses
    * `datasphere_<tool_name>`.
@@ -163,69 +160,6 @@ export class DataSphereSkill extends SkillBase {
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', 'search_knowledge');
     return `${this.skillName}_${toolName}`;
-  }
-
-  /** @returns Manifest for this skill. No required env vars — all credentials come from params with env fallback. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'datasphere',
-      description: 'Search knowledge using SignalWire DataSphere RAG stack',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['search', 'datasphere', 'signalwire', 'knowledge', 'rag', 'external'],
-      requiredEnvVars: [],
-      requiredPackages: [],
-      configSchema: {
-        space_name: {
-          type: 'string',
-          description: 'SignalWire space name.',
-        },
-        project_id: {
-          type: 'string',
-          description: 'SignalWire project ID.',
-        },
-        token: {
-          type: 'string',
-          description: 'SignalWire API token.',
-        },
-        document_id: {
-          type: 'string',
-          description: 'DataSphere document ID to search within.',
-        },
-        count: {
-          type: 'integer',
-          description: 'Number of results to return. Defaults to 1. Range 1-10.',
-          default: 1,
-        },
-        distance: {
-          type: 'number',
-          description:
-            'Maximum distance threshold (lower is more relevant). Defaults to 3.0. Range 0-10.',
-          default: 3.0,
-        },
-        tags: {
-          type: 'array',
-          description: 'Tags to filter search results.',
-        },
-        language: {
-          type: 'string',
-          description: 'Language code for query expansion.',
-        },
-        pos_to_expand: {
-          type: 'array',
-          description: 'Parts of speech to expand with synonyms.',
-        },
-        max_synonyms: {
-          type: 'integer',
-          description: 'Maximum number of synonyms (1-10).',
-        },
-        no_results_message: {
-          type: 'string',
-          description:
-            'Message returned when no results are found. Supports {query} interpolation.',
-        },
-      },
-    };
   }
 
   /**

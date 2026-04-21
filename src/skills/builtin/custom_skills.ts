@@ -78,6 +78,11 @@ interface CustomSkillsConfigData {
  * environment variable to prevent unintended code execution.
  */
 export class CustomSkillsSkill extends SkillBase {
+  // TS-only skill (no Python equivalent).
+  static override SKILL_NAME = 'custom_skills';
+  static override SKILL_DESCRIPTION =
+    'Register one-off SWAIG tools from a user-supplied config (name + description + handler body).';
+
   private _compiledHandlers: Map<string, Function> = new Map();
   private _compilationErrors: Map<string, string> = new Map();
 
@@ -85,7 +90,7 @@ export class CustomSkillsSkill extends SkillBase {
    * @param config - Configuration object containing a `tools` array of custom tool definitions.
    */
   constructor(config?: SkillConfig) {
-    super('custom_skills', config);
+    super(config);
     this._compileHandlers();
   }
 

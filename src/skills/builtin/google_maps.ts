@@ -75,12 +75,16 @@ interface PlacesResponse {
  * Supports a `default_mode` config option ("driving"|"walking"|"bicycling"|"transit").
  */
 export class GoogleMapsSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_mode` for travel mode.
-   */
-  constructor(config?: SkillConfig) {
-    super('google_maps', config);
-  }
+  // Python ground truth: skills/google_maps/skill.py
+  // Python declares REQUIRED_PACKAGES = ["requests"], REQUIRED_ENV_VARS = [];
+  // TS uses native fetch and has historically declared the env var as required.
+  // Preserving TS behavior to avoid out-of-scope behavioral change.
+  static override SKILL_NAME = 'google_maps';
+  static override SKILL_DESCRIPTION =
+    'Validate addresses and compute driving routes using Google Maps';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = ['GOOGLE_MAPS_API_KEY'];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {

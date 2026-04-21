@@ -1,21 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 
 class TestSkill extends SkillBase {
-  constructor(config?: Record<string, unknown>) {
-    super('test_skill', config);
-  }
-
-  getManifest(): SkillManifest {
-    return {
-      name: 'test_skill',
-      description: 'A test skill',
-      version: '1.0.0',
-      tags: ['test'],
-      requiredEnvVars: ['TEST_API_KEY'],
-    };
-  }
+  static override SKILL_NAME = 'test_skill';
+  static override SKILL_DESCRIPTION = 'A test skill';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['TEST_API_KEY'];
 
   getTools(): SkillToolDefinition[] {
     return [{

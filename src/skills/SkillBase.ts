@@ -104,7 +104,50 @@ export interface SkillManifest {
  * They define tools, prompt sections, hints, and global data.
  */
 export abstract class SkillBase {
-  /** Whether this skill type supports multiple simultaneous instances (e.g., with different tool_name). */
+  /**
+   * Unique skill name. Subclasses MUST override with a non-empty string.
+   *
+   * Python parity: `SKILL_NAME: str = None` at `core/skill_base.py:23`.
+   * Python raises `ValueError` in `__init__` when this is left as `None`;
+   * TS throws at construction when this is left as the empty default.
+   */
+  static SKILL_NAME: string = '';
+
+  /**
+   * Human-readable description of the skill. Subclasses MUST override.
+   *
+   * Python parity: `SKILL_DESCRIPTION: str = None` at `core/skill_base.py:24`.
+   */
+  static SKILL_DESCRIPTION: string = '';
+
+  /**
+   * Semantic version string. Subclasses may override; defaults to `"1.0.0"`.
+   *
+   * Python parity: `SKILL_VERSION: str = "1.0.0"` at `core/skill_base.py:25`.
+   */
+  static SKILL_VERSION: string = '1.0.0';
+
+  /**
+   * Packages required by the skill, checked at load time by `validatePackages()`.
+   *
+   * Python parity: `REQUIRED_PACKAGES: List[str] = []` at `core/skill_base.py:26`.
+   * In TS these are npm package names importable via dynamic `import()`.
+   */
+  static REQUIRED_PACKAGES: readonly string[] = [];
+
+  /**
+   * Environment variables required for the skill to function, checked at load
+   * time by `validateEnvVars()`.
+   *
+   * Python parity: `REQUIRED_ENV_VARS: List[str] = []` at `core/skill_base.py:27`.
+   */
+  static REQUIRED_ENV_VARS: readonly string[] = [];
+
+  /**
+   * Whether this skill type supports multiple simultaneous instances (e.g., with different tool_name).
+   *
+   * Python parity: `SUPPORTS_MULTIPLE_INSTANCES: bool = False` at `core/skill_base.py:30`.
+   */
   static SUPPORTS_MULTIPLE_INSTANCES = false;
 
   /**
@@ -113,7 +156,8 @@ export abstract class SkillBase {
    *
    * Mirrors Python's `SkillBase.get_parameter_schema()` (skill_base.py:197-266):
    * returns `swaig_fields` + `skip_prompt` for all skills, and additionally adds a
-   * `tool_name` entry for classes with `SUPPORTS_MULTIPLE_INSTANCES = true`.
+   * `tool_name` entry with `default: cls.SKILL_NAME` for classes with
+   * `SUPPORTS_MULTIPLE_INSTANCES = true`.
    *
    * @returns Record mapping parameter names to their schema entries.
    */
@@ -136,6 +180,8 @@ export abstract class SkillBase {
       schema['tool_name'] = {
         type: 'string',
         description: 'Custom name for this skill instance (for multiple instances).',
+        // Python `core/skill_base.py:261`: `default: cls.SKILL_NAME`.
+        default: this.SKILL_NAME || undefined,
         required: false,
       };
     }
@@ -194,14 +240,33 @@ export abstract class SkillBase {
 
   /**
    * Create a new skill instance.
-   * @param skillName - The registered name for this skill type.
-   * @param config - Optional configuration key-value pairs.
+   *
+   * Python parity: `core/skill_base.py:32-43`.
+   * Python `__init__` raises `ValueError` if `SKILL_NAME` or `SKILL_DESCRIPTION`
+   * is left as `None` on the subclass. TS throws the equivalent when the static
+   * defaults haven't been overridden.
+   *
+   * @param config - Optional configuration key-value pairs (Python: `params`).
    */
-  constructor(skillName: string, config?: SkillConfig) {
-    this.skillName = skillName;
+  constructor(config?: SkillConfig) {
+    const klass = this.constructor as typeof SkillBase;
+    if (!klass.SKILL_NAME) {
+      throw new Error(
+        `${klass.name} must define static SKILL_NAME ` +
+          `(Python equivalent: core/skill_base.py:23,33-34).`,
+      );
+    }
+    if (!klass.SKILL_DESCRIPTION) {
+      throw new Error(
+        `${klass.name} must define static SKILL_DESCRIPTION ` +
+          `(Python equivalent: core/skill_base.py:24,35-36).`,
+      );
+    }
+
+    this.skillName = klass.SKILL_NAME;
     this.config = { ...(config ?? {}) };
-    this.instanceId = `${skillName}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
-    this.logger = getLogger(`signalwire.skills.${skillName}`);
+    this.instanceId = `${klass.SKILL_NAME}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
+    this.logger = getLogger(`signalwire.skills.${klass.SKILL_NAME}`);
 
     // Extract swaig_fields from config (matches Python's self.swaig_fields = self.params.pop('swaig_fields', {}))
     this.swaigFields = (this.config['swaig_fields'] as Record<string, unknown>) ?? {};
@@ -210,9 +275,31 @@ export abstract class SkillBase {
 
   /**
    * Get the skill manifest containing metadata, requirements, and config schema.
-   * @returns The skill's manifest object.
+   *
+   * Default implementation derives every field from the static class constants
+   * (`SKILL_NAME`, `SKILL_DESCRIPTION`, `SKILL_VERSION`, `REQUIRED_ENV_VARS`,
+   * `REQUIRED_PACKAGES`) — matching Python's single-source-of-truth pattern
+   * where metadata lives on the class (`core/skill_base.py:22-30`). Subclasses
+   * only need to override when adding a TS-specific `configSchema` or
+   * non-Python fields like `tags`/`author`.
+   *
+   * **Deprecation note:** the `SkillManifest` abstraction is TS-only; Python
+   * reads metadata by direct class-attribute access. This method will be
+   * removed in a future release — prefer `(skill.constructor as typeof SkillBase).SKILL_NAME`
+   * and the sibling statics.
+   *
+   * @returns A manifest object derived from the skill class's static constants.
    */
-  abstract getManifest(): SkillManifest;
+  getManifest(): SkillManifest {
+    const klass = this.constructor as typeof SkillBase;
+    return {
+      name: klass.SKILL_NAME,
+      description: klass.SKILL_DESCRIPTION,
+      version: klass.SKILL_VERSION,
+      requiredEnvVars: [...klass.REQUIRED_ENV_VARS],
+      requiredPackages: [...klass.REQUIRED_PACKAGES],
+    };
+  }
 
   /**
    * Setup the skill. Called when the skill is added to an agent.
@@ -344,23 +431,24 @@ export abstract class SkillBase {
   }
 
   /**
-   * Validate that all required environment variables declared in the manifest are set.
+   * Validate that all required environment variables declared on the skill class
+   * are set in the current process environment.
+   *
+   * Python parity: `core/skill_base.py:103-110` reads `self.REQUIRED_ENV_VARS`
+   * directly. TS reads the same static from the class.
    *
    * Returns the list of missing variable names so callers can produce actionable
-   * error messages.  This differs from the Python SDK's `validate_env_vars() -> bool`,
-   * which only returns a boolean.  If you need boolean semantics (e.g. `if skill.hasAllEnvVars()`),
-   * use {@link hasAllEnvVars} instead — it is the direct boolean equivalent.
+   * error messages. This differs from Python's `validate_env_vars() -> bool`
+   * return shape; {@link hasAllEnvVars} is the boolean equivalent.
    *
    * @returns Array of missing environment variable names (empty if all are present).
    */
   validateEnvVars(): string[] {
-    const manifest = this.getManifest();
+    const klass = this.constructor as typeof SkillBase;
     const missing: string[] = [];
-    if (manifest.requiredEnvVars) {
-      for (const envVar of manifest.requiredEnvVars) {
-        if (!process.env[envVar]) {
-          missing.push(envVar);
-        }
+    for (const envVar of klass.REQUIRED_ENV_VARS) {
+      if (!process.env[envVar]) {
+        missing.push(envVar);
       }
     }
     return missing;
@@ -412,26 +500,26 @@ export abstract class SkillBase {
   }
 
   /**
-   * Validate that all required packages declared in the manifest are available.
-   * Attempts a dynamic `import()` for each package in `manifest.requiredPackages`.
-   * Python equivalent: `validate_packages() -> bool` using `importlib.import_module`.
+   * Validate that all required packages declared on the skill class can be imported.
+   *
+   * Python parity: `core/skill_base.py:112-124` reads `self.REQUIRED_PACKAGES`
+   * directly and tries `importlib.import_module(pkg)` for each; TS does the
+   * equivalent with a dynamic `import()`.
+   *
    * @returns Array of package names that could not be imported (empty if all present).
    */
   async validatePackages(): Promise<string[]> {
-    const manifest = this.getManifest();
+    const klass = this.constructor as typeof SkillBase;
     const missing: string[] = [];
-    if (manifest.requiredPackages) {
-      const log = getLogger(`signalwire.skills.${this.skillName}`);
-      for (const pkg of manifest.requiredPackages) {
-        try {
-          await import(pkg);
-        } catch {
-          missing.push(pkg);
-        }
+    for (const pkg of klass.REQUIRED_PACKAGES) {
+      try {
+        await import(pkg);
+      } catch {
+        missing.push(pkg);
       }
-      if (missing.length > 0) {
-        log.error(`Missing required packages: ${missing.join(', ')}`);
-      }
+    }
+    if (missing.length > 0) {
+      this.logger.error(`Missing required packages: ${missing.join(', ')}`);
     }
     return missing;
   }

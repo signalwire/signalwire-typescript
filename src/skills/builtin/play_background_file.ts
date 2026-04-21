@@ -24,12 +24,10 @@ import { FunctionResult } from '../../FunctionResult.js';
  * `default_file_url` and `allowed_domains` config options.
  */
 export class PlayBackgroundFileSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_file_url` and `allowed_domains`.
-   */
-  constructor(config?: SkillConfig) {
-    super('play_background_file', config);
-  }
+  // Python ground truth: skills/play_background_file/skill.py
+  static override SKILL_NAME = 'play_background_file';
+  static override SKILL_DESCRIPTION = 'Control background file playback';
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {

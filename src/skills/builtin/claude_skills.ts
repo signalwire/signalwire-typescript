@@ -75,6 +75,12 @@ interface ParsedSkill {
  * that returns the skill's instructions when invoked.
  */
 export class ClaudeSkillsSkill extends SkillBase {
+  // Python ground truth: skills/claude_skills/skill.py
+  // Python REQUIRED_PACKAGES = ["yaml"]; TS uses js-yaml but kept [] historically.
+  static override SKILL_NAME = 'claude_skills';
+  static override SKILL_DESCRIPTION = 'Load Claude SKILL.md files as agent tools';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   private _skillsPath = '';
@@ -164,10 +170,6 @@ export class ClaudeSkillsSkill extends SkillBase {
         default: 30,
       },
     };
-  }
-
-  constructor(config?: SkillConfig) {
-    super('claude_skills', config);
   }
 
   getManifest(): SkillManifest {
