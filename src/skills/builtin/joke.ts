@@ -7,7 +7,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -99,16 +98,6 @@ export class JokeSkill extends SkillBase {
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'joke',
-      description: 'Tells random jokes from a built-in collection across several categories.',
-      version: '1.0.0',
-      tags: ['entertainment', 'joke', 'humor'],
-    };
   }
 
   /** @returns A single `tell_joke` tool that returns a random joke with optional category filter. */

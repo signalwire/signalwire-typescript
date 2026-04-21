@@ -80,9 +80,9 @@ describe('NativeVectorSearchSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new NativeVectorSearchSkill().getManifest();
-    expect(manifest.name).toBe('native_vector_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = NativeVectorSearchSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('native_vector_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema with all expected keys', () => {

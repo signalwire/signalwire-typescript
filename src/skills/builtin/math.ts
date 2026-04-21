@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -76,16 +75,6 @@ export class MathSkill extends SkillBase {
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'math',
-      description: 'Evaluates mathematical expressions with basic arithmetic operations.',
-      version: '1.0.0',
-      tags: ['utility', 'math', 'calculator'],
-    };
   }
 
   /** @returns A single `calculate` tool that evaluates a math expression string. */

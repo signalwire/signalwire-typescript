@@ -76,9 +76,9 @@ describe('InfoGathererSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new InfoGathererSkill().getManifest();
-    expect(manifest.name).toBe('info_gatherer');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = InfoGathererSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('info_gatherer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

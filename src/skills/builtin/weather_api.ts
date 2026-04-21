@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -71,27 +70,6 @@ export class WeatherApiSkill extends SkillBase {
         description: 'Temperature units: "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin).',
         default: 'metric',
         enum: ['metric', 'imperial', 'standard'],
-      },
-    };
-  }
-
-  /** @returns Manifest declaring WEATHER_API_KEY as required and config schema for units. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'weather_api',
-      description:
-        'Fetches current weather data from OpenWeatherMap for any location worldwide.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['weather', 'api', 'openweathermap', 'external'],
-      requiredEnvVars: ['WEATHER_API_KEY'],
-      configSchema: {
-        units: {
-          type: 'string',
-          description:
-            'Temperature units: "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin).',
-          default: 'metric',
-        },
       },
     };
   }

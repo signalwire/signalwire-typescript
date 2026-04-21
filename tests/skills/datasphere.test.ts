@@ -69,9 +69,9 @@ describe('DataSphereSkill', () => {
   });
 
   it('should return correct manifest with no required env vars', () => {
-    const manifest = new DataSphereSkill().getManifest();
-    expect(manifest.name).toBe('datasphere');
-    expect(manifest.requiredEnvVars).toEqual([]);
+    const klass = DataSphereSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere');
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return error when credentials are missing', async () => {

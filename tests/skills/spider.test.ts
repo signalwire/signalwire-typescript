@@ -53,9 +53,9 @@ describe('SpiderSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new SpiderSkill().getManifest();
-    expect(manifest.name).toBe('spider');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = SpiderSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('spider');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have full parameter schema', () => {

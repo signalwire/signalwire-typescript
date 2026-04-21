@@ -42,9 +42,9 @@ describe('ApiNinjasTriviaSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new ApiNinjasTriviaSkill().getManifest();
-    expect(manifest.name).toBe('api_ninjas_trivia');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = ApiNinjasTriviaSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('api_ninjas_trivia');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

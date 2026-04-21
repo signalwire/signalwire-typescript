@@ -6,7 +6,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -31,16 +30,6 @@ export class DateTimeSkill extends SkillBase {
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'datetime',
-      description: 'Provides current date and time information with timezone support.',
-      version: '1.0.0',
-      tags: ['utility', 'datetime', 'timezone'],
-    };
   }
 
   /** @returns A single `get_datetime` tool that returns the current date/time in a given timezone. */

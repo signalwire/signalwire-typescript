@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -44,29 +43,6 @@ export class PlayBackgroundFileSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest with config schema for default_file_url and allowed_domains. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'play_background_file',
-      description:
-        'Controls background audio playback during calls. Play hold music, ambient sounds, or any audio file in the background.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['audio', 'playback', 'background', 'music', 'call-control'],
-      configSchema: {
-        default_file_url: {
-          type: 'string',
-          description:
-            'Default audio file URL to use when no URL is specified.',
-        },
-        allowed_domains: {
-          type: 'array',
-          description:
-            'List of allowed domains for audio file URLs. If set, only URLs from these domains are accepted.',
-        },
-      },
-    };
-  }
 
   /** @returns Two tools: `play_background` to start audio and `stop_background` to stop it. */
   getTools(): SkillToolDefinition[] {

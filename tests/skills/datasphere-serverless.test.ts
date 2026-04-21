@@ -58,9 +58,9 @@ describe('DataSphereServerlessSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new DataSphereServerlessSkill().getManifest();
-    expect(manifest.name).toBe('datasphere_serverless');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = DataSphereServerlessSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere_serverless');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

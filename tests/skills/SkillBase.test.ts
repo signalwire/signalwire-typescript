@@ -38,9 +38,9 @@ describe('SkillBase', () => {
 
   it('returns manifest', () => {
     const skill = new TestSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('test_skill');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('test_skill');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('returns tools', () => {

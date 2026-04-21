@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -100,31 +99,6 @@ export class AskClaudeSkill extends SkillBase {
         type: 'number',
         description: 'Maximum tokens in the response.',
         default: 1024,
-      },
-    };
-  }
-
-  /** @returns Manifest declaring ANTHROPIC_API_KEY as required and config schema for model/max_tokens. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'ask_claude',
-      description:
-        'Provides access to Anthropic Claude AI for complex reasoning, analysis, and sub-queries.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['ai', 'claude', 'anthropic', 'reasoning', 'analysis', 'external'],
-      requiredEnvVars: ['ANTHROPIC_API_KEY'],
-      configSchema: {
-        model: {
-          type: 'string',
-          description: 'The Claude model to use. Defaults to "claude-sonnet-4-5-20250929".',
-          default: 'claude-sonnet-4-5-20250929',
-        },
-        max_tokens: {
-          type: 'number',
-          description: 'Maximum tokens in the response. Defaults to 1024.',
-          default: 1024,
-        },
       },
     };
   }

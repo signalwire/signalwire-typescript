@@ -57,12 +57,12 @@ describe('WebSearchSkill', () => {
   });
 
   it('should return correct manifest with required env vars', () => {
-    const manifest = new WebSearchSkill().getManifest();
-    expect(manifest.name).toBe('web_search');
-    expect(manifest.version).toBe('2.0.0');
+    const klass = WebSearchSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('web_search');
+    expect(klass.SKILL_VERSION).toBe('2.0.0');
     // Python REQUIRED_ENV_VARS = []: credentials come from either config
     // params or env vars, so the manifest's env-var requirement is empty.
-    expect(manifest.requiredEnvVars).toEqual([]);
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return error when API keys are missing', async () => {

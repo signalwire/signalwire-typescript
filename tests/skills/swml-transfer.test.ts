@@ -98,9 +98,9 @@ describe('SwmlTransferSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new SwmlTransferSkill().getManifest();
-    expect(manifest.name).toBe('swml_transfer');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = SwmlTransferSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('swml_transfer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should support multiple instances', () => {

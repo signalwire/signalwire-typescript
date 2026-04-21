@@ -69,10 +69,10 @@ describe('DateTimeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDateTimeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datetime');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.description).toBeTruthy();
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datetime');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.SKILL_DESCRIPTION).toBeTruthy();
   });
 
   it('should return a get_datetime tool', () => {
@@ -114,9 +114,9 @@ describe('MathSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createMathSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('math');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('math');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a calculate tool', () => {
@@ -167,9 +167,9 @@ describe('JokeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createJokeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('joke');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('joke');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a tell_joke tool', () => {
@@ -209,10 +209,10 @@ describe('WeatherApiSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWeatherApiSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('weather_api');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('WEATHER_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('weather_api');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
   });
 
   it('should return a get_weather tool', () => {
@@ -256,9 +256,9 @@ describe('PlayBackgroundFileSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createPlayBackgroundFileSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('play_background_file');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('play_background_file');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return play_background and stop_background tools', () => {
@@ -307,9 +307,9 @@ describe('SwmlTransferSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createSwmlTransferSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('swml_transfer');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('swml_transfer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a transfer_call tool', () => {
@@ -379,10 +379,10 @@ describe('ApiNinjasTriviaSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createApiNinjasTriviaSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('api_ninjas_trivia');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('API_NINJAS_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('api_ninjas_trivia');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('API_NINJAS_KEY');
   });
 
   it('should return a get_trivia tool', () => {
@@ -429,9 +429,9 @@ describe('InfoGathererSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createInfoGathererSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('info_gatherer');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('info_gatherer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return save_info and get_gathered_info tools when fields configured', () => {
@@ -493,9 +493,9 @@ describe('CustomSkillsSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createCustomSkillsSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('custom_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('custom_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should register dynamic tools from config', () => {
@@ -556,13 +556,13 @@ describe('WebSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWebSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('web_search');
-    expect(manifest.version).toBe('2.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('web_search');
+    expect(klass.SKILL_VERSION).toBe('2.0.0');
     // Python declares REQUIRED_ENV_VARS = [] because credentials may come from
     // either config params or env vars — nothing is strictly required at the
     // env-var layer. setup() enforces at least one source is populated.
-    expect(manifest.requiredEnvVars).toEqual([]);
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return a web_search tool', () => {
@@ -610,9 +610,9 @@ describe('WikipediaSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWikipediaSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('wikipedia_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('wikipedia_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a search_wiki tool', () => {
@@ -634,8 +634,8 @@ describe('WikipediaSearchSkill', () => {
 
   it('should declare empty requiredEnvVars (free API, matches Python REQUIRED_ENV_VARS = [])', () => {
     const skill = createWikipediaSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.requiredEnvVars).toEqual([]);
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 });
 
@@ -651,10 +651,10 @@ describe('GoogleMapsSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createGoogleMapsSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('google_maps');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('google_maps');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
   it('should return get_directions and find_place tools', () => {
@@ -707,11 +707,11 @@ describe('DataSphereSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDataSphereSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datasphere');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
     // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
-    expect(manifest.requiredEnvVars).toEqual([]);
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return a search_knowledge tool', () => {
@@ -760,11 +760,11 @@ describe('DataSphereServerlessSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDataSphereServerlessSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datasphere_serverless');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere_serverless');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
     // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
-    expect(manifest.requiredEnvVars ?? []).toEqual([]);
+    expect(klass.REQUIRED_ENV_VARS ?? []).toEqual([]);
   });
 
   it('should return a search_knowledge tool stub', () => {
@@ -811,9 +811,9 @@ describe('NativeVectorSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createNativeVectorSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('native_vector_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('native_vector_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a search_knowledge tool (Python-aligned default name)', async () => {
@@ -866,9 +866,9 @@ describe('SpiderSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createSpiderSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('spider');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('spider');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return the three Python-aligned tools (scrape_url, crawl_site, extract_structured_data)', async () => {
@@ -906,10 +906,10 @@ describe('AskClaudeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createAskClaudeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('ask_claude');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('ANTHROPIC_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('ask_claude');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('ANTHROPIC_API_KEY');
   });
 
   it('should return an ask_claude tool', () => {
@@ -1033,9 +1033,9 @@ describe('ClaudeSkillsSkill', () => {
 
   it('should return correct manifest', () => {
     const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('claude_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('claude_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should support multiple instances', () => {
@@ -1340,9 +1340,9 @@ describe('McpGatewaySkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createMcpGatewaySkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('mcp_gateway');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('mcp_gateway');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a configuration-prompt message when unconfigured', async () => {

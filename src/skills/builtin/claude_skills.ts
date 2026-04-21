@@ -16,7 +16,6 @@ import yaml from 'js-yaml';
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -169,16 +168,6 @@ export class ClaudeSkillsSkill extends SkillBase {
         description: 'Timeout in seconds for shell injection commands',
         default: 30,
       },
-    };
-  }
-
-  getManifest(): SkillManifest {
-    return {
-      name: 'claude_skills',
-      description: 'Load Claude SKILL.md files as agent tools',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['claude', 'skills', 'skill-loader', 'markdown'],
     };
   }
 

@@ -43,9 +43,9 @@ describe('JokeSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new JokeSkill().getManifest();
-    expect(manifest.name).toBe('joke');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = JokeSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('joke');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a joke from any category', () => {

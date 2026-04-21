@@ -77,26 +77,6 @@ export interface ParameterSchemaEntry {
   items?: Record<string, unknown>;
 }
 
-/** Metadata describing a skill's identity, requirements, and configuration schema. */
-export interface SkillManifest {
-  /** Unique skill name used for registration and lookup. */
-  name: string;
-  /** Human-readable description of the skill's purpose. */
-  description: string;
-  /** Semantic version string (e.g., "1.0.0"). */
-  version: string;
-  /** Author or organization that created the skill. */
-  author?: string;
-  /** Tags for categorization and discovery. */
-  tags?: string[];
-  /** Environment variables that must be set for the skill to function. */
-  requiredEnvVars?: string[];
-  /** NPM packages or external dependencies required by the skill. */
-  requiredPackages?: string[];
-  /** JSON-schema-like description of the skill's configuration options. */
-  configSchema?: Record<string, unknown>;
-}
-
 /**
  * Abstract base class for agent skills.
  *
@@ -271,34 +251,6 @@ export abstract class SkillBase {
     // Extract swaig_fields from config (matches Python's self.swaig_fields = self.params.pop('swaig_fields', {}))
     this.swaigFields = (this.config['swaig_fields'] as Record<string, unknown>) ?? {};
     delete this.config['swaig_fields'];
-  }
-
-  /**
-   * Get the skill manifest containing metadata, requirements, and config schema.
-   *
-   * Default implementation derives every field from the static class constants
-   * (`SKILL_NAME`, `SKILL_DESCRIPTION`, `SKILL_VERSION`, `REQUIRED_ENV_VARS`,
-   * `REQUIRED_PACKAGES`) — matching Python's single-source-of-truth pattern
-   * where metadata lives on the class (`core/skill_base.py:22-30`). Subclasses
-   * only need to override when adding a TS-specific `configSchema` or
-   * non-Python fields like `tags`/`author`.
-   *
-   * **Deprecation note:** the `SkillManifest` abstraction is TS-only; Python
-   * reads metadata by direct class-attribute access. This method will be
-   * removed in a future release — prefer `(skill.constructor as typeof SkillBase).SKILL_NAME`
-   * and the sibling statics.
-   *
-   * @returns A manifest object derived from the skill class's static constants.
-   */
-  getManifest(): SkillManifest {
-    const klass = this.constructor as typeof SkillBase;
-    return {
-      name: klass.SKILL_NAME,
-      description: klass.SKILL_DESCRIPTION,
-      version: klass.SKILL_VERSION,
-      requiredEnvVars: [...klass.REQUIRED_ENV_VARS],
-      requiredPackages: [...klass.REQUIRED_PACKAGES],
-    };
   }
 
   /**

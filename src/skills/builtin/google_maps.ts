@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -101,27 +100,6 @@ export class GoogleMapsSkill extends SkillBase {
         description: 'Default travel mode.',
         default: 'driving',
         enum: ['driving', 'walking', 'bicycling', 'transit'],
-      },
-    };
-  }
-
-  /** @returns Manifest declaring GOOGLE_MAPS_API_KEY as required and config schema for default_mode. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'google_maps',
-      description:
-        'Provides driving/walking/transit directions and place search via Google Maps APIs.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['maps', 'directions', 'places', 'google', 'navigation', 'external'],
-      requiredEnvVars: ['GOOGLE_MAPS_API_KEY'],
-      configSchema: {
-        default_mode: {
-          type: 'string',
-          description:
-            'Default travel mode: "driving", "walking", "bicycling", or "transit". Defaults to "driving".',
-          default: 'driving',
-        },
       },
     };
   }

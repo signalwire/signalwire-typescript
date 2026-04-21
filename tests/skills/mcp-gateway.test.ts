@@ -57,9 +57,9 @@ describe('McpGatewaySkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new McpGatewaySkill().getManifest();
-    expect(manifest.name).toBe('mcp_gateway');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = McpGatewaySkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('mcp_gateway');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should accept gateway_url config', () => {
