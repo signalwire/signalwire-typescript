@@ -1,16 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Minimal concrete skill for testing base features. */
 class TestSkill extends SkillBase {
-  constructor(config?: SkillConfig) {
-    super('test_skill', config);
-  }
-
-  getManifest(): SkillManifest {
-    return { name: 'test_skill', description: 'A test skill', version: '1.0.0' };
-  }
+  static override SKILL_NAME = 'test_skill';
+  static override SKILL_DESCRIPTION = 'A test skill';
 
   getTools(): SkillToolDefinition[] {
     return [{

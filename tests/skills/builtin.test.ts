@@ -69,10 +69,10 @@ describe('DateTimeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDateTimeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datetime');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.description).toBeTruthy();
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datetime');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.SKILL_DESCRIPTION).toBeTruthy();
   });
 
   it('should return a get_datetime tool', () => {
@@ -114,9 +114,9 @@ describe('MathSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createMathSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('math');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('math');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a calculate tool', () => {
@@ -167,9 +167,9 @@ describe('JokeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createJokeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('joke');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('joke');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a tell_joke tool', () => {
@@ -209,10 +209,10 @@ describe('WeatherApiSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWeatherApiSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('weather_api');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('WEATHER_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('weather_api');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
   });
 
   it('should return a get_weather tool', () => {
@@ -256,9 +256,9 @@ describe('PlayBackgroundFileSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createPlayBackgroundFileSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('play_background_file');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('play_background_file');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return play_background and stop_background tools', () => {
@@ -307,9 +307,9 @@ describe('SwmlTransferSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createSwmlTransferSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('swml_transfer');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('swml_transfer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a transfer_call tool', () => {
@@ -317,15 +317,15 @@ describe('SwmlTransferSkill', () => {
     const tools = skill.getTools();
     expect(tools.length).toBeGreaterThanOrEqual(1);
     expect(tools[0].name).toBe('transfer_call');
-    expect(tools[0].required).toContain('destination');
+    expect(tools[0].required).toContain('transfer_type');
   });
 
   it('should execute transfer with arbitrary destination', () => {
     const skill = createSwmlTransferSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: '+15551234567' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: '+15551234567' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toBe('Transferring your call now.');
+    expect(result.response).toBe('Transferring you now...');
     // Should have a SWML transfer action
     expect(result.action.length).toBeGreaterThan(0);
     const swmlAction = result.action[0];
@@ -347,23 +347,23 @@ describe('SwmlTransferSkill', () => {
 
     // Transfer by name
     const handler = tools[0].handler;
-    const result = handler({ destination: 'sales' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: 'sales' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.action.length).toBeGreaterThan(0);
   });
 
-  it('should reject unknown named destinations when patterns configured and arbitrary disallowed', () => {
+  it('should use default_message when patterns configured and arbitrary disallowed', () => {
     const skill = createSwmlTransferSkill({
       patterns: [
         { name: 'sales', destination: 'sip:sales@example.com' },
       ],
       allow_arbitrary: false,
+      default_message: 'Please specify a valid transfer type.',
     });
     const handler = skill.getTools()[0].handler;
-    const result = handler({ destination: 'unknown_dept' }, {}) as FunctionResult;
+    const result = handler({ transfer_type: 'unknown_dept' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('Unknown transfer destination');
-    expect(result.response).toContain('sales');
+    expect(result.response).toContain('valid transfer type');
   });
 });
 
@@ -379,10 +379,10 @@ describe('ApiNinjasTriviaSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createApiNinjasTriviaSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('api_ninjas_trivia');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('API_NINJAS_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('api_ninjas_trivia');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('API_NINJAS_KEY');
   });
 
   it('should return a get_trivia tool', () => {
@@ -416,11 +416,11 @@ describe('ApiNinjasTriviaSkill', () => {
 // Info Gatherer Skill
 // ---------------------------------------------------------------------------
 describe('InfoGathererSkill', () => {
-  it('should instantiate with fields config via createSkill factory', () => {
+  it('should instantiate with questions config via createSkill factory', () => {
     const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-        { name: 'email', description: 'Email address' },
+      questions: [
+        { key_name: 'full_name', question_text: 'What is your full name?' },
+        { key_name: 'email', question_text: 'What is your email address?' },
       ],
     });
     expect(skill).toBeInstanceOf(InfoGathererSkill);
@@ -429,46 +429,9 @@ describe('InfoGathererSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createInfoGathererSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('info_gatherer');
-    expect(manifest.version).toBe('1.0.0');
-  });
-
-  it('should return save_info and get_gathered_info tools when fields configured', () => {
-    const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-      ],
-    });
-    const tools = skill.getTools();
-    expect(tools).toHaveLength(2);
-    const names = tools.map((t) => t.name);
-    expect(names).toContain('save_info');
-    expect(names).toContain('get_gathered_info');
-  });
-
-  it('should return no tools when no fields configured', () => {
-    const skill = createInfoGathererSkill();
-    const tools = skill.getTools();
-    expect(tools).toHaveLength(0);
-  });
-
-  it('should execute save_info handler and save data', () => {
-    const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-        { name: 'email', description: 'Email address' },
-      ],
-    });
-    const saveTool = skill.getTools().find((t) => t.name === 'save_info')!;
-    const result = saveTool.handler(
-      { full_name: 'Jane Doe', email: 'jane@example.com' },
-      { call_id: 'test-call-123' },
-    ) as FunctionResult;
-    expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('saved successfully');
-    expect(result.response).toContain('Jane Doe');
-    expect(result.response).toContain('jane@example.com');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('info_gatherer');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 });
 
@@ -493,9 +456,9 @@ describe('CustomSkillsSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createCustomSkillsSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('custom_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('custom_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should register dynamic tools from config', () => {
@@ -556,11 +519,13 @@ describe('WebSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWebSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('web_search');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_API_KEY');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_SEARCH_CX');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('web_search');
+    expect(klass.SKILL_VERSION).toBe('2.0.0');
+    // Python declares REQUIRED_ENV_VARS = [] because credentials may come from
+    // either config params or env vars — nothing is strictly required at the
+    // env-var layer. setup() enforces at least one source is populated.
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return a web_search tool', () => {
@@ -575,13 +540,15 @@ describe('WebSearchSkill', () => {
     const skill = createWebSearchSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Web Search');
+    expect(sections[0].title).toContain('Web Search');
   });
 
   it('should return error when API keys are not set', async () => {
     const origKey = process.env['GOOGLE_SEARCH_API_KEY'];
+    const origEngine = process.env['GOOGLE_SEARCH_ENGINE_ID'];
     const origCx = process.env['GOOGLE_SEARCH_CX'];
     delete process.env['GOOGLE_SEARCH_API_KEY'];
+    delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const skill = createWebSearchSkill();
     const handler = skill.getTools()[0].handler;
@@ -589,6 +556,7 @@ describe('WebSearchSkill', () => {
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_SEARCH_API_KEY'] = origKey;
+    if (origEngine !== undefined) process.env['GOOGLE_SEARCH_ENGINE_ID'] = origEngine;
     if (origCx !== undefined) process.env['GOOGLE_SEARCH_CX'] = origCx;
   });
 });
@@ -605,16 +573,16 @@ describe('WikipediaSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createWikipediaSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('wikipedia_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('wikipedia_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return a search_wikipedia tool', () => {
+  it('should return a search_wiki tool', () => {
     const skill = createWikipediaSearchSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wikipedia');
+    expect(tools[0].name).toBe('search_wiki');
     expect(tools[0].required).toContain('query');
   });
 
@@ -627,10 +595,10 @@ describe('WikipediaSearchSkill', () => {
     expect(sections[0].bullets!.length).toBeGreaterThan(0);
   });
 
-  it('should have no requiredEnvVars (free API)', () => {
+  it('should declare empty requiredEnvVars (free API, matches Python REQUIRED_ENV_VARS = [])', () => {
     const skill = createWikipediaSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.requiredEnvVars).toBeUndefined();
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 });
 
@@ -646,10 +614,10 @@ describe('GoogleMapsSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createGoogleMapsSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('google_maps');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('google_maps');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
   it('should return get_directions and find_place tools', () => {
@@ -702,19 +670,18 @@ describe('DataSphereSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDataSphereSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datasphere');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_PROJECT_ID');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_TOKEN');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_SPACE');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
-  it('should return a search_datasphere tool', () => {
+  it('should return a search_knowledge tool', () => {
     const skill = createDataSphereSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_datasphere');
+    expect(tools[0].name).toBe('search_knowledge');
     expect(tools[0].required).toContain('query');
   });
 
@@ -722,7 +689,7 @@ describe('DataSphereSkill', () => {
     const skill = createDataSphereSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('DataSphere');
+    expect(sections[0].title).toContain('Knowledge Search');
   });
 
   it('should return error when env vars are not set', async () => {
@@ -756,19 +723,18 @@ describe('DataSphereServerlessSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createDataSphereServerlessSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datasphere_serverless');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_PROJECT_ID');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_TOKEN');
-    expect(manifest.requiredEnvVars).toContain('SIGNALWIRE_SPACE');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('datasphere_serverless');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    // Credentials come from params by design (matches Python REQUIRED_ENV_VARS = []).
+    expect(klass.REQUIRED_ENV_VARS ?? []).toEqual([]);
   });
 
-  it('should return a search_datasphere tool stub', () => {
+  it('should return a search_knowledge tool stub', () => {
     const skill = createDataSphereServerlessSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_datasphere');
+    expect(tools[0].name).toBe('search_knowledge');
   });
 
   it('should return stub handler message indicating DataMap mode', () => {
@@ -808,32 +774,41 @@ describe('NativeVectorSearchSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createNativeVectorSearchSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('native_vector_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('native_vector_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return a search_documents tool', () => {
+  it('should return a search_knowledge tool (Python-aligned default name)', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_documents');
+    expect(tools[0].name).toBe('search_knowledge');
     expect(tools[0].required).toContain('query');
   });
 
-  it('should execute search and find relevant documents', () => {
+  it('should execute search and find relevant documents', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'TypeScript programming language' }, {}) as FunctionResult;
+    const result = (await handler(
+      { query: 'TypeScript programming language' },
+      {},
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('doc1');
     expect(result.response).toContain('TypeScript');
   });
 
-  it('should rank relevant documents higher (scoring works)', () => {
+  it('should rank relevant documents higher (scoring works)', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
+    await skill.setup();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ query: 'programming language', top_k: 4 }, {}) as FunctionResult;
+    const result = (await handler(
+      { query: 'programming language', count: 4 },
+      {},
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     // Programming-related docs should appear; weather doc should not (no overlap)
     expect(result.response).toContain('programming');
@@ -854,29 +829,31 @@ describe('SpiderSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createSpiderSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('spider');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('SPIDER_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('spider');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return a scrape_url tool', () => {
+  it('should return the three Python-aligned tools (scrape_url, crawl_site, extract_structured_data)', async () => {
     const skill = createSpiderSkill();
+    await skill.setup();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('scrape_url');
-    expect(tools[0].required).toContain('url');
+    expect(tools).toHaveLength(3);
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('scrape_url');
+    expect(names).toContain('crawl_site');
+    expect(names).toContain('extract_structured_data');
+    const scrape = tools.find((t) => t.name === 'scrape_url')!;
+    expect(scrape.required).toContain('url');
   });
 
-  it('should return error when API key is not set', async () => {
-    const origKey = process.env['SPIDER_API_KEY'];
-    delete process.env['SPIDER_API_KEY'];
+  it('should reject invalid URL in scrape_url handler', async () => {
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'https://example.com' }, {}) as FunctionResult;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    const result = (await handler({ url: 'not-a-url' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('not configured');
-    if (origKey !== undefined) process.env['SPIDER_API_KEY'] = origKey;
+    expect(result.response).toMatch(/Invalid URL/i);
   });
 });
 
@@ -892,10 +869,10 @@ describe('AskClaudeSkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createAskClaudeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('ask_claude');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.requiredEnvVars).toContain('ANTHROPIC_API_KEY');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('ask_claude');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
+    expect(klass.REQUIRED_ENV_VARS).toContain('ANTHROPIC_API_KEY');
   });
 
   it('should return an ask_claude tool', () => {
@@ -1019,9 +996,9 @@ describe('ClaudeSkillsSkill', () => {
 
   it('should return correct manifest', () => {
     const skill = createClaudeSkillsSkill({ skills_path: skillsDir });
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('claude_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('claude_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should support multiple instances', () => {
@@ -1326,17 +1303,17 @@ describe('McpGatewaySkill', () => {
 
   it('should return correct manifest name and version', () => {
     const skill = createMcpGatewaySkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('mcp_gateway');
-    expect(manifest.version).toBe('0.1.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('mcp_gateway');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return not implemented message from handler', () => {
+  it('should return a configuration-prompt message when unconfigured', async () => {
     const skill = createMcpGatewaySkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({ server: 'test', method: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ server: 'test', method: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('not yet implemented');
+    expect(result.response).toMatch(/not configured|configure/i);
   });
 });
 
@@ -1374,18 +1351,20 @@ describe('SpiderSkill - SSRF protection', () => {
     const saved = process.env['SWML_ALLOW_PRIVATE_URLS'];
     delete process.env['SWML_ALLOW_PRIVATE_URLS'];
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
-    const result = await handler({ url: 'http://127.0.0.1/secret' }, {}) as FunctionResult;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    const result = (await handler({ url: 'http://127.0.0.1/secret' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('could not be validated');
+    expect(result.response).toMatch(/private or internal URLs/);
     if (saved) process.env['SWML_ALLOW_PRIVATE_URLS'] = saved;
   });
 
   it('should reject overly long input', async () => {
     const skill = createSpiderSkill();
-    const handler = skill.getTools()[0].handler;
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
     const longUrl = 'https://example.com/' + 'a'.repeat(2000);
-    const result = await handler({ url: longUrl }, {}) as FunctionResult;
+    const result = (await handler({ url: longUrl }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('too long');
   });

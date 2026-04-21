@@ -17,7 +17,7 @@ describe('GoogleMapsSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+    await expect(new GoogleMapsSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {
@@ -42,9 +42,9 @@ describe('GoogleMapsSkill', () => {
   });
 
   it('should return correct manifest with required env vars', () => {
-    const manifest = new GoogleMapsSkill().getManifest();
-    expect(manifest.name).toBe('google_maps');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
+    const klass = GoogleMapsSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('google_maps');
+    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
   it('should return error when origin is missing', async () => {
