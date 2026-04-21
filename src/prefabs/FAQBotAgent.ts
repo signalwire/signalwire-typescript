@@ -255,7 +255,7 @@ export class FAQBotAgent extends AgentBase {
     // Tool: search_faqs (matches Python name; supports optional category filter)
     this.defineTool({
       name: 'search_faqs',
-      description: 'Search the FAQ knowledge base for answers matching a query, optionally filtered by category.',
+      description: 'Search for FAQs matching a specific query or category',
       parameters: {
         type: 'object',
         properties: {
@@ -268,7 +268,6 @@ export class FAQBotAgent extends AgentBase {
             description: 'Optional category to filter the FAQ list by.',
           },
         },
-        required: ['query'],
       },
       handler: (args: Record<string, unknown>) => {
         const query = (args['query'] as string) ?? '';
@@ -286,44 +285,26 @@ export class FAQBotAgent extends AgentBase {
           : this.faqs;
 
         if (pool.length === 0) {
-          return new FunctionResult(
-            `No FAQs found in category "${category}". ${this.escalationMessage}`,
-          );
+          return new FunctionResult('No matching FAQs found.');
         }
 
         // Score all FAQs in the (possibly filtered) pool
-        const scored = pool.map((faq) => ({
-          faq,
-          score: this.computeMatchScore(query, faq),
-        }));
+        const scored = pool
+          .map((faq) => ({ faq, score: this.computeMatchScore(query, faq) }))
+          .filter((s) => s.score >= this.threshold)
+          .sort((a, b) => b.score - a.score);
 
-        // Sort by score descending
-        scored.sort((a, b) => b.score - a.score);
-
-        const best = scored[0];
-
-        if (!best || best.score < this.threshold) {
-          return new FunctionResult(
-            `No FAQ matched the query "${query}" with sufficient confidence (best score: ${best ? best.score.toFixed(2) : '0.00'}, threshold: ${this.threshold.toFixed(2)}). ${this.escalationMessage}`,
-          );
+        if (scored.length === 0) {
+          return new FunctionResult('No matching FAQs found.');
         }
 
-        // Return the best match
-        let response = `FAQ Match (confidence: ${best.score.toFixed(2)}): Q: "${best.faq.question}" A: ${best.faq.answer}`;
-
-        // Runner-ups: only suggested when `suggestRelated` is true
-        if (this.suggestRelated) {
-          const runnerUps = scored.filter((s, i) => i > 0 && s.score >= this.threshold);
-          if (runnerUps.length > 0) {
-            const alsoStr = runnerUps
-              .slice(0, 2)
-              .map((s) => `"${s.faq.question}" (${s.score.toFixed(2)})`)
-              .join(', ');
-            response += ` Also related: ${alsoStr}`;
-          }
-        }
-
-        return new FunctionResult(response);
+        // Match Python's response format: a numbered list of the top matches'
+        // question text. The answer text is supplied to the AI via the prompt's
+        // "FAQ Database" section — the tool just indicates which FAQs matched.
+        const limit = this.suggestRelated ? 3 : 1;
+        const top = scored.slice(0, limit);
+        const lines = top.map((s, i) => `${i + 1}. ${s.faq.question}`).join('\n');
+        return new FunctionResult(`Here are the most relevant FAQs:\n\n${lines}\n`);
       },
     });
 
@@ -344,7 +325,7 @@ export class FAQBotAgent extends AgentBase {
         handler: (_args: Record<string, unknown>) => {
           const reason = (_args['reason'] as string) || 'Caller needs assistance beyond FAQ';
           const result = new FunctionResult(
-            `Transferring caller to a live agent. Reason: ${reason}`,
+            `${this.escalationMessage} Transferring caller to a live agent. Reason: ${reason}`,
           );
           result.connect(this.escalationNumber!);
           return result;

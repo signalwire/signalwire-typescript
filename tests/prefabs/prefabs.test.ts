@@ -161,18 +161,20 @@ describe('InfoGathererAgent', () => {
     });
     agent.setQuestionCallback(cb);
 
-    await agent.onSwmlRequest({ query_params: { mode: 'support' } });
+    const mods = await agent.onSwmlRequest({ query_params: { mode: 'support' } });
     expect(cb).toHaveBeenCalledTimes(1);
 
-    const swml = agent.renderSwml('test-call');
+    // Python parity: onSwmlRequest returns the global_data modifications dict
+    // which the framework passes to renderSwml as the second argument.
+    const swml = agent.renderSwml('test-call', mods || undefined);
     expect(swml).toContain("What's the issue?");
     expect(swml).toContain('issue');
   });
 
   it('dynamic mode: falls back to default questions when no callback is registered', async () => {
     const agent = new InfoGathererAgent();
-    await agent.onSwmlRequest({});
-    const swml = agent.renderSwml('test-call');
+    const mods = await agent.onSwmlRequest({});
+    const swml = agent.renderSwml('test-call', mods || undefined);
     expect(swml).toContain('What is your name?');
     expect(swml).toContain('How can I help you today?');
   });
@@ -182,9 +184,9 @@ describe('InfoGathererAgent', () => {
     agent.setQuestionCallback(() => {
       throw new Error('boom');
     });
-    await agent.onSwmlRequest({});
-    const swml = agent.renderSwml('test-call');
-    // Fallback questions should be injected
+    const mods = await agent.onSwmlRequest({});
+    const swml = agent.renderSwml('test-call', mods || undefined);
+    // Fallback questions should be injected via the returned modifications dict
     expect(swml).toContain('What is your name?');
   });
 
@@ -193,9 +195,9 @@ describe('InfoGathererAgent', () => {
       { key_name: 'company', question_text: 'What company?' },
     ]);
     const agent = new InfoGathererAgent({ questionCallback: cb });
-    await agent.onSwmlRequest({});
+    const mods = await agent.onSwmlRequest({});
     expect(cb).toHaveBeenCalled();
-    const swml = agent.renderSwml('test-call');
+    const swml = agent.renderSwml('test-call', mods || undefined);
     expect(swml).toContain('What company?');
   });
 
@@ -422,8 +424,8 @@ describe('SurveyAgent', () => {
     // Answer q1 first (rating)
     await tool.execute({ question_id: 'q1', answer: '7' }, callData);
 
-    // "yeah" should be normalized to "yes"
-    await tool.execute({ question_id: 'q2', answer: 'yeah' }, callData);
+    // "y" should be normalized to "yes" (matches Python's strict yes/no/y/n set)
+    await tool.execute({ question_id: 'q2', answer: 'y' }, callData);
 
     const progressTool = agent.getTool('get_survey_progress')!;
     const progress = await progressTool.execute({}, callData);
@@ -615,19 +617,21 @@ describe('FAQBotAgent', () => {
     expect(agent.getTool('escalate')).toBeUndefined();
   });
 
-  it('search_faqs returns matching FAQ', async () => {
+  it('search_faqs returns matching FAQ question (Python parity: question text only)', async () => {
     const agent = createAgent();
     const tool = agent.getTool('search_faqs')!;
     const result = await tool.execute({ query: 'What are your business hours?' }, {});
-    expect(result.response).toContain('Monday through Friday');
-    expect(result.response).toContain('9am to 5pm');
+    // Python's search_faqs returns a numbered list of matching question text.
+    // The answer text is delivered to the AI via the prompt's FAQ Database section.
+    expect(result.response).toContain('Here are the most relevant FAQs');
+    expect(result.response).toContain('business hours');
   });
 
   it('returns no-match for unrelated query', async () => {
     const agent = createAgent({ threshold: 0.5 });
     const tool = agent.getTool('search_faqs')!;
     const result = await tool.execute({ query: 'quantum physics dark matter' }, {});
-    expect(result.response).toContain('No FAQ matched');
+    expect(result.response).toBe('No matching FAQs found.');
   });
 
   it('threshold filtering works', async () => {
@@ -635,13 +639,13 @@ describe('FAQBotAgent', () => {
     const agent = createAgent({ threshold: 0.99 });
     const tool = agent.getTool('search_faqs')!;
     const result = await tool.execute({ query: 'hours open' }, {});
-    expect(result.response).toContain('No FAQ matched');
+    expect(result.response).toBe('No matching FAQs found.');
 
     // Low threshold makes it easy to match
     const agent2 = createAgent({ threshold: 0.01 });
     const tool2 = agent2.getTool('search_faqs')!;
     const result2 = await tool2.execute({ query: 'hours open' }, {});
-    expect(result2.response).toContain('FAQ Match');
+    expect(result2.response).toContain('Here are the most relevant FAQs');
   });
 
   it('category filter narrows the FAQ pool', async () => {
@@ -719,12 +723,13 @@ describe('FAQBotAgent', () => {
     expect(actions.length).toBeGreaterThan(0);
   });
 
-  it('search_faqs includes escalation message when no match', async () => {
-    const agent = createAgent({ escalationMessage: 'Please hold for an agent.' });
+  it('search_faqs returns Python no-match message when query has no relevant FAQ', async () => {
+    const agent = createAgent();
     const tool = agent.getTool('search_faqs')!;
     const result = await tool.execute({ query: 'completely unrelated topic xyz' }, {});
-    // The escalation message is included in the no-match response
-    expect(result.response).toContain('No FAQ matched');
+    // Python parity: response is exactly "No matching FAQs found." regardless
+    // of any escalation configuration on the TS side.
+    expect(result.response).toBe('No matching FAQs found.');
   });
 
   it('keywords improve matching', async () => {
@@ -733,8 +738,8 @@ describe('FAQBotAgent', () => {
 
     // Query using keywords that match the password FAQ
     const result = await tool.execute({ query: 'forgot password reset' }, {});
-    expect(result.response).toContain('FAQ Match');
-    expect(result.response).toContain('Forgot Password');
+    expect(result.response).toContain('Here are the most relevant FAQs');
+    expect(result.response).toContain('How do I reset my password?');
   });
 
   it('prompt mentions FAQ topics', () => {

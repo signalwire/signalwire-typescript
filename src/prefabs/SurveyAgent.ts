@@ -347,10 +347,9 @@ export class SurveyAgent extends AgentBase {
       }
       case 'yes_no': {
         const normalized = answer.toLowerCase().trim();
-        const yesValues = ['yes', 'y', 'yeah', 'yep', 'sure', 'absolutely', 'correct', 'true'];
-        const noValues = ['no', 'n', 'nah', 'nope', 'negative', 'false'];
-        if (!yesValues.includes(normalized) && !noValues.includes(normalized)) {
-          return 'Please answer with yes or no.';
+        // Python reference accepts only 'yes', 'no', 'y', 'n' (survey.py:260).
+        if (!['yes', 'y', 'no', 'n'].includes(normalized)) {
+          return "Please answer with 'yes' or 'no'.";
         }
         return null;
       }
@@ -369,8 +368,8 @@ export class SurveyAgent extends AgentBase {
   private normalizeAnswer(question: SurveyQuestion, answer: string): string {
     if (question.type === 'yes_no') {
       const normalized = answer.toLowerCase().trim();
-      const yesValues = ['yes', 'y', 'yeah', 'yep', 'sure', 'absolutely', 'correct', 'true'];
-      return yesValues.includes(normalized) ? 'yes' : 'no';
+      // Mirrors validateAnswer's accepted set (Python: 'yes','y','no','n').
+      return ['yes', 'y'].includes(normalized) ? 'yes' : 'no';
     }
     return answer;
   }
@@ -399,7 +398,6 @@ export class SurveyAgent extends AgentBase {
             description: "The user's response to validate",
           },
         },
-        required: ['question_id', 'response'],
       },
       handler: (args: Record<string, unknown>) => {
         const questionId = (args['question_id'] as string) ?? '';
@@ -432,7 +430,6 @@ export class SurveyAgent extends AgentBase {
             description: "The user's validated response",
           },
         },
-        required: ['question_id', 'response'],
       },
       handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
         const questionId = (args['question_id'] as string) ?? '';
@@ -607,16 +604,26 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * Process the survey results summary returned at the end of a call.
-   * Logs the structured summary as JSON (mirrors Python `on_summary`).
+   * Mirrors Python `on_summary`: structured (dict-like) summaries are logged
+   * as JSON; unstructured summaries are logged verbatim.
+   *
+   * The parameter type widens the base `AgentBase.onSummary` signature to
+   * accept string payloads as well, matching Python's `isinstance(summary, dict)`
+   * branch even though the current framework only surfaces object summaries.
    */
   override onSummary(
-    summary: Record<string, unknown> | null,
+    summary: Record<string, unknown> | string | null,
     _rawData: Record<string, unknown>,
   ): void | Promise<void> {
     if (summary) {
       try {
-        // eslint-disable-next-line no-console
-        console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
+        if (typeof summary === 'string') {
+          // eslint-disable-next-line no-console
+          console.log(`Survey summary (unstructured): ${summary}`);
+        } else {
+          // eslint-disable-next-line no-console
+          console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
+        }
       } catch (err) {
         // eslint-disable-next-line no-console
         console.log(`Error processing survey summary: ${String(err)}`);

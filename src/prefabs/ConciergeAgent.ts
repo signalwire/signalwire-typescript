@@ -199,7 +199,6 @@ export class ConciergeAgent extends AgentBase {
             description: 'The time to check (HH:MM format, 24-hour)',
           },
         },
-        required: ['service', 'date', 'time'],
       },
       handler: (args: Record<string, unknown>) => {
         const service = ((args['service'] as string) ?? '').toLowerCase();
@@ -232,7 +231,6 @@ export class ConciergeAgent extends AgentBase {
             description: 'The location or amenity to get directions to',
           },
         },
-        required: ['location'],
       },
       handler: (args: Record<string, unknown>) => {
         const location = ((args['location'] as string) ?? '').toLowerCase();

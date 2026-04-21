@@ -139,7 +139,7 @@ export class ReceptionistAgent extends AgentBase {
       'Based on their needs, determine which department would be most appropriate.',
       'Use the collect_caller_info function when you have their name and reason for calling.',
       'Use the transfer_call function to transfer them to the appropriate department.',
-      'Before transferring, always confirm with the caller that they are being transferred to the right department.',
+      "Before transferring, always confirm with the caller that they're being transferred to the right department.",
       'If a caller\'s request does not clearly match a department, ask follow-up questions to clarify.',
     ];
     if (this.checkInEnabled) {
@@ -219,7 +219,6 @@ export class ReceptionistAgent extends AgentBase {
             description: 'The reason for the call',
           },
         },
-        required: ['name', 'reason'],
       },
       handler: (args: Record<string, unknown>) => {
         const name = (args['name'] as string) ?? '';
@@ -252,7 +251,6 @@ export class ReceptionistAgent extends AgentBase {
             enum: departmentNames,
           },
         },
-        required: ['department'],
       },
       handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
         const departmentName = ((args['department'] as string) ?? '').trim();

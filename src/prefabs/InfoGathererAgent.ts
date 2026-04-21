@@ -176,22 +176,25 @@ export class InfoGathererAgent extends AgentBase {
   // ── Lifecycle: onSwmlRequest (dynamic mode hook) ──────────────────────
 
   /**
-   * Handle dynamic configuration using the registered callback. Injects the
-   * per-request questions into `global_data`. Mirrors Python's
-   * `on_swml_request` override.
+   * Handle dynamic configuration using the registered callback. Returns the
+   * per-request global_data payload which AgentBase merges into the SWML
+   * response. Mirrors Python's `on_swml_request` return-dict contract.
    */
-  override async onSwmlRequest(rawData: Record<string, unknown>): Promise<void> {
+  override async onSwmlRequest(
+    rawData: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
 
-    // Dynamic mode with no callback: inject fallback questions.
+    // Dynamic mode with no callback: return fallback questions as global_data.
     if (!this.questionCallback) {
-      this.setGlobalData({
-        questions: FALLBACK_QUESTIONS,
-        question_index: 0,
-        answers: [],
-      });
-      return;
+      return {
+        global_data: {
+          questions: FALLBACK_QUESTIONS,
+          question_index: 0,
+          answers: [],
+        },
+      };
     }
 
     // Build callback inputs from the incoming raw data.
@@ -202,18 +205,22 @@ export class InfoGathererAgent extends AgentBase {
     try {
       const questions = await this.questionCallback(queryParams, bodyParams, headers);
       InfoGathererAgent.validateQuestions(questions);
-      this.setGlobalData({
-        questions,
-        question_index: 0,
-        answers: [],
-      });
+      return {
+        global_data: {
+          questions,
+          question_index: 0,
+          answers: [],
+        },
+      };
     } catch (err) {
       this.log.error(`Error in question callback: ${String(err)}`);
-      this.setGlobalData({
-        questions: FALLBACK_QUESTIONS,
-        question_index: 0,
-        answers: [],
-      });
+      return {
+        global_data: {
+          questions: FALLBACK_QUESTIONS,
+          question_index: 0,
+          answers: [],
+        },
+      };
     }
   }
 
@@ -275,7 +282,6 @@ export class InfoGathererAgent extends AgentBase {
             description: "The user's answer to the current question",
           },
         },
-        required: ['answer'],
       },
       handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
         const answer = (args['answer'] as string) ?? '';
