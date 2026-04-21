@@ -8,6 +8,19 @@ import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from './BaseResource.js';
 
+/**
+ * Generic CRUD resource with configurable update method.
+ *
+ * Provides `list()`, `create()`, `get()`, `update()`, and `delete()` out of the
+ * box — most namespace resources extend this and narrow the generic types.
+ * `_updateMethod` may be overridden to `'PUT'` for APIs that replace instead
+ * of patch.
+ *
+ * @typeParam TList - Type of the paginated list response.
+ * @typeParam TItem - Type of a single resource item.
+ * @typeParam TCreate - Request body type for `create()`.
+ * @typeParam TUpdate - Request body type for `update()`.
+ */
 export class CrudResource<
   TList = any,
   TItem = any,

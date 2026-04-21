@@ -926,6 +926,33 @@ export class Context {
  *   - gather_info questions are non-empty and have unique keys
  *   - gather_info completion_action targets a reachable step
  *   - No user-defined SWAIG tool collides with a reserved native name
+ *
+ * @example Two-step support bot
+ * ```ts
+ * import { AgentBase, ContextBuilder } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'support', route: '/' });
+ *
+ * const contexts = new ContextBuilder();
+ * const flow = contexts.addContext('default');
+ *
+ * flow.addStep('greeting')
+ *   .setText("Greet the caller and ask if they're an existing customer.")
+ *   .setValidSteps(['existing', 'new']);
+ *
+ * flow.addStep('existing')
+ *   .setText('Ask for the account number and read it back to confirm.');
+ *
+ * flow.addStep('new')
+ *   .setText('Collect name, email, and reason for calling.');
+ *
+ * agent.defineContexts(contexts);
+ * ```
+ *
+ * @see {@link Context}
+ * @see {@link Step}
+ * @see {@link GatherInfo}
+ * @see {@link AgentBase.defineContexts}
  */
 export class ContextBuilder {
   private contexts: Map<string, Context> = new Map();

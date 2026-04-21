@@ -146,6 +146,15 @@ function scoreTfIdf(
  * Document search using TF-IDF in-memory scoring or a remote search server.
  *
  * Multi-instance capable (distinguished by `tool_name` + `index_file`).
+ *
+ * @example Local JSON index
+ * ```ts
+ * agent.addSkill('native_vector_search', {
+ *   tool_name: 'search_docs',
+ *   index_file: './data/support-docs.json',
+ *   count: 3,
+ * });
+ * ```
  */
 export class NativeVectorSearchSkill extends SkillBase {
   // Python ground truth: skills/native_vector_search/skill.py:~75-82

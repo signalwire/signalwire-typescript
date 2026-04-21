@@ -27,17 +27,32 @@ export class PhoneNumbersResource extends CrudResource {
     super(http, '/api/relay/rest/phone_numbers');
   }
 
-  /** Create a phone number resource. Body is optional to match Python **kwargs. */
+  /**
+   * Purchase / create a phone number resource in this project.
+   * Body is optional to match Python's `**kwargs` call convention.
+   *
+   * @example
+   * ```ts
+   * const num = await client.phoneNumbers.create({ number: '+15551234567' });
+   * ```
+   */
   override async create(body: any = {}): Promise<any> {
     return this._http.post(this._basePath, body);
   }
 
-  /** Update a phone number resource by ID. Body is optional to match Python **kwargs. */
+  /** Update a phone number resource by ID. Body is optional to match Python `**kwargs`. */
   override async update(resourceId: string, body: any = {}): Promise<any> {
     return this._http.put(this._path(resourceId), body);
   }
 
-  /** Search available phone numbers for purchase. */
+  /**
+   * Search available phone numbers for purchase.
+   *
+   * @example
+   * ```ts
+   * const results = await client.phoneNumbers.search({ areaCode: '512', contains: '5555' });
+   * ```
+   */
   async search(params?: QueryParams): Promise<any> {
     return this._http.get(this._path('search'), params);
   }

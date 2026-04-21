@@ -34,13 +34,32 @@ export interface CallLike {
 
 // ─── Base Action ─────────────────────────────────────────────────────
 
+/**
+ * Async handle for a controllable call operation (play, record, tap, detect, etc.).
+ *
+ * An Action is returned from the async variants on {@link Call} (e.g. `call.playAsync`).
+ * It resolves when the server emits a terminal event for its `controlId`. Use
+ * {@link Action.wait} to await completion, or register an `onCompleted` callback.
+ *
+ * @example
+ * ```ts
+ * const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
+ * // do other work while the greeting plays...
+ * const event = await play.wait(10); // seconds
+ * console.log('Playback finished with state', event.params.state);
+ * ```
+ */
 export class Action {
+  /** Reference to the owning call. */
   readonly call: CallLike;
+  /** Unique control ID used by the server to route events back to this action. */
   readonly controlId: string;
   protected readonly _terminalEvent: string;
   protected readonly _terminalStates: readonly string[];
   /** @internal */ readonly _done: Deferred<RelayEvent>;
+  /** Final event once the action terminates, or `null` while still running. */
   result: RelayEvent | null = null;
+  /** Whether the action has reached a terminal state. */
   completed = false;
   /** @internal */ _onCompleted: CompletedCallback | null = null;
 

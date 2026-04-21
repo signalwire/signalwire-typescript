@@ -13,20 +13,28 @@ export class ProjectTokens extends BaseResource {
     super(http, '/api/project/tokens');
   }
 
+  /** Create a new project-scoped API token. */
   async create(body: any): Promise<any> {
     return this._http.post(this._basePath, body);
   }
 
+  /** Update a project API token's attributes (e.g. friendly name). */
   async update(tokenId: string, body: any): Promise<any> {
     return this._http.patch(this._path(tokenId), body);
   }
 
+  /** Revoke and delete a project API token. */
   async delete(tokenId: string): Promise<any> {
     return this._http.delete(this._path(tokenId));
   }
 }
 
-/** Project API namespace. */
+/**
+ * Project API namespace.
+ *
+ * Access via `client.project.*`. Manages project-level resources like
+ * secondary API tokens.
+ */
 export class ProjectNamespace {
   readonly tokens: ProjectTokens;
 

@@ -72,6 +72,11 @@ interface ParsedSkill {
  * This skill parses Claude Code skill directories and makes them available
  * as SWAIG tools that the AI can call. Each Claude skill becomes a tool
  * that returns the skill's instructions when invoked.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('claude_skills', { skills_dir: './claude-skills' });
+ * ```
  */
 export class ClaudeSkillsSkill extends SkillBase {
   // Python ground truth: skills/claude_skills/skill.py

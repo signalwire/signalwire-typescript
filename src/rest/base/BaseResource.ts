@@ -1,5 +1,9 @@
 /**
  * Abstract base class for all REST resources.
+ *
+ * Every namespace resource (e.g. `PhoneNumbersResource`, `VideoRooms`) extends
+ * this class to get a typed reference to the shared {@link HttpClient} and a
+ * small path-building helper.
  */
 import type { HttpClient } from '../HttpClient.js';
 

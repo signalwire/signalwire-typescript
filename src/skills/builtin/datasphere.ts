@@ -58,6 +58,15 @@ interface DataSphereResponse {
  * `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, and `SIGNALWIRE_SPACE` environment
  * variables. Supports `count`, `distance`, `tags`, `language`, `pos_to_expand`,
  * `max_synonyms`, and `no_results_message` config options.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('datasphere', {
+ *   document_id: 'doc_abc123',
+ *   count: 3,
+ *   tags: ['faq'],
+ * });
+ * ```
  */
 export class DataSphereSkill extends SkillBase {
   // Python ground truth: skills/datasphere/skill.py:20-27.

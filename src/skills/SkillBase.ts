@@ -84,8 +84,43 @@ export interface ParameterSchemaEntry {
 /**
  * Abstract base class for agent skills.
  *
- * Skills are modular capabilities that can be added to an agent.
- * They define tools, prompt sections, hints, and global data.
+ * Skills are modular, reusable capabilities that plug into an {@link AgentBase}.
+ * A single skill can contribute:
+ *
+ * - **Tools** (SWAIG functions) via `getTools()` or `defineTool()`
+ * - **Prompt sections** via `_getPromptSections()`
+ * - **Speech hints** via `getHints()`
+ * - **Global data** seeded into each call via `getGlobalData()`
+ *
+ * Skills are added to an agent with `agent.addSkill('name', config)` and the
+ * {@link SkillManager} calls `setAgent()` + `setup()` in sequence before the
+ * agent starts serving requests.
+ *
+ * @example Custom skill
+ * ```ts
+ * import { SkillBase, FunctionResult, type SkillToolDefinition } from '@signalwire/sdk';
+ *
+ * export class GreetingSkill extends SkillBase {
+ *   static override SKILL_NAME = 'greeting';
+ *   static override SKILL_DESCRIPTION = 'Responds with a configurable greeting.';
+ *
+ *   override getTools(): SkillToolDefinition[] {
+ *     return [{
+ *       name: 'say_hello',
+ *       description: 'Say a friendly hello.',
+ *       parameters: { type: 'object', properties: {} },
+ *       handler: () => new FunctionResult(this.getConfig('message', 'Hi!')),
+ *     }];
+ *   }
+ * }
+ *
+ * // In your agent:
+ * agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
+ * ```
+ *
+ * @see {@link SkillManager}
+ * @see {@link SkillRegistry}
+ * @see {@link AgentBase.addSkill}
  */
 export abstract class SkillBase {
   /**

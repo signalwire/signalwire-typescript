@@ -4,10 +4,19 @@
  * Uses a manual promise constructor for Node 18+ compatibility.
  */
 
+/**
+ * A promise with externalised `resolve`/`reject` and a `settled` flag,
+ * used by the RELAY client to bridge server-push events back to in-flight
+ * JSON-RPC request callers.
+ */
 export interface Deferred<T> {
+  /** The wrapped promise. */
   promise: Promise<T>;
+  /** Resolve the promise idempotently (later calls are ignored). */
   resolve: (value: T | PromiseLike<T>) => void;
+  /** Reject the promise idempotently (later calls are ignored). */
   reject: (reason?: unknown) => void;
+  /** True once either `resolve` or `reject` has been called. */
   readonly settled: boolean;
 }
 

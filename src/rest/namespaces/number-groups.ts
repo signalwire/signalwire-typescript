@@ -8,7 +8,11 @@ import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
 
-/** Number group management with membership operations. */
+/**
+ * Number group management with membership operations.
+ *
+ * Access via `client.numberGroups.*`. Extends standard CRUD with membership helpers.
+ */
 export class NumberGroupsResource extends CrudResource {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 

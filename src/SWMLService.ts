@@ -174,7 +174,29 @@ export interface SWMLServiceOptions {
 
 // ── SWMLService class ──────────────────────────────────────────────────
 
-/** HTTP service that serves non-AI SWML documents built from verb methods. */
+/**
+ * HTTP service that serves non-AI SWML documents built from verb methods.
+ *
+ * Use `SWMLService` when you need a SignalWire call flow but don't need AI —
+ * plain call routing, IVR-style trees, recording workflows, static playback, etc.
+ * For AI-powered voice agents, use {@link AgentBase} instead.
+ *
+ * @example Static greeting that plays a file and hangs up
+ * ```ts
+ * import { SWMLService } from '@signalwire/sdk';
+ *
+ * const service = new SWMLService({ name: 'greeter', route: '/', port: 3000 });
+ * service.builder
+ *   .answer()
+ *   .play({ url: 'https://cdn.example.com/welcome.mp3' })
+ *   .hangup();
+ *
+ * await service.serve();
+ * ```
+ *
+ * @see {@link SwmlBuilder} — the underlying SWML document builder
+ * @see {@link AgentBase} — AI-powered alternative
+ */
 export class SWMLService {
   /** Service display name. */
   readonly name: string;

@@ -48,7 +48,36 @@ export interface FAQBotConfig {
 
 // ── Agent ───────────────────────────────────────────────────────────────────
 
-/** Prefab agent that answers frequently asked questions using keyword matching with optional escalation to a live agent. */
+/**
+ * Prefab agent that answers frequently asked questions using keyword matching with optional escalation to a live agent.
+ *
+ * Pass an array of `{ question, answer, keywords }` entries and the agent will
+ * fuzzy-match inbound utterances against them. If no match crosses the confidence
+ * threshold, the call can optionally escalate to a configured phone number.
+ *
+ * @example
+ * ```ts
+ * import { FAQBotAgent } from '@signalwire/sdk';
+ *
+ * const agent = new FAQBotAgent({
+ *   faqs: [
+ *     {
+ *       question: 'What are your business hours?',
+ *       answer: "We're open 9 AM to 5 PM Pacific, Monday through Friday.",
+ *       keywords: ['hours', 'open', 'closed', 'time'],
+ *     },
+ *     {
+ *       question: 'Where are you located?',
+ *       answer: 'Our headquarters are in San Francisco, California.',
+ *       keywords: ['location', 'address', 'office'],
+ *     },
+ *   ],
+ *   escalationNumber: '+15551234567',
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
+ */
 export class FAQBotAgent extends AgentBase {
   /** The configured FAQ entries. */
   public faqs: FAQEntry[];

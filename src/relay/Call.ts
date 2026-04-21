@@ -35,16 +35,48 @@ export interface RelayClientLike {
   execute(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>>;
 }
 
+/**
+ * Live RELAY call with command methods.
+ *
+ * Don't construct directly — `Call` instances are created by {@link RelayClient}
+ * for inbound calls (delivered to your `onCall` handler) and for outbound dials.
+ *
+ * Each command method (`answer()`, `play()`, `record()`, etc.) returns when the
+ * platform acknowledges the command; event-driven completion is exposed via
+ * {@link Action} objects returned from the async "play/record/..." variants.
+ *
+ * @example Inside an onCall handler
+ * ```ts
+ * client.onCall(async (call) => {
+ *   await call.answer();
+ *   const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
+ *   await play.wait();
+ *   await call.hangup();
+ * });
+ * ```
+ *
+ * @see {@link RelayClient}
+ * @see {@link Action}
+ */
 export class Call {
   /** @internal */ readonly _client: RelayClientLike;
+  /** Unique call identifier assigned by the platform. */
   callId: string;
+  /** RELAY node that owns this call. */
   nodeId: string;
+  /** SignalWire project ID. */
   projectId: string;
+  /** RELAY context this call was received on. */
   context: string;
+  /** Opaque correlation tag attached at dial time. */
   tag: string;
+  /** `"inbound"` or `"outbound"`. */
   direction: string;
+  /** Device descriptor the call is associated with (phone, SIP, etc.). */
   device: Record<string, any>;
+  /** Current call state (e.g. `"created"`, `"answered"`, `"ended"`). */
   state: string;
+  /** Call segment ID used for event correlation. */
   segmentId: string;
 
   /** @internal */ readonly _listeners: Map<string, EventHandler[]> = new Map();

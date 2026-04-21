@@ -14,10 +14,12 @@ export class MessageLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /** List message log entries. */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /** Fetch a single message log entry by ID. */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
@@ -29,14 +31,17 @@ export class VoiceLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /** List voice (call) log entries. */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /** Fetch a single voice log entry by ID. */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
 
+  /** List events captured during a voice log entry. */
   async listEvents(logId: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path(logId, 'events'), params);
   }
@@ -48,10 +53,12 @@ export class FaxLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /** List fax log entries. */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /** Fetch a single fax log entry by ID. */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
@@ -63,12 +70,18 @@ export class ConferenceLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /** List conference log entries. */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 }
 
-/** Logs API namespace. */
+/**
+ * Logs API namespace.
+ *
+ * Access via `client.logs.*`. Read-only access to message, voice, fax, and
+ * conference logs for auditing and observability.
+ */
 export class LogsNamespace {
   readonly messages: MessageLogs;
   readonly voice: VoiceLogs;

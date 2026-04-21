@@ -191,6 +191,15 @@ interface GoogleSearchResponse {
  * Supported config: `tool_name`, `num_results`, `no_results_message`,
  * `safe_search`, `delay`, `max_content_length`, `oversample_factor`,
  * `min_quality_score`.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('web_search', {
+ *   api_key: process.env.GOOGLE_SEARCH_API_KEY,
+ *   search_engine_id: process.env.GOOGLE_CSE_ID,
+ *   num_results: 3,
+ * });
+ * ```
  */
 export class WebSearchSkill extends SkillBase {
   // Python ground truth: skills/web_search/skill.py:559-567

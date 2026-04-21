@@ -29,7 +29,32 @@ export interface SwmlBuilderOptions {
   schemaPath?: string;
 }
 
-/** Builds SWML documents composed of verb instructions organized into named sections. */
+/**
+ * Builds SWML documents composed of verb instructions organized into named sections.
+ *
+ * Verb methods (`.answer()`, `.play()`, `.hangup()`, `.transfer()`, etc.) are
+ * auto-installed from the bundled SWML schema and all return `this` for fluent chaining.
+ *
+ * Most users don't instantiate `SwmlBuilder` directly — `AgentBase` uses it internally
+ * and exposes higher-level helpers. Use this class directly for `SWMLService` (non-AI
+ * call flows) or to hand-craft SWML returned from a route handler.
+ *
+ * @example Simple SWML document
+ * ```ts
+ * import { SwmlBuilder } from '@signalwire/sdk';
+ *
+ * const swml = new SwmlBuilder()
+ *   .answer()
+ *   .play({ url: 'https://cdn.example.com/greeting.mp3' })
+ *   .hangup()
+ *   .build();
+ *
+ * // swml is JSON ready to return from a SignalWire webhook.
+ * ```
+ *
+ * @see {@link SWMLService} — HTTP service that serves a built SWML document
+ * @see {@link AgentBase} — for AI-driven call flows
+ */
 export class SwmlBuilder {
   private _document: { version: string; sections: Record<string, unknown[]> };
   private static _schemaUtils: SchemaUtils | null = null;

@@ -7,7 +7,18 @@
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
 
-/** Multi-factor authentication via SMS or phone call. */
+/**
+ * Multi-factor authentication via SMS or phone call.
+ *
+ * Access via `client.mfa.*`. Two-step flow: call `.sms()` or `.call()` to send
+ * a code, then `.verify()` to confirm it.
+ *
+ * @example
+ * ```ts
+ * const req = await client.mfa.sms({ to: '+15551234567' });
+ * const result = await client.mfa.verify(req.id, { token: '123456' });
+ * ```
+ */
 export class MfaResource extends BaseResource {
   constructor(http: HttpClient) {
     super(http, '/api/relay/rest/mfa');

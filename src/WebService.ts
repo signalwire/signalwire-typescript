@@ -98,7 +98,24 @@ function formatSize(bytes: number): string {
  *
  * Provides configurable static file hosting with per-route directory mounting,
  * extension filtering, file size limits, HTTP Basic Auth, CORS, directory
- * browsing, and optional SSL/TLS. Mirrors the Python SDK's WebService class.
+ * browsing, and optional SSL/TLS. Mirrors the Python SDK's `WebService` class.
+ *
+ * Useful when an agent or prefab needs to serve supporting assets — prompts, audio
+ * files, images — from the same process without running a separate nginx / CDN.
+ *
+ * @example Serve a directory of audio files
+ * ```ts
+ * import { WebService } from '@signalwire/sdk';
+ *
+ * const web = new WebService({
+ *   port: 8080,
+ *   directories: { '/audio': './public/audio' },
+ *   allowedExtensions: ['.mp3', '.wav'],
+ * });
+ *
+ * await web.serve();
+ * // GET http://host:8080/audio/greeting.mp3
+ * ```
  */
 export class WebService {
   /** Port the service binds to. */

@@ -7,7 +7,11 @@
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
 
-/** Project SIP profile (singleton resource). */
+/**
+ * Project SIP profile (singleton resource).
+ *
+ * Access via `client.sipProfile.*`.
+ */
 export class SipProfileResource extends BaseResource {
   constructor(http: HttpClient) {
     super(http, '/api/relay/rest/sip_profile');

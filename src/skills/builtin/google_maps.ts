@@ -98,6 +98,11 @@ interface RoutesV2Response {
  *
  * Tier 3 built-in skill. Requires the `GOOGLE_MAPS_API_KEY` environment variable.
  * Supports a `default_mode` config option ("driving"|"walking"|"bicycling"|"transit").
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('google_maps', { default_mode: 'driving' });
+ * ```
  */
 export class GoogleMapsSkill extends SkillBase {
   // Python ground truth: skills/google_maps/skill.py

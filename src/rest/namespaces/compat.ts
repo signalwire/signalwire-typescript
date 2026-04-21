@@ -318,7 +318,23 @@ export class CompatTokens extends BaseResource {
   }
 }
 
-/** Twilio-compatible LAML API namespace with AccountSid scoping. */
+/**
+ * Twilio-compatible LAML API namespace with AccountSid scoping.
+ *
+ * Access via `client.compat.*`. This is the legacy LAML (cXML) surface for code
+ * migrated from Twilio — all updates use POST bodies instead of REST-idiomatic
+ * PATCH/PUT. Prefer the native SignalWire namespaces (`client.calling`, `client.fabric`,
+ * etc.) for greenfield projects.
+ *
+ * @example Send an SMS via the LAML Messages API
+ * ```ts
+ * await client.compat.messages.create({
+ *   From: '+15551112222',
+ *   To: '+15553334444',
+ *   Body: 'Hello from SignalWire!',
+ * });
+ * ```
+ */
 export class CompatNamespace {
   readonly accounts: CompatAccounts;
   readonly calls: CompatCalls;

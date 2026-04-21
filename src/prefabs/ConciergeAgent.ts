@@ -38,6 +38,27 @@ export interface ConciergeConfig {
 /**
  * Prefab agent that acts as a virtual concierge for a venue, providing information
  * about services, amenities, hours of operation, availability, and directions.
+ *
+ * @example Hotel concierge
+ * ```ts
+ * import { ConciergeAgent } from '@signalwire/sdk';
+ *
+ * const agent = new ConciergeAgent({
+ *   venueName: 'The Park Hotel',
+ *   services: ['Room service', 'Valet parking', 'Spa', 'Restaurant'],
+ *   hoursOfOperation: {
+ *     restaurant: '7 AM - 10 PM daily',
+ *     spa: '9 AM - 9 PM daily',
+ *     default: '24 hours',
+ *   },
+ *   amenities: {
+ *     pool: { location: 'Rooftop', hours: '6 AM - 10 PM' },
+ *     gym: { location: 'Floor 2', hours: '24 hours' },
+ *   },
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
  */
 export class ConciergeAgent extends AgentBase {
   /** Name of the venue or business. */

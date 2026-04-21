@@ -13,7 +13,15 @@ import type { HttpClientOptions, QueryParams } from './types.js';
 
 const logger = getLogger('rest_client');
 
+/**
+ * Low-level HTTP client used by every REST namespace resource.
+ *
+ * Handles Basic Auth, JSON encoding/decoding, and error normalisation
+ * ({@link RestError} on non-2xx). Normally you do not instantiate this
+ * directly — construct a {@link RestClient} instead.
+ */
 export class HttpClient {
+  /** Fully-qualified base URL (no trailing slash). */
   readonly baseUrl: string;
   private readonly _authHeader: string;
   private readonly _fetch: typeof globalThis.fetch;
@@ -81,22 +89,27 @@ export class HttpClient {
     return JSON.parse(text) as T;
   }
 
+  /** Perform an authenticated HTTP GET and return the parsed JSON response. */
   async get<T = any>(path: string, params?: QueryParams): Promise<T> {
     return this._request<T>('GET', path, undefined, params);
   }
 
+  /** Perform an authenticated HTTP POST and return the parsed JSON response. */
   async post<T = any>(path: string, body?: any, params?: QueryParams): Promise<T> {
     return this._request<T>('POST', path, body, params);
   }
 
+  /** Perform an authenticated HTTP PUT and return the parsed JSON response. */
   async put<T = any>(path: string, body?: any): Promise<T> {
     return this._request<T>('PUT', path, body);
   }
 
+  /** Perform an authenticated HTTP PATCH and return the parsed JSON response. */
   async patch<T = any>(path: string, body?: any): Promise<T> {
     return this._request<T>('PATCH', path, body);
   }
 
+  /** Perform an authenticated HTTP DELETE and return the parsed JSON response. */
   async delete<T = any>(path: string): Promise<T> {
     return this._request<T>('DELETE', path);
   }

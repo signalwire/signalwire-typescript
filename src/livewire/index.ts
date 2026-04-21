@@ -117,7 +117,32 @@ export interface FunctionTool {
 // Agent
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit voice.Agent -- holds instructions and tool definitions. */
+/**
+ * Mirrors a LiveKit `voice.Agent` — holds instructions and tool definitions.
+ *
+ * Pipeline options (`stt`, `tts`, `vad`, `llm`, `turnDetection`) are accepted
+ * for API parity but are **no-ops** — SignalWire's control plane handles the
+ * entire AI pipeline server-side. Set instructions and tools; everything else
+ * just logs once and continues.
+ *
+ * @example Minimal LiveKit-compatible agent
+ * ```ts
+ * import { livewire } from '@signalwire/sdk';
+ *
+ * const timeTool = livewire.tool({
+ *   description: 'Return the current time.',
+ *   execute: () => new Date().toISOString(),
+ * });
+ *
+ * const agent = new livewire.Agent({
+ *   instructions: 'You are a friendly helper.',
+ *   tools: [{ ...timeTool, name: 'time' }],
+ * });
+ *
+ * const session = new livewire.AgentSession();
+ * await session.start({ agent });
+ * ```
+ */
 export class Agent<UserData = any> {
   instructions: string;
   tools: Record<string, FunctionTool>;
@@ -278,7 +303,10 @@ export class Agent<UserData = any> {
 // RunContext
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit RunContext -- available inside tool handlers. */
+/**
+ * Mirrors a LiveKit `RunContext` — passed to tool handlers so they can
+ * read the current session, call handle, and user data.
+ */
 export class RunContext<UserData = any> {
   session?: AgentSession<UserData>;
   speechHandle?: unknown;
@@ -302,7 +330,13 @@ export class RunContext<UserData = any> {
 // AgentSession
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit AgentSession -- binds an Agent to SignalWire. */
+/**
+ * Mirrors a LiveKit `AgentSession` — binds an {@link Agent} to SignalWire.
+ *
+ * Call {@link AgentSession.start} with an `Agent` to construct an internal
+ * {@link AgentBase} and begin serving SWML. Pipeline-related options are
+ * accepted for API parity but are no-ops server-side.
+ */
 export class AgentSession<UserData = any> {
   private _llm: any;
   private _tools: FunctionTool[];

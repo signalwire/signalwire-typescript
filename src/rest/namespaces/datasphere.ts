@@ -35,7 +35,21 @@ export class DatasphereDocuments extends CrudResource {
   }
 }
 
-/** Datasphere API namespace. */
+/**
+ * Datasphere API namespace.
+ *
+ * Access via `client.datasphere.*`. Datasphere is SignalWire's RAG service —
+ * index documents and run semantic search from within agent tools.
+ *
+ * @example
+ * ```ts
+ * const hits = await client.datasphere.documents.search({
+ *   query: 'refund policy',
+ *   document_id: 'doc_abc',
+ *   limit: 5,
+ * });
+ * ```
+ */
 export class DatasphereNamespace {
   readonly documents: DatasphereDocuments;
 

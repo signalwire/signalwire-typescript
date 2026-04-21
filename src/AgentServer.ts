@@ -44,7 +44,29 @@ const MIME_TYPES: Record<string, string> = {
   '.gz': 'application/gzip',
 };
 
-/** Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes. */
+/**
+ * Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes.
+ *
+ * Use `AgentServer` when one process should serve more than one agent — each with its own
+ * prompt, tools, and route. Internally, each agent's Hono router is mounted under its own
+ * path. Static assets can also be served from a configured directory.
+ *
+ * @example Host two agents on one port
+ * ```ts
+ * import { AgentServer, AgentBase } from '@signalwire/sdk';
+ *
+ * const salesAgent = new AgentBase({ name: 'sales', route: '/sales' });
+ * const supportAgent = new AgentBase({ name: 'support', route: '/support' });
+ *
+ * const server = new AgentServer({ host: '0.0.0.0', port: 3000 });
+ * server.register(salesAgent);
+ * server.register(supportAgent);
+ *
+ * await server.run();
+ * ```
+ *
+ * @see {@link AgentBase}
+ */
 export class AgentServer {
   /** Hostname the server binds to. */
   host: string;

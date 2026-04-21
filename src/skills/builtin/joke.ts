@@ -87,6 +87,11 @@ const VALID_CATEGORIES = ['general', 'programming', 'dad'];
  *
  * Tier 1 built-in skill with no external dependencies. Includes general,
  * programming, and dad joke categories.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('joke');
+ * ```
  */
 export class JokeSkill extends SkillBase {
   // Python ground truth: skills/joke/skill.py

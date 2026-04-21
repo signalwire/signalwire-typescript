@@ -7,7 +7,12 @@
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
 
-/** Chat token generation. */
+/**
+ * Chat token generation.
+ *
+ * Access via `client.chat.*`. Issues short-lived tokens that end-user clients
+ * use to join chat channels.
+ */
 export class ChatResource extends BaseResource {
   constructor(http: HttpClient) {
     super(http, '/api/chat/tokens');

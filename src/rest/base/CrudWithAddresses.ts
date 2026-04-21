@@ -8,6 +8,10 @@ import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from './CrudResource.js';
 
+/**
+ * {@link CrudResource} extended with a `listAddresses()` helper for resources that
+ * have associated Address records (e.g. fabric resources).
+ */
 export class CrudWithAddresses<
   TList = any,
   TItem = any,

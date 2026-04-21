@@ -7,7 +7,11 @@
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
 
-/** Import externally-hosted phone numbers. */
+/**
+ * Import externally-hosted phone numbers.
+ *
+ * Access via `client.importedNumbers.*`.
+ */
 export class ImportedNumbersResource extends BaseResource {
   constructor(http: HttpClient) {
     super(http, '/api/relay/rest/imported_phone_numbers');

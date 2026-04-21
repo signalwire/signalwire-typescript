@@ -42,7 +42,26 @@ export interface ServerlessResponse {
   body: string;
 }
 
-/** Adapts a Hono application for deployment on AWS Lambda, Google Cloud Functions, Azure Functions, or CGI. */
+/**
+ * Adapts a Hono application for deployment on AWS Lambda, Google Cloud Functions, Azure Functions, or CGI.
+ *
+ * Accepts the provider's native event shape (`APIGatewayProxyEvent`, Google Functions `Request`,
+ * Azure function arguments, CGI env + stdin) and returns a provider-native response.
+ *
+ * @example AWS Lambda handler
+ * ```ts
+ * import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'lambda', route: '/' });
+ * agent.setPromptText('You are a helpful assistant.');
+ *
+ * const adapter = new ServerlessAdapter('aws');
+ *
+ * export const handler = async (event: any) => {
+ *   return adapter.handleRequest(agent.asRouter(), event);
+ * };
+ * ```
+ */
 export class ServerlessAdapter {
   private platform: ServerlessPlatform;
 

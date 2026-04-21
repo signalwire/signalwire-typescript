@@ -8,7 +8,16 @@ import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 
-/** Phone number lookup (carrier, CNAM). */
+/**
+ * Phone number lookup (carrier, CNAM).
+ *
+ * Access via `client.lookup.*`.
+ *
+ * @example
+ * ```ts
+ * const info = await client.lookup.phoneNumber('+15551234567', { include: 'carrier,caller-name' });
+ * ```
+ */
 export class LookupResource extends BaseResource {
   constructor(http: HttpClient) {
     super(http, '/api/relay/rest/lookup');

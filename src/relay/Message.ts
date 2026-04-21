@@ -14,17 +14,47 @@ import type { CompletedCallback, EventHandler } from './types.js';
 
 const logger = getLogger('relay_message');
 
+/**
+ * SMS/MMS message in the RELAY messaging namespace.
+ *
+ * Outbound messages progress through `queued` → `initiated` → `sent` → `delivered`
+ * (or `undelivered` / `failed`). Inbound messages arrive with state `received`.
+ * Call {@link Message.wait} to await a terminal state.
+ *
+ * @example Wait for delivery confirmation
+ * ```ts
+ * const msg = await client.sendMessage({
+ *   to: '+15551234567',
+ *   from: '+15557654321',
+ *   body: 'Your code is 4242',
+ * });
+ *
+ * const final = await msg.wait(30); // seconds
+ * console.log('Final state:', final.params.message_state);
+ * ```
+ */
 export class Message {
+  /** Unique message identifier assigned by the platform. */
   messageId: string;
+  /** RELAY context the message belongs to. */
   context: string;
+  /** `"inbound"` or `"outbound"`. */
   direction: string;
+  /** Sender phone number in E.164 format. */
   fromNumber: string;
+  /** Destination phone number in E.164 format. */
   toNumber: string;
+  /** Plain-text message body. */
   body: string;
+  /** Media URLs attached to the message (MMS). */
   media: string[];
+  /** Number of segments the carrier split the message into. */
   segments: number;
+  /** Current message state (e.g. `"sent"`, `"delivered"`, `"failed"`). */
   state: string;
+  /** Failure / undelivery reason when `state` is non-successful. */
   reason: string;
+  /** Opaque tags attached to the message. */
   tags: string[];
 
   private _done: Deferred<RelayEvent>;
@@ -58,10 +88,12 @@ export class Message {
     this._done = createDeferred<RelayEvent>();
   }
 
+  /** True once the message has reached a terminal state. */
   get isDone(): boolean {
     return this._done.settled;
   }
 
+  /** Final event that terminated the message, or `null` if still in-flight. */
   get result(): RelayEvent | null {
     // We can't synchronously get the result from a promise, so we track it
     return this._result ?? null;

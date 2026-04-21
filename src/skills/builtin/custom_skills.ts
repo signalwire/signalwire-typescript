@@ -75,6 +75,21 @@ interface CustomSkillsConfigData {
  * **Security warning:** This skill uses `new Function()` to compile user-provided
  * code at runtime. It is gated behind the `SWML_ALLOW_CUSTOM_HANDLER_CODE=true`
  * environment variable to prevent unintended code execution.
+ *
+ * @example
+ * ```ts
+ * // Requires SWML_ALLOW_CUSTOM_HANDLER_CODE=true
+ * agent.addSkill('custom_skills', {
+ *   tools: [
+ *     {
+ *       name: 'echo',
+ *       description: 'Echo back the caller-supplied message.',
+ *       parameters: { type: 'object', properties: { msg: { type: 'string' } } },
+ *       handlerBody: 'return new FunctionResult(args.msg);',
+ *     },
+ *   ],
+ * });
+ * ```
  */
 export class CustomSkillsSkill extends SkillBase {
   // TS-only skill (no Python equivalent).

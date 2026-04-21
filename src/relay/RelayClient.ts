@@ -84,11 +84,57 @@ type WsLike = {
   ping?(data?: any, mask?: boolean, cb?: (err: Error) => void): void;
 };
 
+/**
+ * Real-time WebSocket client for SignalWire RELAY.
+ *
+ * One instance = one persistent JSON-RPC 2.0 WebSocket connection. Lets you
+ * place / receive calls and SMS, play/record media, run TTS, conference calls
+ * together, and subscribe to platform events — all without HTTP polling.
+ *
+ * Authentication supports either a project/token pair or a JWT.
+ *
+ * @example Inbound-call handler
+ * ```ts
+ * import { RelayClient } from '@signalwire/sdk';
+ *
+ * const client = new RelayClient({
+ *   project: process.env.SIGNALWIRE_PROJECT_ID!,
+ *   token: process.env.SIGNALWIRE_API_TOKEN!,
+ *   host: 'example.signalwire.com',
+ *   contexts: ['office'],
+ * });
+ *
+ * client.onCall(async (call) => {
+ *   await call.answer();
+ *   await call.playTTS({ text: 'Thanks for calling!' });
+ *   await call.hangup();
+ * });
+ *
+ * await client.connect();
+ * ```
+ *
+ * @example Outbound dial + SMS
+ * ```ts
+ * await client.connect();
+ * const call = await client.dial({
+ *   devices: [[{ type: 'phone', to: '+15551234567', from: '+15557654321' }]],
+ * });
+ * await client.sendMessage({ to: '+15551234567', from: '+15557654321', body: 'Hi!' });
+ * ```
+ *
+ * @see {@link Call}
+ * @see {@link Message}
+ */
 export class RelayClient {
+  /** Project ID used for Basic Auth. */
   readonly project: string;
+  /** API token used for Basic Auth. */
   readonly token: string;
+  /** JWT used instead of project/token if provided. */
   readonly jwtToken: string;
+  /** Hostname of the RELAY endpoint (e.g. `example.signalwire.com`). */
   readonly host: string;
+  /** Contexts this client subscribes to for inbound events. */
   readonly contexts: string[];
 
   private _ws: WsLike | null = null;
@@ -127,6 +173,12 @@ export class RelayClient {
    */
   _wsFactory: ((url: string) => WsLike) | null = null;
 
+  /**
+   * Create a new RELAY client.
+   * Credentials fall back to the `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`,
+   * `SIGNALWIRE_JWT_TOKEN`, and `SIGNALWIRE_SPACE` env vars when omitted.
+   * @param options - Optional client configuration.
+   */
   constructor(options: RelayClientOptions = {}) {
     this.project = options.project ?? process.env.SIGNALWIRE_PROJECT_ID ?? '';
     this.token = options.token ?? process.env.SIGNALWIRE_API_TOKEN ?? '';
@@ -158,6 +210,7 @@ export class RelayClient {
     }
   }
 
+  /** The protocol name the server assigned to this client after `connect()`. */
   get relayProtocol(): string {
     return this._relayProtocol;
   }

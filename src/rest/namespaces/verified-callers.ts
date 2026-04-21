@@ -7,7 +7,13 @@
 import type { HttpClient } from '../HttpClient.js';
 import { CrudResource } from '../base/CrudResource.js';
 
-/** Verified caller ID management with verification flow. */
+/**
+ * Verified caller ID management with verification flow.
+ *
+ * Access via `client.verifiedCallers.*`. Extends standard CRUD with
+ * `redialVerification()` and `submitVerification()` for the two-step
+ * phone-number verification handshake.
+ */
 export class VerifiedCallersResource extends CrudResource {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 

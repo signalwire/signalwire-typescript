@@ -8,7 +8,11 @@ import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
 
-/** Queue management with member operations. */
+/**
+ * Queue management with member operations.
+ *
+ * Access via `client.queues.*`. Extends standard CRUD with member list/fetch.
+ */
 export class QueuesResource extends CrudResource {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
