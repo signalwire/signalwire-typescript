@@ -12,6 +12,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** Configuration for the {@link ConciergeAgent}. */
 export interface ConciergeConfig {
   /** Name of the venue or business (required). */
   venueName: string;

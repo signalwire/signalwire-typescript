@@ -13,6 +13,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** A department the receptionist can route callers to. */
 export interface ReceptionistDepartment {
   /** Department identifier (e.g. `"sales"`, `"support"`). */
   name: string;
@@ -22,6 +23,7 @@ export interface ReceptionistDepartment {
   number: string;
 }
 
+/** Configuration for the {@link ReceptionistAgent}. */
 export interface ReceptionistConfig {
   /** Departments the agent can transfer callers to. */
   departments: ReceptionistDepartment[];

@@ -237,10 +237,15 @@ export class WebService {
 
   /**
    * Start the HTTP(S) service.
-   * @param host - Bind address. Default: '0.0.0.0'.
-   * @param port - Port override. Default: this.port.
-   * @param sslCert - Path to SSL certificate file (overrides SslConfig).
-   * @param sslKey - Path to SSL key file (overrides SslConfig).
+   *
+   * When `SWAIG_CLI_MODE=true` is set in the environment, the call is a
+   * no-op so config can be inspected without binding a port.
+   *
+   * @param host - Bind address. Defaults to `'0.0.0.0'`.
+   * @param port - Port override. Defaults to `this.port`.
+   * @param sslCert - Path to SSL certificate file (overrides `SslConfig`).
+   * @param sslKey - Path to SSL key file (overrides `SslConfig`).
+   * @returns Resolves once the server has begun listening.
    */
   async start(
     host?: string,

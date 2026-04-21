@@ -666,11 +666,20 @@ export class SWMLService {
 
   /**
    * Start the HTTP server.
-   * Matches Python's `serve()` parameters including SSL options.
    *
-   * @param host - Hostname (default: this.host or '0.0.0.0').
-   * @param port - Port (default: this.port or 3000).
+   * Matches Python's `serve()` parameters including SSL options. When
+   * `SWAIG_CLI_MODE=true` is set in the environment (e.g. while running the
+   * `swaig-test` CLI) the call is a no-op.
+   *
+   * @param host - Hostname. Defaults to `this.host` (constructor value) or
+   *   `'0.0.0.0'`.
+   * @param port - Port. Defaults to `this.port` (constructor value) or `3000`.
    * @param opts - Optional SSL/TLS configuration overrides.
+   * @param opts.sslCert - Path to the PEM certificate file.
+   * @param opts.sslKey - Path to the PEM private key file.
+   * @param opts.sslEnabled - When `true`, serve over HTTPS.
+   * @param opts.domain - Domain used for HSTS header configuration.
+   * @returns Resolves once the server has begun listening.
    */
   async run(
     host?: string,
@@ -716,11 +725,12 @@ export class SWMLService {
   }
 
   /**
-   * Start the HTTP server. Alias for `run()` provided for cross-SDK
+   * Start the HTTP server. Alias for {@link run} provided for cross-SDK
    * consistency with Python's `serve()` method — callers porting from
    * Python can use this name without changes.
    *
-   * All parameters are forwarded unchanged to `run()`.
+   * @param args - Forwarded unchanged to {@link run}.
+   * @returns Resolves once the server has begun listening.
    */
   async serve(...args: Parameters<SWMLService['run']>): Promise<void> {
     return this.run(...args);

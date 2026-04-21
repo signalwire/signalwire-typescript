@@ -984,8 +984,12 @@ export class ContextBuilder {
 
   /**
    * Adds a new named context to the builder.
-   * @param name - The unique context name.
-   * @returns The newly created Context for further configuration.
+   *
+   * @param name - The unique context name. A single-context flow must name
+   *   its only context `"default"`.
+   * @returns The newly created {@link Context} for further configuration.
+   * @throws {Error} When the max-context limit is exceeded or a context with
+   *   the same name already exists.
    */
   addContext(name: string): Context {
     if (this.contexts.size >= MAX_CONTEXTS) {

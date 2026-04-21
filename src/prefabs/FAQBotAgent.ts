@@ -14,6 +14,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** A single frequently-asked-question entry consumed by {@link FAQBotAgent}. */
 export interface FAQEntry {
   /** The representative question text. */
   question: string;
@@ -25,6 +26,7 @@ export interface FAQEntry {
   categories?: string[];
 }
 
+/** Configuration for the {@link FAQBotAgent}. */
 export interface FAQBotConfig {
   /** Agent display name (defaults to `"faq_bot"`). */
   name?: string;

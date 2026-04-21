@@ -13,6 +13,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** A single survey question consumed by {@link SurveyAgent}. */
 export interface SurveyQuestion {
   /** Unique question identifier. */
   id: string;
@@ -47,6 +48,7 @@ export interface SurveyQuestion {
   points?: number | Record<string, number>;
 }
 
+/** Configuration for the {@link SurveyAgent}. */
 export interface SurveyConfig {
   /** Human-readable survey name, used in prompts and global data. */
   surveyName: string;

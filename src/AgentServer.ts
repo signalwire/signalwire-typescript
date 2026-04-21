@@ -407,10 +407,15 @@ export class AgentServer {
    *
    * This method handles server mode only. For serverless deployments
    * (AWS Lambda, Google Cloud Functions, Azure Functions), use
-   * {@link ServerlessAdapter} instead.
+   * {@link ServerlessAdapter} instead. When `SWAIG_CLI_MODE=true` is set in
+   * the environment, the call is a no-op so agent config can be inspected
+   * without starting a server.
    *
-   * @param host - Override the configured hostname.
-   * @param port - Override the configured port.
+   * @param host - Override the configured hostname. Defaults to the
+   *   constructor value.
+   * @param port - Override the configured port. Defaults to the constructor
+   *   value.
+   * @returns Resolves once the underlying Hono server has begun listening.
    */
   async run(host?: string, port?: number): Promise<void> {
     // When loaded by the CLI tool, skip server startup — only the agent config is needed.

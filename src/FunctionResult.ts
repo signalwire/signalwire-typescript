@@ -477,8 +477,11 @@ export class FunctionResult {
 
   /**
    * Send an SMS or MMS message from within the call flow.
-   * @param opts - SMS parameters including to/from numbers and body or media.
+   *
+   * @param opts - SMS parameters. Must include either `body` (text SMS) or
+   *   `media` (MMS) — supplying neither throws.
    * @returns This instance for chaining.
+   * @throws {Error} When neither `body` nor `media` is provided.
    */
   sendSms(opts: {
     toNumber: string;
