@@ -261,11 +261,11 @@ export class FAQBotAgent extends AgentBase {
         properties: {
           query: {
             type: 'string',
-            description: 'The caller\'s question or search query.',
+            description: 'The search query',
           },
           category: {
             type: 'string',
-            description: 'Optional category to filter the FAQ list by.',
+            description: 'Optional category to filter by',
           },
         },
       },
@@ -298,11 +298,13 @@ export class FAQBotAgent extends AgentBase {
           return new FunctionResult('No matching FAQs found.');
         }
 
-        // Match Python's response format: a numbered list of the top matches'
-        // question text. The answer text is supplied to the AI via the prompt's
-        // "FAQ Database" section — the tool just indicates which FAQs matched.
-        const limit = this.suggestRelated ? 3 : 1;
-        const top = scored.slice(0, limit);
+        // Match Python's response format: a numbered list of the top 3 matches'
+        // question text (faq_bot.py:276-283). The answer text is supplied to
+        // the AI via the prompt's "FAQ Database" section — the tool just
+        // indicates which FAQs matched. The `suggest_related` flag does not
+        // change the top-N here; it only toggles the prompt's "Related
+        // Questions" section and the extra instruction bullet (Python parity).
+        const top = scored.slice(0, 3);
         const lines = top.map((s, i) => `${i + 1}. ${s.faq.question}`).join('\n');
         return new FunctionResult(`Here are the most relevant FAQs:\n\n${lines}\n`);
       },
