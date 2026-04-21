@@ -416,11 +416,11 @@ describe('ApiNinjasTriviaSkill', () => {
 // Info Gatherer Skill
 // ---------------------------------------------------------------------------
 describe('InfoGathererSkill', () => {
-  it('should instantiate with fields config via createSkill factory', () => {
+  it('should instantiate with questions config via createSkill factory', () => {
     const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-        { name: 'email', description: 'Email address' },
+      questions: [
+        { key_name: 'full_name', question_text: 'What is your full name?' },
+        { key_name: 'email', question_text: 'What is your email address?' },
       ],
     });
     expect(skill).toBeInstanceOf(InfoGathererSkill);
@@ -432,43 +432,6 @@ describe('InfoGathererSkill', () => {
     const klass = skill.constructor as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('info_gatherer');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
-  });
-
-  it('should return save_info and get_gathered_info tools when fields configured', () => {
-    const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-      ],
-    });
-    const tools = skill.getTools();
-    expect(tools).toHaveLength(2);
-    const names = tools.map((t) => t.name);
-    expect(names).toContain('save_info');
-    expect(names).toContain('get_gathered_info');
-  });
-
-  it('should return no tools when no fields configured', () => {
-    const skill = createInfoGathererSkill();
-    const tools = skill.getTools();
-    expect(tools).toHaveLength(0);
-  });
-
-  it('should execute save_info handler and save data', () => {
-    const skill = createInfoGathererSkill({
-      fields: [
-        { name: 'full_name', description: 'Full name', required: true },
-        { name: 'email', description: 'Email address' },
-      ],
-    });
-    const saveTool = skill.getTools().find((t) => t.name === 'save_info')!;
-    const result = saveTool.handler(
-      { full_name: 'Jane Doe', email: 'jane@example.com' },
-      { call_id: 'test-call-123' },
-    ) as FunctionResult;
-    expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('saved successfully');
-    expect(result.response).toContain('Jane Doe');
-    expect(result.response).toContain('jane@example.com');
   });
 });
 

@@ -147,7 +147,7 @@ These skills integrate with a single external API or provide focused call-contro
 | `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background`, `stop_background` | None | `default_file_url`, `allowed_domains` |
 | `swml_transfer` | `SwmlTransferSkill` | Call transfer via SWML actions | `transfer_call`, `list_transfer_destinations` | None | `patterns`, `allow_arbitrary`, `default_message` |
 | `api_ninjas_trivia` | `ApiNinjasTriviaSkill` | Trivia questions from API Ninjas | `get_trivia` | `API_NINJAS_KEY` | `default_category`, `reveal_answer` |
-| `info_gatherer` | `InfoGathererSkill` | Structured data collection from users | `save_info`, `get_gathered_info` | None | `fields`, `purpose`, `confirmation_message`, `store_globally` |
+| `info_gatherer` | `InfoGathererSkill` | Sequential question flow that stores answers in `global_data` | `start_questions`, `submit_answer` | None | `questions`, `prefix`, `completion_message` |
 | `custom_skills` | `CustomSkillsSkill` | User-defined tools from configuration | Dynamic (from config) | None | `tools`, `prompt_title`, `prompt_body` |
 
 **weather_api** -- Fetches current weather data from OpenWeatherMap. Supports metric, imperial, and standard units.
@@ -191,19 +191,17 @@ await agent.addSkill(new ApiNinjasTriviaSkill({
 }));
 ```
 
-**info_gatherer** -- Collects structured information from users based on configurable field definitions with optional validation patterns. Data is stored per-call and can optionally be persisted to global data.
+**info_gatherer** -- Guides the agent through a sequence of questions, collecting answers one at a time and storing them under a namespaced key in SWAIG `global_data`. Questions may require the agent to read the answer back to the user for confirmation before proceeding. Matches Python's `InfoGathererSkill` exactly; configure a `prefix` to run multiple instances side by side.
 
 ```typescript
 import { InfoGathererSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new InfoGathererSkill({
-  purpose: 'Collecting customer contact information for our records.',
-  fields: [
-    { name: 'full_name', description: 'Customer full name', required: true },
-    { name: 'email', description: 'Email address', required: true, validation: '^[\\w.+-]+@[\\w-]+\\.[\\w.]+$' },
-    { name: 'phone', description: 'Phone number', required: false },
+  questions: [
+    { key_name: 'full_name', question_text: 'What is your full name?' },
+    { key_name: 'email', question_text: 'What is your email address?', confirm: true },
+    { key_name: 'reason', question_text: 'How can I help you today?' },
   ],
-  confirmation_message: 'Thank you! Your information has been saved.',
-  store_globally: true,
+  completion_message: 'Thank you! Your information has been saved.',
 }));
 ```
 

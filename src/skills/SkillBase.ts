@@ -195,6 +195,18 @@ export abstract class SkillBase {
   private _initialized = false;
 
   /**
+   * Tools registered imperatively via `defineTool()`.
+   *
+   * Python parity: Python's `SkillBase.register_tools()` is a `@abstractmethod` that
+   * calls `self.agent.define_tool(...)` (or `self.define_tool(...)`) once per tool.
+   * In TypeScript the tool pipeline is declarative (pull model): `SkillManager`
+   * calls `getTools()` at SWML render time. Skills that want to build their tool
+   * list imperatively (e.g. to branch on config at setup time) can push into this
+   * collection via `defineTool()`; the default `getTools()` returns it.
+   */
+  protected _dynamicTools: SkillToolDefinition[] = [];
+
+  /**
    * Return the agent that owns this skill, asserting it is non-null.
    * Equivalent to accessing `self.agent` in Python, where the agent reference
    * is always set before `setup()` is called.
@@ -265,9 +277,46 @@ export abstract class SkillBase {
 
   /**
    * Return the SWAIG tool definitions this skill provides.
+   *
+   * Default implementation returns tools registered imperatively via
+   * `defineTool()`. Skills using the declarative pattern override this
+   * method to return a static array built from their config.
+   *
+   * Python parity: replaces the `@abstractmethod register_tools()` contract
+   * — Python skills call `self.define_tool(...)` inside `register_tools()`;
+   * TypeScript skills either call `this.defineTool(...)` in `setup()` (and
+   * let the default `getTools()` return them) or override `getTools()`
+   * directly.
+   *
    * @returns Array of tool definitions to register with the agent.
    */
-  abstract getTools(): SkillToolDefinition[];
+  getTools(): SkillToolDefinition[] {
+    return [...this._dynamicTools];
+  }
+
+  /**
+   * Imperatively register a tool with this skill.
+   *
+   * Python parity: `core/skill_base.py:58` `def define_tool(self, **kwargs)`.
+   * Merges `this.swaigFields` into the tool definition (explicit fields on
+   * `toolDef` take precedence), then pushes the result into `_dynamicTools`
+   * so the default `getTools()` returns it at SWML render time.
+   *
+   * Intended for skills whose tool shape depends on config evaluated at
+   * `setup()` time. Skills with a static tool list should override
+   * `getTools()` instead.
+   *
+   * @param toolDef - The tool definition to register. Must include at
+   *   minimum `name`, `description`, `parameters`, and `handler`.
+   */
+  protected defineTool(toolDef: SkillToolDefinition): void {
+    const swaigDefaults = this.swaigFields as Partial<SkillToolDefinition>;
+    const merged: SkillToolDefinition = {
+      ...swaigDefaults,
+      ...toolDef,
+    };
+    this._dynamicTools.push(merged);
+  }
 
   /**
    * Optional DataMap-style tool definitions. Skills that build their own
@@ -402,6 +451,12 @@ export abstract class SkillBase {
       if (!process.env[envVar]) {
         missing.push(envVar);
       }
+    }
+    // Python parity: core/skill_base.py:107-109 logs an error line when any
+    // required env vars are missing. Mirror that here so both SDKs produce
+    // the same diagnostic signal during skill setup.
+    if (missing.length > 0) {
+      this.logger.error(`Missing required environment variables: ${missing.join(', ')}`);
     }
     return missing;
   }

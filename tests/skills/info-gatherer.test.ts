@@ -9,7 +9,7 @@ import { suppressAllLogs } from '../../src/Logger.js';
 
 beforeAll(() => { suppressAllLogs(true); });
 
-// ── Field-collection (single-shot) mode ─────────────────────────────────────
+// ── Basic skill identity + setup contract ──────────────────────────────────
 
 describe('InfoGathererSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -17,62 +17,55 @@ describe('InfoGathererSkill', () => {
     expect(createInfoGathererSkill()).toBeInstanceOf(InfoGathererSkill);
   });
 
-  it('should return false from setup when neither questions nor fields configured', async () => {
-    // Python parity: skill.py:91-95 requires `questions`; TS supports either
-    // questions or fields but not neither, so setup() returns false without
-    // registering any tools or prompt sections.
+  it("should return false from setup when 'questions' is not configured", async () => {
+    // Python parity: skill.py:91-95 — `questions` is required; setup returns
+    // false (and logs an error) if it's missing.
     await expect(new InfoGathererSkill().setup()).resolves.toBe(false);
   });
 
-  it('should complete setup with fields configured', async () => {
+  it('should return true from setup when valid questions are configured', async () => {
     await expect(
       new InfoGathererSkill({
-        fields: [{ name: 'email', description: 'Email address', type: 'string' }],
+        questions: [{ key_name: 'email', question_text: 'What is your email?' }],
       }).setup(),
     ).resolves.toBe(true);
   });
 
-  it('should register tools with configured fields', () => {
-    const skill = new InfoGathererSkill({
-      fields: [
-        { name: 'name', description: 'Full name', required: true },
-        { name: 'email', description: 'Email address' },
-      ],
-    });
-    const tools = skill.getTools();
-    expect(tools.length).toBeGreaterThan(0);
-    expect(tools[0].handler).toBeTypeOf('function');
+  it('should return false from setup when questions is an empty array', async () => {
+    // Python parity: skill.py:301 — `At least one question is required`.
+    await expect(
+      new InfoGathererSkill({ questions: [] }).setup(),
+    ).resolves.toBe(false);
   });
 
-  it('should return empty tools when no fields are configured', () => {
-    const skill = new InfoGathererSkill();
-    const tools = skill.getTools();
-    expect(Array.isArray(tools)).toBe(true);
-    expect(tools).toHaveLength(0);
+  it('should return false from setup when questions is not an array', async () => {
+    await expect(
+      new InfoGathererSkill({ questions: 'not-an-array' }).setup(),
+    ).resolves.toBe(false);
   });
 
-  it('should return empty prompt sections when no fields are configured', () => {
-    const sections = new InfoGathererSkill().getPromptSections();
-    expect(Array.isArray(sections)).toBe(true);
-    expect(sections).toHaveLength(0);
+  it('should return false from setup when a question is missing key_name', async () => {
+    await expect(
+      new InfoGathererSkill({
+        questions: [{ question_text: 'What is your name?' }],
+      }).setup(),
+    ).resolves.toBe(false);
   });
 
-  it('should provide prompt sections when fields are configured', () => {
-    const skill = new InfoGathererSkill({
-      fields: [{ name: 'name', description: 'Full name', required: true }],
-    });
-    const sections = skill.getPromptSections();
-    expect(sections.length).toBeGreaterThan(0);
+  it('should return false from setup when a question is missing question_text', async () => {
+    await expect(
+      new InfoGathererSkill({ questions: [{ key_name: 'name' }] }).setup(),
+    ).resolves.toBe(false);
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
-    expect(new InfoGathererSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
+    expect(
+      new InfoGathererSkill({ skip_prompt: true }).getPromptSections(),
+    ).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
-    const skill = new InfoGathererSkill();
-    expect(skill.getHints()).toEqual([]);
-    expect(skill.getGlobalData()).toEqual({});
+  it('should return empty hints', () => {
+    expect(new InfoGathererSkill().getHints()).toEqual([]);
   });
 
   it('should return correct manifest', () => {
@@ -147,32 +140,33 @@ describe('InfoGathererSkill — sequential question flow', () => {
     expect(result.response).toBe(custom);
   });
 
-  it('setup() — silently ignores invalid questions config (empty array)', async () => {
+  it('setup() — returns false for empty questions array (Python skill.py:301)', async () => {
     const skill = new InfoGathererSkill({ questions: [] });
-    await skill.setup();
-    // Empty questions → treated as no questions configured → field-only mode
+    await expect(skill.setup()).resolves.toBe(false);
+    // Un-set-up skill reports no tools (defensive guard — Python relies on
+    // the SkillManager never calling register_tools on a failed skill).
     expect(skill.getTools()).toHaveLength(0);
   });
 
-  it('setup() — silently ignores non-array questions config', async () => {
+  it('setup() — returns false for non-array questions config', async () => {
     const skill = new InfoGathererSkill({ questions: 'not-an-array' });
-    await skill.setup();
+    await expect(skill.setup()).resolves.toBe(false);
     expect(skill.getTools()).toHaveLength(0);
   });
 
-  it('setup() — silently ignores question missing key_name', async () => {
+  it('setup() — returns false when a question is missing key_name', async () => {
     const skill = new InfoGathererSkill({
       questions: [{ question_text: 'What is your name?' }],
     });
-    await skill.setup();
+    await expect(skill.setup()).resolves.toBe(false);
     expect(skill.getTools()).toHaveLength(0);
   });
 
-  it('setup() — silently ignores question missing question_text', async () => {
+  it('setup() — returns false when a question is missing question_text', async () => {
     const skill = new InfoGathererSkill({
       questions: [{ key_name: 'name' }],
     });
-    await skill.setup();
+    await expect(skill.setup()).resolves.toBe(false);
     expect(skill.getTools()).toHaveLength(0);
   });
 
