@@ -1381,15 +1381,17 @@ export class AgentBase {
       this.defineTool(toolDef);
       const fn = this.toolRegistry.get(toolDef.name);
       if (fn instanceof SwaigFunction) {
-        // Pass through tool-level filler control flags as SWAIG extra fields.
+        // Apply skill-level swaigFields as the base, then let tool-level filler
+        // flags override — matches Python skill_base.py:70-73 (swaig_fields base,
+        // explicit kwargs win) and SkillBase.defineTool() ({...swaigDefaults, ...toolDef}).
+        if (Object.keys(skill.swaigFields).length > 0) {
+          safeAssign(fn.extraFields, skill.swaigFields);
+        }
         if (toolDef.wait_for_fillers !== undefined) {
           fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
         }
         if (toolDef.skip_fillers !== undefined) {
           fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
-        }
-        if (Object.keys(skill.swaigFields).length > 0) {
-          safeAssign(fn.extraFields, skill.swaigFields);
         }
         // Propagate is_hangup_hook so the SignalWire platform auto-fires this
         // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
@@ -1961,14 +1963,14 @@ export class AgentBase {
           copy.defineTool(toolDef);
           const fn = copy.toolRegistry.get(toolDef.name);
           if (fn instanceof SwaigFunction) {
+            if (Object.keys(skill.swaigFields).length > 0) {
+              safeAssign(fn.extraFields, skill.swaigFields);
+            }
             if (toolDef.wait_for_fillers !== undefined) {
               fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
             }
             if (toolDef.skip_fillers !== undefined) {
               fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
-            }
-            if (Object.keys(skill.swaigFields).length > 0) {
-              safeAssign(fn.extraFields, skill.swaigFields);
             }
             if (toolDef.isHangupHook) {
               fn.extraFields['is_hangup_hook'] = true;

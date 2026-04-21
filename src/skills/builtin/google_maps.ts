@@ -517,33 +517,33 @@ export class GoogleMapsSkill extends SkillBase {
           'Compute a driving route between two geographic coordinates using the Google Routes API. ' +
           'Returns distance in meters and estimated travel time in seconds.',
         parameters: {
-          origin_latitude: {
+          origin_lat: {
             type: 'number',
             description: 'Origin latitude.',
           },
-          origin_longitude: {
+          origin_lng: {
             type: 'number',
             description: 'Origin longitude.',
           },
-          destination_latitude: {
+          dest_lat: {
             type: 'number',
             description: 'Destination latitude.',
           },
-          destination_longitude: {
+          dest_lng: {
             type: 'number',
             description: 'Destination longitude.',
           },
         },
-        required: ['origin_latitude', 'origin_longitude', 'destination_latitude', 'destination_longitude'],
+        required: ['origin_lat', 'origin_lng', 'dest_lat', 'dest_lng'],
         handler: async (args: Record<string, unknown>) => {
-          const originLat = typeof args.origin_latitude === 'number' ? args.origin_latitude : undefined;
-          const originLng = typeof args.origin_longitude === 'number' ? args.origin_longitude : undefined;
-          const destLat = typeof args.destination_latitude === 'number' ? args.destination_latitude : undefined;
-          const destLng = typeof args.destination_longitude === 'number' ? args.destination_longitude : undefined;
+          const originLat = typeof args.origin_lat === 'number' ? args.origin_lat : undefined;
+          const originLng = typeof args.origin_lng === 'number' ? args.origin_lng : undefined;
+          const destLat = typeof args.dest_lat === 'number' ? args.dest_lat : undefined;
+          const destLng = typeof args.dest_lng === 'number' ? args.dest_lng : undefined;
 
           if (originLat === undefined || originLng === undefined || destLat === undefined || destLng === undefined) {
             return new FunctionResult(
-              'All four coordinates are required: origin_latitude, origin_longitude, destination_latitude, destination_longitude.',
+              'All four coordinates are required: origin_lat, origin_lng, dest_lat, dest_lng.',
             );
           }
 

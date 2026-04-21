@@ -102,8 +102,9 @@ export class WeatherApiSkill extends SkillBase {
         type: 'string',
         description:
           'Temperature units. Preferred values: "metric" (Celsius), "imperial" (Fahrenheit), "standard" (Kelvin). ' +
-          'Python SDK aliases also accepted: "celsius" → "metric", "fahrenheit" → "imperial".',
-        default: 'metric',
+          'Python SDK aliases also accepted: "celsius" → "metric", "fahrenheit" → "imperial". ' +
+          'Default matches Python (`temperature_unit: "fahrenheit"` → `"imperial"`).',
+        default: 'fahrenheit',
         enum: ['metric', 'imperial', 'standard', 'celsius', 'fahrenheit'],
       },
     };
