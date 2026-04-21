@@ -1,16 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
-import { SkillBase, type SkillManifest, type SkillToolDefinition, type SkillConfig } from '../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
 /** Test skill that adds a tool and prompt section. */
 class EphemeralTestSkill extends SkillBase {
-  constructor(config?: SkillConfig) {
-    super('ephemeral_test', config);
-  }
-  getManifest(): SkillManifest {
-    return { name: 'ephemeral_test', description: 'Ephemeral test', version: '1.0.0' };
-  }
+  static override SKILL_NAME = 'ephemeral_test';
+  static override SKILL_DESCRIPTION = 'Ephemeral test';
+
   getTools(): SkillToolDefinition[] {
     return [{
       name: 'ephemeral_tool',

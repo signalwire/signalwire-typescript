@@ -16,8 +16,21 @@ describe('WeatherApiSkill', () => {
     expect(createWeatherApiSkill()).toBeInstanceOf(WeatherApiSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new WeatherApiSkill().setup()).resolves.toBeUndefined();
+  it('should return false from setup when api_key is absent', async () => {
+    const saved = process.env['WEATHER_API_KEY'];
+    delete process.env['WEATHER_API_KEY'];
+    await expect(new WeatherApiSkill().setup()).resolves.toBe(false);
+    if (saved !== undefined) process.env['WEATHER_API_KEY'] = saved;
+  });
+
+  it('should return true from setup when api_key is provided via config', async () => {
+    await expect(new WeatherApiSkill({ api_key: 'test-key' }).setup()).resolves.toBe(true);
+  });
+
+  it('should return true from setup when WEATHER_API_KEY env var is set', async () => {
+    process.env['WEATHER_API_KEY'] = 'env-key';
+    await expect(new WeatherApiSkill().setup()).resolves.toBe(true);
+    delete process.env['WEATHER_API_KEY'];
   });
 
   it('should register a get_weather tool', () => {
@@ -44,9 +57,9 @@ describe('WeatherApiSkill', () => {
   });
 
   it('should return correct manifest with required env vars', () => {
-    const manifest = new WeatherApiSkill().getManifest();
-    expect(manifest.name).toBe('weather_api');
-    expect(manifest.requiredEnvVars).toContain('WEATHER_API_KEY');
+    const klass = WeatherApiSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('weather_api');
+    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
   });
 
   it('should return error when API key is missing', async () => {

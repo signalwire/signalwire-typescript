@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <main>
+    <p>Before the script tag.</p>
+    <script>
+      var secret = 'this should be removed';
+      alert('also removed');
+    </script>
+    <p>After the script tag.</p>
+    <style>
+      .secret-style { color: red; }
+    </style>
+    <p>After the style tag. Tests that inline script and style contents are dropped.</p>
+  </main>
+</body>
+</html>

@@ -18,7 +18,6 @@ import { SpiderSkill } from '../src/skills/builtin/spider.js';
 import { ClaudeSkillsSkill } from '../src/skills/builtin/claude_skills.js';
 import { AskClaudeSkill } from '../src/skills/builtin/ask_claude.js';
 import { McpGatewaySkill } from '../src/skills/builtin/mcp_gateway.js';
-import type { ParameterSchemaEntry } from '../src/skills/SkillBase.js';
 
 const ALL_SKILLS = [
   { name: 'DateTimeSkill', cls: DateTimeSkill },
@@ -78,10 +77,10 @@ describe('Skill Parameter Schemas', () => {
       expect(schema).toHaveProperty('tool_name');
     });
 
-    it('NativeVectorSearchSkill has tool_name param', () => {
-      const schema = NativeVectorSearchSkill.getParameterSchema();
-      expect(schema).toHaveProperty('tool_name');
-    });
+    // NativeVectorSearchSkill intentionally omits tool_name from
+    // getParameterSchema — Python reference schema does not include it
+    // either. The internal default 'search_knowledge' still applies via
+    // getConfig fallback.
   });
 
   describe('specific schema details', () => {
@@ -93,12 +92,12 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.api_key.required).toBe(true);
     });
 
-    it('WebSearchSkill has max_results with min/max', () => {
+    it('WebSearchSkill has num_results with min/max', () => {
       const schema = WebSearchSkill.getParameterSchema();
-      expect(schema.max_results).toBeDefined();
-      expect(schema.max_results.min).toBe(1);
-      expect(schema.max_results.max).toBe(10);
-      expect(schema.max_results.default).toBe(5);
+      expect(schema.num_results).toBeDefined();
+      expect(schema.num_results.min).toBe(1);
+      expect(schema.num_results.max).toBe(10);
+      expect(schema.num_results.default).toBe(3);
     });
 
     it('AskClaudeSkill has model with default', () => {
@@ -113,11 +112,11 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.skills_path.required).toBe(true);
     });
 
-    it('DataSphereSkill has distance_threshold with min/max', () => {
+    it('DataSphereSkill has distance with min/max', () => {
       const schema = DataSphereSkill.getParameterSchema();
-      expect(schema.distance_threshold).toBeDefined();
-      expect(schema.distance_threshold.min).toBe(0);
-      expect(schema.distance_threshold.max).toBe(1);
+      expect(schema.distance).toBeDefined();
+      expect(schema.distance.min).toBe(0);
+      expect(schema.distance.max).toBe(10);
     });
 
     it('SwmlTransferSkill has patterns array', () => {

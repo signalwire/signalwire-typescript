@@ -17,7 +17,7 @@ describe('JokeSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new JokeSkill().setup()).resolves.toBeUndefined();
+    await expect(new JokeSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a tell_joke tool', () => {
@@ -36,16 +36,23 @@ describe('JokeSkill', () => {
     expect(new JokeSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
+  it('should return empty hints and joke_skill_enabled global data', () => {
     const skill = new JokeSkill();
     expect(skill.getHints()).toEqual([]);
-    expect(skill.getGlobalData()).toEqual({});
+    expect(skill.getGlobalData()).toEqual({ joke_skill_enabled: true });
+  });
+
+  it('should use a configurable tool_name', () => {
+    const skill = new JokeSkill({ tool_name: 'get_joke' });
+    const tools = skill.getTools();
+    expect(tools).toHaveLength(1);
+    expect(tools[0].name).toBe('get_joke');
   });
 
   it('should return correct manifest', () => {
-    const manifest = new JokeSkill().getManifest();
-    expect(manifest.name).toBe('joke');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = JokeSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('joke');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should return a joke from any category', () => {

@@ -1,0 +1,5 @@
+{
+  "text": "The Quick Brown Fox The quick brown fox jumps over the lazy dog. This is a test of basic content extraction. We want to make sure the main article text is preserved while boilerplate is dropped. Second paragraph has some additional content. Enough to make the extracted text meaningful and testable for character counts and sentence parsing.",
+  "text_length": 341,
+  "sentence_count": 5
+}

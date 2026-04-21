@@ -89,7 +89,8 @@ describe('examples', () => {
       const agent = await loadExample('skills-demo.ts');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t: any) => t.name);
-      expect(names).toContain('get_datetime');
+      expect(names).toContain('get_current_time');
+      expect(names).toContain('get_current_date');
       expect(names).toContain('calculate');
     });
   });

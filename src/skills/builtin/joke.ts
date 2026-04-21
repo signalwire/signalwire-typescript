@@ -7,7 +7,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -90,32 +89,39 @@ const VALID_CATEGORIES = ['general', 'programming', 'dad'];
  * programming, and dad joke categories.
  */
 export class JokeSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration (no config keys used by this skill).
-   */
-  constructor(config?: SkillConfig) {
-    super('joke', config);
-  }
+  // Python ground truth: skills/joke/skill.py
+  static override SKILL_NAME = 'joke';
+  static override SKILL_DESCRIPTION = 'Tell jokes using the API Ninjas joke API';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
-    return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
     return {
-      name: 'joke',
-      description: 'Tells random jokes from a built-in collection across several categories.',
-      version: '1.0.0',
-      tags: ['entertainment', 'joke', 'humor'],
+      ...super.getParameterSchema(),
+      tool_name: {
+        type: 'string',
+        description: 'Custom name for the joke tool',
+        default: 'tell_joke',
+      },
     };
   }
 
-  /** @returns A single `tell_joke` tool that returns a random joke with optional category filter. */
+  /**
+   * Signal to the agent prompt that the joke skill is active. Python
+   * parity: `get_global_data` returns `{"joke_skill_enabled": true}`.
+   */
+  override getGlobalData(): Record<string, unknown> {
+    return { joke_skill_enabled: true };
+  }
+
+  /** @returns A single joke tool (configurable name) that returns a random joke with optional category filter. */
   getTools(): SkillToolDefinition[] {
+    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
+
     return [
       {
-        name: 'tell_joke',
+        name: toolName,
         description:
           'Tell a random joke. Optionally specify a category to get a joke from that category.',
         parameters: {
@@ -159,12 +165,13 @@ export class JokeSkill extends SkillBase {
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
+    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
     return [
       {
         title: 'Jokes',
         body: 'You have the ability to tell jokes to lighten the mood.',
         bullets: [
-          'Use the tell_joke tool when a user asks for a joke or when humor is appropriate.',
+          `Use the ${toolName} tool when a user asks for a joke or when humor is appropriate.`,
           'Available joke categories: general, programming, and dad jokes.',
           'If the user asks for a specific type of joke, pass the category parameter.',
           'Deliver the joke naturally: say the setup, pause briefly, then deliver the punchline.',

@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -67,25 +66,15 @@ function safeEvaluate(expr: string): number {
  * basic arithmetic operators, parentheses, decimal points, and spaces.
  */
 export class MathSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration (no config keys used by this skill).
-   */
-  constructor(config?: SkillConfig) {
-    super('math', config);
-  }
+  // Python ground truth: skills/math/skill.py
+  static override SKILL_NAME = 'math';
+  static override SKILL_DESCRIPTION = 'Perform basic mathematical calculations';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'math',
-      description: 'Evaluates mathematical expressions with basic arithmetic operations.',
-      version: '1.0.0',
-      tags: ['utility', 'math', 'calculator'],
-    };
   }
 
   /** @returns A single `calculate` tool that evaluates a math expression string. */

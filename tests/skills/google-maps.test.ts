@@ -16,8 +16,18 @@ describe('GoogleMapsSkill', () => {
     expect(createGoogleMapsSkill()).toBeInstanceOf(GoogleMapsSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new GoogleMapsSkill().setup()).resolves.toBeUndefined();
+  it('should return false during setup when GOOGLE_MAPS_API_KEY is missing', async () => {
+    delete process.env['GOOGLE_MAPS_API_KEY'];
+    await expect(new GoogleMapsSkill().setup()).resolves.toBe(false);
+  });
+
+  it('should return true during setup when GOOGLE_MAPS_API_KEY is set', async () => {
+    process.env['GOOGLE_MAPS_API_KEY'] = 'test-key';
+    try {
+      await expect(new GoogleMapsSkill().setup()).resolves.toBe(true);
+    } finally {
+      delete process.env['GOOGLE_MAPS_API_KEY'];
+    }
   });
 
   it('should register tools', () => {
@@ -35,16 +45,23 @@ describe('GoogleMapsSkill', () => {
     expect(new GoogleMapsSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
-  it('should return empty hints and global data', () => {
+  it('should return maps-related hints and empty global data', () => {
     const skill = new GoogleMapsSkill();
-    expect(skill.getHints()).toEqual([]);
+    expect(skill.getHints()).toEqual([
+      'address',
+      'location',
+      'route',
+      'directions',
+      'miles',
+      'distance',
+    ]);
     expect(skill.getGlobalData()).toEqual({});
   });
 
   it('should return correct manifest with required env vars', () => {
-    const manifest = new GoogleMapsSkill().getManifest();
-    expect(manifest.name).toBe('google_maps');
-    expect(manifest.requiredEnvVars).toContain('GOOGLE_MAPS_API_KEY');
+    const klass = GoogleMapsSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('google_maps');
+    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
   it('should return error when origin is missing', async () => {

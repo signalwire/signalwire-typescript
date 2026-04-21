@@ -16,7 +16,6 @@ import yaml from 'js-yaml';
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -75,6 +74,12 @@ interface ParsedSkill {
  * that returns the skill's instructions when invoked.
  */
 export class ClaudeSkillsSkill extends SkillBase {
+  // Python ground truth: skills/claude_skills/skill.py
+  // Python REQUIRED_PACKAGES = ["yaml"]; TS uses js-yaml but kept [] historically.
+  static override SKILL_NAME = 'claude_skills';
+  static override SKILL_DESCRIPTION = 'Load Claude SKILL.md files as agent tools';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   private _skillsPath = '';
@@ -166,33 +171,25 @@ export class ClaudeSkillsSkill extends SkillBase {
     };
   }
 
-  constructor(config?: SkillConfig) {
-    super('claude_skills', config);
-  }
-
-  getManifest(): SkillManifest {
-    return {
-      name: 'claude_skills',
-      description: 'Load Claude SKILL.md files as agent tools',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['claude', 'skills', 'skill-loader', 'markdown'],
-    };
-  }
-
-  /** Setup the Claude skills loader — discovers and parses all SKILL.md files. */
-  override async setup(): Promise<void> {
+  /**
+   * Setup the Claude skills loader — discovers and parses all SKILL.md files.
+   *
+   * Returns `true` on success and `false` on any failure (missing path,
+   * invalid path, stat failure, or non-directory), mirroring the Python
+   * skill's `setup() -> bool` contract.
+   */
+  override async setup(): Promise<boolean> {
     const skillsPath = this.getConfig<string>('skills_path');
     if (!skillsPath) {
       log.error('claude_skills: skills_path parameter is required');
-      return;
+      return false;
     }
 
     this._skillsPath = resolve(skillsPath);
 
     if (!existsSync(this._skillsPath)) {
       log.error(`claude_skills: skills_path does not exist: ${this._skillsPath}`);
-      return;
+      return false;
     }
 
     let stat;
@@ -200,13 +197,13 @@ export class ClaudeSkillsSkill extends SkillBase {
       stat = statSync(this._skillsPath);
     } catch {
       log.error(`claude_skills: cannot stat skills_path: ${this._skillsPath}`);
-      return;
+      return false;
     }
     if (!stat.isDirectory()) {
       log.error(
         `claude_skills: skills_path is not a directory: ${this._skillsPath}`,
       );
-      return;
+      return false;
     }
 
     // Load include/exclude patterns
@@ -245,6 +242,7 @@ export class ClaudeSkillsSkill extends SkillBase {
     log.info(
       `claude_skills: loaded ${this._skills.length} skills from ${this._skillsPath}`,
     );
+    return true;
   }
 
   // ---------------------------------------------------------------------------

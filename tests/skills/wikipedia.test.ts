@@ -17,13 +17,13 @@ describe('WikipediaSearchSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new WikipediaSearchSkill().setup()).resolves.toBeUndefined();
+    await expect(new WikipediaSearchSkill().setup()).resolves.toBe(true);
   });
 
-  it('should register a search_wikipedia tool', () => {
+  it('should register a search_wiki tool', () => {
     const tools = new WikipediaSearchSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wikipedia');
+    expect(tools[0].name).toBe('search_wiki');
     expect(tools[0].required).toContain('query');
   });
 
@@ -44,20 +44,20 @@ describe('WikipediaSearchSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new WikipediaSearchSkill().getManifest();
-    expect(manifest.name).toBe('wikipedia_search');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = WikipediaSearchSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('wikipedia_search');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should reject empty query', async () => {
     const handler = new WikipediaSearchSkill().getTools()[0].handler;
     const result = await handler({ query: '' }, {}) as FunctionResult;
-    expect(result.response).toContain('provide a topic');
+    expect(result.response).toContain('provide a search query');
   });
 
   it('should have a parameter schema', () => {
     const schema = WikipediaSearchSkill.getParameterSchema();
-    expect(schema['language']).toBeDefined();
-    expect(schema['max_results']).toBeDefined();
+    expect(schema['num_results']).toBeDefined();
+    expect(schema['no_results_message']).toBeDefined();
   });
 });

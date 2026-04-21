@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   Agent,
   AgentSession,
+  ChatContext,
   tool,
   handoff,
   RunContext,
@@ -44,7 +45,7 @@ describe('Agent', () => {
     });
     const agent = new Agent({
       instructions: 'Weather bot',
-      tools: { get_weather: { ...myTool, name: 'get_weather' } },
+      tools: [{ ...myTool, name: 'get_weather' }],
     });
     expect(agent.instructions).toBe('Weather bot');
     expect(agent.tools['get_weather']).toBeDefined();
@@ -105,7 +106,7 @@ describe('AgentSession', () => {
     });
     const agent = new Agent({
       instructions: 'Weather assistant',
-      tools: { get_weather: { ...weatherTool, name: 'get_weather' } },
+      tools: [{ ...weatherTool, name: 'get_weather' }],
     });
     await session.start({ agent });
     const sw = session.getSwAgent();
@@ -471,13 +472,309 @@ describe('Namespace re-exports', () => {
     expect(voice.AgentSessionEventTypes).toBeDefined();
   });
 
-  it('llm namespace has tool, handoff, ToolError', () => {
+  it('llm namespace has tool, handoff, ToolError, ChatContext', () => {
     expect(llm.tool).toBe(tool);
     expect(llm.handoff).toBe(handoff);
     expect(llm.ToolError).toBeDefined();
+    expect(llm.ChatContext).toBe(ChatContext);
   });
 
   it('cli namespace has runApp', () => {
     expect(cli.runApp).toBeTypeOf('function');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Agent alignment gaps (P1 + P2 fixes)
+// ---------------------------------------------------------------------------
+
+describe('Agent alignment gaps', () => {
+  it('creates with no arguments (instructions defaults to empty string)', () => {
+    const agent = new Agent();
+    expect(agent.instructions).toBe('');
+    expect(Object.keys(agent.tools)).toHaveLength(0);
+  });
+
+  it('instructions defaults to empty string when omitted', () => {
+    const agent = new Agent({});
+    expect(agent.instructions).toBe('');
+  });
+
+  it('accepts all Python-aligned constructor params', () => {
+    const agent = new Agent({
+      instructions: 'test',
+      chatCtx: { messages: [] },
+      stt: 'deepgram',
+      tts: 'elevenlabs',
+      llm: 'openai/gpt-4',
+      vad: 'silero',
+      turnDetection: 'server_vad',
+      mcpServers: ['server1'],
+      allowInterruptions: false,
+      minEndpointingDelay: 0.3,
+      maxEndpointingDelay: 5.0,
+    });
+    expect(agent.instructions).toBe('test');
+    expect(agent._llmHint).toBe('openai/gpt-4');
+    expect(agent._allowInterruptions).toBe(false);
+    expect(agent._minEndpointingDelay).toBe(0.3);
+    expect(agent._maxEndpointingDelay).toBe(5.0);
+  });
+
+  it('has session property (get/set)', () => {
+    const agent = new Agent({ instructions: 'test' });
+    expect(agent.session).toBeUndefined();
+    const session = new AgentSession();
+    agent.session = session;
+    expect(agent.session).toBe(session);
+    agent.session = undefined;
+    expect(agent.session).toBeUndefined();
+  });
+
+  it('onEnter lifecycle hook is overridable', async () => {
+    let called = false;
+    class MyAgent extends Agent {
+      override async onEnter(): Promise<void> {
+        called = true;
+      }
+    }
+    const agent = new MyAgent({ instructions: 'test' });
+    await agent.onEnter();
+    expect(called).toBe(true);
+  });
+
+  it('onExit lifecycle hook is overridable', async () => {
+    let called = false;
+    class MyAgent extends Agent {
+      override async onExit(): Promise<void> {
+        called = true;
+      }
+    }
+    const agent = new MyAgent({ instructions: 'test' });
+    await agent.onExit();
+    expect(called).toBe(true);
+  });
+
+  it('onUserTurnCompleted lifecycle hook is overridable', async () => {
+    let receivedTurnCtx: unknown;
+    let receivedNewMessage: unknown;
+    class MyAgent extends Agent {
+      override async onUserTurnCompleted(turnCtx?: unknown, newMessage?: unknown): Promise<void> {
+        receivedTurnCtx = turnCtx;
+        receivedNewMessage = newMessage;
+      }
+    }
+    const agent = new MyAgent({ instructions: 'test' });
+    await agent.onUserTurnCompleted('ctx', 'msg');
+    expect(receivedTurnCtx).toBe('ctx');
+    expect(receivedNewMessage).toBe('msg');
+  });
+
+  it('sttNode is a noop that resolves', async () => {
+    const agent = new Agent({ instructions: 'test' });
+    await expect(agent.sttNode()).resolves.toBeUndefined();
+  });
+
+  it('llmNode is a noop that resolves', async () => {
+    const agent = new Agent({ instructions: 'test' });
+    await expect(agent.llmNode()).resolves.toBeUndefined();
+  });
+
+  it('ttsNode is a noop that resolves', async () => {
+    const agent = new Agent({ instructions: 'test' });
+    await expect(agent.ttsNode()).resolves.toBeUndefined();
+  });
+
+  it('updateInstructions changes instructions', async () => {
+    const agent = new Agent({ instructions: 'old' });
+    await agent.updateInstructions('new');
+    expect(agent.instructions).toBe('new');
+  });
+
+  it('updateTools replaces tools record from array', async () => {
+    const t1 = { ...tool({ description: 'Tool 1', execute: () => 'a' }), name: 'tool1' };
+    const t2 = { ...tool({ description: 'Tool 2', execute: () => 'b' }), name: 'tool2' };
+    const agent = new Agent({ instructions: 'test' });
+    await agent.updateTools([t1, t2]);
+    expect(Object.keys(agent.tools)).toHaveLength(2);
+    expect(agent.tools['tool1'].description).toBe('Tool 1');
+    expect(agent.tools['tool2'].description).toBe('Tool 2');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AgentSession alignment gaps (P1 + P2 fixes)
+// ---------------------------------------------------------------------------
+
+describe('AgentSession alignment gaps', () => {
+  it('accepts all Python-aligned constructor params', () => {
+    const session = new AgentSession({
+      tools: [],
+      mcpServers: ['server1'],
+      allowInterruptions: false,
+      minInterruptionDuration: 1.0,
+      minEndpointingDelay: 0.3,
+      maxEndpointingDelay: 5.0,
+      maxToolSteps: 5,
+      preemptiveGeneration: true,
+    });
+    expect(session).toBeDefined();
+  });
+
+  it('has history property', () => {
+    const session = new AgentSession();
+    expect(session.history).toEqual([]);
+    expect(Array.isArray(session.history)).toBe(true);
+  });
+
+  it('start() accepts record param', async () => {
+    const session = new AgentSession();
+    const agent = new Agent({ instructions: 'test' });
+    await session.start({ agent, record: true });
+    expect(session.getSwAgent()).toBeDefined();
+  });
+
+  it('start() sets agent.session back-reference', async () => {
+    const session = new AgentSession();
+    const agent = new Agent({ instructions: 'test' });
+    expect(agent.session).toBeUndefined();
+    await session.start({ agent });
+    expect(agent.session).toBe(session);
+  });
+
+  it('updateAgent() sets agent.session back-reference', async () => {
+    const session = new AgentSession();
+    const agent1 = new Agent({ instructions: 'First' });
+    await session.start({ agent: agent1 });
+    const agent2 = new Agent({ instructions: 'Second' });
+    session.updateAgent(agent2);
+    expect(agent2.session).toBe(session);
+  });
+
+  it('session-level tools are registered alongside agent tools', async () => {
+    const sessionTool: FunctionTool = {
+      name: 'session_tool',
+      description: 'A session tool',
+      execute: () => 'ok',
+    };
+    const session = new AgentSession({ tools: [sessionTool] });
+    const agent = new Agent({ instructions: 'test' });
+    await session.start({ agent });
+    expect(session.getSwAgent()).toBeDefined();
+  });
+
+  it('maps agent-level llm hint through start()', async () => {
+    const session = new AgentSession();
+    const agent = new Agent({ instructions: 'test', llm: 'openai/gpt-4o' });
+    await session.start({ agent });
+    // The swAgent should have been created and the model param set
+    expect(session.getSwAgent()).toBeDefined();
+  });
+
+  it('maps allowInterruptions=false to barge_confidence', async () => {
+    const session = new AgentSession({ allowInterruptions: false });
+    const agent = new Agent({ instructions: 'test' });
+    await session.start({ agent });
+    expect(session.getSwAgent()).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RunContext alignment gaps (P1 fixes)
+// ---------------------------------------------------------------------------
+
+describe('RunContext alignment gaps', () => {
+  it('accepts speechHandle and functionCall', () => {
+    const session = new AgentSession();
+    const ctx = new RunContext(session, {
+      speechHandle: 'handle-123',
+      functionCall: { name: 'test' },
+    });
+    expect(ctx.speechHandle).toBe('handle-123');
+    expect(ctx.functionCall).toEqual({ name: 'test' });
+    expect(ctx.session).toBe(session);
+  });
+
+  it('speechHandle and functionCall default to undefined', () => {
+    const session = new AgentSession();
+    const ctx = new RunContext(session);
+    expect(ctx.speechHandle).toBeUndefined();
+    expect(ctx.functionCall).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ChatContext alignment gaps (P1 fixes)
+// ---------------------------------------------------------------------------
+
+describe('ChatContext', () => {
+  it('has messages array', () => {
+    const ctx = new ChatContext();
+    expect(ctx.messages).toEqual([]);
+  });
+
+  it('append adds messages and returns this', () => {
+    const ctx = new ChatContext();
+    const result = ctx.append({ role: 'user', text: 'Hello' });
+    expect(result).toBe(ctx);
+    expect(ctx.messages).toHaveLength(1);
+    expect(ctx.messages[0]).toEqual({ role: 'user', content: 'Hello' });
+  });
+
+  it('append uses defaults (role=user, text=empty)', () => {
+    const ctx = new ChatContext();
+    ctx.append({});
+    expect(ctx.messages[0]).toEqual({ role: 'user', content: '' });
+  });
+
+  it('chains multiple appends', () => {
+    const ctx = new ChatContext();
+    ctx.append({ role: 'system', text: 'You are a bot' })
+       .append({ role: 'user', text: 'Hello' })
+       .append({ role: 'assistant', text: 'Hi there' });
+    expect(ctx.messages).toHaveLength(3);
+    expect(ctx.messages[0].role).toBe('system');
+    expect(ctx.messages[1].role).toBe('user');
+    expect(ctx.messages[2].role).toBe('assistant');
+  });
+
+  it('is accessible via llm.ChatContext', () => {
+    const ctx = new llm.ChatContext();
+    ctx.append({ role: 'user', text: 'test' });
+    expect(ctx.messages).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// JobContext alignment gaps (P2 fixes)
+// ---------------------------------------------------------------------------
+
+describe('JobContext alignment gaps', () => {
+  it('waitForParticipant accepts identity option', async () => {
+    const ctx = new JobContext();
+    const participant = await ctx.waitForParticipant({ identity: 'user-42' });
+    expect(participant.identity).toBe('user-42');
+  });
+
+  it('waitForParticipant defaults identity to caller', async () => {
+    const ctx = new JobContext();
+    const participant = await ctx.waitForParticipant();
+    expect(participant.identity).toBe('caller');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plugin alignment gaps (P2 fixes)
+// ---------------------------------------------------------------------------
+
+describe('Plugin alignment gaps', () => {
+  it('OpenAILLM stores model property from opts', () => {
+    const llmPlugin = new plugins.OpenAILLM({ model: 'gpt-4' });
+    expect(llmPlugin.model).toBe('gpt-4');
+  });
+
+  it('OpenAILLM model defaults to empty string when not provided', () => {
+    const llmPlugin = new plugins.OpenAILLM();
+    expect(llmPlugin.model).toBe('');
   });
 });

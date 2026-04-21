@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <main>
+    <p>Top-level kept paragraph one with text padding.</p>
+    <div class="promoted">
+      <div>
+        <div>
+          <p>Deeply nested paragraph inside a sidebar-containing wrapper.</p>
+          <aside class="cookie">Nested cookie notice to be removed as well.</aside>
+        </div>
+      </div>
+    </div>
+    <div class="also-sidebar-deep">
+      <section>
+        <article>
+          <p>Article nested INSIDE a class='also-sidebar-deep' wrapper. Tests removal cascade.</p>
+        </article>
+      </section>
+    </div>
+    <p>Bottom-level kept paragraph two with text padding to pass 100-char selector threshold.</p>
+  </main>
+</body>
+</html>

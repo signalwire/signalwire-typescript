@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -53,22 +52,40 @@ const VALID_CATEGORIES = [
  * Supports optional `default_category` and `reveal_answer` config options.
  */
 export class ApiNinjasTriviaSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_category` and `reveal_answer`.
-   */
-  constructor(config?: SkillConfig) {
-    super('api_ninjas_trivia', config);
-  }
+  static override SKILL_NAME = 'api_ninjas_trivia';
+  static override SKILL_DESCRIPTION = 'Get trivia questions from API Ninjas';
+  // Python skill.py:61 — `REQUIRED_ENV_VARS = []` because the api_key can
+  // be supplied via params. The handler still falls back to `API_NINJAS_KEY`
+  // so env-based configuration keeps working.
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      tool_name: {
+        type: 'string',
+        description:
+          'Custom name for the SWAIG trivia tool (enables multiple instances).',
+        default: 'get_trivia',
+      },
       api_key: {
         type: 'string',
         description: 'API Ninjas API key.',
         hidden: true,
         env_var: 'API_NINJAS_KEY',
         required: true,
+      },
+      categories: {
+        type: 'array',
+        description:
+          'Subset of trivia categories to enable. Defaults to all categories.',
+        required: false,
+        default: [...VALID_CATEGORIES],
+        items: {
+          type: 'string',
+          enum: [...VALID_CATEGORIES],
+        },
       },
       default_category: {
         type: 'string',
@@ -82,43 +99,40 @@ export class ApiNinjasTriviaSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest declaring API_NINJAS_KEY as required and config schema for category/reveal. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'api_ninjas_trivia',
-      description:
-        'Fetches trivia questions from the API Ninjas service. Supports multiple categories for varied trivia topics.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['trivia', 'api', 'entertainment', 'quiz', 'external'],
-      requiredEnvVars: ['API_NINJAS_KEY'],
-      configSchema: {
-        default_category: {
-          type: 'string',
-          description:
-            'Default trivia category if none is specified by the user.',
-        },
-        reveal_answer: {
-          type: 'boolean',
-          description:
-            'Whether to include the answer in the response. Defaults to false so the AI can quiz the user.',
-          default: false,
-        },
-      },
-    };
+  /**
+   * Produce a compound instance key matching Python `get_instance_key`
+   * (skill.py:139-146): `f"{SKILL_NAME}_{self.tool_name}"` with
+   * `tool_name` defaulting to `'get_trivia'` (skill.py:95). The base
+   * `SkillBase.getInstanceKey` uses `this.skillName` as the fallback,
+   * so we override to match Python's `'get_trivia'` default.
+   */
+  override getInstanceKey(): string {
+    const toolName = this.getConfig<string>('tool_name', 'get_trivia');
+    return `${this.skillName}_${toolName}`;
   }
 
-  /** @returns A single `get_trivia` tool that fetches a random trivia question with optional category. */
+  /** @returns A single trivia tool (configurable name) that fetches a random trivia question with optional category. */
   getTools(): SkillToolDefinition[] {
+    const toolName = this.getConfig<string>('tool_name', 'get_trivia');
     const defaultCategory = this.getConfig<string | undefined>(
       'default_category',
       undefined,
     );
     const revealAnswer = this.getConfig<boolean>('reveal_answer', false);
+    const configuredCategories = this.getConfig<string[] | undefined>(
+      'categories',
+      undefined,
+    );
+    const enabledCategories =
+      Array.isArray(configuredCategories) && configuredCategories.length > 0
+        ? configuredCategories.filter((c): c is string =>
+            (VALID_CATEGORIES as readonly string[]).includes(c),
+          )
+        : [...VALID_CATEGORIES];
 
     return [
       {
-        name: 'get_trivia',
+        name: toolName,
         description:
           'Get a random trivia question. Optionally specify a category to narrow the topic.',
         parameters: {
@@ -126,12 +140,15 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             type: 'string',
             description:
               'Trivia category. Available categories: ' +
-              VALID_CATEGORIES.join(', ') +
+              enabledCategories.join(', ') +
               '. If not specified, a random category is used.',
+            enum: enabledCategories,
           },
         },
         handler: async (args: Record<string, unknown>) => {
-          const apiKey = process.env['API_NINJAS_KEY'];
+          const apiKey =
+            this.getConfig<string | undefined>('api_key', undefined) ??
+            process.env['API_NINJAS_KEY'];
           if (!apiKey) {
             return new FunctionResult(
               'Trivia service is not configured. The API_NINJAS_KEY environment variable is missing.',
@@ -144,12 +161,10 @@ export class ApiNinjasTriviaSkill extends SkillBase {
           if (category && typeof category === 'string') {
             const normalized = category.toLowerCase().trim().replace(/[\s_-]/g, '');
             if (
-              !VALID_CATEGORIES.includes(
-                normalized as (typeof VALID_CATEGORIES)[number],
-              )
+              !enabledCategories.includes(normalized)
             ) {
               return new FunctionResult(
-                `Unknown trivia category "${category}". Available categories: ${VALID_CATEGORIES.join(', ')}.`,
+                `Unknown trivia category "${category}". Available categories: ${enabledCategories.join(', ')}.`,
               );
             }
             category = normalized;

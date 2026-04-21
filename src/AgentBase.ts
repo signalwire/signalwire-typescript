@@ -1373,17 +1373,40 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
+    skill.setAgent(this);
     await this._skillManager.addSkill(skill);
 
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
     for (const toolDef of skill.getTools()) {
       this.defineTool(toolDef);
-      if (Object.keys(skill.swaigFields).length > 0) {
-        const fn = this.toolRegistry.get(toolDef.name);
-        if (fn instanceof SwaigFunction) {
+      const fn = this.toolRegistry.get(toolDef.name);
+      if (fn instanceof SwaigFunction) {
+        // Apply skill-level swaigFields as the base, then let tool-level filler
+        // flags override — matches Python skill_base.py:70-73 (swaig_fields base,
+        // explicit kwargs win) and SkillBase.defineTool() ({...swaigDefaults, ...toolDef}).
+        if (Object.keys(skill.swaigFields).length > 0) {
           safeAssign(fn.extraFields, skill.swaigFields);
         }
+        if (toolDef.wait_for_fillers !== undefined) {
+          fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
+        }
+        if (toolDef.skip_fillers !== undefined) {
+          fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
+        }
+        // Propagate is_hangup_hook so the SignalWire platform auto-fires this
+        // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
+        if (toolDef.isHangupHook) {
+          fn.extraFields['is_hangup_hook'] = true;
+        }
       }
+    }
+
+    // Register DataMap-style tools — skills that build their own SWAIG JSON
+    // (e.g. DataSphereServerless) return them via getDataMapTools().
+    // Python equivalent: self.agent.register_swaig_function(swaig_function)
+    // inside register_tools() (skills/datasphere_serverless/skill.py:210).
+    for (const dmFn of skill.getDataMapTools()) {
+      this.registerSwaigFunction(dmFn);
     }
 
     // Inject prompt sections
@@ -1919,18 +1942,43 @@ export class AgentBase {
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
         const skill = new (entry.SkillClass as any)(entry.config);
+        skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
-        copy._skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
+        copy._skillManager.addSkill(skill).catch((err: unknown) => {
+          // Swallow re-add errors in the cloning path — the primary agent already
+          // validated env vars / packages / schema / setup when this skill was first
+          // added, and the clone inherits that validation. Python's equivalent at
+          // skill_manager.py:161-170 specifically swallows "already exists"
+          // ValueErrors during cloning; TS has no such error class (toolRegistry
+          // uses Map.set which silently overwrites), so the blanket swallow is
+          // the closest parity. Log at debug so the error isn't entirely lost.
+          this.log.debug('Skipping re-add error during agent clone', {
+            skill: entry.skillName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
-          if (Object.keys(skill.swaigFields).length > 0) {
-            const fn = copy.toolRegistry.get(toolDef.name);
-            if (fn instanceof SwaigFunction) {
+          const fn = copy.toolRegistry.get(toolDef.name);
+          if (fn instanceof SwaigFunction) {
+            if (Object.keys(skill.swaigFields).length > 0) {
               safeAssign(fn.extraFields, skill.swaigFields);
             }
+            if (toolDef.wait_for_fillers !== undefined) {
+              fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
+            }
+            if (toolDef.skip_fillers !== undefined) {
+              fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
+            }
+            if (toolDef.isHangupHook) {
+              fn.extraFields['is_hangup_hook'] = true;
+            }
           }
+        }
+        for (const dmFn of skill.getDataMapTools()) {
+          copy.registerSwaigFunction(dmFn);
         }
         for (const section of skill.getPromptSections()) {
           copy.promptAddSection(section.title, section);

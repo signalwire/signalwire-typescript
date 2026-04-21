@@ -6,7 +6,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -21,54 +20,39 @@ import { FunctionResult } from '../../FunctionResult.js';
  * timezone identifiers via the Intl.DateTimeFormat API.
  */
 export class DateTimeSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration (no config keys used by this skill).
-   */
-  constructor(config?: SkillConfig) {
-    super('datetime', config);
-  }
+  // Python ground truth: skills/datetime/skill.py
+  // REQUIRED_PACKAGES = ["pytz"] in Python; TS uses Intl + Date built-ins so [].
+  static override SKILL_NAME = 'datetime';
+  static override SKILL_DESCRIPTION = 'Get current date, time, and timezone information';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
   }
 
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'datetime',
-      description: 'Provides current date and time information with timezone support.',
-      version: '1.0.0',
-      tags: ['utility', 'datetime', 'timezone'],
-    };
-  }
-
-  /** @returns A single `get_datetime` tool that returns the current date/time in a given timezone. */
+  /**
+   * @returns Two tools: `get_current_time` and `get_current_date`, each
+   *   accepting an optional IANA timezone and defaulting to UTC.
+   */
   getTools(): SkillToolDefinition[] {
     return [
       {
-        name: 'get_datetime',
+        name: 'get_current_time',
         description:
-          'Get the current date and time. Optionally specify a timezone to get the time in that timezone.',
+          "Get the current time, optionally in a specific timezone",
         parameters: {
           timezone: {
             type: 'string',
             description:
-              'IANA timezone identifier (e.g., America/New_York, Europe/London, Asia/Tokyo). Defaults to UTC if not specified.',
+              "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC.",
           },
         },
         handler: (args: Record<string, unknown>) => {
           const timezone = (args.timezone as string | undefined) ?? 'UTC';
           const now = new Date();
-
           try {
-            const dateFormatter = new Intl.DateTimeFormat('en-US', {
-              timeZone: timezone,
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            });
-
             const timeFormatter = new Intl.DateTimeFormat('en-US', {
               timeZone: timezone,
               hour: '2-digit',
@@ -77,16 +61,42 @@ export class DateTimeSkill extends SkillBase {
               hour12: true,
               timeZoneName: 'short',
             });
-
-            const dateStr = dateFormatter.format(now);
-            const timeStr = timeFormatter.format(now);
-
             return new FunctionResult(
-              `The current date and time in ${timezone} is: ${dateStr}, ${timeStr}.`,
+              `The current time is ${timeFormatter.format(now)}`,
             );
           } catch {
             return new FunctionResult(
-              `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier such as America/New_York, Europe/London, or Asia/Tokyo.`,
+              `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier.`,
+            );
+          }
+        },
+      },
+      {
+        name: 'get_current_date',
+        description: 'Get the current date',
+        parameters: {
+          timezone: {
+            type: 'string',
+            description: 'Timezone name for the date. Defaults to UTC.',
+          },
+        },
+        handler: (args: Record<string, unknown>) => {
+          const timezone = (args.timezone as string | undefined) ?? 'UTC';
+          const now = new Date();
+          try {
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+              timeZone: timezone,
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+            return new FunctionResult(
+              `Today's date is ${dateFormatter.format(now)}`,
+            );
+          } catch {
+            return new FunctionResult(
+              `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier.`,
             );
           }
         },
@@ -97,11 +107,12 @@ export class DateTimeSkill extends SkillBase {
   protected override _getPromptSections(): SkillPromptSection[] {
     return [
       {
-        title: 'Date and Time',
-        body: 'You have the ability to check the current date and time.',
+        title: 'Date and Time Information',
+        body: 'You can provide current date and time information.',
         bullets: [
-          'Use the get_datetime tool to retrieve the current date and time.',
-          'You can specify a timezone using IANA timezone identifiers (e.g., America/New_York, Europe/London, Asia/Tokyo).',
+          'Use get_current_time to tell users what time it is.',
+          "Use get_current_date to tell users today's date.",
+          'Both tools support different timezones via IANA identifiers (e.g., America/New_York, Europe/London, Asia/Tokyo).',
           'If no timezone is specified, UTC is used by default.',
         ],
       },
