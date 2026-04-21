@@ -1,21 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { SkillBase, type SkillManifest, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
+import { SkillBase, type SkillToolDefinition } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 
 class TestSkill extends SkillBase {
-  constructor(config?: Record<string, unknown>) {
-    super('test_skill', config);
-  }
-
-  getManifest(): SkillManifest {
-    return {
-      name: 'test_skill',
-      description: 'A test skill',
-      version: '1.0.0',
-      tags: ['test'],
-      requiredEnvVars: ['TEST_API_KEY'],
-    };
-  }
+  static override SKILL_NAME = 'test_skill';
+  static override SKILL_DESCRIPTION = 'A test skill';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['TEST_API_KEY'];
 
   getTools(): SkillToolDefinition[] {
     return [{
@@ -48,9 +38,9 @@ describe('SkillBase', () => {
 
   it('returns manifest', () => {
     const skill = new TestSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('test_skill');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = skill.constructor as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('test_skill');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('returns tools', () => {
@@ -110,9 +100,9 @@ describe('SkillBase', () => {
     expect(skill.getConfig('missing', 'default')).toBe('default');
   });
 
-  it('setup and cleanup are no-op by default', async () => {
+  it('setup returns true by default and cleanup is no-op', async () => {
     const skill = new TestSkill();
-    await expect(skill.setup()).resolves.toBeUndefined();
+    await expect(skill.setup()).resolves.toBe(true);
     await expect(skill.cleanup()).resolves.toBeUndefined();
   });
 });

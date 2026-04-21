@@ -17,7 +17,7 @@ describe('MathSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new MathSkill().setup()).resolves.toBeUndefined();
+    await expect(new MathSkill().setup()).resolves.toBe(true);
   });
 
   it('should register a calculate tool', () => {
@@ -44,9 +44,9 @@ describe('MathSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new MathSkill().getManifest();
-    expect(manifest.name).toBe('math');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = MathSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('math');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should evaluate a simple expression', () => {

@@ -17,7 +17,7 @@ describe('PlayBackgroundFileSkill', () => {
   });
 
   it('should complete setup without errors', async () => {
-    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBeUndefined();
+    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBe(true);
   });
 
   it('should register tools', () => {
@@ -42,9 +42,9 @@ describe('PlayBackgroundFileSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new PlayBackgroundFileSkill().getManifest();
-    expect(manifest.name).toBe('play_background_file');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = PlayBackgroundFileSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('play_background_file');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

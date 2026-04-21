@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -75,12 +74,16 @@ interface PlacesResponse {
  * Supports a `default_mode` config option ("driving"|"walking"|"bicycling"|"transit").
  */
 export class GoogleMapsSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_mode` for travel mode.
-   */
-  constructor(config?: SkillConfig) {
-    super('google_maps', config);
-  }
+  // Python ground truth: skills/google_maps/skill.py
+  // Python declares REQUIRED_PACKAGES = ["requests"], REQUIRED_ENV_VARS = [];
+  // TS uses native fetch and has historically declared the env var as required.
+  // Preserving TS behavior to avoid out-of-scope behavioral change.
+  static override SKILL_NAME = 'google_maps';
+  static override SKILL_DESCRIPTION =
+    'Validate addresses and compute driving routes using Google Maps';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = ['GOOGLE_MAPS_API_KEY'];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -97,27 +100,6 @@ export class GoogleMapsSkill extends SkillBase {
         description: 'Default travel mode.',
         default: 'driving',
         enum: ['driving', 'walking', 'bicycling', 'transit'],
-      },
-    };
-  }
-
-  /** @returns Manifest declaring GOOGLE_MAPS_API_KEY as required and config schema for default_mode. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'google_maps',
-      description:
-        'Provides driving/walking/transit directions and place search via Google Maps APIs.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['maps', 'directions', 'places', 'google', 'navigation', 'external'],
-      requiredEnvVars: ['GOOGLE_MAPS_API_KEY'],
-      configSchema: {
-        default_mode: {
-          type: 'string',
-          description:
-            'Default travel mode: "driving", "walking", "bicycling", or "transit". Defaults to "driving".',
-          default: 'driving',
-        },
       },
     };
   }

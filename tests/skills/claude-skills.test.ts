@@ -15,8 +15,8 @@ describe('ClaudeSkillsSkill', () => {
     expect(createClaudeSkillsSkill()).toBeInstanceOf(ClaudeSkillsSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new ClaudeSkillsSkill().setup()).resolves.toBeUndefined();
+  it('should return false from setup when skills_path is not configured', async () => {
+    await expect(new ClaudeSkillsSkill().setup()).resolves.toBe(false);
   });
 
   it('should return empty tools when no skills_path is configured', () => {
@@ -42,9 +42,9 @@ describe('ClaudeSkillsSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new ClaudeSkillsSkill().getManifest();
-    expect(manifest.name).toBe('claude_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = ClaudeSkillsSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('claude_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

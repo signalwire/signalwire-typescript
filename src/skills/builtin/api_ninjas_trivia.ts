@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -53,12 +52,10 @@ const VALID_CATEGORIES = [
  * Supports optional `default_category` and `reveal_answer` config options.
  */
 export class ApiNinjasTriviaSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_category` and `reveal_answer`.
-   */
-  constructor(config?: SkillConfig) {
-    super('api_ninjas_trivia', config);
-  }
+  static override SKILL_NAME = 'api_ninjas_trivia';
+  static override SKILL_DESCRIPTION = 'Get trivia questions from API Ninjas';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['API_NINJAS_KEY'];
+  static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -78,32 +75,6 @@ export class ApiNinjasTriviaSkill extends SkillBase {
         type: 'boolean',
         description: 'Whether to include the answer in the response.',
         default: false,
-      },
-    };
-  }
-
-  /** @returns Manifest declaring API_NINJAS_KEY as required and config schema for category/reveal. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'api_ninjas_trivia',
-      description:
-        'Fetches trivia questions from the API Ninjas service. Supports multiple categories for varied trivia topics.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['trivia', 'api', 'entertainment', 'quiz', 'external'],
-      requiredEnvVars: ['API_NINJAS_KEY'],
-      configSchema: {
-        default_category: {
-          type: 'string',
-          description:
-            'Default trivia category if none is specified by the user.',
-        },
-        reveal_answer: {
-          type: 'boolean',
-          description:
-            'Whether to include the answer in the response. Defaults to false so the AI can quiz the user.',
-          default: false,
-        },
       },
     };
   }

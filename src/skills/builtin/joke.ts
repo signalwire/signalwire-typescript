@@ -7,7 +7,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -90,25 +89,15 @@ const VALID_CATEGORIES = ['general', 'programming', 'dad'];
  * programming, and dad joke categories.
  */
 export class JokeSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration (no config keys used by this skill).
-   */
-  constructor(config?: SkillConfig) {
-    super('joke', config);
-  }
+  // Python ground truth: skills/joke/skill.py
+  static override SKILL_NAME = 'joke';
+  static override SKILL_DESCRIPTION = 'Tell jokes using the API Ninjas joke API';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return { ...super.getParameterSchema() };
-  }
-
-  /** @returns Manifest with skill metadata and tags. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'joke',
-      description: 'Tells random jokes from a built-in collection across several categories.',
-      version: '1.0.0',
-      tags: ['entertainment', 'joke', 'humor'],
-    };
   }
 
   /** @returns A single `tell_joke` tool that returns a random joke with optional category filter. */

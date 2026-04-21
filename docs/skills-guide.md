@@ -53,7 +53,7 @@ const agent = new AgentBase({ name: 'my-agent' });
 
 // Add skills (async)
 await agent.addSkill(new DateTimeSkill());
-await agent.addSkill(new WebSearchSkill({ max_results: 3 }));
+await agent.addSkill(new WebSearchSkill({ num_results: 3 }));
 ```
 
 When `addSkill()` is called, the agent:
@@ -147,7 +147,7 @@ These skills integrate with a single external API or provide focused call-contro
 | `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background`, `stop_background` | None | `default_file_url`, `allowed_domains` |
 | `swml_transfer` | `SwmlTransferSkill` | Call transfer via SWML actions | `transfer_call`, `list_transfer_destinations` | None | `patterns`, `allow_arbitrary`, `default_message` |
 | `api_ninjas_trivia` | `ApiNinjasTriviaSkill` | Trivia questions from API Ninjas | `get_trivia` | `API_NINJAS_KEY` | `default_category`, `reveal_answer` |
-| `info_gatherer` | `InfoGathererSkill` | Structured data collection from users | `save_info`, `get_gathered_info` | None | `fields`, `purpose`, `confirmation_message`, `store_globally` |
+| `info_gatherer` | `InfoGathererSkill` | Sequential question flow that stores answers in `global_data` | `start_questions`, `submit_answer` | None | `questions`, `prefix`, `completion_message` |
 | `custom_skills` | `CustomSkillsSkill` | User-defined tools from configuration | Dynamic (from config) | None | `tools`, `prompt_title`, `prompt_body` |
 
 **weather_api** -- Fetches current weather data from OpenWeatherMap. Supports metric, imperial, and standard units.
@@ -191,19 +191,17 @@ await agent.addSkill(new ApiNinjasTriviaSkill({
 }));
 ```
 
-**info_gatherer** -- Collects structured information from users based on configurable field definitions with optional validation patterns. Data is stored per-call and can optionally be persisted to global data.
+**info_gatherer** -- Guides the agent through a sequence of questions, collecting answers one at a time and storing them under a namespaced key in SWAIG `global_data`. Questions may require the agent to read the answer back to the user for confirmation before proceeding. Matches Python's `InfoGathererSkill` exactly; configure a `prefix` to run multiple instances side by side.
 
 ```typescript
 import { InfoGathererSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new InfoGathererSkill({
-  purpose: 'Collecting customer contact information for our records.',
-  fields: [
-    { name: 'full_name', description: 'Customer full name', required: true },
-    { name: 'email', description: 'Email address', required: true, validation: '^[\\w.+-]+@[\\w-]+\\.[\\w.]+$' },
-    { name: 'phone', description: 'Phone number', required: false },
+  questions: [
+    { key_name: 'full_name', question_text: 'What is your full name?' },
+    { key_name: 'email', question_text: 'What is your email address?', confirm: true },
+    { key_name: 'reason', question_text: 'How can I help you today?' },
   ],
-  confirmation_message: 'Thank you! Your information has been saved.',
-  store_globally: true,
+  completion_message: 'Thank you! Your information has been saved.',
 }));
 ```
 
@@ -235,11 +233,11 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
-| `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_CX` | `max_results`, `safe_search` |
-| `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wikipedia` | None | None |
+| `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID` | `num_results`, `tool_name`, `no_results_message`, `safe_search`, `delay`, `max_content_length`, `oversample_factor`, `min_quality_score` |
+| `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
 | `google_maps` | `GoogleMapsSkill` | Directions and place search | `get_directions`, `find_place` | `GOOGLE_MAPS_API_KEY` | `default_mode` |
-| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold` |
-| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `max_results`, `distance_threshold`, `document_id` |
+| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
+| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
 | `spider` | `SpiderSkill` | Web page scraping via Spider API | `scrape_url` | `SPIDER_API_KEY` | `max_content_length` |
 | `claude_skills` | `ClaudeSkillsSkill` | Load Claude SKILL.md files as tools | (dynamic) | None | `skills_path`, `include`, `exclude`, `tool_prefix` |
@@ -251,7 +249,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 ```typescript
 import { WebSearchSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WebSearchSkill({
-  max_results: 5,
+  num_results: 5,
   safe_search: 'medium', // 'off' | 'medium' | 'high'
 }));
 ```
@@ -275,8 +273,9 @@ await agent.addSkill(new GoogleMapsSkill({ default_mode: 'walking' }));
 ```typescript
 import { DataSphereSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new DataSphereSkill({
-  max_results: 5,
-  distance_threshold: 0.7, // 0-1, lower is more similar
+  document_id: 'my-doc-id',
+  count: 5,
+  distance: 3.0, // 0-10, lower is more similar
 }));
 ```
 
@@ -285,9 +284,9 @@ await agent.addSkill(new DataSphereSkill({
 ```typescript
 import { DataSphereServerlessSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new DataSphereServerlessSkill({
-  max_results: 5,
-  distance_threshold: 0.7,
-  document_id: 'specific-doc-id', // optional: restrict to one document
+  document_id: 'specific-doc-id',
+  count: 5,
+  distance: 3.0, // 0-10, lower is more similar
 }));
 ```
 
@@ -820,7 +819,7 @@ const missing = skill.validateEnvVars();
 if (missing.length > 0) {
   console.warn(`Missing env vars: ${missing.join(', ')}`);
 }
-// missing might be ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX']
+// missing might be ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID']
 ```
 
 ### Runtime Handling
@@ -848,7 +847,7 @@ This two-layer approach (warn at registration, error at call time) allows agents
 | `WEATHER_API_KEY` | `weather_api` |
 | `API_NINJAS_KEY` | `api_ninjas_trivia` |
 | `GOOGLE_SEARCH_API_KEY` | `web_search` |
-| `GOOGLE_SEARCH_CX` | `web_search` |
+| `GOOGLE_SEARCH_ENGINE_ID` | `web_search` |
 | `GOOGLE_MAPS_API_KEY` | `google_maps` |
 | `SIGNALWIRE_PROJECT_ID` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_TOKEN` | `datasphere`, `datasphere_serverless` |

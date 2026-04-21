@@ -12,7 +12,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -78,6 +77,11 @@ interface CustomSkillsConfigData {
  * environment variable to prevent unintended code execution.
  */
 export class CustomSkillsSkill extends SkillBase {
+  // TS-only skill (no Python equivalent).
+  static override SKILL_NAME = 'custom_skills';
+  static override SKILL_DESCRIPTION =
+    'Register one-off SWAIG tools from a user-supplied config (name + description + handler body).';
+
   private _compiledHandlers: Map<string, Function> = new Map();
   private _compilationErrors: Map<string, string> = new Map();
 
@@ -85,7 +89,7 @@ export class CustomSkillsSkill extends SkillBase {
    * @param config - Configuration object containing a `tools` array of custom tool definitions.
    */
   constructor(config?: SkillConfig) {
-    super('custom_skills', config);
+    super(config);
     this._compileHandlers();
   }
 
@@ -109,62 +113,6 @@ export class CustomSkillsSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest with config schema describing the tools array format. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'custom_skills',
-      description:
-        'A meta-skill that registers user-defined tools from configuration. Define tools with names, descriptions, parameters, and handler code.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['meta', 'custom', 'extensible', 'dynamic'],
-      configSchema: {
-        tools: {
-          type: 'array',
-          description:
-            'Array of custom tool definitions: { name, description, parameters?, handler_code, required?, prompt_description?, secure?, fillers? }.',
-          items: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', description: 'Tool name (must be unique).' },
-              description: { type: 'string', description: 'Tool description for the AI.' },
-              parameters: {
-                type: 'array',
-                description: 'Tool parameters: [{ name, type, description, required? }].',
-              },
-              handler_code: {
-                type: 'string',
-                description:
-                  'JavaScript function body. Receives (args, rawData, FunctionResult) as arguments. Must return a FunctionResult, string, or object.',
-              },
-              required: {
-                type: 'array',
-                description: 'Array of required parameter names.',
-              },
-              prompt_description: {
-                type: 'string',
-                description: 'Description to include in the prompt section for this tool.',
-              },
-              secure: { type: 'boolean', description: 'Whether to mark the tool as secure.' },
-              fillers: {
-                type: 'object',
-                description: 'Filler phrases for the tool.',
-              },
-            },
-            required: ['name', 'description', 'handler_code'],
-          },
-        },
-        prompt_title: {
-          type: 'string',
-          description: 'Custom title for the prompt section. Defaults to "Custom Tools".',
-        },
-        prompt_body: {
-          type: 'string',
-          description: 'Custom body text for the prompt section.',
-        },
-      },
-    };
-  }
 
   /**
    * Pre-compile handler code into functions during construction.
