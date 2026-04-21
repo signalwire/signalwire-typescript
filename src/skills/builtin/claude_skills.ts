@@ -171,7 +171,13 @@ export class ClaudeSkillsSkill extends SkillBase {
     };
   }
 
-  /** Setup the Claude skills loader — discovers and parses all SKILL.md files. */
+  /**
+   * Setup the Claude skills loader — discovers and parses all SKILL.md files.
+   *
+   * Returns `true` on success and `false` on any failure (missing path,
+   * invalid path, stat failure, or non-directory), mirroring the Python
+   * skill's `setup() -> bool` contract.
+   */
   override async setup(): Promise<boolean> {
     const skillsPath = this.getConfig<string>('skills_path');
     if (!skillsPath) {

@@ -43,8 +43,20 @@ interface WeatherApiResponse {
  * Fetches current weather data from OpenWeatherMap for any location worldwide.
  *
  * Tier 2 built-in skill. Requires the `WEATHER_API_KEY` environment variable
- * containing a valid OpenWeatherMap API key. Supports metric, imperial, and
- * standard temperature units via the `units` config option.
+ * containing a valid OpenWeatherMap API key (obtainable at openweathermap.org).
+ * Supports metric, imperial, and standard temperature units via the `units`
+ * config option. The `api_key` config value takes precedence over the
+ * environment variable when both are set.
+ *
+ * **Provider note:** The Python reference SDK uses WeatherAPI.com
+ * (`api.weatherapi.com/v1/current.json`). This TypeScript skill uses
+ * OpenWeatherMap (`api.openweathermap.org/data/2.5/weather`). These providers
+ * use different API key formats — a WeatherAPI.com key will NOT work here.
+ * Obtain an OpenWeatherMap key at https://openweathermap.org/api.
+ *
+ * **Unit aliases:** For migration compatibility with the Python SDK the `units`
+ * config also accepts `"fahrenheit"` (normalized to `"imperial"`) and
+ * `"celsius"` (normalized to `"metric"`).
  */
 export class WeatherApiSkill extends SkillBase {
   // Python ground truth: skills/weather_api/skill.py
@@ -54,6 +66,22 @@ export class WeatherApiSkill extends SkillBase {
   static override SKILL_DESCRIPTION = 'Get current weather information from WeatherAPI.com';
   static override REQUIRED_ENV_VARS: readonly string[] = ['WEATHER_API_KEY'];
   static override SUPPORTS_MULTIPLE_INSTANCES = false;
+
+  /**
+   * Validates that an API key is available either via inline config or the
+   * `WEATHER_API_KEY` environment variable. Fails fast (returns `false`) when
+   * neither source provides a key — matching Python SDK behaviour where
+   * `_validate_config()` raises on construction when `api_key` is absent.
+   * @returns `true` if a key is present, `false` otherwise.
+   */
+  override async setup(): Promise<boolean> {
+    const key = this.getConfig<string>('api_key') ?? process.env['WEATHER_API_KEY'];
+    if (!key) {
+      log.error('WeatherApiSkill: api_key is required. Set the WEATHER_API_KEY environment variable or pass api_key in skill config.');
+      return false;
+    }
+    return true;
+  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -65,22 +93,36 @@ export class WeatherApiSkill extends SkillBase {
         env_var: 'WEATHER_API_KEY',
         required: true,
       },
+      tool_name: {
+        type: 'string',
+        description: 'Custom name for the generated weather tool.',
+        default: 'get_weather',
+      },
       units: {
         type: 'string',
-        description: 'Temperature units: "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin).',
-        default: 'metric',
-        enum: ['metric', 'imperial', 'standard'],
+        description:
+          'Temperature units. Preferred values: "metric" (Celsius), "imperial" (Fahrenheit), "standard" (Kelvin). ' +
+          'Python SDK aliases also accepted: "celsius" → "metric", "fahrenheit" → "imperial". ' +
+          'Default matches Python (`temperature_unit: "fahrenheit"` → `"imperial"`).',
+        default: 'fahrenheit',
+        enum: ['metric', 'imperial', 'standard', 'celsius', 'fahrenheit'],
       },
     };
   }
 
-  /** @returns A single `get_weather` tool that fetches current weather for a location. */
+  /** @returns A single weather tool (configurable name) that fetches current weather for a location. */
   getTools(): SkillToolDefinition[] {
-    const units = this.getConfig<string>('units', 'metric');
+    // Normalize Python SDK unit aliases to OpenWeatherMap unit names.
+    const rawUnits = this.getConfig<string>('units', 'metric');
+    const units =
+      rawUnits === 'fahrenheit' ? 'imperial' :
+      rawUnits === 'celsius'    ? 'metric'   :
+      rawUnits;
+    const toolName = this.getConfig<string>('tool_name', 'get_weather');
 
     return [
       {
-        name: 'get_weather',
+        name: toolName,
         description:
           'Get the current weather conditions for a specified location. Returns temperature, humidity, wind speed, and weather description.',
         parameters: {
@@ -104,7 +146,7 @@ export class WeatherApiSkill extends SkillBase {
             return new FunctionResult('Input is too long.');
           }
 
-          const apiKey = process.env['WEATHER_API_KEY'];
+          const apiKey = this.getConfig<string>('api_key') ?? process.env['WEATHER_API_KEY'];
           if (!apiKey) {
             return new FunctionResult(
               'Service is not configured. Please contact your administrator.',

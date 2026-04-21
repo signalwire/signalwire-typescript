@@ -32,6 +32,10 @@ export interface SkillToolDefinition {
   fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
+  /** If true, wait for any in-flight fillers to complete before executing the tool. */
+  wait_for_fillers?: boolean;
+  /** If true, suppress filler phrases while the tool executes. */
+  skip_fillers?: boolean;
   /**
    * When true, the SignalWire platform automatically invokes this tool when
    * the call ends (hangup), regardless of whether the AI explicitly calls it.

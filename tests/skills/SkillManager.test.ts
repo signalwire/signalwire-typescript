@@ -32,7 +32,7 @@ class MockSkill extends SkillBase {
     return { [`${this.skillName}_data`]: true };
   }
 
-  async setup() {
+  override async setup(): Promise<boolean> {
     this.setupCalled = true;
     return true;
   }

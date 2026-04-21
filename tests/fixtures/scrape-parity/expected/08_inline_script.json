@@ -1,0 +1,5 @@
+{
+  "text": "Before the script tag. After the script tag. After the style tag. Tests that inline script and style contents are dropped.",
+  "text_length": 122,
+  "sentence_count": 1
+}

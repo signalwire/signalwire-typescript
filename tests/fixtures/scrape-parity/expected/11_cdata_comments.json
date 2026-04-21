@@ -1,0 +1,5 @@
+{
+  "text": "Paragraph before the comment. Paragraph after the comment. This is CDATA content; parsers disagree whether this ends up in text. Last paragraph to give enough text above the 100-char selector threshold.",
+  "text_length": 202,
+  "sentence_count": 2
+}

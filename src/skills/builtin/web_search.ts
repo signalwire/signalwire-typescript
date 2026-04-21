@@ -26,6 +26,119 @@ const DEFAULT_NO_RESULTS_MESSAGE =
   'The search returned only low-quality or inaccessible pages. ' +
   'Try rephrasing your search or asking about a different topic.';
 
+/** Selector priority — Python skill.py:220-228. */
+const CONTENT_CANDIDATES = [
+  'article',
+  'main',
+  '[role="main"]',
+  '.content',
+  '#content',
+  '.post',
+  '.entry-content',
+  '.article-body',
+  '.story-body',
+  '.markdown-body',
+  '.wiki-body',
+  '.documentation',
+] as const;
+
+/** Structural tags removed from the picked subtree — Python skill.py:239. */
+const UNWANTED_TAGS = [
+  'script',
+  'style',
+  'nav',
+  'header',
+  'footer',
+  'aside',
+  'noscript',
+  'iframe',
+] as const;
+
+/** Class/id name patterns removed from the picked subtree — Python skill.py:245-257. */
+const UNWANTED_PATTERNS = [
+  'sidebar',
+  'navigation',
+  'menu',
+  'advertisement',
+  'ads',
+  'banner',
+  'popup',
+  'modal',
+  'cookie',
+  'gdpr',
+  'subscribe',
+  'newsletter',
+  'comments',
+  'related',
+  'share',
+  'social',
+] as const;
+
+/**
+ * Run the HTML → plain-text extraction pipeline that mirrors Python's
+ * `GoogleSearchScraper.extract_html_content` (skill.py:204-282).
+ *
+ * Pipeline:
+ * 1. Pre-process `<![CDATA[…]]>` sections to plain text (Python html.parser
+ *    keeps CDATA content; cheerio/htmlparser2 drops it).
+ * 2. Walk {@link CONTENT_CANDIDATES} in order, picking the first match.
+ *    Fall back to `<body>` or the raw document.
+ * 3. Clone the picked subtree so tag/pattern removal only affects it —
+ *    analogous to Python's `content_soup = BeautifulSoup(str(main_content))`.
+ *    The selector-first-then-filter order is load-bearing: if the real
+ *    content is wrapped in a sidebar-pattern div, Python still finds it
+ *    because the selector runs before removal.
+ * 4. Remove {@link UNWANTED_TAGS} and every element matching any of
+ *    {@link UNWANTED_PATTERNS} on either `class` or `id` (case-insensitive).
+ * 5. Collapse whitespace and trim.
+ *
+ * Exported so `tests/skills/web-search-parity.test.ts` can verify byte-
+ * identical behavior against Python BeautifulSoup fixtures; not re-exported
+ * from the skills barrel, so this stays internal to the skill module.
+ *
+ * @internal
+ */
+export function extractTextFromHtml(html: string): string {
+  const normalized = html.replace(
+    /<!\[CDATA\[([\s\S]*?)\]\]>/g,
+    (_, content: string) => content,
+  );
+  const $ = cheerio.load(normalized);
+
+  let pickedHtml = '';
+  for (const sel of CONTENT_CANDIDATES) {
+    const picked = $(sel).first();
+    if (picked.length > 0) {
+      pickedHtml = $.html(picked);
+      break;
+    }
+  }
+  if (!pickedHtml) {
+    const bodyEl = $('body').first();
+    pickedHtml = bodyEl.length > 0 ? $.html(bodyEl) : normalized;
+  }
+
+  const $sub = cheerio.load(pickedHtml);
+
+  for (const tag of UNWANTED_TAGS) {
+    $sub(tag).remove();
+  }
+
+  for (const pattern of UNWANTED_PATTERNS) {
+    const regex = new RegExp(pattern, 'i');
+    $sub('[class]').each((_, el) => {
+      const cls = $sub(el).attr('class') ?? '';
+      if (regex.test(cls)) $sub(el).remove();
+    });
+    $sub('[id]').each((_, el) => {
+      const id = $sub(el).attr('id') ?? '';
+      if (regex.test(id)) $sub(el).remove();
+    });
+  }
+
+  return $sub.root().text().replace(/\s+/g, ' ').trim();
+}
+
 /** A single search result item from the Google Custom Search API. */
 interface GoogleSearchItem {
   /** Title of the search result. */
@@ -697,79 +810,7 @@ export class WebSearchSkill extends SkillBase {
         return null;
       }
       const body = await response.text();
-      const $ = cheerio.load(body);
-      // Remove boilerplate/noise tags. Python skill.py:239 drops 8 tags
-      // (script, style, nav, footer, header, aside, noscript, iframe).
-      for (const tag of [
-        'script',
-        'style',
-        'nav',
-        'header',
-        'footer',
-        'aside',
-        'noscript',
-        'iframe',
-      ]) {
-        $(tag).remove();
-      }
-      // Remove elements whose class or id matches any boilerplate/navigation
-      // pattern. Python skill.py:245-257 — 16 patterns applied to both class
-      // and id attributes via case-insensitive regex.
-      const unwantedPatterns = [
-        'sidebar',
-        'navigation',
-        'menu',
-        'advertisement',
-        'ads',
-        'banner',
-        'popup',
-        'modal',
-        'cookie',
-        'gdpr',
-        'subscribe',
-        'newsletter',
-        'comments',
-        'related',
-        'share',
-        'social',
-      ];
-      for (const pattern of unwantedPatterns) {
-        const regex = new RegExp(pattern, 'i');
-        $('[class]').each((_, el) => {
-          const cls = $(el).attr('class') ?? '';
-          if (regex.test(cls)) $(el).remove();
-        });
-        $('[id]').each((_, el) => {
-          const id = $(el).attr('id') ?? '';
-          if (regex.test(id)) $(el).remove();
-        });
-      }
-      // Prefer <main> / <article> containers when present (Python's
-      // extract_html_content uses similar selectors for clean main content).
-      const candidates = [
-        'article',
-        'main',
-        '[role="main"]',
-        '.content',
-        '#content',
-        '.post',
-        '.entry-content',
-        '.article-body',
-        '.story-body',
-        '.markdown-body',
-        '.wiki-body',
-        '.documentation',
-        'body',
-      ];
-      let text = '';
-      for (const sel of candidates) {
-        const picked = $(sel).first();
-        if (picked.length > 0) {
-          text = picked.text();
-          if (text.trim().length > 100) break;
-        }
-      }
-      text = text.replace(/\s+/g, ' ').trim();
+      let text = extractTextFromHtml(body);
       if (text.length > contentLimit) {
         text = text.slice(0, contentLimit);
       }
@@ -824,7 +865,13 @@ export class WebSearchSkill extends SkillBase {
     }
 
     // 1. Length score — tiered bands (Python skill.py:300-310).
-    const textLength = text.length;
+    //
+    // Python's `len(text)` counts codepoints; JS's `text.length` counts
+    // UTF-16 code units, so any character outside the BMP (emoji, astral
+    // plane letters) counts as 2 in JS and 1 in Python. For emoji-heavy
+    // content that would inflate the TS length score relative to Python.
+    // Count codepoints explicitly to match Python.
+    const textLength = [...text].length;
     let lengthScore: number;
     if (textLength < 500) {
       lengthScore = 0;

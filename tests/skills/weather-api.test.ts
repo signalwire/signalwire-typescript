@@ -16,8 +16,21 @@ describe('WeatherApiSkill', () => {
     expect(createWeatherApiSkill()).toBeInstanceOf(WeatherApiSkill);
   });
 
-  it('should complete setup without errors', async () => {
+  it('should return false from setup when api_key is absent', async () => {
+    const saved = process.env['WEATHER_API_KEY'];
+    delete process.env['WEATHER_API_KEY'];
+    await expect(new WeatherApiSkill().setup()).resolves.toBe(false);
+    if (saved !== undefined) process.env['WEATHER_API_KEY'] = saved;
+  });
+
+  it('should return true from setup when api_key is provided via config', async () => {
+    await expect(new WeatherApiSkill({ api_key: 'test-key' }).setup()).resolves.toBe(true);
+  });
+
+  it('should return true from setup when WEATHER_API_KEY env var is set', async () => {
+    process.env['WEATHER_API_KEY'] = 'env-key';
     await expect(new WeatherApiSkill().setup()).resolves.toBe(true);
+    delete process.env['WEATHER_API_KEY'];
   });
 
   it('should register a get_weather tool', () => {

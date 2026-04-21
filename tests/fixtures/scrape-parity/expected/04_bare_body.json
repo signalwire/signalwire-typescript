@@ -1,0 +1,5 @@
+{
+  "text": "No semantic containers There is no main article or any semantic tag. The selector list should fall all the way through to body and extract the whole thing. This tests the fallback behavior where none of the twelve priority selectors match.",
+  "text_length": 239,
+  "sentence_count": 3
+}

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Nested</title></head>
+<body>
+  <main>
+    <article>
+      <h1>Nested Article</h1>
+      <p>Article tag comes before main in our selector priority list. This article is nested inside main so whichever selector wins first determines the extraction root.</p>
+      <p>Expected behavior: article should be picked because it is earlier in the candidate list. If main is picked, we extract the whole subtree including the article.</p>
+    </article>
+  </main>
+</body>
+</html>
