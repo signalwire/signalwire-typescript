@@ -223,7 +223,10 @@ describe('SkillManager', () => {
 
   it('loadSkillByName loads a skill from the registry', async () => {
     const registry = SkillRegistry.getInstance();
-    registry.register('mock_registry_skill', (config) => makeMockSkill('mock_registry_skill', config));
+    class RegistrySkill extends MockSkill {
+      static override SKILL_NAME = 'mock_registry_skill';
+    }
+    registry.register(RegistrySkill);
 
     const [success, errorMsg] = await manager.loadSkillByName('mock_registry_skill');
     expect(success).toBe(true);
@@ -240,7 +243,10 @@ describe('SkillManager', () => {
 
   it('loadSkillByName returns [false, error] on duplicate skill', async () => {
     const registry = SkillRegistry.getInstance();
-    registry.register('dup_skill', (config) => makeMockSkill('dup_skill', config));
+    class DupSkill extends MockSkill {
+      static override SKILL_NAME = 'dup_skill';
+    }
+    registry.register(DupSkill);
 
     await manager.loadSkillByName('dup_skill');
     const [success, errorMsg] = await manager.loadSkillByName('dup_skill');
@@ -248,15 +254,15 @@ describe('SkillManager', () => {
     expect(errorMsg).toContain('already loaded');
   });
 
-  it('loadSkillByName passes config to the skill factory', async () => {
+  it('loadSkillByName passes config to the skill constructor', async () => {
     const registry = SkillRegistry.getInstance();
-    let receivedConfig: Record<string, unknown> | undefined;
-    registry.register('config_skill', (config) => {
-      receivedConfig = config;
-      return makeMockSkill('config_skill', config);
-    });
+    class ConfigSkill extends MockSkill {
+      static override SKILL_NAME = 'config_skill';
+    }
+    registry.register(ConfigSkill);
 
     await manager.loadSkillByName('config_skill', { api_key: 'test123' });
-    expect(receivedConfig).toEqual({ api_key: 'test123' });
+    const skill = manager.getSkill('config_skill');
+    expect(skill?.getConfig('api_key')).toBe('test123');
   });
 });

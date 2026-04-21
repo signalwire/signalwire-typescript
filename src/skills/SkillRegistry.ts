@@ -1,56 +1,62 @@
 /**
  * SkillRegistry - Global singleton registry for discovering and loading skills.
  *
- * Skills can be registered programmatically or discovered from directories.
- * Supports SIGNALWIRE_SKILL_PATHS env var for custom skill directories.
+ * Matches Python's `skills/registry.py:SkillRegistry`: the registry stores
+ * **class references** keyed by each class's static `SKILL_NAME`, and reads
+ * metadata (description, version, required packages/env vars,
+ * multi-instance support) by direct static-attribute access.
+ *
+ * Registration via `register(SkillClass)` validates that the class defines
+ * `SKILL_NAME`, that `getParameterSchema()` is callable and returns a
+ * non-empty object (Python `register_skill` at `registry.py:132-194`).
+ *
+ * Supports the `SIGNALWIRE_SKILL_PATHS` environment variable for custom
+ * skill directories, matching Python's discovery search path.
  */
 
-import { SkillBase, type SkillConfig, type SkillManifest, type ParameterSchemaEntry } from './SkillBase.js';
+import { SkillBase, type SkillConfig, type ParameterSchemaEntry } from './SkillBase.js';
 import { getLogger } from '../Logger.js';
 
 const log = getLogger('SkillRegistry');
 
-/** Factory function that creates a SkillBase instance from optional configuration. */
-export type SkillFactory = (config?: SkillConfig) => SkillBase;
-
-/** Internal registry entry associating a skill name with its factory and optional manifest. */
-interface RegistryEntry {
-  /** Registered skill name. */
-  name: string;
-  /** Factory function to create instances of this skill. */
-  factory: SkillFactory;
-  /** Optional pre-loaded manifest for the skill. */
-  manifest?: SkillManifest;
-}
-
-/** Combined schema information for a registered skill, including manifest and parameter schema. */
+/**
+ * Metadata exposed for a registered skill. Shape matches Python's
+ * `SkillRegistry.list_skills()` / `get_all_skills_schema()` return values
+ * (`skills/registry.py:205-227`, `229-296`).
+ */
 export interface SkillSchemaInfo {
-  /** The skill's registered name. */
+  /** The skill's registered name (from `SkillBase.SKILL_NAME`). */
   name: string;
-  /** Human-readable description of the skill. */
+  /** Human-readable description (from `SkillBase.SKILL_DESCRIPTION`). */
   description: string;
-  /** Semantic version string. */
+  /** Semantic version string (from `SkillBase.SKILL_VERSION`). */
   version: string;
   /** Whether this skill supports multiple simultaneous instances. */
   supportsMultipleInstances: boolean;
   /** Environment variables required by the skill. */
   requiredEnvVars: string[];
+  /** NPM packages required by the skill. */
+  requiredPackages: string[];
   /** Full parameter schema with types, defaults, and constraints. */
   parameters: Record<string, ParameterSchemaEntry>;
-  /** Optional source category for grouping (e.g., "builtin"). */
+  /** Optional source category for grouping (e.g., "builtin", "external"). */
   source?: string;
 }
 
 let _instance: SkillRegistry | null = null;
 
 /**
- * Global singleton registry for discovering and instantiating skills.
+ * Global singleton registry for registering and instantiating skills.
  *
- * Skills can be registered programmatically or auto-discovered from directories.
- * Supports the SIGNALWIRE_SKILL_PATHS environment variable for custom skill directories.
+ * Skills can be registered programmatically via `register(SkillClass)`.
+ * Matches Python's `skill_registry` global (`skills/registry.py:481`).
  */
 export class SkillRegistry {
-  private registry: Map<string, RegistryEntry> = new Map();
+  /**
+   * Map from `SKILL_NAME` to class reference. Matches Python's
+   * `self._skills: Dict[str, Type[SkillBase]]` (`registry.py:26`).
+   */
+  private registry: Map<string, typeof SkillBase> = new Map();
   private lockedNames: Set<string> = new Set();
   private searchPaths: string[];
 
@@ -78,20 +84,43 @@ export class SkillRegistry {
   }
 
   /**
-   * Register a skill factory by name, optionally with a pre-loaded manifest.
-   * @param name - The unique skill name.
-   * @param factory - Factory function to create skill instances.
-   * @param manifest - Optional manifest metadata for the skill.
+   * Register a skill class. The skill name is read from the class's static
+   * `SKILL_NAME`. Mirrors Python's `register_skill(skill_class)`
+   * (`skills/registry.py:132-194`) — including the schema-non-empty check
+   * and the protection against overwriting locked skills.
+   *
+   * @param SkillClass - A concrete subclass of `SkillBase` with a
+   *   non-empty `SKILL_NAME`.
    */
-  register(name: string, factory: SkillFactory, manifest?: SkillManifest): void {
+  register(SkillClass: typeof SkillBase): void {
+    const name = SkillClass.SKILL_NAME;
+    if (!name) {
+      throw new Error(
+        `${SkillClass.name} must define static SKILL_NAME before registration ` +
+          `(Python equivalent: registry.py:150 SKILL_NAME validation).`,
+      );
+    }
     if (this.lockedNames.has(name)) {
       log.warn(`Cannot overwrite locked skill: ${name}`);
       return;
     }
+    // Schema non-emptiness check — Python registry.py:163-166.
+    try {
+      const schema = SkillClass.getParameterSchema();
+      if (!schema || typeof schema !== 'object' || Object.keys(schema).length === 0) {
+        throw new Error(
+          `${SkillClass.name}.getParameterSchema() must return a non-empty object`,
+        );
+      }
+    } catch (err) {
+      throw new Error(
+        `${SkillClass.name}.getParameterSchema() failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
     if (this.registry.has(name)) {
       log.warn(`Overwriting skill registration: ${name}`);
     }
-    this.registry.set(name, { name, factory, manifest });
+    this.registry.set(name, SkillClass);
     log.debug(`Registered skill: ${name}`);
   }
 
@@ -117,18 +146,34 @@ export class SkillRegistry {
   }
 
   /**
-   * Create a new skill instance by looking up its factory in the registry.
+   * Create a new skill instance by looking up its class in the registry.
+   * Matches Python's `skill_manager.load_skill(name)` class-lookup + instantiate
+   * flow (`skill_manager.py:97`: `skill_instance = skill_class(self.agent, params)`).
+   *
    * @param name - The registered skill name.
-   * @param config - Optional configuration to pass to the factory.
+   * @param config - Optional configuration to pass to the skill constructor.
    * @returns A new skill instance, or null if the name is not registered.
    */
   create(name: string, config?: SkillConfig): SkillBase | null {
-    const entry = this.registry.get(name);
-    if (!entry) {
+    const SkillClass = this.registry.get(name);
+    if (!SkillClass) {
       log.warn(`Skill not found in registry: ${name}`);
       return null;
     }
-    return entry.factory(config);
+    // typeof SkillBase is abstract at the type level; concrete subclasses
+    // are what's actually stored. Cast through unknown to allow `new`.
+    const Ctor = SkillClass as unknown as new (config?: SkillConfig) => SkillBase;
+    return new Ctor(config);
+  }
+
+  /**
+   * Get the registered skill class by name. Matches Python's
+   * `get_skill_class(skill_name)` (`registry.py:196-203`).
+   * @param name - The registered skill name.
+   * @returns The skill class reference, or undefined if not registered.
+   */
+  getSkillClass(name: string): typeof SkillBase | undefined {
+    return this.registry.get(name);
   }
 
   /**
@@ -141,15 +186,6 @@ export class SkillRegistry {
   }
 
   /**
-   * Get the manifest for a registered skill, if available.
-   * @param name - The skill name to look up.
-   * @returns The skill manifest, or undefined if not found or not provided.
-   */
-  getManifest(name: string): SkillManifest | undefined {
-    return this.registry.get(name)?.manifest;
-  }
-
-  /**
    * List all registered skill names.
    * @returns Array of registered skill name strings.
    */
@@ -158,13 +194,20 @@ export class SkillRegistry {
   }
 
   /**
-   * List all registered skills with their optional manifests.
-   * @returns Array of objects containing skill name and manifest.
+   * List all registered skills with their full metadata. Matches Python's
+   * `list_skills()` shape (`registry.py:205-227`) plus TS-idiomatic
+   * camelCase keys.
+   * @returns Array of skill metadata objects.
    */
-  listRegisteredWithManifests(): { name: string; manifest?: SkillManifest }[] {
-    return Array.from(this.registry.values()).map(e => ({
-      name: e.name,
-      manifest: e.manifest,
+  listSkills(): SkillSchemaInfo[] {
+    return Array.from(this.registry.values()).map((SkillClass) => ({
+      name: SkillClass.SKILL_NAME,
+      description: SkillClass.SKILL_DESCRIPTION,
+      version: SkillClass.SKILL_VERSION,
+      supportsMultipleInstances: SkillClass.SUPPORTS_MULTIPLE_INSTANCES,
+      requiredEnvVars: [...SkillClass.REQUIRED_ENV_VARS],
+      requiredPackages: [...SkillClass.REQUIRED_PACKAGES],
+      parameters: SkillClass.getParameterSchema(),
     }));
   }
 
@@ -188,7 +231,7 @@ export class SkillRegistry {
 
   /**
    * Discover and register skills from a directory by importing each file.
-   * Looks for modules exporting a `createSkill` factory or a SkillBase default export.
+   * Looks for SkillBase subclass exports and registers them.
    * @param dirPath - Absolute path to the directory to scan.
    * @returns Array of newly discovered skill names.
    */
@@ -220,17 +263,21 @@ export class SkillRegistry {
         const fileUrl = pathToFileURL(
           entry.endsWith('.ts') || entry.endsWith('.js') ? fullPath : join(fullPath, 'skill.ts'),
         ).href;
-        const mod = await import(fileUrl);
+        const mod: Record<string, unknown> = await import(fileUrl);
 
-        // Look for a factory function or a SkillBase subclass
-        if (typeof mod.createSkill === 'function') {
-          const name = entry.replace(/\.(ts|js)$/, '');
-          this.register(name, mod.createSkill);
-          discovered.push(name);
-        } else if (typeof mod.default === 'function' && mod.default.prototype instanceof SkillBase) {
-          const name = entry.replace(/\.(ts|js)$/, '');
-          this.register(name, (config) => new mod.default(config));
-          discovered.push(name);
+        // Find any SkillBase subclass exported from the module. Matches
+        // Python `registry.py:104-113` which inspects loaded modules for
+        // `issubclass(obj, SkillBase)`.
+        for (const value of Object.values(mod)) {
+          if (
+            typeof value === 'function' &&
+            (value as { prototype?: unknown }).prototype instanceof SkillBase &&
+            (value as typeof SkillBase).SKILL_NAME
+          ) {
+            const SkillClass = value as typeof SkillBase;
+            this.register(SkillClass);
+            discovered.push(SkillClass.SKILL_NAME);
+          }
         }
       } catch (err) {
         log.debug(`Could not load skill from ${fullPath}: ${err}`);
@@ -254,34 +301,24 @@ export class SkillRegistry {
   }
 
   /**
-   * Get the combined schema info for a registered skill, including manifest and parameter schema.
-   * Creates a temporary instance to extract the schema.
+   * Get the combined schema info for a registered skill.
+   * Matches Python `get_all_skills_schema` per-skill shape
+   * (`registry.py:287-295`).
    * @param name - The registered skill name to query.
-   * @returns The skill's combined schema info, or undefined if not found.
+   * @returns The skill's schema info, or undefined if not found.
    */
   getSkillSchema(name: string): SkillSchemaInfo | undefined {
-    const entry = this.registry.get(name);
-    if (!entry) return undefined;
-
-    try {
-      const instance = entry.factory();
-      const manifest = instance.getManifest();
-      const SkillClass = instance.constructor as typeof SkillBase;
-      const parameters = SkillClass.getParameterSchema();
-
-      return {
-        name: manifest.name,
-        description: manifest.description,
-        version: manifest.version,
-        supportsMultipleInstances: SkillClass.SUPPORTS_MULTIPLE_INSTANCES,
-        requiredEnvVars: manifest.requiredEnvVars ?? [],
-        parameters,
-        source: manifest.tags?.includes('external') ? 'external' : 'builtin',
-      };
-    } catch (err) {
-      log.warn(`Failed to get schema for skill '${name}': ${err}`);
-      return undefined;
-    }
+    const SkillClass = this.registry.get(name);
+    if (!SkillClass) return undefined;
+    return {
+      name: SkillClass.SKILL_NAME,
+      description: SkillClass.SKILL_DESCRIPTION,
+      version: SkillClass.SKILL_VERSION,
+      supportsMultipleInstances: SkillClass.SUPPORTS_MULTIPLE_INSTANCES,
+      requiredEnvVars: [...SkillClass.REQUIRED_ENV_VARS],
+      requiredPackages: [...SkillClass.REQUIRED_PACKAGES],
+      parameters: SkillClass.getParameterSchema(),
+    };
   }
 
   /**
@@ -298,18 +335,19 @@ export class SkillRegistry {
   }
 
   /**
-   * List all registered skill names grouped by source category.
+   * Group registered skill names by source category. Matches Python's
+   * `list_all_skill_sources` (`skills/registry.py:436-478`).
+   *
+   * Current TS implementation treats every registered skill as "registered"
+   * (the only category that fits — filesystem-based discovery is optional
+   * and entry-points don't apply to Node the way they do to Python).
+   *
    * @returns Record mapping source categories to arrays of skill names.
    */
   listAllSkillSources(): Record<string, string[]> {
-    const groups: Record<string, string[]> = {};
-    for (const name of this.registry.keys()) {
-      const schema = this.getSkillSchema(name);
-      const source = schema?.source ?? 'unknown';
-      if (!groups[source]) groups[source] = [];
-      groups[source].push(name);
-    }
-    return groups;
+    return {
+      registered: Array.from(this.registry.keys()),
+    };
   }
 
   /**
