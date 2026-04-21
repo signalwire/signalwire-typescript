@@ -1,9 +1,10 @@
 /**
- * InfoGathererAgent - A prefab agent that sequentially collects information
- * from callers through conversational interaction.
+ * InfoGathererAgent - Prefab agent for collecting answers to a series of
+ * questions.
  *
- * Tracks fields per call, validates with optional regex patterns, and fires
- * an onComplete callback once all required fields are gathered.
+ * Ported from the Python SDK `signalwire.prefabs.info_gatherer.InfoGathererAgent`.
+ * Supports both static (questions provided at init) and dynamic (questions
+ * determined by a callback function per request) configuration modes.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -12,251 +13,313 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
-export interface InfoGathererField {
-  /** Unique field name (used as key in collected data). */
-  name: string;
-  /** Human-readable description shown to the AI agent. */
-  description: string;
-  /** Whether this field must be collected before completion. Default true. */
-  required?: boolean;
-  /** Optional validation pattern. String is compiled to RegExp. */
-  validation?: RegExp | string;
+/** A single question in the information-gathering flow. */
+export interface InfoGathererQuestion {
+  /** Identifier used as the key when storing the caller's answer. */
+  key_name: string;
+  /** The question text to ask the caller. */
+  question_text: string;
+  /** When true, the agent insists the caller confirms before submitting. */
+  confirm?: boolean;
 }
 
+/**
+ * Callback invoked on each incoming SWML request to produce the list of
+ * questions for that request. Mirrors Python's `set_question_callback`.
+ * @returns a list of questions (may be async).
+ */
+export type InfoGathererQuestionCallback = (
+  queryParams: Record<string, string>,
+  bodyParams: Record<string, unknown>,
+  headers: Record<string, string>,
+) => InfoGathererQuestion[] | Promise<InfoGathererQuestion[]>;
+
+/** Configuration for the InfoGathererAgent. */
 export interface InfoGathererConfig {
-  /** Agent display name. */
+  /**
+   * Optional list of questions to ask. When omitted, the agent runs in
+   * dynamic mode and resolves questions via the callback registered with
+   * `setQuestionCallback()` (or via `questionCallback` below).
+   */
+  questions?: InfoGathererQuestion[];
+  /**
+   * Convenience alternative to calling `setQuestionCallback()` after
+   * construction. Only consulted when `questions` is not provided.
+   */
+  questionCallback?: InfoGathererQuestionCallback;
+  /** Agent display name (defaults to `"info_gatherer"`). */
   name?: string;
-  /** Fields to collect from the caller. */
-  fields: InfoGathererField[];
-  /** Opening message the agent speaks when call starts. */
-  introMessage?: string;
-  /** Message spoken after all required fields are gathered. */
-  confirmationMessage?: string;
-  /** Callback fired when all required fields have been collected. */
-  onComplete?: (data: Record<string, string>) => void | Promise<void>;
+  /** HTTP route for this agent (defaults to `"/info_gatherer"`). */
+  route?: string;
   /** Additional AgentBase options forwarded to super(). */
   agentOptions?: Partial<AgentOptions>;
 }
 
-// ── Per-call session state ──────────────────────────────────────────────────
-
-interface GatherSession {
-  collected: Record<string, string>;
-  completeFired: boolean;
-}
-
 // ── Agent ───────────────────────────────────────────────────────────────────
 
-/** Prefab agent that sequentially collects named fields from a caller with optional validation and completion callback. */
+/** Fallback questions used in dynamic mode when no callback is registered or the callback throws. */
+const FALLBACK_QUESTIONS: InfoGathererQuestion[] = [
+  { key_name: 'name', question_text: 'What is your name?' },
+  { key_name: 'message', question_text: 'How can I help you today?' },
+];
+
+/** Prefab agent that gathers caller information one question at a time. */
 export class InfoGathererAgent extends AgentBase {
-  private fields: InfoGathererField[];
-  private introMessage: string;
-  private confirmationMessage: string;
-  private onCompleteCallback?: (data: Record<string, string>) => void | Promise<void>;
-  private sessions: Map<string, GatherSession> = new Map();
+  private staticQuestions: InfoGathererQuestion[] | null;
+  private questionCallback: InfoGathererQuestionCallback | null = null;
 
   /**
-   * Declarative prompt sections merged by AgentBase constructor.
-   * Additional dynamic sections are added in the constructor body below.
+   * Create an InfoGathererAgent.
+   * @param config - Either `questions` (static mode) or leave omitted and use
+   *                 `questionCallback` / `setQuestionCallback()` (dynamic mode).
    */
-  static override PROMPT_SECTIONS = [
-    {
-      title: 'Role',
-      body: 'You are an information-gathering assistant. Your job is to collect specific pieces of information from the caller in a friendly, conversational manner.',
-    },
-    {
-      title: 'Rules',
-      bullets: [
-        'Ask for one field at a time, in the order listed.',
-        'If the caller provides information for a later field, accept it and move on.',
-        'Always confirm each piece of information before saving it using the save_field tool.',
-        'If validation fails, politely ask the caller to try again.',
-        'Use the get_status tool when you need to check progress.',
-        'Once all required fields are collected, summarize the information and confirm with the caller.',
-      ],
-    },
-  ];
-
-  /**
-   * Create an InfoGathererAgent with the specified fields and callbacks.
-   * @param config - Configuration including fields to collect, messages, and completion callback.
-   */
-  constructor(config: InfoGathererConfig) {
-    const agentName = config.name ?? 'InfoGatherer';
+  constructor(config: InfoGathererConfig = {}) {
+    const agentName = config.name ?? 'info_gatherer';
     super({
       name: agentName,
+      route: config.route ?? '/info_gatherer',
+      usePom: true,
       ...config.agentOptions,
     });
 
-    this.fields = config.fields;
-    this.introMessage = config.introMessage ?? 'Hello! I need to collect some information from you. Let me walk you through it.';
-    this.confirmationMessage = config.confirmationMessage ?? 'Thank you! I have collected all the required information.';
-    this.onCompleteCallback = config.onComplete;
-
-    // Build the dynamic fields section
-    const fieldBullets = this.fields.map((f) => {
-      const reqLabel = f.required === false ? '(optional)' : '(required)';
-      const valLabel = f.validation ? ` [validation: ${f.validation instanceof RegExp ? f.validation.source : f.validation}]` : '';
-      return `${f.name}: ${f.description} ${reqLabel}${valLabel}`;
-    });
-    this.promptAddSection('Fields to Collect', { bullets: fieldBullets, numbered: true });
-
-    if (this.introMessage) {
-      this.promptAddSection('Introduction', {
-        body: `Begin the conversation with: "${this.introMessage}"`,
+    if (config.questions !== undefined) {
+      InfoGathererAgent.validateQuestions(config.questions);
+      this.staticQuestions = config.questions;
+      this.setGlobalData({
+        questions: config.questions,
+        question_index: 0,
+        answers: [],
       });
+      this.buildPrompt('static');
+    } else {
+      this.staticQuestions = null;
+      this.buildPrompt('dynamic');
     }
 
-    // Hints for speech recognition
-    this.addHints(this.fields.map((f) => f.name));
+    if (config.questionCallback) {
+      this.questionCallback = config.questionCallback;
+    }
+
+    // AI behavior parameters (mirrors Python _configure_agent_settings)
+    this.setParams({
+      end_of_speech_timeout: 800,
+      speech_event_timeout: 1000,
+    });
 
     // Register tools after all fields are initialized
     this.defineTools();
   }
 
-  // ── Session helpers ───────────────────────────────────────────────────
+  /**
+   * Register a callback for dynamic question configuration. The callback is
+   * invoked on each incoming SWML request with the query params, body, and
+   * headers, and must return the list of questions to ask on that call.
+   * Mirrors Python `set_question_callback`.
+   */
+  setQuestionCallback(callback: InfoGathererQuestionCallback): this {
+    this.questionCallback = callback;
+    return this;
+  }
 
-  private getSession(rawData: Record<string, unknown>): GatherSession {
-    const callId = (rawData['call_id'] as string) ?? 'default';
-    let session = this.sessions.get(callId);
-    if (!session) {
-      session = { collected: {}, completeFired: false };
-      this.sessions.set(callId, session);
+  private static validateQuestions(questions: unknown): asserts questions is InfoGathererQuestion[] {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error('At least one question is required');
     }
-    return session;
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i] as Record<string, unknown>;
+      if (!q || typeof q !== 'object') {
+        throw new Error(`Question ${i + 1} must be an object`);
+      }
+      if (typeof q['key_name'] !== 'string' || !q['key_name']) {
+        throw new Error(`Question ${i + 1} is missing 'key_name' field`);
+      }
+      if (typeof q['question_text'] !== 'string' || !q['question_text']) {
+        throw new Error(`Question ${i + 1} is missing 'question_text' field`);
+      }
+    }
   }
 
-  private getFieldByName(name: string): InfoGathererField | undefined {
-    return this.fields.find((f) => f.name.toLowerCase() === name.toLowerCase());
+  private buildPrompt(mode: 'static' | 'dynamic'): void {
+    const body =
+      mode === 'dynamic'
+        ? 'Your role is to gather information by asking questions. Begin by asking the user if they are ready to answer some questions. If they confirm they are ready, call the start_questions function to begin the process.'
+        : 'Your role is to get answers to a series of questions. Begin by asking the user if they are ready to answer some questions. If they confirm they are ready, call the start_questions function to begin the process.';
+    this.promptAddSection('Objective', { body });
   }
 
-  private validateValue(field: InfoGathererField, value: string): boolean {
-    if (!field.validation) return true;
-    const pattern = field.validation instanceof RegExp
-      ? field.validation
-      : new RegExp(field.validation);
-    return pattern.test(value);
+  /**
+   * Generate the instruction text for asking a question. Mirrors Python's
+   * `_generate_question_instruction`.
+   */
+  private generateQuestionInstruction(
+    questionText: string,
+    needsConfirmation: boolean,
+    isFirstQuestion = false,
+  ): string {
+    let instruction = isFirstQuestion
+      ? `Ask the user to answer the following question: ${questionText}\n\n`
+      : `Previous Answer recorded. Now ask the user to answer the following question: ${questionText}\n\n`;
+
+    instruction +=
+      'Make sure the answer fits the scope and context of the question before submitting it. ';
+
+    if (needsConfirmation) {
+      instruction +=
+        'Insist that the user confirms the answer as many times as needed until they say it is correct.';
+    } else {
+      instruction += "You don't need the user to confirm the answer to this question.";
+    }
+
+    return instruction;
   }
 
-  private getRequiredFields(): InfoGathererField[] {
-    return this.fields.filter((f) => f.required !== false);
+  // ── Lifecycle: onSwmlRequest (dynamic mode hook) ──────────────────────
+
+  /**
+   * Handle dynamic configuration using the registered callback. Returns the
+   * per-request global_data payload which AgentBase merges into the SWML
+   * response. Mirrors Python's `on_swml_request` return-dict contract.
+   */
+  override async onSwmlRequest(
+    rawData: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | void> {
+    // Static mode: nothing to do.
+    if (this.staticQuestions !== null) return;
+
+    // Dynamic mode with no callback: return fallback questions as global_data.
+    if (!this.questionCallback) {
+      return {
+        global_data: {
+          questions: FALLBACK_QUESTIONS,
+          question_index: 0,
+          answers: [],
+        },
+      };
+    }
+
+    // Build callback inputs from the incoming raw data.
+    const queryParams = this.extractRecord(rawData['query_params']);
+    const headers = this.extractRecord(rawData['headers']);
+    const bodyParams = rawData;
+
+    try {
+      const questions = await this.questionCallback(queryParams, bodyParams, headers);
+      InfoGathererAgent.validateQuestions(questions);
+      return {
+        global_data: {
+          questions,
+          question_index: 0,
+          answers: [],
+        },
+      };
+    } catch (err) {
+      this.log.error(`Error in question callback: ${String(err)}`);
+      return {
+        global_data: {
+          questions: FALLBACK_QUESTIONS,
+          question_index: 0,
+          answers: [],
+        },
+      };
+    }
   }
 
-  private allRequiredCollected(session: GatherSession): boolean {
-    return this.getRequiredFields().every((f) => f.name in session.collected);
+  private extractRecord(value: unknown): Record<string, string> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof v === 'string') result[k] = v;
+        else if (v !== null && v !== undefined) result[k] = String(v);
+      }
+      return result;
+    }
+    return {};
   }
 
   // ── Tool registration ─────────────────────────────────────────────────
 
-  /** Register the save_field and get_status SWAIG tools. */
+  /** Register the `start_questions` and `submit_answer` SWAIG tools. */
   protected override defineTools(): void {
-    // Tool: save_field
+    // Tool: start_questions
     this.defineTool({
-      name: 'save_field',
-      description: 'Save a collected field value from the caller. Validates the value if a validation pattern is configured for the field.',
-      parameters: {
-        type: 'object',
-        properties: {
-          field_name: {
-            type: 'string',
-            description: 'The name of the field to save.',
-          },
-          value: {
-            type: 'string',
-            description: 'The value provided by the caller.',
-          },
-        },
-        required: ['field_name', 'value'],
-      },
-      handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const fieldName = args['field_name'] as string;
-        const value = args['value'] as string;
-
-        if (!fieldName || !value) {
-          return new FunctionResult('Both field_name and value are required.');
-        }
-
-        const field = this.getFieldByName(fieldName);
-        if (!field) {
-          const available = this.fields.map((f) => f.name).join(', ');
-          return new FunctionResult(
-            `Unknown field "${fieldName}". Available fields: ${available}`,
-          );
-        }
-
-        if (!this.validateValue(field, value)) {
-          return new FunctionResult(
-            `The value "${value}" is not valid for field "${field.name}". Please ask the caller to provide a valid value. Expected format: ${field.validation instanceof RegExp ? field.validation.source : field.validation}`,
-          );
-        }
-
-        const session = this.getSession(rawData);
-        session.collected[field.name] = value;
-
-        // Check if all required fields are now collected
-        if (this.allRequiredCollected(session) && !session.completeFired) {
-          session.completeFired = true;
-          if (this.onCompleteCallback) {
-            try {
-              await this.onCompleteCallback({ ...session.collected });
-            } catch (err) {
-              this.log.error(`onComplete callback error: ${err}`);
-            }
-          }
-          const collectedSummary = Object.entries(session.collected)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ');
-          return new FunctionResult(
-            `Field "${field.name}" saved successfully. All required fields are now collected! Summary: ${collectedSummary}. ${this.confirmationMessage}`,
-          );
-        }
-
-        // Determine remaining fields
-        const remaining = this.fields
-          .filter((f) => f.required !== false && !(f.name in session.collected))
-          .map((f) => f.name);
-
-        return new FunctionResult(
-          `Field "${field.name}" saved as "${value}". Remaining required fields: ${remaining.length > 0 ? remaining.join(', ') : 'none'}.`,
-        );
-      },
-    });
-
-    // Tool: get_status
-    this.defineTool({
-      name: 'get_status',
-      description: 'Get the current status of information gathering, showing which fields have been collected and which remain.',
+      name: 'start_questions',
+      description: 'Start the question sequence with the first question',
       parameters: {
         type: 'object',
         properties: {},
       },
+      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+        const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
+        const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
+        const questionIndex = (globalData['question_index'] as number) ?? 0;
+
+        if (!questions || questionIndex >= questions.length) {
+          return new FunctionResult("I don't have any questions to ask.");
+        }
+
+        const current = questions[questionIndex];
+        const instruction = this.generateQuestionInstruction(
+          current.question_text ?? '',
+          current.confirm === true,
+          true,
+        );
+
+        const result = new FunctionResult(instruction);
+        result.replaceInHistory('Welcome! Let me ask you a few questions.');
+        return result;
+      },
+    });
+
+    // Tool: submit_answer
+    this.defineTool({
+      name: 'submit_answer',
+      description: 'Submit an answer to the current question and move to the next one',
+      parameters: {
+        type: 'object',
+        properties: {
+          answer: {
+            type: 'string',
+            description: "The user's answer to the current question",
+          },
+        },
+      },
       handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const session = this.getSession(rawData);
+        const answer = (args['answer'] as string) ?? '';
 
-        const collectedEntries = Object.entries(session.collected);
-        const collectedStr = collectedEntries.length > 0
-          ? collectedEntries.map(([k, v]) => `${k}: ${v}`).join(', ')
-          : 'none';
+        const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
+        const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
+        const questionIndex = (globalData['question_index'] as number) ?? 0;
+        const priorAnswers =
+          (globalData['answers'] as Array<{ key_name: string; answer: string }>) ?? [];
 
-        const remainingRequired = this.getRequiredFields()
-          .filter((f) => !(f.name in session.collected))
-          .map((f) => f.name);
-
-        const remainingOptional = this.fields
-          .filter((f) => f.required === false && !(f.name in session.collected))
-          .map((f) => f.name);
-
-        let status = `Collected: ${collectedStr}.`;
-        if (remainingRequired.length > 0) {
-          status += ` Remaining required: ${remainingRequired.join(', ')}.`;
-        } else {
-          status += ' All required fields have been collected!';
-        }
-        if (remainingOptional.length > 0) {
-          status += ` Optional fields not yet collected: ${remainingOptional.join(', ')}.`;
+        if (questionIndex >= questions.length) {
+          return new FunctionResult('All questions have already been answered.');
         }
 
-        return new FunctionResult(status);
+        const current = questions[questionIndex];
+        const keyName = current.key_name ?? '';
+        const newAnswers = [...priorAnswers, { key_name: keyName, answer }];
+        const newIndex = questionIndex + 1;
+
+        if (newIndex < questions.length) {
+          const next = questions[newIndex];
+          const instruction = this.generateQuestionInstruction(
+            next.question_text ?? '',
+            next.confirm === true,
+            false,
+          );
+          const result = new FunctionResult(instruction);
+          result.replaceInHistory();
+          result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
+          return result;
+        }
+
+        const result = new FunctionResult(
+          "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
+        );
+        result.replaceInHistory();
+        result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
+        return result;
       },
     });
   }
@@ -269,7 +332,7 @@ export class InfoGathererAgent extends AgentBase {
  * @param config - Configuration for the info gatherer agent.
  * @returns A configured InfoGathererAgent instance.
  */
-export function createInfoGathererAgent(config: InfoGathererConfig): InfoGathererAgent {
+export function createInfoGathererAgent(config: InfoGathererConfig = {}): InfoGathererAgent {
   return new InfoGathererAgent(config);
 }
 

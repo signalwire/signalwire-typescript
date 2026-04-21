@@ -1052,8 +1052,8 @@ import {
 const agent = new InfoGathererAgent({
   name: 'info-gatherer',
   questions: [
-    { text: 'What is your name?', field: 'name' },
-    { text: 'What is your email?', field: 'email' },
+    { key_name: 'name', question_text: 'What is your name?' },
+    { key_name: 'email', question_text: 'What is your email?', confirm: true },
   ],
 });
 ```
@@ -1086,8 +1086,12 @@ const agent = new FAQBotAgent({
 ```typescript
 const agent = new ConciergeAgent({
   name: 'concierge',
-  venue: 'Grand Hotel',
+  venueName: 'Grand Hotel',
   services: ['room service', 'spa', 'restaurant reservations'],
+  amenities: {
+    pool: { hours: '7 AM - 10 PM', location: '2nd Floor' },
+    gym: { hours: '24 hours', location: '3rd Floor' },
+  },
 });
 ```
 

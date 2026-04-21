@@ -29,14 +29,14 @@ describe('examples', () => {
   // ── Prefab examples ─────────────────────────────────────────────
 
   describe('prefab-info-gatherer.ts', () => {
-    it('renders SWML with save_field and get_status tools', async () => {
+    it('renders SWML with start_questions and submit_answer tools', async () => {
       const agent = await loadExample('prefab-info-gatherer.ts');
       const swml = JSON.parse(agent.renderSwml('test-call-id'));
       expect(swml).toHaveProperty('version');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t: any) => t.name);
-      expect(names).toContain('save_field');
-      expect(names).toContain('get_status');
+      expect(names).toContain('start_questions');
+      expect(names).toContain('submit_answer');
     });
   });
 
@@ -52,23 +52,22 @@ describe('examples', () => {
   });
 
   describe('prefab-faq.ts', () => {
-    it('renders SWML with search_faq and escalate tools', async () => {
+    it('renders SWML with search_faqs and escalate tools', async () => {
       const agent = await loadExample('prefab-faq.ts');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t: any) => t.name);
-      expect(names).toContain('search_faq');
+      expect(names).toContain('search_faqs');
       expect(names).toContain('escalate');
     });
   });
 
   describe('prefab-concierge.ts', () => {
-    it('renders SWML with department tools', async () => {
+    it('renders SWML with concierge tools', async () => {
       const agent = await loadExample('prefab-concierge.ts');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t: any) => t.name);
-      expect(names).toContain('list_departments');
-      expect(names).toContain('get_department_info');
-      expect(names).toContain('transfer_to_department');
+      expect(names).toContain('check_availability');
+      expect(names).toContain('get_directions');
     });
   });
 
@@ -77,8 +76,8 @@ describe('examples', () => {
       const agent = await loadExample('prefab-receptionist.ts');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t: any) => t.name);
-      expect(names).toContain('get_department_list');
-      expect(names).toContain('transfer_to_department');
+      expect(names).toContain('collect_caller_info');
+      expect(names).toContain('transfer_call');
       expect(names).toContain('check_in_visitor');
     });
   });

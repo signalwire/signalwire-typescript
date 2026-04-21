@@ -4,7 +4,11 @@
 
 // InfoGathererAgent
 export { InfoGathererAgent, createInfoGathererAgent } from './InfoGathererAgent.js';
-export type { InfoGathererConfig, InfoGathererField } from './InfoGathererAgent.js';
+export type {
+  InfoGathererConfig,
+  InfoGathererQuestion,
+  InfoGathererQuestionCallback,
+} from './InfoGathererAgent.js';
 
 // SurveyAgent
 export { SurveyAgent, createSurveyAgent } from './SurveyAgent.js';
@@ -16,7 +20,7 @@ export type { FAQBotConfig, FAQEntry } from './FAQBotAgent.js';
 
 // ConciergeAgent
 export { ConciergeAgent, createConciergeAgent } from './ConciergeAgent.js';
-export type { ConciergeConfig, Department } from './ConciergeAgent.js';
+export type { ConciergeConfig } from './ConciergeAgent.js';
 
 // ReceptionistAgent
 export { ReceptionistAgent, createReceptionistAgent } from './ReceptionistAgent.js';
