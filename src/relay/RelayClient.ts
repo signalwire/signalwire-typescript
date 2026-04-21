@@ -238,13 +238,32 @@ export class RelayClient {
 
   // ─── Handler Registration ──────────────────────────────────────
 
-  /** Register the inbound call handler. Returns the handler to support decorator usage. */
+  /**
+   * Register the inbound call handler.
+   *
+   * The handler is invoked once per inbound call, with a fully-formed
+   * {@link Call} already in state `"created"`. Answer, reject, or forward
+   * the call from inside the handler.
+   *
+   * @param handler - Callback invoked for each inbound call. May return a
+   *   promise; errors are logged but do not tear down the client.
+   * @returns The same handler, to support decorator-style usage.
+   */
   onCall(handler: CallHandler): CallHandler {
     this._onCallHandler = handler;
     return handler;
   }
 
-  /** Register the inbound message handler. Returns the handler to support decorator usage. */
+  /**
+   * Register the inbound message handler.
+   *
+   * The handler is invoked once per inbound SMS/MMS delivered to a subscribed
+   * context, with a {@link Message} already in state `"received"`.
+   *
+   * @param handler - Callback invoked for each inbound message. May return a
+   *   promise; errors are logged but do not tear down the client.
+   * @returns The same handler, to support decorator-style usage.
+   */
   onMessage(handler: MessageHandler): MessageHandler {
     this._onMessageHandler = handler;
     return handler;
@@ -252,7 +271,18 @@ export class RelayClient {
 
   // ─── Connection Lifecycle ──────────────────────────────────────
 
-  /** Connect to RELAY and authenticate. */
+  /**
+   * Connect to RELAY and authenticate.
+   *
+   * Opens the WebSocket, runs the JSON-RPC `signalwire.connect` handshake,
+   * and starts the client-side ping loop. Safe to call again after a
+   * `disconnect()` to reconnect; the process-wide concurrent-connection limit
+   * is enforced here.
+   *
+   * @returns Resolves once the client is connected and authenticated.
+   * @throws {Error} When the process-wide connection limit is reached,
+   *   authentication fails, or the WebSocket cannot be opened.
+   */
   async connect(): Promise<void> {
     // Guard against connection leaks — enforce per-process limit.
     // Don't count ourselves (allows reconnect without double-counting).
@@ -371,7 +401,15 @@ export class RelayClient {
     logger.debug(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`);
   }
 
-  /** Cleanly close the connection. */
+  /**
+   * Cleanly close the connection.
+   *
+   * Stops the ping loop, drops the WebSocket, rejects every pending request
+   * and dial with a `Connection closed` {@link RelayError}, and removes the
+   * client from the process-wide active set. Safe to call repeatedly.
+   *
+   * @returns Resolves once all resources have been released.
+   */
   async disconnect(): Promise<void> {
     this._closing = true;
     this._connected = false;
@@ -414,18 +452,40 @@ export class RelayClient {
 
   // ─── Public RPC Interface ──────────────────────────────────────
 
-  /** Send a JSON-RPC request and await the response. */
+  /**
+   * Send a JSON-RPC request and await the response.
+   *
+   * This is the low-level escape hatch for calling RELAY methods that don't
+   * yet have a higher-level helper on this class. Queued if the client is
+   * currently disconnected; sent immediately otherwise.
+   *
+   * @param method - Fully-qualified JSON-RPC method name (e.g. `"calling.play"`).
+   * @param params - Method-specific params object.
+   * @returns The `result` field of the JSON-RPC response.
+   * @throws {RelayError} When the server returns a non-2xx code.
+   */
   async execute(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._sendRequest(method, params);
   }
 
   /**
-   * Initiate an outbound call. Returns a Call when answered.
+   * Initiate an outbound call.
    *
-   * @param devices - Array of device lists (serial/parallel dial).
-   * @param options.tag - Client-provided tag for event correlation. Auto-generated if not supplied.
-   * @param options.maxDuration - Optional max call duration in minutes.
-   * @param options.dialTimeout - How long (seconds) to wait for the dial to complete. Defaults to 120.
+   * Accepts a "dial plan" — an outer array of serial groups, each containing
+   * an inner array of devices dialled in parallel. Resolves when any device
+   * answers; rejects if no device answers within `dialTimeout`.
+   *
+   * @param devices - Serial/parallel dial plan. `[[A], [B, C]]` dials A first,
+   *   then B and C in parallel.
+   * @param options - Optional dial behaviour overrides.
+   * @param options.tag - Client-provided tag for event correlation.
+   *   Auto-generated (UUID) when omitted.
+   * @param options.maxDuration - Maximum call duration in minutes.
+   * @param options.dialTimeout - Seconds to wait for the dial to complete.
+   *   Defaults to `120`.
+   * @returns A {@link Call} representing the answered leg.
+   * @throws {Error} When the dial times out.
+   * @throws {RelayError} When the server rejects the dial request.
    */
   async dial(
     devices: Record<string, unknown>[][],
@@ -476,16 +536,25 @@ export class RelayClient {
   }
 
   /**
-   * Send an outbound SMS/MMS message. Returns a Message.
+   * Send an outbound SMS / MMS message.
    *
+   * The method returns as soon as the server has accepted the send; track the
+   * message's terminal state with {@link Message.wait} or the `onCompleted`
+   * callback.
+   *
+   * @param options - Send parameters.
    * @param options.toNumber - Destination phone number in E.164 format.
    * @param options.fromNumber - Sender phone number in E.164 format.
-   * @param options.context - Context for receiving state events. Defaults to the relay protocol.
+   * @param options.context - Context for receiving state events. Defaults to
+   *   the negotiated relay protocol.
    * @param options.body - Text body of the message.
    * @param options.media - List of media URLs for MMS.
-   * @param options.tags - Optional tags for the message.
-   * @param options.region - Optional origination region.
-   * @param options.onCompleted - Optional callback fired when a terminal state is reached.
+   * @param options.tags - Tags attached to the message for correlation.
+   * @param options.region - Origination region override.
+   * @param options.onCompleted - Optional callback fired when the message
+   *   reaches a terminal state (delivered / failed / undelivered).
+   * @returns A {@link Message} tracking the outbound send.
+   * @throws {RelayError} When the server rejects the send request.
    */
   async sendMessage(options: {
     toNumber: string;
@@ -536,14 +605,30 @@ export class RelayClient {
     return message;
   }
 
-  /** Subscribe to additional contexts. */
+  /**
+   * Subscribe to additional RELAY contexts on an already-connected client.
+   *
+   * Inbound calls and messages on any of the listed contexts will be delivered
+   * to the `onCall` / `onMessage` handlers. A no-op when `contexts` is empty.
+   *
+   * @param contexts - Context names to subscribe to.
+   * @returns Resolves once the server has confirmed the subscription.
+   * @throws {RelayError} When the server rejects the subscribe request.
+   */
   async receive(contexts: string[]): Promise<void> {
     if (!contexts.length) return;
     await this._sendRequest(METHOD_SIGNALWIRE_RECEIVE, { contexts });
     logger.info(`Subscribed to contexts: ${contexts}`);
   }
 
-  /** Unsubscribe from contexts. */
+  /**
+   * Unsubscribe from contexts previously passed to {@link receive} (or the
+   * constructor). A no-op when `contexts` is empty.
+   *
+   * @param contexts - Context names to unsubscribe from.
+   * @returns Resolves once the server has confirmed the unsubscribe.
+   * @throws {RelayError} When the server rejects the unsubscribe request.
+   */
   async unreceive(contexts: string[]): Promise<void> {
     if (!contexts.length) return;
     await this._sendRequest(METHOD_SIGNALWIRE_UNRECEIVE, { contexts });
@@ -552,7 +637,18 @@ export class RelayClient {
 
   // ─── Run (auto-reconnect loop) ────────────────────────────────
 
-  /** Blocking entry point — connects and maintains connection with auto-reconnect. */
+  /**
+   * Blocking entry point — connects and maintains the connection with
+   * auto-reconnect, returning only after a clean shutdown (Ctrl+C, SIGTERM,
+   * or {@link disconnect} from another scope).
+   *
+   * Installs `SIGINT` / `SIGTERM` handlers, so typically only one `RelayClient`
+   * per process should call `run()`.
+   *
+   * @returns Resolves once a shutdown has been requested and cleanup completes.
+   * @throws {Error} Only on unrecoverable startup failures — normal
+   *   disconnects are handled internally by the reconnect loop.
+   */
   async run(): Promise<void> {
     this._closing = false;
     this._shutdownDeferred = createDeferred<void>();

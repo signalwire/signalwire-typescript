@@ -9,12 +9,30 @@
 
 // ─── Base Event ──────────────────────────────────────────────────────
 
+/**
+ * Base class for all typed RELAY events.
+ *
+ * Raw events arrive as `signalwire.event` JSON-RPC notifications; the client
+ * looks up the correct subclass in {@link EVENT_CLASS_MAP} and invokes
+ * {@link RelayEvent.fromPayload} to build a typed wrapper. Handlers receive
+ * this wrapper; they can always read the original dict from `params`.
+ */
 export class RelayEvent {
+  /** Fully-qualified event type (e.g. `"calling.call.state"`). */
   readonly eventType: string;
+  /** Raw params dict from the RELAY notification. */
   readonly params: Record<string, any>;
+  /** Call ID associated with the event, or `""` for non-call events. */
   readonly callId: string;
+  /** Server timestamp (epoch seconds) at which the event was emitted. */
   readonly timestamp: number;
 
+  /**
+   * @param eventType - Fully-qualified event type.
+   * @param params - Raw event params dict.
+   * @param callId - Call ID (if applicable).
+   * @param timestamp - Server-side event timestamp.
+   */
   constructor(
     eventType: string,
     params: Record<string, any>,
@@ -27,6 +45,12 @@ export class RelayEvent {
     this.timestamp = timestamp;
   }
 
+  /**
+   * Factory that builds a typed event from a raw `signalwire.event` payload.
+   * Subclasses override this to populate their specialised fields; the base
+   * implementation returns a minimal `RelayEvent` used as the fallback for
+   * unrecognised event types.
+   */
   static fromPayload(payload: Record<string, any>): RelayEvent {
     const eventType = payload.event_type ?? '';
     const params = payload.params ?? {};
@@ -54,6 +78,7 @@ function baseFields(payload: Record<string, any>) {
 
 // ─── Call Events ─────────────────────────────────────────────────────
 
+/** `calling.call.state` — fires on every lifecycle transition (created, ringing, answered, ending, ended). */
 export class CallStateEvent extends RelayEvent {
   readonly callState: string;
   readonly endReason: string;
@@ -89,6 +114,7 @@ export class CallStateEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.receive` — fires when an inbound call arrives on a subscribed context. */
 export class CallReceiveEvent extends RelayEvent {
   readonly callState: string;
   readonly direction: string;
@@ -140,6 +166,7 @@ export class CallReceiveEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.play` — play-media action state change (`playing`, `paused`, `finished`, `error`). */
 export class PlayEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -167,6 +194,7 @@ export class PlayEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.record` — recording state change with final URL, duration, and size when finished. */
 export class RecordEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -211,6 +239,7 @@ export class RecordEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.collect` — caller input (DTMF or speech) collected by a collect action. */
 export class CollectEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -246,6 +275,7 @@ export class CollectEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.connect` — state transition when one call connects to another (dialplan/bridge). */
 export class ConnectEvent extends RelayEvent {
   readonly connectState: string;
   readonly peer: Record<string, any>;
@@ -273,6 +303,7 @@ export class ConnectEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.detect` — answering-machine / fax / DTMF detection result. */
 export class DetectEvent extends RelayEvent {
   readonly controlId: string;
   readonly detect: Record<string, any>;
@@ -300,6 +331,7 @@ export class DetectEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.fax` — fax send/receive progress update. */
 export class FaxEvent extends RelayEvent {
   readonly controlId: string;
   readonly fax: Record<string, any>;
@@ -327,6 +359,7 @@ export class FaxEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.tap` — media tap state change (audio mirror to an external endpoint). */
 export class TapEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -362,6 +395,7 @@ export class TapEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.stream` — outbound media stream state change (e.g. RTMP/WebSocket streaming). */
 export class StreamEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -397,6 +431,7 @@ export class StreamEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.send_digits` — progress update for DTMF digits sent out on a call. */
 export class SendDigitsEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -424,6 +459,7 @@ export class SendDigitsEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.dial` — outbound dial progress (answered, failed, no-answer, etc.). */
 export class DialEvent extends RelayEvent {
   readonly tag: string;
   readonly dialState: string;
@@ -455,6 +491,7 @@ export class DialEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.refer` — SIP REFER result (off-platform transfer response codes). */
 export class ReferEvent extends RelayEvent {
   readonly state: string;
   readonly sipReferTo: string;
@@ -490,6 +527,7 @@ export class ReferEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.denoise` — noise-reduction on/off confirmation. */
 export class DenoiseEvent extends RelayEvent {
   readonly denoised: boolean;
 
@@ -513,6 +551,7 @@ export class DenoiseEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.pay` — PCI-compliant payment collection progress update. */
 export class PayEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -540,6 +579,7 @@ export class PayEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.queue` — call-queue position update (queued, waiting, member answered, timed out). */
 export class QueueEvent extends RelayEvent {
   readonly controlId: string;
   readonly status: string;
@@ -583,6 +623,7 @@ export class QueueEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.echo` — test/diagnostic echo reflection from the server. */
 export class EchoEvent extends RelayEvent {
   readonly state: string;
 
@@ -606,6 +647,7 @@ export class EchoEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.transcribe` — transcription state change and final URL/duration when finished. */
 export class TranscribeEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
@@ -649,6 +691,7 @@ export class TranscribeEvent extends RelayEvent {
   }
 }
 
+/** `calling.call.hold` — hold/unhold state change on the call. */
 export class HoldEvent extends RelayEvent {
   readonly state: string;
 
@@ -672,6 +715,7 @@ export class HoldEvent extends RelayEvent {
   }
 }
 
+/** `calling.conference` — conference lifecycle change (created, active, ended). */
 export class ConferenceEvent extends RelayEvent {
   readonly conferenceId: string;
   readonly name: string;
@@ -703,6 +747,7 @@ export class ConferenceEvent extends RelayEvent {
   }
 }
 
+/** `calling.error` — platform-emitted error against the calling namespace. */
 export class CallingErrorEvent extends RelayEvent {
   readonly code: string;
   readonly message: string;
@@ -732,6 +777,7 @@ export class CallingErrorEvent extends RelayEvent {
 
 // ─── Messaging Events ────────────────────────────────────────────────
 
+/** `messaging.receive` — inbound SMS/MMS received on a subscribed context. */
 export class MessageReceiveEvent extends RelayEvent {
   readonly messageId: string;
   readonly context: string;
@@ -791,6 +837,7 @@ export class MessageReceiveEvent extends RelayEvent {
   }
 }
 
+/** `messaging.state` — state change for an outbound message (queued → sent → delivered/failed). */
 export class MessageStateEvent extends RelayEvent {
   readonly messageId: string;
   readonly context: string;
@@ -856,8 +903,13 @@ export class MessageStateEvent extends RelayEvent {
 
 // ─── Event Class Map & Parser ────────────────────────────────────────
 
+/** Structural type for an event class that exposes a `fromPayload` factory. */
 export type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
 
+/**
+ * Maps RELAY `event_type` strings to the typed event subclass that builds
+ * its wrapper. Used by {@link parseEvent} to dispatch raw payloads.
+ */
 export const EVENT_CLASS_MAP: Record<string, EventClass> = {
   'calling.call.state': CallStateEvent,
   'calling.call.receive': CallReceiveEvent,

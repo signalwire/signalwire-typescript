@@ -17,7 +17,14 @@ export class ImportedNumbersResource extends BaseResource {
     super(http, '/api/relay/rest/imported_phone_numbers');
   }
 
-  /** Import a phone number. */
+  /**
+   * Import an externally-hosted phone number into this project.
+   *
+   * @param body - Import payload specifying the number, carrier details,
+   *   and any routing configuration required by the platform.
+   * @returns The newly-imported phone-number record.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async create(body: any): Promise<any> {
     return this._http.post(this._basePath, body);
   }

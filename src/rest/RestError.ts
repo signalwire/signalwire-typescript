@@ -6,11 +6,25 @@
  * `SignalWireRestError` behavior.
  */
 export class RestError extends Error {
+  /** HTTP status code returned by the server (e.g. `404`, `500`). */
   readonly statusCode: number;
+  /**
+   * Parsed response body. An object when the server returned valid JSON,
+   * otherwise the raw response text as a string.
+   */
   readonly body: string | Record<string, unknown>;
+  /** Fully-qualified URL that produced the error. */
   readonly url: string;
+  /** HTTP method that produced the error (`GET`, `POST`, etc.). */
   readonly method: string;
 
+  /**
+   * @param statusCode - HTTP status code returned by the server.
+   * @param body - Response body — an object if JSON-parseable, otherwise the
+   *   raw response text.
+   * @param url - Fully-qualified URL that produced the error.
+   * @param method - HTTP method that produced the error. Defaults to `"GET"`.
+   */
   constructor(
     statusCode: number,
     body: string | Record<string, unknown>,

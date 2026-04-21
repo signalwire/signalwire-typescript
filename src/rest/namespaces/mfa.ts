@@ -24,17 +24,37 @@ export class MfaResource extends BaseResource {
     super(http, '/api/relay/rest/mfa');
   }
 
-  /** Initiate MFA via SMS. */
+  /**
+   * Initiate MFA by sending a one-time code to a phone number over SMS.
+   *
+   * @param body - MFA request payload (typically `{ to: "+15551234567",
+   *   message?: "Your code is {code}" }`).
+   * @returns The MFA request record; its `id` is used by {@link verify}.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async sms(body: any): Promise<any> {
     return this._http.post(this._path('sms'), body);
   }
 
-  /** Initiate MFA via phone call. */
+  /**
+   * Initiate MFA by placing a phone call that reads out a one-time code.
+   *
+   * @param body - MFA request payload (typically `{ to: "+15551234567" }`).
+   * @returns The MFA request record; its `id` is used by {@link verify}.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async call(body: any): Promise<any> {
     return this._http.post(this._path('call'), body);
   }
 
-  /** Verify an MFA code. */
+  /**
+   * Verify the one-time code the user received via SMS or call.
+   *
+   * @param requestId - The `id` returned from {@link sms} or {@link call}.
+   * @param body - Verification payload (typically `{ token: "123456" }`).
+   * @returns The verification result — success or failure shape.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async verify(requestId: string, body: any): Promise<any> {
     return this._http.post(this._path(requestId, 'verify'), body);
   }

@@ -20,22 +20,48 @@ export class NumberGroupsResource extends CrudResource {
     super(http, '/api/relay/rest/number_groups');
   }
 
-  /** List memberships for a group. */
+  /**
+   * List memberships (phone-number assignments) in a group.
+   *
+   * @param groupId - Unique identifier of the number group.
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of number-group memberships.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async listMemberships(groupId: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path(groupId, 'number_group_memberships'), params);
   }
 
-  /** Add a number to a group. */
+  /**
+   * Add a phone number to a group.
+   *
+   * @param groupId - Unique identifier of the number group.
+   * @param body - Membership payload (typically `{ phone_number_id: "..." }`).
+   * @returns The newly-created membership record.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async addMembership(groupId: string, body: any): Promise<any> {
     return this._http.post(this._path(groupId, 'number_group_memberships'), body);
   }
 
-  /** Get a membership by ID. */
+  /**
+   * Fetch a membership by ID.
+   *
+   * @param membershipId - Unique identifier of the membership.
+   * @returns The membership record.
+   * @throws {RestError} On any non-2xx HTTP response (including `404`).
+   */
   async getMembership(membershipId: string): Promise<any> {
     return this._http.get(`/api/relay/rest/number_group_memberships/${membershipId}`);
   }
 
-  /** Delete a membership by ID. */
+  /**
+   * Remove a number from a group by deleting its membership.
+   *
+   * @param membershipId - Unique identifier of the membership.
+   * @returns The platform's delete response.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async deleteMembership(membershipId: string): Promise<any> {
     return this._http.delete(`/api/relay/rest/number_group_memberships/${membershipId}`);
   }

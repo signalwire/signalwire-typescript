@@ -18,7 +18,13 @@ export class ChatResource extends BaseResource {
     super(http, '/api/chat/tokens');
   }
 
-  /** Generate a Chat token. */
+  /**
+   * Generate a short-lived Chat token.
+   *
+   * @param body - Token payload (e.g. `{ room_name, user_name, permissions }`).
+   * @returns The token record, typically `{ token: "eyJ..." }`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async createToken(body: any): Promise<any> {
     return this._http.post(this._basePath, body);
   }

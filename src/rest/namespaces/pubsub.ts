@@ -18,7 +18,13 @@ export class PubSubResource extends BaseResource {
     super(http, '/api/pubsub/tokens');
   }
 
-  /** Generate a PubSub token. */
+  /**
+   * Generate a short-lived PubSub token.
+   *
+   * @param body - Token payload (e.g. `{ namespace, channels, expires_in }`).
+   * @returns The token record, typically `{ token: "eyJ..." }`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async createToken(body: any): Promise<any> {
     return this._http.post(this._basePath, body);
   }

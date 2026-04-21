@@ -21,8 +21,15 @@ export interface Deferred<T> {
 }
 
 /**
- * Create a Deferred<T> with externalized resolve/reject and a settled flag.
- * The `settled` property is true once resolve() or reject() has been called.
+ * Create a {@link Deferred} with externalised `resolve` / `reject` and a
+ * `settled` flag.
+ *
+ * The returned object exposes the promise plus its resolve and reject
+ * functions so callers outside the executor can settle it. Later calls to
+ * `resolve` or `reject` are idempotent.
+ *
+ * @typeParam T - Resolution value type of the wrapped promise.
+ * @returns A fresh `Deferred<T>` in pending state.
  */
 export function createDeferred<T>(): Deferred<T> {
   let _resolve!: (value: T | PromiseLike<T>) => void;
@@ -53,8 +60,15 @@ export function createDeferred<T>(): Deferred<T> {
 }
 
 /**
- * Race a promise against a timeout. Rejects with an Error if the timeout
- * expires before the promise settles.
+ * Race a promise against a timeout.
+ *
+ * @typeParam T - Resolution value type of the input promise.
+ * @param promise - Promise to race against the timeout.
+ * @param ms - Timeout in milliseconds.
+ * @param label - Label used in the timeout error message. Defaults to
+ *   `"Operation"`.
+ * @returns A new promise that resolves with `promise`'s value if it settles
+ *   before the timeout, and rejects with a timeout `Error` otherwise.
  */
 export function withTimeout<T>(
   promise: Promise<T>,

@@ -14,22 +14,50 @@ export class DatasphereDocuments extends CrudResource {
     super(http, '/api/datasphere/documents');
   }
 
-  /** Semantic search across documents. */
+  /**
+   * Run a semantic search across indexed documents.
+   *
+   * @param body - Search payload (typically `{ query: "...", document_id?: "...",
+   *   limit?: 5, tags?: [...] }`).
+   * @returns The ranked search hits.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async search(body: any): Promise<any> {
     return this._http.post(this._path('search'), body);
   }
 
-  /** List chunks for a document. */
+  /**
+   * List content chunks for a document.
+   *
+   * @param documentId - Unique identifier of the document.
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of chunks.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async listChunks(documentId: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path(documentId, 'chunks'), params);
   }
 
-  /** Get a specific chunk. */
+  /**
+   * Fetch a specific chunk of a document by ID.
+   *
+   * @param documentId - Unique identifier of the document.
+   * @param chunkId - Unique identifier of the chunk.
+   * @returns The chunk record with its content.
+   * @throws {RestError} On any non-2xx HTTP response (including `404`).
+   */
   async getChunk(documentId: string, chunkId: string): Promise<any> {
     return this._http.get(this._path(documentId, 'chunks', chunkId));
   }
 
-  /** Delete a specific chunk. */
+  /**
+   * Delete a specific chunk from a document.
+   *
+   * @param documentId - Unique identifier of the document.
+   * @param chunkId - Unique identifier of the chunk.
+   * @returns The platform's delete response.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async deleteChunk(documentId: string, chunkId: string): Promise<any> {
     return this._http.delete(this._path(documentId, 'chunks', chunkId));
   }
@@ -51,6 +79,7 @@ export class DatasphereDocuments extends CrudResource {
  * ```
  */
 export class DatasphereNamespace {
+  /** Document CRUD plus semantic search and chunk management. */
   readonly documents: DatasphereDocuments;
 
   constructor(http: HttpClient) {

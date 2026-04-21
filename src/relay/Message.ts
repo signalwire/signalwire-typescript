@@ -101,14 +101,27 @@ export class Message {
 
   private _result: RelayEvent | undefined;
 
-  /** Register an event listener for state changes on this message. */
+  /**
+   * Register an event listener for state changes on this message.
+   *
+   * The handler fires every time the server emits a `messaging.state` event
+   * for this message (multiple listeners are supported). Listener errors are
+   * logged but do not disrupt dispatch.
+   *
+   * @param handler - Callback invoked for each state-change event.
+   */
   on(handler: EventHandler): void {
     this._listeners.push(handler);
   }
 
   /**
-   * Wait for the message to reach a terminal state.
-   * @param timeout - Maximum time to wait in seconds (matches Python SDK convention).
+   * Wait for the message to reach a terminal state (`delivered`, `failed`,
+   * `undelivered`, etc.).
+   *
+   * @param timeout - Maximum time to wait in **seconds** (matches the Python
+   *   SDK convention — not milliseconds).
+   * @returns The final `messaging.state` {@link RelayEvent}.
+   * @throws {Error} When the optional timeout elapses before a terminal state.
    */
   async wait(timeout?: number): Promise<RelayEvent> {
     if (timeout != null) {
@@ -174,6 +187,12 @@ export class Message {
     }
   }
 
+  /**
+   * Return a human-readable diagnostic string.
+   *
+   * @returns `Message(id=..., direction=..., state=..., from=..., to=...)` —
+   *   handy for log output.
+   */
   toString(): string {
     return `Message(id=${this.messageId}, direction=${this.direction}, state=${this.state}, from=${this.fromNumber}, to=${this.toNumber})`;
   }

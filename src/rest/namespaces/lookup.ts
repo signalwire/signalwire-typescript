@@ -23,7 +23,15 @@ export class LookupResource extends BaseResource {
     super(http, '/api/relay/rest/lookup');
   }
 
-  /** Look up carrier/CNAM info for a phone number. */
+  /**
+   * Look up carrier and CNAM information for a phone number.
+   *
+   * @param e164 - The phone number in E.164 format (e.g. `"+15551234567"`).
+   * @param params - Optional query parameters, most commonly
+   *   `include: "carrier,caller-name"` to enable carrier and CNAM lookups.
+   * @returns The lookup record containing any requested datasets.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async phoneNumber(e164: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path('phone_number', e164), params);
   }

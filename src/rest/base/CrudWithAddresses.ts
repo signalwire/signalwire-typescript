@@ -23,7 +23,14 @@ export class CrudWithAddresses<
     super(http, basePath);
   }
 
-  /** List addresses associated with a resource. */
+  /**
+   * List addresses associated with a specific resource instance.
+   *
+   * @param resourceId - Unique identifier of the owning resource.
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of addresses.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path(resourceId, 'addresses'), params);
   }

@@ -192,8 +192,18 @@ import type { AgentBase as _AgentBase } from './AgentBase.js';
  *
  * Equivalent to Python's `start_agent(agent)`. Delegates to `agent.serve(options)`.
  *
- * @param agent   The AgentBase instance to start.
- * @param options Optional host/port overrides.
+ * @param agent - The {@link AgentBase} instance to start.
+ * @param options - Optional host / port overrides. When omitted, values come
+ *   from the agent's constructor options or the `PORT` environment variable.
+ * @returns Resolves once the HTTP server has begun listening.
+ *
+ * @example
+ * ```ts
+ * import { AgentBase, startAgent } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'demo' });
+ * await startAgent(agent, { port: 3000 });
+ * ```
  */
 export async function startAgent(
   agent: _AgentBase,
@@ -208,8 +218,12 @@ export async function startAgent(
  * Alias for {@link startAgent} — equivalent to Python's `run_agent(agent)`.
  * Delegates to `agent.serve(options)`.
  *
- * @param agent   The AgentBase instance to run.
- * @param options Optional host/port overrides.
+ * @param agent - The {@link AgentBase} instance to run.
+ * @param options - Optional host / port overrides. When omitted, values come
+ *   from the agent's constructor options or the `PORT` environment variable.
+ * @returns Resolves once the HTTP server has begun listening.
+ *
+ * @see {@link startAgent}
  */
 export async function runAgent(
   agent: _AgentBase,

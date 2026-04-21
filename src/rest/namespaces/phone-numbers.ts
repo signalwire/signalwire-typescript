@@ -31,6 +31,11 @@ export class PhoneNumbersResource extends CrudResource {
    * Purchase / create a phone number resource in this project.
    * Body is optional to match Python's `**kwargs` call convention.
    *
+   * @param body - Phone-number creation payload (platform-shaped JSON).
+   *   Defaults to `{}` when omitted.
+   * @returns The newly-created phone-number resource.
+   * @throws {RestError} On any non-2xx HTTP response.
+   *
    * @example
    * ```ts
    * const num = await client.phoneNumbers.create({ number: '+15551234567' });
@@ -40,13 +45,25 @@ export class PhoneNumbersResource extends CrudResource {
     return this._http.post(this._basePath, body);
   }
 
-  /** Update a phone number resource by ID. Body is optional to match Python `**kwargs`. */
+  /**
+   * Update a phone number resource by ID. Body is optional to match Python `**kwargs`.
+   *
+   * @param resourceId - Unique phone-number resource ID.
+   * @param body - Partial update payload. Defaults to `{}`.
+   * @returns The updated phone-number resource.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   override async update(resourceId: string, body: any = {}): Promise<any> {
     return this._http.put(this._path(resourceId), body);
   }
 
   /**
    * Search available phone numbers for purchase.
+   *
+   * @param params - Search filters (e.g. `areaCode`, `contains`, `region`,
+   *   `number_type`, pagination).
+   * @returns A paginated list of matching available numbers.
+   * @throws {RestError} On any non-2xx HTTP response.
    *
    * @example
    * ```ts
