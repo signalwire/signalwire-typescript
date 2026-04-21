@@ -1,14 +1,13 @@
 /**
  * Wikipedia Search Skill - Searches Wikipedia for article summaries.
  *
- * Tier 3 built-in skill: no external API key required.
- * Uses the Wikipedia REST API to fetch article summaries and extracts
- * for any given topic.
+ * Tier 3 built-in skill: no external API key required. Uses the Wikipedia
+ * REST API to fetch article summaries and extracts for any given topic.
+ * Matches the Python SDK's `num_results` / `no_results_message` parity.
  */
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -19,255 +18,259 @@ import { getLogger } from '../../Logger.js';
 
 const log = getLogger('WikipediaSearchSkill');
 
-/** Response shape from the Wikipedia REST API page summary endpoint. */
-interface WikipediaSummaryResponse {
-  /** Page type (e.g., "standard", "disambiguation"). */
-  type: string;
-  /** Article title. */
-  title: string;
-  /** HTML-formatted display title. */
-  displaytitle?: string;
-  /** Plain-text article extract/summary. */
-  extract: string;
-  /** HTML-formatted extract. */
-  extract_html?: string;
-  /** Short description of the article. */
-  description?: string;
-  /** URLs to the full article. */
-  content_urls?: {
-    desktop?: { page: string };
-    mobile?: { page: string };
-  };
-  /** Thumbnail image information. */
-  thumbnail?: {
-    source: string;
-    width: number;
-    height: number;
+const DEFAULT_NO_RESULTS_MESSAGE =
+  "I couldn't find any Wikipedia articles for '{query}'. " +
+  'Try rephrasing your search or using different keywords.';
+
+/** Response shape from the Wikipedia action=query search API. */
+interface WikipediaActionSearchResponse {
+  query?: {
+    search?: Array<{
+      title: string;
+      pageid?: number;
+      snippet?: string;
+    }>;
   };
 }
 
-/** Response shape from the Wikipedia search API. */
-interface WikipediaSearchResponse {
-  /** Array of matching page results. */
-  pages?: Array<{
-    id: number;
-    key: string;
-    title: string;
-    description?: string;
-    excerpt?: string;
-  }>;
+/** Response shape from the Wikipedia action=query extracts API. */
+interface WikipediaActionExtractsResponse {
+  query?: {
+    pages?: Record<string, { title?: string; extract?: string }>;
+  };
 }
 
 /**
  * Searches Wikipedia for article summaries and extracts.
  *
- * Tier 3 built-in skill with no external API key required. Uses the Wikipedia
- * REST API to fetch article summaries for any given topic, with a configurable
- * number of sentences.
+ * Tier 3 built-in skill with no external API key required. The configured
+ * `num_results` drives how many articles are aggregated; `no_results_message`
+ * customizes the fallback text (supports `{query}` interpolation).
  */
 export class WikipediaSearchSkill extends SkillBase {
+  // Python ground truth: skills/wikipedia_search/skill.py:26-31
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses native fetch so [].
+  static override SKILL_NAME = 'wikipedia_search';
+  static override SKILL_DESCRIPTION =
+    'Search Wikipedia for information about a topic and get article summaries';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
+  // Python: SUPPORTS_MULTIPLE_INSTANCES = False (inherits default).
+
   /**
-   * @param config - Optional configuration (no config keys used by this skill).
+   * Resolved `num_results` value (populated in `setup()`).
+   * Public to mirror Python's `self.num_results` — accessible to subclasses
+   * and external test code inspecting skill state.
    */
-  constructor(config?: SkillConfig) {
-    super('wikipedia_search', config);
-  }
+  public numResults: number = 1;
+  /**
+   * Resolved `no_results_message` template (populated in `setup()`).
+   * Protected to mirror Python's `self.no_results_message` public visibility
+   * within the class hierarchy.
+   */
+  protected noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
-      language: {
-        type: 'string',
-        description: 'Wikipedia language edition to search (e.g., "en", "fr", "de").',
-        default: 'en',
-      },
-      max_results: {
-        type: 'number',
-        description: 'Maximum number of search results to consider.',
+      num_results: {
+        type: 'integer',
+        description: 'Maximum number of Wikipedia articles to return',
         default: 1,
+        min: 1,
+        max: 5,
       },
-      max_content_length: {
-        type: 'number',
-        description: 'Maximum length of returned content in characters.',
-        default: 5000,
+      no_results_message: {
+        type: 'string',
+        description: 'Custom message when no Wikipedia articles are found',
+        default: DEFAULT_NO_RESULTS_MESSAGE,
       },
     };
   }
 
-  /** @returns Manifest with skill metadata (no required env vars). */
-  getManifest(): SkillManifest {
-    return {
-      name: 'wikipedia_search',
-      description:
-        'Searches Wikipedia for article summaries and extracts. No API key required.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['search', 'wikipedia', 'encyclopedia', 'knowledge', 'external'],
-    };
+  /**
+   * Extract config values into instance state. Enforces `num_results >= 1`
+   * (matching Python `skill.py:_setup` `max(1, ...)` floor). The schema's
+   * `max: 5` handles the upper bound at validation time — no runtime clamp
+   * here, so callers passing larger values get the raw value as in Python.
+   */
+  override async setup(): Promise<boolean> {
+    // Match Python setup() which validates required packages and returns false
+    // on missing. Node's native fetch needs no packages here, so this is a
+    // no-op unless a subclass declares requiredPackages.
+    if (!(await this.hasAllPackages())) return false;
+
+    const configured = this.getConfig<number>('num_results', 1);
+    this.numResults = Math.max(1, Math.floor(configured));
+
+    const rawMessage = this.getConfig<string | undefined>(
+      'no_results_message',
+      undefined,
+    );
+    this.noResultsMessage =
+      rawMessage && rawMessage.length > 0 ? rawMessage : DEFAULT_NO_RESULTS_MESSAGE;
+    return true;
   }
 
-  /** @returns A single `search_wikipedia` tool that fetches article summaries from Wikipedia. */
+  /** @returns A `search_wiki` tool that fetches article summaries from Wikipedia. */
   getTools(): SkillToolDefinition[] {
     return [
       {
-        name: 'search_wikipedia',
+        name: 'search_wiki',
         description:
-          'Search Wikipedia for information about a topic. Returns a summary of the most relevant article.',
+          'Search Wikipedia for information about a topic and get article summaries',
         parameters: {
           query: {
             type: 'string',
             description:
-              'The topic or term to search for on Wikipedia.',
-          },
-          sentences: {
-            type: 'number',
-            description:
-              'Number of sentences to return in the summary (1-10). Defaults to 3.',
+              'The search term or topic to look up on Wikipedia.',
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>) => {
-          const query = args.query as string | undefined;
-          const sentences = args.sentences as number | undefined;
+        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
+          const rawQuery = args['query'];
 
-          if (!query || typeof query !== 'string' || query.trim().length === 0) {
+          if (
+            !rawQuery ||
+            typeof rawQuery !== 'string' ||
+            rawQuery.trim().length === 0
+          ) {
             return new FunctionResult(
-              'Please provide a topic to search for on Wikipedia.',
+              'Please provide a search query for Wikipedia.',
             );
           }
 
-          const sentenceCount = Math.max(1, Math.min(10, sentences ?? 3));
-
-          try {
-            // First, try a direct page summary lookup
-            const encodedQuery = encodeURIComponent(query.trim().replace(/\s+/g, '_'));
-            const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
-
-            const controller1 = new AbortController();
-            const timeout1 = setTimeout(() => controller1.abort(), 30_000);
-            let summaryResponse: Response;
-            try {
-              summaryResponse = await fetch(summaryUrl, {
-                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-                signal: controller1.signal,
-              });
-            } finally {
-              clearTimeout(timeout1);
-            }
-
-            if (summaryResponse.ok) {
-              const data = (await summaryResponse.json()) as WikipediaSummaryResponse;
-
-              if (data.type !== 'disambiguation' && data.extract) {
-                const extractSentences = data.extract.split(/(?<=[.!?])\s+/);
-                const trimmedExtract = extractSentences
-                  .slice(0, sentenceCount)
-                  .join(' ')
-                  .trim();
-
-                const pageUrl = data.content_urls?.desktop?.page ?? '';
-                const parts: string[] = [
-                  `Wikipedia: ${data.title}`,
-                ];
-                if (data.description) {
-                  parts.push(`(${data.description})`);
-                }
-                parts.push('');
-                parts.push(trimmedExtract);
-                if (pageUrl) {
-                  parts.push('');
-                  parts.push(`Read more: ${pageUrl}`);
-                }
-
-                return new FunctionResult(parts.join('\n').trim());
-              }
-            }
-
-            // If direct lookup failed, use the search API
-            const searchUrl = `https://en.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(query.trim())}&limit=1`;
-
-            const controller2 = new AbortController();
-            const timeout2 = setTimeout(() => controller2.abort(), 30_000);
-            let searchResponse: Response;
-            try {
-              searchResponse = await fetch(searchUrl, {
-                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-                signal: controller2.signal,
-              });
-            } finally {
-              clearTimeout(timeout2);
-            }
-
-            if (!searchResponse.ok) {
-              log.error('wikipedia_search_api_error', { status: searchResponse.status });
-              return new FunctionResult(
-                'Wikipedia search could not be completed. Please try a different search term.',
-              );
-            }
-
-            const searchData = (await searchResponse.json()) as WikipediaSearchResponse;
-
-            if (!searchData.pages || searchData.pages.length === 0) {
-              return new FunctionResult(
-                `No Wikipedia article found for "${query}". Try a different search term.`,
-              );
-            }
-
-            // Fetch the summary for the best match
-            const bestMatch = searchData.pages[0];
-            const matchUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestMatch.key)}`;
-
-            const controller3 = new AbortController();
-            const timeout3 = setTimeout(() => controller3.abort(), 30_000);
-            let matchResponse: Response;
-            try {
-              matchResponse = await fetch(matchUrl, {
-                headers: { 'Accept': 'application/json', 'User-Agent': 'SignalWireAgentsSDK/1.0' },
-                signal: controller3.signal,
-              });
-            } finally {
-              clearTimeout(timeout3);
-            }
-
-            if (!matchResponse.ok) {
-              // Fall back to the search excerpt
-              const excerpt = bestMatch.excerpt
-                ? bestMatch.excerpt.replace(/<[^>]*>/g, '').trim()
-                : 'No summary available.';
-              return new FunctionResult(
-                `Wikipedia: ${bestMatch.title}\n\n${excerpt}`,
-              );
-            }
-
-            const matchData = (await matchResponse.json()) as WikipediaSummaryResponse;
-            const extractSentences = matchData.extract.split(/(?<=[.!?])\s+/);
-            const trimmedExtract = extractSentences
-              .slice(0, sentenceCount)
-              .join(' ')
-              .trim();
-
-            const pageUrl = matchData.content_urls?.desktop?.page ?? '';
-            const parts: string[] = [`Wikipedia: ${matchData.title}`];
-            if (matchData.description) {
-              parts.push(`(${matchData.description})`);
-            }
-            parts.push('');
-            parts.push(trimmedExtract);
-            if (pageUrl) {
-              parts.push('');
-              parts.push(`Read more: ${pageUrl}`);
-            }
-
-            return new FunctionResult(parts.join('\n').trim());
-          } catch (err) {
-            log.error('search_wikipedia_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
-          }
+          const result = await this.searchWiki(rawQuery.trim());
+          return new FunctionResult(result);
         },
       },
     ];
+  }
+
+  /**
+   * Search Wikipedia and return a formatted text summary.
+   *
+   * Mirrors the Python `search_wiki()` public entry point so the logic can be
+   * tested and reused outside the SWAIG handler. Uses `num_results` to decide
+   * how many articles to aggregate.
+   *
+   * @param query - Plain-text search term.
+   * @returns Formatted text ready for display to the caller.
+   */
+  async searchWiki(query: string): Promise<string> {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length === 0) {
+      return this._formatNoResults(trimmedQuery);
+    }
+
+    try {
+      const baseUrl = 'https://en.wikipedia.org/w/api.php';
+      const searchUrl =
+        `${baseUrl}?action=query&list=search&format=json` +
+        `&srsearch=${encodeURIComponent(trimmedQuery)}` +
+        `&srlimit=${this.numResults}`;
+
+      const searchData = await this._fetchJson<WikipediaActionSearchResponse>(
+        searchUrl,
+      );
+      if (!searchData) {
+        return 'Wikipedia search could not be completed. Please try a different search term.';
+      }
+
+      const searchResults = searchData.query?.search ?? [];
+      if (searchResults.length === 0) {
+        return this._formatNoResults(trimmedQuery);
+      }
+
+      const articles: string[] = [];
+
+      for (const result of searchResults.slice(0, this.numResults)) {
+        const title = result.title;
+        const extractUrl =
+          `${baseUrl}?action=query&prop=extracts&exintro&explaintext&format=json` +
+          `&titles=${encodeURIComponent(title)}`;
+
+        const extractData = await this._fetchJson<WikipediaActionExtractsResponse>(
+          extractUrl,
+        );
+        const pages = extractData?.query?.pages ?? {};
+        const firstPage = Object.values(pages)[0];
+        const extract = (firstPage?.extract ?? '').trim();
+
+        if (extract.length > 0) {
+          articles.push(`**${title}**\n\n${extract}`);
+        } else {
+          articles.push(`**${title}**\n\nNo summary available for this article.`);
+        }
+      }
+
+      if (articles.length === 0) {
+        return this._formatNoResults(trimmedQuery);
+      }
+
+      if (articles.length === 1) {
+        return articles[0];
+      }
+      const separator = '\n\n' + '='.repeat(50) + '\n\n';
+      return articles.join(separator);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // Python raises RequestException for network errors and Exception for
+      // the rest, so it emits two distinct user-facing strings (skill.py:85,91).
+      // Mirror that split: AbortError / fetch-layer errors → "accessing",
+      // everything else → "searching".
+      if (
+        err instanceof Error &&
+        (err.name === 'AbortError' ||
+          err.name === 'TypeError' /* fetch network failures */ ||
+          err.message.includes('fetch'))
+      ) {
+        log.error('wikipedia_access_failed', { error: message });
+        return `Error accessing Wikipedia: ${message}`;
+      }
+      log.error('wikipedia_search_failed', { error: message });
+      return `Error searching Wikipedia: ${message}`;
+    }
+  }
+
+  /**
+   * Fetch JSON with a 10-second timeout (matches Python `requests.get(..., timeout=10)`).
+   * Returns `null` on HTTP error or network failure, logging the cause so
+   * diagnostic signal isn't silently lost.
+   */
+  private async _fetchJson<T>(url: string): Promise<T | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'SignalWireAgentsSDK/1.0',
+        },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        log.warn('wikipedia_fetch_http_error', { url, status: response.status });
+        return null;
+      }
+      return (await response.json()) as T;
+    } catch (err) {
+      log.warn('wikipedia_fetch_failed', {
+        url,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /** Render the configured no-results message, substituting `{query}`. */
+  private _formatNoResults(query: string): string {
+    return this.noResultsMessage.includes('{query}')
+      ? this.noResultsMessage.replace(/\{query\}/g, query)
+      : this.noResultsMessage;
   }
 
   /** @returns Prompt section describing Wikipedia search capabilities and usage guidance. */
@@ -275,13 +278,11 @@ export class WikipediaSearchSkill extends SkillBase {
     return [
       {
         title: 'Wikipedia Search',
-        body: 'You can search Wikipedia for information about any topic.',
+        body: `You can search Wikipedia for factual information using search_wiki. This will return up to ${this.numResults} Wikipedia article summaries.`,
         bullets: [
-          'Use the search_wikipedia tool when the user asks about a specific topic, person, place, or concept.',
-          'Wikipedia provides encyclopedic summaries that are generally reliable for factual information.',
-          'You can specify the number of sentences to return (1-10) for shorter or more detailed summaries.',
-          'If a search returns no results, try rephrasing with the most common name or spelling.',
-          'Summarize the information naturally rather than reading it verbatim.',
+          'Use search_wiki for factual, encyclopedic information',
+          'Great for answering questions about people, places, concepts, and history',
+          'Returns reliable, well-sourced information from Wikipedia articles',
         ],
       },
     ];

@@ -41,9 +41,9 @@ describe('CustomSkillsSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const manifest = new CustomSkillsSkill().getManifest();
-    expect(manifest.name).toBe('custom_skills');
-    expect(manifest.version).toBe('1.0.0');
+    const klass = CustomSkillsSkill as typeof SkillBase;
+    expect(klass.SKILL_NAME).toBe('custom_skills');
+    expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
   it('should have a parameter schema', () => {

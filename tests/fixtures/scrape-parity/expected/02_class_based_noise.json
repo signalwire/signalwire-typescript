@@ -1,0 +1,5 @@
+{
+  "text": "Real Article Title This is the actual article content. It should survive the class/id based filter because its class names do not match any of the boilerplate patterns. The filter walks every element with a class or id attribute and removes the ones matching patterns like sidebar, advertisement, cookie, etc.",
+  "text_length": 309,
+  "sentence_count": 3
+}

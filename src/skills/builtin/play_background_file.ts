@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -42,15 +41,10 @@ interface PreConfiguredFile {
  *    `play_background` (arbitrary URL) and `stop_background`.
  */
 export class PlayBackgroundFileSkill extends SkillBase {
+  // Python ground truth: skills/play_background_file/skill.py
+  static override SKILL_NAME = 'play_background_file';
+  static override SKILL_DESCRIPTION = 'Control background file playback';
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
-
-  /**
-   * @param config - Optional configuration; supports `tool_name`, `files`,
-   *   `default_file_url`, and `allowed_domains`.
-   */
-  constructor(config?: SkillConfig) {
-    super('play_background_file', config);
-  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -103,40 +97,6 @@ export class PlayBackgroundFileSkill extends SkillBase {
     };
   }
 
-  /** @returns Manifest with config schema for tool_name, files, default_file_url, and allowed_domains. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'play_background_file',
-      description:
-        'Controls background audio playback during calls. Play hold music, ambient sounds, or any audio file in the background.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['audio', 'playback', 'background', 'music', 'call-control'],
-      configSchema: {
-        tool_name: {
-          type: 'string',
-          description:
-            'Custom name for the generated SWAIG function (enables multiple instances).',
-          default: 'play_background_file',
-        },
-        files: {
-          type: 'array',
-          description:
-            'Array of pre-configured file entries, each with key, description, url, and optional wait.',
-        },
-        default_file_url: {
-          type: 'string',
-          description:
-            'Default audio file URL to use when no URL is specified.',
-        },
-        allowed_domains: {
-          type: 'array',
-          description:
-            'List of allowed domains for audio file URLs. If set, only URLs from these domains are accepted.',
-        },
-      },
-    };
-  }
 
   /**
    * Produce a compound instance key so multiple copies of the skill with

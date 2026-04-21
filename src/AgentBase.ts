@@ -1373,6 +1373,7 @@ export class AgentBase {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
+    skill.setAgent(this);
     await this._skillManager.addSkill(skill);
 
     // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
@@ -1390,7 +1391,20 @@ export class AgentBase {
         if (Object.keys(skill.swaigFields).length > 0) {
           safeAssign(fn.extraFields, skill.swaigFields);
         }
+        // Propagate is_hangup_hook so the SignalWire platform auto-fires this
+        // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
+        if (toolDef.isHangupHook) {
+          fn.extraFields['is_hangup_hook'] = true;
+        }
       }
+    }
+
+    // Register DataMap-style tools — skills that build their own SWAIG JSON
+    // (e.g. DataSphereServerless) return them via getDataMapTools().
+    // Python equivalent: self.agent.register_swaig_function(swaig_function)
+    // inside register_tools() (skills/datasphere_serverless/skill.py:210).
+    for (const dmFn of skill.getDataMapTools()) {
+      this.registerSwaigFunction(dmFn);
     }
 
     // Inject prompt sections
@@ -1926,9 +1940,22 @@ export class AgentBase {
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
         const skill = new (entry.SkillClass as any)(entry.config);
+        skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
-        copy._skillManager.addSkill(skill).catch(() => { /* swallow async errors in sync context */ });
+        copy._skillManager.addSkill(skill).catch((err: unknown) => {
+          // Swallow re-add errors in the cloning path — the primary agent already
+          // validated env vars / packages / schema / setup when this skill was first
+          // added, and the clone inherits that validation. Python's equivalent at
+          // skill_manager.py:161-170 specifically swallows "already exists"
+          // ValueErrors during cloning; TS has no such error class (toolRegistry
+          // uses Map.set which silently overwrites), so the blanket swallow is
+          // the closest parity. Log at debug so the error isn't entirely lost.
+          this.log.debug('Skipping re-add error during agent clone', {
+            skill: entry.skillName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
 
         for (const toolDef of skill.getTools()) {
           copy.defineTool(toolDef);
@@ -1943,7 +1970,13 @@ export class AgentBase {
             if (Object.keys(skill.swaigFields).length > 0) {
               safeAssign(fn.extraFields, skill.swaigFields);
             }
+            if (toolDef.isHangupHook) {
+              fn.extraFields['is_hangup_hook'] = true;
+            }
           }
+        }
+        for (const dmFn of skill.getDataMapTools()) {
+          copy.registerSwaigFunction(dmFn);
         }
         for (const section of skill.getPromptSections()) {
           copy.promptAddSection(section.title, section);

@@ -1,0 +1,5 @@
+{
+  "text": "Nested Article Article tag comes before main in our selector priority list. This article is nested inside main so whichever selector wins first determines the extraction root. Expected behavior: article should be picked because it is earlier in the candidate list. If main is picked, we extract the whole subtree including the article.",
+  "text_length": 335,
+  "sentence_count": 4
+}

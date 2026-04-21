@@ -10,12 +10,16 @@ import type { RelayEvent } from './RelayEvent.js';
 export interface RelayClientOptions {
   /** SignalWire project ID. Defaults to env SIGNALWIRE_PROJECT_ID. */
   project?: string;
-  /** SignalWire API token. Defaults to env SIGNALWIRE_TOKEN. */
+  /** SignalWire API token. Defaults to env SIGNALWIRE_API_TOKEN. */
   token?: string;
+  /** JWT token for authentication. Defaults to env SIGNALWIRE_JWT_TOKEN. */
+  jwtToken?: string;
   /** RELAY host. Defaults to relay.signalwire.com. */
   host?: string;
   /** Contexts (topics) to receive inbound calls/messages on. */
   contexts?: string[];
+  /** Maximum number of concurrent active calls. Defaults to env RELAY_MAX_ACTIVE_CALLS or 1000. */
+  maxActiveCalls?: number;
 }
 
 /** JSON-RPC 2.0 request. */
@@ -90,10 +94,10 @@ export interface DialOptions {
 
 /** Options for the sendMessage() method. */
 export interface SendMessageOptions {
-  /** Destination number/address. */
-  to: string;
-  /** Source number/address. */
-  from: string;
+  /** Destination phone number in E.164 format. */
+  toNumber: string;
+  /** Sender phone number in E.164 format. */
+  fromNumber: string;
   /** Message body text. */
   body?: string;
   /** Media URLs for MMS. */

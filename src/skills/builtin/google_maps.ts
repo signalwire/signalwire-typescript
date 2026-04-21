@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -101,12 +100,16 @@ interface RoutesV2Response {
  * Supports a `default_mode` config option ("driving"|"walking"|"bicycling"|"transit").
  */
 export class GoogleMapsSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `default_mode` for travel mode.
-   */
-  constructor(config?: SkillConfig) {
-    super('google_maps', config);
-  }
+  // Python ground truth: skills/google_maps/skill.py
+  // Python declares REQUIRED_PACKAGES = ["requests"], REQUIRED_ENV_VARS = [];
+  // TS uses native fetch and has historically declared the env var as required.
+  // Preserving TS behavior to avoid out-of-scope behavioral change.
+  static override SKILL_NAME = 'google_maps';
+  static override SKILL_DESCRIPTION =
+    'Validate addresses and compute driving routes using Google Maps';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_PACKAGES: readonly string[] = [];
+  static override REQUIRED_ENV_VARS: readonly string[] = ['GOOGLE_MAPS_API_KEY'];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -148,9 +151,11 @@ export class GoogleMapsSkill extends SkillBase {
   }
 
   /**
-   * Validate that the Google Maps API key is available in the environment.
-   * Returns `false` (non-fatal warning) if the API key is missing.
-   * @returns `true` if setup succeeded, `false` if the API key is absent.
+   * Fail-fast when GOOGLE_MAPS_API_KEY is not set, mirroring Python's
+   * `setup()` validation. The env var is the only credential source for
+   * this skill, so loading it without the key would produce runtime
+   * errors on every tool call.
+   * @returns `true` if the API key is present, `false` otherwise.
    */
   override async setup(): Promise<boolean> {
     const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
@@ -163,27 +168,6 @@ export class GoogleMapsSkill extends SkillBase {
   /** @returns Speech recognition hints for maps/directions keywords. */
   override getHints(): string[] {
     return ['address', 'location', 'route', 'directions', 'miles', 'distance'];
-  }
-
-  /** @returns Manifest declaring GOOGLE_MAPS_API_KEY as required and config schema for default_mode. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'google_maps',
-      description:
-        'Provides driving/walking/transit directions and place search via Google Maps APIs.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['maps', 'directions', 'places', 'google', 'navigation', 'external'],
-      requiredEnvVars: ['GOOGLE_MAPS_API_KEY'],
-      configSchema: {
-        default_mode: {
-          type: 'string',
-          description:
-            'Default travel mode: "driving", "walking", "bicycling", or "transit". Defaults to "driving".',
-          default: 'driving',
-        },
-      },
-    };
   }
 
   /** @returns Two tools: `get_directions` for route info and `find_place` for place discovery. */

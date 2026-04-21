@@ -8,7 +8,6 @@
 
 import { SkillBase } from '../SkillBase.js';
 import type {
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
@@ -60,12 +59,13 @@ interface WeatherApiResponse {
  * `"celsius"` (normalized to `"metric"`).
  */
 export class WeatherApiSkill extends SkillBase {
-  /**
-   * @param config - Optional configuration; supports `units` ("metric"|"imperial"|"standard").
-   */
-  constructor(config?: SkillConfig) {
-    super('weather_api', config);
-  }
+  // Python ground truth: skills/weather_api/skill.py
+  // TS declares env var as required historically; Python declares [] explicitly.
+  // Preserving TS behavior — full Python parity is out-of-scope for this PR.
+  static override SKILL_NAME = 'weather_api';
+  static override SKILL_DESCRIPTION = 'Get current weather information from WeatherAPI.com';
+  static override REQUIRED_ENV_VARS: readonly string[] = ['WEATHER_API_KEY'];
+  static override SUPPORTS_MULTIPLE_INSTANCES = false;
 
   /**
    * Validates that an API key is available either via inline config or the
@@ -105,27 +105,6 @@ export class WeatherApiSkill extends SkillBase {
           'Python SDK aliases also accepted: "celsius" → "metric", "fahrenheit" → "imperial".',
         default: 'metric',
         enum: ['metric', 'imperial', 'standard', 'celsius', 'fahrenheit'],
-      },
-    };
-  }
-
-  /** @returns Manifest declaring WEATHER_API_KEY as required and config schema for units. */
-  getManifest(): SkillManifest {
-    return {
-      name: 'weather_api',
-      description:
-        'Fetches current weather data from OpenWeatherMap for any location worldwide.',
-      version: '1.0.0',
-      author: 'SignalWire',
-      tags: ['weather', 'api', 'openweathermap', 'external'],
-      requiredEnvVars: ['WEATHER_API_KEY'],
-      configSchema: {
-        units: {
-          type: 'string',
-          description:
-            'Temperature units: "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin).',
-          default: 'metric',
-        },
       },
     };
   }

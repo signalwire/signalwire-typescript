@@ -1,0 +1,5 @@
+{
+  "text": "Baseline paragraph A. Baseline paragraph B with extra text. Baseline paragraph C with even more extra text to pad. This div's class equals \"nav\" exactly — tests whether per-token vs whole-string regex differs. Whole-string match for 'nav' would catch this; per-token would not, because 'snav' is not 'nav'.",
+  "text_length": 306,
+  "sentence_count": 4
+}

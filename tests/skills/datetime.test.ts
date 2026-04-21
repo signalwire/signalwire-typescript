@@ -63,11 +63,9 @@ describe('DateTimeSkill', () => {
   });
 
   it('should return correct manifest', () => {
-    const skill = new DateTimeSkill();
-    const manifest = skill.getManifest();
-    expect(manifest.name).toBe('datetime');
-    expect(manifest.version).toBe('1.0.0');
-    expect(manifest.description).toBeTruthy();
+    expect(DateTimeSkill.SKILL_NAME).toBe('datetime');
+    expect(DateTimeSkill.SKILL_VERSION).toBe('1.0.0');
+    expect(DateTimeSkill.SKILL_DESCRIPTION).toBeTruthy();
   });
 
   it('should execute get_current_time handler with a valid timezone', () => {
