@@ -64,6 +64,13 @@ function safeEvaluate(expr: string): number {
  *
  * Tier 1 built-in skill with no external dependencies. Only allows digits,
  * basic arithmetic operators, parentheses, decimal points, and spaces.
+ *
+ * Registers a single SWAIG tool: `calculate`.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('math');
+ * ```
  */
 export class MathSkill extends SkillBase {
   // Python ground truth: skills/math/skill.py

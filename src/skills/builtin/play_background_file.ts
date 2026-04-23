@@ -39,6 +39,15 @@ interface PreConfiguredFile {
  *    values that trigger the corresponding file playback.
  *  - Free-form `default_file_url` / `allowed_domains`: emits two tools,
  *    `play_background` (arbitrary URL) and `stop_background`.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('play_background_file', {
+ *   files: [
+ *     { key: 'hold', url: 'https://cdn.example.com/hold-music.mp3', description: 'Hold music' },
+ *   ],
+ * });
+ * ```
  */
 export class PlayBackgroundFileSkill extends SkillBase {
   // Python ground truth: skills/play_background_file/skill.py

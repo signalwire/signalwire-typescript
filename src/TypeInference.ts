@@ -30,7 +30,10 @@ export interface InferredSchema {
  * Parse function parameter names and default values from source code.
  *
  * Handles arrow functions, regular functions, and method shorthand.
- * Returns an array of { name, defaultValue? } objects.
+ *
+ * @param source - The function source text, typically from `fn.toString()`.
+ * @returns An array of `{ name, defaultValue? }` records in declaration order.
+ *   Returns an empty array if no parameter list is present.
  */
 export function parseFunctionParams(source: string): ParsedParam[] {
   // Extract the parameter list between the first set of parens
@@ -91,12 +94,19 @@ function extractParamName(expr: string): string {
 /**
  * Infer a JSON Schema from a function's parameters.
  *
- * Returns null if the function appears to be an old-style `(args, rawData)` handler.
- * Otherwise, extracts parameter names and infers types from default values:
- * - Number literals → "integer" (for integers) or "number" (for floats)
- * - String literals → "string"
- * - Boolean literals → "boolean"
- * - No default → "string" (and marked required)
+ * Extracts parameter names and infers JSON Schema types from default-value
+ * literals:
+ *
+ * - Number literals → `"integer"` (whole numbers) or `"number"` (decimals)
+ * - String literals → `"string"`
+ * - Boolean literals → `"boolean"`
+ * - No default → `"string"` (and the parameter is marked required)
+ *
+ * @param fn - The function to inspect. Arrow functions, regular functions, and
+ *   method shorthand all work.
+ * @returns An {@link InferredSchema} describing the parameters, or `null` when
+ *   the function looks like an old-style `(args, rawData)` SWAIG handler (in
+ *   which case no inference is attempted).
  */
 export function inferSchema(fn: Function): InferredSchema | null {
   const source = fn.toString();
@@ -163,8 +173,16 @@ function inferTypeFromDefault(defaultValue?: string): string {
  * Create a wrapper function that adapts a typed handler to the standard
  * `(args, rawData) => result` SWAIG handler signature.
  *
- * The wrapper extracts named parameters from the args dict and passes
- * them as positional arguments to the original function.
+ * The wrapper extracts named parameters from the args dict and passes them
+ * as positional arguments to the original function.
+ *
+ * @param fn - The typed handler whose parameters match `paramNames` in order.
+ * @param paramNames - Ordered list of parameter names extracted from `fn`,
+ *   produced by {@link inferSchema}.
+ * @param hasRawData - When `true`, the raw-data record is appended as the
+ *   final positional argument to mirror the old-style handler shape.
+ * @returns A {@link SwaigHandler} suitable for registration with
+ *   {@link AgentBase.defineTool}.
  */
 export function createTypedHandlerWrapper(
   fn: Function,

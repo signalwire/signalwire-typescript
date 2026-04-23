@@ -36,8 +36,42 @@ export interface PaymentParameter {
 /**
  * Builder for SWAIG function responses.
  *
- * Carries response text and a list of structured actions (connect, hangup, SMS, etc.).
- * Every mutating method returns `this` for fluent chaining.
+ * Carries response text (what the AI says to the caller) and a list of structured
+ * actions (connect, hangup, SMS, record, transfer, etc.) that the SignalWire platform
+ * executes after the AI speaks. Every mutating method returns `this` for fluent chaining.
+ *
+ * Return an instance (or a promise that resolves to one) from any SWAIG tool handler.
+ *
+ * @example Simple text response
+ * ```ts
+ * agent.defineTool({
+ *   name: 'say_hi',
+ *   description: 'Say hello.',
+ *   parameters: { type: 'object', properties: {} },
+ *   handler: () => new FunctionResult('Hello there!'),
+ * });
+ * ```
+ *
+ * @example Response plus a call-control action
+ * ```ts
+ * agent.defineTool({
+ *   name: 'transfer_to_sales',
+ *   description: 'Forward the caller to sales.',
+ *   parameters: { type: 'object', properties: {} },
+ *   handler: () =>
+ *     new FunctionResult('Connecting you to sales now.').connect('+15551112222'),
+ * });
+ * ```
+ *
+ * @example Chained actions
+ * ```ts
+ * new FunctionResult("Thanks, you're all set.")
+ *   .sendSms({ toNumber: '+15551234567', fromNumber: '+15559998888', body: 'Confirmation!' })
+ *   .hangup();
+ * ```
+ *
+ * @see {@link AgentBase.defineTool} — where handlers return a `FunctionResult`
+ * @see {@link DataMap} — alternative for purely data-driven (no handler) tools
  */
 export class FunctionResult {
   /** The text response returned to the AI agent. */
@@ -443,8 +477,11 @@ export class FunctionResult {
 
   /**
    * Send an SMS or MMS message from within the call flow.
-   * @param opts - SMS parameters including to/from numbers and body or media.
+   *
+   * @param opts - SMS parameters. Must include either `body` (text SMS) or
+   *   `media` (MMS) — supplying neither throws.
    * @returns This instance for chaining.
+   * @throws {Error} When neither `body` nor `media` is provided.
    */
   sendSms(opts: {
     toNumber: string;

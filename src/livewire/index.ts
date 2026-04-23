@@ -39,6 +39,10 @@ function printBanner(): void {
 // "Did You Know?" Tips
 // ---------------------------------------------------------------------------
 
+/**
+ * Rotating "Did you know?" tips printed to stderr by the LiveWire banner.
+ * Exported for tests; reorder or extend to change what's displayed.
+ */
 export const tips: string[] = [
   "SignalWire agents support DataMap tools that execute server-side — no webhook infrastructure needed. See: docs/datamap-guide.md",
   "SignalWire Contexts & Steps give you mechanical state control over conversations — no prompt engineering needed. See: docs/contexts-guide.md",
@@ -68,6 +72,12 @@ function printTip(): void {
 class NoopTracker {
   private logged = new Set<string>();
 
+  /**
+   * Log the given message the first time this key is seen.
+   *
+   * @param key - Dedup key. Subsequent calls with the same key are silent.
+   * @param message - Message to write to stderr on first occurrence.
+   */
   once(key: string, message: string): void {
     if (this.logged.has(key)) return;
     this.logged.add(key);
@@ -96,8 +106,11 @@ export { NoopTracker, globalNoop };
 
 /** Voice configuration options passed through to the SignalWire AI config. */
 export interface VoiceOptions {
+  /** TTS voice identifier (e.g. `"en-US-Standard-A"`). */
   voice: string;
+  /** TTS engine identifier (e.g. `"google"`, `"elevenlabs"`). */
   engine: string;
+  /** BCP-47 language code (e.g. `"en-US"`). */
   language: string;
 }
 
@@ -105,11 +118,15 @@ export interface VoiceOptions {
 // FunctionTool
 // ---------------------------------------------------------------------------
 
-/** A tool definition that can be registered on an Agent. */
+/** A tool definition that can be registered on an {@link Agent}. */
 export interface FunctionTool {
+  /** Tool name. Populated when the tool is attached to an `Agent.tools` map. */
   name: string;
+  /** Human-readable description shown to the LLM. */
   description: string;
+  /** JSON schema (or Zod schema passthrough) for the tool's parameters. */
   parameters?: Record<string, unknown>;
+  /** Handler invoked by the platform when the LLM calls this tool. */
   execute: (params: any, context: { ctx: RunContext }) => any;
 }
 
@@ -117,10 +134,38 @@ export interface FunctionTool {
 // Agent
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit voice.Agent -- holds instructions and tool definitions. */
+/**
+ * Mirrors a LiveKit `voice.Agent` — holds instructions and tool definitions.
+ *
+ * Pipeline options (`stt`, `tts`, `vad`, `llm`, `turnDetection`) are accepted
+ * for API parity but are **no-ops** — SignalWire's control plane handles the
+ * entire AI pipeline server-side. Set instructions and tools; everything else
+ * just logs once and continues.
+ *
+ * @example Minimal LiveKit-compatible agent
+ * ```ts
+ * import { livewire } from '@signalwire/sdk';
+ *
+ * const timeTool = livewire.tool({
+ *   description: 'Return the current time.',
+ *   execute: () => new Date().toISOString(),
+ * });
+ *
+ * const agent = new livewire.Agent({
+ *   instructions: 'You are a friendly helper.',
+ *   tools: [{ ...timeTool, name: 'time' }],
+ * });
+ *
+ * const session = new livewire.AgentSession();
+ * await session.start({ agent });
+ * ```
+ */
 export class Agent<UserData = any> {
+  /** System instructions passed through to the SignalWire AI prompt. */
   instructions: string;
+  /** Registered tools keyed by name. Mutated by {@link updateTools}. */
   tools: Record<string, FunctionTool>;
+  /** Arbitrary per-session user data passed to tool handlers via {@link RunContext.userData}. */
   userData?: UserData;
 
   /** @internal Pipeline hint stored for AgentSession mapping. */
@@ -206,6 +251,7 @@ export class Agent<UserData = any> {
   // session property
   // ------------------------------------------------------------------
 
+  /** The currently-bound {@link AgentSession}, or `undefined` until {@link AgentSession.start} is called. */
   get session(): AgentSession<UserData> | undefined {
     return this._session;
   }
@@ -218,20 +264,39 @@ export class Agent<UserData = any> {
   // Lifecycle hooks (override in subclass)
   // ------------------------------------------------------------------
 
-  /** Called when the agent enters. Override in subclass. */
+  /**
+   * Lifecycle hook called when the agent enters an active call.
+   * Override in a subclass to run setup logic — the default is a no-op.
+   */
   async onEnter(): Promise<void> {}
 
-  /** Called when the agent exits. Override in subclass. */
+  /**
+   * Lifecycle hook called when the agent exits (call ended or handoff).
+   * Override in a subclass to run teardown logic — the default is a no-op.
+   */
   async onExit(): Promise<void> {}
 
-  /** Called when the user finishes speaking. Override in subclass. */
+  /**
+   * Lifecycle hook called when the user finishes speaking.
+   * Override in a subclass to inspect / mutate the turn context before the
+   * LLM responds — the default is a no-op.
+   *
+   * @param _turnCtx - Turn context (LiveKit shape; passed through opaquely).
+   * @param _newMessage - Newly-captured user message.
+   */
   async onUserTurnCompleted(_turnCtx?: unknown, _newMessage?: unknown): Promise<void> {}
 
   // ------------------------------------------------------------------
   // Pipeline nodes -- all noop + log (SignalWire handles these)
   // ------------------------------------------------------------------
 
-  /** Noop -- SignalWire handles STT in its control plane. */
+  /**
+   * LiveKit-compatible STT node. **No-op** on SignalWire — the control plane
+   * handles speech recognition server-side.
+   *
+   * @param _audio - Audio input (ignored).
+   * @param _modelSettings - Model settings (ignored).
+   */
   async sttNode(_audio?: unknown, _modelSettings?: unknown): Promise<void> {
     globalNoop.once(
       'stt_node',
@@ -239,7 +304,14 @@ export class Agent<UserData = any> {
     );
   }
 
-  /** Noop -- SignalWire handles LLM in its control plane. */
+  /**
+   * LiveKit-compatible LLM node. **No-op** on SignalWire — the control plane
+   * handles LLM inference server-side.
+   *
+   * @param _chatCtx - Chat context (ignored).
+   * @param _tools - Tool list (ignored).
+   * @param _modelSettings - Model settings (ignored).
+   */
   async llmNode(_chatCtx?: unknown, _tools?: unknown, _modelSettings?: unknown): Promise<void> {
     globalNoop.once(
       'llm_node',
@@ -247,7 +319,13 @@ export class Agent<UserData = any> {
     );
   }
 
-  /** Noop -- SignalWire handles TTS in its control plane. */
+  /**
+   * LiveKit-compatible TTS node. **No-op** on SignalWire — the control plane
+   * handles text-to-speech server-side.
+   *
+   * @param _text - Text to synthesise (ignored).
+   * @param _modelSettings - Model settings (ignored).
+   */
   async ttsNode(_text?: unknown, _modelSettings?: unknown): Promise<void> {
     globalNoop.once(
       'tts_node',
@@ -259,12 +337,25 @@ export class Agent<UserData = any> {
   // Dynamic updates
   // ------------------------------------------------------------------
 
-  /** Update the agent's instructions mid-session. */
+  /**
+   * Update the agent's instructions mid-session.
+   *
+   * @param instructions - New system-instructions string for the agent.
+   */
   async updateInstructions(instructions: string): Promise<void> {
     this.instructions = instructions;
   }
 
-  /** Update the agent's tool list mid-session. */
+  /**
+   * Update the agent's tool list mid-session.
+   *
+   * Replaces the current tool record with one built from the given array,
+   * keyed by `tool.name`. Useful for dynamic tool injection based on
+   * conversation state.
+   *
+   * @param tools - Ordered array of {@link FunctionTool} definitions. Each
+   *   tool's `name` is used as its map key.
+   */
   async updateTools(tools: FunctionTool[]): Promise<void> {
     const record: Record<string, FunctionTool> = {};
     for (const t of tools) {
@@ -278,12 +369,24 @@ export class Agent<UserData = any> {
 // RunContext
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit RunContext -- available inside tool handlers. */
+/**
+ * Mirrors a LiveKit `RunContext` — passed to tool handlers so they can
+ * read the current session, call handle, and user data.
+ */
 export class RunContext<UserData = any> {
+  /** The owning {@link AgentSession}, when one is bound. */
   session?: AgentSession<UserData>;
+  /** Opaque speech-turn handle (LiveKit shape; passed through untouched). */
   speechHandle?: unknown;
+  /** Opaque function-call descriptor (LiveKit shape; passed through untouched). */
   functionCall?: unknown;
 
+  /**
+   * @param session - Owning session, when available.
+   * @param options - Optional pass-through values.
+   * @param options.speechHandle - Opaque LiveKit speech handle.
+   * @param options.functionCall - Opaque LiveKit function-call descriptor.
+   */
   constructor(
     session?: AgentSession<UserData>,
     options?: { speechHandle?: unknown; functionCall?: unknown },
@@ -293,6 +396,11 @@ export class RunContext<UserData = any> {
     this.functionCall = options?.functionCall;
   }
 
+  /**
+   * Per-session user data, or an empty object when no session is bound.
+   *
+   * @returns The {@link AgentSession.userData} payload cast to `UserData`.
+   */
   get userData(): UserData {
     return (this.session?.userData ?? {}) as UserData;
   }
@@ -302,7 +410,13 @@ export class RunContext<UserData = any> {
 // AgentSession
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit AgentSession -- binds an Agent to SignalWire. */
+/**
+ * Mirrors a LiveKit `AgentSession` — binds an {@link Agent} to SignalWire.
+ *
+ * Call {@link AgentSession.start} with an `Agent` to construct an internal
+ * {@link AgentBase} and begin serving SWML. Pipeline-related options are
+ * accepted for API parity but are no-ops server-side.
+ */
 export class AgentSession<UserData = any> {
   private _llm: any;
   private _tools: FunctionTool[];
@@ -383,7 +497,20 @@ export class AgentSession<UserData = any> {
     }
   }
 
-  /** Start the session by binding the agent to a SignalWire AgentBase. */
+  /**
+   * Start the session by binding the agent to a freshly-constructed
+   * {@link AgentBase}, mapping LiveKit-style options onto SignalWire AI params.
+   *
+   * Must be called before any other method on this session. The underlying
+   * `AgentBase` is not started here — use {@link runApp} or an `AgentServer`
+   * to serve it.
+   *
+   * @param params - Start parameters.
+   * @param params.agent - The {@link Agent} to bind.
+   * @param params.room - LiveKit room placeholder; ignored on SignalWire.
+   * @param params.record - Call-recording flag placeholder; ignored on SignalWire.
+   * @returns Resolves once the underlying `AgentBase` has been built.
+   */
   async start(params: { agent: Agent<UserData>; room?: any; record?: boolean }): Promise<void> {
     this._agent = params.agent;
     params.agent.session = this;
@@ -463,7 +590,15 @@ export class AgentSession<UserData = any> {
     this._swAgent = swAgent;
   }
 
-  /** Queue text to be spoken by the agent. */
+  /**
+   * Queue text to be spoken by the agent.
+   *
+   * Before {@link start} is called, text is buffered and injected at start
+   * time as the agent's initial greeting. After start, text is added as an
+   * additional prompt section.
+   *
+   * @param text - Line for the agent to speak.
+   */
   say(text: string): void {
     // If the session is already started, inject directly into the SWML flow.
     // Otherwise queue the text so it is replayed when start() is called.
@@ -474,19 +609,35 @@ export class AgentSession<UserData = any> {
     }
   }
 
-  /** Trigger the agent to generate a reply, optionally with extra instructions. */
+  /**
+   * Trigger the agent to generate a reply, optionally with extra instructions.
+   *
+   * @param options - Generation options.
+   * @param options.instructions - Extra instructions injected as a new prompt
+   *   section before the next LLM turn.
+   */
   generateReply(options?: { instructions?: string }): void {
     if (options?.instructions && this._swAgent) {
       this._swAgent.promptAddSection('Initial Greeting', { body: options.instructions });
     }
   }
 
-  /** Interrupt current speech -- noop on SignalWire (barge-in is automatic). */
+  /**
+   * Interrupt current speech. **No-op** on SignalWire — barge-in is handled
+   * automatically by the control plane.
+   */
   interrupt(): void {
     this.noop.once('interrupt', "Interrupt(): SignalWire handles barge-in automatically via its control plane");
   }
 
-  /** Update the agent bound to this session. */
+  /**
+   * Swap the {@link Agent} bound to this session.
+   *
+   * Preserves the underlying `AgentBase` but replaces its prompt with the new
+   * agent's instructions.
+   *
+   * @param agent - Replacement agent.
+   */
   updateAgent(agent: Agent<UserData>): void {
     this._agent = agent;
     agent.session = this;
@@ -495,6 +646,7 @@ export class AgentSession<UserData = any> {
     }
   }
 
+  /** Current per-session user data. Set by the constructor or via the setter. */
   get userData(): UserData {
     return this._userData;
   }
@@ -503,12 +655,17 @@ export class AgentSession<UserData = any> {
     this._userData = val;
   }
 
-  /** Conversation history entries. */
+  /** Conversation history entries captured over the session's lifetime. */
   get history(): Array<Record<string, string>> {
     return this._history;
   }
 
-  /** Return the underlying SignalWire AgentBase (for testing / advanced use). */
+  /**
+   * Return the underlying SignalWire {@link AgentBase}. Useful for tests and
+   * advanced use cases that need to reach past the LiveKit facade.
+   *
+   * @returns The wrapped `AgentBase`, or `undefined` before {@link start}.
+   */
   getSwAgent(): AgentBase | undefined {
     return this._swAgent;
   }
@@ -519,9 +676,17 @@ export class AgentSession<UserData = any> {
 // ---------------------------------------------------------------------------
 
 /**
- * Create a tool definition -- mirrors llm.tool() from @livekit/agents-js.
- * Accepts a description, optional parameters (Zod or JSON schema), and an
- * execute function.
+ * Create a tool definition — mirrors `llm.tool()` from `@livekit/agents-js`.
+ *
+ * The returned tool has an empty `name` — the caller assigns it when the tool
+ * is attached to an agent's tools map (see the {@link Agent} example).
+ *
+ * @typeParam P - Parameter type passed into `execute`.
+ * @param options - Tool configuration.
+ * @param options.description - Human-readable tool description exposed to the LLM.
+ * @param options.parameters - JSON Schema or Zod schema describing the tool's inputs.
+ * @param options.execute - Handler invoked when the LLM calls the tool.
+ * @returns A {@link FunctionTool} ready to be attached to an agent.
  */
 export function tool<P = any>(options: {
   description: string;
@@ -552,7 +717,15 @@ export function tool<P = any>(options: {
 // handoff()
 // ---------------------------------------------------------------------------
 
-/** Create an AgentHandoff descriptor for multi-agent scenarios. */
+/**
+ * Create an {@link AgentHandoff} descriptor for multi-agent scenarios.
+ *
+ * @param options - Handoff parameters.
+ * @param options.agent - Agent to transfer control to.
+ * @param options.returns - Optional string returned to the current agent when
+ *   the handoff completes.
+ * @returns A handoff descriptor that can be returned from a tool handler.
+ */
 export function handoff(options: { agent: Agent; returns?: string }): AgentHandoff {
   const h = new AgentHandoff();
   h.agent = options.agent;
@@ -566,12 +739,17 @@ export function handoff(options: { agent: Agent; returns?: string }): AgentHando
 
 /** Signals a handoff to another agent in multi-agent scenarios. */
 export class AgentHandoff {
+  /** Target agent that should take over the conversation. */
   agent!: Agent;
+  /** Optional return value surfaced when the handoff completes. */
   returns?: string;
 }
 
 /** Signals that a tool should not trigger another LLM reply. */
 export class StopResponse extends Error {
+  /**
+   * @param message - Optional error message. Defaults to `"StopResponse"`.
+   */
   constructor(message?: string) {
     super(message ?? 'StopResponse');
     this.name = 'StopResponse';
@@ -580,6 +758,9 @@ export class StopResponse extends Error {
 
 /** Error thrown from a tool to signal failure back to the LLM. */
 export class ToolError extends Error {
+  /**
+   * @param message - Error message surfaced to the LLM.
+   */
   constructor(message: string) {
     super(message);
     this.name = 'ToolError';
@@ -590,8 +771,14 @@ export class ToolError extends Error {
 // JobProcess
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit JobProcess -- used for prewarm/setup. */
+/**
+ * Mirrors a LiveKit `JobProcess` — placeholder for prewarm / setup hooks.
+ *
+ * On SignalWire the control plane pre-warms infrastructure at scale, so this
+ * class carries no real state beyond the LiveKit-compatible `userData` bag.
+ */
 export class JobProcess {
+  /** Mutable bag shared across prewarm and entry-point callbacks. */
   userData: Record<string, any> = {};
 }
 
@@ -599,8 +786,14 @@ export class JobProcess {
 // Room
 // ---------------------------------------------------------------------------
 
-/** Stub -- SignalWire doesn't use the LiveKit room abstraction. */
+/**
+ * Stub `Room` — SignalWire does not use the LiveKit room abstraction.
+ *
+ * Present purely for API parity so LiveKit-shaped code compiles; its only
+ * meaningful attribute is the constant name.
+ */
 export class Room {
+  /** Always `"livewire-room"` — SignalWire has no per-call room identity. */
   readonly name: string = 'livewire-room';
 }
 
@@ -608,9 +801,14 @@ export class Room {
 // JobContext
 // ---------------------------------------------------------------------------
 
-/** Mirrors a LiveKit JobContext -- provides room and connection info. */
+/**
+ * Mirrors a LiveKit `JobContext` — provides room and connection info to the
+ * entry-point callback registered via {@link defineAgent}.
+ */
 export class JobContext {
+  /** Placeholder {@link Room} (see class docs). */
   room: Room;
+  /** Shared {@link JobProcess} instance for prewarm-to-entry data passing. */
   proc: JobProcess;
   /** @internal */
   _swAgent?: AgentBase;
@@ -620,7 +818,12 @@ export class JobContext {
     this.proc = new JobProcess();
   }
 
-  /** Connect is a noop on SignalWire -- the platform handles connection lifecycle. */
+  /**
+   * Connect to the platform. **No-op** on SignalWire — the control plane
+   * manages connection lifecycle automatically.
+   *
+   * @returns Resolves immediately.
+   */
   async connect(): Promise<void> {
     globalNoop.once(
       'connect',
@@ -628,7 +831,15 @@ export class JobContext {
     );
   }
 
-  /** Wait for a participant -- noop on SignalWire. */
+  /**
+   * Wait for a participant to join. **No-op** on SignalWire — returns an
+   * immediate stub participant.
+   *
+   * @param options - Participant match options.
+   * @param options.identity - Requested identity; echoed back in the stub.
+   *   Defaults to `"caller"`.
+   * @returns A stub participant `{ identity }` record.
+   */
   async waitForParticipant(options?: { identity?: string }): Promise<any> {
     return { identity: options?.identity ?? 'caller' };
   }
@@ -639,8 +850,17 @@ export class JobContext {
 // ---------------------------------------------------------------------------
 
 /**
- * Mirrors @livekit/agents defineAgent().
- * Wraps an entry function (and optional prewarm) for later execution by runApp.
+ * Mirrors `@livekit/agents.defineAgent()`.
+ *
+ * Packages an entry function (plus an optional prewarm hook) for later
+ * execution by {@link runApp}. Pass-through — no side effects.
+ *
+ * @param agent - Entry and (optional) prewarm functions.
+ * @param agent.entry - Main callback invoked with a {@link JobContext} when
+ *   the agent runs.
+ * @param agent.prewarm - Optional prewarm callback invoked with a
+ *   {@link JobProcess} before `entry`.
+ * @returns The same record (pass-through), typed consistently.
  */
 export function defineAgent(agent: {
   entry: (ctx: JobContext) => Promise<void>;
@@ -654,14 +874,20 @@ export function defineAgent(agent: {
 // ---------------------------------------------------------------------------
 
 /**
- * Mirrors cli.runApp() from @livekit/agents-js.
+ * Mirrors `cli.runApp()` from `@livekit/agents-js`.
  *
  * 1. Prints the LiveWire banner
- * 2. Prints a random tip
- * 3. Creates a SignalWire AgentBase from the LiveKit-style config
- * 4. Calls the entry function with a fake JobContext
- * 5. Maps tools from llm.tool() format to SignalWire defineTool format
- * 6. Starts the agent with agent.run()
+ * 2. Runs the registered prewarm callback (if any) with a fresh {@link JobProcess}
+ * 3. Creates a fresh {@link JobContext}
+ * 4. Prints a random tip
+ * 5. Invokes the entry function with the context
+ * 6. Starts the underlying SignalWire `AgentBase` once the entry function
+ *    binds one (via an `AgentSession.start()` call)
+ *
+ * Accepts either an object `{ entry, prewarm? }`, a bare entry function, or
+ * an {@link AgentServer} instance.
+ *
+ * @param options - Agent descriptor, entry function, or `AgentServer`.
  */
 export function runApp(options: any): void {
   printBanner();
@@ -708,13 +934,25 @@ export function runApp(options: any): void {
 // WorkerOptions / ServerOptions
 // ---------------------------------------------------------------------------
 
-/** Stub for LiveKit WorkerOptions. */
+/**
+ * Stub class mirroring LiveKit's `WorkerOptions`.
+ *
+ * Accepts any configuration for source-compatibility with LiveKit code;
+ * SignalWire ignores these settings.
+ */
 export class WorkerOptions {
+  /** @param _opts - LiveKit-shaped worker options (ignored). */
   constructor(_opts?: any) {}
 }
 
-/** Stub for LiveKit ServerOptions. */
+/**
+ * Stub class mirroring LiveKit's `ServerOptions`.
+ *
+ * Accepts any configuration for source-compatibility with LiveKit code;
+ * SignalWire ignores these settings.
+ */
 export class ServerOptions {
+  /** @param _opts - LiveKit-shaped server options (ignored). */
   constructor(_opts?: any) {}
 }
 
@@ -823,9 +1061,17 @@ export class AgentServer {
 // Plugin stubs
 // ---------------------------------------------------------------------------
 
-/** Stub providers matching common LiveKit plugin packages. */
+/**
+ * Stub providers matching common LiveKit plugin packages.
+ *
+ * None of these do anything — they exist so LiveKit code that imports and
+ * constructs these classes still compiles and runs under SignalWire. The
+ * first construction of each logs an advisory to stderr.
+ */
 export namespace plugins {
+  /** LiveKit Deepgram-STT plugin stub. No-op on SignalWire. */
   export class DeepgramSTT {
+    /** @param _opts - Deepgram options (ignored). */
     constructor(_opts?: any) {
       globalNoop.once(
         'stt_plugin',
@@ -834,8 +1080,16 @@ export namespace plugins {
     }
   }
 
+  /**
+   * LiveKit OpenAI-LLM plugin stub.
+   *
+   * The `model` string is captured and mapped to the SignalWire AI `model`
+   * param by {@link AgentSession.start}. Other options are ignored.
+   */
   export class OpenAILLM {
+    /** Model identifier captured from the constructor options. */
     model: string;
+    /** @param _opts - OpenAI options. `_opts.model` is captured; everything else ignored. */
     constructor(_opts?: any) {
       this.model = ((_opts as any)?.model as string) ?? '';
       globalNoop.once(
@@ -845,7 +1099,9 @@ export namespace plugins {
     }
   }
 
+  /** LiveKit Cartesia-TTS plugin stub. No-op on SignalWire. */
   export class CartesiaTTS {
+    /** @param _opts - Cartesia options (ignored). */
     constructor(_opts?: any) {
       globalNoop.once(
         'cartesia_tts',
@@ -854,7 +1110,9 @@ export namespace plugins {
     }
   }
 
+  /** LiveKit ElevenLabs-TTS plugin stub. No-op on SignalWire. */
   export class ElevenLabsTTS {
+    /** @param _opts - ElevenLabs options (ignored). */
     constructor(_opts?: any) {
       globalNoop.once(
         'elevenlabs_tts',
@@ -863,9 +1121,19 @@ export namespace plugins {
     }
   }
 
+  /** LiveKit Silero-VAD plugin stub. No-op on SignalWire. */
   export class SileroVAD {
+    /** @param _opts - Silero VAD options (ignored). */
     constructor(_opts?: Record<string, unknown>) {}
 
+    /**
+     * Load a Silero VAD model.
+     *
+     * **No-op** on SignalWire — returns a fresh stub instance and emits a
+     * one-time advisory to stderr.
+     *
+     * @returns A new `SileroVAD` stub.
+     */
     static load(): SileroVAD {
       globalNoop.once(
         'vad_plugin',
@@ -880,10 +1148,22 @@ export namespace plugins {
 // Inference module stubs
 // ---------------------------------------------------------------------------
 
-/** Stub inference types matching LiveKit's inference namespace. */
+/**
+ * Stub inference types matching LiveKit's `inference` namespace.
+ *
+ * None of these run inference on the client — SignalWire performs STT / LLM /
+ * TTS in its control plane. These classes exist so LiveKit code that imports
+ * and instantiates them still compiles.
+ */
 export namespace inference {
+  /** LiveKit inference-STT stub. Captures the model name; runs no inference locally. */
   export class STT {
+    /** Model identifier captured from the constructor. */
     model: string;
+    /**
+     * @param model - Model identifier (captured).
+     * @param _opts - Additional options (ignored).
+     */
     constructor(model: string = '', _opts?: any) {
       this.model = model;
       globalNoop.once(
@@ -893,15 +1173,27 @@ export namespace inference {
     }
   }
 
+  /** LiveKit inference-LLM stub. Captures the model name; runs no inference locally. */
   export class LLM {
+    /** Model identifier captured from the constructor. */
     model: string;
+    /**
+     * @param model - Model identifier (captured).
+     * @param _opts - Additional options (ignored).
+     */
     constructor(model: string = '', _opts?: any) {
       this.model = model;
     }
   }
 
+  /** LiveKit inference-TTS stub. Captures the model name; runs no inference locally. */
   export class TTS {
+    /** Model identifier captured from the constructor. */
     model: string;
+    /**
+     * @param model - Model identifier (captured).
+     * @param _opts - Additional options (ignored).
+     */
     constructor(model: string = '', _opts?: any) {
       this.model = model;
       globalNoop.once(
@@ -923,10 +1215,20 @@ export const voice = {
   AgentSessionEventTypes: {} as Record<string, string>,
 };
 
-/** Minimal ChatContext matching livekit ChatContext. */
+/** Minimal `ChatContext` matching LiveKit's `ChatContext`. */
 export class ChatContext {
+  /** Ordered chat messages, each `{ role, content }`. */
   messages: Array<Record<string, string>> = [];
 
+  /**
+   * Append a chat message.
+   *
+   * @param options - Message content.
+   * @param options.role - Speaker role (`"user"`, `"assistant"`, or `"system"`).
+   *   Defaults to `"user"`.
+   * @param options.text - Message text. Defaults to `""`.
+   * @returns This instance for chaining.
+   */
   append(options: { role?: string; text?: string }): this {
     this.messages.push({ role: options.role ?? 'user', content: options.text ?? '' });
     return this;

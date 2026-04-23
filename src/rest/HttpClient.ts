@@ -13,11 +13,27 @@ import type { HttpClientOptions, QueryParams } from './types.js';
 
 const logger = getLogger('rest_client');
 
+/**
+ * Low-level HTTP client used by every REST namespace resource.
+ *
+ * Handles Basic Auth, JSON encoding/decoding, and error normalisation
+ * ({@link RestError} on non-2xx). Normally you do not instantiate this
+ * directly — construct a {@link RestClient} instead.
+ */
 export class HttpClient {
+  /** Fully-qualified base URL (no trailing slash). */
   readonly baseUrl: string;
   private readonly _authHeader: string;
   private readonly _fetch: typeof globalThis.fetch;
 
+  /**
+   * Build a new HTTP client.
+   *
+   * @param options - Connection options. Either `host` (bare hostname;
+   *   `https://` is prepended automatically) or `baseUrl` (fully-qualified)
+   *   must be provided along with `project` + `token`.
+   * @throws {Error} When neither `host` nor `baseUrl` is supplied.
+   */
   constructor(options: HttpClientOptions) {
     if (!options.host && !options.baseUrl) {
       throw new Error('HttpClientOptions requires either "host" or "baseUrl".');
@@ -81,22 +97,67 @@ export class HttpClient {
     return JSON.parse(text) as T;
   }
 
+  /**
+   * Perform an authenticated HTTP GET and return the parsed JSON response.
+   *
+   * @typeParam T - Expected response body type.
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param params - Optional query parameters; `undefined` values are skipped.
+   * @returns The parsed JSON body, or `{}` on `204 No Content`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async get<T = any>(path: string, params?: QueryParams): Promise<T> {
     return this._request<T>('GET', path, undefined, params);
   }
 
+  /**
+   * Perform an authenticated HTTP POST and return the parsed JSON response.
+   *
+   * @typeParam T - Expected response body type.
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param body - JSON-serialisable request body. Omit to send no body.
+   * @param params - Optional query parameters appended to the URL.
+   * @returns The parsed JSON body, or `{}` on `204 No Content`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async post<T = any>(path: string, body?: any, params?: QueryParams): Promise<T> {
     return this._request<T>('POST', path, body, params);
   }
 
+  /**
+   * Perform an authenticated HTTP PUT and return the parsed JSON response.
+   *
+   * @typeParam T - Expected response body type.
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param body - JSON-serialisable request body.
+   * @returns The parsed JSON body, or `{}` on `204 No Content`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async put<T = any>(path: string, body?: any): Promise<T> {
     return this._request<T>('PUT', path, body);
   }
 
+  /**
+   * Perform an authenticated HTTP PATCH and return the parsed JSON response.
+   *
+   * @typeParam T - Expected response body type.
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param body - JSON-serialisable partial request body.
+   * @returns The parsed JSON body, or `{}` on `204 No Content`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async patch<T = any>(path: string, body?: any): Promise<T> {
     return this._request<T>('PATCH', path, body);
   }
 
+  /**
+   * Perform an authenticated HTTP DELETE and return the parsed JSON response.
+   *
+   * @typeParam T - Expected response body type.
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @returns The parsed JSON body, or `{}` on `204 No Content`.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async delete<T = any>(path: string): Promise<T> {
     return this._request<T>('DELETE', path);
   }

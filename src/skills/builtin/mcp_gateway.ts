@@ -49,6 +49,14 @@ interface McpToolDefinition {
  * services, enumerates each service's tools, and registers them as SWAIG
  * tools prefixed with `tool_prefix` (default `mcp_`). A hidden hangup hook
  * tool cleans up MCP sessions when the call ends.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('mcp_gateway', {
+ *   gateway_url: 'https://mcp-gateway.example.com',
+ *   tool_prefix: 'mcp_',
+ * });
+ * ```
  */
 export class McpGatewaySkill extends SkillBase {
   // Python ground truth: skills/mcp_gateway/skill.py:~70-76

@@ -33,6 +33,14 @@ const DEFAULT_NO_RESULTS_MESSAGE =
  * executes directly, without a webhook endpoint. Supports `document_id`,
  * `count`, `distance`, `tags`, `language`, `pos_to_expand`, `max_synonyms`,
  * and `no_results_message` config options.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('datasphere_serverless', {
+ *   document_id: 'doc_abc123',
+ *   count: 3,
+ * });
+ * ```
  */
 export class DataSphereServerlessSkill extends SkillBase {
   // Python ground truth: skills/datasphere_serverless/skill.py:20-28

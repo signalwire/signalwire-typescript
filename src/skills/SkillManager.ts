@@ -60,12 +60,16 @@ export class SkillManager {
    * Add a skill to the manager, validating env vars and calling setup().
    * Uses the skill's instance key for deduplication.
    *
-   * Throws on duplicate (when multi-instance is disallowed), missing env vars,
-   * or setup errors. {@link loadSkill} / {@link loadSkillByName} wrap this and
-   * catch to return `[false, msg]`, matching Python `load_skill`'s return
-   * contract (`skill_manager.py` lines 114-118).
+   * {@link loadSkill} / {@link loadSkillByName} wrap this and catch to return
+   * `[false, msg]`, matching Python `load_skill`'s return contract
+   * (`skill_manager.py` lines 114-118).
    *
    * @param skill - The skill instance to add.
+   * @returns Resolves once the skill is registered.
+   * @throws {Error} When a single-instance skill is already loaded, its
+   *   required environment variables are missing, its parameter schema is
+   *   empty, its required packages cannot be imported, or `setup()` returns
+   *   `false`.
    */
   async addSkill(skill: SkillBase): Promise<void> {
     const name = skill.skillName;

@@ -1,8 +1,60 @@
 /**
- * SignalWire AI Agents SDK for TypeScript
+ * SignalWire AI Agents SDK for TypeScript / Node.js.
  *
- * Build AI voice agents as HTTP microservices that serve SWML documents
- * and handle SWAIG function callbacks.
+ * Build AI voice agents as HTTP microservices that serve
+ * [SWML](https://developer.signalwire.com/sdks/reference/swml/) documents
+ * and handle SWAIG function callbacks from the SignalWire platform.
+ *
+ * @example Minimal agent
+ * ```ts
+ * import { AgentBase, FunctionResult } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'simple', route: '/' });
+ *
+ * agent.setPromptText("You are a helpful assistant.");
+ *
+ * agent.defineTool({
+ *   name: 'get_time',
+ *   description: 'Return the current server time.',
+ *   parameters: { type: 'object', properties: {} },
+ *   handler: () => new FunctionResult(`Time is ${new Date().toISOString()}`),
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
+ *
+ * @example Pre-built agent (prefab)
+ * ```ts
+ * import { ReceptionistAgent } from '@signalwire/sdk';
+ *
+ * const receptionist = new ReceptionistAgent({
+ *   name: 'front-desk',
+ *   departments: [
+ *     { name: 'sales', description: 'New customers', number: '+15551112222' },
+ *     { name: 'support', description: 'Existing customers', number: '+15553334444' },
+ *   ],
+ * });
+ *
+ * await receptionist.serve({ port: 3000 });
+ * ```
+ *
+ * @example REST API client
+ * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ *
+ * const client = new RestClient(); // reads SIGNALWIRE_* env vars
+ * const calls = await client.compat.calls.list();
+ * ```
+ *
+ * @see {@link AgentBase} — core agent class
+ * @see {@link FunctionResult} — fluent builder for SWAIG tool responses
+ * @see {@link ContextBuilder} — multi-step conversation workflows
+ * @see {@link DataMap} — server-side tools (no webhook infrastructure required)
+ * @see {@link SkillBase} — base class for writing custom skills
+ * @see {@link RelayClient} — real-time WebSocket call/message control
+ * @see {@link RestClient} — typed HTTP access to SignalWire platform APIs
+ *
+ * @packageDocumentation
  */
 
 // Core agent
@@ -140,8 +192,18 @@ import type { AgentBase as _AgentBase } from './AgentBase.js';
  *
  * Equivalent to Python's `start_agent(agent)`. Delegates to `agent.serve(options)`.
  *
- * @param agent   The AgentBase instance to start.
- * @param options Optional host/port overrides.
+ * @param agent - The {@link AgentBase} instance to start.
+ * @param options - Optional host / port overrides. When omitted, values come
+ *   from the agent's constructor options or the `PORT` environment variable.
+ * @returns Resolves once the HTTP server has begun listening.
+ *
+ * @example
+ * ```ts
+ * import { AgentBase, startAgent } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'demo' });
+ * await startAgent(agent, { port: 3000 });
+ * ```
  */
 export async function startAgent(
   agent: _AgentBase,
@@ -156,8 +218,12 @@ export async function startAgent(
  * Alias for {@link startAgent} — equivalent to Python's `run_agent(agent)`.
  * Delegates to `agent.serve(options)`.
  *
- * @param agent   The AgentBase instance to run.
- * @param options Optional host/port overrides.
+ * @param agent - The {@link AgentBase} instance to run.
+ * @param options - Optional host / port overrides. When omitted, values come
+ *   from the agent's constructor options or the `PORT` environment variable.
+ * @returns Resolves once the HTTP server has begun listening.
+ *
+ * @see {@link startAgent}
  */
 export async function runAgent(
   agent: _AgentBase,

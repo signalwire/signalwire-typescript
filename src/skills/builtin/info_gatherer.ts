@@ -46,6 +46,16 @@ interface QuestionDefinition {
  * `questions` config, the same `prefix` / `completion_message` options,
  * the same two tools (`start_questions`, `submit_answer`), and the same
  * state shape in `global_data`.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('info_gatherer', {
+ *   questions: [
+ *     { key_name: 'name', question_text: 'What is your name?' },
+ *     { key_name: 'email', question_text: 'Your email?', confirm: true },
+ *   ],
+ * });
+ * ```
  */
 export class InfoGathererSkill extends SkillBase {
   // Python ground truth: skills/info_gatherer/skill.py:26-31

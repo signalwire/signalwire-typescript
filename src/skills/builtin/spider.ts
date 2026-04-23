@@ -56,6 +56,11 @@ const STRIP_TAG_REGEXES: RegExp[] = [
  * mirrors the Python schema (delay, concurrent_requests, timeout, max_pages,
  * max_depth, extract_type, max_text_length, clean_text, selectors,
  * follow_patterns, user_agent, headers, follow_robots_txt, cache_enabled).
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('spider', { max_pages: 5, max_depth: 2 });
+ * ```
  */
 export class SpiderSkill extends SkillBase {
   // Python ground truth: skills/spider/skill.py:~140-145

@@ -14,10 +14,25 @@ export class MessageLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /**
+   * List message log entries.
+   *
+   * @param params - Optional filter / pagination query parameters
+   *   (e.g. date range, direction, status).
+   * @returns A paginated list of message log entries.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /**
+   * Fetch a single message log entry by ID.
+   *
+   * @param logId - Unique identifier of the log entry.
+   * @returns The log entry record.
+   * @throws {RestError} On any non-2xx HTTP response (including `404`).
+   */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
@@ -29,14 +44,36 @@ export class VoiceLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /**
+   * List voice (call) log entries.
+   *
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of voice log entries.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /**
+   * Fetch a single voice log entry by ID.
+   *
+   * @param logId - Unique identifier of the log entry.
+   * @returns The log entry record.
+   * @throws {RestError} On any non-2xx HTTP response (including `404`).
+   */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
 
+  /**
+   * List events captured during a voice log entry.
+   *
+   * @param logId - Unique identifier of the log entry.
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of events for the log entry.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async listEvents(logId: string, params?: QueryParams): Promise<any> {
     return this._http.get(this._path(logId, 'events'), params);
   }
@@ -48,10 +85,24 @@ export class FaxLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /**
+   * List fax log entries.
+   *
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of fax log entries.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 
+  /**
+   * Fetch a single fax log entry by ID.
+   *
+   * @param logId - Unique identifier of the log entry.
+   * @returns The log entry record.
+   * @throws {RestError} On any non-2xx HTTP response (including `404`).
+   */
   async get(logId: string): Promise<any> {
     return this._http.get(this._path(logId));
   }
@@ -63,16 +114,32 @@ export class ConferenceLogs extends BaseResource {
     super(http, basePath);
   }
 
+  /**
+   * List conference log entries.
+   *
+   * @param params - Optional filter / pagination query parameters.
+   * @returns A paginated list of conference log entries.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
   async list(params?: QueryParams): Promise<any> {
     return this._http.get(this._basePath, params);
   }
 }
 
-/** Logs API namespace. */
+/**
+ * Logs API namespace.
+ *
+ * Access via `client.logs.*`. Read-only access to message, voice, fax, and
+ * conference logs for auditing and observability.
+ */
 export class LogsNamespace {
+  /** SMS/MMS message log queries. */
   readonly messages: MessageLogs;
+  /** Voice call log queries with event drill-down. */
   readonly voice: VoiceLogs;
+  /** Fax log queries. */
   readonly fax: FaxLogs;
+  /** Conference log queries. */
   readonly conferences: ConferenceLogs;
 
   constructor(http: HttpClient) {

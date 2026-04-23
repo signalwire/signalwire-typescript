@@ -18,6 +18,13 @@ import { FunctionResult } from '../../FunctionResult.js';
  *
  * Tier 1 built-in skill with no external dependencies. Supports all IANA
  * timezone identifiers via the Intl.DateTimeFormat API.
+ *
+ * Registers two SWAIG tools: `get_current_time` and `get_current_date`.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('datetime');
+ * ```
  */
 export class DateTimeSkill extends SkillBase {
   // Python ground truth: skills/datetime/skill.py

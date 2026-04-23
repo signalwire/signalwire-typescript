@@ -60,8 +60,36 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
 /**
  * Fluent builder for SWAIG data_map configurations.
  *
- * Creates server-side tool definitions that execute on SignalWire
- * without requiring webhook endpoints.
+ * Creates server-side tool definitions that execute on SignalWire's infrastructure
+ * **without** requiring a webhook endpoint in your application. Ideal for simple
+ * third-party API integrations (REST calls + pattern-matched response shaping).
+ *
+ * @example Simple webhook-driven tool (no handler needed)
+ * ```ts
+ * import { DataMap, FunctionResult } from '@signalwire/sdk';
+ *
+ * const weather = new DataMap('get_weather')
+ *   .purpose('Look up the current weather for a city')
+ *   .parameter('city', 'string', 'The city name', true)
+ *   .webhook('GET', 'https://api.example.com/weather?city=${args.city}')
+ *   .output(new FunctionResult('In ${city} it is ${response.temp}°F and ${response.condition}.'));
+ *
+ * // Register onto an agent:
+ * agent.registerSwaigFunction(weather.toSwaigFunction());
+ * ```
+ *
+ * @example Expression-based tool (no webhook, pattern matching only)
+ * ```ts
+ * new DataMap('classify_intent')
+ *   .purpose('Route callers to the right department.')
+ *   .parameter('utterance', 'string', 'What the caller said', true)
+ *   .expression('${args.utterance}', /billing|invoice|charge/i, new FunctionResult('billing'))
+ *   .expression('${args.utterance}', /tech|broken|error/i, new FunctionResult('support'));
+ * ```
+ *
+ * @see {@link FunctionResult} — response shape used in `.output()` / `.expression()`
+ * @see {@link createSimpleApiTool} — one-liner helper for REST API tools
+ * @see {@link AgentBase.defineTool} — alternative for tools that run in your process
  */
 export class DataMap {
   /** The name of the SWAIG function this data map defines. */

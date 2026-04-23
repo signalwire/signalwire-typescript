@@ -926,6 +926,33 @@ export class Context {
  *   - gather_info questions are non-empty and have unique keys
  *   - gather_info completion_action targets a reachable step
  *   - No user-defined SWAIG tool collides with a reserved native name
+ *
+ * @example Two-step support bot
+ * ```ts
+ * import { AgentBase, ContextBuilder } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'support', route: '/' });
+ *
+ * const contexts = new ContextBuilder();
+ * const flow = contexts.addContext('default');
+ *
+ * flow.addStep('greeting')
+ *   .setText("Greet the caller and ask if they're an existing customer.")
+ *   .setValidSteps(['existing', 'new']);
+ *
+ * flow.addStep('existing')
+ *   .setText('Ask for the account number and read it back to confirm.');
+ *
+ * flow.addStep('new')
+ *   .setText('Collect name, email, and reason for calling.');
+ *
+ * agent.defineContexts(contexts);
+ * ```
+ *
+ * @see {@link Context}
+ * @see {@link Step}
+ * @see {@link GatherInfo}
+ * @see {@link AgentBase.defineContexts}
  */
 export class ContextBuilder {
   private contexts: Map<string, Context> = new Map();
@@ -957,8 +984,12 @@ export class ContextBuilder {
 
   /**
    * Adds a new named context to the builder.
-   * @param name - The unique context name.
-   * @returns The newly created Context for further configuration.
+   *
+   * @param name - The unique context name. A single-context flow must name
+   *   its only context `"default"`.
+   * @returns The newly created {@link Context} for further configuration.
+   * @throws {Error} When the max-context limit is exceeded or a context with
+   *   the same name already exists.
    */
   addContext(name: string): Context {
     if (this.contexts.size >= MAX_CONTEXTS) {

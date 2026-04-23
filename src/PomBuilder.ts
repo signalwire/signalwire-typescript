@@ -201,7 +201,35 @@ export class PomSection {
   }
 }
 
-/** Builds a structured prompt by composing named POM sections, with Markdown and dict export. */
+/**
+ * Builds a structured prompt by composing named POM sections, with Markdown and dict export.
+ *
+ * The Prompt Object Model lets you assemble a large system prompt from reusable,
+ * named sections (Role, Objective, Constraints, etc.) instead of a single string.
+ * This plays well with {@link AgentBase} methods like `promptAddSection()` and
+ * `promptAddToSection()` that let user code and skills add prompt content
+ * incrementally.
+ *
+ * @example Build a structured prompt
+ * ```ts
+ * import { PomBuilder } from '@signalwire/sdk';
+ *
+ * const pom = new PomBuilder()
+ *   .addSection('Role', { body: 'You are a friendly customer service agent.' })
+ *   .addSection('Objectives', { bullets: [
+ *     'Identify the customer politely',
+ *     'Resolve their issue in under 3 turns if possible',
+ *   ]})
+ *   .addSection('Constraints', { bullets: [
+ *     'Never reveal internal tool names',
+ *   ]});
+ *
+ * const systemPrompt = pom.renderMarkdown();
+ * ```
+ *
+ * @see {@link PomSection}
+ * @see {@link AgentBase.promptAddSection}
+ */
 export class PomBuilder {
   private sections: PomSection[] = [];
   private sectionMap: Map<string, PomSection> = new Map();

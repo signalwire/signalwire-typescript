@@ -72,6 +72,11 @@ interface AnthropicErrorResponse {
  * Tier 3 built-in skill. Requires the `ANTHROPIC_API_KEY` environment variable.
  * Supports `model` and `max_tokens` config options to control which Claude model
  * is used and the maximum response length.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('ask_claude', { model: 'claude-sonnet-4-6', max_tokens: 512 });
+ * ```
  */
 export class AskClaudeSkill extends SkillBase {
   // TS-only skill (no Python equivalent).

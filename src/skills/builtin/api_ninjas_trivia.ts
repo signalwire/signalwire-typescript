@@ -50,6 +50,11 @@ const VALID_CATEGORIES = [
  *
  * Tier 2 built-in skill. Requires the `API_NINJAS_KEY` environment variable.
  * Supports optional `default_category` and `reveal_answer` config options.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('api_ninjas_trivia', { default_category: 'sciencenature' });
+ * ```
  */
 export class ApiNinjasTriviaSkill extends SkillBase {
   static override SKILL_NAME = 'api_ninjas_trivia';

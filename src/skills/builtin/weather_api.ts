@@ -57,6 +57,13 @@ interface WeatherApiResponse {
  * **Unit aliases:** For migration compatibility with the Python SDK the `units`
  * config also accepts `"fahrenheit"` (normalized to `"imperial"`) and
  * `"celsius"` (normalized to `"metric"`).
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('weather_api', { units: 'imperial' });
+ * // or pass the key explicitly:
+ * agent.addSkill('weather_api', { api_key: process.env.WEATHER_API_KEY });
+ * ```
  */
 export class WeatherApiSkill extends SkillBase {
   // Python ground truth: skills/weather_api/skill.py

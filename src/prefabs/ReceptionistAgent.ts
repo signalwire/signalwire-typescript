@@ -13,6 +13,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** A department the receptionist can route callers to. */
 export interface ReceptionistDepartment {
   /** Department identifier (e.g. `"sales"`, `"support"`). */
   name: string;
@@ -22,6 +23,7 @@ export interface ReceptionistDepartment {
   number: string;
 }
 
+/** Configuration for the {@link ReceptionistAgent}. */
 export interface ReceptionistConfig {
   /** Departments the agent can transfer callers to. */
   departments: ReceptionistDepartment[];
@@ -51,7 +53,34 @@ interface CheckInSession {
 
 // ── Agent ───────────────────────────────────────────────────────────────────
 
-/** Prefab agent that greets callers, collects basic information, and transfers them to the correct department. */
+/**
+ * Prefab agent that greets callers, collects basic information, and transfers them to the correct department.
+ *
+ * Optionally supports visitor check-in — when enabled, the agent can collect a visitor's name
+ * and purpose-of-visit and invoke a callback (e.g., notify reception via Slack, write to a
+ * database). If not transferring, the call ends after check-in.
+ *
+ * @example
+ * ```ts
+ * import { ReceptionistAgent } from '@signalwire/sdk';
+ *
+ * const agent = new ReceptionistAgent({
+ *   companyName: 'Acme Co',
+ *   greeting: 'Thanks for calling Acme! How can I direct your call?',
+ *   departments: [
+ *     { name: 'sales', description: 'New customer inquiries', number: '+15551112222' },
+ *     { name: 'support', description: 'Existing customer help', number: '+15553334444' },
+ *     { name: 'billing', description: 'Billing and payments', number: '+15555556666' },
+ *   ],
+ *   checkInEnabled: true,
+ *   onVisitorCheckIn: async (visitor) => {
+ *     await notifyFrontDesk(visitor);
+ *   },
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
+ */
 export class ReceptionistAgent extends AgentBase {
   private readonly greeting: string;
   private readonly departments: ReceptionistDepartment[];

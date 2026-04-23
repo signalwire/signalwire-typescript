@@ -12,10 +12,17 @@ import type { QueryParams } from './types.js';
 /**
  * Async generator that yields items across paginated API responses.
  *
- * @param http - HttpClient instance
- * @param path - Initial API path
- * @param params - Query parameters for the first request
- * @param dataKey - Key containing the array of items (default: "data")
+ * Handles both relay REST (`links.next`) and LAML (`next_page_uri`) pagination
+ * styles transparently.
+ *
+ * @typeParam T - Element type yielded.
+ * @param http - {@link HttpClient} instance used to fetch each page.
+ * @param path - Initial API path (absolute URL or path relative to `http.baseUrl`).
+ * @param params - Query parameters applied to the first request only.
+ *   Subsequent pages use the server-supplied next-page URL unchanged.
+ * @param dataKey - Key on each response containing the array of items.
+ *   Defaults to `"data"`.
+ * @returns An async iterable that yields one `T` per call until exhausted.
  */
 export async function* paginate<T>(
   http: HttpClient,
@@ -65,10 +72,17 @@ export async function* paginate<T>(
 /**
  * Collect all paginated items into an array.
  *
- * @param http - HttpClient instance
- * @param path - Initial API path
- * @param params - Query parameters
- * @param dataKey - Key containing the array of items (default: "data")
+ * Convenience wrapper around {@link paginate} for callers who want the full
+ * list. Beware: loads every page into memory — for very large result sets,
+ * iterate via `paginate()` directly.
+ *
+ * @typeParam T - Element type collected.
+ * @param http - {@link HttpClient} instance used to fetch each page.
+ * @param path - Initial API path.
+ * @param params - Query parameters applied to the first request.
+ * @param dataKey - Key on each response containing the array of items.
+ *   Defaults to `"data"`.
+ * @returns A flat array of every item across all pages.
  */
 export async function paginateAll<T>(
   http: HttpClient,

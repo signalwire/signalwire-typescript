@@ -63,7 +63,47 @@ const FALLBACK_QUESTIONS: InfoGathererQuestion[] = [
   { key_name: 'message', question_text: 'How can I help you today?' },
 ];
 
-/** Prefab agent that gathers caller information one question at a time. */
+/**
+ * Prefab agent that gathers caller information one question at a time.
+ *
+ * Supports two modes:
+ *
+ * - **Static** — provide `questions` at construction; the same questions are
+ *   asked on every call.
+ * - **Dynamic** — leave `questions` unset and register a callback via
+ *   `questionCallback` (or `setQuestionCallback()`); the callback decides which
+ *   questions to ask per incoming call based on query params, body, or headers.
+ *
+ * @example Static questions
+ * ```ts
+ * import { InfoGathererAgent } from '@signalwire/sdk';
+ *
+ * const agent = new InfoGathererAgent({
+ *   questions: [
+ *     { key_name: 'name', question_text: 'What is your name?' },
+ *     { key_name: 'email', question_text: 'What is your email address?', confirm: true },
+ *     { key_name: 'issue', question_text: 'How can we help?' },
+ *   ],
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
+ *
+ * @example Dynamic questions per request
+ * ```ts
+ * const agent = new InfoGathererAgent({
+ *   questionCallback: async (query) => {
+ *     if (query.intake === 'medical') {
+ *       return [
+ *         { key_name: 'dob', question_text: 'Date of birth?' },
+ *         { key_name: 'insurance_id', question_text: 'Insurance member ID?' },
+ *       ];
+ *     }
+ *     return [{ key_name: 'message', question_text: 'How can I help?' }];
+ *   },
+ * });
+ * ```
+ */
 export class InfoGathererAgent extends AgentBase {
   private staticQuestions: InfoGathererQuestion[] | null;
   private questionCallback: InfoGathererQuestionCallback | null = null;

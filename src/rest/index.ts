@@ -57,44 +57,74 @@ const logger = getLogger('rest_client');
  */
 export class RestClient {
   // Fabric API
+  /** Fabric composition — AI Agents, SWML scripts, call flows, tokens, etc. */
   readonly fabric: FabricNamespace;
 
   // Calling API
+  /** REST-based call control surface (all 37 commands as methods). */
   readonly calling: CallingNamespace;
 
   // Relay REST resources
+  /** Phone-number CRUD plus availability search. */
   readonly phoneNumbers: PhoneNumbersResource;
+  /** Relay Address CRUD. */
   readonly addresses: AddressesResource;
+  /** Call-queue CRUD plus member operations. */
   readonly queues: QueuesResource;
+  /** Recording read / delete. */
   readonly recordings: RecordingsResource;
+  /** Number-group CRUD plus membership operations. */
   readonly numberGroups: NumberGroupsResource;
+  /** Verified Caller ID CRUD plus verification flow. */
   readonly verifiedCallers: VerifiedCallersResource;
+  /** Project-level SIP profile read / update (singleton). */
   readonly sipProfile: SipProfileResource;
+  /** Carrier + CNAM phone-number lookups. */
   readonly lookup: LookupResource;
+  /** Short-code read / update. */
   readonly shortCodes: ShortCodesResource;
+  /** Import externally-hosted phone numbers. */
   readonly importedNumbers: ImportedNumbersResource;
+  /** Multi-factor authentication (SMS / voice code send + verify). */
   readonly mfa: MfaResource;
+  /** US 10DLC Campaign Registry — brands, campaigns, orders, numbers. */
   readonly registry: RegistryNamespace;
 
   // Datasphere API
+  /** Datasphere RAG — document indexing and semantic search. */
   readonly datasphere: DatasphereNamespace;
 
   // Video API
+  /** Video rooms, sessions, recordings, conferences, tokens, streams. */
   readonly video: VideoNamespace;
 
   // Logs
+  /** Read-only message / voice / fax / conference logs. */
   readonly logs: LogsNamespace;
 
   // Project management
+  /** Project-scoped API token management. */
   readonly project: ProjectNamespace;
 
   // PubSub & Chat
+  /** PubSub token issuance. */
   readonly pubsub: PubSubResource;
+  /** Chat token issuance. */
   readonly chat: ChatResource;
 
   // Compatibility (Twilio-compatible) API
+  /** Twilio-compatible LAML surface (legacy; prefer native namespaces for new work). */
   readonly compat: CompatNamespace;
 
+  /**
+   * Create a new REST client.
+   *
+   * @param options - Connection options. `project`, `token`, and `host` are
+   *   required. If any are omitted they fall back to `SIGNALWIRE_PROJECT_ID`,
+   *   `SIGNALWIRE_API_TOKEN`, and `SIGNALWIRE_SPACE` environment variables.
+   * @throws {Error} When `project`, `token`, or `host` is missing from both
+   *   the options and the environment.
+   */
   constructor(options: ClientOptions = {}) {
     const project = options.project || process.env['SIGNALWIRE_PROJECT_ID'] || '';
     const token = options.token || process.env['SIGNALWIRE_API_TOKEN'] || '';

@@ -44,7 +44,29 @@ const MIME_TYPES: Record<string, string> = {
   '.gz': 'application/gzip',
 };
 
-/** Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes. */
+/**
+ * Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes.
+ *
+ * Use `AgentServer` when one process should serve more than one agent — each with its own
+ * prompt, tools, and route. Internally, each agent's Hono router is mounted under its own
+ * path. Static assets can also be served from a configured directory.
+ *
+ * @example Host two agents on one port
+ * ```ts
+ * import { AgentServer, AgentBase } from '@signalwire/sdk';
+ *
+ * const salesAgent = new AgentBase({ name: 'sales', route: '/sales' });
+ * const supportAgent = new AgentBase({ name: 'support', route: '/support' });
+ *
+ * const server = new AgentServer({ host: '0.0.0.0', port: 3000 });
+ * server.register(salesAgent);
+ * server.register(supportAgent);
+ *
+ * await server.run();
+ * ```
+ *
+ * @see {@link AgentBase}
+ */
 export class AgentServer {
   /** Hostname the server binds to. */
   host: string;
@@ -385,10 +407,15 @@ export class AgentServer {
    *
    * This method handles server mode only. For serverless deployments
    * (AWS Lambda, Google Cloud Functions, Azure Functions), use
-   * {@link ServerlessAdapter} instead.
+   * {@link ServerlessAdapter} instead. When `SWAIG_CLI_MODE=true` is set in
+   * the environment, the call is a no-op so agent config can be inspected
+   * without starting a server.
    *
-   * @param host - Override the configured hostname.
-   * @param port - Override the configured port.
+   * @param host - Override the configured hostname. Defaults to the
+   *   constructor value.
+   * @param port - Override the configured port. Defaults to the constructor
+   *   value.
+   * @returns Resolves once the underlying Hono server has begun listening.
    */
   async run(host?: string, port?: number): Promise<void> {
     // When loaded by the CLI tool, skip server startup — only the agent config is needed.

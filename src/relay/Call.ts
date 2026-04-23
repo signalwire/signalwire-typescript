@@ -35,16 +35,48 @@ export interface RelayClientLike {
   execute(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>>;
 }
 
+/**
+ * Live RELAY call with command methods.
+ *
+ * Don't construct directly — `Call` instances are created by {@link RelayClient}
+ * for inbound calls (delivered to your `onCall` handler) and for outbound dials.
+ *
+ * Each command method (`answer()`, `play()`, `record()`, etc.) returns when the
+ * platform acknowledges the command; event-driven completion is exposed via
+ * {@link Action} objects returned from the async "play/record/..." variants.
+ *
+ * @example Inside an onCall handler
+ * ```ts
+ * client.onCall(async (call) => {
+ *   await call.answer();
+ *   const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
+ *   await play.wait();
+ *   await call.hangup();
+ * });
+ * ```
+ *
+ * @see {@link RelayClient}
+ * @see {@link Action}
+ */
 export class Call {
   /** @internal */ readonly _client: RelayClientLike;
+  /** Unique call identifier assigned by the platform. */
   callId: string;
+  /** RELAY node that owns this call. */
   nodeId: string;
+  /** SignalWire project ID. */
   projectId: string;
+  /** RELAY context this call was received on. */
   context: string;
+  /** Opaque correlation tag attached at dial time. */
   tag: string;
+  /** `"inbound"` or `"outbound"`. */
   direction: string;
+  /** Device descriptor the call is associated with (phone, SIP, etc.). */
   device: Record<string, any>;
+  /** Current call state (e.g. `"created"`, `"answered"`, `"ended"`). */
   state: string;
+  /** Call segment ID used for event correlation. */
   segmentId: string;
 
   /** @internal */ readonly _listeners: Map<string, EventHandler[]> = new Map();
@@ -103,7 +135,16 @@ export class Call {
 
   // ─── Event Plumbing ──────────────────────────────────────────────
 
-  /** Register an event listener for this call. */
+  /**
+   * Register an event listener for this call.
+   *
+   * Multiple listeners for the same event type are supported. Listener errors
+   * are logged but do not disrupt dispatch to other listeners.
+   *
+   * @param eventType - Fully-qualified event type (e.g.
+   *   `"calling.call.state"`, `"calling.call.play"`).
+   * @param handler - Callback invoked for each matching event.
+   */
   on(eventType: string, handler: EventHandler): void {
     const handlers = this._listeners.get(eventType) ?? [];
     handlers.push(handler);
@@ -147,7 +188,19 @@ export class Call {
     }
   }
 
-  /** Wait for a specific event, optionally filtered by predicate. */
+  /**
+   * Wait for a specific event, optionally filtered by predicate.
+   *
+   * Registers a one-shot listener that is removed after resolving (or after
+   * the timeout elapses). Useful for awaiting a specific state transition.
+   *
+   * @param eventType - Event type to wait for.
+   * @param predicate - Optional filter — only events for which this returns
+   *   `true` resolve the wait.
+   * @param timeout - Optional timeout in milliseconds. Omit to wait forever.
+   * @returns The first matching {@link RelayEvent}.
+   * @throws {Error} When the optional timeout elapses before a match.
+   */
   async waitFor(
     eventType: string,
     predicate?: (event: RelayEvent) => boolean,
@@ -186,7 +239,13 @@ export class Call {
     }
   }
 
-  /** Wait for the call to reach the ended state. */
+  /**
+   * Wait for the call to reach the `ended` state.
+   *
+   * @param timeout - Optional timeout in milliseconds.
+   * @returns The terminating `calling.call.state` {@link RelayEvent}.
+   * @throws {Error} When the optional timeout elapses before the call ends.
+   */
   async waitForEnded(timeout?: number): Promise<RelayEvent> {
     if (timeout != null) {
       return new Promise<RelayEvent>((resolve, reject) => {
@@ -243,24 +302,63 @@ export class Call {
 
   // ─── Call Lifecycle Methods ──────────────────────────────────────
 
-  /** Answer an inbound call. */
+  /**
+   * Answer an inbound call.
+   *
+   * @param extra - Optional additional params merged into the answer request
+   *   (e.g. SIP headers, codec hints).
+   * @returns The platform's answer response.
+   * @throws {RelayError} When the answer command is rejected.
+   */
   async answer(extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._execute('answer', extra);
   }
 
-  /** End/hang up the call. */
+  /**
+   * End / hang up the call.
+   *
+   * @param reason - Hangup reason delivered to the platform. Defaults to
+   *   `"hangup"`.
+   * @returns The platform's end response.
+   * @throws {RelayError} When the end command is rejected.
+   */
   async hangup(reason = 'hangup'): Promise<Record<string, unknown>> {
     return this._execute('end', { reason });
   }
 
-  /** Decline control of an inbound call, returning it to routing. */
+  /**
+   * Decline control of an inbound call, returning it to routing.
+   *
+   * Use instead of {@link answer} when you want the call to fall through to
+   * the next matching route rather than be handled by this client.
+   *
+   * @returns The platform's pass response.
+   * @throws {RelayError} When the pass command is rejected.
+   */
   async pass(): Promise<Record<string, unknown>> {
     return this._execute('pass');
   }
 
   // ─── Audio Playback ──────────────────────────────────────────────
 
-  /** Play audio content. Returns a PlayAction for stop/pause/resume/wait. */
+  /**
+   * Play audio content on the call.
+   *
+   * Returns immediately with a {@link PlayAction} — `await action.wait()` to
+   * block until playback finishes, or call `stop()` / `pause()` / `resume()`
+   * / `volume()` on it to control playback.
+   *
+   * @param media - Platform-shaped play items (TTS, audio URLs, silence, etc.).
+   * @param options - Optional playback controls.
+   * @param options.volume - Volume adjustment in dB.
+   * @param options.direction - `"speak"`, `"hear"`, or `"both"`.
+   * @param options.loop - Number of times to loop the playback.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when playback reaches a
+   *   terminal state.
+   * @returns A {@link PlayAction} for control and completion tracking.
+   * @throws {RelayError} When the play command is rejected.
+   */
   async play(
     media: Record<string, unknown>[],
     options: {
@@ -282,7 +380,18 @@ export class Call {
 
   // ─── Recording ───────────────────────────────────────────────────
 
-  /** Record audio from the call. Returns a RecordAction. */
+  /**
+   * Record audio from the call.
+   *
+   * @param audio - Platform-shaped audio recording options (direction, codec,
+   *   timeouts, etc.). Defaults to `{}`.
+   * @param options - Recording behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when the recording reaches a
+   *   terminal state.
+   * @returns A {@link RecordAction} for control and completion tracking.
+   * @throws {RelayError} When the record command is rejected.
+   */
   async record(
     audio?: Record<string, unknown>,
     options: {
@@ -299,7 +408,20 @@ export class Call {
 
   // ─── Input Collection ────────────────────────────────────────────
 
-  /** Play audio and collect digit/speech input. Returns a CollectAction. */
+  /**
+   * Play audio and collect digit / speech input in a single operation.
+   *
+   * Convenient for IVR prompts — playback stops as soon as input is received.
+   *
+   * @param media - Audio items to play while collecting.
+   * @param collect - Platform-shaped collect config (`digits`, `speech`, etc.).
+   * @param options - Playback and collection behaviour.
+   * @param options.volume - Playback volume adjustment in dB.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when collect completes.
+   * @returns A {@link CollectAction} for the combined play-and-collect flow.
+   * @throws {RelayError} When the play_and_collect command is rejected.
+   */
   async playAndCollect(
     media: Record<string, unknown>[],
     collect: Record<string, unknown>,
@@ -320,7 +442,22 @@ export class Call {
     return this._startAction(action, 'play_and_collect', params, options.onCompleted);
   }
 
-  /** Collect digit/speech input without playing media. Returns a StandaloneCollectAction. */
+  /**
+   * Collect digit / speech input without playing media.
+   *
+   * @param options - Collect configuration.
+   * @param options.digits - DTMF digit-collection config.
+   * @param options.speech - Speech-recognition config.
+   * @param options.initialTimeout - Seconds to wait for the first input.
+   * @param options.partialResults - Emit partial (interim) results.
+   * @param options.continuous - Keep collecting until explicitly stopped.
+   * @param options.sendStartOfInput - Emit a start-of-input event when detected.
+   * @param options.startInputTimers - Start input timers immediately.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when collect completes.
+   * @returns A {@link StandaloneCollectAction} for control and completion tracking.
+   * @throws {RelayError} When the collect command is rejected.
+   */
   async collect(options: {
     digits?: Record<string, unknown>;
     speech?: Record<string, unknown>;
@@ -347,7 +484,20 @@ export class Call {
 
   // ─── Bridging & Connectivity ─────────────────────────────────────
 
-  /** Bridge the call to one or more destinations. */
+  /**
+   * Bridge the call to one or more destinations.
+   *
+   * @param devices - Serial/parallel dial plan — outer array of serial groups,
+   *   inner arrays dialled in parallel.
+   * @param options - Connect behaviour.
+   * @param options.ringback - Ringback media played to the originating party.
+   * @param options.tag - Tag for event correlation.
+   * @param options.maxDuration - Maximum connect duration in seconds.
+   * @param options.maxPricePerMinute - Price cap per minute.
+   * @param options.statusUrl - Webhook URL for status events.
+   * @returns The platform's connect response.
+   * @throws {RelayError} When the connect command is rejected.
+   */
   async connect(
     devices: Record<string, unknown>[][],
     options: {
@@ -367,14 +517,26 @@ export class Call {
     return this._execute('connect', params);
   }
 
-  /** Disconnect (unbridge) a connected call. */
+  /**
+   * Disconnect (unbridge) a connected call.
+   *
+   * @returns The platform's disconnect response.
+   * @throws {RelayError} When the disconnect command is rejected.
+   */
   async disconnect(): Promise<Record<string, unknown>> {
     return this._execute('disconnect');
   }
 
   // ─── DTMF ────────────────────────────────────────────────────────
 
-  /** Send DTMF digits on the call. */
+  /**
+   * Send DTMF digits on the call.
+   *
+   * @param digits - The DTMF digit string to send (e.g. `"1234#"`, `"ww*9"`).
+   * @param controlId - Explicit control ID. Auto-generated when omitted.
+   * @returns The platform's send-digits response.
+   * @throws {RelayError} When the send_digits command is rejected.
+   */
   async sendDigits(digits: string, controlId?: string): Promise<Record<string, unknown>> {
     const cid = controlId ?? randomUUID();
     return this._execute('send_digits', { control_id: cid, digits });
@@ -382,7 +544,17 @@ export class Call {
 
   // ─── Detection ───────────────────────────────────────────────────
 
-  /** Start audio detection (machine, fax, digit). Returns a DetectAction. */
+  /**
+   * Start audio detection (answering machine, fax, DTMF).
+   *
+   * @param detect - Platform-shaped detect configuration.
+   * @param options - Detection behaviour.
+   * @param options.timeout - Detection timeout in seconds.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when detection completes.
+   * @returns A {@link DetectAction} for control and completion tracking.
+   * @throws {RelayError} When the detect command is rejected.
+   */
   async detect(
     detect: Record<string, unknown>,
     options: {
@@ -400,7 +572,15 @@ export class Call {
 
   // ─── SIP Refer ───────────────────────────────────────────────────
 
-  /** Transfer a SIP call via REFER. */
+  /**
+   * Transfer a SIP call via REFER.
+   *
+   * @param device - Platform-shaped SIP target device descriptor.
+   * @param options - Optional REFER behaviour.
+   * @param options.statusUrl - Webhook URL for REFER status events.
+   * @returns The platform's refer response.
+   * @throws {RelayError} When the refer command is rejected.
+   */
   async refer(
     device: Record<string, unknown>,
     options: { statusUrl?: string } = {},
@@ -412,7 +592,16 @@ export class Call {
 
   // ─── Payment ─────────────────────────────────────────────────────
 
-  /** Start a payment collection. Returns a PayAction. */
+  /**
+   * Start a PCI-compliant payment collection flow.
+   *
+   * @param paymentConnectorUrl - URL of the configured payment connector to
+   *   tokenise the card with.
+   * @param options - Payment configuration — card-type filters, prompts,
+   *   charge amount, etc. See the SignalWire pay documentation for field details.
+   * @returns A {@link PayAction} tracking the payment-collection flow.
+   * @throws {RelayError} When the pay command is rejected.
+   */
   async pay(
     paymentConnectorUrl: string,
     options: {
@@ -465,7 +654,18 @@ export class Call {
 
   // ─── Faxing ──────────────────────────────────────────────────────
 
-  /** Send a fax document. Returns a FaxAction. */
+  /**
+   * Send a fax document.
+   *
+   * @param document - URL of the document to fax (TIFF or PDF).
+   * @param options - Fax behaviour.
+   * @param options.identity - Caller identity string sent in the fax header.
+   * @param options.headerInfo - Additional fax header text.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when the fax completes.
+   * @returns A {@link FaxAction} for control and completion tracking.
+   * @throws {RelayError} When the send_fax command is rejected.
+   */
   async sendFax(
     document: string,
     options: {
@@ -483,7 +683,15 @@ export class Call {
     return this._startAction(action, 'send_fax', params, options.onCompleted);
   }
 
-  /** Receive a fax. Returns a FaxAction. */
+  /**
+   * Receive a fax and save it server-side.
+   *
+   * @param options - Fax reception behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when the fax completes.
+   * @returns A {@link FaxAction} for control and completion tracking.
+   * @throws {RelayError} When the receive_fax command is rejected.
+   */
   async receiveFax(
     options: {
       controlId?: string;
@@ -498,7 +706,17 @@ export class Call {
 
   // ─── Tap (Media Interception) ────────────────────────────────────
 
-  /** Intercept call media and stream it. Returns a TapAction. */
+  /**
+   * Intercept call media and stream it to an external destination.
+   *
+   * @param tap - Platform-shaped tap configuration (direction, codec, etc.).
+   * @param device - Destination device descriptor (WebSocket URL, etc.).
+   * @param options - Tap behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when the tap completes.
+   * @returns A {@link TapAction} for control and completion tracking.
+   * @throws {RelayError} When the tap command is rejected.
+   */
   async tap(
     tap: Record<string, unknown>,
     device: Record<string, unknown>,
@@ -515,7 +733,24 @@ export class Call {
 
   // ─── Streaming ───────────────────────────────────────────────────
 
-  /** Start streaming call audio to a WebSocket endpoint. Returns a StreamAction. */
+  /**
+   * Start streaming call audio to a WebSocket endpoint.
+   *
+   * @param url - WebSocket URL to stream audio to.
+   * @param options - Stream behaviour.
+   * @param options.name - Friendly name for the stream.
+   * @param options.codec - Audio codec (e.g. `"PCMU"`, `"PCMA"`).
+   * @param options.track - Which track to send: `"inbound"`, `"outbound"`, or
+   *   `"both"`.
+   * @param options.statusUrl - Webhook URL for stream status events.
+   * @param options.statusUrlMethod - HTTP method for `statusUrl` requests.
+   * @param options.authorizationBearerToken - Bearer token sent to the stream endpoint.
+   * @param options.customParameters - Extra parameters forwarded to the stream endpoint.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.onCompleted - Callback fired when the stream completes.
+   * @returns A {@link StreamAction} for control and completion tracking.
+   * @throws {RelayError} When the stream command is rejected.
+   */
   async stream(
     url: string,
     options: {
@@ -545,7 +780,14 @@ export class Call {
 
   // ─── Transfer ────────────────────────────────────────────────────
 
-  /** Transfer call control to another RELAY app or SWML script. */
+  /**
+   * Transfer call control to another RELAY app or SWML script.
+   *
+   * @param dest - Destination identifier (RELAY context, SWML URL, etc.).
+   * @param extra - Optional additional params merged into the transfer request.
+   * @returns The platform's transfer response.
+   * @throws {RelayError} When the transfer command is rejected.
+   */
   async transfer(dest: string, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = { dest, ...extra };
     return this._execute('transfer', params);
@@ -553,7 +795,14 @@ export class Call {
 
   // ─── Conference ──────────────────────────────────────────────────
 
-  /** Join an ad-hoc audio conference. */
+  /**
+   * Join an ad-hoc audio conference.
+   *
+   * @param name - Conference name. Participants on the same name hear each other.
+   * @param options - Conference behaviour (muting, recording, status callbacks, etc.).
+   * @returns The platform's join-conference response.
+   * @throws {RelayError} When the join_conference command is rejected.
+   */
   async joinConference(
     name: string,
     options: {
@@ -601,38 +850,74 @@ export class Call {
     return this._execute('join_conference', params);
   }
 
-  /** Leave an audio conference. */
+  /**
+   * Leave an audio conference.
+   *
+   * @param conferenceId - Identifier of the conference to leave.
+   * @param extra - Optional additional params merged into the request.
+   * @returns The platform's leave-conference response.
+   * @throws {RelayError} When the leave_conference command is rejected.
+   */
   async leaveConference(conferenceId: string, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._execute('leave_conference', { conference_id: conferenceId, ...extra });
   }
 
   // ─── Hold / Unhold ───────────────────────────────────────────────
 
-  /** Put the call on hold. */
+  /**
+   * Put the call on hold.
+   *
+   * @returns The platform's hold response.
+   * @throws {RelayError} When the hold command is rejected.
+   */
   async hold(): Promise<Record<string, unknown>> {
     return this._execute('hold');
   }
 
-  /** Release the call from hold. */
+  /**
+   * Release the call from hold.
+   *
+   * @returns The platform's unhold response.
+   * @throws {RelayError} When the unhold command is rejected.
+   */
   async unhold(): Promise<Record<string, unknown>> {
     return this._execute('unhold');
   }
 
   // ─── Denoise ─────────────────────────────────────────────────────
 
-  /** Start noise reduction on the call. */
+  /**
+   * Start noise reduction on the call.
+   *
+   * @returns The platform's denoise response.
+   * @throws {RelayError} When the denoise command is rejected.
+   */
   async denoise(): Promise<Record<string, unknown>> {
     return this._execute('denoise');
   }
 
-  /** Stop noise reduction on the call. */
+  /**
+   * Stop noise reduction on the call.
+   *
+   * @returns The platform's denoise-stop response.
+   * @throws {RelayError} When the denoise.stop command is rejected.
+   */
   async denoiseStop(): Promise<Record<string, unknown>> {
     return this._execute('denoise.stop');
   }
 
   // ─── Transcribe ──────────────────────────────────────────────────
 
-  /** Start transcribing the call. Returns a TranscribeAction. */
+  /**
+   * Start transcribing the call.
+   *
+   * @param options - Transcription behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.statusUrl - Webhook URL for transcription status events.
+   * @param options.onCompleted - Callback fired when transcription completes.
+   * @returns A {@link TranscribeAction} for control and completion tracking.
+   * @throws {RelayError} When the transcribe command is rejected.
+   */
   async transcribe(
     options: {
       controlId?: string;
@@ -649,7 +934,15 @@ export class Call {
 
   // ─── Echo ────────────────────────────────────────────────────────
 
-  /** Echo audio back to the caller (useful for testing). */
+  /**
+   * Echo audio back to the caller (useful for testing network round-trip).
+   *
+   * @param options - Echo behaviour.
+   * @param options.timeout - How long to echo, in seconds.
+   * @param options.statusUrl - Webhook URL for echo status events.
+   * @returns The platform's echo response.
+   * @throws {RelayError} When the echo command is rejected.
+   */
   async echo(options: { timeout?: number; statusUrl?: string } = {}): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
@@ -659,7 +952,19 @@ export class Call {
 
   // ─── Digit Bindings ──────────────────────────────────────────────
 
-  /** Bind a DTMF digit sequence to trigger a RELAY method. */
+  /**
+   * Bind a DTMF digit sequence to trigger a RELAY method automatically when
+   * the caller presses it.
+   *
+   * @param digits - DTMF sequence that triggers the binding (e.g. `"*9"`).
+   * @param bindMethod - RELAY method to invoke when the sequence is detected.
+   * @param options - Binding behaviour.
+   * @param options.bindParams - Params forwarded to `bindMethod` on trigger.
+   * @param options.realm - Optional realm label so bindings can be cleared in groups.
+   * @param options.maxTriggers - Maximum number of times the binding can fire.
+   * @returns The platform's bind_digit response.
+   * @throws {RelayError} When the bind_digit command is rejected.
+   */
   async bindDigit(
     digits: string,
     bindMethod: string,
@@ -679,7 +984,13 @@ export class Call {
     return this._execute('bind_digit', params);
   }
 
-  /** Clear all digit bindings, optionally filtered by realm. */
+  /**
+   * Clear all digit bindings, optionally filtered by realm.
+   *
+   * @param realm - When provided, only bindings with this realm label are cleared.
+   * @returns The platform's clear_digit_bindings response.
+   * @throws {RelayError} When the clear_digit_bindings command is rejected.
+   */
   async clearDigitBindings(realm?: string): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (realm != null) params.realm = realm;
@@ -688,12 +999,29 @@ export class Call {
 
   // ─── Live Transcribe / Translate ─────────────────────────────────
 
-  /** Start or stop live transcription on the call. */
+  /**
+   * Start or stop live transcription on the call.
+   *
+   * @param action - Platform-shaped action block (`start` or `stop` plus
+   *   configuration).
+   * @param extra - Optional additional params merged into the request.
+   * @returns The platform's live_transcribe response.
+   * @throws {RelayError} When the live_transcribe command is rejected.
+   */
   async liveTranscribe(action: Record<string, unknown>, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._execute('live_transcribe', { action, ...extra });
   }
 
-  /** Start or stop live translation on the call. */
+  /**
+   * Start or stop live translation on the call.
+   *
+   * @param action - Platform-shaped action block (`start` or `stop` plus
+   *   source/target languages).
+   * @param options - Live-translate behaviour.
+   * @param options.statusUrl - Webhook URL for translation status events.
+   * @returns The platform's live_translate response.
+   * @throws {RelayError} When the live_translate command is rejected.
+   */
   async liveTranslate(
     action: Record<string, unknown>,
     options: { statusUrl?: string } = {},
@@ -705,7 +1033,15 @@ export class Call {
 
   // ─── Room ────────────────────────────────────────────────────────
 
-  /** Join a video/audio room. */
+  /**
+   * Join a video / audio room.
+   *
+   * @param name - Room name — callers on the same name share the same room.
+   * @param options - Room behaviour.
+   * @param options.statusUrl - Webhook URL for room status events.
+   * @returns The platform's join_room response.
+   * @throws {RelayError} When the join_room command is rejected.
+   */
   async joinRoom(
     name: string,
     options: { statusUrl?: string } = {},
@@ -715,14 +1051,26 @@ export class Call {
     return this._execute('join_room', params);
   }
 
-  /** Leave the current room. */
+  /**
+   * Leave the current room.
+   *
+   * @param extra - Optional additional params merged into the request.
+   * @returns The platform's leave_room response.
+   * @throws {RelayError} When the leave_room command is rejected.
+   */
   async leaveRoom(extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._execute('leave_room', extra);
   }
 
   // ─── AI Agent ────────────────────────────────────────────────────
 
-  /** Start an AI agent session on the call. Returns an AIAction. */
+  /**
+   * Start an AI agent session on the call.
+   *
+   * @param options - AI configuration — prompts, voices, tools, languages, etc.
+   * @returns An {@link AIAction} for control and completion tracking.
+   * @throws {RelayError} When the ai command is rejected.
+   */
   async ai(options: {
     controlId?: string;
     agent?: string;
@@ -757,7 +1105,19 @@ export class Call {
     return this._startAction(action, 'ai', params, options.onCompleted);
   }
 
-  /** Connect to an Amazon Bedrock AI agent. */
+  /**
+   * Connect the call to an Amazon Bedrock AI agent.
+   *
+   * @param options - Bedrock agent configuration.
+   * @param options.prompt - Prompt to send to the Bedrock agent.
+   * @param options.SWAIG - SWAIG configuration (functions, includes, etc.).
+   * @param options.aiParams - AI engine parameters.
+   * @param options.globalData - Global-data object available to SWAIG tools.
+   * @param options.postPrompt - Post-prompt configuration.
+   * @param options.postPromptUrl - URL to POST the final summary to.
+   * @returns The platform's amazon_bedrock response.
+   * @throws {RelayError} When the amazon_bedrock command is rejected.
+   */
   async amazonBedrock(options: {
     prompt?: unknown;
     SWAIG?: Record<string, unknown>;
@@ -776,7 +1136,17 @@ export class Call {
     return this._execute('amazon_bedrock', params);
   }
 
-  /** Send a message to an active AI agent session. */
+  /**
+   * Send a message into an active AI agent session.
+   *
+   * @param options - Message parameters.
+   * @param options.messageText - Text content to inject into the conversation.
+   * @param options.role - Speaker role (`"system"`, `"user"`, or `"assistant"`).
+   * @param options.reset - Reset directives for the conversation state.
+   * @param options.globalData - Global-data updates to merge.
+   * @returns The platform's ai_message response.
+   * @throws {RelayError} When the ai_message command is rejected.
+   */
   async aiMessage(options: {
     messageText?: string;
     role?: string;
@@ -791,7 +1161,15 @@ export class Call {
     return this._execute('ai_message', params);
   }
 
-  /** Put an AI agent session on hold. */
+  /**
+   * Put the AI agent session on hold (pause turn-taking).
+   *
+   * @param options - Hold behaviour.
+   * @param options.timeout - Maximum hold duration.
+   * @param options.prompt - Prompt played to the caller during the hold.
+   * @returns The platform's ai_hold response.
+   * @throws {RelayError} When the ai_hold command is rejected.
+   */
   async aiHold(options: { timeout?: string; prompt?: string } = {}): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
@@ -799,7 +1177,14 @@ export class Call {
     return this._execute('ai_hold', Object.keys(params).length ? params : undefined);
   }
 
-  /** Resume an AI agent session from hold. */
+  /**
+   * Resume an AI agent session from hold.
+   *
+   * @param options - Unhold behaviour.
+   * @param options.prompt - Prompt played to the caller on resume.
+   * @returns The platform's ai_unhold response.
+   * @throws {RelayError} When the ai_unhold command is rejected.
+   */
   async aiUnhold(options: { prompt?: string } = {}): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.prompt != null) params.prompt = options.prompt;
@@ -808,7 +1193,14 @@ export class Call {
 
   // ─── User Events ─────────────────────────────────────────────────
 
-  /** Send a custom user-defined event. */
+  /**
+   * Emit a custom user-defined event on the call for your webhooks.
+   *
+   * @param options - Freeform event payload. Set `options.event` for the
+   *   event name and include any additional fields your webhook expects.
+   * @returns The platform's user_event response.
+   * @throws {RelayError} When the user_event command is rejected.
+   */
   async userEvent(options: { event?: string } & Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.event != null) params.event = options.event;
@@ -817,7 +1209,16 @@ export class Call {
 
   // ─── Queue ───────────────────────────────────────────────────────
 
-  /** Place the call in a queue. */
+  /**
+   * Place the call into a named queue.
+   *
+   * @param queueName - Name of the queue to enter.
+   * @param options - Queue-entry behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.statusUrl - Webhook URL for queue status events.
+   * @returns The platform's queue.enter response.
+   * @throws {RelayError} When the queue.enter command is rejected.
+   */
   async queueEnter(
     queueName: string,
     options: { controlId?: string; statusUrl?: string } = {},
@@ -831,7 +1232,17 @@ export class Call {
     return this._execute('queue.enter', params);
   }
 
-  /** Remove the call from a queue. */
+  /**
+   * Remove the call from a queue.
+   *
+   * @param queueName - Name of the queue to leave.
+   * @param options - Queue-exit behaviour.
+   * @param options.controlId - Explicit control ID. Auto-generated when omitted.
+   * @param options.queueId - Queue ID override (when multiple queues share a name).
+   * @param options.statusUrl - Webhook URL for queue status events.
+   * @returns The platform's queue.leave response.
+   * @throws {RelayError} When the queue.leave command is rejected.
+   */
   async queueLeave(
     queueName: string,
     options: { controlId?: string; queueId?: string; statusUrl?: string } = {},
@@ -848,6 +1259,11 @@ export class Call {
 
   // ─── Repr ────────────────────────────────────────────────────────
 
+  /**
+   * Return a human-readable diagnostic string.
+   *
+   * @returns `<Call id=... state=... direction=...>` — handy for log output.
+   */
   toString(): string {
     return `<Call id=${this.callId} state=${this.state} direction=${this.direction}>`;
   }

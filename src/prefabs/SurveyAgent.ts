@@ -13,6 +13,7 @@ import type { AgentOptions } from '../types.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
+/** A single survey question consumed by {@link SurveyAgent}. */
 export interface SurveyQuestion {
   /** Unique question identifier. */
   id: string;
@@ -47,6 +48,7 @@ export interface SurveyQuestion {
   points?: number | Record<string, number>;
 }
 
+/** Configuration for the {@link SurveyAgent}. */
 export interface SurveyConfig {
   /** Human-readable survey name, used in prompts and global data. */
   surveyName: string;
@@ -82,7 +84,30 @@ interface SurveySession {
 
 // ── Agent ───────────────────────────────────────────────────────────────────
 
-/** Prefab agent that conducts surveys with branching logic, answer scoring, and conditional question flow. */
+/**
+ * Prefab agent that conducts surveys with branching logic, answer scoring, and conditional question flow.
+ *
+ * Each survey question declares its response type (rating, yes/no, open text, etc.), an optional
+ * set of conditional follow-ups, and a scoring map. The agent walks the question tree, tallies a
+ * total score, and exposes the full response map at call end via `onSummary()`.
+ *
+ * @example Customer satisfaction survey
+ * ```ts
+ * import { SurveyAgent } from '@signalwire/sdk';
+ *
+ * const agent = new SurveyAgent({
+ *   surveyName: 'CSAT',
+ *   brandName: 'Acme Co',
+ *   questions: [
+ *     { id: 'q1', text: 'How satisfied were you with our service?', type: 'rating', scale: 5 },
+ *     { id: 'q2', text: 'Would you recommend us to a friend?', type: 'yesno' },
+ *     { id: 'q3', text: 'Anything else you want to share?', type: 'open' },
+ *   ],
+ * });
+ *
+ * await agent.serve({ port: 3000 });
+ * ```
+ */
 export class SurveyAgent extends AgentBase {
   /** Human-readable survey name. */
   public surveyName: string;

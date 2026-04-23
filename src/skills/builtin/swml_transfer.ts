@@ -59,6 +59,16 @@ interface TransferConfig {
  * Multi-instance capable (distinguished by `tool_name`).
  * Accepts either Python-style `transfers` config (regex → per-entry config)
  * or TypeScript-style `patterns` array of named destinations.
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('swml_transfer', {
+ *   patterns: [
+ *     { name: 'sales', pattern: /sales|pricing|buy/i, to: '+15551112222' },
+ *     { name: 'support', pattern: /help|support|broken/i, to: '+15553334444' },
+ *   ],
+ * });
+ * ```
  */
 export class SwmlTransferSkill extends SkillBase {
   // Python ground truth: skills/swml_transfer/skill.py:~60-67

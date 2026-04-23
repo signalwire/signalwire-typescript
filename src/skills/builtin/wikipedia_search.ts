@@ -46,6 +46,11 @@ interface WikipediaActionExtractsResponse {
  * Tier 3 built-in skill with no external API key required. The configured
  * `num_results` drives how many articles are aggregated; `no_results_message`
  * customizes the fallback text (supports `{query}` interpolation).
+ *
+ * @example
+ * ```ts
+ * agent.addSkill('wikipedia_search', { num_results: 2 });
+ * ```
  */
 export class WikipediaSearchSkill extends SkillBase {
   // Python ground truth: skills/wikipedia_search/skill.py:26-31

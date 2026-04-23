@@ -46,6 +46,63 @@ export type RoutingCallback = (
 /**
  * Core agent class that composes an HTTP server, prompt management, session handling,
  * SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
+ *
+ * A single `AgentBase` is one HTTP-servable voice agent:
+ *
+ * - `GET /` returns the SWML call-flow document
+ * - `POST /swaig` dispatches SWAIG function calls to registered tool handlers
+ * - `POST /post_prompt` receives the end-of-call summary and invokes {@link onSummary}
+ *
+ * Most user agents either (a) subclass `AgentBase` and override `defineTools()` / `onSummary()`
+ * or (b) use one of the {@link ./prefabs/index.js | prefab agents} (e.g. `ReceptionistAgent`).
+ *
+ * @example Subclass with a custom tool
+ * ```ts
+ * import { AgentBase, FunctionResult } from '@signalwire/sdk';
+ *
+ * class WeatherAgent extends AgentBase {
+ *   static override PROMPT_SECTIONS = [
+ *     { title: 'Role', body: 'You are a weather assistant.' },
+ *   ];
+ *
+ *   protected override defineTools(): void {
+ *     this.defineTool({
+ *       name: 'get_forecast',
+ *       description: 'Return the forecast for a city.',
+ *       parameters: {
+ *         type: 'object',
+ *         properties: { city: { type: 'string' } },
+ *         required: ['city'],
+ *       },
+ *       handler: async ({ city }) => {
+ *         const forecast = await fetchForecast(city as string);
+ *         return new FunctionResult(forecast);
+ *       },
+ *     });
+ *   }
+ * }
+ *
+ * const agent = new WeatherAgent({ name: 'weather', route: '/' });
+ * await agent.serve({ port: 3000 });
+ * ```
+ *
+ * @example Imperative usage (no subclass)
+ * ```ts
+ * const agent = new AgentBase({ name: 'hello', route: '/' });
+ * agent.setPromptText('You are a friendly greeter.');
+ * agent.defineTool({
+ *   name: 'say_hi',
+ *   description: 'Respond with a greeting.',
+ *   parameters: { type: 'object', properties: {} },
+ *   handler: () => new FunctionResult('Hello from SignalWire!'),
+ * });
+ * await agent.serve();
+ * ```
+ *
+ * @see {@link FunctionResult} — builder for tool handler responses
+ * @see {@link ContextBuilder} — multi-step conversation state machines
+ * @see {@link DataMap} — server-side tools without webhooks
+ * @see {@link AgentServer} — host multiple agents on one HTTP server
  */
 export class AgentBase {
   /** Display name of this agent. */
@@ -1495,8 +1552,24 @@ export class AgentBase {
 
   /**
    * Set a callback invoked on each SWML request to dynamically modify an ephemeral agent copy.
-   * @param cb - The dynamic configuration callback.
+   *
+   * The callback receives a clone of this agent — mutations apply only to the current
+   * request, so you can vary prompt, tools, languages, params, or global data per call
+   * without affecting the long-lived agent instance.
+   *
+   * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)` where
+   *   `agent` is the ephemeral `AgentBase` copy to mutate. May be async.
    * @returns This agent instance for chaining.
+   *
+   * @example
+   * ```ts
+   * agent.setDynamicConfigCallback((query, body, headers, agent) => {
+   *   const lang = query.lang ?? 'en';
+   *   if (lang === 'es') {
+   *     (agent as AgentBase).setPromptText('Eres un asistente útil.');
+   *   }
+   * });
+   * ```
    */
   setDynamicConfigCallback(cb: DynamicConfigCallback): this {
     this.dynamicConfigCallback = cb;
@@ -1667,8 +1740,29 @@ export class AgentBase {
 
   /**
    * Lifecycle hook called when a post-prompt summary is received. Override in subclasses.
-   * @param _summary - Parsed summary object, or null if extraction failed.
-   * @param _rawData - The full raw post-prompt payload.
+   *
+   * Invoked once at the end of a call when the AI has produced a structured summary
+   * (configured via `setPostPrompt()` / `setPostPromptJson()`). Use this hook to persist
+   * call data, notify other systems, or trigger follow-up workflows.
+   *
+   * @param _summary - Parsed summary object (JSON when the post-prompt requests
+   *   structured output), or `null` if extraction/parsing failed.
+   * @param _rawData - Full raw post-prompt payload received from the platform,
+   *   including call metadata, conversation history, and the summary text.
+   *
+   * @example
+   * ```ts
+   * class MyAgent extends AgentBase {
+   *   async onSummary(summary, rawData) {
+   *     if (!summary) return;
+   *     await db.calls.insert({
+   *       callSid: rawData.call_id,
+   *       summary,
+   *       endedAt: new Date(),
+   *     });
+   *   }
+   * }
+   * ```
    */
   onSummary(_summary: Record<string, unknown> | null, _rawData: Record<string, unknown>): void | Promise<void> {
     // Default no-op
@@ -2363,7 +2457,22 @@ export class AgentBase {
 
   /**
    * Start the HTTP server and begin listening for requests.
-   * @returns A promise that resolves once the server is running.
+   *
+   * Uses `@hono/node-server` under the hood. When run in CLI mode
+   * (`SWAIG_CLI_MODE=true`, set automatically by `npx swaig-test`), this is a
+   * no-op so agent config can be inspected without starting a server.
+   *
+   * @param opts - Optional host/port overrides. Defaults to the values provided
+   *   in the constructor options or the `PORT` environment variable.
+   * @returns A promise that resolves once the server has begun listening.
+   *
+   * @example
+   * ```ts
+   * const agent = new AgentBase({ name: 'demo', port: 3000 });
+   * await agent.serve();
+   * // Or override at runtime:
+   * await agent.serve({ port: 8080, host: '127.0.0.1' });
+   * ```
    */
   async serve(opts?: { host?: string; port?: number }): Promise<void> {
     // When loaded by the CLI tool, skip server startup — only the agent config is needed.
