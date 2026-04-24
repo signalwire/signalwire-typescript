@@ -16,6 +16,7 @@ import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SslConfig } from './SslConfig.js';
 import type { SslOptions } from './SslConfig.js';
+import { serve, type ServerHandle } from './serve.js';
 
 /** Common MIME types for static file serving. */
 const MIME_TYPES: Record<string, string> = {
@@ -136,7 +137,7 @@ export class WebService {
   private _app: Hono;
   private _basicAuth: [string, string] | null;
   private _ssl: SslConfig;
-  private _server: { close?: () => void } | null = null;
+  private _server: ServerHandle | null = null;
   private readonly log = getLogger('WebService');
 
   /** Default blocked extensions and file names (security-sensitive files). */
@@ -275,33 +276,16 @@ export class WebService {
       this.log.info('SSL: Enabled');
     }
 
-    const { serve } = await import('@hono/node-server');
-
-    if (useHttps) {
-      const serverOpts = effectiveSsl.getServerOptions();
-      if (serverOpts) {
-        const https = await import('node:https');
-        const server = serve({
-          fetch: this._app.fetch,
-          port: p,
-          hostname: h,
-          createServer: https.createServer,
-          serverOptions: serverOpts,
-        });
-        this._server = server as unknown as { close?: () => void };
-      }
-    } else {
-      const server = serve({ fetch: this._app.fetch, port: p, hostname: h });
-      this._server = server as unknown as { close?: () => void };
-    }
+    const tls = useHttps ? effectiveSsl.getServerOptions() ?? undefined : undefined;
+    this._server = await serve({ fetch: this._app.fetch, port: p, hostname: h, tls });
   }
 
   /**
    * Stop the service and release resources.
    */
-  stop(): void {
-    if (this._server && typeof this._server.close === 'function') {
-      this._server.close();
+  async stop(): Promise<void> {
+    if (this._server) {
+      await this._server.stop();
       this._server = null;
       this.log.info('WebService stopped');
     }

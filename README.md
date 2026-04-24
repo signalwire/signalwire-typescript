@@ -169,7 +169,7 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 npm install @signalwire/sdk
 ```
 
-Requires Node.js >= 18.
+Requires Node.js >= 18. Bun is also supported as a first-class runtime — `AgentBase.serve()`, `SWMLService.run()`, and `WebService.serve()` automatically use `Bun.serve` when running under Bun.
 
 ## Documentation
 

@@ -23,6 +23,7 @@ import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
 import { ServerlessAdapter, type ServerlessEvent, type ServerlessResponse } from './ServerlessAdapter.js';
+import { serve } from './serve.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -2458,9 +2459,11 @@ export class AgentBase {
   /**
    * Start the HTTP server and begin listening for requests.
    *
-   * Uses `@hono/node-server` under the hood. When run in CLI mode
-   * (`SWAIG_CLI_MODE=true`, set automatically by `npx swaig-test`), this is a
-   * no-op so agent config can be inspected without starting a server.
+   * Uses `Bun.serve` when running under Bun and `@hono/node-server` under
+   * Node — the runtime branch is transparent to callers. When run in CLI
+   * mode (`SWAIG_CLI_MODE=true`, set automatically by `npx swaig-test`),
+   * this is a no-op so agent config can be inspected without starting a
+   * server.
    *
    * @param opts - Optional host/port overrides. Defaults to the values provided
    *   in the constructor options or the `PORT` environment variable.
@@ -2481,7 +2484,6 @@ export class AgentBase {
     const host = opts?.host ?? this.host;
     const port = opts?.port ?? this.port;
 
-    const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
     const listenUrl = `http://${host}:${port}${this.route}`;
     this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
@@ -2489,7 +2491,7 @@ export class AgentBase {
     if (this._proxyUrlBase) {
       this.log.info(`Proxy URL: ${redactUrl(this._proxyUrlBase)}`);
     }
-    honoServe({ fetch: app.fetch, port, hostname: host });
+    await serve({ fetch: app.fetch, port, hostname: host });
   }
 
   /**

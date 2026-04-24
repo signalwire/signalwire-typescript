@@ -15,7 +15,7 @@ import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
-import type { Server } from 'node:http';
+import { serve, type ServerHandle } from './serve.js';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
@@ -228,7 +228,7 @@ export class SWMLService {
 
   private swmlBuilder: SwmlBuilder;
   private _app: Hono;
-  private _server: Server | null = null;
+  private _server: ServerHandle | null = null;
   private onRequestCallback?: OnRequestCallback;
   private authCredentials?: [string, string];
   private authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
@@ -701,27 +701,20 @@ export class SWMLService {
     const effectiveSslCert = opts?.sslCert ?? this.sslCertPath;
     const effectiveSslKey = opts?.sslKey ?? this.sslKeyPath;
 
+    let tls: { cert: string; key: string } | undefined;
     if (effectiveSslEnabled && effectiveSslCert && effectiveSslKey) {
-      // HTTPS mode
       const { readFileSync } = await import('node:fs');
-      const { createServer } = await import('node:https');
-      const { getRequestListener } = await import('@hono/node-server');
-
-      const serverOpts = {
+      tls = {
         cert: readFileSync(effectiveSslCert, 'utf-8'),
         key: readFileSync(effectiveSslKey, 'utf-8'),
       };
-
-      this.log.info(`${this.name} starting on https://${h}:${p}${this.route} (SSL enabled)`);
-      const listener = getRequestListener(this._app.fetch);
-      this._server = createServer(serverOpts, listener) as unknown as Server;
-      this._server.listen(p, h);
-    } else {
-      // HTTP mode
-      const { serve } = await import('@hono/node-server');
-      this.log.info(`${this.name} starting on http://${h}:${p}${this.route}`);
-      this._server = serve({ fetch: this._app.fetch, port: p, hostname: h }) as unknown as Server;
     }
+
+    const scheme = tls ? 'https' : 'http';
+    this.log.info(
+      `${this.name} starting on ${scheme}://${h}:${p}${this.route}${tls ? ' (SSL enabled)' : ''}`,
+    );
+    this._server = await serve({ fetch: this._app.fetch, port: p, hostname: h, tls });
   }
 
   /**
@@ -737,12 +730,12 @@ export class SWMLService {
   }
 
   /**
-   * Stop the HTTP server.
+   * Stop the HTTP server and drain in-flight requests.
    * Mirrors Python's `stop()`.
    */
-  stop(): void {
+  async stop(): Promise<void> {
     if (this._server) {
-      this._server.close();
+      await this._server.stop();
       this._server = null;
     }
   }
