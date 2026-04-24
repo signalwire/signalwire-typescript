@@ -1,10 +1,14 @@
 {
   "name": "@signalwire/sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "SignalWire AI Agents SDK for TypeScript/Node.js",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "bin": {
     "swaig-test": "./dist/cli/swaig-test.js"
   },
@@ -12,6 +16,8 @@
     "generate:verbs": "npx tsx src/generateVerbTypes.ts",
     "prebuild": "npm run generate:verbs",
     "build": "tsc",
+    "postbuild": "cp src/schema.json dist/schema.json",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "tsc --watch"
