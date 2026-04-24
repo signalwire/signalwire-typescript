@@ -333,7 +333,14 @@ export class RelayClient {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const wsModule = await import('ws');
     const WS = wsModule.default ?? wsModule;
-    return new WS(uri, { maxPayload: 10 * 1024 * 1024 }) as unknown as WsLike;
+    const ws = new WS(uri, { maxPayload: 10 * 1024 * 1024 }) as unknown as WsLike;
+    // Wait for the socket to finish the handshake before the caller tries to
+    // send signalwire.connect — otherwise send() throws "readyState 0".
+    await new Promise<void>((resolve, reject) => {
+      ws.on('open', resolve);
+      ws.on('error', reject);
+    });
+    return ws;
   }
 
   private _setupWsListeners(ws: WsLike): void {
