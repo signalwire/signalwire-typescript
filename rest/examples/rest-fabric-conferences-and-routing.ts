@@ -75,18 +75,7 @@ async function main() {
     console.log(`  Resource detail: ${detail.display_name ?? 'N/A'} (${detail.type ?? 'N/A'})`);
   }
 
-  // 8. Assign a phone route to a resource (demo)
-  console.log('\nAssigning phone route (demo)...');
-  try {
-    await client.fabric.resources.assignPhoneRoute(relayId, { phone_number: '+15551234567' });
-    console.log('  Phone route assigned');
-  } catch (err) {
-    if (err instanceof RestError) {
-      console.log(`  Route assignment failed (expected in demo): ${err.statusCode}`);
-    } else throw err;
-  }
-
-  // 9. Assign a domain application (demo)
+  // 8. Assign a domain application (demo)
   console.log('\nAssigning domain application (demo)...');
   try {
     await client.fabric.resources.assignDomainApplication(relayId, { domain: 'app.example.com' });
@@ -97,7 +86,7 @@ async function main() {
     } else throw err;
   }
 
-  // 10. Generate tokens
+  // 9. Generate tokens
   console.log('\nGenerating tokens...');
   try {
     const guest = await client.fabric.tokens.createGuestToken({ resource_id: relayId });
@@ -126,7 +115,12 @@ async function main() {
     } else throw err;
   }
 
-  // 11. Clean up
+  // NOTE: To bind a phone number to a webhook / agent / flow, set
+  // call_handler on the phone number directly — see
+  // rest-bind-phone-to-swml-webhook.ts. `assignPhoneRoute` does NOT work
+  // for swml_webhook / cxml_webhook / ai_agent bindings.
+
+  // Clean up
   console.log('\nCleaning up...');
   await client.fabric.relayApplications.delete(relayId);
   console.log(`  Deleted relay application ${relayId}`);

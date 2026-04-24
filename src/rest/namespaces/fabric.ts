@@ -170,8 +170,62 @@ export class CxmlApplicationsResource extends FabricResourcePUT {
   }
 }
 
+/**
+ * Fabric webhook resource that is normally auto-materialized by the
+ * corresponding `phoneNumbers.set*Webhook` helper.
+ *
+ * Creating directly produces an orphan Fabric resource that isn't bound to
+ * any phone number — the API's binding model configures the webhook on the
+ * phone number, and the server materializes the Fabric resource as a
+ * side-effect.  `create` remains for backwards compatibility but emits a
+ * one-time deprecation warning on first call.
+ *
+ * See the porting-sdk's `phone-binding.md` for the full model.
+ */
+export class AutoMaterializedWebhookResource extends FabricResource {
+  /** Label used in the deprecation warning (subclasses override). */
+  protected _autoHelperName: string = 'phoneNumbers.set*Webhook';
+  private static _warned = new WeakSet<object>();
+
+  constructor(http: HttpClient, basePath: string) {
+    super(http, basePath);
+  }
+
+  /**
+   * @deprecated Creating a webhook Fabric resource directly produces an
+   *   orphan that is not bound to any phone number. Use the
+   *   `phoneNumbers.setSwmlWebhook` / `setCxmlWebhook` helper instead — it
+   *   updates the phone number and the server auto-materializes the
+   *   resource. Kept for backwards compatibility.
+   */
+  override async create(body: any = {}): Promise<any> {
+    if (!AutoMaterializedWebhookResource._warned.has(this)) {
+      AutoMaterializedWebhookResource._warned.add(this);
+      console.warn(
+        `[signalwire] Creating a webhook Fabric resource directly produces ` +
+        `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
+        `instead; it updates the phone number and the server auto-materializes ` +
+        `the resource. See porting-sdk's phone-binding.md.`,
+      );
+    }
+    return super.create(body);
+  }
+}
+
+/** Auto-materialized SWML webhook — normally created via `phoneNumbers.setSwmlWebhook`. */
+export class SwmlWebhooksResource extends AutoMaterializedWebhookResource {
+  protected override _autoHelperName = 'phoneNumbers.setSwmlWebhook(sid, url)';
+}
+
+/** Auto-materialized cXML webhook — normally created via `phoneNumbers.setCxmlWebhook`. */
+export class CxmlWebhooksResource extends AutoMaterializedWebhookResource {
+  protected override _autoHelperName = 'phoneNumbers.setCxmlWebhook(sid, { url })';
+}
+
 /** Generic resource operations across all fabric resource types. */
 export class GenericResources extends BaseResource {
+  private static _assignPhoneRouteWarned = new WeakSet<object>();
+
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -224,12 +278,33 @@ export class GenericResources extends BaseResource {
   /**
    * Assign a phone route to a fabric resource.
    *
+   * @deprecated For the common cases — SWML webhooks, cXML webhooks, AI
+   *   agents — this endpoint **does not work**. Bindings for those are
+   *   configured on the phone number via {@link PhoneNumbersResource.setSwmlWebhook}
+   *   / `setCxmlWebhook` / `setAiAgent`, and the Fabric resource is
+   *   auto-materialized by the server. Calling this method against
+   *   `swml_webhook`, `cxml_webhook`, or `ai_agent` resource IDs returns
+   *   `404` or `422`. The endpoint (`POST /api/fabric/resources/{id}/phone_routes`)
+   *   applies only to a narrow set of legacy resource types listed in
+   *   `rest-apis/relay-rest/openapi.yaml`. Emits a one-time deprecation
+   *   warning on first call; kept for backwards compatibility.
+   *
    * @param resourceId - Unique identifier of the resource.
-   * @param body - Phone route payload (typically `{ phone_number_id }`).
+   * @param body - Phone route payload.
    * @returns The phone-route assignment record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
   async assignPhoneRoute(resourceId: string, body: any): Promise<any> {
+    if (!GenericResources._assignPhoneRouteWarned.has(this)) {
+      GenericResources._assignPhoneRouteWarned.add(this);
+      console.warn(
+        '[signalwire] assignPhoneRoute does not bind phone numbers to ' +
+        'swml_webhook / cxml_webhook / ai_agent resources — those are ' +
+        'configured via phoneNumbers.setSwmlWebhook / setCxmlWebhook / ' +
+        'setAiAgent. This method applies only to a narrow set of legacy ' +
+        "resource types. See porting-sdk's phone-binding.md.",
+      );
+    }
     return this._http.post(this._path(resourceId, 'phone_routes'), body);
   }
 
@@ -372,14 +447,22 @@ export class FabricNamespace {
   readonly cxmlApplications: CxmlApplicationsResource;
 
   // PATCH-update resources
-  /** SWML webhook CRUD (partial-update `PATCH` semantics). */
-  readonly swmlWebhooks: FabricResource;
+  /**
+   * SWML webhook CRUD. **Auto-materialized** as a side-effect of
+   * {@link PhoneNumbersResource.setSwmlWebhook}; direct `create` produces
+   * an orphan resource and emits a deprecation warning.
+   */
+  readonly swmlWebhooks: SwmlWebhooksResource;
   /** AI Agent CRUD — the platform-managed agent registration resource. */
   readonly aiAgents: FabricResource;
   /** SIP Gateway CRUD. */
   readonly sipGateways: FabricResource;
-  /** cXML webhook CRUD. */
-  readonly cxmlWebhooks: FabricResource;
+  /**
+   * cXML webhook CRUD. **Auto-materialized** as a side-effect of
+   * {@link PhoneNumbersResource.setCxmlWebhook}; direct `create` produces
+   * an orphan resource and emits a deprecation warning.
+   */
+  readonly cxmlWebhooks: CxmlWebhooksResource;
 
   // Special resources
   /** Generic operations across all resource types (list, get, delete, phone route assignment). */
@@ -404,10 +487,13 @@ export class FabricNamespace {
     this.cxmlApplications = new CxmlApplicationsResource(http, `${base}/cxml_applications`);
 
     // PATCH-update resources
-    this.swmlWebhooks = new FabricResource(http, `${base}/swml_webhooks`);
+    // swmlWebhooks and cxmlWebhooks are normally auto-materialized by
+    // phoneNumbers.setSwmlWebhook / setCxmlWebhook. Direct create still
+    // works for backcompat but emits a deprecation warning.
+    this.swmlWebhooks = new SwmlWebhooksResource(http, `${base}/swml_webhooks`);
     this.aiAgents = new FabricResource(http, `${base}/ai_agents`);
     this.sipGateways = new FabricResource(http, `${base}/sip_gateways`);
-    this.cxmlWebhooks = new FabricResource(http, `${base}/cxml_webhooks`);
+    this.cxmlWebhooks = new CxmlWebhooksResource(http, `${base}/cxml_webhooks`);
 
     // Special resources
     this.resources = new GenericResources(http, base);

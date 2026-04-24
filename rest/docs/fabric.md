@@ -52,12 +52,12 @@ These resources use `PUT` for updates (full replacement):
 
 These resources use `PATCH` for updates (partial update):
 
-| Attribute | API Path |
-|-----------|----------|
-| `fabric.swml_webhooks` | `/api/fabric/resources/swml_webhooks` |
-| `fabric.ai_agents` | `/api/fabric/resources/ai_agents` |
-| `fabric.sip_gateways` | `/api/fabric/resources/sip_gateways` |
-| `fabric.cxml_webhooks` | `/api/fabric/resources/cxml_webhooks` |
+| Attribute | API Path | Notes |
+|-----------|----------|-------|
+| `fabric.swmlWebhooks` | `/api/fabric/resources/swml_webhooks` | **Auto-materialized.** Created as a side-effect of `phoneNumbers.setSwmlWebhook(sid, url)`. Do not create directly — see [phone-binding.md](phone-binding.md). |
+| `fabric.aiAgents` | `/api/fabric/resources/ai_agents` | Can be created directly, or bind an existing one with `phoneNumbers.setAiAgent(sid, agentId)`. |
+| `fabric.sipGateways` | `/api/fabric/resources/sip_gateways` | |
+| `fabric.cxmlWebhooks` | `/api/fabric/resources/cxml_webhooks` | **Auto-materialized** by `phoneNumbers.setCxmlWebhook(sid, { url })`. Note: this is the **cXML (Twilio-compat)** handler — despite the `laml_webhooks` wire name. |
 
 ## Call Flows -- Extra Methods
 
@@ -131,11 +131,23 @@ client.fabric.resources.delete("resource-uuid")
 # List addresses for any resource
 addresses = client.fabric.resources.list_addresses("resource-uuid")
 
-# Assign a resource to a phone route
-client.fabric.resources.assign_phone_route("resource-uuid", phone_route_id="route-uuid")
-
 # Assign a resource as a domain application handler
 client.fabric.resources.assign_domain_application("resource-uuid", domain_application_id="da-uuid")
+```
+
+### `assignPhoneRoute` — narrow-use, not for the common case
+
+This SDK exposes `client.fabric.resources.assignPhoneRoute(resourceId, ...)` which posts to `/api/fabric/resources/{id}/phone_routes`. **This does not bind a phone number to an SWML/cXML webhook or AI agent.** Those bindings are configured on the phone number (see [phone-binding.md](phone-binding.md)) and the Fabric resource is materialized automatically.
+
+`assignPhoneRoute` applies only to a few legacy resource types that accept phone-route attachment as an explicit step; which types accept it is defined by the server and visible in `rest-apis/relay-rest/openapi.yaml`. Calling it against `swml_webhook` / `cxml_webhook` / `ai_agent` returns 404 or 422. The method still posts (for backwards compatibility) but emits a one-time deprecation warning on first call.
+
+## Binding a phone number to a handler
+
+See **[phone-binding.md](phone-binding.md)** for the `PhoneCallHandler` enum, the mapping from each handler value to its auto-materialized Fabric resource, and the typed `phoneNumbers.set*` helpers. The one-liner summary:
+
+```ts
+// SWML webhook (your backend returns SWML per call)
+await client.phoneNumbers.setSwmlWebhook(pnId, 'https://example.com/swml');
 ```
 
 ## Fabric Addresses
