@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { FabricNamespace } from '../../src/rest/namespaces/fabric.js';
 import { mockClientOptions } from './helpers.js';
@@ -115,6 +116,58 @@ describe('FabricNamespace', () => {
     });
   });
 
+  describe('Auto-materialized webhook resources', () => {
+    it('swmlWebhooks.create emits deprecation warning but still posts', async () => {
+      const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh1' } }]);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await fabric.swmlWebhooks.create({ name: 'oops', primary_request_url: 'https://example.com' });
+        expect(getRequests()[0].method).toBe('POST');
+        expect(getRequests()[0].url).toContain('/api/fabric/resources/swml_webhooks');
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
+        expect(warnMsg).toContain('setSwmlWebhook');
+        expect(warnMsg).toContain('phone-binding.md');
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it('cxmlWebhooks.create emits deprecation warning but still posts', async () => {
+      const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh2' } }]);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await fabric.cxmlWebhooks.create({ name: 'oops', primary_request_url: 'https://example.com' });
+        expect(getRequests()[0].method).toBe('POST');
+        expect(getRequests()[0].url).toContain('/api/fabric/resources/cxml_webhooks');
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
+        expect(warnMsg).toContain('setCxmlWebhook');
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it('swmlWebhooks.list / get / update / delete do NOT warn', async () => {
+      const { fabric } = setup([
+        { status: 200, body: { data: [] } },
+        { status: 200, body: { id: 'wh1' } },
+        { status: 200, body: { id: 'wh1' } },
+        { status: 204 },
+      ]);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await fabric.swmlWebhooks.list();
+        await fabric.swmlWebhooks.get('wh1');
+        await fabric.swmlWebhooks.update('wh1', { name: 'renamed' });
+        await fabric.swmlWebhooks.delete('wh1');
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+  });
+
   describe('Generic Resources', () => {
     it('lists all resources', async () => {
       const { fabric, getRequests } = setup();
@@ -123,11 +176,28 @@ describe('FabricNamespace', () => {
       expect(getRequests()[0].url).not.toContain('/api/fabric/resources/');
     });
 
-    it('assigns phone route', async () => {
-      const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/phone_routes');
-      expect(getRequests()[0].method).toBe('POST');
+    it('assigns phone route (deprecated) and emits one-time warning', async () => {
+      const { fabric, getRequests } = setup([{ status: 200, body: {} }, { status: 200, body: {} }]);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });
+        expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/phone_routes');
+        expect(getRequests()[0].method).toBe('POST');
+
+        // Deprecation warning fires on first call and steers users to the
+        // phoneNumbers helpers documented in phone-binding.md.
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
+        expect(warnMsg).toContain('phoneNumbers.setSwmlWebhook');
+        expect(warnMsg).toContain('phone-binding.md');
+
+        // Warning is one-time per instance: second call posts but does not warn.
+        warnSpy.mockClear();
+        await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('assigns domain application', async () => {

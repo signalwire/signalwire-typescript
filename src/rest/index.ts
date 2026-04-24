@@ -206,11 +206,15 @@ export { BaseResource } from './base/BaseResource.js';
 export { CrudResource } from './base/CrudResource.js';
 export { CrudWithAddresses } from './base/CrudWithAddresses.js';
 
+// Call-handler enum (for phoneNumbers.update call_handler field)
+export { PhoneCallHandler } from './callHandler.js';
+
 // Namespaces
-export { FabricNamespace, FabricResource, FabricResourcePUT, CallFlowsResource, ConferenceRoomsResource, SubscribersResource, CxmlApplicationsResource, GenericResources, FabricAddresses, FabricTokens } from './namespaces/fabric.js';
+export { FabricNamespace, FabricResource, FabricResourcePUT, CallFlowsResource, ConferenceRoomsResource, SubscribersResource, CxmlApplicationsResource, AutoMaterializedWebhookResource, SwmlWebhooksResource, CxmlWebhooksResource, GenericResources, FabricAddresses, FabricTokens } from './namespaces/fabric.js';
 export { CallingNamespace } from './namespaces/calling.js';
 export { DatasphereNamespace, DatasphereDocuments } from './namespaces/datasphere.js';
 export { PhoneNumbersResource } from './namespaces/phone-numbers.js';
+export type { SetSwmlWebhookExtra, SetCxmlWebhookParams, SetCallFlowParams, SetRelayTopicParams } from './namespaces/phone-numbers.js';
 export { AddressesResource } from './namespaces/addresses.js';
 export { QueuesResource } from './namespaces/queues.js';
 export { RecordingsResource } from './namespaces/recordings.js';
