@@ -186,6 +186,60 @@ export * as livewire from './livewire/index.js';
 
 // CLI helpers — convenience wrappers matching Python's start_agent / run_agent API
 import type { AgentBase as _AgentBase } from './AgentBase.js';
+import { SkillRegistry as _SkillRegistry } from './skills/SkillRegistry.js';
+import type { SkillSchemaInfo as _SkillSchemaInfo } from './skills/SkillRegistry.js';
+import type { SkillBase as _SkillBase } from './skills/SkillBase.js';
+
+/**
+ * List metadata for all registered skills.
+ *
+ * Equivalent to Python's `list_skills()` — proxies to the singleton
+ * {@link SkillRegistry}. Python's version returns a plain dict keyed by
+ * skill name; this returns an array of {@link _SkillSchemaInfo} entries
+ * (the TS shape is richer and includes the name field).
+ *
+ * @returns Array of skill metadata entries.
+ */
+export function listSkills(): _SkillSchemaInfo[] {
+  return _SkillRegistry.getInstance().listSkills();
+}
+
+/**
+ * Get full schema for all registered skills, including parameter metadata.
+ *
+ * Equivalent to Python's `list_skills_with_params()`. Useful for GUI
+ * configuration tools, API documentation, and programmatic skill discovery.
+ *
+ * @returns Map of skill name to {@link _SkillSchemaInfo | schema info}.
+ */
+export function listSkillsWithParams(): Record<string, _SkillSchemaInfo> {
+  return _SkillRegistry.getInstance().getAllSkillsSchema();
+}
+
+/**
+ * Register a custom skill class with the global {@link SkillRegistry}.
+ *
+ * Equivalent to Python's `register_skill(skill_class)`. Allows third-party
+ * code to register skills directly, bypassing the built-in directory scan.
+ *
+ * @param skillClass - Skill class to register (a subclass of {@link SkillBase}).
+ */
+export function registerSkill(skillClass: typeof _SkillBase): void {
+  _SkillRegistry.getInstance().register(skillClass);
+}
+
+/**
+ * Register a directory to search for additional skill modules.
+ *
+ * Equivalent to Python's `add_skill_directory(path)`. Proxies to
+ * `SkillRegistry.addSearchPath()`. Callers who want on-disk dynamic
+ * discovery can pair this with `SkillRegistry.discoverFromDirectory()`.
+ *
+ * @param path - Absolute path to a directory containing skill files.
+ */
+export function addSkillDirectory(path: string): void {
+  _SkillRegistry.getInstance().addSearchPath(path);
+}
 
 /**
  * Start an agent's HTTP server.

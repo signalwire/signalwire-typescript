@@ -1,0 +1,60 @@
+name: Surface audit
+
+# Runs the Layer B symbol-level surface audit: enumerate the TypeScript
+# port's public API, diff against porting-sdk/python_surface.json, and fail
+# if any drift is not covered by PORT_OMISSIONS.md or PORT_ADDITIONS.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Nightly at 06:00 UTC — keeps us in sync with porting-sdk updates that
+    # follow upstream signalwire-python additions.
+    - cron: '0 6 * * *'
+
+jobs:
+  surface-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TypeScript SDK
+        uses: actions/checkout@v4
+        with:
+          path: typescript-sdk
+
+      - name: Checkout porting-sdk (contains python_surface.json)
+        uses: actions/checkout@v4
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: typescript-sdk/package-lock.json
+
+      - name: Setup Python (for diff_port_surface.py)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install TS deps
+        working-directory: typescript-sdk
+        run: npm ci
+
+      - name: Enumerate TypeScript public API surface
+        working-directory: typescript-sdk
+        env:
+          PORTING_SDK_PATH: ${{ github.workspace }}/porting-sdk
+        run: npx tsx scripts/enumerate-surface.ts
+
+      - name: Diff against Python reference
+        working-directory: typescript-sdk
+        run: |
+          python3 ${{ github.workspace }}/porting-sdk/scripts/diff_port_surface.py \
+              --reference ${{ github.workspace }}/porting-sdk/python_surface.json \
+              --port-surface port_surface.json \
+              --omissions PORT_OMISSIONS.md \
+              --additions PORT_ADDITIONS.md
