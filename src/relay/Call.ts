@@ -25,6 +25,11 @@ import {
 } from './Action.js';
 import { createDeferred, type Deferred } from './Deferred.js';
 import { CALL_STATE_ENDED, EVENT_CALL_COLLECT, EVENT_CALL_STATE } from './constants.js';
+import {
+  normalizeDevice,
+  normalizeDevicePlan,
+  normalizePlayItems,
+} from './normalize.js';
 import { RelayEvent, parseEvent } from './RelayEvent.js';
 import type { CompletedCallback, EventHandler } from './types.js';
 
@@ -370,7 +375,10 @@ export class Call {
     } = {},
   ): Promise<PlayAction> {
     const cid = options.controlId ?? randomUUID();
-    const params: Record<string, unknown> = { control_id: cid, play: media };
+    const params: Record<string, unknown> = {
+      control_id: cid,
+      play: normalizePlayItems(media),
+    };
     if (options.volume != null) params.volume = options.volume;
     if (options.direction != null) params.direction = options.direction;
     if (options.loop != null) params.loop = options.loop;
@@ -434,7 +442,7 @@ export class Call {
     const cid = options.controlId ?? randomUUID();
     const params: Record<string, unknown> = {
       control_id: cid,
-      play: media,
+      play: normalizePlayItems(media),
       collect,
     };
     if (options.volume != null) params.volume = options.volume;
@@ -508,8 +516,8 @@ export class Call {
       statusUrl?: string;
     } = {},
   ): Promise<Record<string, unknown>> {
-    const params: Record<string, unknown> = { devices };
-    if (options.ringback != null) params.ringback = options.ringback;
+    const params: Record<string, unknown> = { devices: normalizeDevicePlan(devices) };
+    if (options.ringback != null) params.ringback = normalizePlayItems(options.ringback);
     if (options.tag != null) params.tag = options.tag;
     if (options.maxDuration != null) params.max_duration = options.maxDuration;
     if (options.maxPricePerMinute != null) params.max_price_per_minute = options.maxPricePerMinute;
@@ -585,7 +593,7 @@ export class Call {
     device: Record<string, unknown>,
     options: { statusUrl?: string } = {},
   ): Promise<Record<string, unknown>> {
-    const params: Record<string, unknown> = { device };
+    const params: Record<string, unknown> = { device: normalizeDevice(device) };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
     return this._execute('refer', params);
   }
@@ -726,7 +734,11 @@ export class Call {
     } = {},
   ): Promise<TapAction> {
     const cid = options.controlId ?? randomUUID();
-    const params: Record<string, unknown> = { control_id: cid, tap, device };
+    const params: Record<string, unknown> = {
+      control_id: cid,
+      tap,
+      device: normalizeDevice(device),
+    };
     const action = new TapAction(this, cid);
     return this._startAction(action, 'tap', params, options.onCompleted);
   }

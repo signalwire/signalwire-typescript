@@ -366,7 +366,9 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.connect([[{ type: 'phone', to: '+1234', from: '+5678' }]]);
       expect(client.execCalls[0].method).toBe('calling.connect');
-      expect(client.execCalls[0].params.devices).toEqual([[{ type: 'phone', to: '+1234', from: '+5678' }]]);
+      expect(client.execCalls[0].params.devices).toEqual([
+        [{ type: 'phone', params: { to_number: '+1234', from_number: '+5678' } }],
+      ]);
     });
 
     it('disconnect sends calling.disconnect', async () => {

@@ -44,6 +44,7 @@ import {
   EXECUTE_QUEUE_MAX,
 } from './constants.js';
 import { Message } from './Message.js';
+import { normalizeDevicePlan } from './normalize.js';
 import { RelayError } from './RelayError.js';
 import type { CallHandler, MessageHandler, RelayClientOptions } from './types.js';
 
@@ -506,7 +507,7 @@ export class RelayClient {
     const dialTag = options.tag ?? randomUUID();
     const params: Record<string, unknown> = {
       tag: dialTag,
-      devices,
+      devices: normalizeDevicePlan(devices),
     };
     if (options.maxDuration != null) params.max_duration = options.maxDuration;
 
