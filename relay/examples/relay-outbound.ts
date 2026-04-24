@@ -35,7 +35,7 @@ async function main() {
     console.log(`Dialing ${to} from ${from}...`);
     const call = await client.dial(
       [[{ type: 'phone', to, from }]],
-      { dialTimeout: 30_000 },
+      { dialTimeout: 30 }, // seconds
     );
     console.log(`Call answered! call_id=${call.callId}`);
 

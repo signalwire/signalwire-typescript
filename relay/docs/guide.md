@@ -47,7 +47,7 @@ await client.connect();
 
 const call = await client.dial(
   [[{ type: 'phone', to: '+15551234567', from: '+15559876543' }]],
-  { dialTimeout: 30_000 },
+  { dialTimeout: 30 }, // seconds
 );
 
 console.log(`Call answered: ${call.callId}`);
