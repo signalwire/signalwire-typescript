@@ -1,0 +1,64 @@
+name: Doc audit
+
+# Runs the Layer C doc↔code alignment audit: enumerate TS source into a
+# TS-native surface snapshot, type-check every example, and verify that every
+# method-call reference in docs/ + examples/ resolves to a real TS symbol or
+# is explicitly listed in DOC_AUDIT_IGNORE.md with a rationale.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Nightly at 06:30 UTC — runs right after the Layer B surface audit so
+    # doc drift surfaces alongside surface drift.
+    - cron: '30 6 * * *'
+
+jobs:
+  doc-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TypeScript SDK
+        uses: actions/checkout@v4
+        with:
+          path: typescript-sdk
+
+      - name: Checkout porting-sdk (contains audit_docs.py)
+        uses: actions/checkout@v4
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: typescript-sdk/package-lock.json
+
+      - name: Setup Python (for audit_docs.py)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install TS deps
+        working-directory: typescript-sdk
+        run: npm ci
+
+      - name: Type-check examples (tsc --noEmit)
+        working-directory: typescript-sdk
+        run: npx tsc --noEmit --project tsconfig.examples.json
+
+      - name: Enumerate TS-native doc-audit surface
+        working-directory: typescript-sdk
+        env:
+          PORTING_SDK_PATH: ${{ github.workspace }}/porting-sdk
+        run: npx tsx scripts/enumerate-doc-surface.ts
+
+      - name: Audit doc / example references
+        working-directory: typescript-sdk
+        run: |
+          python3 ${{ github.workspace }}/porting-sdk/scripts/audit_docs.py \
+              --root . \
+              --surface docs_audit_surface.json \
+              --ignore DOC_AUDIT_IGNORE.md

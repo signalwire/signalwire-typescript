@@ -17,7 +17,7 @@ const client = new RelayClient({
 });
 
 client.onCall(async (call) => {
-  console.log(`Incoming call: ${call.id}`);
+  console.log(`Incoming call: ${call.callId}`);
   await call.answer();
 
   const action = await call.play([
@@ -26,7 +26,7 @@ client.onCall(async (call) => {
   await action.wait();
 
   await call.hangup();
-  console.log(`Call ended: ${call.id}`);
+  console.log(`Call ended: ${call.callId}`);
 });
 
 console.log('Waiting for inbound calls on context "default" ...');

@@ -61,7 +61,8 @@ sales.defineTool({
       pro: '$99/mo',
       enterprise: 'Custom pricing - schedule a call',
     };
-    const price = prices[args.product?.toLowerCase()] ?? 'Product not found';
+    const productName = typeof args.product === 'string' ? args.product.toLowerCase() : '';
+    const price = prices[productName] ?? 'Product not found';
     return new FunctionResult(`Pricing for ${args.product}: ${price}`);
   },
 });

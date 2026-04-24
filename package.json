@@ -20,7 +20,9 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "tsc --watch"
+    "test:examples": "tsc --noEmit --project tsconfig.examples.json",
+    "dev": "tsc --watch",
+    "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts"
   },
   "engines": {
     "node": ">=18.0.0"

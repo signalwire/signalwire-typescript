@@ -11,7 +11,7 @@
 import {
   AgentBase,
   WebSearchSkill,
-  WikipediaSkill,
+  WikipediaSearchSkill,
   DateTimeSkill,
   MathSkill,
 } from '../src/index.js';
@@ -39,7 +39,7 @@ await agent.addSkill(new DateTimeSkill());
 await agent.addSkill(new MathSkill());
 
 // Wikipedia search
-await agent.addSkill(new WikipediaSkill({ max_results: 2 }));
+await agent.addSkill(new WikipediaSearchSkill({ max_results: 2 }));
 
 // Instance 1: General web search (default tool name)
 await agent.addSkill(

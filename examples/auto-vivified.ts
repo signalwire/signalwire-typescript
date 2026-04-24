@@ -1,8 +1,8 @@
 /**
- * Auto-Vivified SWML Service Example
+ * SWML Builder Example
  *
- * Demonstrates auto-vivification: calling verb methods directly on a SWMLService
- * instead of using addVerb(). Builds voicemail, IVR, and transfer services.
+ * Demonstrates using SWMLService's underlying SwmlBuilder via `getBuilder()`
+ * for fluent verb chaining. Builds voicemail, IVR, and transfer services.
  * Run: npx tsx examples/auto-vivified.ts
  */
 
@@ -14,22 +14,22 @@ const voicemail = new SWMLService({
   route: '/voicemail',
 });
 
-voicemail.addAnswerVerb();
-
-// Auto-vivified verb calls (direct method instead of addVerb)
-voicemail.play({ url: 'say:Hello, you have reached the voicemail service. Please leave a message after the beep.' });
-voicemail.sleep(1000);
-voicemail.play({ url: 'https://example.com/beep.wav' });
-voicemail.record({
-  format: 'mp3',
-  stereo: false,
-  beep: false,
-  max_length: 120,
-  terminators: '#',
-  status_url: 'https://example.com/voicemail-status',
-});
-voicemail.play({ url: 'say:Thank you for your message. Goodbye!' });
-voicemail.addHangupVerb();
+// Fluent chaining on the underlying SwmlBuilder for verb methods
+voicemail.getBuilder()
+  .answer()
+  .play({ url: 'say:Hello, you have reached the voicemail service. Please leave a message after the beep.' })
+  .sleep(1000)
+  .play({ url: 'https://example.com/beep.wav' })
+  .record({
+    format: 'mp3',
+    stereo: false,
+    beep: false,
+    max_length: 120,
+    terminators: '#',
+    status_url: 'https://example.com/voicemail-status',
+  })
+  .play({ url: 'say:Thank you for your message. Goodbye!' })
+  .hangup();
 
 // --- IVR Menu Service ---
 const ivr = new SWMLService({
@@ -37,7 +37,7 @@ const ivr = new SWMLService({
   route: '/ivr',
 });
 
-ivr.addAnswerVerb();
+ivr.getBuilder().answer();
 
 ivr.addSection('main_menu');
 ivr.addVerbToSection('main_menu', 'prompt', {
@@ -72,7 +72,7 @@ const transfer = new SWMLService({
   route: '/transfer',
 });
 
-transfer.addAnswerVerb();
+transfer.getBuilder().answer();
 transfer.addVerb('play', { url: 'say:Connecting you with the next available agent.' });
 transfer.addVerb('connect', {
   from: '+15551234567',
@@ -86,7 +86,7 @@ transfer.addVerb('connect', {
 });
 transfer.addVerb('play', { url: 'say:All agents are busy. Please leave a message.' });
 transfer.addVerb('record', { format: 'mp3', beep: true, max_length: 120, terminators: '#' });
-transfer.addHangupVerb();
+transfer.getBuilder().hangup();
 
 // Run the voicemail service by default (switch via --service flag)
 const service = process.argv[2] === 'ivr' ? ivr : process.argv[2] === 'transfer' ? transfer : voicemail;

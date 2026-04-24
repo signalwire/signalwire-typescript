@@ -109,16 +109,22 @@ export interface FunctionInclude {
 
 /**
  * Callback invoked on each SWML request to dynamically modify an ephemeral copy of the agent.
+ *
+ * The ephemeral agent is typed as `import('./AgentBase.js').AgentBase` at
+ * call sites but kept as a generic type parameter here to avoid a circular
+ * import between `types.ts` and `AgentBase.ts`. Cast or import the type
+ * explicitly at the call site if you need specific methods.
+ *
  * @param queryParams - URL query parameters from the incoming request.
  * @param bodyParams - Parsed JSON body of the incoming request.
  * @param headers - HTTP headers from the incoming request.
  * @param agent - Ephemeral AgentBase copy that can be mutated without affecting the original.
  */
-export type DynamicConfigCallback = (
+export type DynamicConfigCallback<TAgent = import('./AgentBase.js').AgentBase> = (
   queryParams: Record<string, string>,
   bodyParams: Record<string, unknown>,
   headers: Record<string, string>,
-  agent: unknown,
+  agent: TAgent,
 ) => void | Promise<void>;
 
 /**

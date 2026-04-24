@@ -35,13 +35,13 @@ agent.setParams({
   background_file_volume: 10,
 });
 
-// Language with function-level fillers
+// Language with function-level fillers (keyed by category → phrases)
 agent.addLanguage({
   name: 'English',
   code: 'en-US',
   voice: 'rachel',
-  fillers: ['one moment please', 'let me check that for you', 'just a second'],
-  functionFillers: ['looking that up now', 'searching our records'],
+  fillers: { thinking: ['one moment please', 'let me check that for you', 'just a second'] },
+  functionFillers: { check_availability: { 'en-US': ['looking that up now', 'searching our records'] } },
 });
 
 // Post-prompt for structured call summary

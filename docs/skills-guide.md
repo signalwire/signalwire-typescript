@@ -364,29 +364,34 @@ const safeSearch = this.getConfig<string>('safe_search', 'medium');
 const patterns = this.getConfig<TransferPattern[]>('patterns', []);
 ```
 
-### Config Schema in Manifests
+### Declaring Skill Metadata and Config Schema
 
-Skills declare their expected configuration in the manifest's `configSchema` field. This is a JSON-schema-like description used for documentation and tooling:
+Skills declare their metadata as static class fields and expose config parameter info via `getParameterSchema()`:
 
 ```typescript
-getManifest(): SkillManifest {
-  return {
-    name: 'my_skill',
-    description: 'Does something useful.',
-    version: '1.0.0',
-    configSchema: {
+export class MySkill extends SkillBase {
+  static override SKILL_NAME = 'my_skill';
+  static override SKILL_DESCRIPTION = 'Does something useful.';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS = ['MY_API_KEY'] as const;
+
+  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    return {
+      ...super.getParameterSchema(),
       max_results: {
         type: 'number',
         description: 'Maximum number of results to return.',
         default: 5,
+        required: false,
       },
       safe_search: {
         type: 'string',
         description: 'Safe search level: "off", "medium", or "high".',
         default: 'medium',
+        required: false,
       },
-    },
-  };
+    };
+  }
 }
 ```
 
@@ -459,12 +464,12 @@ registry.has('datetime'); // true
 const names = registry.listRegistered();
 // ['datetime', 'math', 'joke', ...]
 
-// List with manifests
-const withManifests = registry.listRegisteredWithManifests();
-// [{ name: 'datetime', manifest: { ... } }, ...]
+// List all registered skills with schema info (includes description, configSchema, etc.)
+const withSchemas = registry.listSkills();
+// [{ name: 'datetime', description: '...', configSchema: { ... } }, ...]
 
-// Get a specific manifest
-const manifest = registry.getManifest('web_search');
+// Get schema for a specific skill
+const schema = registry.getSkillSchema('web_search');
 
 // Count of registered skills
 const count = registry.size;
@@ -518,25 +523,19 @@ To create a custom skill, extend `SkillBase` and implement the required abstract
 ### Minimal Custom Skill
 
 ```typescript
-import { SkillBase, SkillManifest, SkillToolDefinition, SkillConfig } from '@signalwire/sdk/skills';
+import { SkillBase, SkillToolDefinition, SkillConfig } from '@signalwire/sdk';
 import { FunctionResult } from '@signalwire/sdk';
 
 export class GreetingSkill extends SkillBase {
+  static override SKILL_NAME = 'greeting';
+  static override SKILL_DESCRIPTION = 'Provides personalized greetings.';
+  static override SKILL_VERSION = '1.0.0';
+
   constructor(config?: SkillConfig) {
-    super('greeting', config);
+    super(config);
   }
 
-  getManifest(): SkillManifest {
-    return {
-      name: 'greeting',
-      description: 'Provides personalized greetings.',
-      version: '1.0.0',
-      author: 'My Team',
-      tags: ['utility', 'greeting'],
-    };
-  }
-
-  getTools(): SkillToolDefinition[] {
+  override getTools(): SkillToolDefinition[] {
     const style = this.getConfig<string>('style', 'formal');
 
     return [
@@ -573,34 +572,33 @@ export function createSkill(config?: SkillConfig): GreetingSkill {
 ```typescript
 import {
   SkillBase,
-  SkillManifest,
   SkillToolDefinition,
   SkillPromptSection,
   SkillConfig,
-} from '@signalwire/sdk/skills';
+  ParameterSchemaEntry,
+} from '@signalwire/sdk';
 import { FunctionResult } from '@signalwire/sdk';
 
 export class InventorySkill extends SkillBase {
+  static override SKILL_NAME = 'inventory';
+  static override SKILL_DESCRIPTION = 'Checks product inventory levels.';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS = ['INVENTORY_DB_URL'] as const;
+
   private db: Map<string, number> = new Map();
 
   constructor(config?: SkillConfig) {
-    super('inventory', config);
+    super(config);
   }
 
-  getManifest(): SkillManifest {
+  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
-      name: 'inventory',
-      description: 'Checks product inventory levels.',
-      version: '1.0.0',
-      author: 'Acme Corp',
-      tags: ['inventory', 'products', 'e-commerce'],
-      requiredEnvVars: ['INVENTORY_DB_URL'],
-      configSchema: {
-        low_stock_threshold: {
-          type: 'number',
-          description: 'Quantity below which a product is considered low stock.',
-          default: 10,
-        },
+      ...super.getParameterSchema(),
+      low_stock_threshold: {
+        type: 'number',
+        description: 'Quantity below which a product is considered low stock.',
+        default: 10,
+        required: false,
       },
     };
   }
@@ -619,7 +617,7 @@ export class InventorySkill extends SkillBase {
     this.db.clear();
   }
 
-  getTools(): SkillToolDefinition[] {
+  override getTools(): SkillToolDefinition[] {
     const threshold = this.getConfig<number>('low_stock_threshold', 10);
 
     return [
@@ -654,7 +652,7 @@ export class InventorySkill extends SkillBase {
     ];
   }
 
-  getPromptSections(): SkillPromptSection[] {
+  override getPromptSections(): SkillPromptSection[] {
     return [
       {
         title: 'Inventory Lookup',
@@ -687,16 +685,21 @@ export function createSkill(config?: SkillConfig): InventorySkill {
 
 ### SkillBase Methods Reference
 
-| Method | Required | Description |
+| Member | Required | Description |
 |---|---|---|
-| `getManifest()` | Yes (abstract) | Returns the skill manifest with name, description, version, env vars, and config schema |
-| `getTools()` | Yes (abstract) | Returns array of SWAIG tool definitions to register with the agent |
-| `setup()` | No | Async initialization hook called when the skill is added to an agent |
-| `cleanup()` | No | Async teardown hook called when the skill is removed |
-| `getPromptSections()` | No | Returns prompt sections injected into the agent's system prompt |
-| `getHints()` | No | Returns speech recognition hint strings |
-| `getGlobalData()` | No | Returns key-value data merged into the agent's global data store |
-| `validateEnvVars()` | No | Checks required env vars from manifest; returns array of missing names |
+| `static SKILL_NAME` | Yes | Unique skill identifier (e.g. `'greeting'`). Required to instantiate. |
+| `static SKILL_DESCRIPTION` | Yes | Human-readable description used in registry listings. |
+| `static SKILL_VERSION` | No | Semver string; defaults to `'1.0.0'`. |
+| `static REQUIRED_ENV_VARS` | No | Env vars that must be set before use; checked by `validateEnvVars()`. |
+| `static REQUIRED_PACKAGES` | No | npm package names dynamically imported at load time; checked by `validatePackages()`. |
+| `static getParameterSchema()` | No | Returns the skill's configuration schema for tooling / GUIs. |
+| `getTools()` | Yes (abstract) | Returns array of SWAIG tool definitions to register with the agent. |
+| `setup()` | No | Async initialization hook called when the skill is added to an agent. |
+| `cleanup()` | No | Async teardown hook called when the skill is removed. |
+| `getPromptSections()` | No | Returns prompt sections injected into the agent's system prompt. |
+| `getHints()` | No | Returns speech recognition hint strings. |
+| `getGlobalData()` | No | Returns key-value data merged into the agent's global data store. |
+| `validateEnvVars()` | No | Checks required env vars; returns array of missing names. |
 | `getConfig(key, default)` | No | Reads a configuration value with type-safe default |
 | `isInitialized()` | No | Returns whether `setup()` has completed |
 
@@ -791,18 +794,16 @@ The `SkillManager.clear()` method calls `cleanup()` on all loaded skills and rem
 
 ## Environment Validation
 
-Skills can declare required environment variables in their manifest. The `validateEnvVars()` method checks which ones are missing.
+Skills declare required environment variables via the static `REQUIRED_ENV_VARS` field. The `validateEnvVars()` instance method checks which ones are missing.
 
-### In the Manifest
+### Declaring Required Env Vars
 
 ```typescript
-getManifest(): SkillManifest {
-  return {
-    name: 'my_api_skill',
-    description: 'Integrates with My API.',
-    version: '1.0.0',
-    requiredEnvVars: ['MY_API_KEY', 'MY_API_SECRET'],
-  };
+export class MyApiSkill extends SkillBase {
+  static override SKILL_NAME = 'my_api_skill';
+  static override SKILL_DESCRIPTION = 'Integrates with My API.';
+  static override REQUIRED_ENV_VARS = ['MY_API_KEY', 'MY_API_SECRET'] as const;
+  // ...
 }
 ```
 

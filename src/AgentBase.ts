@@ -1350,8 +1350,8 @@ export class AgentBase {
    * @param config - Verb configuration object.
    * @returns This agent instance for chaining.
    */
-  addPreAnswerVerb(verbName: string, config: Record<string, unknown>): this {
-    this.preAnswerVerbs.push([verbName, config]);
+  addPreAnswerVerb(verbName: string, config: Record<string, unknown> | number): this {
+    this.preAnswerVerbs.push([verbName, config as Record<string, unknown>]);
     return this;
   }
 
@@ -1371,8 +1371,8 @@ export class AgentBase {
    * @param config - Verb configuration object.
    * @returns This agent instance for chaining.
    */
-  addPostAnswerVerb(verbName: string, config: Record<string, unknown>): this {
-    this.postAnswerVerbs.push([verbName, config]);
+  addPostAnswerVerb(verbName: string, config: Record<string, unknown> | number): this {
+    this.postAnswerVerbs.push([verbName, config as Record<string, unknown>]);
     return this;
   }
 
