@@ -1662,12 +1662,23 @@ constructor(skillName: string, config?: SkillConfig)
 | `instanceId` | `string` (readonly) | Unique instance ID (includes timestamp + random bytes) |
 | `config` | `SkillConfig` (protected) | Configuration options |
 
-#### Abstract Methods (must be implemented)
+#### Required Members
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `getManifest` | `()` | `SkillManifest` | Return skill metadata and requirements |
-| `getTools` | `()` | `SkillToolDefinition[]` | Return SWAIG tool definitions |
+| Member | Shape | Description |
+|--------|-------|-------------|
+| `static SKILL_NAME` | `string` | Unique skill identifier |
+| `static SKILL_DESCRIPTION` | `string` | Human-readable description shown in skill registries |
+| `getTools()` | `() => SkillToolDefinition[]` | Return SWAIG tool definitions (abstract) |
+
+#### Optional Static Members
+
+| Member | Shape | Description |
+|--------|-------|-------------|
+| `static SKILL_VERSION` | `string` | Semver; defaults to `'1.0.0'` |
+| `static REQUIRED_ENV_VARS` | `readonly string[]` | Env vars that must be set (checked at load) |
+| `static REQUIRED_PACKAGES` | `readonly string[]` | npm package names required by the skill |
+| `static SUPPORTS_MULTIPLE_INSTANCES` | `boolean` | Whether the skill can be added multiple times with different `tool_name` |
+| `static getParameterSchema()` | `() => Record<string, ParameterSchemaEntry>` | Config parameter schema for tooling/GUIs |
 
 #### Overridable Methods
 
@@ -1724,13 +1735,14 @@ Global singleton registry for discovering and instantiating skills. Supports the
 
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
-| `register` | `(name, factory, manifest?)` | `void` | Register a skill factory |
+| `register` | `(skillClass: typeof SkillBase)` | `void` | Register a skill class |
 | `unregister` | `(name: string)` | `boolean` | Remove a registration |
 | `create` | `(name, config?)` | `SkillBase \| null` | Create instance from registry |
 | `has` | `(name: string)` | `boolean` | Check if name is registered |
-| `getManifest` | `(name: string)` | `SkillManifest \| undefined` | Get skill manifest |
+| `getSkillSchema` | `(name: string)` | `SkillSchemaInfo \| undefined` | Get a registered skill's schema info |
+| `getAllSkillsSchema` | `()` | `Record<string, SkillSchemaInfo>` | Get all registered skills' schemas |
 | `listRegistered` | `()` | `string[]` | List registered names |
-| `listRegisteredWithManifests` | `()` | `{ name, manifest? }[]` | List with manifests |
+| `listSkills` | `()` | `SkillSchemaInfo[]` | List all registered skills with schema info |
 | `addSearchPath` | `(path: string)` | `void` | Add a discovery directory |
 | `getSearchPaths` | `()` | `string[]` | Get all search paths |
 | `discoverFromDirectory` | `(dirPath: string)` | `Promise<string[]>` | Discover skills from a directory |

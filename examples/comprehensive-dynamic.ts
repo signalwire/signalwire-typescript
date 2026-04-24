@@ -82,7 +82,7 @@ agent.setDynamicConfigCallback((queryParams, bodyParams, headers, ephemeral) => 
   };
 
   const prompt = industryPrompts[industry] ?? industryPrompts.general;
-  ephemeral.promptAddSection(prompt.title, prompt.body, prompt.bullets);
+  ephemeral.promptAddSection(prompt.title, { body: prompt.body, bullets: prompt.bullets });
 
   // Tier-specific features
   if (tier === 'enterprise' || tier === 'premium') {
@@ -102,9 +102,9 @@ agent.setDynamicConfigCallback((queryParams, bodyParams, headers, ephemeral) => 
 
   // A/B test: greeting style
   if (abGroup === 'A') {
-    ephemeral.promptAddSection('Greeting', 'Start with a warm, conversational greeting.');
+    ephemeral.promptAddSection('Greeting', { body: 'Start with a warm, conversational greeting.' });
   } else {
-    ephemeral.promptAddSection('Greeting', 'Start with a brief, professional greeting.');
+    ephemeral.promptAddSection('Greeting', { body: 'Start with a brief, professional greeting.' });
   }
 
   // Tool available to all tiers

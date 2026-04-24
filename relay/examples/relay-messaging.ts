@@ -16,13 +16,16 @@
 
 import { RelayClient, Message } from '../../src/relay/index.js';
 
-const to = process.env.MSG_TO;
-const from = process.env.MSG_FROM;
+const toEnv = process.env.MSG_TO;
+const fromEnv = process.env.MSG_FROM;
 
-if (!to || !from) {
+if (!toEnv || !fromEnv) {
   console.error('Set MSG_TO and MSG_FROM env vars');
   process.exit(1);
 }
+
+const to: string = toEnv;
+const from: string = fromEnv;
 
 const client = new RelayClient({
   contexts: ['messaging'],

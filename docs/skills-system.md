@@ -53,15 +53,13 @@ All skills extend `SkillBase`. The base class defines the contract:
 import { SkillBase, SkillManifest, SkillToolRegistration } from '@signalwire/sdk';
 
 class MySkill extends SkillBase {
-  static manifest: SkillManifest = {
-    name: 'my_skill',
-    version: '1.0.0',
-    description: 'Does something useful',
-    requiredEnvVars: ['MY_API_KEY'],
-    supportsMultipleInstances: false,
-  };
+  static override SKILL_NAME = 'my_skill';
+  static override SKILL_VERSION = '1.0.0';
+  static override SKILL_DESCRIPTION = 'Does something useful';
+  static override REQUIRED_ENV_VARS = ['MY_API_KEY'] as const;
+  static override SUPPORTS_MULTIPLE_INSTANCES = false;
 
-  registerTools(): SkillToolRegistration[] {
+  override getTools(): SkillToolDefinition[] {
     return [
       {
         name: 'my_tool',
@@ -74,11 +72,11 @@ class MySkill extends SkillBase {
     ];
   }
 
-  getHints(): string[] {
+  override getHints(): string[] {
     return ['my skill', 'useful action'];
   }
 
-  getPromptSections(): Array<{ title: string; body: string; bullets?: string[] }> {
+  override getPromptSections(): SkillPromptSection[] {
     return [
       {
         title: 'My Skill',
@@ -87,7 +85,7 @@ class MySkill extends SkillBase {
     ];
   }
 
-  getGlobalData(): Record<string, unknown> {
+  override getGlobalData(): Record<string, unknown> {
     return { my_skill_enabled: true };
   }
 }
@@ -97,12 +95,12 @@ class MySkill extends SkillBase {
 
 | Method | Returns | Purpose |
 |---|---|---|
-| `registerTools()` | `SkillToolRegistration[]` | Define the SWAIG tools this skill provides |
+| `getTools()` | `SkillToolDefinition[]` | Define the SWAIG tools this skill provides |
 | `getHints()` | `string[]` | Speech recognition hints for ASR accuracy |
-| `getPromptSections()` | Section array | Prompt text injected into the agent's system prompt |
+| `getPromptSections()` | `SkillPromptSection[]` | Prompt text injected into the agent's system prompt |
 | `getGlobalData()` | `Record<string, unknown>` | Key-value pairs merged into agent global data |
 | `setup()` | `Promise<void>` | Async initialization (API connections, file loading) |
-| `teardown()` | `Promise<void>` | Cleanup on agent shutdown |
+| `cleanup()` | `Promise<void>` | Cleanup on agent shutdown |
 
 ---
 
@@ -139,10 +137,10 @@ const available = SkillRegistry.listSkills();
 const schema = SkillRegistry.getParameterSchema('web_search');
 ```
 
-Built-in skills register themselves automatically when imported. Custom skills must call `SkillRegistry.register()`:
+Built-in skills are registered automatically by `registerBuiltinSkills()`. Custom skill classes must call `SkillRegistry.getInstance().register(cls)`:
 
 ```typescript
-SkillRegistry.register('my_skill', (config) => new MySkill(config));
+SkillRegistry.getInstance().register(MySkill);
 ```
 
 ---
@@ -153,11 +151,11 @@ SkillRegistry.register('my_skill', (config) => new MySkill(config));
 agent.addSkill(new WebSearchSkill({ max_results: 5 }))
   |
   v
-SkillManager.loadSkill(skill)
+SkillManager.addSkill(skill)
   |
   +-- validate env vars (GOOGLE_SEARCH_API_KEY, etc.)
   +-- skill.setup()          // async init
-  +-- skill.registerTools()  // get tool definitions
+  +-- skill.getTools()       // get tool definitions
   |     |
   |     v
   +-- agent.defineTool(...)  // register each tool on the agent
@@ -170,19 +168,17 @@ SkillManager.loadSkill(skill)
 
 ## Creating a Custom Skill
 
-1. **Extend `SkillBase`** and declare a static `manifest`:
+1. **Extend `SkillBase`** and declare the static metadata fields:
 
 ```typescript
 import { SkillBase, FunctionResult } from '@signalwire/sdk';
 
 export class StockPriceSkill extends SkillBase {
-  static manifest = {
-    name: 'stock_price',
-    version: '1.0.0',
-    description: 'Look up current stock prices',
-    requiredEnvVars: ['STOCK_API_KEY'],
-    supportsMultipleInstances: false,
-  };
+  static override SKILL_NAME = 'stock_price';
+  static override SKILL_VERSION = '1.0.0';
+  static override SKILL_DESCRIPTION = 'Look up current stock prices';
+  static override REQUIRED_ENV_VARS = ['STOCK_API_KEY'] as const;
+  static override SUPPORTS_MULTIPLE_INSTANCES = false;
 
   private apiKey: string;
 
@@ -191,7 +187,7 @@ export class StockPriceSkill extends SkillBase {
     this.apiKey = process.env['STOCK_API_KEY'] ?? '';
   }
 
-  registerTools() {
+  override getTools() {
     return [
       {
         name: 'get_stock_price',
@@ -208,11 +204,11 @@ export class StockPriceSkill extends SkillBase {
     ];
   }
 
-  getHints() {
+  override getHints() {
     return ['stock', 'ticker', 'price', 'market', 'shares'];
   }
 
-  getPromptSections() {
+  override getPromptSections() {
     return [
       {
         title: 'Stock Price Lookup',
@@ -228,7 +224,7 @@ export class StockPriceSkill extends SkillBase {
 
 ```typescript
 import { SkillRegistry } from '@signalwire/sdk';
-SkillRegistry.register('stock_price', (config) => new StockPriceSkill(config));
+SkillRegistry.getInstance().register(StockPriceSkill);
 ```
 
 3. **Use** the skill:
@@ -241,7 +237,7 @@ await agent.addSkill(new StockPriceSkill());
 
 ## Multi-Instance Skills
 
-Some skills support multiple instances with different configurations. Set `supportsMultipleInstances: true` in the manifest and accept a `tool_name` config parameter:
+Some skills support multiple instances with different configurations. Set `static SUPPORTS_MULTIPLE_INSTANCES = true` and accept a `tool_name` config parameter:
 
 ```typescript
 // Two DataSphere instances with different knowledge bases
@@ -262,16 +258,18 @@ Each instance registers its tools under the configured `tool_name`, avoiding col
 
 ## Environment Validation
 
-Skills declare required environment variables in their manifest. The `SkillManager` checks these before calling `setup()`:
+Skills declare required environment variables via the static `REQUIRED_ENV_VARS` field. The `SkillManager` checks these before calling `setup()`:
 
 ```typescript
-static manifest = {
+export class MySkill extends SkillBase {
+  static override SKILL_NAME = 'my_skill';
+  static override SKILL_DESCRIPTION = 'Example skill with required env vars.';
+  static override REQUIRED_ENV_VARS = ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'] as const;
   // ...
-  requiredEnvVars: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
-};
+}
 ```
 
-If any required variable is missing, `addSkill()` throws with a descriptive error message listing the missing variables.
+The skill is still added if env vars are missing; `skill.validateEnvVars()` returns the list of missing names so callers can surface the error.
 
 ---
 
@@ -295,7 +293,7 @@ This allows external tools to generate configuration UIs or validate config obje
 |---|---|---|
 | `constructor(config)` | Instantiation | Store config, set defaults |
 | `setup()` | During `addSkill()` | Async init: connect to APIs, load data |
-| `registerTools()` | During `addSkill()` | Return tool definitions |
-| `teardown()` | Agent shutdown | Close connections, flush buffers |
+| `getTools()` | During `addSkill()` | Return tool definitions |
+| `cleanup()` | Agent shutdown | Close connections, flush buffers |
 
 All hooks are called by the `SkillManager` in the order shown above.

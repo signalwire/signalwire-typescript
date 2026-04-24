@@ -99,7 +99,7 @@ export class ServerlessAdapter {
    * @param event - The incoming serverless event to process.
    * @returns The normalized serverless response.
    */
-  async handleRequest(app: { fetch: (req: Request) => Promise<Response> }, event: ServerlessEvent): Promise<ServerlessResponse> {
+  async handleRequest(app: { fetch: (req: Request) => Response | Promise<Response> }, event: ServerlessEvent): Promise<ServerlessResponse> {
     const method = event.httpMethod ?? event.method ?? 'POST';
     const path = event.rawPath ?? event.path ?? '/';
     const headers = event.headers ?? {};
@@ -187,7 +187,7 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts a Lambda event and returns a promise of a serverless response.
    */
-  static createLambdaHandler(app: { fetch: (req: Request) => Promise<Response> }): (event: ServerlessEvent) => Promise<ServerlessResponse> {
+  static createLambdaHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (event: ServerlessEvent) => Promise<ServerlessResponse> {
     const adapter = new ServerlessAdapter('lambda');
     return (event: ServerlessEvent) => adapter.handleRequest(app, event);
   }
@@ -197,7 +197,7 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts GCF request/response objects.
    */
-  static createGcfHandler(app: { fetch: (req: Request) => Promise<Response> }): (req: any, res: any) => Promise<void> {
+  static createGcfHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (req: any, res: any) => Promise<void> {
     const adapter = new ServerlessAdapter('gcf');
     return async (req: any, res: any) => {
       const event: ServerlessEvent = {
@@ -220,7 +220,7 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts an Azure context and request object.
    */
-  static createAzureHandler(app: { fetch: (req: Request) => Promise<Response> }): (context: any, req: any) => Promise<void> {
+  static createAzureHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (context: any, req: any) => Promise<void> {
     const adapter = new ServerlessAdapter('azure');
     return async (context: any, req: any) => {
       const event: ServerlessEvent = {

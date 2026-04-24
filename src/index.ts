@@ -161,8 +161,9 @@ export {
   ConciergeAgent, ReceptionistAgent,
 } from './prefabs/index.js';
 export type {
-  InfoGathererConfig, SurveyConfig, FAQBotConfig,
-  ConciergeConfig, ReceptionistConfig,
+  InfoGathererConfig, InfoGathererQuestion, InfoGathererQuestionCallback,
+  SurveyConfig, SurveyQuestion, FAQBotConfig, FAQEntry,
+  ConciergeConfig, ReceptionistConfig, ReceptionistDepartment,
 } from './prefabs/index.js';
 
 // Types

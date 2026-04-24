@@ -105,7 +105,7 @@ async function main() {
     const caller = await client.verifiedCallers.create({ phone_number: '+15125559999' });
     callerId = caller.id;
     console.log(`  Created verified caller: ${callerId}`);
-    await client.verifiedCallers.submitVerification(callerId, { verification_code: '123456' });
+    await client.verifiedCallers.submitVerification(callerId as string, { verification_code: '123456' });
     console.log('  Verification code submitted');
   } catch (err) {
     if (err instanceof RestError) {
