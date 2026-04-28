@@ -5,6 +5,14 @@
 import { SWMLService } from '../src/SWMLService.js';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
 
+// Tests assume no externally-configured basic auth. Clear leaking env vars
+// (developer shells often have SWML_BASIC_AUTH_USER / _PASSWORD set) so the
+// no-arg `new SWMLService()` cases hit the auto-generated, non-enforced path.
+beforeEach(() => {
+  delete process.env['SWML_BASIC_AUTH_USER'];
+  delete process.env['SWML_BASIC_AUTH_PASSWORD'];
+});
+
 describe('SWMLService', () => {
   describe('constructor', () => {
     it('uses default name and route', () => {
