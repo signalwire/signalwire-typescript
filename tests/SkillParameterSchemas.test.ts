@@ -57,9 +57,21 @@ describe('Skill Parameter Schemas', () => {
 
       it('all entries have type and description', () => {
         const schema = cls.getParameterSchema();
+        // Allowed JSON-Schema-style types every parameter entry must use.
+        // A bare nullness check would pass for `{type: 0, description: false}`;
+        // the enum membership + non-empty string check catches that.
+        const validTypes = new Set([
+          'string', 'integer', 'number', 'boolean', 'array', 'object',
+        ]);
         for (const [paramName, entry] of Object.entries(schema)) {
-          expect(entry.type, `${name}.${paramName} missing type`).toBeTruthy();
-          expect(entry.description, `${name}.${paramName} missing description`).toBeTruthy();
+          expect(
+            validTypes.has(entry.type),
+            `${name}.${paramName} has invalid type '${String(entry.type)}'`,
+          ).toBe(true);
+          expect(
+            typeof entry.description === 'string' && entry.description.length > 0,
+            `${name}.${paramName} missing or empty description`,
+          ).toBe(true);
         }
       });
     });

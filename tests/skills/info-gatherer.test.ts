@@ -76,7 +76,9 @@ describe('InfoGathererSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = InfoGathererSkill.getParameterSchema();
-    expect(schema).toBeDefined();
+    expect(Object.keys(schema).length).toBeGreaterThan(0);
+    expect(schema).toHaveProperty('swaig_fields');
+    expect(schema).toHaveProperty('skip_prompt');
   });
 });
 

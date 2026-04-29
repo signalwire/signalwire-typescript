@@ -256,9 +256,23 @@ describe('SWMLService', () => {
     it('skips server startup in SWAIG_CLI_MODE', async () => {
       process.env['SWAIG_CLI_MODE'] = 'true';
       const svc = new SWMLService();
-      // Should not throw or hang
-      await svc.run();
-      delete process.env['SWAIG_CLI_MODE'];
+      try {
+        // run() must return before any port binding happens. Exercise
+        // both observable invariants:
+        //   (1) a 5-second timeout fires only if `run` actually blocked,
+        //       so winning the race against `Promise.race` proves it
+        //       returned synchronously.
+        //   (2) no server is listening — the protected `_server` field
+        //       stays null because nothing called `app.listen`.
+        const winner = await Promise.race([
+          svc.run().then(() => 'returned'),
+          new Promise<string>((r) => setTimeout(() => r('timeout'), 5000)),
+        ]);
+        expect(winner).toBe('returned');
+        expect((svc as unknown as { _server: unknown })._server).toBeNull();
+      } finally {
+        delete process.env['SWAIG_CLI_MODE'];
+      }
     });
   });
 

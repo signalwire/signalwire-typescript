@@ -94,8 +94,17 @@ describe('DateTimeSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = DateTimeSkill.getParameterSchema();
-    expect(schema).toBeDefined();
-    expect(schema['swaig_fields']).toBeDefined();
-    expect(schema['skip_prompt']).toBeDefined();
+    expect(Object.keys(schema).length).toBeGreaterThan(0);
+    // Each base entry must have a valid type and a real description.
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of ['swaig_fields', 'skip_prompt']) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type)).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
   });
 });

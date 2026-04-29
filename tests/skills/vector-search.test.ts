@@ -76,7 +76,13 @@ describe('NativeVectorSearchSkill', () => {
     });
     await skill.setup();
     const data = skill.getGlobalData();
-    expect(data['search_stats']).toBeDefined();
+    // search_stats must be a structured object recording the indexed
+    // document count, not a stub flag. We assert the count reflects the
+    // single document we indexed so a stub returning `{}` would fail.
+    const stats = data['search_stats'] as Record<string, unknown> | undefined;
+    expect(stats, 'search_stats missing').toBeDefined();
+    expect(typeof stats).toBe('object');
+    expect(stats!['doc_count']).toBe(1);
   });
 
   it('should return correct manifest', () => {
@@ -87,19 +93,24 @@ describe('NativeVectorSearchSkill', () => {
 
   it('should have a parameter schema with all expected keys', () => {
     const schema = NativeVectorSearchSkill.getParameterSchema();
-    expect(schema['count']).toBeDefined();
-    expect(schema['similarity_threshold']).toBeDefined();
-    expect(schema['tags']).toBeDefined();
-    expect(schema['global_tags']).toBeDefined();
-    expect(schema['no_results_message']).toBeDefined();
-    expect(schema['response_prefix']).toBeDefined();
-    expect(schema['response_postfix']).toBeDefined();
-    expect(schema['max_content_length']).toBeDefined();
-    expect(schema['description']).toBeDefined();
-    expect(schema['hints']).toBeDefined();
-    expect(schema['verbose']).toBeDefined();
-    expect(schema['remote_url']).toBeDefined();
-    expect(schema['backend']).toBeDefined();
+    // Each documented param must be a real entry. Type and description
+    // both populated. A stub returning `{key: undefined}` would fail.
+    const required = [
+      'count', 'similarity_threshold', 'tags', 'global_tags',
+      'no_results_message', 'response_prefix', 'response_postfix',
+      'max_content_length', 'description', 'hints', 'verbose',
+      'remote_url', 'backend',
+    ];
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of required) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
   });
 
   it('should support multiple instances with distinct keys', () => {

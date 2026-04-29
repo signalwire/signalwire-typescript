@@ -95,13 +95,23 @@ describe('DataSphereSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = DataSphereSkill.getParameterSchema();
-    expect(schema['count']).toBeDefined();
-    expect(schema['distance']).toBeDefined();
-    expect(schema['tags']).toBeDefined();
-    expect(schema['language']).toBeDefined();
-    expect(schema['pos_to_expand']).toBeDefined();
-    expect(schema['max_synonyms']).toBeDefined();
-    expect(schema['no_results_message']).toBeDefined();
-    expect(schema['tool_name']).toBeDefined();
+    // Each documented parameter must be a real schema entry with a
+    // valid type and non-empty description, not just a present key.
+    // A stub returning `{count: undefined, ...}` would still pass a
+    // bare nullness check.
+    const required = [
+      'count', 'distance', 'tags', 'language',
+      'pos_to_expand', 'max_synonyms', 'no_results_message', 'tool_name',
+    ];
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of required) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
   });
 });

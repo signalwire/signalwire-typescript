@@ -65,7 +65,12 @@ describe('JokeSkill', () => {
   it('should return a joke from a specific category', () => {
     const handler = new JokeSkill().getTools()[0].handler;
     const result = handler({ category: 'programming' }, {}) as FunctionResult;
-    expect(result.response).toBeTruthy();
+    // The 'programming' category must yield a real joke (a non-empty
+    // string longer than a placeholder). A stub returning the empty
+    // string or a generic "..." would now fail.
+    expect(typeof result.response).toBe('string');
+    expect((result.response as string).length).toBeGreaterThan(5);
+    expect(result.response).not.toContain('Unknown');
   });
 
   it('should handle unknown category', () => {
@@ -76,6 +81,11 @@ describe('JokeSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = JokeSkill.getParameterSchema();
-    expect(schema['swaig_fields']).toBeDefined();
+    const swaigEntry = schema['swaig_fields'];
+    expect(swaigEntry).toBeDefined();
+    // `swaig_fields` is the SkillBase-inherited dict-shaped escape
+    // hatch that lets agents pin SWAIG metadata. It must be declared
+    // as type=object (not just present).
+    expect(swaigEntry.type).toBe('object');
   });
 });

@@ -65,6 +65,14 @@ describe('DataSphereServerlessSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = DataSphereServerlessSkill.getParameterSchema();
-    expect(schema).toBeDefined();
+    expect(Object.keys(schema).length).toBeGreaterThan(0);
+    expect(schema).toHaveProperty('swaig_fields');
+    expect(schema).toHaveProperty('skip_prompt');
+    // datasphere_serverless requires `space_name`, `project_id`,
+    // `document_id`, and `token` per Python parity.
+    expect(schema).toHaveProperty('space_name');
+    expect(schema).toHaveProperty('project_id');
+    expect(schema).toHaveProperty('document_id');
+    expect(schema).toHaveProperty('token');
   });
 });

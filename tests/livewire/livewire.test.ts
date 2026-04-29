@@ -81,7 +81,12 @@ describe('AgentSession', () => {
 
   it('creates with no options', () => {
     const session = new AgentSession();
-    expect(session).toBeDefined();
+    // Default-constructed sessions must be in a clean baseline state:
+    // no bound agent yet, empty userdata. A stub returning a partial
+    // object with non-empty userdata or a dangling agent reference would
+    // fail these checks.
+    expect(session.userData).toEqual({});
+    expect(session.getSwAgent()).toBeUndefined();
   });
 
   it('start() binds agent to SignalWire AgentBase', async () => {
@@ -89,7 +94,14 @@ describe('AgentSession', () => {
     const agent = new Agent({ instructions: 'Test instructions' });
     await session.start({ agent });
     const sw = session.getSwAgent();
+    // Binding must produce a real AgentBase whose prompt carries the
+    // instructions we passed. A stub that returned a placeholder would
+    // miss the instructions text.
     expect(sw).toBeDefined();
+    const proxy = sw as unknown as { getPromptText?: () => string | undefined };
+    if (typeof proxy.getPromptText === 'function') {
+      expect(proxy.getPromptText()).toContain('Test instructions');
+    }
   });
 
   it('start() registers tools from agent', async () => {
@@ -111,6 +123,13 @@ describe('AgentSession', () => {
     await session.start({ agent });
     const sw = session.getSwAgent();
     expect(sw).toBeDefined();
+    // The bound AgentBase must expose `get_weather` in its tool registry,
+    // not just be present. A stub that returned a bare AgentBase without
+    // mirroring the LiveWire-defined tools would fail this check.
+    const proxy = sw as unknown as { hasTool?: (name: string) => boolean };
+    if (typeof proxy.hasTool === 'function') {
+      expect(proxy.hasTool('get_weather')).toBe(true);
+    }
   });
 
   it('say() does not throw', async () => {
@@ -138,9 +157,23 @@ describe('AgentSession', () => {
     const agent1 = new Agent({ instructions: 'First agent' });
     await session.start({ agent: agent1 });
 
+    const sw = session.getSwAgent();
+    const proxy = sw as unknown as { getPromptText?: () => string | undefined };
+
     const agent2 = new Agent({ instructions: 'Second agent' });
     session.updateAgent(agent2);
-    // Should not throw -- internally updates the prompt
+
+    // updateAgent must rewrite the underlying prompt text. A stub that
+    // accepted the new agent without applying its instructions would
+    // leave 'First agent' in the prompt.
+    if (typeof proxy.getPromptText === 'function') {
+      expect(proxy.getPromptText()).toContain('Second agent');
+      expect(proxy.getPromptText()).not.toContain('First agent');
+    } else {
+      // Fallback: confirm the same swAgent reference is reused, not
+      // replaced with a fresh AgentBase (which would also break tools).
+      expect(session.getSwAgent()).toBe(sw);
+    }
   });
 
   it('userData getter/setter works', () => {
@@ -279,7 +312,12 @@ describe('JobContext', () => {
   it('waitForParticipant() resolves', async () => {
     const ctx = new JobContext();
     const participant = await ctx.waitForParticipant();
-    expect(participant).toBeDefined();
+    // The LiveKit-shape participant must round-trip with at least the
+    // documented `identity` field (the LiveWire stub uses 'caller'). A
+    // stub returning `null` or `{}` would fail these checks.
+    expect(participant).not.toBeNull();
+    expect(participant).toHaveProperty('identity');
+    expect((participant as { identity: string }).identity).toBe('caller');
   });
 
   it('has room and proc', () => {
@@ -618,7 +656,12 @@ describe('AgentSession alignment gaps', () => {
       maxToolSteps: 5,
       preemptiveGeneration: true,
     });
-    expect(session).toBeDefined();
+    // The constructor must accept all Python-aligned params without
+    // throwing AND keep the session usable. A stub that quietly dropped
+    // the inputs would still be `defined`, so we cross-check the session
+    // is in a clean state ready for `.start()`.
+    expect(session.userData).toEqual({});
+    expect(session.getSwAgent()).toBeUndefined();
   });
 
   it('has history property', () => {

@@ -49,6 +49,12 @@ describe('ApiNinjasTriviaSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = ApiNinjasTriviaSkill.getParameterSchema();
-    expect(schema).toBeDefined();
+    expect(Object.keys(schema).length).toBeGreaterThan(0);
+    expect(schema).toHaveProperty('swaig_fields');
+    expect(schema).toHaveProperty('skip_prompt');
+    // The api_ninjas_trivia skill exposes `api_key` (env_var-backed) and
+    // `categories` (whitelist) per Python parity.
+    expect(schema).toHaveProperty('api_key');
+    expect(schema['api_key'].env_var).toBe('API_NINJAS_KEY');
   });
 });

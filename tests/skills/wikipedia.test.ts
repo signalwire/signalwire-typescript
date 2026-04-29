@@ -57,7 +57,11 @@ describe('WikipediaSearchSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = WikipediaSearchSkill.getParameterSchema();
-    expect(schema['num_results']).toBeDefined();
-    expect(schema['no_results_message']).toBeDefined();
+    expect(schema['num_results'].type).toBe('integer');
+    expect(schema['num_results'].default).toBe(1);
+    expect(schema['num_results'].max).toBe(5);
+    expect(schema['no_results_message'].type).toBe('string');
+    expect(typeof schema['no_results_message'].default === 'string' &&
+      (schema['no_results_message'].default as string).length > 0).toBe(true);
   });
 });

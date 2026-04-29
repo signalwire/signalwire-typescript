@@ -44,10 +44,22 @@ describe('SkillRegistry Schema', () => {
 
   it('every schema entry has type and description', () => {
     const allSchemas = registry.getAllSkillsSchema();
+    // Allowed JSON-Schema-style types every parameter entry must use.
+    // A bare nullness check would pass for `{type: 0, description: false}`;
+    // the enum membership + non-empty string check catches that.
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
     for (const [skillName, schema] of Object.entries(allSchemas)) {
       for (const [paramName, entry] of Object.entries(schema.parameters)) {
-        expect(entry.type, `${skillName}.${paramName} missing type`).toBeTruthy();
-        expect(entry.description, `${skillName}.${paramName} missing description`).toBeTruthy();
+        expect(
+          validTypes.has(entry.type),
+          `${skillName}.${paramName} has invalid type '${String(entry.type)}'`,
+        ).toBe(true);
+        expect(
+          typeof entry.description === 'string' && entry.description.length > 0,
+          `${skillName}.${paramName} missing or empty description`,
+        ).toBe(true);
       }
     }
   });

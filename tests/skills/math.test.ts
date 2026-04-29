@@ -63,6 +63,10 @@ describe('MathSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = MathSkill.getParameterSchema();
-    expect(schema['swaig_fields']).toBeDefined();
+    const swaigEntry = schema['swaig_fields'];
+    expect(swaigEntry).toBeDefined();
+    expect(swaigEntry.type).toBe('object');
+    expect(typeof swaigEntry.description === 'string' && swaigEntry.description.length > 0)
+      .toBe(true);
   });
 });

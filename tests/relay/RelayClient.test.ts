@@ -225,8 +225,12 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      // Create call via inbound event
-      client.onCall(async () => {});
+      // Capture the Call delivered to onCall so we can assert state
+      // updates flow through dispatch without reaching into private maps.
+      let received: Awaited<Parameters<Parameters<typeof client.onCall>[0]>[0]> | null = null;
+      client.onCall(async (call) => {
+        received = call;
+      });
       ws.receiveMessage({
         jsonrpc: '2.0',
         id: 'evt-1',
@@ -239,7 +243,14 @@ describe('RelayClient', () => {
 
       await new Promise((r) => setTimeout(r, 20));
 
-      // Send state update
+      // The receive event must have produced a Call object the handler
+      // saw. A stub that ignored the event would leave `received` null.
+      expect(received).not.toBeNull();
+      expect((received as unknown as { callId: string }).callId).toBe('c1');
+      expect((received as unknown as { state: string }).state).toBe('ringing');
+
+      // Send state update — dispatcher must route the new state into
+      // the same Call instance (no new instance created).
       ws.receiveMessage({
         jsonrpc: '2.0',
         id: 'evt-2',
@@ -252,8 +263,10 @@ describe('RelayClient', () => {
 
       await new Promise((r) => setTimeout(r, 20));
 
-      // Verify - need access to internal calls map via inbound handler
-      // The call's state was updated in dispatch
+      // The Call's state must reflect the answered transition; if the
+      // dispatcher were a stub that swallowed state events, this would
+      // still read 'ringing'.
+      expect((received as unknown as { state: string }).state).toBe('answered');
 
       await client.disconnect();
     });
@@ -271,9 +284,16 @@ describe('RelayClient', () => {
 
       await new Promise((r) => setTimeout(r, 20));
 
-      // Should have sent pong
-      const pong = ws.getAllSent().find((m) => m.id === 'ping-1' && 'result' in m);
+      // The pong must echo the JSON-RPC envelope shape exactly: same id,
+      // empty `result` object, no error. A stub that returned `{}` with
+      // a different id would break correlation on the server side.
+      const pong = ws.getAllSent().find(
+        (m: Record<string, unknown>) => m['id'] === 'ping-1' && 'result' in m,
+      );
       expect(pong).toBeDefined();
+      expect((pong as Record<string, unknown>)['jsonrpc']).toBe('2.0');
+      expect((pong as Record<string, unknown>)['result']).toEqual({});
+      expect((pong as Record<string, unknown>)['error']).toBeUndefined();
 
       await client.disconnect();
     });
@@ -372,12 +392,24 @@ describe('RelayClient', () => {
       const promise = client.receive(['office', 'support']);
 
       await new Promise((r) => setTimeout(r, 10));
-      const recvReq = ws.getAllSent().find((m) => m.method === 'signalwire.receive');
+      const recvReq = ws.getAllSent().find(
+        (m: Record<string, unknown>) => m['method'] === 'signalwire.receive',
+      );
       expect(recvReq).toBeDefined();
+      // The wire frame must carry the documented `params.contexts` array
+      // verbatim. A stub that emitted `signalwire.receive` with a wrong
+      // payload would still pass a bare nullness check.
+      const sent = recvReq as Record<string, unknown>;
+      expect(sent['jsonrpc']).toBe('2.0');
+      expect(typeof sent['id']).toBe('string');
+      expect((sent['params'] as Record<string, unknown>)['contexts']).toEqual([
+        'office',
+        'support',
+      ]);
 
       ws.receiveMessage({
         jsonrpc: '2.0',
-        id: recvReq!.id,
+        id: sent['id'] as string,
         result: { code: '200' },
       });
 

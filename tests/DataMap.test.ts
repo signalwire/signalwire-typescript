@@ -96,7 +96,11 @@ describe('DataMap', () => {
       .foreach({ input_key: 'results', output_key: 'out', append: '${this.title}\n' })
       .output(new FunctionResult('${out}'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
-    expect(webhooks[0]['foreach']).toBeDefined();
+    expect(webhooks[0]['foreach']).toEqual({
+      input_key: 'results',
+      output_key: 'out',
+      append: '${this.title}\n',
+    });
   });
 
   it('multiple webhooks with fallback', () => {
@@ -144,7 +148,11 @@ describe('DataMap', () => {
       .webhookExpressions([{ string: '${response.status}', pattern: 'ok', output: { response: 'good' } }])
       .output(new FunctionResult('ok'));
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)['webhooks'] as Record<string, unknown>[];
-    expect(webhooks[0]['expressions']).toBeDefined();
+    // The full expression entry must round-trip — content shape, not just
+    // existence — so a stub that wrote an empty array would still fail.
+    expect(webhooks[0]['expressions']).toEqual([
+      { string: '${response.status}', pattern: 'ok', output: { response: 'good' } },
+    ]);
   });
 
   it('webhook with advanced options', () => {

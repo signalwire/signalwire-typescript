@@ -68,11 +68,19 @@ describe('GoogleMapsSkill', () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const handler = new GoogleMapsSkill().getTools()[0].handler;
     const result = await handler({}, {}) as FunctionResult;
-    expect(result.response).toBeTruthy();
+    // Without an origin the handler must surface a user-facing error
+    // string. We assert real content (the word "origin") so the test
+    // catches a stub returning a generic non-empty placeholder.
+    expect(result.response.toLowerCase()).toContain('origin');
   });
 
   it('should have a parameter schema', () => {
     const schema = GoogleMapsSkill.getParameterSchema();
-    expect(schema['api_key']).toBeDefined();
+    const apiKeyEntry = schema['api_key'];
+    expect(apiKeyEntry).toBeDefined();
+    // `api_key` must be a string param with the env_var hint set so the
+    // skill can self-load credentials without explicit config.
+    expect(apiKeyEntry.type).toBe('string');
+    expect(apiKeyEntry.env_var).toBe('GOOGLE_MAPS_API_KEY');
   });
 });

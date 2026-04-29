@@ -419,12 +419,29 @@ describe('AgentBase', () => {
   });
 
   it('suppressLogs option suppresses log output', async () => {
-    // We test that no error is thrown; the actual suppression is tested in Logger tests
-    const { suppressAllLogs: suppress } = await import('../src/Logger.js');
-    suppress(false); // reset
-    const agent = new AgentBase({ name: 'test', route: '/test', suppressLogs: true } as any);
-    expect(agent).toBeDefined();
-    suppress(false); // cleanup
+    // The constructor's `suppressLogs: true` option must flip the global
+    // log suppression flag. Capture stderr around a debug log call to
+    // verify nothing reaches the underlying writer.
+    const { suppressAllLogs: suppress, getLogger } = await import('../src/Logger.js');
+    suppress(false); // reset before the test
+    const captured: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.stderr as any).write = ((chunk: string | Uint8Array): boolean => {
+      captured.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new AgentBase({ name: 'test', route: '/test', suppressLogs: true } as any);
+      const log = getLogger('agent_base_suppress_test');
+      log.error('this-message-should-be-suppressed');
+      expect(captured.join('')).not.toContain('this-message-should-be-suppressed');
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (process.stderr as any).write = origErr;
+      suppress(false); // restore
+    }
   });
 
   // ── Security env vars ─────────────────────────────────────────────

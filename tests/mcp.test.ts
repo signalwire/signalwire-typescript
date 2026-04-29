@@ -56,7 +56,12 @@ describe('MCP Integration', () => {
     const resp = await agent.handleMcpRequest({
       jsonrpc: '2.0', method: 'notifications/initialized',
     });
-    expect(resp['result']).toBeDefined();
+    // The notification ack must echo JSON-RPC 2.0 framing AND carry an
+    // EMPTY result object. Anything else (a stub returning null, or a
+    // canned error) would not be a valid MCP-spec ack.
+    expect(resp['jsonrpc']).toBe('2.0');
+    expect(resp['error']).toBeUndefined();
+    expect(resp['result']).toEqual({});
   });
 
   // ── Tools Call ─────────────────────────────────────────────
@@ -109,7 +114,13 @@ describe('MCP Integration', () => {
     const resp = await agent.handleMcpRequest({
       jsonrpc: '2.0', id: 6, method: 'ping',
     });
-    expect(resp['result']).toBeDefined();
+    // MCP ping MUST round-trip the request id, return an empty
+    // `result: {}`, and NOT carry an error field. Asserting all three
+    // catches any stub that returns canned content or swallows the id.
+    expect(resp['jsonrpc']).toBe('2.0');
+    expect(resp['id']).toBe(6);
+    expect(resp['error']).toBeUndefined();
+    expect(resp['result']).toEqual({});
   });
 
   // ── Invalid JSON-RPC Version ───────────────────────────────

@@ -112,16 +112,24 @@ describe('SwmlTransferSkill', () => {
 
   it('should have a full parameter schema', () => {
     const schema = SwmlTransferSkill.getParameterSchema();
-    expect(schema['transfers']).toBeDefined();
-    expect(schema['tool_name']).toBeDefined();
-    expect(schema['description']).toBeDefined();
-    expect(schema['parameter_name']).toBeDefined();
-    expect(schema['parameter_description']).toBeDefined();
-    expect(schema['default_message']).toBeDefined();
-    expect(schema['default_post_process']).toBeDefined();
-    expect(schema['required_fields']).toBeDefined();
-    expect(schema['patterns']).toBeDefined();
-    expect(schema['allow_arbitrary']).toBeDefined();
+    // Every documented param must be a real entry. Type and
+    // description must both be populated — a stub returning `{key:
+    // undefined}` would fail the type check.
+    const required = [
+      'transfers', 'tool_name', 'description', 'parameter_name',
+      'parameter_description', 'default_message', 'default_post_process',
+      'required_fields', 'patterns', 'allow_arbitrary',
+    ];
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of required) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
   });
 
   it('should transfer to a named pattern destination', async () => {
@@ -172,7 +180,13 @@ describe('SwmlTransferSkill', () => {
     // Look for updateGlobalData action with call_data
     const updateAction = res.action.find(
       (a) => typeof a === 'object' && a !== null && 'set_global_data' in a,
-    );
+    ) as { set_global_data: { call_data?: Record<string, unknown> } } | undefined;
     expect(updateAction).toBeDefined();
+    // The handler must persist the required-field values verbatim into
+    // `global_data.call_data`. A stub that emitted the action with an
+    // empty payload would still pass a bare nullness check.
+    const callData = updateAction!.set_global_data.call_data ?? {};
+    expect(callData['name']).toBe('Alice');
+    expect(callData['reason']).toBe('Billing issue');
   });
 });

@@ -91,13 +91,25 @@ describe('WebSearchSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = WebSearchSkill.getParameterSchema();
-    expect(schema['num_results']).toBeDefined();
-    expect(schema['tool_name']).toBeDefined();
-    expect(schema['no_results_message']).toBeDefined();
-    expect(schema['safe_search']).toBeDefined();
-    expect(schema['delay']).toBeDefined();
-    expect(schema['max_content_length']).toBeDefined();
-    expect(schema['oversample_factor']).toBeDefined();
-    expect(schema['min_quality_score']).toBeDefined();
+    // Each documented param must be a real entry — type + description
+    // both populated. A stub returning `{key: undefined}` would fail.
+    const required = [
+      'num_results', 'tool_name', 'no_results_message', 'safe_search',
+      'delay', 'max_content_length', 'oversample_factor', 'min_quality_score',
+    ];
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of required) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
+    // safe_search is enum-typed.
+    expect(schema['safe_search'].enum).toContain('off');
+    expect(schema['safe_search'].enum).toContain('medium');
+    expect(schema['safe_search'].enum).toContain('high');
   });
 });

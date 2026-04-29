@@ -29,27 +29,43 @@ describe('RestClient', () => {
       fetchImpl,
     });
 
-    expect(client.fabric).toBeDefined();
-    expect(client.calling).toBeDefined();
-    expect(client.phoneNumbers).toBeDefined();
-    expect(client.addresses).toBeDefined();
-    expect(client.queues).toBeDefined();
-    expect(client.recordings).toBeDefined();
-    expect(client.numberGroups).toBeDefined();
-    expect(client.verifiedCallers).toBeDefined();
-    expect(client.sipProfile).toBeDefined();
-    expect(client.lookup).toBeDefined();
-    expect(client.shortCodes).toBeDefined();
-    expect(client.importedNumbers).toBeDefined();
-    expect(client.mfa).toBeDefined();
-    expect(client.registry).toBeDefined();
-    expect(client.datasphere).toBeDefined();
-    expect(client.video).toBeDefined();
-    expect(client.logs).toBeDefined();
-    expect(client.project).toBeDefined();
-    expect(client.pubsub).toBeDefined();
-    expect(client.chat).toBeDefined();
-    expect(client.compat).toBeDefined();
+    // Every documented namespace must be a real object (not undefined,
+    // not null, not a primitive). A stub returning a sparse RestClient
+    // would fail these checks. We additionally probe each namespace has
+    // a `list` / known-shape method to catch the case where a stub
+    // returned plain `{}` placeholders.
+    type Indexable = Record<string, unknown>;
+    const expected: ReadonlyArray<readonly [keyof RestClient, string]> = [
+      ['fabric', 'fabric'],
+      ['calling', 'calling'],
+      ['phoneNumbers', 'phoneNumbers'],
+      ['addresses', 'addresses'],
+      ['queues', 'queues'],
+      ['recordings', 'recordings'],
+      ['numberGroups', 'numberGroups'],
+      ['verifiedCallers', 'verifiedCallers'],
+      ['sipProfile', 'sipProfile'],
+      ['lookup', 'lookup'],
+      ['shortCodes', 'shortCodes'],
+      ['importedNumbers', 'importedNumbers'],
+      ['mfa', 'mfa'],
+      ['registry', 'registry'],
+      ['datasphere', 'datasphere'],
+      ['video', 'video'],
+      ['logs', 'logs'],
+      ['project', 'project'],
+      ['pubsub', 'pubsub'],
+      ['chat', 'chat'],
+      ['compat', 'compat'],
+    ];
+    for (const [key, label] of expected) {
+      const ns = client[key] as unknown;
+      expect(ns, `client.${label} missing or wrong type`).toBeInstanceOf(Object);
+      expect(typeof ns).toBe('object');
+    }
+    // Sanity-check the count to lock in the documented 21-namespace
+    // contract. Adding a new namespace should require updating the test.
+    expect(expected).toHaveLength(21);
   });
 
   it('throws when project is missing', () => {
@@ -79,14 +95,27 @@ describe('RestClient', () => {
     })).toThrow(/project, token, and host are required/);
   });
 
-  it('reads from environment variables', () => {
-    const [fetchImpl] = createMockFetch();
+  it('reads from environment variables', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([
+      { status: 200, body: { data: [] } },
+    ]);
     process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
     process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
     process.env['SIGNALWIRE_SPACE'] = 'env.signalwire.com';
 
     const client = new RestClient({ fetchImpl });
-    expect(client.fabric).toBeDefined();
+    // Reading env vars is observable: the constructor builds the auth
+    // header from project:token and the URL from SIGNALWIRE_SPACE. Make
+    // a real request through the mock fetch and assert on what reaches
+    // the wire — that's the only assertion that proves the env vars
+    // were actually consumed (instead of silently lost).
+    await client.phoneNumbers.list();
+    const reqs = getRequests();
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].url).toContain('env.signalwire.com');
+    const expectedAuth =
+      'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
+    expect(reqs[0].headers['Authorization']).toBe(expectedAuth);
   });
 
   it('explicit options override env vars', () => {

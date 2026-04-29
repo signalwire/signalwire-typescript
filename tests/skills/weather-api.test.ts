@@ -71,7 +71,14 @@ describe('WeatherApiSkill', () => {
 
   it('should have a parameter schema with units', () => {
     const schema = WeatherApiSkill.getParameterSchema();
-    expect(schema['units']).toBeDefined();
-    expect(schema['api_key']).toBeDefined();
+    // `units` and `api_key` must both be real entries with the
+    // expected types — a stub returning `{units: undefined}` would
+    // fail the type check.
+    expect(schema['units'].type).toBe('string');
+    expect(Array.isArray(schema['units'].enum)).toBe(true);
+    expect(schema['units'].enum).toContain('imperial');
+    expect(schema['units'].enum).toContain('metric');
+    expect(schema['api_key'].type).toBe('string');
+    expect(schema['api_key'].env_var).toBe('WEATHER_API_KEY');
   });
 });

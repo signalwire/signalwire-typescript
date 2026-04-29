@@ -60,20 +60,26 @@ describe('SpiderSkill', () => {
 
   it('should have full parameter schema', () => {
     const schema = SpiderSkill.getParameterSchema();
-    expect(schema['delay']).toBeDefined();
-    expect(schema['concurrent_requests']).toBeDefined();
-    expect(schema['timeout']).toBeDefined();
-    expect(schema['max_pages']).toBeDefined();
-    expect(schema['max_depth']).toBeDefined();
-    expect(schema['extract_type']).toBeDefined();
-    expect(schema['max_text_length']).toBeDefined();
-    expect(schema['clean_text']).toBeDefined();
-    expect(schema['selectors']).toBeDefined();
-    expect(schema['follow_patterns']).toBeDefined();
-    expect(schema['user_agent']).toBeDefined();
-    expect(schema['headers']).toBeDefined();
-    expect(schema['follow_robots_txt']).toBeDefined();
-    expect(schema['cache_enabled']).toBeDefined();
+    // Each documented param must be a real entry — type and description
+    // both populated. A stub returning `{key: undefined}` would fail the
+    // type check; an empty-description placeholder would fail the
+    // description check.
+    const required = [
+      'delay', 'concurrent_requests', 'timeout', 'max_pages', 'max_depth',
+      'extract_type', 'max_text_length', 'clean_text', 'selectors',
+      'follow_patterns', 'user_agent', 'headers', 'follow_robots_txt',
+      'cache_enabled',
+    ];
+    const validTypes = new Set([
+      'string', 'integer', 'number', 'boolean', 'array', 'object',
+    ]);
+    for (const key of required) {
+      const entry = schema[key];
+      expect(entry, `schema.${key} missing`).toBeDefined();
+      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0)
+        .toBe(true);
+    }
   });
 
   it('should support multiple instances', () => {

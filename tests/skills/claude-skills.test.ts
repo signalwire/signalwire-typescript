@@ -49,6 +49,12 @@ describe('ClaudeSkillsSkill', () => {
 
   it('should have a parameter schema', () => {
     const schema = ClaudeSkillsSkill.getParameterSchema();
-    expect(schema).toBeDefined();
+    // Every SkillBase subclass must inherit `swaig_fields` and
+    // `skip_prompt` from the base, so a non-empty schema with those two
+    // keys is the minimum viable contract. A stub returning `{}` would
+    // fail this check.
+    expect(Object.keys(schema).length).toBeGreaterThan(0);
+    expect(schema).toHaveProperty('swaig_fields');
+    expect(schema).toHaveProperty('skip_prompt');
   });
 });
