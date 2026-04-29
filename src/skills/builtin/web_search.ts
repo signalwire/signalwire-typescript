@@ -425,8 +425,13 @@ export class WebSearchSkill extends SkillBase {
           try {
             const encodedQuery = encodeURIComponent(query);
             const safeParam = safeSearch !== 'off' ? `&safe=${safeSearch}` : '';
+            // Base URL is normally googleapis.com; the porting-sdk's
+            // `audit_skills_dispatch.py` overrides via `WEB_SEARCH_BASE_URL`
+            // so the loopback fixture can stand in for Google CSE.
+            const base =
+              process.env['WEB_SEARCH_BASE_URL'] ?? 'https://www.googleapis.com';
             const url =
-              `https://www.googleapis.com/customsearch/v1` +
+              `${base.replace(/\/+$/, '')}/customsearch/v1` +
               // Python uses timeout=15 on the API request (skill.py:220).
               `?key=${apiKey}&cx=${searchEngineId}&q=${encodedQuery}&num=${fetchCount}${safeParam}`;
 
@@ -536,10 +541,29 @@ export class WebSearchSkill extends SkillBase {
             const scored = chosen;
 
             if (allCandidates.length === 0 || scored.length === 0) {
-              // Python skill.py:465-466 / 488-489 return a plain "no quality
-              // results" string, which the outer handler (skill.py:640-642)
-              // detects and replaces with the configured `no_results_message`.
-              // Skip the middleman and return the configured message directly.
+              // Every scrape failed (network / SSRF rejection / timeout).
+              // Python skill.py:465-466 / 488-489 returns a plain "no quality
+              // results" string at this point. We extend that with a snippet-
+              // only fallback: render whichever raw items came back from the
+              // CSE API so the agent still has *something* to work with —
+              // titles and snippets — instead of a useless "no results" reply
+              // when the network was the problem rather than the search.
+              if (data.items && data.items.length > 0) {
+                const fallbackLines: string[] = [
+                  `Search results for '${query}' (snippets only — page content was unavailable):`,
+                  '',
+                ];
+                const cap = Math.min(count, data.items.length);
+                for (let i = 0; i < cap; i++) {
+                  const it = data.items[i];
+                  fallbackLines.push(`=== RESULT ${i + 1} ===`);
+                  fallbackLines.push(`Title: ${it.title}`);
+                  fallbackLines.push(`URL: ${it.link}`);
+                  fallbackLines.push(`Snippet: ${(it.snippet ?? '').replace(/\n/g, ' ').trim()}`);
+                  fallbackLines.push('');
+                }
+                return new FunctionResult(fallbackLines.join('\n'));
+              }
               return new FunctionResult(
                 WebSearchSkill._formatNoResultsMessage(noResultsMessage, query),
               );

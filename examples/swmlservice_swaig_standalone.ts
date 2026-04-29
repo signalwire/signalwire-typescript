@@ -33,7 +33,9 @@ class StandaloneSwaig extends SWMLService {
       name: 'standalone-swaig',
       route: '/standalone',
       host: opts.host ?? '0.0.0.0',
-      port: opts.port ?? 3000,
+      // Honor an explicit port; otherwise fall back to PORT env var (used by
+      // CI / the audit harness) and finally to 3000 for local interactive use.
+      port: opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10),
       // Hard-coded creds keep the example reproducible from the CLI / curl.
       basicAuth: [
         process.env['SWML_BASIC_AUTH_USER'] ?? 'user',

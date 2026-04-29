@@ -16,6 +16,17 @@ export interface RelayClientOptions {
   jwtToken?: string;
   /** RELAY host. Defaults to relay.signalwire.com. */
   host?: string;
+  /**
+   * WebSocket scheme — `'wss'` (production, the default) or `'ws'`
+   * (loopback fixtures and local audit harnesses). Reads from
+   * `SIGNALWIRE_RELAY_SCHEME` if not explicitly set; defaults to `'wss'`.
+   *
+   * Production deployments should never pass `'ws'` — the value exists
+   * solely so the porting-sdk's `audit_relay_handshake.py` can drive the
+   * real client against a plain-WS loopback fixture without standing up
+   * TLS termination.
+   */
+  scheme?: 'ws' | 'wss';
   /** Contexts (topics) to receive inbound calls/messages on. */
   contexts?: string[];
   /** Maximum number of concurrent active calls. Defaults to env RELAY_MAX_ACTIVE_CALLS or 1000. */

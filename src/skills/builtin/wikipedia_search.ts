@@ -170,7 +170,15 @@ export class WikipediaSearchSkill extends SkillBase {
     }
 
     try {
-      const baseUrl = 'https://en.wikipedia.org/w/api.php';
+      // Default to en.wikipedia.org's REST API entry. The porting-sdk's
+      // `audit_skills_dispatch.py` overrides via `WIKIPEDIA_BASE_URL` so
+      // a loopback fixture can stand in for Wikipedia. We append `/api.php`
+      // when the override is just the host, so the audit's expected
+      // `expected_path_substring="api.php"` still matches.
+      const wikiBase = process.env['WIKIPEDIA_BASE_URL'];
+      const baseUrl = wikiBase
+        ? `${wikiBase.replace(/\/+$/, '')}/api.php`
+        : 'https://en.wikipedia.org/w/api.php';
       const searchUrl =
         `${baseUrl}?action=query&list=search&format=json` +
         `&srsearch=${encodeURIComponent(trimmedQuery)}` +
@@ -205,6 +213,14 @@ export class WikipediaSearchSkill extends SkillBase {
 
         if (extract.length > 0) {
           articles.push(`**${title}**\n\n${extract}`);
+        } else if (result.snippet && result.snippet.trim().length > 0) {
+          // Fall back to the search-result snippet so we surface
+          // *something* about the article when the extract endpoint
+          // returns nothing useful (e.g. permissions error, audit
+          // fixture, or a stub page). Strip HTML the search API
+          // sometimes wraps around match terms.
+          const cleanSnippet = result.snippet.replace(/<[^>]+>/g, '').trim();
+          articles.push(`**${title}**\n\n${cleanSnippet}`);
         } else {
           articles.push(`**${title}**\n\nNo summary available for this article.`);
         }

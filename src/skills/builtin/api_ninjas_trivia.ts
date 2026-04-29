@@ -176,9 +176,14 @@ export class ApiNinjasTriviaSkill extends SkillBase {
           }
 
           try {
+            // Base URL defaults to API Ninjas; the porting-sdk's
+            // `audit_skills_dispatch.py` overrides via `API_NINJAS_BASE_URL`
+            // so a loopback fixture can stand in.
+            const apiBase =
+              process.env['API_NINJAS_BASE_URL'] ?? 'https://api.api-ninjas.com';
             const url = category
-              ? `https://api.api-ninjas.com/v1/trivia?category=${encodeURIComponent(category)}`
-              : 'https://api.api-ninjas.com/v1/trivia';
+              ? `${apiBase.replace(/\/+$/, '')}/v1/trivia?category=${encodeURIComponent(category)}`
+              : `${apiBase.replace(/\/+$/, '')}/v1/trivia`;
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30_000);

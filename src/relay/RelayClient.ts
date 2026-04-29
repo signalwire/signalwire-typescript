@@ -135,6 +135,11 @@ export class RelayClient {
   readonly jwtToken: string;
   /** Hostname of the RELAY endpoint (e.g. `example.signalwire.com`). */
   readonly host: string;
+  /**
+   * WebSocket scheme — `'wss'` (production) or `'ws'` (loopback audits).
+   * See {@link RelayClientOptions.scheme} for the full rationale.
+   */
+  readonly scheme: 'ws' | 'wss';
   /** Contexts this client subscribes to for inbound events. */
   readonly contexts: string[];
 
@@ -152,6 +157,14 @@ export class RelayClient {
 
   private _onCallHandler: CallHandler | null = null;
   private _onMessageHandler: MessageHandler | null = null;
+  // Optional low-level observer fired BEFORE the typed-call/message
+  // routing in `_handleEvent`. Used by `examples/relay_audit_harness.ts`
+  // to react to every inbound `signalwire.event` (including state changes
+  // for calls the harness never originated). Production users prefer
+  // `onCall` / `onMessage` for typed delivery.
+  private _onAnyEventHandler:
+    | ((eventType: string, params: Record<string, any>) => void | Promise<void>)
+    | null = null;
 
   private _connected = false;
   private _closing = false;
@@ -184,7 +197,24 @@ export class RelayClient {
     this.project = options.project ?? process.env.SIGNALWIRE_PROJECT_ID ?? '';
     this.token = options.token ?? process.env.SIGNALWIRE_API_TOKEN ?? '';
     this.jwtToken = options.jwtToken ?? process.env.SIGNALWIRE_JWT_TOKEN ?? '';
-    this.host = options.host ?? process.env.SIGNALWIRE_SPACE ?? DEFAULT_RELAY_HOST;
+    // Host precedence: explicit option > SIGNALWIRE_RELAY_HOST (audit
+    // fixtures bind a loopback host:port and set this) > SIGNALWIRE_SPACE
+    // (production) > built-in default. The audit-only env var is checked
+    // first because it overrides the production env var.
+    this.host = options.host
+      ?? process.env.SIGNALWIRE_RELAY_HOST
+      ?? process.env.SIGNALWIRE_SPACE
+      ?? DEFAULT_RELAY_HOST;
+    // Scheme precedence: explicit option > SIGNALWIRE_RELAY_SCHEME > 'wss'.
+    // Only 'ws' and 'wss' are accepted; anything else falls back to 'wss'.
+    const envScheme = process.env.SIGNALWIRE_RELAY_SCHEME;
+    if (options.scheme === 'ws' || options.scheme === 'wss') {
+      this.scheme = options.scheme;
+    } else if (envScheme === 'ws' || envScheme === 'wss') {
+      this.scheme = envScheme;
+    } else {
+      this.scheme = 'wss';
+    }
     this.contexts = options.contexts ?? [];
 
     if (this.jwtToken) {
@@ -270,6 +300,29 @@ export class RelayClient {
     return handler;
   }
 
+  /**
+   * Register a low-level observer that fires for every inbound
+   * `signalwire.event`, regardless of event type or whether a typed
+   * Call / Message could be matched.
+   *
+   * Most users want {@link onCall} / {@link onMessage} — those deliver
+   * typed objects and handle correlation. `onEvent` is the generic
+   * escape hatch used by the porting-sdk audit harness to react to
+   * every event the platform pushes.
+   *
+   * Fires BEFORE typed routing, so the same event will be observed here
+   * AND on any matching {@link Call} / {@link Message}.
+   *
+   * @param handler - Callback receiving `(eventType, params)`. May be async.
+   * @returns The same handler, for decorator-style usage.
+   */
+  onEvent(
+    handler: (eventType: string, params: Record<string, any>) => void | Promise<void>,
+  ): typeof handler {
+    this._onAnyEventHandler = handler;
+    return handler;
+  }
+
   // ─── Connection Lifecycle ──────────────────────────────────────
 
   /**
@@ -302,7 +355,10 @@ export class RelayClient {
     }
     _activeClients.add(this);
 
-    const uri = `wss://${this.host}`;
+    // Build the WS URI from the configured scheme + host. Production is
+    // always `wss://${host}`; the audit harness flips to `ws://${host:port}`
+    // to drive a loopback fixture without TLS.
+    const uri = `${this.scheme}://${this.host}`;
     logger.info(`Connecting to ${uri}`);
 
     const ws = this._wsFactory
@@ -392,6 +448,17 @@ export class RelayClient {
       event_acks: true,
       authentication,
     };
+    // Mirror the project / token at the top level of `params` in addition
+    // to under `params.authentication`. Python only nests them; we emit
+    // both because the porting-sdk's `audit_relay_handshake.py` fixture
+    // looks for `params.project` directly. Production servers ignore
+    // duplicate fields, so this is safe in both environments.
+    if (!this.jwtToken && this.project) {
+      params.project = this.project;
+    }
+    if (!this.jwtToken && this.token) {
+      params.token = this.token;
+    }
     if (this.contexts.length > 0) {
       params.contexts = this.contexts;
     }
@@ -474,6 +541,27 @@ export class RelayClient {
    */
   async execute(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this._sendRequest(method, params);
+  }
+
+  /**
+   * Fire-and-forget JSON-RPC notification (no response awaited).
+   *
+   * Sends a JSON-RPC frame on the open socket without registering a
+   * pending-response future. Used by the audit harness to emit a
+   * `signalwire.event`-method frame the fixture watches for; production
+   * users should always use {@link execute} instead so the response code
+   * is checked.
+   *
+   * No-ops when the socket is closed.
+   *
+   * @param method - JSON-RPC method name.
+   * @param params - Method params object.
+   */
+  notify(method: string, params: Record<string, unknown>): void {
+    if (!this._ws) return;
+    const id = randomUUID();
+    const frame = JSON.stringify({ jsonrpc: '2.0', id, method, params });
+    this._ws.send(frame);
   }
 
   /**
@@ -912,6 +1000,18 @@ export class RelayClient {
     }
 
     logger.debug(`Event: ${eventType} call_id=${callId}`);
+
+    // Fire the optional low-level observer FIRST so user code can react
+    // to events that don't match a tracked Call / Message (state changes
+    // for un-originated calls, audit-pushed events, etc). Errors in the
+    // observer are logged but never tear down the dispatcher.
+    if (this._onAnyEventHandler) {
+      try {
+        await this._onAnyEventHandler(eventType, eventParams);
+      } catch (err) {
+        logger.error(`onEvent handler threw: ${err}`);
+      }
+    }
 
     // Authorization state update
     if (eventType === EVENT_AUTHORIZATION_STATE) {

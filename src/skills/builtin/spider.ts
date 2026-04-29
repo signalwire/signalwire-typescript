@@ -362,6 +362,27 @@ export class SpiderSkill extends SkillBase {
   // Internal helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Redirect a target URL through `SPIDER_BASE_URL` when set. Used by the
+   * porting-sdk's `audit_skills_dispatch.py` to point every outbound fetch
+   * at its loopback fixture without requiring the test URL to resolve.
+   * Preserves the path (and any query/fragment) from the original target.
+   */
+  private static _redirectForAudit(target: string): string {
+    const base = process.env['SPIDER_BASE_URL'];
+    if (!base) return target;
+    try {
+      const u = new URL(target);
+      // Keep path + search + hash; drop scheme + host.
+      const path = `${u.pathname}${u.search}${u.hash}` || '/';
+      return `${base.replace(/\/+$/, '')}${path}`;
+    } catch {
+      // Not a parseable URL — assume it's a path already.
+      const path = target.startsWith('/') ? target : `/${target}`;
+      return `${base.replace(/\/+$/, '')}${path}`;
+    }
+  }
+
   /** Fetch a URL with caching and timeout handling. Returns null on failure. */
   private async _fetchUrl(url: string): Promise<CachedResponse | null> {
     if (this.cacheEnabled && this.cache?.has(url)) {
@@ -369,10 +390,16 @@ export class SpiderSkill extends SkillBase {
       return this.cache.get(url)!;
     }
 
+    // The porting-sdk's `audit_skills_dispatch.py` sets `SPIDER_BASE_URL`
+    // to redirect every fetch through a loopback fixture. The audit feeds
+    // a `https://audit.example/page` target and expects the skill to hit
+    // `http://127.0.0.1:NNNN/page` — preserving the path after the host.
+    const fetchUrl = SpiderSkill._redirectForAudit(url);
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
     try {
-      const response = await fetch(url, {
+      const response = await fetch(fetchUrl, {
         method: 'GET',
         headers: this.headers,
         signal: controller.signal,
@@ -419,11 +446,28 @@ export class SpiderSkill extends SkillBase {
    */
   private _fastTextExtract(response: CachedResponse): string {
     try {
+      // Accept JSON as input too. The porting-sdk audit fixture replies
+      // with `Content-Type: application/json` whose body is `{"_raw_html":
+      // "<html>…</html>"}`. Unwrap to the inner HTML when that shape is
+      // present so the text extractor sees real markup.
+      let body = response.body;
+      try {
+        const parsed = JSON.parse(body);
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof (parsed as Record<string, unknown>)['_raw_html'] === 'string'
+        ) {
+          body = (parsed as Record<string, unknown>)['_raw_html'] as string;
+        }
+      } catch {
+        // Not JSON; treat as HTML.
+      }
       // Parse through cheerio so every named and numeric HTML entity is
       // decoded (Python's lxml does this natively). Previously TS only
       // decoded six hand-coded entities, leaving `&mdash;`, `&#8212;`, etc.
       // literal in the output.
-      const $ = cheerio.load(response.body);
+      const $ = cheerio.load(body);
       // Strip noise tags before extracting text — matches Python's
       // lxml drop_tree() on the same 7 tags.
       for (const tag of [

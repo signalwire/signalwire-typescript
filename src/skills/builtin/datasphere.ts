@@ -286,8 +286,15 @@ export class DataSphereSkill extends SkillBase {
           log.info('datasphere_search', { query, document_id: documentId });
 
           try {
+            // The porting-sdk's `audit_skills_dispatch.py` overrides the
+            // upstream via `DATASPHERE_BASE_URL` so a loopback fixture can
+            // stand in for SignalWire DataSphere. Production resolves the
+            // URL from the configured `space_name`.
+            const baseOverride = process.env['DATASPHERE_BASE_URL'];
             const spaceHost = space.includes('.') ? space : `${space}.signalwire.com`;
-            const url = `https://${spaceHost}/api/datasphere/documents/search`;
+            const url = baseOverride
+              ? `${baseOverride.replace(/\/+$/, '')}/api/datasphere/documents/search`
+              : `https://${spaceHost}/api/datasphere/documents/search`;
 
             const requestBody: Record<string, unknown> = {
               document_id: documentId,
@@ -344,7 +351,9 @@ export class DataSphereSkill extends SkillBase {
               );
             }
 
-            const data = (await response.json()) as DataSphereResponse;
+            const data = (await response.json()) as DataSphereResponse & {
+              results?: DataSphereChunk[];
+            };
 
             if (!data || typeof data !== 'object') {
               log.warn('datasphere_invalid_response');
@@ -353,8 +362,11 @@ export class DataSphereSkill extends SkillBase {
               );
             }
 
-            // DataSphere API returns 'chunks', not 'results'.
-            const chunks = data.chunks ?? [];
+            // DataSphere API returns `chunks` in production. The
+            // porting-sdk's audit fixture and some legacy test responses
+            // use `results` — accept either to match Python's tolerance
+            // for the older shape.
+            const chunks = data.chunks ?? data.results ?? [];
 
             if (chunks.length === 0) {
               return new FunctionResult(

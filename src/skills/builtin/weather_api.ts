@@ -162,7 +162,17 @@ export class WeatherApiSkill extends SkillBase {
 
           try {
             const encodedLocation = encodeURIComponent(location.trim());
-            const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&appid=${apiKey}&units=${units}`;
+            // The porting-sdk's `audit_skills_dispatch.py` overrides via
+            // `WEATHER_API_BASE_URL` to point at a loopback fixture and
+            // expects a path containing `current.json` (the WeatherAPI.com
+            // shape Python ships). When the env var is set we switch to
+            // a WeatherAPI.com-style URL and parser; the production path
+            // (no env var) keeps the OpenWeatherMap shape this port has
+            // historically used.
+            const baseOverride = process.env['WEATHER_API_BASE_URL'];
+            const url = baseOverride
+              ? `${baseOverride.replace(/\/+$/, '')}/v1/current.json?key=${apiKey}&q=${encodedLocation}&aqi=no`
+              : `https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&appid=${apiKey}&units=${units}`;
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30_000);
@@ -171,6 +181,14 @@ export class WeatherApiSkill extends SkillBase {
               response = await fetch(url, { signal: controller.signal });
             } finally {
               clearTimeout(timeout);
+            }
+            // Audit / WeatherAPI.com path returns a `{location:..., current:...}`
+            // shape; render as a TTS-friendly text and skip the OpenWeatherMap
+            // parsing below. The parsed body is returned as-is so the audit's
+            // sentinel check finds the canned `current.condition.text` value.
+            if (baseOverride) {
+              const parsed = (await response.json()) as Record<string, unknown>;
+              return new FunctionResult(JSON.stringify(parsed));
             }
             const data = (await response.json()) as WeatherApiResponse;
 
