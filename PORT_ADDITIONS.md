@@ -309,6 +309,15 @@ signalwire.core.swml_service.SWMLService.get_builder: TS SWMLService exposes ric
 signalwire.core.swml_service.SWMLService.render_swml: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.run: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.set_on_request_callback: TS SWMLService exposes richer handler-registration / config getters
+signalwire.core.swml_service.SWMLService.define_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.get_registered_tools: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.get_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.has_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.list_tool_names: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.on_function_call: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.register_additional_routes: TS SWMLService extension hook subclasses override to mount agent-specific routes (post_prompt, debug_events, etc) onto the inherited Hono app
+signalwire.core.swml_service.SWMLService.register_swaig_function: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.swaig_pre_dispatch: TS SWMLService extension hook — AgentBase overrides to validate session tokens and apply dynamic-config callbacks before dispatching SWAIG calls
 
 ## REST namespace additions
 
@@ -340,3 +349,8 @@ signalwire.core.security.session_manager.SessionManager.delete_session_metadata:
 
 signalwire.rest._base.RestError: TS RestError helper or status accessor
 signalwire.rest._base.RestError.__init__: TS RestError helper or status accessor
+
+## RelayClient port-specific (audit-harness support)
+
+signalwire.relay.client.RelayClient.notify: TS-only fire-and-forget JSON-RPC send used by the porting-sdk audit harness to emit a method-bearing `signalwire.event` echo frame the audit fixture watches for; production users prefer `execute()` to keep the response code check
+signalwire.relay.client.RelayClient.on_event: TS-only low-level event observer that fires before typed `onCall` / `onMessage` routing; used by the audit harness to react to platform-pushed events that don't correspond to a tracked Call / Message

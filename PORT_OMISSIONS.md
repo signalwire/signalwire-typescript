@@ -468,3 +468,8 @@ signalwire.utils.schema_utils.SchemaUtils.validate_document: TS SchemaUtils uses
 signalwire.utils.schema_utils.SchemaValidationError: TS uses plain Error subclasses; no dedicated SchemaValidationError class needed — see PORT_ADDITIONS.md for RestError / AjvError equivalents
 signalwire.utils.schema_utils.SchemaValidationError.__init__: see SchemaValidationError rationale
 signalwire.utils.url_validator.validate_url: TS validateUrl lives in SecurityUtils, not in a separate url_validator module — see PORT_ADDITIONS.md
+
+## ToolMixin / ToolRegistry (Python uses mixin pattern — TS uses direct methods on SWMLService)
+
+signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function (see PORT_ADDITIONS.md SWMLService entry); no separate ToolRegistry class
+signalwire.core.mixins.tool_mixin.ToolMixin.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function; the Python ToolMixin pattern is replaced by direct methods on SWMLService

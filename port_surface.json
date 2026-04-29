@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ e171e47c9535ea8856c2cd4b01d159df6ebd954f",
+  "generated_from": "signalwire-typescript @ c278ce2579924ec5f2b4ad08cacf1b0f65df81af",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -74,8 +74,7 @@
       "classes": {
         "ToolRegistry": [
           "__init__",
-          "define_tool",
-          "register_swaig_function"
+          "define_tool"
         ]
       },
       "functions": []
@@ -110,8 +109,6 @@
           "get_mcp_servers",
           "get_name",
           "get_prompt_pom",
-          "get_registered_tools",
-          "get_tool",
           "get_tools",
           "handle_mcp_request",
           "is_mcp_server_enabled",
@@ -458,8 +455,7 @@
         "ToolMixin": [
           "define_tool",
           "define_tools",
-          "on_function_call",
-          "register_swaig_function"
+          "on_function_call"
         ]
       },
       "functions": []
@@ -663,15 +659,23 @@
           "add_verb",
           "add_verb_to_section",
           "as_router",
+          "define_tool",
           "extract_sip_username",
           "full_validation_enabled",
           "get_app",
           "get_basic_auth_credentials",
           "get_builder",
           "get_document",
+          "get_registered_tools",
+          "get_tool",
+          "has_tool",
+          "list_tool_names",
           "manual_set_proxy_url",
+          "on_function_call",
           "on_request",
+          "register_additional_routes",
           "register_routing_callback",
+          "register_swaig_function",
           "register_verb_handler",
           "render_document",
           "render_swml",
@@ -679,7 +683,8 @@
           "run",
           "serve",
           "set_on_request_callback",
-          "stop"
+          "stop",
+          "swaig_pre_dispatch"
         ]
       },
       "functions": []
@@ -966,7 +971,9 @@
           "dial",
           "disconnect",
           "execute",
+          "notify",
           "on_call",
+          "on_event",
           "on_message",
           "receive",
           "relay_protocol",
