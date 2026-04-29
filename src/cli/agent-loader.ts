@@ -38,11 +38,13 @@ function isAgentClass(obj: unknown): boolean {
 function isSWMLServiceInstance(obj: unknown): boolean {
   if (!obj || typeof obj !== 'object') return false;
   const a = obj as Record<string, unknown>;
+  // SWMLService has SWAIG-hosting (defineTool) post-lift, just like
+  // AgentBase. Distinguish them by getPrompt — agent-only.
   return (
     typeof a['renderSwml'] === 'function' &&
     typeof a['getApp'] === 'function' &&
     typeof a['addVerb'] === 'function' &&
-    typeof a['defineTool'] !== 'function'
+    typeof a['getPrompt'] !== 'function'
   );
 }
 

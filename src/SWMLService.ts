@@ -226,15 +226,25 @@ export class SWMLService {
   /** Custom verb handler registry. Mirrors Python's `self.verb_registry`. */
   readonly verbRegistry: VerbHandlerRegistry;
 
-  private swmlBuilder: SwmlBuilder;
-  private _app: Hono;
+  protected swmlBuilder: SwmlBuilder;
+  protected _app: Hono;
   private _server: Server | null = null;
-  private onRequestCallback?: OnRequestCallback;
-  private authCredentials?: [string, string];
-  private authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
-  private _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
-  private _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
-  private _routingCallbacks = new Map<string, RoutingCallback>();
+  protected onRequestCallback?: OnRequestCallback;
+  protected authCredentials?: [string, string];
+  protected authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
+  protected _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
+  protected _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
+  protected _routingCallbacks = new Map<string, RoutingCallback>();
+
+  // SWAIG tool registry — lifted from AgentBase so any SWMLService (sidecar,
+  // non-agent verb host) can register and dispatch SWAIG functions.
+  protected toolRegistry = new Map<string, {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+    handler?: (args: Record<string, unknown>, raw: Record<string, unknown>) => unknown;
+    secure?: boolean;
+  }>();
 
   constructor(opts: SWMLServiceOptions);
   /** @deprecated Prefer passing an options object with a required `name`. The no-arg form defaults name to 'swml-service'. */
@@ -367,10 +377,137 @@ export class SWMLService {
     };
 
     const routePath = this.route === '/' ? '/' : this.route;
+    const swaigPath = this.route === '/' ? '/swaig' : `${this.route}/swaig`;
+
+    // SWAIG endpoint — GET returns the rendered SWML doc (sidecar / non-agent
+    // services use the document as-is; AgentBase overrides via render hook),
+    // POST validates and dispatches via onFunctionCall. Subclasses may
+    // override swaigPreDispatch to add token validation / ephemeral copies.
+    const swaigHandler = async (c: any) => {
+      if (c.req.method === 'GET') {
+        return handler(c);
+      }
+      let payload: Record<string, unknown> = {};
+      try {
+        payload = (await c.req.json()) as Record<string, unknown>;
+      } catch {
+        return c.json({ error: 'Invalid JSON' }, 400);
+      }
+      const fnName = (payload['function'] as string | undefined) ?? '';
+      if (!fnName) {
+        return c.json({ error: 'Missing function name' }, 400);
+      }
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fnName)) {
+        return c.json({ error: `Invalid function name format: '${fnName}'` }, 400);
+      }
+      // Argument extraction: nested {argument:{parsed}} OR flat {arguments}
+      let args: Record<string, unknown> = {};
+      const argument = payload['argument'] as Record<string, unknown> | undefined;
+      if (argument && typeof argument === 'object' && Array.isArray(argument['parsed']) && (argument['parsed'] as unknown[]).length > 0) {
+        const first = (argument['parsed'] as unknown[])[0];
+        if (first && typeof first === 'object') args = first as Record<string, unknown>;
+      } else {
+        const flat = payload['arguments'] as Record<string, unknown> | undefined;
+        if (flat && typeof flat === 'object') args = flat;
+      }
+      const [target, shortCircuit] = this.swaigPreDispatch(payload, fnName);
+      if (shortCircuit !== null && shortCircuit !== undefined) {
+        return c.json(shortCircuit);
+      }
+      const result = target.onFunctionCall(fnName, args, payload);
+      if (result === null || result === undefined) {
+        return c.json({ error: `Unknown function: ${fnName}` }, 404);
+      }
+      return c.json(result);
+    };
+    this._app.get(swaigPath, swaigHandler);
+    this._app.post(swaigPath, swaigHandler);
+
+    // Subclass extension hook (AgentBase wires /post_prompt etc here).
+    this.registerAdditionalRoutes(this._app);
+
     this._app.get(routePath, handler);
     this._app.post(routePath, handler);
 
     // Register routing callback endpoints dynamically in getApp/run
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+  // SWAIG tool registry (lifted from AgentBase)
+  // ────────────────────────────────────────────────────────────────────
+
+  /**
+   * Define a SWAIG function the AI can call. Tool descriptions and
+   * parameter descriptions are LLM-facing prompt engineering — see
+   * PORTING_GUIDE for guidance on writing them.
+   */
+  defineTool(opts: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+    handler: (args: Record<string, unknown>, raw: Record<string, unknown>) => unknown;
+    secure?: boolean;
+  }): this {
+    this.toolRegistry.set(opts.name, {
+      name: opts.name,
+      description: opts.description,
+      parameters: opts.parameters,
+      handler: opts.handler,
+      secure: opts.secure ?? false,
+    });
+    return this;
+  }
+
+  /** Register a raw SWAIG function definition (e.g. DataMap tools). */
+  registerSwaigFunction(funcDef: Record<string, unknown>): this {
+    const name = funcDef['function'] as string | undefined;
+    if (!name) return this;
+    this.toolRegistry.set(name, {
+      name,
+      description: (funcDef['description'] as string | undefined) ?? '',
+      parameters: (funcDef['parameters'] as Record<string, unknown> | undefined) ?? {},
+      secure: false,
+    });
+    return this;
+  }
+
+  /** Dispatch a function call to the registered handler. Returns null for unknown. */
+  onFunctionCall(name: string, args: Record<string, unknown>, rawData: Record<string, unknown>): unknown {
+    const tool = this.toolRegistry.get(name);
+    if (!tool || !tool.handler) return null;
+    return tool.handler(args, rawData);
+  }
+
+  /** Whether a tool with the given name is registered. */
+  hasTool(name: string): boolean {
+    return this.toolRegistry.has(name);
+  }
+
+  /** List registered tool names in insertion order (Map preserves it). */
+  listToolNames(): string[] {
+    return Array.from(this.toolRegistry.keys());
+  }
+
+  /**
+   * Extension point: invoked between argument parsing and function dispatch
+   * on POST /swaig. Returns [target, shortCircuit]: when shortCircuit is
+   * non-null, it's returned directly without dispatching. AgentBase may
+   * override to add session-token validation or ephemeral dynamic-config.
+   */
+  protected swaigPreDispatch(
+    _requestData: Record<string, unknown>,
+    _funcName: string,
+  ): [SWMLService, unknown] {
+    return [this, null];
+  }
+
+  /**
+   * Extension point: register additional Hono routes after SWMLService
+   * mounts /health, /ready, /swaig, and the main route. AgentBase uses
+   * this to add /post_prompt, /check_for_input, /debug_events, /mcp.
+   */
+  protected registerAdditionalRoutes(_app: Hono): void {
+    // Default: no extra routes.
   }
 
   // ── Properties (getters) ─────────────────────────────────────────────
