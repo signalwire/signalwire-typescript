@@ -349,8 +349,10 @@ async function main(): Promise<void> {
 
   switch (opts.action) {
     case 'list-tools': {
+      // getRegisteredTools is on SWMLService now, so AgentBase and
+      // standalone SWMLService instances both work here.
       if (typeof agent.getRegisteredTools !== 'function') {
-        console.log('This is a SWMLService (no tools). Use --dump-swml to see the SWML document.');
+        console.log('This target does not expose getRegisteredTools(); use --dump-swml.');
         break;
       }
       const tools = agent.getRegisteredTools();
@@ -375,9 +377,11 @@ async function main(): Promise<void> {
     }
 
     case 'dump-swml': {
-      // SWMLService.renderSwml() returns an object; AgentBase.renderSwml() returns a string
+      // SWMLService.renderSwml() returns an object; AgentBase.renderSwml() returns a string.
+      // Use `getPrompt` as the discriminator — agent-only — because
+      // getRegisteredTools is now on both classes.
       let swmlJson: unknown;
-      if (typeof agent.getRegisteredTools !== 'function') {
+      if (typeof agent.getPrompt !== 'function') {
         // SWMLService — renderSwml returns object directly
         swmlJson = agent.renderSwml();
       } else {

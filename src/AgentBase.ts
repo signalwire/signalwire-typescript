@@ -1279,50 +1279,9 @@ export class AgentBase extends SWMLService {
     return this;
   }
 
-  /**
-   * Get a summary of all registered tools with their names, descriptions, and parameter schemas.
-   * @returns Array of tool descriptors.
-   */
-  getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[] {
-    const tools: { name: string; description: string; parameters: Record<string, unknown> }[] = [];
-    for (const [name, fn] of this.toolRegistry) {
-      if (fn instanceof SwaigFunction) {
-        tools.push({ name, description: fn.description, parameters: fn.parameters });
-      } else {
-        tools.push({
-          name,
-          description: (fn['purpose'] as string) ?? '',
-          parameters: (fn['argument'] as Record<string, unknown>) ?? {},
-        });
-      }
-    }
-    return tools;
-  }
-
-  /**
-   * Look up a registered SwaigFunction by name.
-   * @param name - The tool name to search for.
-   * @returns The SwaigFunction instance, or undefined if not found or not a SwaigFunction.
-   */
-  getTool(name: string): SwaigFunction | undefined {
-    const fn = this.toolRegistry.get(name);
-    return fn instanceof SwaigFunction ? fn : undefined;
-  }
-
-  /**
-   * Register a pre-built SwaigFunction instance or a raw function descriptor (e.g. DataMap).
-   * @param fn - A SwaigFunction instance or a plain object with a "function" key.
-   * @returns This agent instance for chaining.
-   */
-  registerSwaigFunction(fn: SwaigFunction | Record<string, unknown>): this {
-    if (fn instanceof SwaigFunction) {
-      this.toolRegistry.set(fn.name, fn);
-    } else {
-      const name = fn['function'] as string;
-      this.toolRegistry.set(name, fn);
-    }
-    return this;
-  }
+  // getRegisteredTools / getTool / registerSwaigFunction are inherited from
+  // SWMLService (the toolRegistry was lifted there so non-AgentBase services
+  // — sidecars, standalone SWAIG hosts — can use the same surface).
 
   /**
    * Validate a tool-call token for the given function.

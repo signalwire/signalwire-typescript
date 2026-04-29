@@ -499,6 +499,43 @@ export class SWMLService {
   }
 
   /**
+   * Get a summary of all registered tools with their names, descriptions, and
+   * parameter schemas. Lifted from AgentBase so the swaig-test CLI can list
+   * tools on a non-AgentBase SWMLService target (sidecar / standalone SWAIG
+   * host).
+   *
+   * @returns Array of tool descriptors.
+   */
+  getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[] {
+    const tools: { name: string; description: string; parameters: Record<string, unknown> }[] = [];
+    for (const [name, fn] of this.toolRegistry) {
+      if (fn instanceof SwaigFunction) {
+        tools.push({ name, description: fn.description, parameters: fn.parameters });
+      } else {
+        tools.push({
+          name,
+          description: (fn['purpose'] as string) ?? '',
+          parameters: (fn['argument'] as Record<string, unknown>) ?? {},
+        });
+      }
+    }
+    return tools;
+  }
+
+  /**
+   * Look up a registered SwaigFunction by name. Lifted from AgentBase so
+   * `swaig-test --exec <name>` works against a non-AgentBase SWMLService
+   * target.
+   *
+   * @param name - The tool name to search for.
+   * @returns The SwaigFunction instance, or undefined if not found or not a SwaigFunction.
+   */
+  getTool(name: string): SwaigFunction | undefined {
+    const fn = this.toolRegistry.get(name);
+    return fn instanceof SwaigFunction ? fn : undefined;
+  }
+
+  /**
    * Extension point: invoked between argument parsing and function dispatch
    * on POST /swaig. Returns [target, shortCircuit]: when shortCircuit is
    * non-null, it's returned directly without dispatching. AgentBase may
