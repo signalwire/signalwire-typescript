@@ -12,6 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
+import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
@@ -104,24 +105,19 @@ export type RoutingCallback = (
  * @see {@link DataMap} — server-side tools without webhooks
  * @see {@link AgentServer} — host multiple agents on one HTTP server
  */
-export class AgentBase {
-  /** Display name of this agent. */
-  name: string;
-  /** HTTP route path this agent listens on. */
-  route: string;
-  /** Hostname the HTTP server binds to. */
-  host: string;
-  /** Port number the HTTP server listens on. */
-  port: number;
+export class AgentBase extends SWMLService {
+  // name, route, host, port, swmlBuilder, _app, authCredentials, toolRegistry
+  // are inherited from SWMLService. Agent-specific state below only.
+
   /** Unique identifier for this agent instance. */
   agentId: string;
 
   // Internal managers
   private _promptManager: PromptManager;
   private sessionManager: SessionManager;
-  private swmlBuilder: SwmlBuilder;
-  private toolRegistry: Map<string, SwaigFunction | Record<string, unknown>> = new Map();
-  // Auth
+  // Auth — mirrors of inherited authCredentials kept for legacy callers that
+  // read basicAuthCreds directly. The Hono basicAuth middleware uses the
+  // inherited credentials (set in super()).
   private basicAuthCreds: [string, string];
   private basicAuthSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
 
@@ -175,15 +171,15 @@ export class AgentBase {
   private debugEventsEnabled = false;
   private debugEventsLevel = 1;
 
-  // Proxy detection
-  private _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
-  private _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
+  // Proxy detection — _proxyUrlBase and _proxyUrlBaseFromEnv inherited from
+  // SWMLService.
   private _proxyDebug = process.env['SWML_PROXY_DEBUG'] === 'true';
   private _trustProxyHeaders = process.env['SWML_TRUST_PROXY_HEADERS'] === 'true';
   private _enforceHttps = process.env['SWML_ENFORCE_HTTPS'] === 'true';
 
-  /** Structured logger instance for this agent, configurable via SIGNALWIRE_LOG_LEVEL. */
-  log = getLogger('AgentBase');
+  /** Structured logger instance for this agent. Override the inherited
+   * SWMLService logger with an AgentBase-tagged one. */
+  override log = getLogger('AgentBase');
 
   // Skills
   private _skillManager = new SkillManager();
@@ -195,21 +191,25 @@ export class AgentBase {
   private _configFile: string | null = null;
   private _schemaPath: string | null = null;
 
-  // Routing callbacks (registered via registerRoutingCallback)
-  private _routingCallbacks: Map<string, RoutingCallback> = new Map();
-
-  // Hono app
-  private _app: Hono | null = null;
+  // _routingCallbacks and _app are inherited from SWMLService.
+  // AgentBase rebuilds _app in getApp() with its own middleware stack and
+  // route handlers, overwriting the parent-init Hono instance. The flag
+  // below tracks whether AgentBase's own setup has run; the parent-init
+  // Hono is replaced on first AgentBase getApp() call.
+  private _appBuiltByAgent = false;
 
   /**
    * Create a new AgentBase instance.
    * @param opts - Agent configuration options including name, route, auth, and call settings.
    */
   constructor(opts: AgentOptions) {
-    // Load config file if provided — values are defaults, constructor args take precedence
+    // Resolve construction-time config (config file + opts) before super(),
+    // because TypeScript's strict superclass-call rules require all `this`-
+    // touching code to come after super(). Forward the resolved values into
+    // SWMLService via super() so name/route/host/port/auth are set on the
+    // single source of truth in the parent.
     let serviceConfig: Record<string, unknown> = {};
     if (opts.configFile) {
-      this._configFile = opts.configFile;
       try {
         const loader = new ConfigLoader(opts.configFile);
         serviceConfig = (loader.get<Record<string, unknown>>('service') ?? {});
@@ -217,20 +217,33 @@ export class AgentBase {
         // Config file not found or invalid — continue with constructor args
       }
     }
-
-    // Config file values: constructor args take precedence unless at default values
-    // (matching Python's behavior where non-default constructor args always win)
-    this.name = (serviceConfig['name'] as string | undefined) ?? opts.name;
+    const resolvedName = (serviceConfig['name'] as string | undefined) ?? opts.name;
     const routeArg = opts.route ?? '/';
-    this.route = (routeArg !== '/' ? routeArg : ((serviceConfig['route'] as string | undefined) ?? routeArg)).replace(/\/+$/, '') || '/';
+    const resolvedRoute = (routeArg !== '/'
+      ? routeArg
+      : ((serviceConfig['route'] as string | undefined) ?? routeArg)).replace(/\/+$/, '') || '/';
     const hostArg = opts.host ?? '0.0.0.0';
-    this.host = hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
+    const resolvedHost = hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
     const configPort = serviceConfig['port'] as number | undefined;
     const parsedPort = opts.port ?? configPort ?? parseInt(process.env['PORT'] ?? '3000', 10);
     if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
       throw new Error(`Invalid port: ${opts.port ?? process.env['PORT']}. Must be between 1 and 65535.`);
     }
-    this.port = parsedPort;
+
+    super({
+      name: resolvedName,
+      route: resolvedRoute,
+      host: resolvedHost,
+      port: parsedPort,
+      ...(opts.basicAuth ? { basicAuth: opts.basicAuth } : {}),
+      ...(opts.configFile ? { configFile: opts.configFile } : {}),
+      ...(opts.schemaPath ? { schemaPath: opts.schemaPath } : {}),
+      schemaValidation: opts.schemaValidation ?? true,
+    });
+
+    if (opts.configFile) {
+      this._configFile = opts.configFile;
+    }
     this.agentId = opts.agentId ?? randomBytes(8).toString('hex');
     this.autoAnswer = opts.autoAnswer ?? true;
     this._recordCall = opts.recordCall ?? false;
@@ -251,14 +264,12 @@ export class AgentBase {
 
     this._promptManager = new PromptManager(opts.usePom ?? true);
     this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
-    // Forward schemaValidation + schemaPath into SwmlBuilder.
-    // Python equivalent: SchemaUtils(schema_path, schema_validation=...) inside SWMLService.
-    this.swmlBuilder = new SwmlBuilder({
-      enableValidation: this._schemaValidation,
-      ...(this._schemaPath ? { schemaPath: this._schemaPath } : {}),
-    });
+    // swmlBuilder is inherited from SWMLService (initialized via super()).
 
-    // Setup auth
+    // Setup auth — populate the legacy basicAuthCreds/basicAuthSource
+    // mirrors so AgentBase callers that read them still work.
+    // SWMLService's authCredentials (set in super()) is the source of truth
+    // for HTTP-level enforcement.
     if (opts.basicAuth) {
       this.basicAuthCreds = opts.basicAuth;
       this.basicAuthSource = 'provided';
@@ -956,8 +967,10 @@ export class AgentBase {
     let normalized = path.replace(/\/+$/, '') || '/';
     if (!normalized.startsWith('/')) normalized = `/${normalized}`;
     this._routingCallbacks.set(normalized, callback);
-    // Invalidate cached app so getApp() re-registers routes with the new callback
-    this._app = null;
+    // Invalidate cached app so getApp() re-registers routes with the new callback.
+    // _app is non-nullable on the parent (SWMLService); rebuild fresh.
+    this._app = new Hono();
+    this._appBuiltByAgent = false;
     return this;
   }
 
@@ -2096,7 +2109,9 @@ export class AgentBase {
    * @returns The configured Hono application instance.
    */
   getApp(): Hono {
-    if (this._app) return this._app;
+    // Service's constructor eagerly initialised _app; AgentBase rebuilds it
+    // here with its own middleware stack and route handlers on first call.
+    if (this._appBuiltByAgent) return this._app;
 
     const app = new Hono();
 
@@ -2444,6 +2459,7 @@ export class AgentBase {
     app.get(`${basePath}/ready`, (c: any) => c.json({ status: 'ready' }));
 
     this._app = app;
+    this._appBuiltByAgent = true;
     return app;
   }
 

@@ -15,6 +15,8 @@ import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
+import { SwaigFunction, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { FunctionResult } from './FunctionResult.js';
 import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
@@ -228,7 +230,7 @@ export class SWMLService {
 
   protected swmlBuilder: SwmlBuilder;
   protected _app: Hono;
-  private _server: Server | null = null;
+  protected _server: Server | null = null;
   protected onRequestCallback?: OnRequestCallback;
   protected authCredentials?: [string, string];
   protected authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
@@ -237,14 +239,10 @@ export class SWMLService {
   protected _routingCallbacks = new Map<string, RoutingCallback>();
 
   // SWAIG tool registry — lifted from AgentBase so any SWMLService (sidecar,
-  // non-agent verb host) can register and dispatch SWAIG functions.
-  protected toolRegistry = new Map<string, {
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
-    handler?: (args: Record<string, unknown>, raw: Record<string, unknown>) => unknown;
-    secure?: boolean;
-  }>();
+  // non-agent verb host) can register and dispatch SWAIG functions. Stores
+  // SwaigFunction instances (the canonical rich form) or raw descriptor maps
+  // for DataMap-style functions. AgentBase reads/writes this same registry.
+  protected toolRegistry: Map<string, SwaigFunction | Record<string, unknown>> = new Map();
 
   constructor(opts: SWMLServiceOptions);
   /** @deprecated Prefer passing an options object with a required `name`. The no-arg form defaults name to 'swml-service'. */
@@ -440,42 +438,54 @@ export class SWMLService {
    * Define a SWAIG function the AI can call. Tool descriptions and
    * parameter descriptions are LLM-facing prompt engineering — see
    * PORTING_GUIDE for guidance on writing them.
+   *
+   * Accepts the full SwaigFunctionOptions surface so AgentBase's richer
+   * call sites (fillers, secure tokens, wait files, extra fields) work
+   * without overriding this method on the subclass.
    */
-  defineTool(opts: {
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
-    handler: (args: Record<string, unknown>, raw: Record<string, unknown>) => unknown;
-    secure?: boolean;
-  }): this {
-    this.toolRegistry.set(opts.name, {
-      name: opts.name,
-      description: opts.description,
-      parameters: opts.parameters,
-      handler: opts.handler,
-      secure: opts.secure ?? false,
-    });
+  defineTool(opts: SwaigFunctionOptions): this {
+    const fn = new SwaigFunction(opts);
+    this.toolRegistry.set(opts.name, fn);
     return this;
   }
 
-  /** Register a raw SWAIG function definition (e.g. DataMap tools). */
-  registerSwaigFunction(funcDef: Record<string, unknown>): this {
-    const name = funcDef['function'] as string | undefined;
-    if (!name) return this;
-    this.toolRegistry.set(name, {
-      name,
-      description: (funcDef['description'] as string | undefined) ?? '',
-      parameters: (funcDef['parameters'] as Record<string, unknown> | undefined) ?? {},
-      secure: false,
-    });
+  /** Register a SwaigFunction instance or a raw function descriptor (DataMap). */
+  registerSwaigFunction(fn: SwaigFunction | Record<string, unknown>): this {
+    if (fn instanceof SwaigFunction) {
+      this.toolRegistry.set(fn.name, fn);
+    } else {
+      const name = fn['function'] as string;
+      if (name) this.toolRegistry.set(name, fn);
+    }
     return this;
   }
 
-  /** Dispatch a function call to the registered handler. Returns null for unknown. */
-  onFunctionCall(name: string, args: Record<string, unknown>, rawData: Record<string, unknown>): unknown {
-    const tool = this.toolRegistry.get(name);
-    if (!tool || !tool.handler) return null;
-    return tool.handler(args, rawData);
+  /**
+   * Dispatch a function call to the registered handler.
+   * Returns null when the function isn't registered or has no handler.
+   * Subclasses (AgentBase) override to add session-token validation
+   * and FunctionResult-shape normalization. Return type is wide enough
+   * to accommodate the agent override (which may also return void
+   * shapes for fire-and-forget tool calls).
+   */
+  onFunctionCall(
+    name: string,
+    args: Record<string, unknown>,
+    rawData: Record<string, unknown>,
+  ):
+    | FunctionResult
+    | Record<string, unknown>
+    | string
+    | Promise<FunctionResult | Record<string, unknown> | string | void>
+    | void
+    | null
+    | undefined {
+    const fn = this.toolRegistry.get(name);
+    if (!fn) return null;
+    if (fn instanceof SwaigFunction) {
+      return fn.handler(args, rawData);
+    }
+    return null;
   }
 
   /** Whether a tool with the given name is registered. */
@@ -587,10 +597,19 @@ export class SWMLService {
   }
 
   /**
-   * Render the SWML document as a JSON object.
-   * @returns The SWML document.
+   * Render the SWML document.
+   *
+   * Subclass-override-friendly signature: AgentBase overrides this with
+   * `(callId?: string, modifications?: Record<string, unknown>): string`
+   * to return a serialized JSON string built from prompts + dynamic config.
+   * Plain SWMLService returns the in-memory document object.
+   *
+   * @returns The SWML document (object) or its serialized form (subclass).
    */
-  renderSwml(): Record<string, unknown> {
+  renderSwml(
+    _callId?: string,
+    _modifications?: Record<string, unknown>,
+  ): Record<string, unknown> | string {
     return this.swmlBuilder.getDocument();
   }
 
@@ -819,7 +838,14 @@ export class SWMLService {
    * @returns Resolves once the server has begun listening.
    */
   async run(
-    host?: string,
+    hostOrOpts?: string | {
+      host?: string;
+      port?: number;
+      sslCert?: string;
+      sslKey?: string;
+      sslEnabled?: boolean;
+      domain?: string;
+    },
     port?: number,
     opts?: {
       sslCert?: string;
@@ -829,6 +855,20 @@ export class SWMLService {
     },
   ): Promise<void> {
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
+    // Normalize: accept either positional (host, port, opts) or single
+    // options-object form (matches AgentBase's `run({ host, port })` shape).
+    let host: string | undefined;
+    let resolvedOpts: typeof opts;
+    if (typeof hostOrOpts === 'object' && hostOrOpts !== null) {
+      host = hostOrOpts.host;
+      port = hostOrOpts.port ?? port;
+      resolvedOpts = hostOrOpts;
+    } else {
+      host = hostOrOpts;
+      resolvedOpts = opts;
+    }
+    opts = resolvedOpts;
 
     const h = host ?? this.host;
     const p = port ?? this.port;
