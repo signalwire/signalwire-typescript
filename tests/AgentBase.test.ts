@@ -1107,4 +1107,40 @@ describe('AgentBase', () => {
       expect(agent.validateToolToken('secure_tool', 'bogus-token', 'call-xyz')).toBe(false);
     });
   });
+
+  describe('createToolToken', () => {
+    // Parity with signalwire-python:
+    //   tests/unit/core/test_agent_base.py::TestAgentBaseTokenMethods::test_create_tool_token
+    // Python's _create_tool_token catches all exceptions and returns "" on
+    // failure; TypeScript's createToolToken does the same.
+
+    it('returns a non-empty token that round-trips through validateToolToken', () => {
+      const agent = createAgent();
+      agent.defineTool({
+        name: 'secure_tool',
+        description: 'auth required',
+        parameters: {},
+        handler: () => new FunctionResult('ok'),
+        secure: true,
+      });
+
+      const token = agent.createToolToken('secure_tool', 'call-rt');
+      expect(token).not.toBe('');
+      expect(agent.validateToolToken('secure_tool', token, 'call-rt')).toBe(true);
+    });
+
+    it('returns "" when the underlying SessionManager throws', () => {
+      const agent = createAgent();
+      const sm = (agent as any).sessionManager;
+      const orig = sm.createToolToken.bind(sm);
+      sm.createToolToken = () => {
+        throw new Error('boom');
+      };
+      try {
+        expect(agent.createToolToken('any', 'call-x')).toBe('');
+      } finally {
+        sm.createToolToken = orig;
+      }
+    });
+  });
 });

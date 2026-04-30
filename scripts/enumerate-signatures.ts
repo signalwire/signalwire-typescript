@@ -156,6 +156,9 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', [
     'add_mcp_server',
   ]],
+  StateMixin: ['signalwire.core.mixins.state_mixin', [
+    'validate_tool_token',
+  ]],
 };
 
 const SKIP_METHOD_NAMES = new Set([

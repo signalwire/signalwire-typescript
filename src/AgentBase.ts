@@ -1311,7 +1311,26 @@ export class AgentBase extends SWMLService {
     const isSecure = fn instanceof SwaigFunction ? fn.secure : true;
     if (!isSecure) return true;
     if (!token) return false;
-    return this.sessionManager.validateToolToken(functionName, token, callId);
+    try {
+      return this.sessionManager.validateToolToken(functionName, token, callId);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Mint a per-call SWAIG-function token via the agent's SessionManager.
+   *
+   * Mirrors Python reference `core/mixins/state_mixin.py _create_tool_token`:
+   * delegates to `SessionManager.createToolToken` and returns an empty
+   * string on any failure (Python catches all exceptions and returns "").
+   */
+  createToolToken(toolName: string, callId: string): string {
+    try {
+      return this.sessionManager.createToolToken(toolName, callId);
+    } catch {
+      return '';
+    }
   }
 
   // ── Call flow ───────────────────────────────────────────────────────
