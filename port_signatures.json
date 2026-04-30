@@ -424,6 +424,93 @@
         }
       }
     },
+    "signalwire.core.agent.tools.registry": {
+      "classes": {
+        "ToolRegistry": {
+          "methods": {
+            "define_tool": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.agent_base.__type",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "register_swaig_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "fn",
+                  "type": "union<dict<string,any>,class:signalwire.core.swaig_function.SWAIGFunction>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "has_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "get_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "union<dict<string,any>,class:signalwire.core.swaig_function.SWAIGFunction>"
+            },
+            "get_all_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "remove_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            }
+          }
+        }
+      }
+    },
     "signalwire.core.agent.tools.type_inference": {
       "functions": {
         "create_typed_handler_wrapper": {
@@ -4422,6 +4509,20 @@
                 }
               ],
               "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
+            },
+            "register_swaig_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "fn",
+                  "type": "union<dict<string,any>,class:signalwire.core.swaig_function.SWAIGFunction>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
             }
           }
         }
@@ -6110,6 +6211,15 @@
               ],
               "returns": "bool"
             },
+            "get_all_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "get_app": {
               "params": [
                 {
@@ -6152,6 +6262,20 @@
               ],
               "returns": "dict<string,any>"
             },
+            "get_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "union<dict<string,any>,class:signalwire.core.swaig_function.SWAIGFunction>"
+            },
             "get_registered_tools": {
               "params": [
                 {
@@ -6174,6 +6298,20 @@
                 }
               ],
               "returns": "class:signalwire.core.swaig_function.SWAIGFunction"
+            },
+            "has_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
             },
             "has_tool": {
               "params": [
@@ -6336,6 +6474,20 @@
                 }
               ],
               "returns": "void"
+            },
+            "remove_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
             },
             "render_document": {
               "params": [

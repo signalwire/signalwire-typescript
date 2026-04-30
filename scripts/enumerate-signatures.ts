@@ -142,6 +142,10 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   ToolMixin: ['signalwire.core.mixins.tool_mixin', [
     'define_tool', 'on_function_call', 'register_swaig_function',
   ]],
+  ToolRegistry: ['signalwire.core.agent.tools.registry', [
+    'define_tool', 'register_swaig_function',
+    'has_function', 'get_function', 'get_all_functions', 'remove_function',
+  ]],
   WebMixin: ['signalwire.core.mixins.web_mixin', [
     'enable_debug_routes', 'manual_set_proxy_url', 'run', 'serve',
     'set_dynamic_config_callback',
@@ -669,14 +673,21 @@ function main(): number {
 
   // Mixin projection: TS flattens AgentBase mixins onto AgentBase class.
   // Project the canonical Python-mixin methods onto their mixin module.
+  // Methods may live on AgentBase OR on SWMLService (its parent), since
+  // many tool/auth helpers are declared on SWMLService and inherited.
   const abEntry = doc.modules['signalwire.core.agent_base']?.classes?.AgentBase;
-  if (abEntry) {
+  const svcEntry = doc.modules['signalwire.core.swml_service']?.classes?.SWMLService;
+  if (abEntry || svcEntry) {
+    const abMethods = abEntry?.methods ?? {};
+    const svcMethods = svcEntry?.methods ?? {};
+    // AgentBase wins on conflict (it overrides SWMLService).
+    const combined: Record<string, CanonicalSignature> = { ...svcMethods, ...abMethods };
     const projected = new Set<string>();
     for (const [, [targetMod, expected]] of Object.entries(MIXIN_PROJECTIONS)) {
       const targetCls = Object.keys(MIXIN_PROJECTIONS).find(k => MIXIN_PROJECTIONS[k][0] === targetMod) ?? '';
       const present: Record<string, CanonicalSignature> = {};
       for (const m of expected) {
-        if (abEntry.methods[m]) present[m] = abEntry.methods[m];
+        if (combined[m]) present[m] = combined[m];
       }
       if (Object.keys(present).length === 0) continue;
       if (!doc.modules[targetMod]) doc.modules[targetMod] = {};
@@ -685,11 +696,14 @@ function main(): number {
       Object.assign(doc.modules[targetMod].classes![targetCls].methods, present);
       Object.keys(present).forEach(m => projected.add(m));
     }
-    for (const m of projected) delete abEntry.methods[m];
-    if (Object.keys(abEntry.methods).length === 0) {
-      delete doc.modules['signalwire.core.agent_base'].classes!['AgentBase'];
-      if (Object.keys(doc.modules['signalwire.core.agent_base'].classes ?? {}).length === 0) {
-        delete doc.modules['signalwire.core.agent_base'];
+    // Drop projected methods only from AgentBase (SWMLService keeps its own).
+    if (abEntry) {
+      for (const m of projected) delete abEntry.methods[m];
+      if (Object.keys(abEntry.methods).length === 0) {
+        delete doc.modules['signalwire.core.agent_base'].classes!['AgentBase'];
+        if (Object.keys(doc.modules['signalwire.core.agent_base'].classes ?? {}).length === 0) {
+          delete doc.modules['signalwire.core.agent_base'];
+        }
       }
     }
   }

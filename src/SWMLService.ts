@@ -493,6 +493,35 @@ export class SWMLService {
     return this.toolRegistry.has(name);
   }
 
+  /** Whether a SWAIG function with the given name is registered.
+   * (Python parity: ``ToolRegistry.has_function``.) */
+  hasFunction(name: string): boolean {
+    return this.toolRegistry.has(name);
+  }
+
+  /** Get a registered SWAIG function entry, or undefined.
+   * (Python parity: ``ToolRegistry.get_function``.) */
+  getFunction(name: string): SwaigFunction | Record<string, unknown> | undefined {
+    return this.toolRegistry.get(name);
+  }
+
+  /** Snapshot of all registered SWAIG functions keyed by name.
+   * (Python parity: ``ToolRegistry.get_all_functions``.) */
+  getAllFunctions(): Record<string, SwaigFunction | Record<string, unknown>> {
+    const out: Record<string, SwaigFunction | Record<string, unknown>> = {};
+    for (const [name, fn] of this.toolRegistry) {
+      out[name] = fn;
+    }
+    return out;
+  }
+
+  /** Remove a registered SWAIG function. Returns true when removed,
+   * false when not found. (Python parity:
+   * ``ToolRegistry.remove_function``.) */
+  removeFunction(name: string): boolean {
+    return this.toolRegistry.delete(name);
+  }
+
   /** List registered tool names in insertion order (Map preserves it). */
   listToolNames(): string[] {
     return Array.from(this.toolRegistry.keys());
