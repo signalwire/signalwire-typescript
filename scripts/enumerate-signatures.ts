@@ -86,11 +86,68 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/prefabs/ReceptionistAgent.ts': 'signalwire.prefabs.receptionist',
   'src/prefabs/SurveyAgent.ts': 'signalwire.prefabs.survey',
   'src/livewire/index.ts': 'signalwire.livewire',
+  // Skill files: TS uses src/skills/builtin/<name>.ts; Python uses
+  // signalwire.skills.<name>.skill. Map each explicitly.
+  'src/skills/builtin/api_ninjas_trivia.ts': 'signalwire.skills.api_ninjas_trivia.skill',
+  'src/skills/builtin/ask_claude.ts': 'signalwire.skills.ask_claude.skill',
+  'src/skills/builtin/claude_skills.ts': 'signalwire.skills.claude_skills.skill',
+  'src/skills/builtin/custom_skills.ts': 'signalwire.skills.custom_skills.skill',
+  'src/skills/builtin/datasphere.ts': 'signalwire.skills.datasphere.skill',
+  'src/skills/builtin/datasphere_serverless.ts': 'signalwire.skills.datasphere_serverless.skill',
+  'src/skills/builtin/datetime.ts': 'signalwire.skills.datetime.skill',
+  'src/skills/builtin/google_maps.ts': 'signalwire.skills.google_maps.skill',
+  'src/skills/builtin/info_gatherer.ts': 'signalwire.skills.info_gatherer.skill',
+  'src/skills/builtin/joke.ts': 'signalwire.skills.joke.skill',
+  'src/skills/builtin/math.ts': 'signalwire.skills.math.skill',
+  'src/skills/builtin/mcp_gateway.ts': 'signalwire.skills.mcp_gateway.skill',
+  'src/skills/builtin/native_vector_search.ts': 'signalwire.skills.native_vector_search.skill',
+  'src/skills/builtin/play_background_file.ts': 'signalwire.skills.play_background_file.skill',
+  'src/skills/builtin/spider.ts': 'signalwire.skills.spider.skill',
+  'src/skills/builtin/swml_transfer.ts': 'signalwire.skills.swml_transfer.skill',
+  'src/skills/builtin/weather_api.ts': 'signalwire.skills.weather_api.skill',
+  'src/skills/builtin/web_search.ts': 'signalwire.skills.web_search.skill',
+  'src/skills/builtin/wikipedia_search.ts': 'signalwire.skills.wikipedia_search.skill',
 };
 
 const CLASS_NAME_ALIASES: Record<string, string> = {
   SwaigFunction: 'SWAIGFunction',
   SwmlBuilder: 'SWMLBuilder',
+  // Skill class casing aligned with Python reference
+  McpGatewaySkill: 'MCPGatewaySkill',
+  SwmlTransferSkill: 'SWMLTransferSkill',
+};
+
+// MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
+// Project the canonical Python-mixin methods onto their owning mixin module.
+const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
+  AIConfigMixin: ['signalwire.core.mixins.ai_config_mixin', [
+    'add_function_include', 'add_hint', 'add_hints', 'add_internal_filler',
+    'add_language', 'add_pattern_hint', 'add_pronunciation',
+    'enable_debug_events',
+    'set_function_includes', 'set_global_data', 'set_internal_fillers',
+    'set_languages', 'set_native_functions', 'set_param', 'set_params',
+    'set_post_prompt_llm_params', 'set_prompt_llm_params',
+    'set_pronunciations', 'update_global_data',
+  ]],
+  PromptMixin: ['signalwire.core.mixins.prompt_mixin', [
+    'define_contexts', 'get_prompt', 'prompt_add_section',
+    'prompt_add_subsection', 'prompt_add_to_section',
+    'prompt_has_section', 'reset_contexts', 'set_post_prompt',
+    'set_prompt_text',
+  ]],
+  SkillMixin: ['signalwire.core.mixins.skill_mixin', [
+    'add_skill', 'has_skill', 'list_skills', 'remove_skill',
+  ]],
+  ToolMixin: ['signalwire.core.mixins.tool_mixin', [
+    'define_tool', 'on_function_call', 'register_swaig_function',
+  ]],
+  WebMixin: ['signalwire.core.mixins.web_mixin', [
+    'enable_debug_routes', 'manual_set_proxy_url', 'run', 'serve',
+    'set_dynamic_config_callback',
+  ]],
+  MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', [
+    'add_mcp_server',
+  ]],
 };
 
 const SKIP_METHOD_NAMES = new Set([
@@ -558,6 +615,33 @@ function main(): number {
       }
       ts.forEachChild(node, visit);
     });
+  }
+
+  // Mixin projection: TS flattens AgentBase mixins onto AgentBase class.
+  // Project the canonical Python-mixin methods onto their mixin module.
+  const abEntry = doc.modules['signalwire.core.agent_base']?.classes?.AgentBase;
+  if (abEntry) {
+    const projected = new Set<string>();
+    for (const [, [targetMod, expected]] of Object.entries(MIXIN_PROJECTIONS)) {
+      const targetCls = Object.keys(MIXIN_PROJECTIONS).find(k => MIXIN_PROJECTIONS[k][0] === targetMod) ?? '';
+      const present: Record<string, CanonicalSignature> = {};
+      for (const m of expected) {
+        if (abEntry.methods[m]) present[m] = abEntry.methods[m];
+      }
+      if (Object.keys(present).length === 0) continue;
+      if (!doc.modules[targetMod]) doc.modules[targetMod] = {};
+      if (!doc.modules[targetMod].classes) doc.modules[targetMod].classes = {};
+      if (!doc.modules[targetMod].classes![targetCls]) doc.modules[targetMod].classes![targetCls] = { methods: {} };
+      Object.assign(doc.modules[targetMod].classes![targetCls].methods, present);
+      Object.keys(present).forEach(m => projected.add(m));
+    }
+    for (const m of projected) delete abEntry.methods[m];
+    if (Object.keys(abEntry.methods).length === 0) {
+      delete doc.modules['signalwire.core.agent_base'].classes!['AgentBase'];
+      if (Object.keys(doc.modules['signalwire.core.agent_base'].classes ?? {}).length === 0) {
+        delete doc.modules['signalwire.core.agent_base'];
+      }
+    }
   }
 
   // Sort modules + functions deterministically
