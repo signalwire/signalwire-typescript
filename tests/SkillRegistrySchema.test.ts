@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SkillRegistry } from '../src/skills/SkillRegistry.js';
 import { registerBuiltinSkills } from '../src/skills/builtin/index.js';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('SkillRegistry Schema', () => {
   let registry: SkillRegistry;
@@ -92,5 +95,52 @@ describe('SkillRegistry Schema', () => {
     expect(schema!.parameters).toHaveProperty('api_key');
     expect(schema!.parameters['api_key'].hidden).toBe(true);
     expect(schema!.parameters['api_key'].env_var).toBe('WEATHER_API_KEY');
+  });
+});
+
+// ── add_skill_directory parity with Python ────────────────────────────
+// Mirrors signalwire.skills.registry.SkillRegistry.add_skill_directory
+// (test_registry.py::TestDirectoryScanning::test_add_skill_directory_*).
+describe('SkillRegistry.addSkillDirectory parity', () => {
+  let tmpRoot: string;
+  let registry: SkillRegistry;
+
+  beforeEach(() => {
+    SkillRegistry.resetInstance();
+    registry = SkillRegistry.getInstance();
+    tmpRoot = mkdtempSync(join(tmpdir(), 'swts_skill_'));
+  });
+
+  it('adds a valid directory to externalPaths', () => {
+    registry.addSkillDirectory(tmpRoot);
+    const paths = registry.getExternalPaths();
+    expect(paths).toContain(tmpRoot);
+  });
+
+  it('throws on a non-existent path', () => {
+    expect(() =>
+      registry.addSkillDirectory('/no/such/swts_path_does_not_exist_xyz123'),
+    ).toThrow(/does not exist/);
+  });
+
+  it('throws when the path is not a directory', () => {
+    const filePath = join(tmpRoot, 'a_file.txt');
+    writeFileSync(filePath, 'hello');
+    expect(() => registry.addSkillDirectory(filePath)).toThrow(
+      /not a directory/,
+    );
+  });
+
+  it('deduplicates repeated calls with the same path', () => {
+    registry.addSkillDirectory(tmpRoot);
+    registry.addSkillDirectory(tmpRoot);
+    const paths = registry.getExternalPaths();
+    const count = paths.filter((p) => p === tmpRoot).length;
+    expect(count).toBe(1);
+  });
+
+  // Cleanup tmpRoot after each test
+  afterEach(() => {
+    try { rmSync(tmpRoot, { recursive: true, force: true }); } catch { /* */ }
   });
 });

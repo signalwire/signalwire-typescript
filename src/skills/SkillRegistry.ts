@@ -16,6 +16,7 @@
 
 import { SkillBase, type SkillConfig, type ParameterSchemaEntry } from './SkillBase.js';
 import { getLogger } from '../Logger.js';
+import { existsSync, statSync } from 'node:fs';
 
 const log = getLogger('SkillRegistry');
 
@@ -59,6 +60,11 @@ export class SkillRegistry {
   private registry: Map<string, typeof SkillBase> = new Map();
   private lockedNames: Set<string> = new Set();
   private searchPaths: string[];
+  /**
+   * External skill directories registered via {@link addSkillDirectory}.
+   * Mirrors Python's `SkillRegistry._external_paths` (`registry.py:373`).
+   */
+  private externalPaths: string[] = [];
 
   constructor() {
     const envPaths = process.env['SIGNALWIRE_SKILL_PATHS'];
@@ -219,6 +225,44 @@ export class SkillRegistry {
     if (!this.searchPaths.includes(path)) {
       this.searchPaths.push(path);
     }
+  }
+
+  /**
+   * Add a directory to search for skills.
+   *
+   * Mirrors Python's
+   * `signalwire.skills.registry.SkillRegistry.add_skill_directory`
+   * (`registry.py:350-375`): validate that the path exists and is a
+   * directory, then append it (de-duplicated) to `externalPaths`. Throws
+   * `Error` (the JS analog of Python's `ValueError`) for non-existent
+   * paths or non-directories. Distinct from `addSearchPath`, which
+   * silently accepts anything; `addSkillDirectory` is the strict
+   * Python-parity surface and the recommended entry point for
+   * registering third-party skill directories.
+   *
+   * @param path - Absolute or relative path to a directory containing
+   *   skill subdirectories.
+   * @throws Error when the path doesn't exist or isn't a directory.
+   */
+  addSkillDirectory(path: string): void {
+    if (!existsSync(path)) {
+      throw new Error(`Skill directory does not exist: ${path}`);
+    }
+    if (!statSync(path).isDirectory()) {
+      throw new Error(`Path is not a directory: ${path}`);
+    }
+    if (!this.externalPaths.includes(path)) {
+      this.externalPaths.push(path);
+    }
+  }
+
+  /**
+   * Returns a copy of the external skill directories registered via
+   * {@link addSkillDirectory}. Parity surface for Python's
+   * `_external_paths`.
+   */
+  getExternalPaths(): string[] {
+    return [...this.externalPaths];
   }
 
   /**
