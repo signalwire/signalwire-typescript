@@ -233,7 +233,24 @@ export class SWMLService {
   protected _server: Server | null = null;
   protected onRequestCallback?: OnRequestCallback;
   protected authCredentials?: [string, string];
-  protected authSource: 'provided' | 'environment' | 'auto-generated' = 'auto-generated';
+  protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
+
+  /** Validate provided basic-auth credentials against the configured ones
+   * using a constant-time comparison. (Python parity:
+   * ``AuthMixin.validate_basic_auth(username, password)``.) */
+  validateBasicAuth(username: string, password: string): boolean {
+    const u = this.basicAuthUser ?? '';
+    const p = this.basicAuthPassword ?? '';
+    if (u === '' && p === '') return false;
+    return this.timingSafeEqual(username, u) && this.timingSafeEqual(password, p);
+  }
+
+  private timingSafeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
   protected _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   protected _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
   protected _routingCallbacks = new Map<string, RoutingCallback>();
@@ -301,7 +318,7 @@ export class SWMLService {
           // Auto-generate credentials like AgentBase does
           const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
           this.authCredentials = [username, randomBytes(16).toString('hex')];
-          this.authSource = 'auto-generated';
+          this.authSource = 'generated';
           // Not enforced on HTTP — available via getBasicAuthCredentials()
         }
       }
@@ -838,8 +855,8 @@ export class SWMLService {
    * @returns A tuple of [username, password] or [username, password, source].
    */
   getBasicAuthCredentials(includeSource?: false): [string, string];
-  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'auto-generated'];
-  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'auto-generated'] {
+  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
+  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;

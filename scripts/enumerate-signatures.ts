@@ -146,6 +146,9 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
     'define_tool', 'register_swaig_function',
     'has_function', 'get_function', 'get_all_functions', 'remove_function',
   ]],
+  AuthMixin: ['signalwire.core.mixins.auth_mixin', [
+    'validate_basic_auth', 'get_basic_auth_credentials',
+  ]],
   WebMixin: ['signalwire.core.mixins.web_mixin', [
     'enable_debug_routes', 'manual_set_proxy_url', 'run', 'serve',
     'set_dynamic_config_callback',
