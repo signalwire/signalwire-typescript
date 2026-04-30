@@ -354,6 +354,22 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Public read-only accessor for the agent's POM section list.
+   *
+   * Python parity: ``agent.pom`` instance attribute (agent_base.py line 209).
+   * Returns ``null`` when ``usePom`` is false (matching Python's ``self.pom = None``).
+   * Returns a defensive frozen snapshot so callers cannot mutate internal state.
+   *
+   * @returns Frozen array of POM section data, or null when POM mode is off.
+   */
+  get pom(): readonly Record<string, unknown>[] | null {
+    const builder = this._promptManager.getPomBuilder();
+    if (!builder) return null;
+    // toDict() already returns a fresh array of fresh per-section objects.
+    return Object.freeze(builder.toDict() as Record<string, unknown>[]);
+  }
+
+  /**
    * Public accessor for the native functions list.
    *
    * Python exposes `self.native_functions` as a public read/write attribute.

@@ -1143,4 +1143,48 @@ describe('AgentBase', () => {
       }
     });
   });
+
+  // -------------------------------------------------------------------------
+  // pom getter (Python parity: agent.pom)
+  //
+  // Mirrors:
+  //   signalwire-python tests/unit/core/test_agent_base.py::
+  //     TestAgentBasePromptMethods::test_set_prompt_pom_succeeds_when_use_pom_true
+  // -------------------------------------------------------------------------
+  describe('pom getter', () => {
+    it('returns POM sections after setPromptPom', () => {
+      const agent = createAgent();
+      const sections = [{ title: 'Greeting', body: 'Hello' }];
+      agent.setPromptPom(sections);
+      const pom = agent.pom;
+      expect(pom).not.toBeNull();
+      expect(pom!.length).toBe(1);
+      expect(pom![0]).toMatchObject({ title: 'Greeting', body: 'Hello' });
+    });
+
+    it('returns POM sections after addSection on PomBuilder via promptManager', () => {
+      const agent = createAgent();
+      agent.promptManager.addSection('Topic', { body: 'Body text' });
+      const pom = agent.pom;
+      expect(pom).not.toBeNull();
+      expect(pom!.length).toBe(1);
+      expect(pom![0]).toMatchObject({ title: 'Topic', body: 'Body text' });
+    });
+
+    it('returns null when usePom is false', () => {
+      const agent = new AgentBase({ name: 'no-pom', route: '/x', usePom: false } as any);
+      expect(agent.pom).toBeNull();
+    });
+
+    it('returns a frozen snapshot — caller cannot mutate', () => {
+      const agent = createAgent();
+      agent.setPromptPom([{ title: 'Original', body: 'Body' }]);
+      const pom = agent.pom!;
+      expect(Object.isFrozen(pom)).toBe(true);
+      // Confirm subsequent calls reflect agent state, not the previous snapshot
+      agent.setPromptPom([{ title: 'New', body: 'Other' }]);
+      const pom2 = agent.pom!;
+      expect(pom2[0]).toMatchObject({ title: 'New', body: 'Other' });
+    });
+  });
 });
