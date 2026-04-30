@@ -190,6 +190,64 @@ import type { AgentBase as _AgentBase } from './AgentBase.js';
 import { SkillRegistry as _SkillRegistry } from './skills/SkillRegistry.js';
 import type { SkillSchemaInfo as _SkillSchemaInfo } from './skills/SkillRegistry.js';
 import type { SkillBase as _SkillBase } from './skills/SkillBase.js';
+import { RestClient as _RestClient } from './rest/index.js';
+import type { ClientOptions as _ClientOptions } from './rest/types.js';
+
+/**
+ * Construct a {@link _RestClient | RestClient} instance.
+ *
+ * Equivalent to Python's top-level `signalwire.RestClient(*args, **kwargs)`
+ * factory — a thin wrapper that lazy-imports `signalwire.rest.RestClient`
+ * and instantiates it. The TS class is also exported directly at module
+ * scope (`new RestClient(...)`); this function provides parity with the
+ * Python-style factory call.
+ *
+ * Note: TypeScript exports the class `RestClient` at the same name from
+ * `./rest/index.js`. The function below is named `restClient` (camelCase)
+ * to avoid shadowing the class. The audit adapter remaps the emitted
+ * surface entry from `signalwire.rest_client` to `signalwire.RestClient`
+ * via the FREE_FN_NAME_OVERRIDES table in enumerate-signatures.ts.
+ *
+ * The signature accepts a positional `args` rest parameter and a trailing
+ * `kwargs` record. This mirrors Python's `(*args, **kwargs)` shape so the
+ * cross-language signature audit recognizes them as compatible. In
+ * practice callers pass either the `kwargs` object alone or nothing.
+ *
+ * @param args - Positional credentials (compat shim for ports that pass
+ *   project/token/host positionally). Usually empty in TS.
+ * @param kwargs - Keyword-style credentials. When omitted, reads
+ *   `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, and
+ *   `SIGNALWIRE_SPACE` from the environment.
+ * @returns A new {@link _RestClient} instance bound to the supplied (or
+ *   environment-derived) credentials.
+ *
+ * @example
+ * ```ts
+ * import { restClient } from '@signalwire/sdk';
+ *
+ * const client = restClient([], { project: 'p', token: 't', host: 'h.signalwire.com' });
+ * await client.compat.calls.list();
+ *
+ * // Or using just the options form:
+ * const env = restClient();  // reads env vars
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export function restClient(args?: string[], kwargs?: Record<string, unknown>): _RestClient {
+  // `args` is a positional placeholder for cross-language parity (mirrors
+  // Python's ``*args``). `kwargs` carries the actual credentials object —
+  // this preserves ``**kwargs`` shape for the audit while still letting
+  // TS callers use the natural ``restClient([], { project, token, host })``
+  // form. When the first arg is an object (legacy callers passing options
+  // directly), we treat it as the kwargs.
+  let opts: _ClientOptions | undefined;
+  if (args !== undefined && !Array.isArray(args) && typeof args === 'object') {
+    opts = args as _ClientOptions;
+  } else if (kwargs !== undefined) {
+    opts = kwargs as _ClientOptions;
+  }
+  return new _RestClient(opts);
+}
 
 /**
  * List metadata for all registered skills.

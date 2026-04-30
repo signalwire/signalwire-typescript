@@ -4,6 +4,23 @@
   "modules": {
     "signalwire": {
       "functions": {
+        "RestClient": {
+          "params": [
+            {
+              "name": "args",
+              "type": "list<string>",
+              "required": false,
+              "default": null
+            },
+            {
+              "name": "kwargs",
+              "type": "dict<string,any>",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "class:signalwire.rest.client.RestClient"
+        },
         "add_skill_directory": {
           "params": [
             {

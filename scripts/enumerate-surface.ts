@@ -357,7 +357,14 @@ function enumerateFile(file: string): FileSurface {
 
   function collectFunction(name: string): void {
     if (name.startsWith('_')) return;
-    functions.push(camelToSnake(name));
+    const snake = camelToSnake(name);
+    // Free-function name overrides — Python's top-level
+    // ``signalwire.RestClient`` is a factory function but uses PascalCase
+    // (it mirrors the class name). The TS source-side function is named
+    // ``restClient`` to avoid shadowing the class export; we project it
+    // onto the canonical Python name here.
+    const projected = snake === 'rest_client' ? 'RestClient' : snake;
+    functions.push(projected);
   }
 
   /** Is this statement exported at the top level? */

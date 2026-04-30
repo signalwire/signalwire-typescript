@@ -185,6 +185,16 @@ const SKIP_METHOD_NAMES = new Set([
   'propertyIsEnumerable', 'toLocaleString',
 ]);
 
+// Free-function name overrides — for cases where the Python canonical
+// name doesn't follow snake_case. Python's top-level
+// ``signalwire.RestClient`` is a factory function but uses PascalCase
+// (it mirrors the class name). The TS source side names the function
+// ``restClient`` to avoid shadowing the class export; we project it
+// onto the canonical Python name here.
+const FREE_FN_NAME_OVERRIDES: Record<string, string> = {
+  rest_client: 'RestClient',
+};
+
 function camelToSnake(name: string): string {
   return name
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
@@ -678,14 +688,15 @@ function main(): number {
           const native = node.name.text;
           if (native.startsWith('_')) return;
           const snake = camelToSnake(native);
+          const projected = FREE_FN_NAME_OVERRIDES[snake] ?? snake;
           const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
           try {
-            const sig = signatureFromMethod(node, checker, aliases, false, true, `${mod}.${snake}`);
+            const sig = signatureFromMethod(node, checker, aliases, false, true, `${mod}.${projected}`);
             // Strip `self` from free functions
             sig.params = sig.params.filter((p) => p.kind !== 'self');
             if (!doc.modules[mod]) doc.modules[mod] = {};
             if (!doc.modules[mod].functions) doc.modules[mod].functions = {};
-            doc.modules[mod].functions![snake] = sig;
+            doc.modules[mod].functions![projected] = sig;
           } catch (e) {
             if (e instanceof TypeTranslationError) failures.push(e);
             else throw e;

@@ -396,7 +396,6 @@ signalwire.rest._pagination.PaginatedIterator.__next__: Python-specific dunder m
 
 ## Individual omissions (case-by-case)
 
-signalwire.RestClient: TS exports the RestClient class directly (`import { RestClient } from "@signalwire/sdk"`); no lazy-import factory wrapper needed
 signalwire.core.agent.prompt.manager.PromptManager.get_contexts: not_yet_implemented: PromptManager currently exposes prompt text but not the contexts map; add a getContexts() accessor in a future PR
 signalwire.core.agent.prompt.manager.PromptManager.get_raw_prompt: not_yet_implemented: expose raw-prompt accessor in a future PR
 signalwire.core.agent.tools.decorator.ToolDecorator: deliberately omitted: Python uses decorators for tool registration; TS uses imperative defineTool() instead, which is idiomatic for TypeScript
