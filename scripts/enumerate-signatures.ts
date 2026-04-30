@@ -86,6 +86,10 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/prefabs/ReceptionistAgent.ts': 'signalwire.prefabs.receptionist',
   'src/prefabs/SurveyAgent.ts': 'signalwire.prefabs.survey',
   'src/livewire/index.ts': 'signalwire.livewire',
+  // Top-level barrel: ``src/index.ts`` exposes Python's package-level
+  // free functions (``add_skill_directory``, ``register_skill``, etc.) as
+  // ``signalwire.<name>`` rather than ``signalwire.index.<name>``.
+  'src/index.ts': 'signalwire',
   // Skill files: TS uses src/skills/builtin/<name>.ts; Python uses
   // signalwire.skills.<name>.skill. Map each explicitly.
   'src/skills/builtin/api_ninjas_trivia.ts': 'signalwire.skills.api_ninjas_trivia.skill',

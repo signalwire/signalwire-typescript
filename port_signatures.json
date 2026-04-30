@@ -2,6 +2,70 @@
   "version": "2",
   "generated_from": "signalwire-typescript via ts.TypeChecker",
   "modules": {
+    "signalwire": {
+      "functions": {
+        "add_skill_directory": {
+          "params": [
+            {
+              "name": "path",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "void"
+        },
+        "list_skills": {
+          "params": [],
+          "returns": "list<class:signalwire.skills.registry.SkillSchemaInfo>"
+        },
+        "list_skills_with_params": {
+          "params": [],
+          "returns": "dict<string,any>"
+        },
+        "register_skill": {
+          "params": [
+            {
+              "name": "skill_class",
+              "type": "class:signalwire.core.skill_base.SkillBase",
+              "required": true
+            }
+          ],
+          "returns": "void"
+        },
+        "run_agent": {
+          "params": [
+            {
+              "name": "agent",
+              "type": "class:signalwire.core.agent_base.AgentBase",
+              "required": true
+            },
+            {
+              "name": "options",
+              "type": "class:signalwire.__type",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "void"
+        },
+        "start_agent": {
+          "params": [
+            {
+              "name": "agent",
+              "type": "class:signalwire.core.agent_base.AgentBase",
+              "required": true
+            },
+            {
+              "name": "options",
+              "type": "class:signalwire.__type",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "void"
+        }
+      }
+    },
     "signalwire.agent_server": {
       "classes": {
         "AgentServer": {
@@ -6928,70 +6992,6 @@
               "returns": "void"
             }
           }
-        }
-      }
-    },
-    "signalwire.index": {
-      "functions": {
-        "add_skill_directory": {
-          "params": [
-            {
-              "name": "path",
-              "type": "string",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
-        "list_skills": {
-          "params": [],
-          "returns": "list<class:signalwire.skills.registry.SkillSchemaInfo>"
-        },
-        "list_skills_with_params": {
-          "params": [],
-          "returns": "dict<string,any>"
-        },
-        "register_skill": {
-          "params": [
-            {
-              "name": "skill_class",
-              "type": "class:signalwire.core.skill_base.SkillBase",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
-        "run_agent": {
-          "params": [
-            {
-              "name": "agent",
-              "type": "class:signalwire.core.agent_base.AgentBase",
-              "required": true
-            },
-            {
-              "name": "options",
-              "type": "class:signalwire.index.__type",
-              "required": false,
-              "default": null
-            }
-          ],
-          "returns": "void"
-        },
-        "start_agent": {
-          "params": [
-            {
-              "name": "agent",
-              "type": "class:signalwire.core.agent_base.AgentBase",
-              "required": true
-            },
-            {
-              "name": "options",
-              "type": "class:signalwire.index.__type",
-              "required": false,
-              "default": null
-            }
-          ],
-          "returns": "void"
         }
       }
     },
