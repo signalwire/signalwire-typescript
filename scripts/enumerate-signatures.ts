@@ -136,6 +136,21 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
     'prompt_has_section', 'reset_contexts', 'set_post_prompt',
     'set_prompt_text',
   ]],
+  // Python additionally extracted a ``PromptManager`` class that
+  // PromptMixin delegates to. The user-facing surface is identical
+  // (``agent.prompt_manager.X`` ≡ ``agent.X``). Project the same set
+  // of AgentBase methods to PromptManager so the cross-language audit
+  // treats both paths as covered. The TS source-side PromptManager
+  // class has a slightly different method shape (``addSection`` etc.)
+  // and is enumerated separately from PromptManager.ts; the projected
+  // AgentBase methods are merged into the same module entry.
+  PromptManager: ['signalwire.core.agent.prompt.manager', [
+    'define_contexts', 'get_contexts', 'get_post_prompt', 'get_prompt',
+    'get_raw_prompt',
+    'prompt_add_section', 'prompt_add_subsection', 'prompt_add_to_section',
+    'prompt_has_section', 'set_post_prompt', 'set_prompt_pom',
+    'set_prompt_text',
+  ]],
   SkillMixin: ['signalwire.core.mixins.skill_mixin', [
     'add_skill', 'has_skill', 'list_skills', 'remove_skill',
   ]],

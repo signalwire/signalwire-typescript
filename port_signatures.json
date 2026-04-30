@@ -378,6 +378,15 @@
               ],
               "returns": "string"
             },
+            "get_raw_prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "has_section": {
               "params": [
                 {
@@ -404,7 +413,7 @@
                   "required": true
                 }
               ],
-              "returns": "void"
+              "returns": "any"
             },
             "set_prompt_text": {
               "params": [
@@ -418,7 +427,124 @@
                   "required": true
                 }
               ],
-              "returns": "void"
+              "returns": "any"
+            },
+            "define_contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "union<dict<string,any>,class:signalwire.core.contexts.ContextBuilder>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.ContextBuilder"
+            },
+            "get_contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "prompt_add_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.agent_base.__type",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "prompt_add_subsection": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "parent_title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.agent_base.__type",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "prompt_add_to_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.agent_base.__type",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "prompt_has_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "set_prompt_pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "pom",
+                  "type": "list<dict<string,any>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
             }
           }
         }
@@ -949,6 +1075,15 @@
               ],
               "returns": "union<void,void>"
             },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "prompt_manager": {
               "params": [
                 {
@@ -1066,20 +1201,6 @@
                 {
                   "name": "url",
                   "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "set_prompt_pom": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "pom",
-                  "type": "list<dict<string,any>>",
                   "required": true
                 }
               ],

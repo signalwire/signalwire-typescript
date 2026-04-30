@@ -587,6 +587,20 @@ export class AgentBase extends SWMLService {
     return this;
   }
 
+  /**
+   * Get the contexts dictionary as serialised SWML, or null when no
+   * contexts have been defined yet.
+   *
+   * Matches Python `PromptManager.get_contexts()` which returns the
+   * contexts dict or `None`.
+   *
+   * @returns Contexts dict, or null when no contexts are defined.
+   */
+  getContexts(): Record<string, unknown> | null {
+    if (!this.contextsBuilder) return null;
+    return this.contextsBuilder.toDict();
+  }
+
   // ── AI config methods ───────────────────────────────────────────────
 
   /**
