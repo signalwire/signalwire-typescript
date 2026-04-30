@@ -450,6 +450,29 @@ function collectClass(
       }
       continue;
     }
+    // Property declarations (e.g. `readonly fabric: FabricNamespace`)
+    // mirror Python's instance-attribute composition pattern. Project as
+    // zero-arg accessor methods iff the property's type is an SDK class
+    // reference (skip primitive state). Matches Python adapter's
+    // _is_sdk_class_type rule and Go adapter's field projection.
+    if (ts.isPropertyDeclaration(m)) {
+      if (!m.name || !ts.isIdentifier(m.name)) continue;
+      const nativeProp = m.name.text;
+      if (nativeProp.startsWith('_')) continue;
+      const propMods = ts.getCombinedModifierFlags(m as ts.Declaration);
+      if (propMods & ts.ModifierFlags.Private) continue;
+      const propIsStatic = !!(propMods & ts.ModifierFlags.Static);
+      const snakeProp = camelToSnake(nativeProp);
+      if (methods[snakeProp] !== undefined) continue;
+      try {
+        const sig = signatureFromProperty(m, checker, aliases, propIsStatic, `${mod}.${canonClass}.${snakeProp}`);
+        if (sig !== null) methods[snakeProp] = sig;
+      } catch (e) {
+        if (e instanceof TypeTranslationError) failures.push(e);
+        else throw e;
+      }
+      continue;
+    }
     if (!ts.isMethodDeclaration(m) && !ts.isGetAccessor(m) && !ts.isSetAccessor(m)) continue;
     if (!m.name || !ts.isIdentifier(m.name)) continue;
     const native = m.name.text;
@@ -476,6 +499,32 @@ function collectClass(
   doc.modules[mod].classes![canonClass] = {
     methods: Object.fromEntries(Object.entries(methods).sort()),
   };
+}
+
+function signatureFromProperty(
+  m: ts.PropertyDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  isStatic: boolean,
+  ctx: string,
+): CanonicalSignature | null {
+  let propType: ts.Type;
+  if (m.type) {
+    propType = checker.getTypeFromTypeNode(m.type);
+  } else {
+    propType = checker.getTypeAtLocation(m);
+  }
+  const canon = translateType(propType, checker, aliases, ctx);
+  // Only project SDK class references; primitive-typed state fields
+  // are excluded (matches Python adapter's _is_sdk_class_type rule).
+  const isSdkClass = canon.startsWith('class:') ||
+    canon.startsWith('optional<class:') ||
+    canon.startsWith('list<class:') ||
+    (canon.startsWith('union<') && canon.includes('class:'));
+  if (!isSdkClass) return null;
+  const params: CanonicalParam[] = [];
+  if (!isStatic) params.push({ name: 'self', kind: 'self' });
+  return { params, returns: canon };
 }
 
 function signatureFromMethod(
