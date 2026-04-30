@@ -376,9 +376,12 @@ export class SWMLService {
       const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
 
-      // Protected override hook (mirrors Python's on_request subclass pattern).
-      // Try onRequest() first; if it returns a SwmlBuilder use that document.
-      const hookResult = this.onRequest(queryParams, bodyParams, headers);
+      // Protected override hook (Service-side SWML builder dispatch).
+      // Try buildSwmlForRequest() first; if it returns a SwmlBuilder use
+      // that document. This is distinct from WebMixin's onRequest hook
+      // (a public 2-arg variant on AgentBase that mirrors Python's
+      // on_request → on_swml_request delegation chain).
+      const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
       if (hookResult !== null) {
         doc = hookResult.getDocument();
       } else if (this.onRequestCallback) {
@@ -809,14 +812,18 @@ export class SWMLService {
   // ── Dynamic request callback ──────────────────────────────────────
 
   /**
-   * Protected override hook called on every inbound SWML request.
-   * Mirrors Python SDK's `on_request(request_data, callback_path)` subclass
-   * override pattern. Subclasses return a `SwmlBuilder` to use for this
-   * request, or `null` to fall through to `setOnRequestCallback` or the
-   * static builder.
+   * Service-side SWML-builder hook. Subclasses return a `SwmlBuilder`
+   * to fully replace the document for this request, or `null` to fall
+   * through to `setOnRequestCallback` or the static builder.
    *
-   * Default implementation returns `null` (no-op), preserving existing
-   * behaviour for classes that do not override.
+   * This is distinct from the WebMixin `onRequest(requestData,
+   * callbackPath)` hook on AgentBase (which mirrors Python's
+   * `on_request -> on_swml_request` modification-merge contract).
+   * Use this hook when you want to swap the entire SWML builder; use
+   * `onRequest` / `onSwmlRequest` on AgentBase when you want to merge
+   * targeted modifications into the rendered document.
+   *
+   * Default implementation returns `null` (no-op).
    *
    * @param queryParams - URL query parameters from the request.
    * @param bodyParams  - Parsed POST body (empty object for GET requests).
@@ -825,7 +832,7 @@ export class SWMLService {
    * @returns A `SwmlBuilder` whose document is sent as the response, or
    *          `null` to delegate to the next handler in the chain.
    */
-  protected onRequest(
+  protected buildSwmlForRequest(
     _queryParams: Record<string, string>,
     _bodyParams: Record<string, unknown>,
     _headers: Record<string, string>,

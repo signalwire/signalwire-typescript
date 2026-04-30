@@ -151,7 +151,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   ]],
   WebMixin: ['signalwire.core.mixins.web_mixin', [
     'enable_debug_routes', 'manual_set_proxy_url', 'run', 'serve',
-    'set_dynamic_config_callback',
+    'set_dynamic_config_callback', 'on_request', 'on_swml_request',
   ]],
   MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', [
     'add_mcp_server',

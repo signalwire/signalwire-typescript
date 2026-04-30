@@ -492,6 +492,20 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Get the raw prompt text whatever `setPromptText` stored, or null when
+   * no raw prompt has been set.
+   *
+   * Matches Python `PromptManager.get_raw_prompt()` which returns the raw
+   * stored string or `None`. Use this instead of `getPrompt()` when you
+   * need the unrendered text rather than the POM-rendered Markdown.
+   *
+   * @returns The raw prompt string, or null if not set.
+   */
+  getRawPrompt(): string | null {
+    return this._promptManager.getRawPrompt();
+  }
+
+  /**
    * Set the prompt as a POM (Prompt Object Model) dictionary.
    *
    * Replaces the current POM sections with the provided structured data.
@@ -1757,6 +1771,28 @@ export class AgentBase extends SWMLService {
    */
   onSummary(_summary: Record<string, unknown> | null, _rawData: Record<string, unknown>): void | Promise<void> {
     // Default no-op
+  }
+
+  /**
+   * Lifecycle hook called when SWML is requested. Default delegates to
+   * {@link onSwmlRequest} and returns its result. Subclasses typically
+   * override `onSwmlRequest` rather than this method.
+   *
+   * Matches Python `WebMixin.on_request(request_data, callback_path)`. The
+   * cross-language API is the two-arg form; the Hono `context` argument is
+   * a TypeScript-side extra preserved for callers that already have it but
+   * is not part of the audited surface.
+   *
+   * @param requestData - The parsed request body.
+   * @param callbackPath - Optional callback path from the request.
+   * @returns Optionally a dict of SWML modifications, or undefined for
+   *   default rendering.
+   */
+  onRequest(
+    requestData?: Record<string, unknown> | null,
+    callbackPath?: string | null,
+  ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
+    return this.onSwmlRequest(requestData ?? {}, callbackPath ?? undefined);
   }
 
   /**

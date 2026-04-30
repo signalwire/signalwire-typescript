@@ -949,32 +949,6 @@
               ],
               "returns": "union<void,void>"
             },
-            "on_swml_request": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_raw_data",
-                  "type": "dict<string,any>",
-                  "required": true
-                },
-                {
-                  "name": "_callback_path",
-                  "type": "string",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "_context",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
-            },
             "prompt_manager": {
               "params": [
                 {
@@ -4633,6 +4607,53 @@
                 }
               ],
               "returns": "any"
+            },
+            "on_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "callback_path",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
+            },
+            "on_swml_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_callback_path",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "_context",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
             }
           }
         }
@@ -6213,6 +6234,36 @@
               ],
               "returns": "any"
             },
+            "build_swml_for_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_query_params",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_body_params",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_headers",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_callback_path",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.core.swml_builder.SWMLBuilder"
+            },
             "define_tool": {
               "params": [
                 {
@@ -6417,36 +6468,6 @@
                 }
               ],
               "returns": "union<string,void,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,void,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>"
-            },
-            "on_request": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_query_params",
-                  "type": "dict<string,any>",
-                  "required": true
-                },
-                {
-                  "name": "_body_params",
-                  "type": "dict<string,any>",
-                  "required": true
-                },
-                {
-                  "name": "_headers",
-                  "type": "dict<string,any>",
-                  "required": true
-                },
-                {
-                  "name": "_callback_path",
-                  "type": "string",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.core.swml_builder.SWMLBuilder"
             },
             "register_additional_routes": {
               "params": [
