@@ -130,7 +130,8 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
     'set_pronunciations', 'update_global_data',
   ]],
   PromptMixin: ['signalwire.core.mixins.prompt_mixin', [
-    'define_contexts', 'get_prompt', 'prompt_add_section',
+    'define_contexts', 'get_post_prompt', 'get_prompt',
+    'prompt_add_section',
     'prompt_add_subsection', 'prompt_add_to_section',
     'prompt_has_section', 'reset_contexts', 'set_post_prompt',
     'set_prompt_text',

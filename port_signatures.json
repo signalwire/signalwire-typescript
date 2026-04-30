@@ -766,15 +766,6 @@
               ],
               "returns": "string"
             },
-            "get_post_prompt": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "string"
-            },
             "get_prompt_pom": {
               "params": [
                 {
@@ -4087,6 +4078,15 @@
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
+            },
+            "get_post_prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             },
             "get_prompt": {
               "params": [
