@@ -6,6 +6,7 @@
  */
 
 import { lookup } from 'node:dns/promises';
+import { getExecutionMode } from './Logger.js';
 
 /** Maximum allowed input length for skill handler arguments (characters). */
 export const MAX_SKILL_INPUT_LENGTH = 1000;
@@ -150,4 +151,15 @@ export async function validateUrl(url: string, allowPrivate = false): Promise<bo
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether the current process is running in a serverless environment
+ * (anything other than a long-lived ``server`` runtime).
+ *
+ * Python parity: ``signalwire.utils.is_serverless_mode``.
+ */
+export function isServerlessMode(): boolean {
+  const [mode] = getExecutionMode();
+  return mode !== 'server';
 }

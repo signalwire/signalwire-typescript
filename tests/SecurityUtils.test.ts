@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   safeAssign,
   isPrivateIp,
@@ -6,6 +6,7 @@ import {
   filterSensitiveHeaders,
   redactUrl,
   isValidHostname,
+  isServerlessMode,
   MAX_SKILL_INPUT_LENGTH,
 } from '../src/SecurityUtils.js';
 
@@ -188,5 +189,63 @@ describe('SecurityUtils', () => {
   // ── MAX_SKILL_INPUT_LENGTH ──────────────────────────────────────────
   it('MAX_SKILL_INPUT_LENGTH is 1000', () => {
     expect(MAX_SKILL_INPUT_LENGTH).toBe(1000);
+  });
+
+  // ── isServerlessMode ────────────────────────────────────────────────
+  describe('isServerlessMode', () => {
+    const ENV_VARS = [
+      'GATEWAY_INTERFACE',
+      'AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT',
+      'FUNCTION_TARGET', 'K_SERVICE', 'GOOGLE_CLOUD_PROJECT',
+      'AZURE_FUNCTIONS_ENVIRONMENT', 'FUNCTIONS_WORKER_RUNTIME',
+    ];
+    const originals: Record<string, string | undefined> = {};
+
+    afterEach(() => {
+      for (const k of ENV_VARS) {
+        if (originals[k] === undefined) delete process.env[k];
+        else process.env[k] = originals[k];
+        delete originals[k];
+      }
+    });
+
+    function setEnv(key: string, value: string) {
+      if (!(key in originals)) originals[key] = process.env[key];
+      process.env[key] = value;
+    }
+
+    function clearEnv(key: string) {
+      if (!(key in originals)) originals[key] = process.env[key];
+      delete process.env[key];
+    }
+
+    it('returns false when no execution-mode env vars are set', () => {
+      for (const k of ENV_VARS) clearEnv(k);
+      expect(isServerlessMode()).toBe(false);
+    });
+
+    it('returns true under CGI', () => {
+      for (const k of ENV_VARS) clearEnv(k);
+      setEnv('GATEWAY_INTERFACE', 'CGI/1.1');
+      expect(isServerlessMode()).toBe(true);
+    });
+
+    it('returns true under Lambda', () => {
+      for (const k of ENV_VARS) clearEnv(k);
+      setEnv('AWS_LAMBDA_FUNCTION_NAME', 'my-fn');
+      expect(isServerlessMode()).toBe(true);
+    });
+
+    it('returns true under Google Cloud Functions', () => {
+      for (const k of ENV_VARS) clearEnv(k);
+      setEnv('FUNCTION_TARGET', 'handler');
+      expect(isServerlessMode()).toBe(true);
+    });
+
+    it('returns true under Azure Functions', () => {
+      for (const k of ENV_VARS) clearEnv(k);
+      setEnv('AZURE_FUNCTIONS_ENVIRONMENT', 'Production');
+      expect(isServerlessMode()).toBe(true);
+    });
   });
 });

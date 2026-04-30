@@ -128,7 +128,7 @@ export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './T
 export type { InferredSchema, ParsedParam } from './TypeInference.js';
 
 // Security utilities
-export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl } from './SecurityUtils.js';
+export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl, isServerlessMode } from './SecurityUtils.js';
 
 // Config
 export { ConfigLoader } from './ConfigLoader.js';

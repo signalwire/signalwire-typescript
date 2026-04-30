@@ -18488,6 +18488,10 @@
           ],
           "returns": "bool"
         },
+        "is_serverless_mode": {
+          "params": [],
+          "returns": "bool"
+        },
         "is_valid_hostname": {
           "params": [
             {
