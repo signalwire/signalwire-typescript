@@ -11272,6 +11272,171 @@
     },
     "signalwire.rest._base": {
       "classes": {
+        "BaseResource": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                },
+                {
+                  "name": "base_path",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            }
+          }
+        },
+        "CrudResource": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                },
+                {
+                  "name": "base_path",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "get": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "list": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "CrudWithAddresses": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                },
+                {
+                  "name": "base_path",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "list_addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
         "HttpClient": {
           "methods": {
             "__init__": {
@@ -11390,7 +11555,7 @@
             }
           }
         },
-        "RestError": {
+        "SignalWireRestError": {
           "methods": {
             "__init__": {
               "params": [
@@ -11421,183 +11586,6 @@
                 }
               ],
               "returns": "void"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.base.base_resource": {
-      "classes": {
-        "BaseResource": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.base.crud_resource": {
-      "classes": {
-        "CrudResource": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "delete": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.base.crud_with_addresses": {
-      "classes": {
-        "CrudWithAddresses": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "list_addresses": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
             }
           }
         }

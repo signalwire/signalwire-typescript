@@ -77,6 +77,10 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/rest/index.ts': 'signalwire.rest.client',
   'src/rest/HttpClient.ts': 'signalwire.rest._base',
   'src/rest/RestError.ts': 'signalwire.rest._base',
+  // Base resource classes — Python keeps these under signalwire.rest._base.
+  'src/rest/base/BaseResource.ts': 'signalwire.rest._base',
+  'src/rest/base/CrudResource.ts': 'signalwire.rest._base',
+  'src/rest/base/CrudWithAddresses.ts': 'signalwire.rest._base',
   'src/skills/SkillBase.ts': 'signalwire.core.skill_base',
   'src/skills/SkillManager.ts': 'signalwire.core.skill_manager',
   'src/skills/SkillRegistry.ts': 'signalwire.skills.registry',
@@ -119,6 +123,10 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   // Skill class casing aligned with Python reference
   McpGatewaySkill: 'MCPGatewaySkill',
   SwmlTransferSkill: 'SWMLTransferSkill',
+  // REST error class — Python uses ``SignalWireRestError`` to disambiguate
+  // from the standard library; TS shortens to ``RestError`` since it's
+  // already namespaced under the rest module.
+  RestError: 'SignalWireRestError',
 };
 
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.

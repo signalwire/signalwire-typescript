@@ -1,11 +1,12 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ c278ce2579924ec5f2b4ad08cacf1b0f65df81af",
+  "generated_from": "signalwire-typescript @ f0881b8b19b0ce937aeee1f75cbb2e0123a32922",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
       "classes": {},
       "functions": [
+        "RestClient",
         "add_skill_directory",
         "list_skills",
         "list_skills_with_params",
@@ -55,9 +56,11 @@
           "add_subsection",
           "add_to_section",
           "define_contexts",
+          "get_contexts",
           "get_pom_builder",
           "get_post_prompt",
           "get_prompt",
+          "get_raw_prompt",
           "has_section",
           "prompt_add_section",
           "prompt_add_subsection",
@@ -102,6 +105,7 @@
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
           "clear_swaig_query_params",
+          "create_tool_token",
           "define_typed_tool",
           "enable_sip_routing",
           "extract_sip_username",
@@ -115,6 +119,7 @@
           "native_functions",
           "on_debug_event",
           "on_summary",
+          "pom",
           "prompt_manager",
           "register_sip_username",
           "remove_skill_by_name",
@@ -467,6 +472,7 @@
           "enable_debug_routes",
           "get_app",
           "manual_set_proxy_url",
+          "on_request",
           "on_swml_request",
           "register_routing_callback",
           "run",
@@ -659,24 +665,28 @@
           "add_verb",
           "add_verb_to_section",
           "as_router",
+          "build_swml_for_request",
           "define_tool",
           "extract_sip_username",
           "full_validation_enabled",
+          "get_all_functions",
           "get_app",
           "get_basic_auth_credentials",
           "get_builder",
           "get_document",
+          "get_function",
           "get_registered_tools",
           "get_tool",
+          "has_function",
           "has_tool",
           "list_tool_names",
           "manual_set_proxy_url",
           "on_function_call",
-          "on_request",
           "register_additional_routes",
           "register_routing_callback",
           "register_swaig_function",
           "register_verb_handler",
+          "remove_function",
           "render_document",
           "render_swml",
           "reset_document",
@@ -684,7 +694,8 @@
           "serve",
           "set_on_request_callback",
           "stop",
-          "swaig_pre_dispatch"
+          "swaig_pre_dispatch",
+          "validate_basic_auth"
         ]
       },
       "functions": []
@@ -1105,7 +1116,7 @@
           "post",
           "put"
         ],
-        "RestError": [
+        "SignalWireRestError": [
           "__init__"
         ],
         "BaseResource": [
@@ -1804,6 +1815,7 @@
           "discover_all",
           "discover_skills",
           "get_all_skills_schema",
+          "get_external_paths",
           "get_instance",
           "get_search_paths",
           "get_skill_class",
@@ -1903,6 +1915,7 @@
       "functions": [
         "filter_sensitive_headers",
         "is_private_ip",
+        "is_serverless_mode",
         "is_valid_hostname",
         "redact_url",
         "resolve_and_validate_url",

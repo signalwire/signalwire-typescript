@@ -1043,3 +1043,24 @@ signalwire.start_agent: BACKLOG / missing-port/ in reference, not in port
 signalwire.utils.schema_utils.SchemaUtils.validate_verb: BACKLOG / param-mismatch/ param[2] (verb_config)/ name 'verb_config' vs 'config'; type 'dict<string,any>' ; return-mismatch/ retur
 signalwire.web.web_service.WebService.start: BACKLOG / param-mismatch/ param[1] (host)/ default '0.0.0.0' vs None; param-mismatch/ param[2] (port)/ type 'optional<int>' vs 'fl
 signalwire.web.web_service.WebService.stop: BACKLOG / return-mismatch/ returns 'any' vs 'void'
+
+## Idiom: TS file co-locates support classes (return-type module path differs)
+
+The TS port keeps `SecurityConfig` and `VerbHandlerRegistry` declared
+inside `SWMLService.ts` rather than in a dedicated file like Python's
+`security_config.py` / `swml_handler.py`. Public `security` /
+`verb_registry` getters return the same conceptual class but the
+canonical path differs.
+
+signalwire.core.swml_service.SWMLService.security: TS declares `SecurityConfig` inside `SWMLService.ts`; getter returns `class:signalwire.core.swml_service.SecurityConfig` while Python returns `class:signalwire.core.security_config.SecurityConfig`
+signalwire.core.swml_service.SWMLService.verb_registry: TS declares `VerbHandlerRegistry` inside `SWMLService.ts`; getter returns `class:signalwire.core.swml_service.VerbHandlerRegistry` while Python returns `class:signalwire.core.swml_handler.VerbHandlerRegistry`
+
+## TS-idiomatic return-type divergences
+
+signalwire.core.agent_base.AgentBase.pom: TS port returns the rendered POM as `list<dict<string,any>>` (a list of section dicts) while Python returns the `PromptObjectModel` instance from the unported `signalwire.pom.pom` library; functional return shape is equivalent for downstream rendering
+signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance from `signalwire.core.logging_config.Logger`; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path
+
+## TS-idiomatic params-object vs **kwargs
+
+signalwire.rest._base.CrudResource.create: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.
+signalwire.rest._base.CrudResource.update: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.

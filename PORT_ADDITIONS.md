@@ -354,3 +354,60 @@ signalwire.rest._base.RestError.__init__: TS RestError helper or status accessor
 
 signalwire.relay.client.RelayClient.notify: TS-only fire-and-forget JSON-RPC send used by the porting-sdk audit harness to emit a method-bearing `signalwire.event` echo frame the audit fixture watches for; production users prefer `execute()` to keep the response code check
 signalwire.relay.client.RelayClient.on_event: TS-only low-level event observer that fires before typed `onCall` / `onMessage` routing; used by the audit harness to react to platform-pushed events that don't correspond to a tracked Call / Message
+
+## Logger getters (TS public `log` accessor)
+
+Python exposes `self.log` as an instance attribute (set in __init__) on
+several classes; the TS port surfaces the same logger as a `readonly log`
+getter so consumers and subclasses can access the structured Logger
+without going through the constructor argument.
+
+signalwire.agent_server.AgentServer.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
+signalwire.core.agent_base.AgentBase.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
+signalwire.core.swml_service.SWMLService.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
+
+## AgentBase additional port-specific accessors
+
+signalwire.core.agent_base.AgentBase.create_tool_token: TS public delegate to `SessionManager.createToolToken` exposed on AgentBase for convenience; Python keeps this only on SessionManager and accesses via `self.session_manager.create_tool_token(...)`
+signalwire.core.agent_base.AgentBase.prompt_sections: TS public getter returning the agent's POM-rendered prompt sections; Python uses methods on the prompt manager / mixin (`get_prompt_sections`) rather than a direct property
+
+## AuthHandler / SkillBase / VerbHandler additional port-specific getters
+
+signalwire.core.auth_handler.AuthHandler.config: TS readonly `config` accessor exposes the AuthConfig passed to the constructor; Python keeps the equivalent as a private attribute and never re-exposes it as a method
+signalwire.core.skill_base.SkillBase.agent: TS readonly `agent` accessor exposes the parent agent reference; Python keeps the equivalent as a protected attribute that subclasses access directly
+signalwire.core.skill_base.SkillBase.config: TS readonly `config` accessor exposes the SkillConfig passed at construction; Python keeps the equivalent as a protected attribute that subclasses access directly
+signalwire.core.swml_handler.AIVerbHandler.validate_config: TS-emitted concrete override of the inherited abstract method from SWMLVerbHandler; Python only emits it on the parent class via the enumerator's declaration-only rule
+
+## SWMLService additional port-specific surface
+
+These are direct accessor methods or build/runtime helpers that TS exposes
+on SWMLService; Python distributes the same concepts across mixins and
+the ToolRegistry rather than declaring them on the base service class.
+
+signalwire.core.swml_service.SWMLService.build_swml_for_request: TS extension hook subclasses override to render a per-request SWML document; Python equivalent lives on AgentBase as `_render_swml(...)` and isn't exposed as a public method on SWMLService
+signalwire.core.swml_service.SWMLService.get_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.get_function(...)`
+signalwire.core.swml_service.SWMLService.has_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.has_function(...)`
+signalwire.core.swml_service.SWMLService.remove_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.remove_function(...)`
+signalwire.core.swml_service.SWMLService.swml_builder: TS-port readonly accessor exposing the internal SwmlBuilder instance; Python keeps the equivalent as a private attribute used only inside the service
+signalwire.core.swml_service.SWMLService.validate_basic_auth: TS-port direct accessor on SWMLService for the auth-mixin functionality; Python keeps this on `AuthMixin` and accesses via the mixin chain
+
+## LiveWire / prefabs additional port-specific accessors
+
+signalwire.livewire.AgentHandoff.agent: TS readonly accessor exposing the target agent on a handoff result; LiveKit-compat shim only exposed in TS
+signalwire.livewire.JobContext.proc: TS LiveKit-compat process placeholder accessor; SignalWire ignores this field but TS exposes it for type compatibility with @livekit/agents callers
+signalwire.livewire.JobContext.room: TS LiveKit-compat room placeholder accessor; SignalWire does not use the LiveKit room abstraction but TS exposes the field for type compatibility
+signalwire.livewire.RunContext.session: TS readonly accessor exposing the AgentSession instance from a tool-call run context; Python uses a plain attribute with no public getter
+signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS public `faqs` field exposed for inspection / extension; Python keeps the equivalent FAQ list as a constructor-only argument with no instance accessor
+signalwire.prefabs.survey.SurveyAgent.questions: TS public `questions` field exposed for inspection / extension; Python keeps the equivalent question list as a constructor-only argument with no instance accessor
+
+## Relay Action / REST resource port-specific accessors
+
+signalwire.relay.call.Action.call: TS readonly accessor exposing the parent Call instance from an Action; Python keeps the back-reference as a private attribute that callers don't need
+signalwire.rest._base.CrudResource.__init__: TS-port explicit constructor for the abstract CrudResource; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
+signalwire.rest._base.CrudWithAddresses.__init__: TS-port explicit constructor for the abstract CrudWithAddresses; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
+
+## AgentBase / SWMLService / SkillRegistry surface additions
+
+signalwire.core.agent_base.AgentBase.pom: TS exposes a `pom` getter returning rendered POM section dicts; Python's `pom` is a class-level attribute (`signalwire.pom.pom.PromptObjectModel` instance) that the surface enumerator excludes (Python only includes methods/classmethods, not class-level attribute names) — see PORT_SIGNATURE_OMISSIONS.md for the return-type divergence
+signalwire.core.swml_service.SWMLService.get_all_functions: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.get_all_functions()`
+signalwire.skills.registry.SkillRegistry.get_external_paths: TS-native method on the singleton SkillRegistry, returning paths added via addSearchPath; Python's equivalent state is private and there is no public accessor

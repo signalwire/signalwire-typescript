@@ -220,6 +220,10 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   SwmlBuilder: 'SWMLBuilder',
   // Note: SWMLService, SWMLVerbHandler, AIVerbHandler keep their ALL-CAPS
   // spelling on both sides.
+  // REST error class — Python uses ``SignalWireRestError`` to disambiguate
+  // from the standard library; TS shortens to ``RestError`` since it's
+  // already namespaced under the rest module.
+  RestError: 'SignalWireRestError',
 };
 
 /** Method-name aliases for known TS↔Python naming mismatches that are one-off

@@ -472,3 +472,25 @@ signalwire.utils.url_validator.validate_url: TS validateUrl lives in SecurityUti
 
 signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function (see PORT_ADDITIONS.md SWMLService entry); no separate ToolRegistry class
 signalwire.core.mixins.tool_mixin.ToolMixin.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function; the Python ToolMixin pattern is replaced by direct methods on SWMLService
+
+## Hono `app` accessor / Python `logger` instance attributes
+
+Python exposes `self.app` (a Flask/FastAPI WSGI app) and `self.logger`
+as public instance attributes; the TS port surfaces both via differently
+named accessors (`getApp()` and `log` getter respectively) so the Python
+attribute names appear missing from the TS surface.
+
+signalwire.agent_server.AgentServer.app: TS exposes the underlying Hono app via `getApp()` getter (see PORT_ADDITIONS.md AgentServer.get_app); the bare `app` attribute name is not used in TS
+signalwire.agent_server.AgentServer.logger: TS uses `log` getter exposing the same logger instance (see PORT_ADDITIONS.md AgentServer.log); the Python `logger` attribute name is not used in TS
+signalwire.core.skill_manager.SkillManager.logger: TS instantiates a per-instance Logger via `getLogger()` directly inside methods rather than exposing it as a public instance attribute; Python's pattern is `self.logger = logging.getLogger(...)` which the adapter sees as a public attribute
+signalwire.skills.registry.SkillRegistry.logger: TS uses `getLogger('SkillRegistry')` calls inline rather than caching as a public attribute on the singleton; Python's adapter reports `self.logger` as a public state attribute
+signalwire.web.web_service.WebService.app: TS WebService exposes the Hono app via `getApp()` getter (see PORT_ADDITIONS.md WebService.get_app); the bare `app` attribute name is not used in TS
+signalwire.web.web_service.WebService.security: TS WebService exposes the SslConfig via `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS
+
+## PomBuilder.pom (Python returns a PromptObjectModel instance)
+
+signalwire.core.pom_builder.PomBuilder.pom: Python `PomBuilder.pom` returns a `PromptObjectModel` instance from the separate `signalwire.pom.pom` module; TS does not port the underlying `PromptObjectModel` Python library (POM rendering is built directly into PomBuilder via `getDocument()` / `renderDocument()`)
+
+## SWMLService.on_request (default no-op; subclass-overridable hook)
+
+signalwire.core.swml_service.SWMLService.on_request: Python declares `on_request` as a default no-op on SWMLService that subclasses override; TS only declares the override on AgentBase via WebMixin projection — equivalent functionality is reachable through `agent.onRequest(...)`, but the bare declaration on SWMLService is not surfaced
