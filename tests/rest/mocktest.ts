@@ -18,7 +18,42 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { RestClient } from '../../src/rest/index.js';
+
+/**
+ * Walk this file's directory upward looking for an adjacent
+ * `porting-sdk/test_harness/<name>/<name>/__init__.py`. The adjacency
+ * contract is "porting-sdk lives next to signalwire-typescript in ~/src/",
+ * so a fresh clone of either repo can find the mock harness with no prior
+ * `pip install -e`. Returns the absolute path to the directory containing
+ * the Python package (i.e. the value to put on PYTHONPATH so that
+ * `python -m <name>` resolves), or `null` when no adjacent porting-sdk is
+ * reachable.
+ */
+function discoverPortingSdkPackage(name: string): string | null {
+  // import.meta.url -> file:// URL -> absolute path of this very file.
+  const here = fileURLToPath(import.meta.url);
+  let dir = dirname(here);
+  // Walk up until we hit the filesystem root. At each level we check for
+  // ../porting-sdk/test_harness/<name>/<name>/__init__.py.
+  for (;;) {
+    const candidate = join(dirname(dir), 'porting-sdk', 'test_harness', name);
+    const init = join(candidate, name, '__init__.py');
+    if (existsSync(init)) {
+      try {
+        if (statSync(init).isFile()) return candidate;
+      } catch {
+        // fall through, treat as not found
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
 
 /**
  * One recorded HTTP request from the mock server's journal. Mirrors
@@ -169,6 +204,22 @@ async function ensureServer(): Promise<MockHarness> {
       return;
     }
 
+    // Try to inject porting-sdk/test_harness/mock_signalwire/ into
+    // PYTHONPATH so `python -m mock_signalwire` resolves without a prior
+    // `pip install -e ...`. Adjacency contract: porting-sdk next to
+    // signalwire-typescript in ~/src/. When the walk fails (e.g. porting-sdk
+    // isn't adjacent), we still spawn — the child falls back to whatever
+    // is on the system Python's sys.path, and the readiness probe surfaces
+    // a clear timeout error if neither mode is available.
+    const pkgDir = discoverPortingSdkPackage('mock_signalwire');
+    const childEnv = { ...process.env };
+    if (pkgDir !== null) {
+      const sep = process.platform === 'win32' ? ';' : ':';
+      childEnv['PYTHONPATH'] = childEnv['PYTHONPATH']
+        ? `${pkgDir}${sep}${childEnv['PYTHONPATH']}`
+        : pkgDir;
+    }
+
     // Spawn a subprocess. We deliberately detach stdio (point them at
     // /dev/null) because Node's testing runner waits on the child's pipes
     // before exiting, which would hang the test process for the full
@@ -180,6 +231,7 @@ async function ensureServer(): Promise<MockHarness> {
       {
         detached: true,
         stdio: 'ignore',
+        env: childEnv,
       },
     );
     child.unref();
@@ -209,7 +261,9 @@ async function ensureServer(): Promise<MockHarness> {
       // ignore
     }
     state.startError = new Error(
-      `mocktest: 'python -m mock_signalwire' did not become ready within ${STARTUP_TIMEOUT_MS}ms on port ${port}`,
+      `mocktest: 'python -m mock_signalwire' did not become ready within ${STARTUP_TIMEOUT_MS}ms on port ${port} ` +
+        '(clone porting-sdk next to signalwire-typescript so tests can find ' +
+        'porting-sdk/test_harness/mock_signalwire/, or pip install the mock_signalwire package)',
     );
     throw state.startError;
   })();
