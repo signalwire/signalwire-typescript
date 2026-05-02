@@ -84,6 +84,8 @@ export { DataMap, createSimpleApiTool, createExpressionTool, setAllowedEnvPrefix
 // Prompt Object Model
 export { PomBuilder, PomSection } from './PomBuilder.js';
 export type { PomSectionData } from './PomBuilder.js';
+export { PromptObjectModel, Section } from './POM/PromptObjectModel.js';
+export type { SectionData } from './POM/PromptObjectModel.js';
 
 // SWML builder
 export { SwmlBuilder } from './SwmlBuilder.js';

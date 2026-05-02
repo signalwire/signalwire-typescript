@@ -162,6 +162,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/FunctionResult.ts': 'signalwire.core.function_result',
   'src/Logger.ts': 'signalwire.core.logging_config',
   'src/PomBuilder.ts': 'signalwire.core.pom_builder',
+  'src/POM/PromptObjectModel.ts': 'signalwire.pom.pom',
   'src/PromptManager.ts': 'signalwire.core.agent.prompt.manager',
   'src/SchemaUtils.ts': 'signalwire.utils.schema_utils',
   'src/SecurityUtils.ts': 'signalwire.utils',

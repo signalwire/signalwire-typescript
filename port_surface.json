@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ f0881b8b19b0ce937aeee1f75cbb2e0123a32922",
+  "generated_from": "signalwire-typescript @ c7c9465cc0d24d4037f1fdd1eac06f1d637286fd",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -502,6 +502,7 @@
           "from_sections",
           "get_section",
           "has_section",
+          "pom",
           "render_markdown",
           "render_xml",
           "reset",
@@ -800,6 +801,33 @@
         "SileroVAD": [
           "__init__",
           "load"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.pom.pom": {
+      "classes": {
+        "Section": [
+          "__init__",
+          "add_body",
+          "add_bullets",
+          "add_subsection",
+          "render_markdown",
+          "render_xml",
+          "to_dict"
+        ],
+        "PromptObjectModel": [
+          "__init__",
+          "add_pom_as_subsection",
+          "add_section",
+          "find_section",
+          "from_json",
+          "from_yaml",
+          "render_markdown",
+          "render_xml",
+          "to_dict",
+          "to_json",
+          "to_yaml"
         ]
       },
       "functions": []

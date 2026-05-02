@@ -1152,23 +1152,31 @@ describe('AgentBase', () => {
   //     TestAgentBasePromptMethods::test_set_prompt_pom_succeeds_when_use_pom_true
   // -------------------------------------------------------------------------
   describe('pom getter', () => {
-    it('returns POM sections after setPromptPom', () => {
+    // Python parity: ``agent.pom`` is a ``signalwire.pom.pom.PromptObjectModel``
+    // instance (agent_base.py line 209), so the TS getter returns a
+    // ``PromptObjectModel`` — not a raw array. Callers use
+    // ``pom.sections`` / ``pom.findSection`` / ``pom.renderMarkdown`` etc.
+    it('returns a PromptObjectModel after setPromptPom', async () => {
+      const { PromptObjectModel } = await import('../src/POM/PromptObjectModel.js');
       const agent = createAgent();
       const sections = [{ title: 'Greeting', body: 'Hello' }];
       agent.setPromptPom(sections);
       const pom = agent.pom;
-      expect(pom).not.toBeNull();
-      expect(pom!.length).toBe(1);
-      expect(pom![0]).toMatchObject({ title: 'Greeting', body: 'Hello' });
+      expect(pom).toBeInstanceOf(PromptObjectModel);
+      expect(pom!.sections.length).toBe(1);
+      expect(pom!.sections[0].title).toBe('Greeting');
+      expect(pom!.sections[0].body).toBe('Hello');
     });
 
-    it('returns POM sections after addSection on PomBuilder via promptManager', () => {
+    it('returns a PromptObjectModel after addSection on PomBuilder via promptManager', async () => {
+      const { PromptObjectModel } = await import('../src/POM/PromptObjectModel.js');
       const agent = createAgent();
       agent.promptManager.addSection('Topic', { body: 'Body text' });
       const pom = agent.pom;
-      expect(pom).not.toBeNull();
-      expect(pom!.length).toBe(1);
-      expect(pom![0]).toMatchObject({ title: 'Topic', body: 'Body text' });
+      expect(pom).toBeInstanceOf(PromptObjectModel);
+      expect(pom!.sections.length).toBe(1);
+      expect(pom!.sections[0].title).toBe('Topic');
+      expect(pom!.sections[0].body).toBe('Body text');
     });
 
     it('returns null when usePom is false', () => {
@@ -1176,15 +1184,18 @@ describe('AgentBase', () => {
       expect(agent.pom).toBeNull();
     });
 
-    it('returns a frozen snapshot — caller cannot mutate', () => {
+    it('returns a fresh snapshot — mutating it does not feed back into the agent', () => {
       const agent = createAgent();
       agent.setPromptPom([{ title: 'Original', body: 'Body' }]);
       const pom = agent.pom!;
-      expect(Object.isFrozen(pom)).toBe(true);
-      // Confirm subsequent calls reflect agent state, not the previous snapshot
+      // Mutate the snapshot directly.
+      pom.sections.push(pom.sections[0]);
+      // Subsequent calls reflect agent state, not the mutated snapshot.
       agent.setPromptPom([{ title: 'New', body: 'Other' }]);
       const pom2 = agent.pom!;
-      expect(pom2[0]).toMatchObject({ title: 'New', body: 'Other' });
+      expect(pom2.sections.length).toBe(1);
+      expect(pom2.sections[0].title).toBe('New');
+      expect(pom2.sections[0].body).toBe('Other');
     });
   });
 });

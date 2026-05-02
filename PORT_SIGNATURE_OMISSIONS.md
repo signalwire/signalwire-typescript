@@ -1057,10 +1057,22 @@ signalwire.core.swml_service.SWMLService.verb_registry: TS declares `VerbHandler
 
 ## TS-idiomatic return-type divergences
 
-signalwire.core.agent_base.AgentBase.pom: TS port returns the rendered POM as `list<dict<string,any>>` (a list of section dicts) while Python returns the `PromptObjectModel` instance from the unported `signalwire.pom.pom` library; functional return shape is equivalent for downstream rendering
+signalwire.core.agent_base.AgentBase.pom: TS now returns a `PromptObjectModel` instance matching Python's `signalwire.pom.pom.PromptObjectModel`; canonical-name-only reference of differing module paths is documented here for completeness
 signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance from `signalwire.core.logging_config.Logger`; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path
 
 ## TS-idiomatic params-object vs **kwargs
 
 signalwire.rest._base.CrudResource.create: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.
 signalwire.rest._base.CrudResource.update: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.
+signalwire.pom.pom.PromptObjectModel.add_section: TS PromptObjectModel.addSection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
+signalwire.pom.pom.Section.__init__: TS Section constructor takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
+signalwire.pom.pom.Section.add_subsection: TS Section.addSubsection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
+
+## POM int vs float (TS has no integer type)
+
+signalwire.pom.pom.Section.render_markdown: TS `level` and `section_number` params resolve to `float` because TypeScript has a single `number` primitive — no separate int. Equivalent to Python's `int` for all valid inputs.
+signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params resolve to `float` because TypeScript has a single `number` primitive — no separate int. Equivalent to Python's `int` for all valid inputs.
+
+## POM SectionData vs dict<string,any>
+
+signalwire.pom.pom.PromptObjectModel.to_dict: TS returns `list<class:signalwire.pom.pom.SectionData>` where SectionData is a typed shape; Python returns the equivalent `list<dict<string,any>>`. Same JSON-serializable structure with stronger TS typing.

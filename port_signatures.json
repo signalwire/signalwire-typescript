@@ -1163,7 +1163,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<dict<string,any>>"
+              "returns": "class:signalwire.pom.pom.PromptObjectModel"
             },
             "prompt_manager": {
               "params": [
@@ -5001,6 +5001,15 @@
               ],
               "returns": "bool"
             },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.PromptObjectModel"
+            },
             "render_markdown": {
               "params": [
                 {
@@ -7749,6 +7758,290 @@
             }
           ],
           "returns": "class:signalwire.livewire.FunctionTool"
+        }
+      }
+    },
+    "signalwire.pom.pom": {
+      "classes": {
+        "PromptObjectModel": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "debug",
+                  "type": "bool",
+                  "required": false,
+                  "default": false
+                }
+              ],
+              "returns": "void"
+            },
+            "add_pom_as_subsection": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "target",
+                  "type": "union<string,class:signalwire.pom.pom.Section>",
+                  "required": true
+                },
+                {
+                  "name": "pom_to_add",
+                  "type": "class:signalwire.pom.pom.PromptObjectModel",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "add_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.pom.pom.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.Section"
+            },
+            "find_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.Section"
+            },
+            "from_json": {
+              "params": [
+                {
+                  "name": "json_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.PromptObjectModel"
+            },
+            "from_yaml": {
+              "params": [
+                {
+                  "name": "yaml_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.PromptObjectModel"
+            },
+            "render_markdown": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "render_xml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.pom.pom.Section>"
+            },
+            "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.pom.pom.SectionData>"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "to_yaml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            }
+          }
+        },
+        "Section": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.pom.pom.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "add_body": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "add_bullets": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "bullets",
+                  "type": "list<string>",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "add_subsection": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.pom.pom.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.Section"
+            },
+            "render_markdown": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "level",
+                  "type": "float",
+                  "required": false,
+                  "default": 2
+                },
+                {
+                  "name": "section_number",
+                  "type": "list<float>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "string"
+            },
+            "render_xml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "indent",
+                  "type": "float",
+                  "required": false,
+                  "default": 0
+                },
+                {
+                  "name": "section_number",
+                  "type": "list<float>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "string"
+            },
+            "subsections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.pom.pom.Section>"
+            },
+            "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.SectionData"
+            }
+          }
         }
       }
     },

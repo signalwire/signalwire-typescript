@@ -241,30 +241,13 @@ signalwire.cli.types.VarsData: deliberately omitted: CLI type definitions used o
 
 ## POM module (low-level PromptObjectModel)
 
-signalwire.pom.pom.PromptObjectModel: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.__init__: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.add_pom_as_subsection: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.add_section: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.find_section: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.from_json: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.from_yaml: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.render_markdown: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.render_xml: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.to_dict: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.to_json: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.PromptObjectModel.to_yaml: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.__init__: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.add_body: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.add_bullets: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.add_subsection: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.render_markdown: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.render_xml: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom.Section.to_dict: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom_tool.detect_file_format: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom_tool.load_pom: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom_tool.main: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
-signalwire.pom.pom_tool.render_pom: deliberately omitted: TS uses the higher-level PomBuilder/PomSection API rather than the low-level PromptObjectModel class (functionality is equivalent)
+# signalwire.pom.pom.PromptObjectModel and signalwire.pom.pom.Section are now
+# ported in TS at src/POM/PromptObjectModel.ts (mapped to signalwire.pom.pom).
+# The pom_tool CLI helpers remain Python-only.
+signalwire.pom.pom_tool.detect_file_format: deliberately omitted: pom_tool is a Python CLI helper (detect/load/render); TS does not ship a CLI for offline POM rendering
+signalwire.pom.pom_tool.load_pom: deliberately omitted: pom_tool is a Python CLI helper (detect/load/render); TS does not ship a CLI for offline POM rendering
+signalwire.pom.pom_tool.main: deliberately omitted: pom_tool is a Python CLI helper (detect/load/render); TS does not ship a CLI for offline POM rendering
+signalwire.pom.pom_tool.render_pom: deliberately omitted: pom_tool is a Python CLI helper (detect/load/render); TS does not ship a CLI for offline POM rendering
 
 ## MCP gateway backend (server-side MCP router)
 
@@ -486,10 +469,6 @@ signalwire.core.skill_manager.SkillManager.logger: TS instantiates a per-instanc
 signalwire.skills.registry.SkillRegistry.logger: TS uses `getLogger('SkillRegistry')` calls inline rather than caching as a public attribute on the singleton; Python's adapter reports `self.logger` as a public state attribute
 signalwire.web.web_service.WebService.app: TS WebService exposes the Hono app via `getApp()` getter (see PORT_ADDITIONS.md WebService.get_app); the bare `app` attribute name is not used in TS
 signalwire.web.web_service.WebService.security: TS WebService exposes the SslConfig via `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS
-
-## PomBuilder.pom (Python returns a PromptObjectModel instance)
-
-signalwire.core.pom_builder.PomBuilder.pom: Python `PomBuilder.pom` returns a `PromptObjectModel` instance from the separate `signalwire.pom.pom` module; TS does not port the underlying `PromptObjectModel` Python library (POM rendering is built directly into PomBuilder via `getDocument()` / `renderDocument()`)
 
 ## SWMLService.on_request (default no-op; subclass-overridable hook)
 

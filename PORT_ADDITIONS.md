@@ -408,6 +408,7 @@ signalwire.rest._base.CrudWithAddresses.__init__: TS-port explicit constructor f
 
 ## AgentBase / SWMLService / SkillRegistry surface additions
 
-signalwire.core.agent_base.AgentBase.pom: TS exposes a `pom` getter returning rendered POM section dicts; Python's `pom` is a class-level attribute (`signalwire.pom.pom.PromptObjectModel` instance) that the surface enumerator excludes (Python only includes methods/classmethods, not class-level attribute names) — see PORT_SIGNATURE_OMISSIONS.md for the return-type divergence
+signalwire.core.agent_base.AgentBase.pom: TS exposes a `pom` getter returning a `PromptObjectModel` instance (Python parity); Python's `pom` is an instance attribute that the surface enumerator excludes (Python only includes methods/classmethods, not class-level attribute names)
+signalwire.core.pom_builder.PomBuilder.pom: TS exposes a `pom` getter returning the wrapped `PromptObjectModel` (Python parity); Python's `pom` is an instance attribute on PomBuilder that the surface enumerator excludes (Python only includes methods, not instance-level attribute names)
 signalwire.core.swml_service.SWMLService.get_all_functions: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.get_all_functions()`
 signalwire.skills.registry.SkillRegistry.get_external_paths: TS-native method on the singleton SkillRegistry, returning paths added via addSearchPath; Python's equivalent state is private and there is no public accessor

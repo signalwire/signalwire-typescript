@@ -6,6 +6,8 @@
  * and nested subsections.
  */
 
+import { PromptObjectModel, Section as PomModelSection } from './POM/PromptObjectModel.js';
+
 /** Serializable representation of a POM section, used for JSON export. */
 export interface PomSectionData {
   /** Section heading text. */
@@ -420,6 +422,34 @@ export class PomBuilder {
       });
     }
     return builder;
+  }
+
+  /**
+   * Returns the underlying {@link PromptObjectModel} for the builder.
+   *
+   * Mirrors Python's `PomBuilder.pom` attribute (the wrapped low-level model).
+   * Returns a fresh `PromptObjectModel` populated from the builder's current
+   * sections; mutations on the returned instance do not propagate back to
+   * this builder.
+   */
+  get pom(): PromptObjectModel {
+    const pom = new PromptObjectModel();
+    const convert = (s: PomSection): PomModelSection => {
+      const out = new PomModelSection(s.title, {
+        body: s.body,
+        bullets: [...s.bullets],
+        numbered: s.numbered,
+        numberedBullets: s.numberedBullets,
+      });
+      for (const sub of s.subsections) {
+        out.subsections.push(convert(sub));
+      }
+      return out;
+    };
+    for (const s of this.sections) {
+      pom.sections.push(convert(s));
+    }
+    return pom;
   }
 
   /**

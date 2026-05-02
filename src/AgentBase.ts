@@ -10,6 +10,7 @@ import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
+import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
@@ -354,19 +355,26 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Public read-only accessor for the agent's POM section list.
+   * Public accessor for the agent's POM as a {@link PromptObjectModel} instance.
    *
-   * Python parity: ``agent.pom`` instance attribute (agent_base.py line 209).
-   * Returns ``null`` when ``usePom`` is false (matching Python's ``self.pom = None``).
-   * Returns a defensive frozen snapshot so callers cannot mutate internal state.
+   * Python parity: ``agent.pom`` instance attribute (agent_base.py line 209)
+   * is a ``signalwire.pom.pom.PromptObjectModel`` when ``use_pom=True``,
+   * or ``None`` otherwise. This getter returns the equivalent TypeScript
+   * ``PromptObjectModel`` instance — callers can use ``addSection``,
+   * ``findSection``, ``renderMarkdown``, ``renderXml``, ``toJson``, ``toYaml``
+   * exactly as in Python.
    *
-   * @returns Frozen array of POM section data, or null when POM mode is off.
+   * The instance returned is a fresh snapshot built from the current
+   * ``PomBuilder`` state, so mutating it does not feed back into the agent's
+   * internal builder. To mutate the agent's prompt, use
+   * ``promptAddSection`` / ``promptAddToSection`` / ``promptAddSubsection``.
+   *
+   * @returns A `PromptObjectModel` populated with the agent's sections, or `null` when POM mode is off.
    */
-  get pom(): readonly Record<string, unknown>[] | null {
+  get pom(): PromptObjectModel | null {
     const builder = this._promptManager.getPomBuilder();
     if (!builder) return null;
-    // toDict() already returns a fresh array of fresh per-section objects.
-    return Object.freeze(builder.toDict() as Record<string, unknown>[]);
+    return builder.pom;
   }
 
   /**
