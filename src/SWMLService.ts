@@ -238,9 +238,8 @@ export class SWMLService {
   /** Validate provided basic-auth credentials against the configured ones
    * using a constant-time comparison. (Python parity:
    * ``AuthMixin.validate_basic_auth(username, password)``.) */
-  validateBasicAuth(username: string, password: string): boolean {
-    const u = this.basicAuthUser ?? '';
-    const p = this.basicAuthPassword ?? '';
+  validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
+    const [u, p] = this.authCredentials ?? ['', ''];
     if (u === '' && p === '') return false;
     return this.timingSafeEqual(username, u) && this.timingSafeEqual(password, p);
   }
