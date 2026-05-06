@@ -8,10 +8,35 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout signalwire-typescript
+        uses: actions/checkout@v5
+        with:
+          path: signalwire-typescript
+
+      - name: Checkout porting-sdk (mock_relay test harness)
+        uses: actions/checkout@v5
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
-      - run: npm test
+          cache-dependency-path: signalwire-typescript/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install mock_relay (Python test harness)
+        run: pip install -e porting-sdk/test_harness/mock_relay
+
+      - name: npm ci
+        working-directory: signalwire-typescript
+        run: npm ci
+
+      - name: npm test
+        working-directory: signalwire-typescript
+        run: npm test

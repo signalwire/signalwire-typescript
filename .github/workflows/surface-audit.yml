@@ -27,6 +27,7 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4

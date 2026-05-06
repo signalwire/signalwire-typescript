@@ -11,16 +11,46 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout signalwire-typescript
+        uses: actions/checkout@v5
+        with:
+          path: signalwire-typescript
+
+      - name: Checkout porting-sdk (mock_relay test harness)
+        uses: actions/checkout@v5
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm test
-      - run: npm publish --access public
+          cache: 'npm'
+          cache-dependency-path: signalwire-typescript/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install mock_relay (Python test harness)
+        run: pip install -e porting-sdk/test_harness/mock_relay
+
+      - name: npm ci
+        working-directory: signalwire-typescript
+        run: npm ci
+
+      - name: npm test
+        working-directory: signalwire-typescript
+        run: npm test
+
+      - name: npm publish
+        working-directory: signalwire-typescript
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
