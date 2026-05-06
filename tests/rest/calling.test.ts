@@ -23,6 +23,28 @@ describe('CallingNamespace', () => {
     expect(req.body.id).toBeUndefined();
   });
 
+  it('dial forwards codecs as array', async () => {
+    const { calling, getRequests } = setup();
+    await calling.dial({
+      url: 'https://example.com/swml',
+      to: '+15551234567',
+      codecs: ['OPUS', 'G729', 'VP8', 'PCMA'],
+    });
+    const req = getRequests()[0];
+    expect(req.body.params.codecs).toEqual(['OPUS', 'G729', 'VP8', 'PCMA']);
+  });
+
+  it('dial forwards codecs as comma-separated string', async () => {
+    const { calling, getRequests } = setup();
+    await calling.dial({
+      url: 'https://example.com/swml',
+      to: '+15551234567',
+      codecs: 'OPUS,G729,VP8,PCMA',
+    });
+    const req = getRequests()[0];
+    expect(req.body.params.codecs).toBe('OPUS,G729,VP8,PCMA');
+  });
+
   it('end sends command with call_id', async () => {
     const { calling, getRequests } = setup();
     await calling.end('call-123', { reason: 'hangup' });
