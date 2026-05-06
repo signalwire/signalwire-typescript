@@ -39,6 +39,10 @@ jobs:
         working-directory: signalwire-typescript
         run: npm ci
 
+      - name: Type check (tsc --noEmit)
+        working-directory: signalwire-typescript
+        run: npx tsc --noEmit
+
       - name: npm test
         working-directory: signalwire-typescript
         run: npm test
