@@ -34,8 +34,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install mock_relay (Python test harness)
-        run: pip install -e porting-sdk/test_harness/mock_relay
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          pip install -e porting-sdk/test_harness/mock_relay
+          pip install -e porting-sdk/test_harness/mock_signalwire
 
       - name: npm ci
         working-directory: signalwire-typescript
