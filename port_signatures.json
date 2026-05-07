@@ -5386,6 +5386,74 @@
         }
       }
     },
+    "signalwire.core.security.webhook_middleware": {
+      "functions": {
+        "webhook_validation_middleware": {
+          "params": [
+            {
+              "name": "opts",
+              "type": "class:signalwire.core.security.webhook_middleware.WebhookValidationOptions",
+              "required": true
+            }
+          ],
+          "returns": "callable<list<any,callable<list<>,void>>,union<void,any>>"
+        }
+      }
+    },
+    "signalwire.core.security.webhook_validator": {
+      "functions": {
+        "validate_request": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "params_or_raw_body",
+              "type": "union<string,dict<string,any>,list<tuple<string,any>>>",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "validate_webhook_signature": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "raw_body",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        }
+      }
+    },
     "signalwire.core.security_config": {
       "classes": {
         "SslConfig": {
@@ -6923,7 +6991,7 @@
                   "required": true
                 }
               ],
-              "returns": "bool"
+              "returns": "union<bool,bool,bool>"
             },
             "verb_registry": {
               "params": [

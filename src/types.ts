@@ -67,6 +67,31 @@ export interface AgentOptions {
    * Defaults to true.
    */
   schemaValidation?: boolean;
+  /**
+   * SignalWire Signing Key for verifying inbound webhook signatures.
+   * When set, AgentBase auto-mounts the webhook signature validation
+   * middleware on POST /, /swaig, and /post_prompt; unsigned or
+   * mis-signed requests are rejected with 403.
+   *
+   * Falls back to the `SIGNALWIRE_SIGNING_KEY` environment variable when
+   * omitted. When both are unset, signature validation is disabled and
+   * the agent emits a one-time warning on startup so operators notice.
+   *
+   * Per `porting-sdk/webhooks.md`: this MUST be treated as secret —
+   * never logged, never echoed to clients, never included in error
+   * messages.
+   */
+  signingKey?: string;
+  /**
+   * When true, the webhook validation middleware honors
+   * `X-Forwarded-Proto` / `X-Forwarded-Host` headers when reconstructing
+   * the public URL the platform POSTed to. Default false because proxy
+   * headers are spoofable; opt in only when you control the proxy.
+   *
+   * The `SWML_PROXY_URL_BASE` env var always takes precedence over both
+   * forwarded headers and the raw request URL.
+   */
+  webhookTrustProxy?: boolean;
 }
 
 /** Configuration for a supported language in the AI agent. */

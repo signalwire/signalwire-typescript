@@ -412,3 +412,7 @@ signalwire.core.agent_base.AgentBase.pom: TS exposes a `pom` getter returning a 
 signalwire.core.pom_builder.PomBuilder.pom: TS exposes a `pom` getter returning the wrapped `PromptObjectModel` (Python parity); Python's `pom` is an instance attribute on PomBuilder that the surface enumerator excludes (Python only includes methods, not instance-level attribute names)
 signalwire.core.swml_service.SWMLService.get_all_functions: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.get_all_functions()`
 signalwire.skills.registry.SkillRegistry.get_external_paths: TS-native method on the singleton SkillRegistry, returning paths added via addSearchPath; Python's equivalent state is private and there is no public accessor
+
+## Webhook signature validation: Hono middleware
+
+signalwire.core.security.webhook_middleware.webhook_validation_middleware: TS port ships a Hono middleware factory equivalent to Python's FastAPI `make_webhook_validation_dependency` (see PORT_OMISSIONS.md); both wrap the shared `validateWebhookSignature` core but use each language's dominant HTTP framework idiom.

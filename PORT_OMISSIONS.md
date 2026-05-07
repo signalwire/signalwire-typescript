@@ -473,3 +473,7 @@ signalwire.web.web_service.WebService.security: TS WebService exposes the SslCon
 ## SWMLService.on_request (default no-op; subclass-overridable hook)
 
 signalwire.core.swml_service.SWMLService.on_request: Python declares `on_request` as a default no-op on SWMLService that subclasses override; TS only declares the override on AgentBase via WebMixin projection — equivalent functionality is reachable through `agent.onRequest(...)`, but the bare declaration on SWMLService is not surfaced
+
+## Webhook signature validation: framework-specific adapter
+
+signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: framework-specific (FastAPI ``Depends`` factory); the TS port ships an equivalent Hono middleware exported as `webhook_validation_middleware` from the same module — see PORT_ADDITIONS.md. Both wrap the same `validateWebhookSignature` core.

@@ -132,6 +132,16 @@ export type { InferredSchema, ParsedParam } from './TypeInference.js';
 // Security utilities
 export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl, isServerlessMode } from './SecurityUtils.js';
 
+// Webhook signature validation
+export { validateWebhookSignature, validateRequest } from './WebhookValidator.js';
+export type { FormParams, FormParamValue } from './WebhookValidator.js';
+export {
+  webhookValidationMiddleware,
+  SIGNALWIRE_SIGNATURE_HEADER,
+  TWILIO_COMPAT_SIGNATURE_HEADER,
+} from './WebhookMiddleware.js';
+export type { WebhookValidationOptions } from './WebhookMiddleware.js';
+
 // Config
 export { ConfigLoader } from './ConfigLoader.js';
 

@@ -174,6 +174,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
+  'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
   // Relay
   'src/relay/Action.ts': 'signalwire.relay.call',

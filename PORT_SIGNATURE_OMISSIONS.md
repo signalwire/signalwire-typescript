@@ -1076,3 +1076,7 @@ signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params r
 ## POM SectionData vs dict<string,any>
 
 signalwire.pom.pom.PromptObjectModel.to_dict: TS returns `list<class:signalwire.pom.pom.SectionData>` where SectionData is a typed shape; Python returns the equivalent `list<dict<string,any>>`. Same JSON-serializable structure with stronger TS typing.
+
+## Webhook validator: optional<union<...>> vs union<...,void>
+
+signalwire.core.security.webhook_validator.validate_request: Python's source uses `Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`, which the canonical translator emits as `union<...,void>`; TypeScript's `string | Record<string, unknown> | Array<[string, unknown]> | null | undefined` is emitted as `optional<union<...>>` because the TS translator collapses null/undefined into the `optional<...>` wrapper rather than keeping `void` as a sibling union member. Same call-site contract; both forms accept the same set of values at runtime.

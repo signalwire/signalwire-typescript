@@ -25,6 +25,7 @@ import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
 import { ServerlessAdapter, type ServerlessEvent, type ServerlessResponse } from './ServerlessAdapter.js';
+import { webhookValidationMiddleware } from './WebhookMiddleware.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -192,6 +193,19 @@ export class AgentBase extends SWMLService {
   private _configFile: string | null = null;
   private _schemaPath: string | null = null;
 
+  /**
+   * Resolved SignalWire Signing Key. Source of truth for the
+   * webhook-validation middleware mounted on POST /, /swaig, /post_prompt.
+   * Resolved from constructor opts, falling back to
+   * ``SIGNALWIRE_SIGNING_KEY``. When ``null``, signature validation is
+   * disabled.
+   *
+   * NEVER logged. NEVER serialized. NEVER returned from any public method.
+   */
+  private _signingKey: string | null = null;
+  /** Whether to honor X-Forwarded-* headers when reconstructing the URL. */
+  private _webhookTrustProxy = false;
+
   // _routingCallbacks and _app are inherited from SWMLService.
   // AgentBase rebuilds _app in getApp() with its own middleware stack and
   // route handlers, overwriting the parent-init Hono instance. The flag
@@ -258,6 +272,25 @@ export class AgentBase extends SWMLService {
     this._checkForInputOverride = opts.checkForInputOverride ?? false;
     this._schemaValidation = opts.schemaValidation ?? true;
     this._schemaPath = opts.schemaPath ?? null;
+
+    // Webhook signing key: explicit option > SIGNALWIRE_SIGNING_KEY env > null.
+    // Per porting-sdk/webhooks.md: when null, validation is disabled and we
+    // log a prominent one-shot warning so operators don't ship an unsigned
+    // production agent by accident.
+    const explicitKey = typeof opts.signingKey === 'string' && opts.signingKey.length > 0
+      ? opts.signingKey
+      : null;
+    const envKey = process.env['SIGNALWIRE_SIGNING_KEY'];
+    this._signingKey =
+      explicitKey ?? (typeof envKey === 'string' && envKey.length > 0 ? envKey : null);
+    this._webhookTrustProxy = opts.webhookTrustProxy ?? false;
+    if (this._signingKey === null) {
+      // Exact warning text mandated by porting-sdk/webhooks.md so all ports
+      // emit the same operator-facing message.
+      this.log.warn(
+        '[signalwire] webhook signature validation is disabled — set signingKey or SIGNALWIRE_SIGNING_KEY to enable',
+      );
+    }
 
     if (opts.suppressLogs) {
       suppressAllLogs(true);
@@ -2262,6 +2295,18 @@ export class AgentBase extends SWMLService {
     const [user, pass] = this.basicAuthCreds;
     const authMw = basicAuth({ username: user, password: pass });
 
+    // Webhook signature validation middleware — only mounted (and only on
+    // POST routes) when a signing key is configured. Per
+    // porting-sdk/webhooks.md, signed routes are POST / (SWML), POST /swaig,
+    // and POST /post_prompt. GET / serves SWML to the platform's GET probe,
+    // which is unsigned, so we don't apply the middleware to GET.
+    const sigMw = this._signingKey !== null
+      ? webhookValidationMiddleware({
+          signingKey: this._signingKey,
+          trustProxy: this._webhookTrustProxy,
+        })
+      : null;
+
     const basePath = this.route === '/' ? '' : this.route;
 
     // Root - returns SWML
@@ -2307,10 +2352,18 @@ export class AgentBase extends SWMLService {
     };
 
     app.get(`${basePath}`, authMw, handleSwml);
-    app.post(`${basePath}`, authMw, handleSwml);
+    if (sigMw) {
+      app.post(`${basePath}`, authMw, sigMw, handleSwml);
+    } else {
+      app.post(`${basePath}`, authMw, handleSwml);
+    }
     if (basePath) {
       app.get(`${basePath}/`, authMw, handleSwml);
-      app.post(`${basePath}/`, authMw, handleSwml);
+      if (sigMw) {
+        app.post(`${basePath}/`, authMw, sigMw, handleSwml);
+      } else {
+        app.post(`${basePath}/`, authMw, handleSwml);
+      }
     }
 
     // SWAIG function dispatcher
@@ -2388,7 +2441,11 @@ export class AgentBase extends SWMLService {
     };
 
     app.get(`${basePath}/swaig`, authMw, handleSwaig);
-    app.post(`${basePath}/swaig`, authMw, handleSwaig);
+    if (sigMw) {
+      app.post(`${basePath}/swaig`, authMw, sigMw, handleSwaig);
+    } else {
+      app.post(`${basePath}/swaig`, authMw, handleSwaig);
+    }
 
     // Post-prompt handler
     const handlePostPrompt = async (c: any) => {
@@ -2409,7 +2466,11 @@ export class AgentBase extends SWMLService {
     };
 
     app.get(`${basePath}/post_prompt`, authMw, handlePostPrompt);
-    app.post(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+    if (sigMw) {
+      app.post(`${basePath}/post_prompt`, authMw, sigMw, handlePostPrompt);
+    } else {
+      app.post(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+    }
 
     // Debug events handler
     const handleDebugEvents = async (c: any) => {

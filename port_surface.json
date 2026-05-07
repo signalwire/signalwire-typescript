@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ c7c9465cc0d24d4037f1fdd1eac06f1d637286fd",
+  "generated_from": "signalwire-typescript @ b33a8ee308a2946ad74438718f2de394f361696c",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -531,6 +531,19 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.security.webhook_middleware": {
+      "classes": {},
+      "functions": [
+        "webhook_validation_middleware"
+      ]
+    },
+    "signalwire.core.security.webhook_validator": {
+      "classes": {},
+      "functions": [
+        "validate_request",
+        "validate_webhook_signature"
+      ]
     },
     "signalwire.core.security_config": {
       "classes": {
