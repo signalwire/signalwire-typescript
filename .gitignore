@@ -6,3 +6,7 @@ dist/
 .DS_Store
 coverage/
 *GAP_ANALYSIS*.md
+
+# Python audit-script bytecode (scripts/enumerate_*.py invocations)
+__pycache__/
+*.pyc
