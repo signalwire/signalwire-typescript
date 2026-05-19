@@ -5,6 +5,10 @@ name: Doc audit
 # method-call reference in docs/ + examples/ resolves to a real TS symbol or
 # is explicitly listed in DOC_AUDIT_IGNORE.md with a rationale.
 
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   pull_request:
   push:
