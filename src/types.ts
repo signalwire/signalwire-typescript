@@ -110,6 +110,13 @@ export interface LanguageConfig {
   speechModel?: string;
   /** Per-function filler phrases, keyed by function name then language code. */
   functionFillers?: Record<string, Record<string, string[]>>;
+  /**
+   * Optional per-language params dict (engine-specific tuning, voice settings,
+   * etc.). Emitted as the language object's `params` key in SWML — only
+   * present in the wire payload when non-empty so existing entries remain
+   * byte-identical when no params are passed.
+   */
+  params?: Record<string, unknown>;
 }
 
 /** Rule for overriding how the TTS engine pronounces a specific word or phrase. */

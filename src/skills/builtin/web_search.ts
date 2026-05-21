@@ -280,6 +280,20 @@ export class WebSearchSkill extends SkillBase {
         default: DEFAULT_NO_RESULTS_MESSAGE,
         required: false,
       },
+      response_prefix: {
+        type: 'string',
+        description:
+          'Optional text prepended (separated by a blank line) to every non-empty search result. Use to give the calling agent a mechanical cue, e.g. "tell the user this came from a public web search".',
+        default: '',
+        required: false,
+      },
+      response_postfix: {
+        type: 'string',
+        description:
+          'Optional text appended (separated by a blank line) to every non-empty search result.',
+        default: '',
+        required: false,
+      },
       safe_search: {
         type: 'string',
         description: 'Safe search level.',
@@ -364,6 +378,12 @@ export class WebSearchSkill extends SkillBase {
       'no_results_message',
       DEFAULT_NO_RESULTS_MESSAGE,
     );
+    // Optional prefix/postfix wrapped around every non-empty search result.
+    // Mirrors the response_format_callback pattern from the Python
+    // native_vector_search skill and Python web_search skill.py:587-595.
+    // Applied only on successful results — error/no-results paths stay as-is.
+    const responsePrefix = this.getConfig<string>('response_prefix', '');
+    const responsePostfix = this.getConfig<string>('response_postfix', '');
     const toolName = this.getToolName();
 
     return [
@@ -615,9 +635,18 @@ export class WebSearchSkill extends SkillBase {
             // Python's outer `_web_search_handler` (skill.py:644) wraps the
             // inner formatter output with a `"Quality web search results for
             // '<query>':\n\n"` preamble.
-            return new FunctionResult(
-              `Quality web search results for '${query}':\n\n${innerOutput}`,
-            );
+            let responseText = `Quality web search results for '${query}':\n\n${innerOutput}`;
+            // Python skill.py:653-656 wraps the success response with optional
+            // prefix/postfix separated by a blank line. Only applied here
+            // (success path); error / no-results / snippet-fallback paths
+            // intentionally bypass the wrapping.
+            if (responsePrefix) {
+              responseText = `${responsePrefix}\n\n${responseText}`;
+            }
+            if (responsePostfix) {
+              responseText = `${responseText}\n\n${responsePostfix}`;
+            }
+            return new FunctionResult(responseText);
           } catch (err) {
             log.error('web_search_failed', {
               error: err instanceof Error ? err.message : String(err),

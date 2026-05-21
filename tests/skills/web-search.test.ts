@@ -112,4 +112,135 @@ describe('WebSearchSkill', () => {
     expect(schema['safe_search'].enum).toContain('medium');
     expect(schema['safe_search'].enum).toContain('high');
   });
+
+  it('should expose response_prefix / response_postfix in parameter schema', () => {
+    const schema = WebSearchSkill.getParameterSchema();
+    // Python skill.py:587-595 ports — both keys must be documented string params.
+    expect(schema['response_prefix']).toBeDefined();
+    expect(schema['response_prefix'].type).toBe('string');
+    expect(schema['response_prefix'].default).toBe('');
+    expect(schema['response_postfix']).toBeDefined();
+    expect(schema['response_postfix'].type).toBe('string');
+    expect(schema['response_postfix'].default).toBe('');
+  });
+});
+
+/**
+ * Drive the WebSearchSkill handler's success path with a stubbed Google CSE
+ * response and a stubbed scrape response, then assert how the new
+ * response_prefix / response_postfix config wraps the result string.
+ *
+ * Mirrors the shape of Python's prefix/postfix tests in
+ * `tests/unit/skills/test_native_vector_search_skill.py` (the canonical
+ * pattern this commit mirrors per skill.py:587-595).
+ */
+describe('WebSearchSkill — response_prefix/response_postfix wrapping', () => {
+  // Long, query-relevant HTML so _qualityMetrics scores above the default
+  // 0.3 threshold and the success path actually executes.
+  const QUALITY_HTML = `
+    <html><body><article>
+      <h1>Quality results about widgets and gizmos</h1>
+      ${'<p>This is a substantive paragraph about widgets that discusses widgets in depth and explains how widgets work in various scenarios. Widgets are essential to gizmos and the relationship between widgets and gizmos is well-documented across many quality sources.</p>'.repeat(8)}
+    </article></body></html>
+  `;
+
+  function installStubFetch(): () => void {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/customsearch/v1')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                title: 'Widget Guide',
+                link: 'https://example.com/widgets',
+                snippet: 'A guide to widgets.',
+                displayLink: 'example.com',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      // Scrape target.
+      return new Response(QUALITY_HTML, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }) as typeof fetch;
+    return () => {
+      globalThis.fetch = originalFetch;
+    };
+  }
+
+  async function runHandler(extraConfig: Record<string, unknown>): Promise<string> {
+    const restoreFetch = installStubFetch();
+    try {
+      const skill = new WebSearchSkill({
+        api_key: 'test-key',
+        search_engine_id: 'test-cx',
+        // Low threshold so the stubbed page passes.
+        min_quality_score: 0,
+        // No delay between iterations in tests.
+        delay: 0,
+        ...extraConfig,
+      });
+      const handler = skill.getTools()[0].handler;
+      const result = (await handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
+      return result.response;
+    } finally {
+      restoreFetch();
+    }
+  }
+
+  it('omits wrapping when neither prefix nor postfix is set', async () => {
+    const response = await runHandler({});
+    expect(response.startsWith("Quality web search results for 'widgets gizmos':")).toBe(true);
+    expect(response).not.toMatch(/^PREFIX\n\n/);
+    expect(response).not.toMatch(/\n\nPOSTFIX$/);
+  });
+
+  it('prepends response_prefix on the success path', async () => {
+    const response = await runHandler({ response_prefix: 'PREFIX-LINE' });
+    expect(response.startsWith('PREFIX-LINE\n\n')).toBe(true);
+    // Wrapped portion remains the canonical preamble.
+    expect(response).toContain("Quality web search results for 'widgets gizmos':");
+    expect(response.endsWith('POSTFIX')).toBe(false);
+  });
+
+  it('appends response_postfix on the success path', async () => {
+    const response = await runHandler({ response_postfix: 'POSTFIX-LINE' });
+    expect(response).toMatch(/\n\nPOSTFIX-LINE$/);
+    expect(response.startsWith("Quality web search results for 'widgets gizmos':")).toBe(true);
+  });
+
+  it('applies both prefix and postfix when configured together', async () => {
+    const response = await runHandler({
+      response_prefix: 'PRE',
+      response_postfix: 'POST',
+    });
+    expect(response.startsWith('PRE\n\n')).toBe(true);
+    expect(response).toMatch(/\n\nPOST$/);
+    expect(response).toContain("Quality web search results for 'widgets gizmos':");
+  });
+
+  it('does not wrap the error / "not configured" path', async () => {
+    // No fetch stub — no API key/cx supplied so we hit the
+    // "Service is not configured" branch which intentionally bypasses
+    // prefix/postfix wrapping (mirrors Python: wrapping happens only on
+    // the successful results branch).
+    delete process.env['GOOGLE_SEARCH_API_KEY'];
+    delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
+    delete process.env['GOOGLE_SEARCH_CX'];
+    const skill = new WebSearchSkill({
+      response_prefix: 'PRE',
+      response_postfix: 'POST',
+    });
+    const handler = skill.getTools()[0].handler;
+    const result = (await handler({ query: 'widgets' }, {})) as FunctionResult;
+    expect(result.response.startsWith('PRE')).toBe(false);
+    expect(result.response.endsWith('POST')).toBe(false);
+    expect(result.response).toContain('not configured');
+  });
 });

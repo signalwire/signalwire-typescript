@@ -1198,4 +1198,121 @@ describe('AgentBase', () => {
       expect(pom2.sections[0].body).toBe('Other');
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Per-language params: addLanguage({params}), setLanguageParams,
+  // getLanguageParams. Mirrors Python's TestPerLanguageParams class in
+  // tests/unit/core/mixins/test_ai_config_mixin.py (11 cases).
+  // -----------------------------------------------------------------------
+  describe('per-language params', () => {
+    function makeAgent() {
+      return new AgentBase({ name: 'test-agent', route: '/test' } as any);
+    }
+
+    it('addLanguage with params attaches the params dict on the wire', () => {
+      const agent = makeAgent();
+      agent.setPromptText('hello');
+      agent.addLanguage({
+        name: 'English',
+        code: 'en-US',
+        voice: 'josh',
+        engine: 'elevenlabs',
+        params: { stability: 0.5, similarity_boost: 0.75 },
+      });
+      const swml = JSON.parse(agent.renderSwml());
+      const lang = swml.sections.main[1].ai.languages[0];
+      // Wire format key is snake_case `params` (shared SWML contract).
+      expect(lang.params).toEqual({ stability: 0.5, similarity_boost: 0.75 });
+    });
+
+    it('addLanguage without params omits the params key', () => {
+      const agent = makeAgent();
+      agent.setPromptText('hello');
+      agent.addLanguage({ name: 'French', code: 'fr-FR', voice: 'fr-FR-Neural2-A' });
+      const swml = JSON.parse(agent.renderSwml());
+      const lang = swml.sections.main[1].ai.languages[0];
+      expect('params' in lang).toBe(false);
+    });
+
+    it('addLanguage with empty params dict omits the params key', () => {
+      const agent = makeAgent();
+      agent.setPromptText('hello');
+      agent.addLanguage({ name: 'French', code: 'fr-FR', voice: 'v', params: {} });
+      const swml = JSON.parse(agent.renderSwml());
+      const lang = swml.sections.main[1].ai.languages[0];
+      expect('params' in lang).toBe(false);
+    });
+
+    it('getLanguageParams returns the dict that was set via addLanguage', () => {
+      const agent = makeAgent();
+      agent.addLanguage({
+        name: 'English',
+        code: 'en-US',
+        voice: 'v',
+        params: { a: 1 },
+      });
+      expect(agent.getLanguageParams('en-US')).toEqual({ a: 1 });
+    });
+
+    it('getLanguageParams returns undefined when params were never set', () => {
+      const agent = makeAgent();
+      agent.addLanguage({ name: 'English', code: 'en-US', voice: 'v' });
+      expect(agent.getLanguageParams('en-US')).toBeUndefined();
+    });
+
+    it('getLanguageParams returns undefined for an unknown language code', () => {
+      const agent = makeAgent();
+      expect(agent.getLanguageParams('zh-CN')).toBeUndefined();
+    });
+
+    it('setLanguageParams replaces existing params for a known code', () => {
+      const agent = makeAgent();
+      agent.addLanguage({
+        name: 'English',
+        code: 'en-US',
+        voice: 'v',
+        params: { a: 1 },
+      });
+      agent.setLanguageParams('en-US', { b: 2 });
+      expect(agent.getLanguageParams('en-US')).toEqual({ b: 2 });
+    });
+
+    it('setLanguageParams adds params when previously unset', () => {
+      const agent = makeAgent();
+      agent.addLanguage({ name: 'English', code: 'en-US', voice: 'v' });
+      agent.setLanguageParams('en-US', { c: 3 });
+      expect(agent.getLanguageParams('en-US')).toEqual({ c: 3 });
+    });
+
+    it('setLanguageParams with empty object removes the params key', () => {
+      const agent = makeAgent();
+      agent.setPromptText('hello');
+      agent.addLanguage({
+        name: 'English',
+        code: 'en-US',
+        voice: 'v',
+        params: { a: 1 },
+      });
+      agent.setLanguageParams('en-US', {});
+      expect(agent.getLanguageParams('en-US')).toBeUndefined();
+      // And the key really disappears from the wire payload.
+      const swml = JSON.parse(agent.renderSwml());
+      const lang = swml.sections.main[1].ai.languages[0];
+      expect('params' in lang).toBe(false);
+    });
+
+    it('setLanguageParams on an unknown code is a no-op (leaves known langs untouched)', () => {
+      const agent = makeAgent();
+      agent.addLanguage({ name: 'English', code: 'en-US', voice: 'v' });
+      agent.setLanguageParams('zh-CN', { a: 1 });
+      expect(agent.getLanguageParams('en-US')).toBeUndefined();
+      expect(agent.getLanguageParams('zh-CN')).toBeUndefined();
+    });
+
+    it('setLanguageParams returns the same agent for chaining', () => {
+      const agent = makeAgent();
+      agent.addLanguage({ name: 'English', code: 'en-US', voice: 'v' });
+      expect(agent.setLanguageParams('en-US', { a: 1 })).toBe(agent);
+    });
+  });
 });

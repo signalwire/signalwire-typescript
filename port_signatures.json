@@ -4093,6 +4093,20 @@
               ],
               "returns": "any"
             },
+            "get_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "set_function_includes": {
               "params": [
                 {
@@ -4129,6 +4143,25 @@
                 },
                 {
                   "name": "internal_fillers",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "params",
                   "type": "dict<string,any>",
                   "required": true
                 }

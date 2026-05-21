@@ -684,6 +684,10 @@ export class AgentBase extends SWMLService {
   /**
    * Add a supported language to the AI configuration.
    * @param config - Language configuration including name, code, voice, and optional fillers.
+   *   `params` may be set to attach engine-specific tuning (voice stability,
+   *   similarity boost, model knobs, etc.); only emitted into SWML when
+   *   non-empty so existing entries stay byte-identical when no params are
+   *   passed (Python ai_config_mixin.py `add_language`).
    * @returns This agent instance for chaining.
    */
   addLanguage(config: LanguageConfig): this {
@@ -696,6 +700,11 @@ export class AgentBase extends SWMLService {
     if (config.fillers) lang['fillers'] = config.fillers;
     if (config.speechModel) lang['speech_model'] = config.speechModel;
     if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
+    // Per-language params — only emit the key when non-empty (Python parity:
+    // `if params: language["params"] = params`).
+    if (config.params && Object.keys(config.params).length > 0) {
+      lang['params'] = config.params;
+    }
     this.languages.push(lang as unknown as LanguageConfig);
     return this;
   }
@@ -709,6 +718,51 @@ export class AgentBase extends SWMLService {
     this.languages = [];
     for (const l of languages) this.addLanguage(l);
     return this;
+  }
+
+  /**
+   * Set (or replace) the per-language `params` dict on an already-added
+   * language. Useful when language entries are built up via {@link addLanguage}
+   * first and engine-specific tuning is added later (e.g., from a config
+   * loader).
+   *
+   * Python parity: `set_language_params(code, params)`. Passing an empty
+   * object removes the `params` key entirely. Unknown codes are a no-op.
+   *
+   * @param code - Language code as previously passed to {@link addLanguage} (e.g. `"en-US"`).
+   * @param params - Engine-specific params dict to attach. Empty object removes the key.
+   * @returns This agent instance for chaining.
+   */
+  setLanguageParams(code: string, params: Record<string, unknown>): this {
+    for (const language of this.languages as unknown as Record<string, unknown>[]) {
+      if (language['code'] === code) {
+        if (params && Object.keys(params).length > 0) {
+          language['params'] = params;
+        } else {
+          delete language['params'];
+        }
+        break;
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Read the per-language `params` dict for a previously-added language.
+   *
+   * Python parity: `get_language_params(code)`. Returns `undefined` if the
+   * code is unknown or the language has no params set — no exception path.
+   *
+   * @param code - Language code as previously passed to {@link addLanguage}.
+   * @returns The params dict if set, `undefined` otherwise (including when the code is unknown).
+   */
+  getLanguageParams(code: string): Record<string, unknown> | undefined {
+    for (const language of this.languages as unknown as Record<string, unknown>[]) {
+      if (language['code'] === code) {
+        return language['params'] as Record<string, unknown> | undefined;
+      }
+    }
+    return undefined;
   }
 
   /**
