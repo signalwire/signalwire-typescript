@@ -119,6 +119,43 @@ describe('PomBuilder', () => {
     const dict = b.toDict();
     expect(dict[0].subsections!.length).toBe(2);
   });
+
+  // ── fromSections ──────────────────────────────────────────────────────
+  describe('fromSections', () => {
+    it('rebuilds the section lookup for titled sections', () => {
+      const b = PomBuilder.fromSections([
+        { title: 'Role', body: 'helper' },
+        { title: 'Rules', bullets: ['a', 'b'] },
+      ]);
+      expect(b.hasSection('Role')).toBe(true);
+      expect(b.hasSection('Rules')).toBe(true);
+      expect(b.getSection('Rules')!.bullets).toEqual(['a', 'b']);
+    });
+
+    it('keeps untitled sections in the document', () => {
+      // A section with no title still contributes to the rendered POM.
+      const b = PomBuilder.fromSections([
+        { body: 'untitled body' },
+        { title: 'Titled', body: 'titled body' },
+      ]);
+      const dict = b.toDict();
+      expect(dict.length).toBe(2);
+      expect(dict.some((s) => s.body === 'untitled body')).toBe(true);
+    });
+
+    it('does NOT index untitled sections in the lookup (Python parity)', () => {
+      // Python's pom_builder.from_sections guards with `if section.title:`,
+      // so an untitled section is unreachable via has/getSection.
+      const b = PomBuilder.fromSections([
+        { body: 'untitled body' },
+        { title: 'Titled', body: 'titled body' },
+      ]);
+      expect(b.hasSection('')).toBe(false);
+      expect(b.getSection('')).toBeUndefined();
+      // The titled one is still addressable.
+      expect(b.hasSection('Titled')).toBe(true);
+    });
+  });
 });
 
 describe('addPomAsSubsection', () => {

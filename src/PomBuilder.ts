@@ -413,13 +413,21 @@ export class PomBuilder {
   static fromSections(sections: PomSectionData[]): PomBuilder {
     const builder = new PomBuilder();
     for (const s of sections) {
-      builder.addSection(s.title ?? '', {
+      const title = s.title ?? '';
+      builder.addSection(title, {
         body: s.body,
         bullets: s.bullets,
         numbered: s.numbered,
         numberedBullets: s.numberedBullets,
         subsections: s.subsections as { title: string; body?: string; bullets?: string[] }[],
       });
+      // Python parity: pom_builder.from_sections only indexes titled
+      // sections in the lookup (`if section.title:`). addSection always
+      // registers, so drop the untitled entry — the section stays in the
+      // document, it just isn't addressable by title via has/getSection.
+      if (title === '') {
+        builder.sectionMap.delete('');
+      }
     }
     return builder;
   }
