@@ -190,7 +190,11 @@ interface GoogleSearchResponse {
  *
  * Supported config: `tool_name`, `num_results`, `no_results_message`,
  * `safe_search`, `delay`, `max_content_length`, `oversample_factor`,
- * `min_quality_score`.
+ * `min_quality_score`, `response_prefix`, `response_postfix`, and the
+ * latency-control params `per_page_timeout`, `overall_deadline`,
+ * `parallel_scrape`, `snippets_only` (Python skill.py commits 51101da +
+ * 295745b). When the overall deadline fires or no scraped page meets the
+ * quality threshold, the handler falls back to formatting the CSE snippets.
  *
  * @example
  * ```ts
@@ -278,6 +282,39 @@ export class WebSearchSkill extends SkillBase {
         description:
           'Message to show when no quality results are found. Use {query} as placeholder.',
         default: DEFAULT_NO_RESULTS_MESSAGE,
+        required: false,
+      },
+      // Latency-control params — Python skill.py:855-895 (commit 295745b).
+      // The SignalWire kernel times out webhook responses around 55s, so the
+      // handler MUST finish under that. These bound per-page and whole-call
+      // latency and offer a sub-second snippets-only mode.
+      per_page_timeout: {
+        type: 'number',
+        description: 'Maximum seconds to wait on a single page scrape.',
+        default: 2.0,
+        required: false,
+        min: 0.1,
+      },
+      overall_deadline: {
+        type: 'number',
+        description:
+          'Wall-clock budget in seconds for the whole tool call. In-flight scrapes are abandoned past this so the response beats the kernel webhook timeout.',
+        default: 10.0,
+        required: false,
+        min: 1.0,
+      },
+      parallel_scrape: {
+        type: 'boolean',
+        description:
+          'Scrape all candidate pages concurrently (Promise.all raced against the deadline) instead of sequentially.',
+        default: true,
+        required: false,
+      },
+      snippets_only: {
+        type: 'boolean',
+        description:
+          'Skip page scraping entirely and return Google CSE snippets only. Fastest mode (sub-second).',
+        default: false,
         required: false,
       },
       response_prefix: {
@@ -384,6 +421,23 @@ export class WebSearchSkill extends SkillBase {
     // Applied only on successful results — error/no-results paths stay as-is.
     const responsePrefix = this.getConfig<string>('response_prefix', '');
     const responsePostfix = this.getConfig<string>('response_postfix', '');
+    // Latency-control params — Python skill.py:670-674 (commit 51101da).
+    //   perPageTimeout: max seconds to wait on a single page fetch.
+    //   overallDeadline: wall-clock budget for the whole tool call; in-flight
+    //     scrapes are abandoned (and their fetches aborted) past it.
+    //   parallelScrape: dispatch all scrapes concurrently and race them
+    //     against the deadline, vs. one-after-the-other.
+    //   snippetsOnly: skip scraping; format CSE snippets directly (sub-second).
+    const perPageTimeoutMs = Math.max(
+      100,
+      this.getConfig<number>('per_page_timeout', 2.0) * 1000,
+    );
+    const overallDeadlineMs = Math.max(
+      1000,
+      this.getConfig<number>('overall_deadline', 10.0) * 1000,
+    );
+    const parallelScrape = this.getConfig<boolean>('parallel_scrape', true);
+    const snippetsOnly = this.getConfig<boolean>('snippets_only', false);
     const toolName = this.getToolName();
 
     return [
@@ -478,6 +532,28 @@ export class WebSearchSkill extends SkillBase {
               );
             }
 
+            // Snippets-only fast path — Python skill.py:454-456 (commit
+            // 51101da). Skip page scraping entirely and format the CSE
+            // snippets directly. Returns sub-second; good enough for most
+            // voice answers and never risks the kernel webhook timeout.
+            if (snippetsOnly) {
+              return new FunctionResult(
+                WebSearchSkill._formatSnippetResults(query, data.items, count),
+              );
+            }
+
+            // Overall-deadline budget — Python skill.py:436 (commit 51101da).
+            // Wall-clock instant past which any not-yet-finished scrape is
+            // abandoned. A shared AbortController lets the deadline cancel
+            // in-flight fetches (best-effort) so the response always beats the
+            // kernel webhook timeout.
+            const deadlineAt = Date.now() + overallDeadlineMs;
+            const deadlineController = new AbortController();
+            const deadlineTimer = setTimeout(
+              () => deadlineController.abort(),
+              overallDeadlineMs,
+            );
+
             // Scrape each result page, score for quality, dedupe by domain,
             // return the top `count` above the min threshold. Port of
             // Python's GoogleSearchScraper.search_and_scrape_best
@@ -500,43 +576,97 @@ export class WebSearchSkill extends SkillBase {
             };
             const allCandidates: Candidate[] = [];
 
-            for (let idx = 0; idx < data.items.length; idx++) {
-              const item = data.items[idx];
+            // Fetch + score one candidate. Returns an enriched Candidate or
+            // null (parse failure / SSRF rejection / below-threshold / past
+            // the deadline). Mirrors Python's `_scrape_one` (skill.py:458-481).
+            const scrapeOne = async (
+              item: GoogleSearchItem,
+            ): Promise<Candidate | null> => {
+              if (Date.now() >= deadlineAt) return null;
+              let host: string;
               try {
                 // SSRF / URL sanity — Python has no explicit pre-check; the
                 // scraper's inner `validate_url` handles it. We pre-parse to
                 // derive `host` for the domain-diverse selection pass.
-                const host = new URL(item.link).host;
-                const result = await this._scrapeUrl(
-                  item.link,
-                  maxContentLength,
-                  10_000,
-                  query,
-                );
-                if (result !== null && result.score >= minQualityScore) {
-                  allCandidates.push({
-                    item,
-                    text: result.text,
-                    score: result.score,
-                    host,
-                    text_length: result.text_length,
-                    sentence_count: result.sentence_count,
-                    query_relevance: result.query_relevance,
-                    query_words_found: result.query_words_found,
-                    domain: result.domain,
-                  });
-                }
+                host = new URL(item.link).host;
               } catch {
-                // URL parse failure — skip this result but still apply the
-                // inter-request delay below so cadence matches Python.
+                return null;
               }
+              const result = await this._scrapeUrl(
+                item.link,
+                maxContentLength,
+                perPageTimeoutMs,
+                query,
+                deadlineController.signal,
+              );
+              if (result === null || result.score < minQualityScore) {
+                return null;
+              }
+              return {
+                item,
+                text: result.text,
+                score: result.score,
+                host,
+                text_length: result.text_length,
+                sentence_count: result.sentence_count,
+                query_relevance: result.query_relevance,
+                query_words_found: result.query_words_found,
+                domain: result.domain,
+              };
+            };
 
-              // Python skill.py:461-463 sleeps `delay` seconds between every
-              // iteration regardless of success/failure. Skip on the last
-              // iteration because there is nothing left to fetch.
-              if (delaySeconds > 0 && idx < data.items.length - 1) {
-                await new Promise((r) => setTimeout(r, delaySeconds * 1000));
+            try {
+              if (parallelScrape) {
+                // Dispatch every scrape at once and race the whole batch
+                // against an overall-deadline timer. Python skill.py:484-503
+                // uses a ThreadPoolExecutor + as_completed and harvests each
+                // future as it finishes, breaking out when time runs out. To
+                // match that (keep the fast scrapes even if a slow sibling
+                // pushes the batch past the deadline) each scrapeOne pushes its
+                // own result into allCandidates as it resolves, rather than
+                // collecting atomically. Promise.race against a deadline
+                // sentinel then returns as soon as either the whole batch
+                // settles or the deadline fires.
+                const allScrapes = Promise.allSettled(
+                  data.items.map((it) =>
+                    scrapeOne(it).then((cand) => {
+                      if (cand !== null) allCandidates.push(cand);
+                    }),
+                  ),
+                );
+                const deadlineSentinel = Symbol('deadline');
+                const deadlineRace = new Promise<typeof deadlineSentinel>(
+                  (resolve) => {
+                    const remaining = Math.max(0, deadlineAt - Date.now());
+                    const t = setTimeout(() => resolve(deadlineSentinel), remaining);
+                    // Don't keep the event loop alive solely for this timer.
+                    if (typeof t.unref === 'function') t.unref();
+                  },
+                );
+                // When the deadline wins, allCandidates already holds whatever
+                // resolved in time; the stragglers are aborted in `finally`.
+                await Promise.race([allScrapes, deadlineRace]);
+              } else {
+                // Sequential mode (legacy). Still honors the overall deadline:
+                // bail before starting a scrape once we're out of time.
+                // Python skill.py:505-513.
+                for (let idx = 0; idx < data.items.length; idx++) {
+                  if (Date.now() >= deadlineAt) break;
+                  const cand = await scrapeOne(data.items[idx]);
+                  if (cand !== null) allCandidates.push(cand);
+                  // Python skill.py:512-513 sleeps `delay` seconds between
+                  // iterations. Skip on the last iteration (nothing left).
+                  if (delaySeconds > 0 && idx < data.items.length - 1) {
+                    if (Date.now() >= deadlineAt) break;
+                    await new Promise((r) => setTimeout(r, delaySeconds * 1000));
+                  }
+                }
               }
+            } finally {
+              clearTimeout(deadlineTimer);
+              // Release any fetches still in flight (parallel mode harvested a
+              // subset; abort the stragglers so sockets don't dangle).
+              deadlineController.abort();
             }
 
             // Two-pass selection: sort by score desc, then (1) take the
@@ -561,28 +691,17 @@ export class WebSearchSkill extends SkillBase {
             const scored = chosen;
 
             if (allCandidates.length === 0 || scored.length === 0) {
-              // Every scrape failed (network / SSRF rejection / timeout).
-              // Python skill.py:465-466 / 488-489 returns a plain "no quality
-              // results" string at this point. We extend that with a snippet-
-              // only fallback: render whichever raw items came back from the
-              // CSE API so the agent still has *something* to work with —
-              // titles and snippets — instead of a useless "no results" reply
-              // when the network was the problem rather than the search.
+              // Time ran out (overall_deadline fired), every scrape failed
+              // (network / SSRF rejection / per_page_timeout), or every page
+              // was below the quality threshold. Python skill.py:515-519
+              // (commit 51101da) falls back to formatting the CSE snippets it
+              // already has rather than an empty "no results" message, so the
+              // kernel never sees a webhook timeout and the model always gets
+              // useful context back.
               if (data.items && data.items.length > 0) {
-                const fallbackLines: string[] = [
-                  `Search results for '${query}' (snippets only — page content was unavailable):`,
-                  '',
-                ];
-                const cap = Math.min(count, data.items.length);
-                for (let i = 0; i < cap; i++) {
-                  const it = data.items[i];
-                  fallbackLines.push(`=== RESULT ${i + 1} ===`);
-                  fallbackLines.push(`Title: ${it.title}`);
-                  fallbackLines.push(`URL: ${it.link}`);
-                  fallbackLines.push(`Snippet: ${(it.snippet ?? '').replace(/\n/g, ' ').trim()}`);
-                  fallbackLines.push('');
-                }
-                return new FunctionResult(fallbackLines.join('\n'));
+                return new FunctionResult(
+                  WebSearchSkill._formatSnippetResults(query, data.items, count),
+                );
               }
               return new FunctionResult(
                 WebSearchSkill._formatNoResultsMessage(noResultsMessage, query),
@@ -660,6 +779,46 @@ export class WebSearchSkill extends SkillBase {
     ];
   }
 
+  /**
+   * Format Google CSE snippets without fetching the underlying pages.
+   *
+   * Python parity: `GoogleSearchScraper._format_snippet_results`
+   * (skill.py:416-437, commit 51101da). Used by the `snippets_only` fast path
+   * and as the graceful fallback when page scraping is abandoned by the
+   * `overall_deadline` or every page falls below the quality threshold. The
+   * result is shorter than a fully-scraped response but always non-empty when
+   * the CSE returned anything, so the kernel never sees a webhook timeout.
+   *
+   * @param query - The original search query (echoed in the header).
+   * @param items - Raw CSE items (title / link / snippet).
+   * @param numResults - How many snippets to surface (top N).
+   * @returns A formatted, non-empty snippet block.
+   */
+  private static _formatSnippetResults(
+    query: string,
+    items: GoogleSearchItem[],
+    numResults: number,
+  ): string {
+    if (!items || items.length === 0) {
+      return `No search results found for query: ${query}`;
+    }
+    const top = items.slice(0, Math.max(numResults, 1));
+    const lines: string[] = [
+      `Snippet-only results for '${query}' (page content not scraped):`,
+      '',
+    ];
+    for (let i = 0; i < top.length; i++) {
+      const it = top[i];
+      lines.push(`=== RESULT ${i + 1} ===`);
+      lines.push(`Title: ${it.title}`);
+      lines.push(`URL: ${it.link}`);
+      const snippet = (it.snippet ?? '').replace(/\n/g, ' ').trim();
+      lines.push(`Snippet: ${snippet}`);
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
   /** Apply the `{query}` template to the no-results message. */
   private static _formatNoResultsMessage(template: string, query: string): string {
     return template.includes('{query}')
@@ -699,6 +858,7 @@ export class WebSearchSkill extends SkillBase {
     url: string,
     contentLimit: number,
     timeoutMs: number,
+    externalSignal?: AbortSignal,
   ): Promise<{ text: string } | null> {
     try {
       if (!(await validateUrl(url))) {
@@ -708,16 +868,18 @@ export class WebSearchSkill extends SkillBase {
       const jsonUrl = url.endsWith('.json')
         ? url
         : `${url.replace(/\/+$/, '')}.json`;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const { signal, dispose } = WebSearchSkill._fetchSignal(
+        timeoutMs,
+        externalSignal,
+      );
       let response: Response;
       try {
         response = await fetch(jsonUrl, {
-          signal: controller.signal,
+          signal,
           headers: { 'User-Agent': 'SignalWire-WebSearch/2.0' },
         });
       } finally {
-        clearTimeout(timer);
+        dispose();
       }
       if (!response.ok) {
         log.debug('web_search: reddit JSON non-200', {
@@ -823,12 +985,19 @@ export class WebSearchSkill extends SkillBase {
    *
    * Python parity: `extract_text_from_url` (skill.py:192-202). Returns `null`
    * on any failure (network, non-200, parse error, or SSRF rejection).
+   *
+   * @param timeoutMs - Per-page fetch timeout (Python `per_page_timeout`).
+   * @param externalSignal - Optional shared abort signal driven by the
+   *   handler's `overall_deadline`. When it fires, in-flight fetches are
+   *   cancelled even if the per-page timeout has not elapsed. Combined with
+   *   the per-page timeout via {@link AbortSignal.any}.
    */
   private async _scrapeUrl(
     url: string,
     contentLimit: number,
     timeoutMs: number,
     query: string,
+    externalSignal?: AbortSignal,
   ): Promise<
     | {
         text: string;
@@ -842,7 +1011,12 @@ export class WebSearchSkill extends SkillBase {
     | null
   > {
     if (WebSearchSkill._isRedditUrl(url)) {
-      const reddit = await this._extractRedditContent(url, contentLimit, timeoutMs);
+      const reddit = await this._extractRedditContent(
+        url,
+        contentLimit,
+        timeoutMs,
+        externalSignal,
+      );
       if (reddit) {
         const metrics = WebSearchSkill._qualityMetrics(reddit.text, url, query);
         return { text: reddit.text, ...metrics };
@@ -857,11 +1031,16 @@ export class WebSearchSkill extends SkillBase {
       log.debug('web_search: scrape URL rejected by SSRF guard', { url });
       return null;
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    // Per-page timeout OR the shared overall-deadline signal, whichever trips
+    // first. The deadline can thus cancel a slow fetch that hasn't yet hit its
+    // own per-page timeout.
+    const { signal, dispose } = WebSearchSkill._fetchSignal(
+      timeoutMs,
+      externalSignal,
+    );
     try {
       const response = await fetch(url, {
-        signal: controller.signal,
+        signal,
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -886,8 +1065,37 @@ export class WebSearchSkill extends SkillBase {
       });
       return null;
     } finally {
-      clearTimeout(timer);
+      dispose();
     }
+  }
+
+  /**
+   * Build the {@link AbortSignal} for a single page fetch: a per-page timeout,
+   * optionally combined with an externally-supplied deadline signal so either
+   * one can cancel the request. Returns a `dispose` callback that clears the
+   * internal timer (call it from a `finally`).
+   *
+   * @param timeoutMs - Per-page timeout in milliseconds.
+   * @param externalSignal - Optional shared abort signal (overall deadline).
+   */
+  private static _fetchSignal(
+    timeoutMs: number,
+    externalSignal?: AbortSignal,
+  ): { signal: AbortSignal; dispose: () => void } {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const dispose = () => clearTimeout(timer);
+    if (!externalSignal) {
+      return { signal: controller.signal, dispose };
+    }
+    // If the deadline already fired, short-circuit to an aborted signal.
+    if (externalSignal.aborted) {
+      controller.abort();
+    }
+    return {
+      signal: AbortSignal.any([controller.signal, externalSignal]),
+      dispose,
+    };
   }
 
   /**
