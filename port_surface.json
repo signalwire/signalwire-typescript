@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ b33a8ee308a2946ad74438718f2de394f361696c",
+  "generated_from": "signalwire-typescript @ 9140e11d438d0df40187f817dbccb4ea63cc3465",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -10,9 +10,7 @@
         "add_skill_directory",
         "list_skills",
         "list_skills_with_params",
-        "register_skill",
-        "run_agent",
-        "start_agent"
+        "register_skill"
       ]
     },
     "signalwire.agent_server": {
@@ -379,9 +377,11 @@
           "add_pronunciation",
           "enable_debug_events",
           "enable_mcp_server",
+          "get_language_params",
           "set_function_includes",
           "set_global_data",
           "set_internal_fillers",
+          "set_language_params",
           "set_languages",
           "set_native_functions",
           "set_param",

@@ -855,7 +855,6 @@ signalwire.rest.namespaces.video.VideoStreams.get: BACKLOG / param-mismatch/ par
 signalwire.rest.namespaces.video.VideoStreams.update: BACKLOG / param-mismatch/ param[1] (stream_id)/ type 'any' vs 'string'; param-mismatch/ param[2] (kwargs)/ name 'kwargs' vs 'body'
 signalwire.rest.pagination.paginate: BACKLOG / missing-reference/ in port, not in reference
 signalwire.rest.pagination.paginate_all: BACKLOG / missing-reference/ in port, not in reference
-signalwire.run_agent: BACKLOG / missing-port/ in reference, not in port
 signalwire.search.preprocess_document_content: BACKLOG / missing-port/ in reference, not in port
 signalwire.search.preprocess_query: BACKLOG / missing-port/ in reference, not in port
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_instance_key: BACKLOG / missing-port/ in reference, not in port
@@ -1039,7 +1038,6 @@ signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_parameter_sche
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_prompt_sections: BACKLOG / missing-port/ in reference, not in port
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: BACKLOG / missing-port/ in reference, not in port
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.setup: BACKLOG / missing-port/ in reference, not in port
-signalwire.start_agent: BACKLOG / missing-port/ in reference, not in port
 signalwire.utils.schema_utils.SchemaUtils.validate_verb: BACKLOG / param-mismatch/ param[2] (verb_config)/ name 'verb_config' vs 'config'; type 'dict<string,any>' ; return-mismatch/ retur
 signalwire.web.web_service.WebService.start: BACKLOG / param-mismatch/ param[1] (host)/ default '0.0.0.0' vs None; param-mismatch/ param[2] (port)/ type 'optional<int>' vs 'fl
 signalwire.web.web_service.WebService.stop: BACKLOG / return-mismatch/ returns 'any' vs 'void'
