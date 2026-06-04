@@ -24,6 +24,7 @@ import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from '
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
+import type { SkillNameOrString } from './skills/SkillName.js';
 import { ServerlessAdapter, type ServerlessEvent, type ServerlessResponse } from './ServerlessAdapter.js';
 import { webhookValidationMiddleware } from './WebhookMiddleware.js';
 import type {
@@ -1619,12 +1620,18 @@ export class AgentBase extends SWMLService {
    * name via the SkillManager registry. Throws a `ValueError`-equivalent if the
    * skill name is not found in the registry.
    *
+   * Accepts a typed {@link SkillNameOrString}: one of the built-in
+   * {@link SkillName} values (autocompleted, with a typo caught at compile
+   * time) or any other string for custom / third-party skills. The value is
+   * forwarded to the registry unchanged — the typing is erased at runtime, so
+   * this matches Python's bare-`str` `add_skill(skill_name, params)`.
+   *
    * @param skillName - The name the skill was registered under in the SkillRegistry.
    * @param params - Optional configuration parameters forwarded to the skill factory.
    * @returns This agent instance for chaining.
    * @throws Error if no skill with the given name is registered.
    */
-  async addSkillByName(skillName: string, params?: SkillConfig): Promise<this> {
+  async addSkillByName(skillName: SkillNameOrString, params?: SkillConfig): Promise<this> {
     const skill = SkillRegistry.getInstance().create(skillName, params);
     if (!skill) {
       throw new Error(`Failed to load skill '${skillName}': skill not found in registry`);
@@ -1651,10 +1658,15 @@ export class AgentBase extends SWMLService {
 
   /**
    * Check whether a skill with the given name is registered.
+   *
+   * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
+   * and a typo is a compile-time error; any other string is still accepted
+   * (custom skills / parity with Python's bare-`str` `has_skill`).
+   *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.
    */
-  hasSkill(skillName: string): boolean {
+  hasSkill(skillName: SkillNameOrString): boolean {
     return this._skillManager.hasSkill(skillName);
   }
 

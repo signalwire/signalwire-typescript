@@ -301,6 +301,33 @@ function translateType(
         filtered.push(t);
       }
     }
+    // Closed-set-of-strings idiom: ``SkillName | (string & {})`` — i.e. a
+    // string-literal union widened with the ``string & {}`` "keep the literal
+    // autocomplete but still accept any string" trick. Structurally this is
+    // just ``string`` (every value is assignable to/from string), and it
+    // exists so a typo in a built-in name fails at compile time while the
+    // parameter stays a bare string for parity with the Python reference.
+    // Collapse it to ``string`` so the canonical signature matches Python's
+    // ``str`` and drift stays zero. Detect: every arm is either a string
+    // literal or an intersection that contains the ``string`` primitive.
+    const isWidenedStringConstant = (t: ts.Type): boolean => {
+      if (t.flags & ts.TypeFlags.StringLiteral) return true;
+      if (t.flags & ts.TypeFlags.String) return true;
+      if (t.isIntersection()) {
+        return t.types.some((c) => (c.flags & ts.TypeFlags.String) !== 0);
+      }
+      return false;
+    };
+    const hasWidenedStringArm = filtered.some(
+      (t) => (t.flags & ts.TypeFlags.String) !== 0 || t.isIntersection(),
+    );
+    if (
+      filtered.length >= 2 &&
+      hasWidenedStringArm &&
+      filtered.every(isWidenedStringConstant)
+    ) {
+      return hasNullish ? 'optional<string>' : 'string';
+    }
     if (filtered.length === 0) return 'void';
     if (filtered.length === 1) {
       const inner = translateType(filtered[0], checker, aliases, context);

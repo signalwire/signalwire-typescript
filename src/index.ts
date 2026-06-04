@@ -155,6 +155,7 @@ export type { ServerlessPlatform, ServerlessEvent, ServerlessResponse } from './
 // Skills
 export { SkillBase, SkillManager, SkillRegistry } from './skills/index.js';
 export type { SkillConfig, SkillToolDefinition, SkillPromptSection, ParameterSchemaEntry, SkillSchemaInfo } from './skills/index.js';
+export type { SkillName, SkillNameOrString } from './skills/index.js';
 
 // Built-in Skills
 export { registerBuiltinSkills } from './skills/builtin/index.js';

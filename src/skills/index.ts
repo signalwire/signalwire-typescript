@@ -10,3 +10,4 @@ export type { SkillConfig, SkillToolDefinition, SkillPromptSection, ParameterSch
 export { SkillManager } from './SkillManager.js';
 export { SkillRegistry } from './SkillRegistry.js';
 export type { SkillSchemaInfo } from './SkillRegistry.js';
+export type { SkillName, SkillNameOrString } from './SkillName.js';
