@@ -147,6 +147,7 @@ export { ConfigLoader } from './ConfigLoader.js';
 
 // Logging
 export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode, stripControlChars } from './Logger.js';
+export type { LogLevel, LogLevelOrString } from './Logger.js';
 
 // Serverless
 export { ServerlessAdapter } from './ServerlessAdapter.js';

@@ -8,8 +8,23 @@
  */
 
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
-/** Log severity level. */
-type LogLevel = keyof typeof LEVELS;
+/**
+ * Log severity level — the closed set this Logger emits and filters on.
+ *
+ * `'warn'` (not `'warning'`) matches the keys of {@link LEVELS} and the
+ * `Logger.warn()` method; the Python reference's logger has no `set_log_level`
+ * counterpart (this setter is a documented TS addition — see
+ * `PORT_ADDITIONS.md`), so the canonical set is this port's own.
+ */
+export type LogLevel = keyof typeof LEVELS;
+/**
+ * A log-level argument: one of the typed {@link LogLevel} values
+ * (autocompleted + a typo such as `'debgu'` is a compile-time error) or any
+ * other string. The `(string & {})` arm widens the parameter back to `string`
+ * so arbitrary input is still accepted at the type level; it is purely a
+ * type-level annotation (TypeScript erases it) and has no runtime effect.
+ */
+export type LogLevelOrString = LogLevel | (string & {});
 /** Output format for log entries. */
 type LogFormat = 'text' | 'json';
 /** Output stream routing. */
@@ -84,10 +99,19 @@ const loggerCache = new Map<string, Logger>();
 
 /**
  * Set the minimum log level for all loggers.
+ *
+ * Accepts a typed {@link LogLevel} (`'debug' | 'info' | 'warn' | 'error'`) —
+ * which gives editor autocompletion and turns a typo into a compile-time error
+ * — or, via the `(string & {})` arm of {@link LogLevelOrString}, any other
+ * string. An unrecognised level is stored as-is; since it isn't a key of the
+ * internal severity table it compares as the lowest rank, so every record is
+ * emitted (matching the env-var path, which likewise casts an arbitrary
+ * `SIGNALWIRE_LOG_LEVEL` string through with no validation).
+ *
  * @param level - The minimum severity level to emit.
  */
-export function setGlobalLogLevel(level: LogLevel): void {
-  globalLevel = level;
+export function setGlobalLogLevel(level: LogLevelOrString): void {
+  globalLevel = level as LogLevel;
 }
 
 /**

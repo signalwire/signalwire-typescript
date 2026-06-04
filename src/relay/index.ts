@@ -9,6 +9,14 @@ export { RelayError } from './RelayError.js';
 // Call + Actions
 export { Call } from './Call.js';
 export type { RelayClientLike } from './Call.js';
+
+// Closed-set option unions (typo-checked autocomplete; widened to string)
+export type {
+  TtsGender,
+  TtsGenderOrString,
+  FaxTone,
+  FaxToneOrString,
+} from './closedSets.js';
 export {
   Action,
   PlayAction,

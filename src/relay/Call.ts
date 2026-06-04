@@ -40,6 +40,10 @@ import {
 } from './normalize.js';
 import { RelayEvent, parseEvent } from './RelayEvent.js';
 import type { CompletedCallback, EventHandler } from './types.js';
+import type {
+  TtsGenderOrString,
+  FaxToneOrString,
+} from './closedSets.js';
 
 const logger = getLogger('relay_call');
 
@@ -451,6 +455,8 @@ export class Call {
     media: Record<string, unknown>[],
     options: {
       volume?: number;
+      // direction is an unvalidated passthrough in the Python reference
+      // (relay/call.py play(): Optional[str], no closed set) — left as bare string.
       direction?: string;
       loop?: number;
       controlId?: string;
@@ -490,7 +496,7 @@ export class Call {
     text: string,
     options: {
       language?: string;
-      gender?: string;
+      gender?: TtsGenderOrString;
       voice?: string;
       volume?: number;
       onCompleted?: CompletedCallback;
@@ -670,7 +676,7 @@ export class Call {
     collect: Record<string, unknown>,
     options: {
       language?: string;
-      gender?: string;
+      gender?: TtsGenderOrString;
       voice?: string;
       volume?: number;
       onCompleted?: CompletedCallback;
@@ -933,7 +939,7 @@ export class Call {
    */
   async detectFax(
     options: {
-      tone?: string;
+      tone?: FaxToneOrString;
       timeout?: number;
       onCompleted?: CompletedCallback;
     } = {},

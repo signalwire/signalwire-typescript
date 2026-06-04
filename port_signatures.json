@@ -3884,7 +3884,7 @@
           "params": [
             {
               "name": "level",
-              "type": "union<string,string,string,string>",
+              "type": "string",
               "required": true
             }
           ],
