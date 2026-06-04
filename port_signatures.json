@@ -8807,6 +8807,51 @@
               ],
               "returns": "class:signalwire.relay.call.DetectAction"
             },
+            "detect_answering_machine": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
+            "detect_digit": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
+            "detect_fax": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.DetectAction"
+            },
             "disconnect": {
               "params": [
                 {
@@ -9047,6 +9092,136 @@
                 {
                   "name": "media",
                   "type": "list<dict<string,any>>",
+                  "required": true
+                },
+                {
+                  "name": "collect",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.CollectAction"
+            },
+            "play_audio": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_ringtone": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_silence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "duration",
+                  "type": "float",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "play_tts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.PlayAction"
+            },
+            "prompt_audio": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "collect",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.relay.call.__type",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.relay.call.CollectAction"
+            },
+            "prompt_tts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "string",
                   "required": true
                 },
                 {
@@ -9329,7 +9504,52 @@
               ],
               "returns": "class:signalwire.relay.event.RelayEvent"
             },
+            "wait_for_answered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "timeout",
+                  "type": "float",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
             "wait_for_ended": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "timeout",
+                  "type": "float",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
+            "wait_for_ending": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "timeout",
+                  "type": "float",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.relay.event.RelayEvent"
+            },
+            "wait_for_ringing": {
               "params": [
                 {
                   "name": "self",

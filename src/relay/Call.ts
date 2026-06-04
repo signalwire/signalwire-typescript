@@ -24,7 +24,15 @@ import {
   AIAction,
 } from './Action.js';
 import { createDeferred, type Deferred } from './Deferred.js';
-import { CALL_STATE_ENDED, EVENT_CALL_COLLECT, EVENT_CALL_STATE } from './constants.js';
+import {
+  CALL_STATE_CREATED,
+  CALL_STATE_RINGING,
+  CALL_STATE_ANSWERED,
+  CALL_STATE_ENDING,
+  CALL_STATE_ENDED,
+  EVENT_CALL_COLLECT,
+  EVENT_CALL_STATE,
+} from './constants.js';
 import {
   normalizeDevice,
   normalizeDevicePlan,
@@ -266,6 +274,81 @@ export class Call {
     return this._ended.promise;
   }
 
+  /**
+   * Wait until the call reaches `target`, short-circuiting when it is already
+   * at or past it. The call lifecycle is ordered
+   * `created < ringing < answered < ending < ended`; if the current state's
+   * rank is `>=` the target's, this resolves immediately with a synthesized
+   * `calling.call.state` event (matching the legacy SDK / Python's
+   * `_wait_for_state`). Otherwise it blocks on the next matching state event.
+   *
+   * @internal
+   */
+  private async _waitForState(target: string, timeout?: number): Promise<RelayEvent> {
+    const order = [
+      CALL_STATE_CREATED,
+      CALL_STATE_RINGING,
+      CALL_STATE_ANSWERED,
+      CALL_STATE_ENDING,
+      CALL_STATE_ENDED,
+    ];
+    const rank = (s: string): number => order.indexOf(s);
+
+    // Already at or past the target → resolve immediately (no event needed).
+    if (rank(this.state) >= rank(target)) {
+      return new RelayEvent(EVENT_CALL_STATE, { call_state: this.state });
+    }
+    return this.waitFor(
+      EVENT_CALL_STATE,
+      (e) => e.params.call_state === target,
+      timeout,
+    );
+  }
+
+  /**
+   * Wait until the call is answered.
+   *
+   * Returns immediately if the call is already answered (or past it, e.g.
+   * ending/ended). Typed wait over {@link waitFor}, mirroring Python's
+   * `call.wait_for_answered(timeout)`.
+   *
+   * @param timeout - Optional timeout in milliseconds. Omit to wait forever.
+   * @returns The `calling.call.state` {@link RelayEvent} (synthesized on short-circuit).
+   * @throws {Error} When the optional timeout elapses before the call is answered.
+   */
+  async waitForAnswered(timeout?: number): Promise<RelayEvent> {
+    return this._waitForState(CALL_STATE_ANSWERED, timeout);
+  }
+
+  /**
+   * Wait until the call is ringing.
+   *
+   * Returns immediately if the call is already ringing (or past it, e.g.
+   * answered/ending/ended). Typed wait over {@link waitFor}, mirroring
+   * Python's `call.wait_for_ringing(timeout)`.
+   *
+   * @param timeout - Optional timeout in milliseconds. Omit to wait forever.
+   * @returns The `calling.call.state` {@link RelayEvent} (synthesized on short-circuit).
+   * @throws {Error} When the optional timeout elapses before the call is ringing.
+   */
+  async waitForRinging(timeout?: number): Promise<RelayEvent> {
+    return this._waitForState(CALL_STATE_RINGING, timeout);
+  }
+
+  /**
+   * Wait until the call is ending.
+   *
+   * Returns immediately if the call is already ending (or ended). Typed wait
+   * over {@link waitFor}, mirroring Python's `call.wait_for_ending(timeout)`.
+   *
+   * @param timeout - Optional timeout in milliseconds. Omit to wait forever.
+   * @returns The `calling.call.state` {@link RelayEvent} (synthesized on short-circuit).
+   * @throws {Error} When the optional timeout elapses before the call is ending.
+   */
+  async waitForEnding(timeout?: number): Promise<RelayEvent> {
+    return this._waitForState(CALL_STATE_ENDING, timeout);
+  }
+
   // ─── Action Helper ───────────────────────────────────────────────
 
   /** @internal Register an action, execute the RPC, clean up on failure. */
@@ -386,6 +469,120 @@ export class Call {
     return this._startAction(action, 'play', params, options.onCompleted);
   }
 
+  /**
+   * Play text-to-speech. Typed convenience over {@link play}.
+   *
+   * Builds the `{ type: 'tts', params: { text, language?, gender?, voice? } }`
+   * media entry so callers don't hand-assemble it. Mirrors Python's
+   * `call.play_tts(text, *, language, gender, voice, volume)`.
+   *
+   * @param text - Text to speak.
+   * @param options - TTS options.
+   * @param options.language - BCP-47 language tag (e.g. `"en-US"`).
+   * @param options.gender - Voice gender (`"male"` / `"female"`).
+   * @param options.voice - Explicit voice identifier (overrides language/gender).
+   * @param options.volume - Top-level playback volume in dB.
+   * @param options.onCompleted - Callback fired when playback reaches a terminal state.
+   * @returns A {@link PlayAction} for control and completion tracking.
+   * @throws {RelayError} When the play command is rejected.
+   */
+  async playTTS(
+    text: string,
+    options: {
+      language?: string;
+      gender?: string;
+      voice?: string;
+      volume?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<PlayAction> {
+    const tts: Record<string, unknown> = { text };
+    if (options.language != null) tts.language = options.language;
+    if (options.gender != null) tts.gender = options.gender;
+    if (options.voice != null) tts.voice = options.voice;
+    return this.play([{ type: 'tts', params: tts }], {
+      volume: options.volume,
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Play an audio file from a URL. Typed convenience over {@link play}.
+   *
+   * Builds the `{ type: 'audio', params: { url } }` media entry. Mirrors
+   * Python's `call.play_audio(url, *, volume)`.
+   *
+   * @param url - URL of the audio file to play.
+   * @param options - Audio options.
+   * @param options.volume - Top-level playback volume in dB.
+   * @param options.onCompleted - Callback fired when playback reaches a terminal state.
+   * @returns A {@link PlayAction} for control and completion tracking.
+   * @throws {RelayError} When the play command is rejected.
+   */
+  async playAudio(
+    url: string,
+    options: {
+      volume?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<PlayAction> {
+    return this.play([{ type: 'audio', params: { url } }], {
+      volume: options.volume,
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Play silence for `duration` seconds. Typed convenience over {@link play}.
+   *
+   * Builds the `{ type: 'silence', params: { duration } }` media entry.
+   * Mirrors Python's `call.play_silence(duration)`.
+   *
+   * @param duration - Length of silence in seconds.
+   * @param options - Playback options.
+   * @param options.onCompleted - Callback fired when playback reaches a terminal state.
+   * @returns A {@link PlayAction} for control and completion tracking.
+   * @throws {RelayError} When the play command is rejected.
+   */
+  async playSilence(
+    duration: number,
+    options: { onCompleted?: CompletedCallback } = {},
+  ): Promise<PlayAction> {
+    return this.play([{ type: 'silence', params: { duration } }], {
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Play a named ringtone by country code. Typed convenience over {@link play}.
+   *
+   * Builds the `{ type: 'ringtone', params: { name, duration? } }` media entry.
+   * Mirrors Python's `call.play_ringtone(name, *, duration, volume)`.
+   *
+   * @param name - Ringtone name / country code (e.g. `"us"`, `"gb"`).
+   * @param options - Ringtone options.
+   * @param options.duration - How long to play the ringtone, in seconds (nested in media params).
+   * @param options.volume - Top-level playback volume in dB.
+   * @param options.onCompleted - Callback fired when playback reaches a terminal state.
+   * @returns A {@link PlayAction} for control and completion tracking.
+   * @throws {RelayError} When the play command is rejected.
+   */
+  async playRingtone(
+    name: string,
+    options: {
+      duration?: number;
+      volume?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<PlayAction> {
+    const ringtone: Record<string, unknown> = { name };
+    if (options.duration != null) ringtone.duration = options.duration;
+    return this.play([{ type: 'ringtone', params: ringtone }], {
+      volume: options.volume,
+      onCompleted: options.onCompleted,
+    });
+  }
+
   // ─── Recording ───────────────────────────────────────────────────
 
   /**
@@ -448,6 +645,74 @@ export class Call {
     if (options.volume != null) params.volume = options.volume;
     const action = new CollectAction(this, cid);
     return this._startAction(action, 'play_and_collect', params, options.onCompleted);
+  }
+
+  /**
+   * Play TTS then collect input. Typed media over {@link playAndCollect}.
+   *
+   * Builds the `{ type: 'tts', params: { text, language?, gender?, voice? } }`
+   * play media and forwards the caller's `collect` config. Mirrors Python's
+   * `call.prompt_tts(text, collect, *, language, gender, voice, volume)`.
+   *
+   * @param text - Text to speak before collecting.
+   * @param collect - Platform-shaped collect config (`digits`, `speech`, etc.).
+   * @param options - Prompt options.
+   * @param options.language - BCP-47 language tag (e.g. `"en-US"`).
+   * @param options.gender - Voice gender (`"male"` / `"female"`).
+   * @param options.voice - Explicit voice identifier (overrides language/gender).
+   * @param options.volume - Top-level playback volume in dB.
+   * @param options.onCompleted - Callback fired when collect completes.
+   * @returns A {@link CollectAction} for the combined play-and-collect flow.
+   * @throws {RelayError} When the play_and_collect command is rejected.
+   */
+  async promptTTS(
+    text: string,
+    collect: Record<string, unknown>,
+    options: {
+      language?: string;
+      gender?: string;
+      voice?: string;
+      volume?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<CollectAction> {
+    const tts: Record<string, unknown> = { text };
+    if (options.language != null) tts.language = options.language;
+    if (options.gender != null) tts.gender = options.gender;
+    if (options.voice != null) tts.voice = options.voice;
+    return this.playAndCollect([{ type: 'tts', params: tts }], collect, {
+      volume: options.volume,
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Play an audio file then collect input. Typed media over {@link playAndCollect}.
+   *
+   * Builds the `{ type: 'audio', params: { url } }` play media and forwards
+   * the caller's `collect` config. Mirrors Python's
+   * `call.prompt_audio(url, collect, *, volume)`.
+   *
+   * @param url - URL of the audio file to play before collecting.
+   * @param collect - Platform-shaped collect config (`digits`, `speech`, etc.).
+   * @param options - Prompt options.
+   * @param options.volume - Top-level playback volume in dB.
+   * @param options.onCompleted - Callback fired when collect completes.
+   * @returns A {@link CollectAction} for the combined play-and-collect flow.
+   * @throws {RelayError} When the play_and_collect command is rejected.
+   */
+  async promptAudio(
+    url: string,
+    collect: Record<string, unknown>,
+    options: {
+      volume?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<CollectAction> {
+    return this.playAndCollect([{ type: 'audio', params: { url } }], collect, {
+      volume: options.volume,
+      onCompleted: options.onCompleted,
+    });
   }
 
   /**
@@ -576,6 +841,109 @@ export class Call {
     if (options.timeout != null) params.timeout = options.timeout;
     const action = new DetectAction(this, cid);
     return this._startAction(action, 'detect', params, options.onCompleted);
+  }
+
+  /**
+   * Detect DTMF digits. Typed convenience over {@link detect}.
+   *
+   * Builds the `{ type: 'digit', params: { digits? } }` detect object.
+   * Mirrors Python's `call.detect_digit(*, digits, timeout)`.
+   *
+   * @param options - Digit-detection options.
+   * @param options.digits - Restrict detection to this DTMF digit set (nested in detect params).
+   * @param options.timeout - Top-level detection timeout in seconds.
+   * @param options.onCompleted - Callback fired when detection completes.
+   * @returns A {@link DetectAction} for control and completion tracking.
+   * @throws {RelayError} When the detect command is rejected.
+   */
+  async detectDigit(
+    options: {
+      digits?: string;
+      timeout?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<DetectAction> {
+    const params: Record<string, unknown> = {};
+    if (options.digits != null) params.digits = options.digits;
+    return this.detect({ type: 'digit', params }, {
+      timeout: options.timeout,
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Detect human vs answering machine (AMD). Typed convenience over {@link detect}.
+   *
+   * Builds the `{ type: 'machine', params: { ...only-provided... } }` detect
+   * object — only the options the caller supplies are emitted, matching
+   * Python's behaviour. Mirrors Python's `call.detect_answering_machine(*,
+   * initial_timeout, end_silence_timeout, machine_voice_threshold,
+   * machine_words_threshold, detect_interruptions, detect_message_end,
+   * timeout)`.
+   *
+   * @param options - AMD options.
+   * @param options.initialTimeout - Seconds to wait for initial voice.
+   * @param options.endSilenceTimeout - Trailing-silence cutoff in seconds.
+   * @param options.machineVoiceThreshold - Voice-duration threshold for a machine verdict.
+   * @param options.machineWordsThreshold - Word-count threshold for a machine verdict.
+   * @param options.detectInterruptions - Emit interruption events during detection.
+   * @param options.detectMessageEnd - Detect the end of a machine's greeting/message.
+   * @param options.timeout - Top-level detection timeout in seconds.
+   * @param options.onCompleted - Callback fired when detection completes.
+   * @returns A {@link DetectAction} for control and completion tracking.
+   * @throws {RelayError} When the detect command is rejected.
+   */
+  async detectAnsweringMachine(
+    options: {
+      initialTimeout?: number;
+      endSilenceTimeout?: number;
+      machineVoiceThreshold?: number;
+      machineWordsThreshold?: number;
+      detectInterruptions?: boolean;
+      detectMessageEnd?: boolean;
+      timeout?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<DetectAction> {
+    const params: Record<string, unknown> = {};
+    if (options.initialTimeout != null) params.initial_timeout = options.initialTimeout;
+    if (options.endSilenceTimeout != null) params.end_silence_timeout = options.endSilenceTimeout;
+    if (options.machineVoiceThreshold != null) params.machine_voice_threshold = options.machineVoiceThreshold;
+    if (options.machineWordsThreshold != null) params.machine_words_threshold = options.machineWordsThreshold;
+    if (options.detectInterruptions != null) params.detect_interruptions = options.detectInterruptions;
+    if (options.detectMessageEnd != null) params.detect_message_end = options.detectMessageEnd;
+    return this.detect({ type: 'machine', params }, {
+      timeout: options.timeout,
+      onCompleted: options.onCompleted,
+    });
+  }
+
+  /**
+   * Detect a fax tone (CED/CNG). Typed convenience over {@link detect}.
+   *
+   * Builds the `{ type: 'fax', params: { tone? } }` detect object. Mirrors
+   * Python's `call.detect_fax(*, tone, timeout)`.
+   *
+   * @param options - Fax-detection options.
+   * @param options.tone - Restrict detection to a specific tone (`"CED"` / `"CNG"`), nested in detect params.
+   * @param options.timeout - Top-level detection timeout in seconds.
+   * @param options.onCompleted - Callback fired when detection completes.
+   * @returns A {@link DetectAction} for control and completion tracking.
+   * @throws {RelayError} When the detect command is rejected.
+   */
+  async detectFax(
+    options: {
+      tone?: string;
+      timeout?: number;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<DetectAction> {
+    const params: Record<string, unknown> = {};
+    if (options.tone != null) params.tone = options.tone;
+    return this.detect({ type: 'fax', params }, {
+      timeout: options.timeout,
+      onCompleted: options.onCompleted,
+    });
   }
 
   // ─── SIP Refer ───────────────────────────────────────────────────

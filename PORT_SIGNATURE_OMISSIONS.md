@@ -565,6 +565,9 @@ signalwire.relay.call.Call.connect: BACKLOG / param-count-mismatch/ reference ha
 signalwire.relay.call.Call.denoise: BACKLOG / return-mismatch/ returns 'dict<any,any>' vs 'dict<string,any>'
 signalwire.relay.call.Call.denoise_stop: BACKLOG / return-mismatch/ returns 'dict<any,any>' vs 'dict<string,any>'
 signalwire.relay.call.Call.detect: BACKLOG / param-count-mismatch/ reference has 6 param(s), port has 3/ reference=['self', 'detect', 'timeout', 'c
+signalwire.relay.call.Call.detect_answering_machine: Idiom / TS collapses Python's keyword-only AMD args (initial_timeout/end_silence_timeout/machine_voice_threshold/machine_words_threshold/detect_interruptions/detect_message_end/timeout/on_completed) into one options object; emits the same {type:'machine',params:{...only-provided...}} detect media
+signalwire.relay.call.Call.detect_digit: Idiom / TS collapses Python's keyword-only digits/timeout/on_completed into one options object; emits the same {type:'digit',params:{digits?}} detect media
+signalwire.relay.call.Call.detect_fax: Idiom / TS collapses Python's keyword-only tone/timeout/on_completed into one options object; emits the same {type:'fax',params:{tone?}} detect media
 signalwire.relay.call.Call.disconnect: BACKLOG / return-mismatch/ returns 'dict<any,any>' vs 'dict<string,any>'
 signalwire.relay.call.Call.echo: BACKLOG / param-count-mismatch/ reference has 4 param(s), port has 2/ reference=['self', 'timeout', 'status_url'; return-mismatch/
 signalwire.relay.call.Call.hangup: BACKLOG / return-mismatch/ returns 'dict<any,any>' vs 'dict<string,any>'
@@ -579,6 +582,12 @@ signalwire.relay.call.Call.on: BACKLOG / param-mismatch/ param[2] (handler)/ typ
 signalwire.relay.call.Call.pay: BACKLOG / param-count-mismatch/ reference has 22 param(s), port has 3/ reference=['self', 'payment_connector_url
 signalwire.relay.call.Call.play: BACKLOG / param-count-mismatch/ reference has 8 param(s), port has 3/ reference=['self', 'media', 'volume', 'dir
 signalwire.relay.call.Call.play_and_collect: BACKLOG / param-count-mismatch/ reference has 7 param(s), port has 4/ reference=['self', 'media', 'collect', 'vo
+signalwire.relay.call.Call.play_audio: Idiom / TS collapses Python's keyword-only volume/on_completed into one options object; emits the same [{type:'audio',params:{url}}] play media
+signalwire.relay.call.Call.play_ringtone: Idiom / TS collapses Python's keyword-only duration/volume/on_completed into one options object; emits the same [{type:'ringtone',params:{name,duration?}}] play media
+signalwire.relay.call.Call.play_silence: Idiom / TS collapses Python's keyword-only on_completed into one options object; emits the same [{type:'silence',params:{duration}}] play media
+signalwire.relay.call.Call.play_tts: Idiom / TS collapses Python's keyword-only language/gender/voice/volume/on_completed into one options object; emits the same [{type:'tts',params:{text,language?,gender?,voice?}}] play media
+signalwire.relay.call.Call.prompt_audio: Idiom / TS collapses Python's keyword-only volume/on_completed into one options object; emits the same [{type:'audio',params:{url}}] play_and_collect media
+signalwire.relay.call.Call.prompt_tts: Idiom / TS collapses Python's keyword-only language/gender/voice/volume/on_completed into one options object; emits the same [{type:'tts',params:{text,language?,gender?,voice?}}] play_and_collect media
 signalwire.relay.call.Call.queue_enter: BACKLOG / param-count-mismatch/ reference has 5 param(s), port has 3/ reference=['self', 'queue_name', 'control_; return-mismatch/
 signalwire.relay.call.Call.queue_leave: BACKLOG / param-count-mismatch/ reference has 6 param(s), port has 3/ reference=['self', 'queue_name', 'control_; return-mismatch/
 signalwire.relay.call.Call.receive_fax: BACKLOG / param-count-mismatch/ reference has 4 param(s), port has 2/ reference=['self', 'control_id', 'on_compl
