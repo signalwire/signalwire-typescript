@@ -255,6 +255,18 @@ describe('FunctionResult', () => {
     expect(params['muted']).toBe(true);
   });
 
+  it('joinConference rejects empty name (runtime guard, parity with Python)', () => {
+    expect(() => new FunctionResult('ok').joinConference('   ', { muted: true })).toThrow(
+      'name cannot be empty',
+    );
+  });
+
+  it('joinConference rejects max_participants > 250 (runtime guard, parity with Python)', () => {
+    expect(() => new FunctionResult('ok').joinConference('conf1', { maxParticipants: 300 })).toThrow(
+      'max_participants must be a positive integer <= 250',
+    );
+  });
+
   it('executeRpc', () => {
     const r = new FunctionResult('ok').executeRpc({
       method: 'ai_message',

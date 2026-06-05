@@ -653,6 +653,14 @@ export class FunctionResult {
     recordingStatusCallbackEvent?: string;
     result?: unknown;
   }): this {
+    // Runtime guards matching the Python reference (beep/record/trim/method are
+    // covered at compile time by the literal-union types above; these two cannot be).
+    if (!name.trim()) {
+      throw new Error('name cannot be empty');
+    }
+    if (opts?.maxParticipants !== undefined && (opts.maxParticipants <= 0 || opts.maxParticipants > 250)) {
+      throw new Error('max_participants must be a positive integer <= 250');
+    }
     const hasNonDefaults = opts && (
       opts.muted || (opts.beep && opts.beep !== 'true') ||
       opts.startOnEnter === false || opts.endOnExit ||
