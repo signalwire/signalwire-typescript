@@ -302,6 +302,38 @@ describe('FunctionResult', () => {
     expect((r.toDict().action as unknown[]).length).toBe(3);
   });
 
+  // Helper: dig the execute_rpc params object out of a single-action result.
+  const rpcVerb = (r: FunctionResult): Record<string, unknown> => {
+    const act = (r.toDict().action as Record<string, unknown>[])[0];
+    const swml = act['SWML'] as Record<string, unknown>;
+    const sections = swml['sections'] as Record<string, unknown[]>;
+    return (sections['main'][0] as Record<string, unknown>)['execute_rpc'] as Record<string, unknown>;
+  };
+
+  // rpc_ai_unhold calls execute_rpc(method, call_id, params={}). Python's
+  // execute_rpc uses `if params:` so an EMPTY params dict is dropped — the verb
+  // is exactly {method, call_id} with NO `params` key. `{}` is truthy in JS, so
+  // a naive `if (opts.params)` would wrongly emit `params: {}`. This pins the
+  // correct Python shape (function_result.py:1324,1438 — emission differ parity).
+  it('rpcAiUnhold omits empty params (parity with Python execute_rpc)', () => {
+    const verb = rpcVerb(new FunctionResult('ok').rpcAiUnhold('call-abc'));
+    expect(verb).toEqual({ method: 'ai_unhold', call_id: 'call-abc' });
+    expect('params' in verb).toBe(false);
+  });
+
+  // The same empty-dict rule applies to execute_rpc directly: an explicit empty
+  // params object is dropped, while a non-empty one is kept verbatim.
+  it('executeRpc drops an explicitly-empty params object, keeps a non-empty one', () => {
+    const empty = rpcVerb(new FunctionResult('ok').executeRpc({ method: 'ai_unhold', params: {} }));
+    expect(empty).toEqual({ method: 'ai_unhold' });
+    expect('params' in empty).toBe(false);
+
+    const full = rpcVerb(
+      new FunctionResult('ok').executeRpc({ method: 'ai_message', params: { role: 'system' } }),
+    );
+    expect(full).toEqual({ method: 'ai_message', params: { role: 'system' } });
+  });
+
   it('executeSwml with string', () => {
     const swml = JSON.stringify({ version: '1.0.0', sections: { main: [] } });
     const r = new FunctionResult('ok').executeSwml(swml, true);

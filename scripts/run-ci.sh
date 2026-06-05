@@ -9,6 +9,11 @@
 #   2. signature regen                    — npx tsx scripts/enumerate-signatures.ts
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
 #   4. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
+#   5. emission gate                      — porting-sdk diff_port_emission.py
+#                                           (byte-compares this port's FunctionResult
+#                                            serialisation vs Python's to_dict() over
+#                                            the shared 81-entry corpus; closes the
+#                                            drift-0 hole the surface gates can't see)
 #
 # Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
 # Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
@@ -99,6 +104,15 @@ run_gate "DRIFT" "diff_port_signatures vs python reference" \
 # Gate 4: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \
     python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+# Gate 5: emission — byte-compare FunctionResult serialisation vs the Python
+# to_dict() oracle over the shared corpus (scripts/emit-corpus.ts builds the
+# native dump). Pure serialisation: no mock servers, no network — just
+# signalwire-python adjacent (already required by the drift gate).
+run_gate "EMISSION" "diff_port_emission vs python oracle" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
+        --dump-cmd "npx tsx scripts/emit-corpus.ts" \
+        --port-repo "$PORT_ROOT"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"

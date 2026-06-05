@@ -743,7 +743,11 @@ export class FunctionResult {
     const rpcParams: Record<string, unknown> = { method: opts.method };
     if (opts.callId) rpcParams['call_id'] = opts.callId;
     if (opts.nodeId) rpcParams['node_id'] = opts.nodeId;
-    if (opts.params) rpcParams['params'] = opts.params;
+    // Match Python's `if params:` — a falsy/EMPTY params dict is dropped, so an
+    // empty `{}` (e.g. from rpcAiUnhold) emits no `params` key at all. A plain
+    // `if (opts.params)` would wrongly keep `{}` because every object is truthy
+    // in JS; gate on key count to mirror the reference (function_result.py:1324).
+    if (opts.params && Object.keys(opts.params).length > 0) rpcParams['params'] = opts.params;
     return this.executeSwml({
       version: '1.0.0',
       sections: { main: [{ execute_rpc: rpcParams }] },
