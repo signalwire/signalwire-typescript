@@ -221,6 +221,24 @@ describe('FunctionResult', () => {
     expect((r.toDict().action as unknown[]).length).toBe(2);
   });
 
+  it('tap rejects non-positive rtpPtime (runtime guard, parity with Python)', () => {
+    expect(() => new FunctionResult('ok').tap({ uri: 'wss://example.com', rtpPtime: 0 })).toThrow(
+      'rtp_ptime must be a positive integer',
+    );
+    expect(() => new FunctionResult('ok').tap({ uri: 'wss://example.com', rtpPtime: -5 })).toThrow(
+      'rtp_ptime must be a positive integer',
+    );
+  });
+
+  it('tap accepts a positive non-default rtpPtime (regression for the guard)', () => {
+    const r = new FunctionResult('ok').tap({ uri: 'wss://example.com', rtpPtime: 40 });
+    const acts = r.toDict().action as Record<string, unknown>[];
+    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const sections = swml['sections'] as Record<string, unknown[]>;
+    const params = (sections['main'][0] as Record<string, unknown>)['tap'] as Record<string, unknown>;
+    expect(params['rtp_ptime']).toBe(40);
+  });
+
   it('joinRoom', () => {
     const r = new FunctionResult('ok').joinRoom('room1');
     const acts = r.toDict().action as Record<string, unknown>[];
@@ -290,6 +308,36 @@ describe('FunctionResult', () => {
     const acts = r.toDict().action as Record<string, unknown>[];
     const action = acts[0]['SWML'] as Record<string, unknown>;
     expect(action['transfer']).toBe('true');
+  });
+
+  it('executeSwml with valid object is unchanged (regression for the bad-type guard)', () => {
+    const r = new FunctionResult('ok').executeSwml({ version: '1.0.0', sections: { main: [] } });
+    const acts = r.toDict().action as Record<string, unknown>[];
+    const action = acts[0]['SWML'] as Record<string, unknown>;
+    expect(action['version']).toBe('1.0.0');
+    expect(action['sections']).toEqual({ main: [] });
+  });
+
+  // execute_swml is the shared sink for every SWML helper; a bad-type value must
+  // fail loudly (parity with Python's TypeError) rather than silently spread.
+  // The public TS type forbids these, so we cast through `never` to drive the
+  // runtime guard that defends against untyped JS callers / forwarded values.
+  it('executeSwml throws on a number (parity with Python TypeError)', () => {
+    expect(() => new FunctionResult('ok').executeSwml(42 as never)).toThrow(
+      'swml_content must be string, dict, or SWML object',
+    );
+  });
+
+  it('executeSwml throws on an array (a list is not a dict, parity with Python)', () => {
+    expect(() => new FunctionResult('ok').executeSwml([{ verb: 'x' }] as never)).toThrow(
+      'swml_content must be string, dict, or SWML object',
+    );
+  });
+
+  it('executeSwml throws on null (parity with Python TypeError)', () => {
+    expect(() => new FunctionResult('ok').executeSwml(null as never)).toThrow(
+      'swml_content must be string, dict, or SWML object',
+    );
   });
 
   it('static payment helpers', () => {

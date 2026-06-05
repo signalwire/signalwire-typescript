@@ -347,10 +347,26 @@ export class FunctionResult {
       } catch {
         swmlData = { raw_swml: swmlContent };
       }
-    } else if (typeof (swmlContent as { toDict?: unknown }).toDict === 'function') {
+    } else if (
+      typeof swmlContent === 'object' &&
+      swmlContent !== null &&
+      typeof (swmlContent as { toDict?: unknown }).toDict === 'function'
+    ) {
+      // SWML SDK object - convert via toDict(). The object/null check guards the
+      // property access (Python's hasattr is null-safe; TS member access is not).
       swmlData = (swmlContent as { toDict(): Record<string, unknown> }).toDict();
-    } else {
+    } else if (
+      typeof swmlContent === 'object' &&
+      swmlContent !== null &&
+      !Array.isArray(swmlContent)
+    ) {
+      // Plain object (dict) - copy to avoid mutating the caller's data.
       swmlData = { ...(swmlContent as Record<string, unknown>) };
+    } else {
+      // Mirror Python's execute_swml: a non-string / non-toDict / non-dict value
+      // (number, array, null, …) is a programming error. This is the shared sink
+      // for every SWML helper, so a bad value must fail loudly rather than spread.
+      throw new Error('swml_content must be string, dict, or SWML object');
     }
     if (transfer) {
       swmlData['transfer'] = 'true';
@@ -576,6 +592,11 @@ export class FunctionResult {
     rtpPtime?: number;
     statusUrl?: string;
   }): this {
+    // Runtime guard matching the Python reference: the literal-union types cover
+    // direction/codec but cannot express the numeric range (rtp_ptime > 0).
+    if (opts.rtpPtime !== undefined && opts.rtpPtime <= 0) {
+      throw new Error('rtp_ptime must be a positive integer');
+    }
     const params: Record<string, unknown> = { uri: opts.uri };
     if (opts.controlId) params['control_id'] = opts.controlId;
     if (opts.direction && opts.direction !== 'both') params['direction'] = opts.direction;
