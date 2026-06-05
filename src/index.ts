@@ -78,6 +78,11 @@ export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionR
 export { SwaigFunction } from './SwaigFunction.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
+// Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the
+// explicit-params path; byte-identical to the untyped `parameters` blob).
+export { ParameterSchema, paramSchema, RECORD_FORMATS, RECORD_DIRECTIONS, TAP_DIRECTIONS, TAP_CODECS } from './ParameterSchema.js';
+export type { ParameterType, ParameterProperty, ParameterSchemaObject, RecordFormat, RecordDirection, TapDirection, TapCodec } from './ParameterSchema.js';
+
 // DataMap (server-side tools)
 export { DataMap, createSimpleApiTool, createExpressionTool, setAllowedEnvPrefixes, getAllowedEnvPrefixes } from './DataMap.js';
 

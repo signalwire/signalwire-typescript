@@ -7830,6 +7830,316 @@
         }
       }
     },
+    "signalwire.parameter_schema": {
+      "classes": {
+        "ParameterSchema": {
+          "methods": {
+            "array": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "items",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                }
+              ],
+              "returns": "any"
+            },
+            "boolean": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "build": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.parameter_schema.ParameterSchemaObject"
+            },
+            "codec": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                }
+              ],
+              "returns": "any"
+            },
+            "enum": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "values",
+                  "type": "list<any>",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "type",
+                  "type": "union<string,string,string,string,string,string>",
+                  "required": false,
+                  "default": "string"
+                }
+              ],
+              "returns": "any"
+            },
+            "integer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "property": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "type",
+                  "type": "union<string,string,string,string,string,string>",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "record_direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                }
+              ],
+              "returns": "any"
+            },
+            "record_format": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                }
+              ],
+              "returns": "any"
+            },
+            "required": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "names",
+                  "type": "list<string>",
+                  "kind": "var_positional",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "string": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "tap_direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "string",
+                  "required": false,
+                  "default": ""
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      },
+      "functions": {
+        "param_schema": {
+          "params": [],
+          "returns": "class:signalwire.parameter_schema.ParameterSchema"
+        }
+      }
+    },
     "signalwire.pom.pom": {
       "classes": {
         "PromptObjectModel": {

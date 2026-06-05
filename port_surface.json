@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 9140e11d438d0df40187f817dbccb4ea63cc3465",
+  "generated_from": "signalwire-typescript @ ccb4f5c897f9ad724b66e6cdf442d170791fb665",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -818,6 +818,28 @@
       },
       "functions": []
     },
+    "signalwire.parameter_schema": {
+      "classes": {
+        "ParameterSchema": [
+          "array",
+          "boolean",
+          "build",
+          "codec",
+          "enum",
+          "integer",
+          "number",
+          "property",
+          "record_direction",
+          "record_format",
+          "required",
+          "string",
+          "tap_direction"
+        ]
+      },
+      "functions": [
+        "param_schema"
+      ]
+    },
     "signalwire.pom.pom": {
       "classes": {
         "Section": [
@@ -980,6 +1002,9 @@
           "denoise",
           "denoise_stop",
           "detect",
+          "detect_answering_machine",
+          "detect_digit",
+          "detect_fax",
           "disconnect",
           "echo",
           "hangup",
@@ -995,6 +1020,12 @@
           "pay",
           "play",
           "play_and_collect",
+          "play_audio",
+          "play_ringtone",
+          "play_silence",
+          "play_tts",
+          "prompt_audio",
+          "prompt_tts",
           "queue_enter",
           "queue_leave",
           "receive_fax",
@@ -1010,7 +1041,10 @@
           "unhold",
           "user_event",
           "wait_for",
-          "wait_for_ended"
+          "wait_for_answered",
+          "wait_for_ended",
+          "wait_for_ending",
+          "wait_for_ringing"
         ]
       },
       "functions": []

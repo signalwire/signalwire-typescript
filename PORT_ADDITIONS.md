@@ -118,6 +118,40 @@ signalwire.utils.validate_url: TS port-only helper — functionality has no dire
 signalwire.web.web_service.WebService.get_app: TS port-only helper — functionality has no direct Python equivalent
 signalwire.web.web_service.WebService.ssl_config: TS port-only helper — functionality has no direct Python equivalent
 
+## ParameterSchema — typed SWAIG tool-parameter builder (Tier-2 flagship, explicit-params path)
+
+`ParameterSchema` / `paramSchema()` (`src/ParameterSchema.ts`) is the typed,
+fluent builder for a SWAIG tool's `parameters` JSON-Schema object — the
+idiomatic replacement for the untyped `Record<string, unknown>` blob accepted
+by `defineTool({ parameters })` / `defineTypedTool({ parameters })`. Python's
+`define_tool(parameters=...)` takes a bare `Dict[str, Any]`, so there is no
+reference symbol; this is a pure TS-idiom addition. The builder's `build()`
+output is **byte-identical** to the equivalent hand-written object (TypeScript
+erases types → identical wire bytes), so drift stays 0 and emission is
+unchanged — it is autocomplete/typo/closed-set ergonomics only. The convenience
+methods (`record_format`/`record_direction`/`tap_direction`/`codec`) bake the
+strongly-grounded Tier-1 closed sets in as `enum:[...]` properties (the
+SkillName idiom, now on the tool-parameter side). See IDIOM_PASS_JOURNAL.md §2
+/ §4 "Tier 2 flagship". (`RECORD_FORMATS`/`RECORD_DIRECTIONS`/`TAP_DIRECTIONS`/
+`TAP_CODECS` value arrays + the `RecordFormat`/`…` literal types are also
+exported but are bare const/type exports, not enumerated symbols.)
+
+signalwire.parameter_schema.ParameterSchema: typed SWAIG tool-parameter builder — no Python equivalent (Python takes a bare dict)
+signalwire.parameter_schema.ParameterSchema.property: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.string: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.integer: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.number: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.boolean: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.array: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.enum: typed param-schema builder method (closed-set → enum:[...]) — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.record_format: Tier-1 closed-set convenience (enum:['wav','mp3','mp4']) — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.record_direction: Tier-1 closed-set convenience (enum:['speak','listen','both']) — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.tap_direction: Tier-1 closed-set convenience (enum:['speak','hear','both']) — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.codec: Tier-1 closed-set convenience (enum:['PCMU','PCMA']) — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.required: typed param-schema builder method — no Python equivalent
+signalwire.parameter_schema.ParameterSchema.build: materialise the JSON-Schema object (byte-identical to the untyped blob) — no Python equivalent
+signalwire.parameter_schema.param_schema: factory for ParameterSchema — no Python equivalent
+
 ## AgentBase port-specific additions
 
 signalwire.core.agent_base.AgentBase.add_skill_by_name: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
