@@ -517,7 +517,7 @@ export class FunctionResult {
   recordCall(opts?: {
     controlId?: string;
     stereo?: boolean;
-    format?: 'wav' | 'mp3';
+    format?: 'wav' | 'mp3' | 'mp4';
     direction?: 'speak' | 'listen' | 'both';
     terminators?: string;
     beep?: boolean;
