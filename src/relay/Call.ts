@@ -43,7 +43,9 @@ import type { CompletedCallback, EventHandler } from './types.js';
 import type {
   TtsGenderOrString,
   FaxToneOrString,
+  CallStateOrString,
 } from './closedSets.js';
+import { isCallStateTerminal } from './closedSets.js';
 
 const logger = getLogger('relay_call');
 
@@ -91,8 +93,14 @@ export class Call {
   direction: string;
   /** Device descriptor the call is associated with (phone, SIP, etc.). */
   device: Record<string, any>;
-  /** Current call state (e.g. `"created"`, `"answered"`, `"ended"`). */
-  state: string;
+  /**
+   * Current call state. One of the {@link CallStateOrString} values
+   * (`"created"` | `"ringing"` | `"answered"` | `"ending"` | `"ended"`,
+   * autocompleted) widened to `string` for forward-compat with server-added
+   * states. Use {@link Call.isTerminal} to test for the terminal (`ended`)
+   * state rather than comparing strings by hand.
+   */
+  state: CallStateOrString;
   /** Call segment ID used for event correlation. */
   segmentId: string;
 
@@ -110,7 +118,7 @@ export class Call {
       tag?: string;
       direction?: string;
       device?: Record<string, any>;
-      state?: string;
+      state?: CallStateOrString;
       segmentId?: string;
     } = {},
   ) {
@@ -125,6 +133,18 @@ export class Call {
     this.state = options.state ?? '';
     this.segmentId = options.segmentId ?? '';
     this._ended = createDeferred<RelayEvent>();
+  }
+
+  /**
+   * Whether this call has reached its terminal lifecycle state (`ended`) and
+   * will emit no further `calling.call.state` transitions.
+   *
+   * Idiomatic shortcut for `isCallStateTerminal(call.state)` — prefer it over
+   * a hand-written `call.state === 'ended'` comparison so the terminal-set
+   * definition lives in one place ({@link ../relay/closedSets.CallState}).
+   */
+  get isTerminal(): boolean {
+    return isCallStateTerminal(this.state);
   }
 
   // ─── Internal RPC Primitive ──────────────────────────────────────

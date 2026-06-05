@@ -7,6 +7,12 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type {
+  CallStateOrString,
+  DialStateOrString,
+  MessageStateOrString,
+} from './closedSets.js';
+
 // ─── Base Event ──────────────────────────────────────────────────────
 
 /**
@@ -80,7 +86,13 @@ function baseFields(payload: Record<string, any>) {
 
 /** `calling.call.state` — fires on every lifecycle transition (created, ringing, answered, ending, ended). */
 export class CallStateEvent extends RelayEvent {
-  readonly callState: string;
+  /**
+   * The new call state — a {@link CallStateOrString} (`created` | `ringing` |
+   * `answered` | `ending` | `ended`, autocompleted; widened to `string` for
+   * forward-compat). Pass to {@link ../relay/closedSets.isCallStateTerminal} to
+   * test for the terminal state.
+   */
+  readonly callState: CallStateOrString;
   readonly endReason: string;
   readonly direction: string;
   readonly device: Record<string, any>;
@@ -90,7 +102,7 @@ export class CallStateEvent extends RelayEvent {
     params: Record<string, any>,
     callId: string,
     timestamp: number,
-    callState: string,
+    callState: CallStateOrString,
     endReason: string,
     direction: string,
     device: Record<string, any>,
@@ -116,7 +128,8 @@ export class CallStateEvent extends RelayEvent {
 
 /** `calling.call.receive` — fires when an inbound call arrives on a subscribed context. */
 export class CallReceiveEvent extends RelayEvent {
-  readonly callState: string;
+  /** Initial call state ({@link CallStateOrString}; typically `created`). */
+  readonly callState: CallStateOrString;
   readonly direction: string;
   readonly device: Record<string, any>;
   readonly nodeId: string;
@@ -130,7 +143,7 @@ export class CallReceiveEvent extends RelayEvent {
     params: Record<string, any>,
     callId: string,
     timestamp: number,
-    callState: string,
+    callState: CallStateOrString,
     direction: string,
     device: Record<string, any>,
     nodeId: string,
@@ -462,7 +475,13 @@ export class SendDigitsEvent extends RelayEvent {
 /** `calling.call.dial` — outbound dial progress (answered, failed, no-answer, etc.). */
 export class DialEvent extends RelayEvent {
   readonly tag: string;
-  readonly dialState: string;
+  /**
+   * Outbound-dial state — a {@link DialStateOrString} (`dialing` | `answered` |
+   * `failed`, autocompleted; widened to `string` for forward-compat). Pass to
+   * {@link ../relay/closedSets.isDialStateTerminal} to test for resolution.
+   * Distinct from a {@link CallStateOrString}.
+   */
+  readonly dialState: DialStateOrString;
   readonly call: Record<string, any>;
 
   constructor(
@@ -471,7 +490,7 @@ export class DialEvent extends RelayEvent {
     callId: string,
     timestamp: number,
     tag: string,
-    dialState: string,
+    dialState: DialStateOrString,
     call: Record<string, any>,
   ) {
     super(eventType, params, callId, timestamp);
@@ -847,7 +866,15 @@ export class MessageStateEvent extends RelayEvent {
   readonly body: string;
   readonly media: string[];
   readonly segments: number;
-  readonly messageState: string;
+  /**
+   * Message lifecycle state — a {@link MessageStateOrString} (`queued` |
+   * `initiated` | `sent` | `delivered` | `undelivered` | `failed` | `received`,
+   * autocompleted; widened to `string` for forward-compat). Pass to
+   * {@link ../relay/closedSets.isMessageStateTerminal} to test for a final
+   * delivery outcome. Distinct from a {@link CallStateOrString} /
+   * {@link DialStateOrString}.
+   */
+  readonly messageState: MessageStateOrString;
   readonly reason: string;
   readonly tags: string[];
 
@@ -864,7 +891,7 @@ export class MessageStateEvent extends RelayEvent {
     body: string,
     media: string[],
     segments: number,
-    messageState: string,
+    messageState: MessageStateOrString,
     reason: string,
     tags: string[],
   ) {

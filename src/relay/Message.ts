@@ -10,6 +10,8 @@ import { getLogger } from '../Logger.js';
 import { createDeferred, type Deferred } from './Deferred.js';
 import { MESSAGE_TERMINAL_STATES } from './constants.js';
 import { RelayEvent } from './RelayEvent.js';
+import { isMessageStateTerminal } from './closedSets.js';
+import type { MessageStateOrString } from './closedSets.js';
 import type { CompletedCallback, EventHandler } from './types.js';
 
 const logger = getLogger('relay_message');
@@ -50,8 +52,14 @@ export class Message {
   media: string[];
   /** Number of segments the carrier split the message into. */
   segments: number;
-  /** Current message state (e.g. `"sent"`, `"delivered"`, `"failed"`). */
-  state: string;
+  /**
+   * Current message state. One of the {@link MessageStateOrString} values
+   * (`"queued"` | `"initiated"` | `"sent"` | `"delivered"` | `"undelivered"` |
+   * `"failed"` | `"received"`, autocompleted) widened to `string` for
+   * forward-compat with server-added states. Use {@link Message.isTerminal} to
+   * test for a final delivery outcome rather than comparing strings by hand.
+   */
+  state: MessageStateOrString;
   /** Failure / undelivery reason when `state` is non-successful. */
   reason: string;
   /** Opaque tags attached to the message. */
@@ -70,7 +78,7 @@ export class Message {
     body?: string;
     media?: string[];
     segments?: number;
-    state?: string;
+    state?: MessageStateOrString;
     reason?: string;
     tags?: string[];
   } = {}) {
@@ -91,6 +99,20 @@ export class Message {
   /** True once the message has reached a terminal state. */
   get isDone(): boolean {
     return this._done.settled;
+  }
+
+  /**
+   * Whether this message's current {@link Message.state} is a terminal
+   * delivery outcome (`delivered` | `undelivered` | `failed`).
+   *
+   * Distinct from {@link Message.isDone}: `isDone` reflects whether the
+   * internal completion promise has settled (driven by event dispatch),
+   * whereas `isTerminal` is a pure test of the state *value*
+   * ({@link ../relay/closedSets.MessageState}) and is meaningful even on a
+   * freshly-constructed inbound message.
+   */
+  get isTerminal(): boolean {
+    return isMessageStateTerminal(this.state);
   }
 
   /** Final event that terminated the message, or `null` if still in-flight. */

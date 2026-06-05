@@ -297,6 +297,25 @@ signalwire.relay.normalize.normalize_device_plan: TS Relay helper or utility (cl
 signalwire.relay.normalize.normalize_play_item: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
 signalwire.relay.normalize.normalize_play_items: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
 
+## Relay typed lifecycle-state predicates (Tier-3 typed objects)
+
+# The three RELAY lifecycle vocabularies (CallState / DialState / MessageState)
+# are typed as string-literal unions accepted ALONGSIDE the bare string in
+# closedSets.ts (CallState | (string & {}) — same idiom as TtsGender/FaxTone,
+# which stay drift-neutral by collapsing to `string` in the enumerator). The
+# unions add no new symbols; these terminal-state PREDICATES do. Each is a
+# TS-native convenience grounded in the reference's own terminal-set
+# definitions: the Python reference checks terminality inline (e.g.
+# message.py's `MESSAGE_TERMINAL_STATES` membership, call.py's
+# `call_state == CALL_STATE_ENDED`) rather than exposing a named predicate, so
+# these are additive — the wire/runtime behavior is identical, they just give
+# one well-named home for "is this state final?".
+signalwire.relay.closed_sets.is_call_state_terminal: TS-native predicate — true iff a call state is terminal (`ended`); the reference compares `call_state == CALL_STATE_ENDED` inline. Grounded in relay/constants CALL_STATE_* (mirrors signalwire/relay/constants.py).
+signalwire.relay.closed_sets.is_dial_state_terminal: TS-native predicate — true iff an outbound-dial state is terminal (`answered`/`failed`); the reference branches on `dial_state` inline in client.py. Grounded in signalwire/relay/client.py (dialing|answered|failed).
+signalwire.relay.closed_sets.is_message_state_terminal: TS-native predicate — true iff a message state is terminal (`delivered`/`undelivered`/`failed`); mirrors the reference's `MESSAGE_TERMINAL_STATES` membership test (message.py). Grounded in relay/constants MESSAGE_TERMINAL_STATES.
+signalwire.relay.call.Call.is_terminal: TS-native getter — `isCallStateTerminal(this.state)`; idiomatic shortcut for the reference's inline `call.state == 'ended'` check, so the terminal-set definition lives in one place. Additive (Python exposes no Call.is_terminal / Call.is_done).
+signalwire.relay.message.Message.is_terminal: TS-native getter testing the message STATE value (`delivered`/`undelivered`/`failed`) — distinct from the reference's `Message.is_done`, which reflects the internal completion-promise settled-ness; `isTerminal` is meaningful even on a freshly-constructed inbound message. Additive.
+
 ## SslConfig (SSL-specific config class, TS port-only)
 
 signalwire.core.security_config.SslConfig: TS splits SSL configuration into a dedicated SslConfig class (Python keeps it inside SecurityConfig); the SslConfig methods are all port-specific SSL helpers

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ ccb4f5c897f9ad724b66e6cdf442d170791fb665",
+  "generated_from": "signalwire-typescript @ e297e0f82e56179c790334bfbd291305ec23297e",
   "typescript_version": "5.9.3",
   "modules": {
     "signalwire": {
@@ -1009,6 +1009,7 @@
           "echo",
           "hangup",
           "hold",
+          "is_terminal",
           "join_conference",
           "join_room",
           "leave_conference",
@@ -1072,6 +1073,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.relay.closed_sets": {
+      "classes": {},
+      "functions": [
+        "is_call_state_terminal",
+        "is_dial_state_terminal",
+        "is_message_state_terminal"
+      ]
     },
     "signalwire.relay.deferred": {
       "classes": {},
@@ -1164,6 +1173,7 @@
         "Message": [
           "__init__",
           "is_done",
+          "is_terminal",
           "on",
           "result",
           "to_string",

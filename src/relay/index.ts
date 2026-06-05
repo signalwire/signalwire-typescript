@@ -16,6 +16,20 @@ export type {
   TtsGenderOrString,
   FaxTone,
   FaxToneOrString,
+  CallState,
+  CallStateOrString,
+  DialState,
+  DialStateOrString,
+  MessageState,
+  MessageStateOrString,
+} from './closedSets.js';
+export {
+  CALL_STATE_TERMINAL,
+  DIAL_STATE_TERMINAL,
+  MESSAGE_STATE_TERMINAL,
+  isCallStateTerminal,
+  isDialStateTerminal,
+  isMessageStateTerminal,
 } from './closedSets.js';
 export {
   Action,

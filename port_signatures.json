@@ -9210,6 +9210,15 @@
               ],
               "returns": "dict<string,any>"
             },
+            "is_terminal": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
             "join_conference": {
               "params": [
                 {
@@ -10512,6 +10521,40 @@
               "returns": "void"
             }
           }
+        }
+      }
+    },
+    "signalwire.relay.closed_sets": {
+      "functions": {
+        "is_call_state_terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "is_dial_state_terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "is_message_state_terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
         }
       }
     },
@@ -12068,6 +12111,15 @@
               "returns": "void"
             },
             "is_done": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
+            "is_terminal": {
               "params": [
                 {
                   "name": "self",
