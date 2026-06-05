@@ -8,8 +8,15 @@
 #   1. vitest run                         — language test runner
 #   2. signature regen                    — npx tsx scripts/enumerate-signatures.ts
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
-#   4. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
-#   5. emission gate                      — porting-sdk diff_port_emission.py
+#   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
+#                                           (regenerates port_surface.json in place via
+#                                            enumerate-surface.ts and fails if the
+#                                            committed copy is stale modulo the
+#                                            generated_from git-sha; closes the Layer-B-
+#                                            not-gated hole — DRIFT gates Layer A only,
+#                                            so port_surface.json silently rots)
+#   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
+#   6. emission gate                      — porting-sdk diff_port_emission.py
 #                                           (byte-compares this port's FunctionResult
 #                                            serialisation vs Python's to_dict() over
 #                                            the shared 81-entry corpus; closes the
@@ -101,11 +108,35 @@ run_gate "DRIFT" "diff_port_signatures vs python reference" \
         --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
         --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
 
-# Gate 4: no-cheat
+# Gate 4: surface-fresh — DRIFT only gates Layer A (signatures), so the committed
+# port_surface.json can silently rot. Save the committed copy, regenerate in place
+# via the surface enumerator (enumerate-surface.ts writes port_surface.json directly,
+# like enumerate-signatures.ts — no redirect), compare modulo the generated_from
+# git-sha, then always restore the working tree.
+surface_fresh_gate() {
+    git show HEAD:port_surface.json > /tmp/committed_surface.json 2>/dev/null \
+        || cp "$PORT_ROOT/port_surface.json" /tmp/committed_surface.json
+    npx tsx scripts/enumerate-surface.ts
+    local rc=$?
+    if [ "$rc" -ne 0 ]; then
+        git checkout -- port_surface.json 2>/dev/null || true
+        return "$rc"
+    fi
+    python3 "$PORTING_SDK_DIR/scripts/check_surface_freshness.py" \
+        --committed /tmp/committed_surface.json \
+        --fresh "$PORT_ROOT/port_surface.json"
+    rc=$?
+    git checkout -- port_surface.json 2>/dev/null || true
+    return "$rc"
+}
+run_gate "SURFACE-FRESH" "check_surface_freshness vs committed port_surface.json" \
+    surface_fresh_gate
+
+# Gate 5: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \
     python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
-# Gate 5: emission — byte-compare FunctionResult serialisation vs the Python
+# Gate 6: emission — byte-compare FunctionResult serialisation vs the Python
 # to_dict() oracle over the shared corpus (scripts/emit-corpus.ts builds the
 # native dump). Pure serialisation: no mock servers, no network — just
 # signalwire-python adjacent (already required by the drift gate).
