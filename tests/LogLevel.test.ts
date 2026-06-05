@@ -148,12 +148,20 @@ describe('LogLevel closed-set typing (setGlobalLogLevel)', () => {
     expect([...emittedSeverities('ll-e')].sort()).toEqual(['error']);
   });
 
-  it('still accepts an arbitrary level string (forward-compat / open arm)', () => {
-    // The `(string & {})` arm widens the param back to string; an unrecognised
-    // level isn't a key of the severity table, so it ranks lowest and every
-    // record emits — accepted without a type error and with defined behavior.
+  it('rejects an off-spec level at COMPILE time — the open `(string & {})` arm is closed', () => {
+    // setGlobalLogLevel's parameter used to carry a `(string & {})` arm that
+    // accepted any string; it is now the closed, port-owned set. An off-spec
+    // level is a compile error, not a silently-accepted runtime no-op. Proven
+    // two ways. (1) The real shipped `LogLevel` union rejects the off-spec literal:
+    const errs = typeCheckLines(`const x: LogLevel = 'trace'; void x;`);
+    expect(errs.get(1)).toBeDefined();
+    expect(errs.get(1)!).toMatch(/not assignable to type 'LogLevel'/);
+    // (2) The call site itself rejects it — the param is closed, not `| string`.
+    // If the open arm were still present, this `@ts-expect-error` would itself
+    // be an unused-directive compile error, so the test fails loudly either way.
+    // @ts-expect-error — 'trace' is not a LogLevel; the open arm is gone.
     setGlobalLogLevel('trace');
-    expect([...emittedSeverities('ll-open')].sort()).toEqual(['debug', 'error', 'info', 'warn']);
+    setGlobalLogLevel('info'); // restore a valid level for subsequent tests
   });
 
   it('rejects a typo’d level at COMPILE time, accepts the correct one', () => {

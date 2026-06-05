@@ -17,14 +17,6 @@ const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
  * `PORT_ADDITIONS.md`), so the canonical set is this port's own.
  */
 export type LogLevel = keyof typeof LEVELS;
-/**
- * A log-level argument: one of the typed {@link LogLevel} values
- * (autocompleted + a typo such as `'debgu'` is a compile-time error) or any
- * other string. The `(string & {})` arm widens the parameter back to `string`
- * so arbitrary input is still accepted at the type level; it is purely a
- * type-level annotation (TypeScript erases it) and has no runtime effect.
- */
-export type LogLevelOrString = LogLevel | (string & {});
 /** Output format for log entries. */
 type LogFormat = 'text' | 'json';
 /** Output stream routing. */
@@ -100,18 +92,18 @@ const loggerCache = new Map<string, Logger>();
 /**
  * Set the minimum log level for all loggers.
  *
- * Accepts a typed {@link LogLevel} (`'debug' | 'info' | 'warn' | 'error'`) —
- * which gives editor autocompletion and turns a typo into a compile-time error
- * — or, via the `(string & {})` arm of {@link LogLevelOrString}, any other
- * string. An unrecognised level is stored as-is; since it isn't a key of the
- * internal severity table it compares as the lowest rank, so every record is
- * emitted (matching the env-var path, which likewise casts an arbitrary
- * `SIGNALWIRE_LOG_LEVEL` string through with no validation).
+ * Takes a {@link LogLevel} (`'debug' | 'info' | 'warn' | 'error'`) — the
+ * closed, port-owned set (the keys of the internal severity table). It is
+ * developer input with no Python counterpart and no open-ended wire/reference
+ * source, so the parameter is typed closed: editor autocompletion plus a typo
+ * such as `'debgu'` is a compile-time error rather than a silent no-op. (The
+ * env-var path, `SIGNALWIRE_LOG_LEVEL`, is necessarily untyped and still
+ * tolerates an arbitrary string defensively at runtime.)
  *
  * @param level - The minimum severity level to emit.
  */
-export function setGlobalLogLevel(level: LogLevelOrString): void {
-  globalLevel = level as LogLevel;
+export function setGlobalLogLevel(level: LogLevel): void {
+  globalLevel = level;
 }
 
 /**
