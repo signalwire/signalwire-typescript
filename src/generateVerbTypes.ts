@@ -115,6 +115,30 @@ const WIDEN_TO_STRING: Record<string, Set<string>> = {
 };
 
 /**
+ * The TTS-gender literal union, emitted INLINE (no import) so the generated
+ * file stays self-contained. It mirrors `TtsGenderOrString` in
+ * `relay/closedSets.ts`: the `'male' | 'female'` literals give autocomplete +
+ * typo-checking, and the `(string & {})` arm widens back to `string` so any
+ * other value is still accepted and forwarded.
+ *
+ * WEAK GROUNDING — `say_gender` has NO `enum:` in the SWML schema (`default:
+ * "female"`, `examples: ["female"]`; `"male"` never appears) and the Python
+ * reference never validates it. Convention-grounded, not schema-enforced, so it
+ * must NOT reject other strings.
+ */
+const SAY_GENDER_TYPE = `'male' | 'female' | (string & {})`;
+
+/**
+ * Properties to type as the {@link SAY_GENDER_TYPE} TTS-gender union instead of
+ * the schema's bare `string`. Keyed by verbName → set of property names.
+ * `play` is handled via its CUSTOM_VERB_TYPES body, so only the generic-path
+ * verbs (e.g. `prompt`) need an entry here.
+ */
+const TYPE_AS_SAY_GENDER: Record<string, Set<string>> = {
+  prompt: new Set(['say_gender']),
+};
+
+/**
  * Custom typed interface definitions for verbs whose schema shape (e.g., $ref or oneOf)
  * cannot be fully expressed by the generic generateVerbConfig() logic.
  *
@@ -155,8 +179,8 @@ const CUSTOM_VERB_TYPES: Record<string, { interfaceName: string; interfaceBody: 
       '  say_voice?: string;',
       '  /** Language code for text-to-speech (e.g. "en-US"). */',
       '  say_language?: string;',
-      '  /** Gender for text-to-speech ("male" or "female"). */',
-      '  say_gender?: string;',
+      '  /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted + typo-checked; any other string is still accepted (WEAK GROUNDING: no `enum:` in the SWML schema, Python never validates — convention, not schema). */',
+      `  say_gender?: ${SAY_GENDER_TYPE};`,
       '  /** If true, auto-answer the call before playing audio. Default true. */',
       '  auto_answer?: boolean;',
     ].join('\n'),
@@ -195,10 +219,13 @@ function generateVerbConfig(
     const props = innerSchema.properties;
     const required = new Set(innerSchema.required ?? []);
     const widenProps = WIDEN_TO_STRING[verbName] ?? new Set<string>();
+    const sayGenderProps = TYPE_AS_SAY_GENDER[verbName] ?? new Set<string>();
     const lines: string[] = [];
 
     for (const [propName, propDef] of Object.entries(props)) {
-      const tsType = mapType(propDef, { widenStringEnum: widenProps.has(propName) });
+      const tsType = sayGenderProps.has(propName)
+        ? SAY_GENDER_TYPE
+        : mapType(propDef, { widenStringEnum: widenProps.has(propName) });
       const opt = required.has(propName) ? '' : '?';
       const desc = propDef.description
         ? ` /** ${propDef.description.replace(/\n/g, ' ').replace(/\*\//g, '* /')} */\n    `

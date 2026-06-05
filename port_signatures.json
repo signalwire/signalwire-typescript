@@ -692,7 +692,7 @@
           "params": [
             {
               "name": "fn",
-              "type": "callable<list<any>,any>",
+              "type": "callable<list<list<any>>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>",
               "required": true
             },
             {
@@ -712,7 +712,7 @@
           "params": [
             {
               "name": "fn",
-              "type": "callable<list<any>,any>",
+              "type": "callable<list<list<any>>,any>",
               "required": true
             }
           ],

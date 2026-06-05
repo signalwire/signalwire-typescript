@@ -1,5 +1,58 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import * as ts from 'typescript';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
+import type { TtsGenderOrString } from '../src/relay/closedSets.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLOSED_SETS_SRC = path.resolve(__dirname, '../src/relay/closedSets.ts');
+
+// ---------------------------------------------------------------------------
+// tsc typo-probe — compile a snippet against the REAL `TtsGenderOrString` union
+// extracted from the shipped source (not a hand-copied duplicate), so the
+// closed set under test is the one we actually ship. Hermetic + fast (no
+// @types, no lib-check). vitest does not type-check, so this is how
+// "the literal set is enforced / a typo is a tsc error" gets verified.
+// ---------------------------------------------------------------------------
+
+function extractUnion(aliasName: string): string {
+  const src = readFileSync(CLOSED_SETS_SRC, 'utf-8');
+  const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
+  if (!m) throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
+  return m[1].replace(/\s+/g, ' ').replace(/^\|\s*/, '').trim();
+}
+
+/** Compile `type TtsGender = ...; type TtsGenderOrString = ...;` + body; return diagnostics keyed by body line (line N of body → file line N+2). */
+function typeCheckSayGender(body: string): Map<number, string> {
+  const virtual = path.resolve(__dirname, '__say_gender_probe__.ts');
+  const source =
+    `type TtsGender = ${extractUnion('TtsGender')};\n` +
+    `type TtsGenderOrString = ${extractUnion('TtsGenderOrString')};\n` +
+    `${body}\n`;
+  const options: ts.CompilerOptions = {
+    strict: true,
+    noEmit: true,
+    skipLibCheck: true,
+    types: [],
+    typeRoots: [],
+    target: ts.ScriptTarget.ES2022,
+  };
+  const host = ts.createCompilerHost(options);
+  const origRead = host.readFile.bind(host);
+  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
+  const origExists = host.fileExists.bind(host);
+  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
+  const program = ts.createProgram([virtual], options, host);
+  const byLine = new Map<number, string>();
+  for (const d of ts.getPreEmitDiagnostics(program)) {
+    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
+    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
+    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+  }
+  return byLine;
+}
 
 describe('SwmlBuilder — verb auto-vivification', () => {
   let builder: SwmlBuilder;
@@ -254,6 +307,68 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       const doc = builder.getDocument() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(3);
       expect(doc.sections.main[1]).toEqual({ play: { url: 'say:Welcome' } });
+    });
+  });
+
+  // ── say_gender closed-set typing (WEAK GROUNDING) ───────────────────────
+  // `say()`'s `gender` option is typed `'male' | 'female' | (string & {})`
+  // (TtsGenderOrString): autocomplete + typo-checking for the conventional
+  // values, while any other string is still accepted. The SWML schema gives
+  // `say_gender` NO `enum:` (default "female", examples ["female"]; "male"
+  // never appears) and Python never validates it — so the union is convention-
+  // grounded and must NOT reject other strings. Types erase at runtime, so the
+  // wire value is identical to a bare string. The SwmlBuilder is driven for
+  // real (no mocks); the produced document is read back via getDocument().
+  describe('say() gender — TtsGender literal union (convention-grounded)', () => {
+    it('typed union member and bare string emit byte-identical say_gender', () => {
+      const typed: TtsGenderOrString = 'female';
+
+      const a = new SwmlBuilder();
+      a.say('hi', { gender: typed });
+      const docTyped = a.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+
+      const b = new SwmlBuilder();
+      b.say('hi', { gender: 'female' }); // bare string literal
+      const docStr = b.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+
+      expect((docTyped.sections.main[0].play as Record<string, unknown>).say_gender).toBe('female');
+      // Byte-for-byte identical play verb whether the value was the typed union
+      // member or the bare string — the type is pure compile-time ergonomics.
+      expect(docStr.sections.main[0]).toEqual(docTyped.sections.main[0]);
+    });
+
+    it("accepts 'male' (the literal never present in the schema's examples)", () => {
+      const gender: TtsGenderOrString = 'male';
+      builder.say('hi', { gender });
+      const doc = builder.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('male');
+    });
+
+    it('still accepts an arbitrary (forward-compat) gender string — Python str parity', () => {
+      // The `(string & {})` arm widens the param back to `string`, so a value
+      // outside the literal set is accepted and forwarded verbatim.
+      builder.say('hi', { gender: 'neutral' });
+      const doc = builder.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('neutral');
+    });
+
+    it("autocompletes 'male'/'female' yet a non-string is a COMPILE-time error", () => {
+      // Drive the REAL shipped union through tsc. The literals and an arbitrary
+      // string are clean (open arm); a NON-string (number) is rejected — i.e.
+      // the union still types the value as a string, it does not collapse to
+      // `unknown`/`any`.
+      const errs = typeCheckSayGender(
+        `const ok1: TtsGenderOrString = 'female'; void ok1;\n` + // line 0 → diag line 2
+        `const ok2: TtsGenderOrString = 'male'; void ok2;\n` +   // line 1 → diag line 3
+        `const ok3: TtsGenderOrString = 'neutral'; void ok3;\n` + // line 2 → diag line 4 (open arm)
+        `const bad: TtsGenderOrString = 42; void bad;`,           // line 3 → diag line 5 (rejected)
+      );
+      expect(errs.get(2)).toBeUndefined(); // 'female' clean
+      expect(errs.get(3)).toBeUndefined(); // 'male' clean
+      expect(errs.get(4)).toBeUndefined(); // arbitrary string clean (forward-compat)
+      const badErr = errs.get(5);
+      expect(badErr).toBeDefined();
+      expect(badErr!).toMatch(/not assignable to type 'TtsGenderOrString'/);
     });
   });
 

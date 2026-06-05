@@ -10,6 +10,7 @@
 
 import { SchemaUtils } from './SchemaUtils.js';
 import type { ValidationResult } from './SchemaUtils.js';
+import type { TtsGenderOrString } from './relay/closedSets.js';
 
 // Ensure module augmentation from generated file is active
 import './SwmlVerbMethods.generated.js';
@@ -219,7 +220,16 @@ export class SwmlBuilder {
    */
   say(
     text: string,
-    opts?: { voice?: string; language?: string; gender?: string; volume?: number },
+    // `gender` is typed as the `'male' | 'female'` literal union *alongside* an
+    // open `string` arm (`TtsGenderOrString`): autocomplete + typo-checking for
+    // the conventional values, while any other string is still accepted and
+    // forwarded verbatim. WEAK GROUNDING — `say_gender` has NO `enum:` in the
+    // SWML schema (`default: "female"`, `examples: ["female"]`; `"male"` never
+    // appears) and the Python reference never validates it. The union is
+    // convention-grounded, not schema-enforced, so it must NOT reject other
+    // strings. Types erase at runtime → the value on the wire is identical to a
+    // bare string (parity with Python's `gender: str`).
+    opts?: { voice?: string; language?: string; gender?: TtsGenderOrString; volume?: number },
   ): this {
     const config: Record<string, unknown> = { url: `say:${text}` };
     if (opts?.voice !== undefined) config['say_voice'] = opts.voice;

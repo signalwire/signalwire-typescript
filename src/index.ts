@@ -127,7 +127,7 @@ export type { AuthConfig } from './AuthHandler.js';
 
 // Type inference for typed tool handlers
 export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './TypeInference.js';
-export type { InferredSchema, ParsedParam } from './TypeInference.js';
+export type { InferredSchema, ParsedParam, TypedToolHandler } from './TypeInference.js';
 
 // Security utilities
 export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl, isServerlessMode } from './SecurityUtils.js';

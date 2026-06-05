@@ -16,7 +16,7 @@ import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
-import { inferSchema, createTypedHandlerWrapper } from './TypeInference.js';
+import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs } from './Logger.js';
@@ -1374,7 +1374,14 @@ export class AgentBase extends SWMLService {
     name: string;
     description: string;
     parameters?: Record<string, unknown>;
-    handler: Function;
+    /**
+     * The typed handler. Receives the AI-extracted arguments as named
+     * positional parameters (in declaration order), optionally with a trailing
+     * `rawData` record, and returns a SWAIG result. Precisely typed as
+     * {@link TypedToolHandler} rather than the bare `Function` so a non-callable
+     * — or a callable that returns nothing usable — is a compile-time error.
+     */
+    handler: TypedToolHandler;
     secure?: boolean;
     fillers?: Record<string, string[]>;
     waitFile?: string;

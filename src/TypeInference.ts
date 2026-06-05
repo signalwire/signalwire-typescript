@@ -7,6 +7,44 @@
  */
 
 import type { SwaigHandler } from './SwaigFunction.js';
+import type { FunctionResult } from './FunctionResult.js';
+
+/**
+ * A typed SWAIG tool handler: a function the SDK introspects and wraps so it
+ * receives the AI-extracted arguments as *named positional parameters* (any
+ * arity, optionally with a trailing `rawData` record) rather than the raw
+ * `(args, rawData)` pair of {@link SwaigHandler}.
+ *
+ * This is the precise replacement for the bare `Function` type at the
+ * typed-tool sites: it constrains the value to a *callable whose return is a
+ * valid SWAIG result* (a {@link FunctionResult}, a `{ response }`-style record,
+ * or a string — sync or async), which `Function` does not — so a non-callable,
+ * or a callable returning `void`/`boolean`/etc., is now a compile-time error.
+ *
+ * Parameters are `...args: never[]` rather than `...unknown[]`: the handler's
+ * real parameters are user-named with arbitrary types (`(city: string, days =
+ * 5) => …`) and are recovered from `fn.toString()` by {@link inferSchema}, so
+ * the type must accept *any* concrete positional list. Under
+ * `strictFunctionTypes`, `never[]` makes the parameter position accept any
+ * function (every param type is a supertype of `never`) while still pinning the
+ * return type — exactly "callable returning a SWAIG result, params don't
+ * matter". (`...unknown[]` would wrongly REJECT a `(city: string) => …` handler,
+ * defeating the purpose.)
+ */
+export type TypedToolHandler = (
+  ...args: never[]
+) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
+
+/**
+ * A function the SDK *introspects* (reads `fn.toString()` to recover parameter
+ * names/defaults) but whose return value it does not consume. `inferSchema`
+ * only inspects the parameter list, so — unlike {@link TypedToolHandler} — its
+ * input is return-agnostic. Still a precise improvement over the bare
+ * `Function`: it is a *callable* (rejecting non-functions) with an arbitrary
+ * concrete parameter list (`...args: never[]` accepts any), and any return.
+ * Every {@link TypedToolHandler} is assignable to it.
+ */
+export type IntrospectableFn = (...args: never[]) => unknown;
 
 /** A parsed function parameter with optional default value. */
 export interface ParsedParam {
@@ -103,12 +141,14 @@ function extractParamName(expr: string): string {
  * - No default → `"string"` (and the parameter is marked required)
  *
  * @param fn - The function to inspect. Arrow functions, regular functions, and
- *   method shorthand all work.
+ *   method shorthand all work. Typed as {@link IntrospectableFn} because only
+ *   the parameter list is read — the handler's return is irrelevant to schema
+ *   inference (a {@link TypedToolHandler} satisfies this).
  * @returns An {@link InferredSchema} describing the parameters, or `null` when
  *   the function looks like an old-style `(args, rawData)` SWAIG handler (in
  *   which case no inference is attempted).
  */
-export function inferSchema(fn: Function): InferredSchema | null {
+export function inferSchema(fn: IntrospectableFn): InferredSchema | null {
   const source = fn.toString();
   const parsed = parseFunctionParams(source);
 
@@ -185,7 +225,7 @@ function inferTypeFromDefault(defaultValue?: string): string {
  *   {@link AgentBase.defineTool}.
  */
 export function createTypedHandlerWrapper(
-  fn: Function,
+  fn: TypedToolHandler,
   paramNames: string[],
   hasRawData: boolean,
 ): SwaigHandler {
@@ -194,6 +234,13 @@ export function createTypedHandlerWrapper(
     if (hasRawData) {
       positionalArgs.push(rawData);
     }
-    return fn(...positionalArgs);
+    // This wrapper is the type-erasure boundary: at runtime we spread the
+    // AI-supplied args positionally into the handler. `TypedToolHandler`'s
+    // `...args: never[]` deliberately accepts any concrete parameter list at
+    // the *definition* site (so `(city: string) => …` is assignable), which
+    // means we can't statically pass `unknown` values here — exactly what the
+    // bare `Function` type erased implicitly. Cast to a permissive call
+    // signature for this one dynamic dispatch.
+    return (fn as (...a: unknown[]) => ReturnType<TypedToolHandler>)(...positionalArgs);
   };
 }
