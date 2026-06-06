@@ -33,7 +33,7 @@ export interface PlayVerbConfig {
   /** Language code for text-to-speech (e.g. "en-US"). */
   say_language?: string;
   /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted + typo-checked; any other string is still accepted (WEAK GROUNDING: no `enum:` in the SWML schema, Python never validates — convention, not schema). */
-  say_gender?: 'male' | 'female' | (string & {});
+  say_gender?: 'male' | 'female';
   /** If true, auto-answer the call before playing audio. Default true. */
   auto_answer?: boolean;
 }
@@ -94,7 +94,7 @@ declare module './SwmlBuilder.js' {
     volume?: number;  /** The voice to use for the text to speech. */
     say_voice?: string;  /** The language to use for the text to speech. */
     say_language?: string;  /** The gender to use for the text to speech. */
-    say_gender?: 'male' | 'female' | (string & {});  /** Number of digits to collect. Default is `1`. */
+    say_gender?: 'male' | 'female';  /** Number of digits to collect. Default is `1`. */
     max_digits?: number;  /** Digits that terminate digit collection. Default is not set. */
     terminators?: string;  /** Time in seconds to wait for next digit. Default is `5.0` seconds. */
     digit_timeout?: number;  /** Time in seconds to wait for start of input. Default is `5.0` seconds. */

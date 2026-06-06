@@ -11,7 +11,7 @@ import { createDeferred, type Deferred } from './Deferred.js';
 import { MESSAGE_TERMINAL_STATES } from './constants.js';
 import { RelayEvent } from './RelayEvent.js';
 import { isMessageStateTerminal } from './closedSets.js';
-import type { MessageStateOrString } from './closedSets.js';
+import type { MessageState } from './closedSets.js';
 import type { CompletedCallback, EventHandler } from './types.js';
 
 const logger = getLogger('relay_message');
@@ -53,13 +53,14 @@ export class Message {
   /** Number of segments the carrier split the message into. */
   segments: number;
   /**
-   * Current message state. One of the {@link MessageStateOrString} values
+   * Current message state. One of the {@link MessageState} values
    * (`"queued"` | `"initiated"` | `"sent"` | `"delivered"` | `"undelivered"` |
-   * `"failed"` | `"received"`, autocompleted) widened to `string` for
-   * forward-compat with server-added states. Use {@link Message.isTerminal} to
-   * test for a final delivery outcome rather than comparing strings by hand.
+   * `"failed"` | `"received"`; closed literal union, autocompleted +
+   * typo-checked). A raw wire value is cast to the closed type at the hydration
+   * boundary. Use {@link Message.isTerminal} to test for a final delivery
+   * outcome rather than comparing strings by hand.
    */
-  state: MessageStateOrString;
+  state: MessageState;
   /** Failure / undelivery reason when `state` is non-successful. */
   reason: string;
   /** Opaque tags attached to the message. */
@@ -78,7 +79,7 @@ export class Message {
     body?: string;
     media?: string[];
     segments?: number;
-    state?: MessageStateOrString;
+    state?: MessageState;
     reason?: string;
     tags?: string[];
   } = {}) {
@@ -90,7 +91,8 @@ export class Message {
     this.body = options.body ?? '';
     this.media = options.media ?? [];
     this.segments = options.segments ?? 0;
-    this.state = options.state ?? '';
+    // Boundary cast: a raw wire state (or the '' default) becomes the closed MessageState here.
+    this.state = (options.state ?? '') as MessageState;
     this.reason = options.reason ?? '';
     this.tags = options.tags ?? [];
     this._done = createDeferred<RelayEvent>();
@@ -168,7 +170,7 @@ export class Message {
     const newState = (eventParams.message_state ?? '') as string;
 
     if (newState) {
-      this.state = newState;
+      this.state = newState as MessageState; // boundary cast: raw wire state → closed field
     }
     if (eventParams.reason !== undefined) {
       this.reason = eventParams.reason as string;

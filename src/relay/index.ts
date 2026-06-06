@@ -10,18 +10,14 @@ export { RelayError } from './RelayError.js';
 export { Call } from './Call.js';
 export type { RelayClientLike } from './Call.js';
 
-// Closed-set option unions (typo-checked autocomplete; widened to string)
+// Closed-set option unions (typo-checked + autocomplete; closed literal unions).
+// SkillName is the one set left open — see ./closedSets.ts.
 export type {
   TtsGender,
-  TtsGenderOrString,
   FaxTone,
-  FaxToneOrString,
   CallState,
-  CallStateOrString,
   DialState,
-  DialStateOrString,
   MessageState,
-  MessageStateOrString,
 } from './closedSets.js';
 export {
   CALL_STATE_TERMINAL,

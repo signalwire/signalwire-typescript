@@ -235,27 +235,28 @@ describe('CallState / DialState / MessageState — compile-time typing', () => {
     expect(r[known.length]).toBeDefined();
   });
 
-  it('the …OrString widened forms accept a forward-compat (server-added) string', () => {
-    // The `(string & {})` arm keeps the field a string at the type level, so a
-    // value outside the known set still compiles — parity with the reference's
-    // bare-`str` Call.state / Message.state. (Each …OrString references its base
-    // …State alias, so both must be declared — probeBatch throws otherwise, so
-    // this can't pass vacuously by widening to `any`.) The trailing non-string
-    // proves it's `… | string`, not collapsed to `any`.
+  it('the closed state types REJECT an off-spec string — the open `(string & {})` arm was removed', () => {
+    // The three state sets are typed CLOSED (no `(string & {})` arm). A value
+    // outside the known set is now a COMPILE error — the typo/exhaustiveness net
+    // the closed union buys, and the inverse of the open-arm behavior this test
+    // used to assert. ('parked'/'busy'/'read' are plausible-but-unknown states;
+    // each is rejected by its OWN vocabulary.) A raw wire value that isn't yet a
+    // known member is still carried losslessly at runtime via the hydration
+    // boundary cast — closing the type closes the surface, not the wire.
     const r = probeBatch(
-      ['CallState', 'CallStateOrString', 'DialState', 'DialStateOrString', 'MessageState', 'MessageStateOrString'],
+      ['CallState', 'DialState', 'MessageState'],
       [
-        { alias: 'CallStateOrString', value: q('parked') },
-        { alias: 'DialStateOrString', value: q('busy') },
-        { alias: 'MessageStateOrString', value: q('read') },
-        { alias: 'CallStateOrString', value: '123' },
+        { alias: 'CallState', value: q('parked') },
+        { alias: 'DialState', value: q('busy') },
+        { alias: 'MessageState', value: q('read') },
       ],
     );
-    expect(r[0]).toBeUndefined();
-    expect(r[1]).toBeUndefined();
-    expect(r[2]).toBeUndefined();
-    expect(r[3]).toBeDefined();
-    expect(r[3]!).toMatch(/not assignable to type 'CallStateOrString'/);
+    expect(r[0]).toBeDefined();
+    expect(r[0]!).toMatch(/not assignable to type 'CallState'/);
+    expect(r[1]).toBeDefined();
+    expect(r[1]!).toMatch(/not assignable to type 'DialState'/);
+    expect(r[2]).toBeDefined();
+    expect(r[2]!).toMatch(/not assignable to type 'MessageState'/);
   });
 
   it('NEVER conflates the three vocabularies (a state of one is not a state of another)', () => {

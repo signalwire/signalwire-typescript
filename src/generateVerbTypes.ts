@@ -116,17 +116,14 @@ const WIDEN_TO_STRING: Record<string, Set<string>> = {
 
 /**
  * The TTS-gender literal union, emitted INLINE (no import) so the generated
- * file stays self-contained. It mirrors `TtsGenderOrString` in
- * `relay/closedSets.ts`: the `'male' | 'female'` literals give autocomplete +
- * typo-checking, and the `(string & {})` arm widens back to `string` so any
- * other value is still accepted and forwarded.
- *
- * WEAK GROUNDING — `say_gender` has NO `enum:` in the SWML schema (`default:
- * "female"`, `examples: ["female"]`; `"male"` never appears) and the Python
- * reference never validates it. Convention-grounded, not schema-enforced, so it
- * must NOT reject other strings.
+ * file stays self-contained. It mirrors `TtsGender` in `relay/closedSets.ts`:
+ * the `'male' | 'female'` CLOSED literal union — autocomplete + typo-checking,
+ * with an off-spec value a compile error. Types erase, so the wire value is
+ * identical to a bare string (parity with Python's `gender: str`); closing the
+ * type changes what the compiler accepts, not a wire byte. Consistent with the
+ * RELAY gender, which is also closed (see PORT_PHILOSOPHY_TYPESCRIPT.md).
  */
-const SAY_GENDER_TYPE = `'male' | 'female' | (string & {})`;
+const SAY_GENDER_TYPE = `'male' | 'female'`;
 
 /**
  * Properties to type as the {@link SAY_GENDER_TYPE} TTS-gender union instead of

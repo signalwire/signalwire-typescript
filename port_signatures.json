@@ -10619,7 +10619,7 @@
                 },
                 {
                   "name": "call_state",
-                  "type": "string",
+                  "type": "union<string,string,string,string,string>",
                   "required": true
                 },
                 {
@@ -10702,7 +10702,7 @@
                 },
                 {
                   "name": "call_state",
-                  "type": "string",
+                  "type": "union<string,string,string,string,string>",
                   "required": true
                 },
                 {
@@ -11102,7 +11102,7 @@
                 },
                 {
                   "name": "dial_state",
-                  "type": "string",
+                  "type": "union<string,string,string>",
                   "required": true
                 },
                 {
@@ -11437,7 +11437,7 @@
                 },
                 {
                   "name": "message_state",
-                  "type": "string",
+                  "type": "union<string,string,string,string,string,string,string>",
                   "required": true
                 },
                 {

@@ -41,9 +41,9 @@ import {
 import { RelayEvent, parseEvent } from './RelayEvent.js';
 import type { CompletedCallback, EventHandler } from './types.js';
 import type {
-  TtsGenderOrString,
-  FaxToneOrString,
-  CallStateOrString,
+  TtsGender,
+  FaxTone,
+  CallState,
 } from './closedSets.js';
 import { isCallStateTerminal } from './closedSets.js';
 
@@ -94,13 +94,13 @@ export class Call {
   /** Device descriptor the call is associated with (phone, SIP, etc.). */
   device: Record<string, any>;
   /**
-   * Current call state. One of the {@link CallStateOrString} values
-   * (`"created"` | `"ringing"` | `"answered"` | `"ending"` | `"ended"`,
-   * autocompleted) widened to `string` for forward-compat with server-added
-   * states. Use {@link Call.isTerminal} to test for the terminal (`ended`)
-   * state rather than comparing strings by hand.
+   * Current call state. One of the {@link CallState} values
+   * (`"created"` | `"ringing"` | `"answered"` | `"ending"` | `"ended"`; closed
+   * literal union, autocompleted + typo-checked). A raw wire value is cast to
+   * the closed type at the hydration boundary. Use {@link Call.isTerminal} to
+   * test for the terminal (`ended`) state rather than comparing strings by hand.
    */
-  state: CallStateOrString;
+  state: CallState;
   /** Call segment ID used for event correlation. */
   segmentId: string;
 
@@ -118,7 +118,7 @@ export class Call {
       tag?: string;
       direction?: string;
       device?: Record<string, any>;
-      state?: CallStateOrString;
+      state?: CallState;
       segmentId?: string;
     } = {},
   ) {
@@ -130,7 +130,8 @@ export class Call {
     this.tag = options.tag ?? '';
     this.direction = options.direction ?? '';
     this.device = options.device ?? {};
-    this.state = options.state ?? '';
+    // Boundary cast: a raw wire state (or the '' default) becomes the closed CallState here.
+    this.state = (options.state ?? '') as CallState;
     this.segmentId = options.segmentId ?? '';
     this._ended = createDeferred<RelayEvent>();
   }
@@ -196,7 +197,7 @@ export class Call {
     // Update call state
     if (eventType === EVENT_CALL_STATE) {
       const callState = (event.params.call_state ?? this.state) as string;
-      this.state = callState;
+      this.state = callState as CallState; // boundary cast: raw wire state → closed field
       if (this.state === CALL_STATE_ENDED && !this._ended.settled) {
         this._ended.resolve(event);
       }
@@ -516,7 +517,7 @@ export class Call {
     text: string,
     options: {
       language?: string;
-      gender?: TtsGenderOrString;
+      gender?: TtsGender;
       voice?: string;
       volume?: number;
       onCompleted?: CompletedCallback;
@@ -696,7 +697,7 @@ export class Call {
     collect: Record<string, unknown>,
     options: {
       language?: string;
-      gender?: TtsGenderOrString;
+      gender?: TtsGender;
       voice?: string;
       volume?: number;
       onCompleted?: CompletedCallback;
@@ -959,7 +960,7 @@ export class Call {
    */
   async detectFax(
     options: {
-      tone?: FaxToneOrString;
+      tone?: FaxTone;
       timeout?: number;
       onCompleted?: CompletedCallback;
     } = {},
