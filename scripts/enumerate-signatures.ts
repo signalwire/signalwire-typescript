@@ -31,7 +31,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
-import * as yaml from 'yaml';
+import * as yaml from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -235,7 +235,7 @@ class TypeTranslationError extends Error {
 
 function loadAliases(): Record<string, string> {
   const raw = fs.readFileSync(path.join(PSDK, 'type_aliases.yaml'), 'utf-8');
-  const doc = yaml.parse(raw) as { aliases: { typescript: Record<string, string> } };
+  const doc = yaml.load(raw) as { aliases: { typescript: Record<string, string> } };
   return doc.aliases.typescript;
 }
 
