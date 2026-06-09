@@ -17,7 +17,13 @@ import type {
 import { FunctionResult } from '../../FunctionResult.js';
 import { MAX_SKILL_INPUT_LENGTH, validateUrl } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
-import * as cheerio from 'cheerio';
+// cheerio is an OPTIONAL dependency (only the web_search / spider scraping
+// skills use it). Import the TYPES statically (erased at compile time, zero
+// runtime cost) and load the VALUE lazily via `await import('cheerio')` at the
+// point of use — mirroring how RelayClient lazy-loads `ws`. A consumer who
+// never scrapes never loads cheerio; if it is absent, `validatePackages()`
+// (REQUIRED_PACKAGES below) reports it cleanly instead of crashing.
+import type * as cheerio from 'cheerio';
 
 const log = getLogger('WebSearchSkill');
 
@@ -98,7 +104,8 @@ const UNWANTED_PATTERNS = [
  *
  * @internal
  */
-export function extractTextFromHtml(html: string): string {
+export async function extractTextFromHtml(html: string): Promise<string> {
+  const cheerio = await import('cheerio');
   const normalized = html.replace(
     /<!\[CDATA\[([\s\S]*?)\]\]>/g,
     (_, content: string) => content,
@@ -207,12 +214,14 @@ interface GoogleSearchResponse {
  */
 export class WebSearchSkill extends SkillBase {
   // Python ground truth: skills/web_search/skill.py:559-567
-  // REQUIRED_PACKAGES = ["bs4", "requests"] in Python; TS uses cheerio + fetch so [].
+  // REQUIRED_PACKAGES = ["bs4", "requests"] in Python; TS uses cheerio (optional
+  // dependency) + the built-in fetch. cheerio is declared so validatePackages()
+  // reports it cleanly if a consumer installed the SDK without the optional dep.
+  static override REQUIRED_PACKAGES: readonly string[] = ['cheerio'];
   static override SKILL_NAME = 'web_search';
   static override SKILL_DESCRIPTION =
     'Search the web for information using Google Custom Search API';
   static override SKILL_VERSION = '2.0.0';
-  static override REQUIRED_PACKAGES: readonly string[] = [];
   static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
@@ -1051,7 +1060,7 @@ export class WebSearchSkill extends SkillBase {
         return null;
       }
       const body = await response.text();
-      let text = extractTextFromHtml(body);
+      let text = await extractTextFromHtml(body);
       if (text.length > contentLimit) {
         text = text.slice(0, contentLimit);
       }
