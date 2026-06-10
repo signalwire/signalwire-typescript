@@ -33,14 +33,14 @@ const fixtures = readdirSync(htmlDir)
   .sort();
 
 describe('WebSearchSkill.extractTextFromHtml — Python BeautifulSoup parity', () => {
-  it.each(fixtures)('matches Python reference for %s', (fixtureName) => {
+  it.each(fixtures)('matches Python reference for %s', async (fixtureName) => {
     const base = fixtureName.replace(/\.html$/, '');
     const html = readFileSync(join(htmlDir, fixtureName), 'utf8');
     const expected = JSON.parse(
       readFileSync(join(expectedDir, `${base}.json`), 'utf8'),
     ) as ExpectedParityOutput;
 
-    const text = extractTextFromHtml(html);
+    const text = await extractTextFromHtml(html);
 
     // `text_length` is in codepoints (matches Python's `len()`), not
     // UTF-16 code units. Use [...text].length rather than text.length.

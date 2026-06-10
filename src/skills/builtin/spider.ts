@@ -21,7 +21,13 @@ import type {
 import { FunctionResult } from '../../FunctionResult.js';
 import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
-import * as cheerio from 'cheerio';
+// cheerio is an OPTIONAL dependency (only the scraping skills use it). Import
+// the TYPES statically (erased at compile time) and load the VALUE lazily once
+// in async setup(), caching it on the instance so the sync extract helpers can
+// use it without each becoming async. Mirrors RelayClient's lazy `ws` load. If
+// cheerio is absent, validatePackages() (REQUIRED_PACKAGES) reports it and the
+// skill fails to register cleanly instead of crashing at import time.
+import type * as cheerio from 'cheerio';
 
 const log = getLogger('SpiderSkill');
 
@@ -198,6 +204,9 @@ export class SpiderSkill extends SkillBase {
   private compiledFollowPatterns: RegExp[] = [];
   private cache: Map<string, CachedResponse> | null = null;
   private readonly cacheMaxSize = 100;
+  // Lazily-loaded optional `cheerio` module, populated in setup(). Non-null
+  // for the lifetime of an initialized skill (setup() returns false if absent).
+  private _cheerio!: typeof import('cheerio');
 
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', this.skillName);
@@ -205,6 +214,18 @@ export class SpiderSkill extends SkillBase {
   }
 
   override async setup(): Promise<boolean> {
+    // Load the optional cheerio dependency once. If it isn't installed, the
+    // skill cannot scrape — fail setup cleanly (validatePackages() also flags
+    // it). Cached on the instance so the sync extract helpers can use it.
+    try {
+      this._cheerio = await import('cheerio');
+    } catch {
+      log.error(
+        'spider: the optional "cheerio" package is required for this skill but is not installed',
+      );
+      return false;
+    }
+
     // Performance
     this.delay = this.getConfig<number>('delay', 0.1);
     this.concurrentRequests = this.getConfig<number>('concurrent_requests', 5);
@@ -467,7 +488,7 @@ export class SpiderSkill extends SkillBase {
       // decoded (Python's lxml does this natively). Previously TS only
       // decoded six hand-coded entities, leaving `&mdash;`, `&#8212;`, etc.
       // literal in the output.
-      const $ = cheerio.load(body);
+      const $ = this._cheerio.load(body);
       // Strip noise tags before extracting text — matches Python's
       // lxml drop_tree() on the same 7 tags.
       for (const tag of [
@@ -545,7 +566,7 @@ export class SpiderSkill extends SkillBase {
   /** Markdown extraction using cheerio. Mirrors Python `_markdown_extract`. */
   private _markdownExtract(response: CachedResponse): string {
     try {
-      const $ = cheerio.load(response.body);
+      const $ = this._cheerio.load(response.body);
 
       // Remove unwanted tags
       for (const tag of ['script', 'style', 'nav', 'header', 'footer', 'aside']) {
@@ -591,7 +612,7 @@ export class SpiderSkill extends SkillBase {
   ): Record<string, unknown> {
     let $: cheerio.CheerioAPI;
     try {
-      $ = cheerio.load(cached.body);
+      $ = this._cheerio.load(cached.body);
     } catch (err) {
       // Python returns `{'error': str(e)}` from _structured_extract when the
       // parser fails (skill.py). Surface the same shape so upstream handlers
@@ -772,7 +793,7 @@ export class SpiderSkill extends SkillBase {
       // xpath('//a[@href]/@href') which has the same robustness).
       if (depth < maxDepth) {
         try {
-          const $links = cheerio.load(cached.body);
+          const $links = this._cheerio.load(cached.body);
           const hrefs: string[] = [];
           $links('a[href]').each((_, el) => {
             const href = $links(el).attr('href');
