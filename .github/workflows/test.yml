@@ -47,7 +47,7 @@ jobs:
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
       # present, else falls back to PATH — so set 24 here for the runner).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
