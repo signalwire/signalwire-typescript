@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout TypeScript SDK
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: typescript-sdk
 
       - name: Checkout porting-sdk (contains python_surface.json)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
