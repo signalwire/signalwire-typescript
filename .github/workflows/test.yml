@@ -1,4 +1,13 @@
 name: Test
+
+# Runs the full per-port CI gate set via scripts/run-ci.sh:
+#   TEST → SIGNATURES → DRIFT → SURFACE-FRESH → NO-CHEAT → EMISSION
+# Mirrors `bash scripts/run-ci.sh` exactly so there's no drift between local
+# and CI behavior. Previously this workflow ran only `tsc --noEmit` + `npm
+# test`, which left the EMISSION and NO-CHEAT gates unenforced on every TS PR
+# — a behavioral-emission regression (wrong toValue()/to_dict() shape) could
+# land green. run-ci.sh closes that hole.
+
 env:
   # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -17,36 +26,56 @@ jobs:
         with:
           path: signalwire-typescript
 
-      - name: Checkout porting-sdk (mock_relay test harness)
+      - name: Checkout porting-sdk (mock servers + audit scripts + EMISSION corpus)
         uses: actions/checkout@v5
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
+      # The EMISSION gate compares this port's toValue() output against the
+      # signalwire-python oracle (FunctionResult), which pulls fastapi via
+      # signalwire/__init__. Check it out as a sibling so the gate has its
+      # reference.
+      - name: Checkout signalwire-python (EMISSION oracle)
+        uses: actions/checkout@v5
+        with:
+          repository: signalwire/signalwire-python
+          path: signalwire-python
+          ref: main
+
+      # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
+      # tsx; the script expects Node 24 (it prepends a local nvm path when
+      # present, else falls back to PATH — so set 24 here for the runner).
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: signalwire-typescript/package-lock.json
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install Python test harnesses (mock_relay + mock_signalwire)
         run: |
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
+      - name: Install signalwire-python (EMISSION oracle) if not importable
+        run: |
+          if python -c "import signalwire.core.function_result" 2>/dev/null; then
+            echo "signalwire-python already importable; skipping install"
+          else
+            pip install ./signalwire-python
+          fi
+
       - name: npm ci
         working-directory: signalwire-typescript
         run: npm ci
 
-      - name: Type check (tsc --noEmit)
+      - name: Run CI gate script (TEST → SIGNATURES → DRIFT → SURFACE-FRESH → NO-CHEAT → EMISSION)
         working-directory: signalwire-typescript
-        run: npx tsc --noEmit
-
-      - name: npm test
-        working-directory: signalwire-typescript
-        run: npm test
+        env:
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+        run: bash scripts/run-ci.sh
