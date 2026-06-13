@@ -16,12 +16,12 @@ jobs:
       id-token: write
     steps:
       - name: Checkout signalwire-typescript
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: signalwire-typescript
 
       - name: Checkout porting-sdk (mock_relay test harness)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
