@@ -43,7 +43,7 @@ jobs:
       - name: Setup Python (for diff_port_surface.py)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.14'
 
       - name: Install TS deps
         working-directory: typescript-sdk
