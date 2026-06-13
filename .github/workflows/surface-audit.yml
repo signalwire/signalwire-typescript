@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: typescript-sdk/package-lock.json
 
       - name: Setup Python (for diff_port_surface.py)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
