@@ -25,7 +25,7 @@
     "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "license": "MIT",
   "dependencies": {
