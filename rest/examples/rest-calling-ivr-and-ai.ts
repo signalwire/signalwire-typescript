@@ -19,7 +19,7 @@ import { RestClient, RestError } from '../../src/index.js';
 const client = new RestClient();
 const CALL_ID = 'demo-call-id';
 
-async function safe(label: string, fn: () => Promise<unknown>): Promise<unknown> {
+async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
     const result = await fn();
     console.log(`  ${label}: OK`);
