@@ -9105,7 +9105,7 @@
                 },
                 {
                   "name": "detect",
-                  "type": "class:signalwire.relay.protocol.types.generated.__type",
+                  "type": "class:signalwire.rest.namespaces.calling.types.generated.__type",
                   "required": true
                 },
                 {
@@ -9629,7 +9629,7 @@
                 },
                 {
                   "name": "audio",
-                  "type": "class:signalwire.relay.protocol.types.generated.__type",
+                  "type": "class:signalwire.rest.namespaces.calling.types.generated.__type",
                   "required": false,
                   "default": null
                 },
@@ -9730,7 +9730,7 @@
                 },
                 {
                   "name": "tap",
-                  "type": "class:signalwire.relay.protocol.types.generated.__type",
+                  "type": "class:signalwire.rest.namespaces.calling.types.generated.__type",
                   "required": true
                 },
                 {

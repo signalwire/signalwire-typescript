@@ -53,12 +53,10 @@ import type {
   CallingAnswerResult,
   CallingBindDigitResult,
   CallingClearDigitBindingsResult,
-  CallingCollectParams,
   CallingConnectParams,
   CallingConnectResult,
   CallingDenoiseResult,
   CallingDenoiseStopResult,
-  CallingDetectParams,
   CallingDisconnectResult,
   CallingEchoResult,
   CallingEndResult,
@@ -71,13 +69,24 @@ import type {
   CallingPassResult,
   CallingQueueEnterResult,
   CallingQueueLeaveResult,
-  CallingRecordParams,
   CallingReferResult,
   CallingSendDigitsResult,
-  CallingTapParams,
   CallingTransferResult,
   CallingUserEventResult,
 } from './protocol.types.generated.js';
+// Command param shapes come from the REST calling spec (rest-apis/calling/
+// openapi.yaml), which fully defines each command's nested params (record.audio
+// = beep/format/stereo/…, detect.detect = {type, params}, etc.). The relay
+// protocol.types.generated.ts (switchblade-extracted) under-reports these nested
+// objects, so we type the relay Call methods from the complete REST shapes — the
+// same wire command, fully specified. (connect's params are relay-only — see
+// CallingConnectParams above for ringback.)
+import type {
+  CallCollectRequest,
+  CallDetectRequest,
+  CallRecordRequest,
+  CallTapRequest,
+} from '../rest/namespaces/calling.types.generated.js';
 import type { TtsGender, FaxTone, CallState } from './closedSets.js';
 import { isCallStateTerminal } from './closedSets.js';
 
@@ -680,7 +689,7 @@ export class Call {
    * @throws {RelayError} When the record command is rejected.
    */
   async record(
-    audio?: CallingRecordParams['record']['audio'],
+    audio?: CallRecordRequest['params']['audio'],
     options: {
       controlId?: string;
       onCompleted?: CompletedCallback;
@@ -815,8 +824,8 @@ export class Call {
    */
   async collect(
     options: {
-      digits?: CallingCollectParams['digits'];
-      speech?: CallingCollectParams['speech'];
+      digits?: CallCollectRequest['params']['digits'];
+      speech?: CallCollectRequest['params']['speech'];
       initialTimeout?: number;
       partialResults?: boolean;
       continuous?: boolean;
@@ -913,7 +922,7 @@ export class Call {
    * @throws {RelayError} When the detect command is rejected.
    */
   async detect(
-    detect: CallingDetectParams['detect'],
+    detect: CallDetectRequest['params']['detect'],
     options: {
       timeout?: number;
       controlId?: string;
@@ -1191,7 +1200,7 @@ export class Call {
    * @throws {RelayError} When the tap command is rejected.
    */
   async tap(
-    tap: CallingTapParams['tap'],
+    tap: CallTapRequest['params']['tap'],
     device: DeviceInput,
     options: {
       controlId?: string;

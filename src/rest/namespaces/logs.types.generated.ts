@@ -35,7 +35,7 @@ export interface ConferencesResponse {
   /** Pagination links. */
   links: ConferenceLogPaginationLinks;
   /** A list of conference logs. */
-  data: CxmlConference | RelayConference | VideoRoomSessionConference[];
+  data: (CxmlConference | RelayConference | VideoRoomSessionConference)[];
 }
 
 /** Core conference object. */

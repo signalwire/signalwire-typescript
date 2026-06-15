@@ -26,7 +26,7 @@ export interface AIAgent {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: Record<string, Record<string, unknown>>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: string | Hint[];
+  hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
   languages?: Languages[];
   /** A JSON object containing parameters as key-value pairs. */
@@ -58,7 +58,7 @@ export interface AIAgentCreateRequest {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: Record<string, Record<string, unknown>>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: string | Hint[];
+  hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
   languages?: Languages[];
   /** A JSON object containing parameters as key-value pairs. */
@@ -124,7 +124,7 @@ export interface AIAgentUpdateRequest {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: Record<string, Record<string, unknown>>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: string | Hint[];
+  hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
   languages?: Languages[];
   /** A JSON object containing parameters as key-value pairs. */
@@ -155,7 +155,7 @@ export interface AIObject {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: Record<string, Record<string, unknown>>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: string | Hint[];
+  hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
   languages?: Languages[];
   /** A JSON object containing parameters as key-value pairs. */

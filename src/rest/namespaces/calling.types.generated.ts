@@ -14,7 +14,7 @@ export interface AIObject {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: Record<string, Record<string, unknown>>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: string | Hint[];
+  hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
   languages?: Languages[];
   /** A JSON object containing parameters as key-value pairs. */
@@ -652,7 +652,7 @@ export interface CallCreateParamsSWML {
   /** A URL that will recieve status updates of the current call. Any call events defined in `status_events` will be delivered to the defined URL. */
   status_url?: string;
   /** The call events that will be monitored and sent to the `status_url` when active. */
-  status_events?: 'answered' | 'queued' | 'initiated' | 'ringing' | 'ending' | 'ended'[];
+  status_events?: ('answered' | 'queued' | 'initiated' | 'ringing' | 'ending' | 'ended')[];
   /** The HTTP method to use when requesting the URL. */
   url_method?: string;
   /** A list of codecs to use for the call. Can be an array of codec strings or a comma-separated string. Valid codecs are: `PCMU`, `PCMA`, `G722`, `G729`, `OPUS`, `VP8`, `H264`. For PSTN calls, `PCMA` and `PCMU` are recommended as many other codecs are not supported by PSTN gateways. If a SIP URI with included codecs is passed in the `to` field along with this parameter, the SIP URI codecs will be prioritized. */
@@ -673,7 +673,7 @@ export interface CallCreateParamsURL {
   /** A URL that will recieve status updates of the current call. Any call events defined in `status_events` will be delivered to the defined URL. */
   status_url?: string;
   /** The call events that will be monitored and sent to the `status_url` when active. */
-  status_events?: 'answered' | 'queued' | 'initiated' | 'ringing' | 'ending' | 'ended'[];
+  status_events?: ('answered' | 'queued' | 'initiated' | 'ringing' | 'ending' | 'ended')[];
   /** The HTTP method to use when requesting the URL. */
   url_method?: string;
   /** The URL to handle the call. This parameter allows you to specify a webhook or different route in your code containing SWML instructions for handling the call. */

@@ -888,7 +888,7 @@ export interface ImportPhoneNumberRequest {
   /** The type of phone number being imported. */
   number_type: 'longcode' | 'tollfree';
   /** The capabilities to enable for this phone number. Can include any combination of SMS, Voice, Fax, and MMS. If not provided, defaults to all capabilities. */
-  capabilities?: 'sms' | 'voice' | 'fax' | 'mms'[];
+  capabilities?: ('sms' | 'voice' | 'fax' | 'mms')[];
 }
 
 /** Legal entity type for brand registration. */

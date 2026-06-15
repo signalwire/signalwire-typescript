@@ -160,8 +160,14 @@ function tsType(schema: Schema | undefined, indent = 0): string {
       return wrapNull('boolean');
     case 'null':
       return 'null';
-    case 'array':
-      return wrapNull(`${tsType(schema.items, indent)}[]`);
+    case 'array': {
+      // Parenthesize a union/intersection item type before `[]` — otherwise
+      // `A | B | C[]` binds as `A | B | (C[])` (only the last member an array)
+      // instead of the intended `(A | B | C)[]`.
+      const item = tsType(schema.items, indent);
+      const needsParens = / [|&] /.test(item);
+      return wrapNull(`${needsParens ? `(${item})` : item}[]`);
+    }
     case 'object':
     case undefined: {
       // object with known properties → inline interface body
