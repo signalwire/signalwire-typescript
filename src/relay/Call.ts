@@ -5,7 +5,6 @@
  * outbound dial responses.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { randomUUID } from 'node:crypto';
 import { getLogger } from '../Logger.js';
@@ -34,7 +33,7 @@ import {
 } from './constants.js';
 import { normalizeDevice, normalizeDevicePlan, normalizePlayItems } from './normalize.js';
 import { RelayEvent, parseEvent } from './RelayEvent.js';
-import type { CompletedCallback, EventHandler } from './types.js';
+import type { CompletedCallback, Device, EventHandler } from './types.js';
 import type { TtsGender, FaxTone, CallState } from './closedSets.js';
 import { isCallStateTerminal } from './closedSets.js';
 
@@ -83,7 +82,7 @@ export class Call {
   /** `"inbound"` or `"outbound"`. */
   direction: string;
   /** Device descriptor the call is associated with (phone, SIP, etc.). */
-  device: Record<string, any>;
+  device: Device;
   /**
    * Current call state. One of the {@link CallState} values
    * (`"created"` | `"ringing"` | `"answered"` | `"ending"` | `"ended"`; closed
@@ -108,7 +107,7 @@ export class Call {
     options: {
       tag?: string;
       direction?: string;
-      device?: Record<string, any>;
+      device?: Device;
       state?: CallState;
       segmentId?: string;
     } = {},
@@ -156,9 +155,10 @@ export class Call {
     }
     try {
       return await this._client.execute(rpcMethod, params);
-    } catch (err: any) {
-      if (err?.code !== undefined) {
-        logger.warn(`Call ${this.callId} error during ${method} (code=${err.code}): ${err}`);
+    } catch (err: unknown) {
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code !== undefined) {
+        logger.warn(`Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`);
         return {};
       }
       throw err;
@@ -185,7 +185,7 @@ export class Call {
 
   /** @internal Called by RelayClient when an event arrives for this call. */
   async _dispatchEvent(payload: Record<string, unknown>): Promise<void> {
-    const event = parseEvent(payload as Record<string, any>);
+    const event = parseEvent(payload as Record<string, unknown>);
     const eventType = event.eventType;
 
     // Update call state

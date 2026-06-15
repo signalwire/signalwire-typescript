@@ -5,8 +5,6 @@
  * Returns {} on 204 No Content.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getLogger } from '../Logger.js';
 import { RestError } from './RestError.js';
 import type { SignalWireErrorBody } from '../PlatformContracts.js';
@@ -50,10 +48,10 @@ export class HttpClient {
     this._fetch = options.fetchImpl ?? globalThis.fetch;
   }
 
-  private async _request<T = any>(
+  private async _request<T = unknown>(
     method: string,
     path: string,
-    body?: any,
+    body?: unknown,
     params?: QueryParams,
   ): Promise<T> {
     let url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
@@ -113,7 +111,7 @@ export class HttpClient {
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async get<T = any>(path: string, params?: QueryParams): Promise<T> {
+  async get<T = unknown>(path: string, params?: QueryParams): Promise<T> {
     return this._request<T>('GET', path, undefined, params);
   }
 
@@ -127,7 +125,7 @@ export class HttpClient {
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async post<T = any>(path: string, body?: any, params?: QueryParams): Promise<T> {
+  async post<T = unknown>(path: string, body?: unknown, params?: QueryParams): Promise<T> {
     return this._request<T>('POST', path, body, params);
   }
 
@@ -140,7 +138,7 @@ export class HttpClient {
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async put<T = any>(path: string, body?: any): Promise<T> {
+  async put<T = unknown>(path: string, body?: unknown): Promise<T> {
     return this._request<T>('PUT', path, body);
   }
 
@@ -153,7 +151,7 @@ export class HttpClient {
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async patch<T = any>(path: string, body?: any): Promise<T> {
+  async patch<T = unknown>(path: string, body?: unknown): Promise<T> {
     return this._request<T>('PATCH', path, body);
   }
 
@@ -165,7 +163,7 @@ export class HttpClient {
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete<T = any>(path: string): Promise<T> {
+  async delete<T = unknown>(path: string): Promise<T> {
     return this._request<T>('DELETE', path);
   }
 }
