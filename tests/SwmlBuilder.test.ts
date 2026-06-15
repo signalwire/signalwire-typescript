@@ -224,13 +224,13 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('validation', () => {
     it('rejects missing required properties', () => {
       expect(() => {
-        builder.tap({} as any);
+        builder.tap({} as Parameters<typeof builder.tap>[0]);
       }).toThrow('SWML verb validation failed');
     });
 
     it('rejects missing required properties with detail', () => {
       expect(() => {
-        builder.tap({} as any);
+        builder.tap({} as Parameters<typeof builder.tap>[0]);
       }).toThrow("'uri'");
     });
 
@@ -247,7 +247,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
         const skipBuilder = new SwmlBuilder();
         // Should not throw even though required uri is missing
         expect(() => {
-          skipBuilder.tap({} as any);
+          skipBuilder.tap({} as Parameters<typeof builder.tap>[0]);
         }).not.toThrow();
       } finally {
         if (origEnv === undefined) {

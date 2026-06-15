@@ -120,11 +120,11 @@ describe('SkillBase Features', () => {
       expect(updated).toBe(result);
       const dict = result.toDict();
       // Should have set_global_data action
-      const actions = dict.action as unknown[];
+      const actions = dict.action as { set_global_data?: Record<string, unknown> }[];
       expect(actions).toBeDefined();
-      const setGlobalAction = actions.find((a: any) => a.set_global_data !== undefined) as any;
+      const setGlobalAction = actions.find((a) => a.set_global_data !== undefined);
       expect(setGlobalAction).toBeDefined();
-      expect(setGlobalAction.set_global_data).toEqual({ 'skill:test_skill': { count: 10 } });
+      expect(setGlobalAction!.set_global_data).toEqual({ 'skill:test_skill': { count: 10 } });
     });
   });
 });

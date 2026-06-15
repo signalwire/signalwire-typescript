@@ -130,6 +130,6 @@ describe('AuthHandler', () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(false);
-    expect((result as any).status).toBe(401);
+    expect((result as { status: number }).status).toBe(401);
   });
 });

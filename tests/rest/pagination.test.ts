@@ -9,8 +9,8 @@ describe('paginate', () => {
     ]);
     const http = new HttpClient(options);
 
-    const items: any[] = [];
-    for await (const item of paginate(http, '/api/test')) {
+    const items: { id: number }[] = [];
+    for await (const item of paginate<{ id: number }>(http, '/api/test')) {
       items.push(item);
     }
     expect(items).toEqual([{ id: 1 }, { id: 2 }]);

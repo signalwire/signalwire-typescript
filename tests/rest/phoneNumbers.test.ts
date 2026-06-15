@@ -13,11 +13,11 @@ import { HttpClient } from '../../src/rest/HttpClient.js';
 import { PhoneNumbersResource } from '../../src/rest/namespaces/phone-numbers.js';
 import { FabricNamespace } from '../../src/rest/namespaces/fabric.js';
 import { PhoneCallHandler } from '../../src/rest/callHandler.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 const BASE = '/api/relay/rest/phone_numbers';
 
-function setup(responses: any[] = [{ status: 200, body: {} }]) {
+function setup(responses: MockResponse[] = [{ status: 200, body: {} }]) {
   const { options, getRequests } = mockClientOptions(responses);
   const http = new HttpClient(options);
   const phoneNumbers = new PhoneNumbersResource(http);

@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-interface MockResponse {
+export interface MockResponse {
   status?: number;
   body?: any;
   headers?: Record<string, string>;

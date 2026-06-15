@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Context } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +20,7 @@ class CustomSwmlAgent extends AgentBase {
   override onSwmlRequest(
     rawData: Record<string, unknown>,
     callbackPath?: string,
-    _context?: any,
+    _context?: Context,
   ): Record<string, unknown> | void {
     this.lastRequestData = rawData;
     this.lastCallbackPath = callbackPath;

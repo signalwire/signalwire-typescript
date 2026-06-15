@@ -83,11 +83,15 @@ describe('Ephemeral Skill Copy', () => {
     });
 
     expect(ephemeralSwml).toBeTruthy();
-    const parsed = JSON.parse(ephemeralSwml);
-    const aiBlock = parsed.sections.main.find((v: any) => v.ai);
+    const parsed = JSON.parse(ephemeralSwml) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const aiBlock = parsed.sections.main.find((v) => v.ai) as {
+      ai: { SWAIG?: { functions?: { function: string }[] } };
+    };
     expect(aiBlock).toBeDefined();
     const funcs = aiBlock.ai.SWAIG?.functions ?? [];
-    expect(funcs.some((f: any) => f.function === 'ephemeral_tool')).toBe(true);
+    expect(funcs.some((f) => f.function === 'ephemeral_tool')).toBe(true);
   });
 
   it('swaigFields are merged into tool definitions', async () => {
@@ -99,11 +103,15 @@ describe('Ephemeral Skill Copy', () => {
     agent.setPromptText('Test');
     await agent.addSkill(new EphemeralTestSkill({ swaig_fields: { wait_file: 'hold.mp3' } }));
 
-    const swml = JSON.parse(agent.renderSwml());
-    const aiBlock = swml.sections.main.find((v: any) => v.ai);
+    const swml = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const aiBlock = swml.sections.main.find((v) => v.ai) as {
+      ai: { SWAIG: { functions: { function: string; wait_file?: string }[] } };
+    };
     const funcs = aiBlock.ai.SWAIG.functions;
-    const ephTool = funcs.find((f: any) => f.function === 'ephemeral_tool');
+    const ephTool = funcs.find((f) => f.function === 'ephemeral_tool');
     expect(ephTool).toBeDefined();
-    expect(ephTool.wait_file).toBe('hold.mp3');
+    expect(ephTool!.wait_file).toBe('hold.mp3');
   });
 });

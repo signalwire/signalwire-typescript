@@ -420,7 +420,7 @@ describe('Logger', () => {
 
   it('null and undefined values are rendered in key=value mode', () => {
     const log = new Logger('kv-test');
-    log.info('op', { a: null as any, b: undefined as any });
+    log.info('op', { a: null, b: undefined });
     const output = spyInfo.mock.calls[0][0] as string;
     expect(output).toContain('a=null');
     expect(output).toContain('b=undefined');

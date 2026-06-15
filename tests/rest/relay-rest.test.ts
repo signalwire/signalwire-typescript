@@ -9,9 +9,9 @@ import { SipProfileResource } from '../../src/rest/namespaces/sip-profile.js';
 import { LookupResource } from '../../src/rest/namespaces/lookup.js';
 import { ShortCodesResource } from '../../src/rest/namespaces/short-codes.js';
 import { ImportedNumbersResource } from '../../src/rest/namespaces/imported-numbers.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
-function makeHttp(responses: any[] = [{ status: 200, body: { data: [] } }]) {
+function makeHttp(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
   const { options, getRequests } = mockClientOptions(responses);
   return { http: new HttpClient(options), getRequests };
 }

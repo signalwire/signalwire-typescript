@@ -102,7 +102,7 @@ describe('SchemaUtils', () => {
 
   it('skipValidation always returns valid', () => {
     const validator = new SchemaUtils({ skipValidation: true });
-    const result = validator.validate({ invalid: true } as any);
+    const result = validator.validate({ invalid: true });
     expect(result.valid).toBe(true);
   });
 });

@@ -97,10 +97,9 @@ describe('mock-data', () => {
 
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
       const data = generateFakePostData({
-        overrides: { __proto__: { polluted: true } } as any,
+        overrides: { __proto__: { polluted: true } } as unknown as Record<string, unknown>,
       });
-      // @ts-expect-error - checking prototype pollution
-      expect(({} as any).polluted).toBeUndefined();
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
       // The data object itself should NOT have __proto__ as own property from pollution
     });
   });
@@ -111,11 +110,10 @@ describe('mock-data', () => {
         'fn',
         {},
         {
-          overrides: { __proto__: { polluted: true } } as any,
+          overrides: { __proto__: { polluted: true } } as unknown as Record<string, unknown>,
         },
       );
-      // @ts-expect-error - checking prototype pollution
-      expect(({} as any).polluted).toBeUndefined();
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
   });
 });

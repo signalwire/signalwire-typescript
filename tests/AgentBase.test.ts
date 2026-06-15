@@ -4,10 +4,17 @@ import { FunctionResult } from '../src/FunctionResult.js';
 import { ContextBuilder } from '../src/ContextBuilder.js';
 import { DataMap } from '../src/DataMap.js';
 import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
+import type { AgentOptions } from '../src/types.js';
+
+/** Subset of the agent's private SessionManager that the token tests stub/inspect. */
+interface SessionManagerInternals {
+  createToolToken(functionName: string, callId: string): string;
+  validateToolToken(functionName: string, token: string, callId: string): boolean;
+}
 
 describe('AgentBase', () => {
-  function createAgent(opts?: Partial<Parameters<typeof AgentBase.prototype.setPromptText>[0]>) {
-    return new AgentBase({ name: 'test-agent', route: '/test', ...opts } as any);
+  function createAgent(opts?: Partial<AgentOptions>) {
+    return new AgentBase({ name: 'test-agent', route: '/test', ...opts });
   }
 
   it('renders basic SWML with prompt', () => {
@@ -376,7 +383,7 @@ describe('AgentBase', () => {
   });
 
   it('agentId can be provided via options', () => {
-    const agent = new AgentBase({ name: 'test', route: '/test', agentId: 'custom-id-123' } as any);
+    const agent = new AgentBase({ name: 'test', route: '/test', agentId: 'custom-id-123' });
     expect(agent.agentId).toBe('custom-id-123');
   });
 
@@ -563,8 +570,8 @@ describe('AgentBase', () => {
   it('defineTools is not called automatically — subclass calls it explicitly', () => {
     let defineToolsCalled = false;
     class MyAgent extends AgentBase {
-      constructor(opts: Parameters<typeof AgentBase.prototype.constructor>[0]) {
-        super(opts as any);
+      constructor(opts: AgentOptions) {
+        super(opts);
         this.defineTools();
       }
       protected override defineTools(): void {
@@ -729,11 +736,15 @@ describe('AgentBase', () => {
   it('setParams with __proto__ key does NOT pollute Object prototype', () => {
     const agent = createAgent();
     agent.setParams({ __proto__: { polluted: true }, temperature: 0.7 });
-    expect(({} as any).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     // Normal key should still work
-    const swml = JSON.parse(agent.renderSwml());
+    const swml = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
     // params are in AI config
-    const ai = swml.sections.main.find((v: any) => v.ai)?.ai;
+    const ai = (
+      swml.sections.main.find((v) => v.ai) as { ai?: { params?: Record<string, unknown> } }
+    )?.ai;
     expect(ai?.params?.temperature).toBe(0.7);
   });
 
@@ -1087,7 +1098,7 @@ describe('AgentBase', () => {
       });
 
       // Fail loudly if SessionManager is consulted — non-secure tools must short-circuit.
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const orig = sm.validateToolToken.bind(sm);
       sm.validateToolToken = () => {
         throw new Error('SessionManager.validateToolToken must not be called for non-secure tools');
@@ -1109,7 +1120,7 @@ describe('AgentBase', () => {
         secure: true,
       });
 
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const callId = 'call-abc';
       const token = sm.createToolToken('secure_tool', callId);
       expect(agent.validateToolToken('secure_tool', token, callId)).toBe(true);
@@ -1152,7 +1163,7 @@ describe('AgentBase', () => {
 
     it('returns "" when the underlying SessionManager throws', () => {
       const agent = createAgent();
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const orig = sm.createToolToken.bind(sm);
       sm.createToolToken = () => {
         throw new Error('boom');
@@ -1201,7 +1212,7 @@ describe('AgentBase', () => {
     });
 
     it('returns null when usePom is false', () => {
-      const agent = new AgentBase({ name: 'no-pom', route: '/x', usePom: false } as any);
+      const agent = new AgentBase({ name: 'no-pom', route: '/x', usePom: false });
       expect(agent.pom).toBeNull();
     });
 
@@ -1227,7 +1238,7 @@ describe('AgentBase', () => {
   // -----------------------------------------------------------------------
   describe('per-language params', () => {
     function makeAgent() {
-      return new AgentBase({ name: 'test-agent', route: '/test' } as any);
+      return new AgentBase({ name: 'test-agent', route: '/test' });
     }
 
     it('addLanguage with params attaches the params dict on the wire', () => {

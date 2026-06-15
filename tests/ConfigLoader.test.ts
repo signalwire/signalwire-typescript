@@ -130,8 +130,7 @@ describe('ConfigLoader', () => {
     const config = new ConfigLoader();
     config.loadFromObject({});
     config.set('__proto__.polluted', true);
-    // @ts-expect-error - checking prototype pollution
-    expect(({} as any).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it('set() with constructor key is silently ignored', () => {

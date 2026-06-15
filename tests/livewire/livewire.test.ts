@@ -106,7 +106,7 @@ describe('AgentSession', () => {
 
   it('start() registers tools from agent', async () => {
     const session = new AgentSession();
-    const weatherTool = tool({
+    const weatherTool = tool<{ location: string }>({
       description: 'Get weather',
       parameters: {
         type: 'object',
@@ -114,7 +114,7 @@ describe('AgentSession', () => {
           location: { type: 'string', description: 'City name' },
         },
       },
-      execute: (params: any) => `Weather in ${params.location}: sunny`,
+      execute: (params) => `Weather in ${params.location}: sunny`,
     });
     const agent = new Agent({
       instructions: 'Weather assistant',
@@ -190,7 +190,7 @@ describe('AgentSession', () => {
 
 describe('tool()', () => {
   it('creates a valid tool definition', () => {
-    const t = tool({
+    const t = tool<{ word: string }>({
       description: 'Look up a word',
       parameters: {
         type: 'object',
@@ -198,7 +198,7 @@ describe('tool()', () => {
           word: { type: 'string', description: 'The word to look up' },
         },
       },
-      execute: (params: any) => `Definition of ${params.word}`,
+      execute: (params) => `Definition of ${params.word}`,
     });
     expect(t.description).toBe('Look up a word');
     expect(t.parameters).toBeDefined();
@@ -218,9 +218,9 @@ describe('tool()', () => {
     const session = new AgentSession();
     const ctx = new RunContext(session);
 
-    const t = tool({
+    const t = tool<{ name: string }>({
       description: 'test',
-      execute: (params: any, context: { ctx: RunContext }) => {
+      execute: (params, context: { ctx: RunContext }) => {
         return `${params.name} via ${context.ctx.constructor.name}`;
       },
     });

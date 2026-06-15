@@ -27,7 +27,7 @@ describe('SecurityUtils', () => {
       source['safe'] = 'ok';
       safeAssign(target, source);
       expect(target['safe']).toBe('ok');
-      expect(({} as any).polluted).toBeUndefined();
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
       // __proto__ should not have been copied as an own property
       expect(Object.prototype.hasOwnProperty.call(target, '__proto__')).toBe(false);
     });

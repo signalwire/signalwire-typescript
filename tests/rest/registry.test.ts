@@ -1,9 +1,9 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RegistryNamespace } from '../../src/rest/namespaces/registry.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 describe('RegistryNamespace', () => {
-  function setup(responses: any[] = [{ status: 200, body: { data: [] } }]) {
+  function setup(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
     const { options, getRequests } = mockClientOptions(responses);
     const http = new HttpClient(options);
     const registry = new RegistryNamespace(http);

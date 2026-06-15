@@ -15,7 +15,7 @@ function createClient(ws?: MockWebSocket): { client: RelayClient; ws: MockWebSoc
   });
   client._wsFactory = () => {
     mockWs.autoAuthenticate();
-    return mockWs as any;
+    return mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
   };
   return { client, ws: mockWs };
 }
@@ -594,7 +594,7 @@ describe('RelayClient', () => {
       let authReqId = '';
       mockWs.autoAuthenticate();
 
-      client._wsFactory = () => mockWs as any;
+      client._wsFactory = () => mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
 
       // Connect first
       await client.connect();
@@ -692,50 +692,54 @@ describe('RelayClient', () => {
     it('reads RELAY_MAX_ACTIVE_CALLS from env when option omitted', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '42';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(42);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(42);
     });
 
     it('explicit maxActiveCalls option wins over env', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '42';
       const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: 7 });
-      expect((client as any)._maxActiveCalls).toBe(7);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(7);
     });
 
     it('invalid env value falls back to default 1000', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = 'not-a-number';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1000);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1000);
     });
 
     it('non-positive env value clamps to 1', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '0';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1);
     });
 
     it('non-positive explicit option clamps to 1', () => {
       const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: -5 });
-      expect((client as any)._maxActiveCalls).toBe(1);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1);
     });
 
     it('defaults to 1000 when env and option are absent', () => {
       delete process.env.RELAY_MAX_ACTIVE_CALLS;
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1000);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1000);
     });
   });
 
   describe('Symbol.asyncDispose', () => {
     it('exposes an asyncDispose method', () => {
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect(typeof (client as any)[Symbol.asyncDispose]).toBe('function');
+      expect(
+        typeof (client as unknown as { [Symbol.asyncDispose]?: () => Promise<void> })[
+          Symbol.asyncDispose
+        ],
+      ).toBe('function');
     });
 
     it('invoking asyncDispose calls disconnect (removes from active set)', async () => {
       const { client } = createClient();
       await client.connect();
       // Explicitly invoke the disposer
-      await (client as any)[Symbol.asyncDispose]();
+      await (client as unknown as { [Symbol.asyncDispose](): Promise<void> })[Symbol.asyncDispose]();
       // After disposal, a second client should be able to connect without
       // tripping the _MAX_CONNECTIONS guard.
       const { client: other } = createClient();
@@ -782,16 +786,19 @@ describe('RelayClient', () => {
       try {
         const mod = await import('../../src/relay/RelayClient.js');
         const { MockWebSocket: FreshMockWs } = await import('./helpers.js');
-        const freshCreate = (): { client: InstanceType<typeof mod.RelayClient>; ws: any } => {
+        const freshCreate = (): {
+          client: InstanceType<typeof mod.RelayClient>;
+          ws: InstanceType<typeof FreshMockWs>;
+        } => {
           const mockWs = new FreshMockWs();
           const client = new mod.RelayClient({
             project: 'p',
             token: 't',
             host: 'relay.test.com',
           });
-          (client as any)._wsFactory = () => {
+          client._wsFactory = () => {
             mockWs.autoAuthenticate();
-            return mockWs;
+            return mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
           };
           return { client, ws: mockWs };
         };

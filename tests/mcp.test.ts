@@ -221,11 +221,17 @@ describe('MCP Integration', () => {
       parameters: {},
       handler: () => new FunctionResult('ok'),
     });
-    const swml = JSON.parse(agent.renderSwml());
-    const ai = swml.sections.main.find((v: any) => v.ai)?.ai;
+    const swml = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const ai = (
+      swml.sections.main.find((v) => v.ai) as {
+        ai?: { SWAIG?: { mcp_servers?: { url: string }[] } };
+      }
+    )?.ai;
     expect(ai?.SWAIG?.mcp_servers).toBeDefined();
-    expect(ai.SWAIG.mcp_servers).toHaveLength(1);
-    expect(ai.SWAIG.mcp_servers[0].url).toBe('https://mcp.example.com/tools');
+    expect(ai!.SWAIG!.mcp_servers).toHaveLength(1);
+    expect(ai!.SWAIG!.mcp_servers![0].url).toBe('https://mcp.example.com/tools');
   });
 
   // ── MCP HTTP Endpoint ──────────────────────────────────────

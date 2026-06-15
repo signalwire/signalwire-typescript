@@ -90,9 +90,9 @@ describe('agent-loader duck typing', () => {
   it('AgentBase instances pass duck-type check', () => {
     const agent = new AgentBase({ name: 'test', route: '/test' });
     // The duck-type check used by agent-loader
-    expect(typeof (agent as any).renderSwml).toBe('function');
-    expect(typeof (agent as any).defineTool).toBe('function');
-    expect(typeof (agent as any).getPrompt).toBe('function');
+    expect(typeof agent.renderSwml).toBe('function');
+    expect(typeof agent.defineTool).toBe('function');
+    expect(typeof agent.getPrompt).toBe('function');
   });
 
   it('plain objects do not pass duck-type check', () => {
