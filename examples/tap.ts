@@ -34,12 +34,13 @@ agent.defineTool({
       description: 'RTP URI to stream audio to (e.g., rtp://192.168.1.100:5000)',
     },
   },
+  required: ['uri'],
   handler: (args) => {
     const result = new FunctionResult(
       'Audio streaming started. Call audio is now being sent to the external system.',
     );
     result.tap({
-      uri: args.uri as string,
+      uri: args.uri,
       controlId: 'main-tap',
       direction: 'both',
       codec: 'PCMU',

@@ -43,7 +43,8 @@ agent.defineTool({
     seconds: { type: 'number', description: 'Hold duration in seconds (max 900)' },
   },
   handler: (args) => {
-    const secs = (args.seconds as number) ?? 60;
+    // args.seconds: number | undefined (optional → the ?? default handles it).
+    const secs = args.seconds ?? 60;
     const result = new FunctionResult(`Placing you on hold for ${secs} seconds.`);
     result.hold(secs);
     return result;
@@ -57,9 +58,10 @@ agent.defineTool({
   parameters: {
     message: { type: 'string', description: 'The announcement message' },
   },
+  required: ['message'],
   handler: (args) => {
     const result = new FunctionResult('Making announcement.');
-    result.say(args.message as string);
+    result.say(args.message);
     return result;
   },
 });
@@ -71,9 +73,10 @@ agent.defineTool({
   parameters: {
     url: { type: 'string', description: 'URL of the audio file' },
   },
+  required: ['url'],
   handler: (args) => {
     const result = new FunctionResult('Playing background music.');
-    result.playBackgroundFile(args.url as string);
+    result.playBackgroundFile(args.url);
     return result;
   },
 });
@@ -98,9 +101,10 @@ agent.defineTool({
     key: { type: 'string', description: 'Preference key' },
     value: { type: 'string', description: 'Preference value' },
   },
+  required: ['key', 'value'],
   handler: (args) => {
     const result = new FunctionResult(`Saved preference: ${args.key} = ${args.value}`);
-    result.updateGlobalData({ [args.key as string]: args.value });
+    result.updateGlobalData({ [args.key]: args.value });
     return result;
   },
 });
@@ -112,6 +116,7 @@ agent.defineTool({
   parameters: {
     tag: { type: 'string', description: 'Tag to add to the call' },
   },
+  required: ['tag'],
   handler: (args) => {
     const result = new FunctionResult(`Call tagged as "${args.tag}".`);
     result.setMetadata({ tag: args.tag });
@@ -124,9 +129,15 @@ agent.defineTool({
   name: 'switch_mode',
   description: 'Switch the AI to a different mode or personality',
   parameters: {
-    mode: { type: 'string', description: 'New mode: "formal" or "casual"' },
+    mode: {
+      type: 'string',
+      description: 'New mode: "formal" or "casual"',
+      enum: ['formal', 'casual'],
+    },
   },
+  required: ['mode'],
   handler: (args) => {
+    // args.mode narrows to 'formal' | 'casual' from the enum.
     const prompt =
       args.mode === 'formal'
         ? 'You are now a formal, professional assistant. Use proper language.'
@@ -145,12 +156,13 @@ agent.defineTool({
     to: { type: 'string', description: 'Recipient phone number' },
     message: { type: 'string', description: 'SMS message text' },
   },
+  required: ['to', 'message'],
   handler: (args) => {
     const result = new FunctionResult(`SMS sent to ${args.to}: "${args.message}"`);
     result.sendSms({
-      toNumber: args.to as string,
+      toNumber: args.to,
       fromNumber: '+15551234567',
-      body: args.message as string,
+      body: args.message,
     });
     return result;
   },

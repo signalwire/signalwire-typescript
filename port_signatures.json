@@ -8464,7 +8464,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "dict<string,any>",
+                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
                   "required": true
                 }
               ],

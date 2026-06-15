@@ -267,6 +267,20 @@ export type {
   SummaryCallback,
 } from './types.js';
 
+// Platform-contract types — the webhook bodies the backend POSTs, referenced by
+// the public callback signatures above (DynamicConfigCallback → SwmlRequestData,
+// SummaryCallback / onSummary → PostPromptData, SWAIG handlers → SwaigRequestData)
+// so a subclass/override can name them.
+export type {
+  SwaigRequestData,
+  SwaigArgument,
+  PostPromptData,
+  PostPromptParams,
+  SwmlRequestData,
+  SwmlRequestCall,
+  SignalWireErrorBody,
+} from './PlatformContracts.js';
+
 // RELAY Client (real-time call/message control over WebSocket)
 export * from './relay/index.js';
 

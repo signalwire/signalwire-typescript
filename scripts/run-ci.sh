@@ -229,6 +229,9 @@ lint_gate() {
         echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
         return 1
     fi
+    # Don't widen a typed SDK callback param (onSummary→PostPromptData, etc.) in
+    # an override — that drops the contract and hides wrong-shape bugs.
+    npx tsx scripts/check-typed-callbacks.ts || return 1
 }
 run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
 
