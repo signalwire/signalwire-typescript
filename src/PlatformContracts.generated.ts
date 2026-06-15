@@ -122,4 +122,3 @@ export interface SignalWireErrorBody {
   /** HTTP status code. */
   status?: number;
 }
-

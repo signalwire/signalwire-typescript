@@ -18,6 +18,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
+import * as prettier from 'prettier';
 
 // ---- spec types (minimal) --------------------------------------------------
 
@@ -52,12 +53,37 @@ interface OpenApiDoc {
 
 // ---- name sanitisation -----------------------------------------------------
 
+// TS lib globals a schema name must not shadow — shadowing `Record` breaks every
+// `Record<string, unknown>` the generator emits, etc. Colliding schema names get
+// a `_` suffix; the rename is applied uniformly through tsName() so $ref
+// resolution (refName) and declarations stay consistent.
+const RESERVED_GLOBALS = new Set([
+  'Record',
+  'Array',
+  'Partial',
+  'Required',
+  'Readonly',
+  'Pick',
+  'Omit',
+  'Promise',
+  'Map',
+  'Set',
+  'Date',
+  'Object',
+  'String',
+  'Number',
+  'Boolean',
+  'Function',
+  'Error',
+]);
+
 // Schema names can contain dots / non-identifier chars (e.g.
 // "Types.StatusCodes.StatusCode400"); turn them into a valid TS identifier,
 // stable across runs.
 function tsName(rawName: string): string {
   const cleaned = rawName.replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+/, '');
-  return /^[A-Za-z_]/.test(cleaned) ? cleaned : `Schema_${cleaned}`;
+  const id = /^[A-Za-z_]/.test(cleaned) ? cleaned : `Schema_${cleaned}`;
+  return RESERVED_GLOBALS.has(id) ? `${id}_` : id;
 }
 
 function refName(ref: string): string {
@@ -148,11 +174,20 @@ function objectBody(schema: Schema, indent: number): string {
     }
     lines.push(`${pad}${keyTok}${optional}: ${tsType(propSchema, indent + 1)};`);
   }
-  // additionalProperties on a property-bearing object → index signature
+  // additionalProperties on a property-bearing object → index signature. TS
+  // requires every declared property to be assignable to the index value, so the
+  // index value must include each declared prop's type (and `undefined` when any
+  // declared prop is optional). With no declared props this is just the ap type.
   const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
   if (ap === true) lines.push(`${pad}[key: string]: unknown;`);
-  else if (ap && typeof ap === 'object')
-    lines.push(`${pad}[key: string]: ${tsType(ap, indent + 1)};`);
+  else if (ap && typeof ap === 'object') {
+    const base = tsType(ap, indent + 1);
+    const propTypes = Object.values(props).map((p) => tsType(p, indent + 1));
+    const hasOptional = Object.keys(props).some((k) => !required.has(k));
+    const members = [base, ...propTypes, ...(hasOptional ? ['undefined'] : [])];
+    const value = [...new Set(members)].join(' | ');
+    lines.push(`${pad}[key: string]: ${value};`);
+  }
   return `{\n${lines.join('\n')}\n${closePad}}`;
 }
 
@@ -180,18 +215,27 @@ function schemaFromContent(content?: Record<string, { schema?: Schema }>): Schem
   return (content['application/json'] ?? Object.values(content)[0])?.schema;
 }
 
-function operationAliases(doc: OpenApiDoc): string[] {
+function operationAliases(doc: OpenApiDoc, taken: Set<string>): string[] {
   const out: string[] = [];
+  // emit an alias only if the name is not already a declared schema (a spec that
+  // names its request body `CreateApplicationRequest` AND has a create_application
+  // op would otherwise declare the identifier twice). `taken` accumulates within
+  // the run so two ops can't collide either.
+  const emit = (name: string, expr: string): void => {
+    if (taken.has(name)) return;
+    taken.add(name);
+    out.push(`export type ${name} = ${expr};\n`);
+  };
   for (const ops of Object.values(doc.paths ?? {})) {
     for (const [method, op] of Object.entries(ops)) {
       if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
       if (!op.operationId) continue;
       const base = pascal(op.operationId);
       const reqSchema = schemaFromContent(op.requestBody?.content);
-      if (reqSchema) out.push(`export type ${base}Request = ${tsType(reqSchema, 0)};\n`);
+      if (reqSchema) emit(`${base}Request`, tsType(reqSchema, 0));
       const ok = op.responses?.['200'] ?? op.responses?.['201'] ?? op.responses?.['2XX'];
       const resSchema = schemaFromContent(ok?.content);
-      if (resSchema) out.push(`export type ${base}Response = ${tsType(resSchema, 0)};\n`);
+      if (resSchema) emit(`${base}Response`, tsType(resSchema, 0));
     }
   }
   return out;
@@ -215,32 +259,55 @@ function resolvePortingSdk(): string {
   throw new Error('porting-sdk not found (set $PORTING_SDK or clone adjacent)');
 }
 
-function generateForSpec(specPath: string, outPath: string, ns: string): number {
+async function generateForSpec(specPath: string, outPath: string, ns: string): Promise<number> {
   const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
   const schemas = doc.components?.schemas ?? {};
+  const taken = new Set(Object.keys(schemas).map(tsName));
   const decls = Object.entries(schemas).map(([n, s]) => declaration(n, s));
-  const ops = operationAliases(doc);
+  const ops = operationAliases(doc, taken);
   const header = `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.yaml — DO NOT EDIT.\n// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n// Held to the same lint bar as hand-written source (no rule suppressions, no\n// loose types). If the generator cannot emit a clean faithful type, fix the\n// generator rather than weaken the output.\n\n`;
-  fs.writeFileSync(outPath, header + decls.join('\n') + '\n' + ops.join('\n'));
+  const raw = header + decls.join('\n') + '\n' + ops.join('\n');
+  // Format through the repo's own prettier config so generated files pass the
+  // FMT gate by construction (the gate is `prettier --check` in CI).
+  const config = (await prettier.resolveConfig(outPath)) ?? {};
+  const formatted = await prettier.format(raw, { ...config, parser: 'typescript' });
+  fs.writeFileSync(outPath, formatted);
   return decls.length + ops.length;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const psdk = resolvePortingSdk();
   // spec dir (under rest-apis/) → output .generated.ts path
   const map: Record<string, string> = {
-    datasphere: 'src/rest/namespaces/datasphere.types.generated.ts',
     // The SWML/SWAIG webhook contracts (manufactured spec from swml.md prose —
     // no upstream OpenAPI) live alongside the others and generate the platform
     // contract types that were previously hand-written in PlatformContracts.ts.
     'swml-webhooks': 'src/PlatformContracts.generated.ts',
-    // (the rest get added as we roll out)
+    // REST namespace specs → one generated module per spec. A namespace .ts file
+    // imports the named schema/operation types it needs from its spec's module;
+    // some specs back several namespace files (fabric → addresses/registry/…).
+    calling: 'src/rest/namespaces/calling.types.generated.ts',
+    chat: 'src/rest/namespaces/chat.types.generated.ts',
+    compatibility: 'src/rest/namespaces/compatibility.types.generated.ts',
+    datasphere: 'src/rest/namespaces/datasphere.types.generated.ts',
+    fabric: 'src/rest/namespaces/fabric.types.generated.ts',
+    fax: 'src/rest/namespaces/fax.types.generated.ts',
+    logs: 'src/rest/namespaces/logs.types.generated.ts',
+    message: 'src/rest/namespaces/message.types.generated.ts',
+    project: 'src/rest/namespaces/project.types.generated.ts',
+    pubsub: 'src/rest/namespaces/pubsub.types.generated.ts',
+    'relay-rest': 'src/rest/namespaces/relay-rest.types.generated.ts',
+    video: 'src/rest/namespaces/video.types.generated.ts',
+    voice: 'src/rest/namespaces/voice.types.generated.ts',
   };
   for (const [specDir, outPath] of Object.entries(map)) {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
-    const n = generateForSpec(specPath, outPath, specDir);
+    const n = await generateForSpec(specPath, outPath, specDir);
     console.log(`generated ${outPath} (${n} types)`);
   }
 }
 
-main();
+main().catch((err: unknown) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -51,7 +51,11 @@ async function main() {
 
   // 2. Play TTS audio
   console.log('\nPlaying TTS on call...');
-  await safe('Play', () => client.calling.play(callId, { play: [{ type: 'tts', text: 'Welcome to SignalWire.' }] }));
+  await safe('Play', () =>
+    client.calling.play(callId, {
+      play: [{ type: 'tts', params: { text: 'Welcome to SignalWire.' } }],
+    }),
+  );
 
   // 3. Pause, resume, adjust volume, stop playback
   console.log('\nControlling playback...');
@@ -62,7 +66,9 @@ async function main() {
 
   // 4. Record the call
   console.log('\nRecording call...');
-  await safe('Record', () => client.calling.record(callId, { beep: true, format: 'mp3' }));
+  await safe('Record', () =>
+    client.calling.record(callId, { audio: { beep: true, format: 'mp3' } }),
+  );
 
   // 5. Pause, resume, stop recording
   console.log('\nControlling recording...');
@@ -72,7 +78,9 @@ async function main() {
 
   // 6. Transcribe the call
   console.log('\nTranscribing call...');
-  await safe('Transcribe', () => client.calling.transcribe(callId, { language: 'en-US' }));
+  await safe('Transcribe', () =>
+    client.calling.transcribe(callId, { status_url: 'https://example.com/transcriptions' }),
+  );
   await safe('Transcribe stop', () => client.calling.transcribeStop(callId));
 
   // 7. Denoise the call
@@ -85,7 +93,7 @@ async function main() {
   await safe('End', () => client.calling.end(callId, { reason: 'hangup' }));
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

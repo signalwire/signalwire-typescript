@@ -82,6 +82,10 @@ signalwire.relay.call.StandaloneCollectAction.__init__: TS constructor signature
 signalwire.relay.call.StreamAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.TapAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.TranscribeAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.relay.call.Call.device: TS declares `device: Device` as a typed class field; Python has the same attribute but sets it dynamically (`self.device = device or {}`), so the static signature enumerator records it "in port, not in reference". Same attribute, stronger TS typing (the Device union from the Tier-3 typed-objects pass).
+signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
+signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
+signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.client.RelayClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.client.RelayError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.event.CallReceiveEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs

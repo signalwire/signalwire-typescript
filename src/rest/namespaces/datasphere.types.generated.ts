@@ -50,10 +50,10 @@ export interface ChunkResponse {
 }
 
 /** The current Status of the Chunk. */
-export type ChunkStatus = "submitted" | "in_progress" | "completed" | "failed";
+export type ChunkStatus = 'submitted' | 'in_progress' | 'completed' | 'failed';
 
 /** Strategy to use when chunking the document. */
-export type ChunkingStrategy = "sentence" | "paragraph" | "page" | "sliding";
+export type ChunkingStrategy = 'sentence' | 'paragraph' | 'page' | 'sliding';
 
 /** The request contains invalid parameters. See errors for details. */
 export interface CreateStatusCode422 {
@@ -94,7 +94,11 @@ export type DocumentCreatePageRequest = DocumentCreateRequestBase;
 
 export type DocumentCreateParagraphRequest = DocumentCreateRequestBase;
 
-export type DocumentCreateRequest = DocumentCreateSentenceRequest | DocumentCreateSlidingRequest | DocumentCreatePageRequest | DocumentCreateParagraphRequest;
+export type DocumentCreateRequest =
+  | DocumentCreateSentenceRequest
+  | DocumentCreateSlidingRequest
+  | DocumentCreatePageRequest
+  | DocumentCreateParagraphRequest;
 
 export interface DocumentCreateRequestBase {
   /** URL of the document. */
@@ -134,7 +138,7 @@ export interface DocumentSearchRequest {
 }
 
 /** The current Status of the Document. */
-export type DocumentStatus = "submitted" | "in_progress" | "completed" | "failed";
+export type DocumentStatus = 'submitted' | 'in_progress' | 'completed' | 'failed';
 
 export interface DocumentUpdateRequest {
   /** Document tags. */
@@ -185,22 +189,22 @@ export interface Types_StatusCodes_RestApiErrorItem {
 
 /** The request is invalid. */
 export interface Types_StatusCodes_StatusCode400 {
-  error: "Bad Request";
+  error: 'Bad Request';
 }
 
 /** Access is unauthorized. */
 export interface Types_StatusCodes_StatusCode401 {
-  error: "Unauthorized";
+  error: 'Unauthorized';
 }
 
 /** The server cannot find the requested resource. */
 export interface Types_StatusCodes_StatusCode404 {
-  error: "Not Found";
+  error: 'Not Found';
 }
 
 /** An internal server error occurred. */
 export interface Types_StatusCodes_StatusCode500 {
-  error: "Internal Server Error";
+  error: 'Internal Server Error';
 }
 
 /** The request contains invalid parameters. See errors for details. */
