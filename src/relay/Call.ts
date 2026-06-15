@@ -32,7 +32,52 @@ import {
 } from './constants.js';
 import { normalizeDevice, normalizeDevicePlan, normalizePlayItems } from './normalize.js';
 import { RelayEvent, parseEvent } from './RelayEvent.js';
-import type { CompletedCallback, Device, EventHandler } from './types.js';
+import type {
+  CollectConfig,
+  CompletedCallback,
+  Device,
+  DeviceInput,
+  EventHandler,
+  PlayItem,
+} from './types.js';
+// Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
+// *.params.json — the switchblade source). Method params index into these so
+// callers get the real field-level types instead of Record<string, unknown>.
+// The SDK fills node_id/call_id/control_id internally, so methods take only the
+// payload-specific members.
+import type {
+  CallingAiHoldResult,
+  CallingAiMessageResult,
+  CallingAiUnholdResult,
+  CallingAmazonBedrockResult,
+  CallingAnswerResult,
+  CallingBindDigitResult,
+  CallingClearDigitBindingsResult,
+  CallingCollectParams,
+  CallingConnectParams,
+  CallingConnectResult,
+  CallingDenoiseResult,
+  CallingDenoiseStopResult,
+  CallingDetectParams,
+  CallingDisconnectResult,
+  CallingEchoResult,
+  CallingEndResult,
+  CallingJoinConferenceResult,
+  CallingJoinRoomResult,
+  CallingLeaveConferenceResult,
+  CallingLeaveRoomResult,
+  CallingLiveTranscribeResult,
+  CallingLiveTranslateResult,
+  CallingPassResult,
+  CallingQueueEnterResult,
+  CallingQueueLeaveResult,
+  CallingRecordParams,
+  CallingReferResult,
+  CallingSendDigitsResult,
+  CallingTapParams,
+  CallingTransferResult,
+  CallingUserEventResult,
+} from './protocol.types.generated.js';
 import type { TtsGender, FaxTone, CallState } from './closedSets.js';
 import { isCallStateTerminal } from './closedSets.js';
 
@@ -139,11 +184,18 @@ export class Call {
 
   // ─── Internal RPC Primitive ──────────────────────────────────────
 
-  /** @internal Send a calling.<method> JSON-RPC request for this call. */
-  async _execute(
+  /**
+   * @internal Send a calling.<method> JSON-RPC request for this call.
+   *
+   * The result phase shape is the JSON-RPC ack for that method — pass the
+   * generated `Calling<Method>Result` as `R` so callers get the typed ack
+   * (`code`/`call_id`/`control_id`/`data`/…). Defaults to the open wire object
+   * for the few methods with no modeled result.
+   */
+  async _execute<R extends object = Record<string, unknown>>(
     method: string,
     extraParams?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<R> {
     const rpcMethod = `calling.${method}`;
     const params: Record<string, unknown> = {
       node_id: this.nodeId,
@@ -153,14 +205,14 @@ export class Call {
       Object.assign(params, extraParams);
     }
     try {
-      return await this._client.execute(rpcMethod, params);
+      return (await this._client.execute(rpcMethod, params)) as R;
     } catch (err: unknown) {
       const code = (err as { code?: unknown } | null)?.code;
       if (code !== undefined) {
         logger.warn(
           `Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`,
         );
-        return {};
+        return {} as R;
       }
       throw err;
     }
@@ -426,8 +478,8 @@ export class Call {
    * @returns The platform's answer response.
    * @throws {RelayError} When the answer command is rejected.
    */
-  async answer(extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return this._execute('answer', extra);
+  async answer(extra?: Record<string, unknown>): Promise<CallingAnswerResult> {
+    return this._execute<CallingAnswerResult>('answer', extra);
   }
 
   /**
@@ -438,8 +490,8 @@ export class Call {
    * @returns The platform's end response.
    * @throws {RelayError} When the end command is rejected.
    */
-  async hangup(reason = 'hangup'): Promise<Record<string, unknown>> {
-    return this._execute('end', { reason });
+  async hangup(reason = 'hangup'): Promise<CallingEndResult> {
+    return this._execute<CallingEndResult>('end', { reason });
   }
 
   /**
@@ -451,8 +503,8 @@ export class Call {
    * @returns The platform's pass response.
    * @throws {RelayError} When the pass command is rejected.
    */
-  async pass(): Promise<Record<string, unknown>> {
-    return this._execute('pass');
+  async pass(): Promise<CallingPassResult> {
+    return this._execute<CallingPassResult>('pass');
   }
 
   // ─── Audio Playback ──────────────────────────────────────────────
@@ -476,7 +528,7 @@ export class Call {
    * @throws {RelayError} When the play command is rejected.
    */
   async play(
-    media: Record<string, unknown>[],
+    media: PlayItem[],
     options: {
       volume?: number;
       // direction is an unvalidated passthrough in the Python reference
@@ -628,7 +680,7 @@ export class Call {
    * @throws {RelayError} When the record command is rejected.
    */
   async record(
-    audio?: Record<string, unknown>,
+    audio?: CallingRecordParams['record']['audio'],
     options: {
       controlId?: string;
       onCompleted?: CompletedCallback;
@@ -658,8 +710,8 @@ export class Call {
    * @throws {RelayError} When the play_and_collect command is rejected.
    */
   async playAndCollect(
-    media: Record<string, unknown>[],
-    collect: Record<string, unknown>,
+    media: PlayItem[],
+    collect: CollectConfig,
     options: {
       volume?: number;
       controlId?: string;
@@ -697,7 +749,7 @@ export class Call {
    */
   async promptTTS(
     text: string,
-    collect: Record<string, unknown>,
+    collect: CollectConfig,
     options: {
       language?: string;
       gender?: TtsGender;
@@ -733,7 +785,7 @@ export class Call {
    */
   async promptAudio(
     url: string,
-    collect: Record<string, unknown>,
+    collect: CollectConfig,
     options: {
       volume?: number;
       onCompleted?: CompletedCallback;
@@ -763,8 +815,8 @@ export class Call {
    */
   async collect(
     options: {
-      digits?: Record<string, unknown>;
-      speech?: Record<string, unknown>;
+      digits?: CallingCollectParams['digits'];
+      speech?: CallingCollectParams['speech'];
       initialTimeout?: number;
       partialResults?: boolean;
       continuous?: boolean;
@@ -804,22 +856,22 @@ export class Call {
    * @throws {RelayError} When the connect command is rejected.
    */
   async connect(
-    devices: Record<string, unknown>[][],
+    devices: DeviceInput[][],
     options: {
-      ringback?: Record<string, unknown>[];
+      ringback?: CallingConnectParams['ringback'];
       tag?: string;
       maxDuration?: number;
       maxPricePerMinute?: number;
       statusUrl?: string;
     } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingConnectResult> {
     const params: Record<string, unknown> = { devices: normalizeDevicePlan(devices) };
     if (options.ringback != null) params.ringback = normalizePlayItems(options.ringback);
     if (options.tag != null) params.tag = options.tag;
     if (options.maxDuration != null) params.max_duration = options.maxDuration;
     if (options.maxPricePerMinute != null) params.max_price_per_minute = options.maxPricePerMinute;
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('connect', params);
+    return this._execute<CallingConnectResult>('connect', params);
   }
 
   /**
@@ -828,8 +880,8 @@ export class Call {
    * @returns The platform's disconnect response.
    * @throws {RelayError} When the disconnect command is rejected.
    */
-  async disconnect(): Promise<Record<string, unknown>> {
-    return this._execute('disconnect');
+  async disconnect(): Promise<CallingDisconnectResult> {
+    return this._execute<CallingDisconnectResult>('disconnect');
   }
 
   // ─── DTMF ────────────────────────────────────────────────────────
@@ -842,9 +894,9 @@ export class Call {
    * @returns The platform's send-digits response.
    * @throws {RelayError} When the send_digits command is rejected.
    */
-  async sendDigits(digits: string, controlId?: string): Promise<Record<string, unknown>> {
+  async sendDigits(digits: string, controlId?: string): Promise<CallingSendDigitsResult> {
     const cid = controlId ?? randomUUID();
-    return this._execute('send_digits', { control_id: cid, digits });
+    return this._execute<CallingSendDigitsResult>('send_digits', { control_id: cid, digits });
   }
 
   // ─── Detection ───────────────────────────────────────────────────
@@ -861,7 +913,7 @@ export class Call {
    * @throws {RelayError} When the detect command is rejected.
    */
   async detect(
-    detect: Record<string, unknown>,
+    detect: CallingDetectParams['detect'],
     options: {
       timeout?: number;
       controlId?: string;
@@ -1002,12 +1054,12 @@ export class Call {
    * @throws {RelayError} When the refer command is rejected.
    */
   async refer(
-    device: Record<string, unknown>,
+    device: DeviceInput,
     options: { statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingReferResult> {
     const params: Record<string, unknown> = { device: normalizeDevice(device) };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('refer', params);
+    return this._execute<CallingReferResult>('refer', params);
   }
 
   // ─── Payment ─────────────────────────────────────────────────────
@@ -1139,8 +1191,8 @@ export class Call {
    * @throws {RelayError} When the tap command is rejected.
    */
   async tap(
-    tap: Record<string, unknown>,
-    device: Record<string, unknown>,
+    tap: CallingTapParams['tap'],
+    device: DeviceInput,
     options: {
       controlId?: string;
       onCompleted?: CompletedCallback;
@@ -1214,9 +1266,9 @@ export class Call {
    * @returns The platform's transfer response.
    * @throws {RelayError} When the transfer command is rejected.
    */
-  async transfer(dest: string, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async transfer(dest: string, extra?: Record<string, unknown>): Promise<CallingTransferResult> {
     const params: Record<string, unknown> = { dest, ...extra };
-    return this._execute('transfer', params);
+    return this._execute<CallingTransferResult>('transfer', params);
   }
 
   // ─── Conference ──────────────────────────────────────────────────
@@ -1252,7 +1304,7 @@ export class Call {
       recordingStatusCallbackMethod?: string;
       stream?: Record<string, unknown>;
     } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingJoinConferenceResult> {
     const params: Record<string, unknown> = { name };
     if (options.muted != null) params.muted = options.muted;
     if (options.beep != null) params.beep = options.beep;
@@ -1294,8 +1346,11 @@ export class Call {
   async leaveConference(
     conferenceId: string,
     extra?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    return this._execute('leave_conference', { conference_id: conferenceId, ...extra });
+  ): Promise<CallingLeaveConferenceResult> {
+    return this._execute<CallingLeaveConferenceResult>('leave_conference', {
+      conference_id: conferenceId,
+      ...extra,
+    });
   }
 
   // ─── Hold / Unhold ───────────────────────────────────────────────
@@ -1328,8 +1383,8 @@ export class Call {
    * @returns The platform's denoise response.
    * @throws {RelayError} When the denoise command is rejected.
    */
-  async denoise(): Promise<Record<string, unknown>> {
-    return this._execute('denoise');
+  async denoise(): Promise<CallingDenoiseResult> {
+    return this._execute<CallingDenoiseResult>('denoise');
   }
 
   /**
@@ -1338,8 +1393,8 @@ export class Call {
    * @returns The platform's denoise-stop response.
    * @throws {RelayError} When the denoise.stop command is rejected.
    */
-  async denoiseStop(): Promise<Record<string, unknown>> {
-    return this._execute('denoise.stop');
+  async denoiseStop(): Promise<CallingDenoiseStopResult> {
+    return this._execute<CallingDenoiseStopResult>('denoise.stop');
   }
 
   // ─── Transcribe ──────────────────────────────────────────────────
@@ -1379,13 +1434,14 @@ export class Call {
    * @returns The platform's echo response.
    * @throws {RelayError} When the echo command is rejected.
    */
-  async echo(
-    options: { timeout?: number; statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  async echo(options: { timeout?: number; statusUrl?: string } = {}): Promise<CallingEchoResult> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('echo', Object.keys(params).length ? params : undefined);
+    return this._execute<CallingEchoResult>(
+      'echo',
+      Object.keys(params).length ? params : undefined,
+    );
   }
 
   // ─── Digit Bindings ──────────────────────────────────────────────
@@ -1411,7 +1467,7 @@ export class Call {
       realm?: string;
       maxTriggers?: number;
     } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingBindDigitResult> {
     const params: Record<string, unknown> = {
       digits,
       bind_method: bindMethod,
@@ -1419,7 +1475,7 @@ export class Call {
     if (options.bindParams != null) params.params = options.bindParams;
     if (options.realm != null) params.realm = options.realm;
     if (options.maxTriggers != null) params.max_triggers = options.maxTriggers;
-    return this._execute('bind_digit', params);
+    return this._execute<CallingBindDigitResult>('bind_digit', params);
   }
 
   /**
@@ -1429,10 +1485,13 @@ export class Call {
    * @returns The platform's clear_digit_bindings response.
    * @throws {RelayError} When the clear_digit_bindings command is rejected.
    */
-  async clearDigitBindings(realm?: string): Promise<Record<string, unknown>> {
+  async clearDigitBindings(realm?: string): Promise<CallingClearDigitBindingsResult> {
     const params: Record<string, unknown> = {};
     if (realm != null) params.realm = realm;
-    return this._execute('clear_digit_bindings', Object.keys(params).length ? params : undefined);
+    return this._execute<CallingClearDigitBindingsResult>(
+      'clear_digit_bindings',
+      Object.keys(params).length ? params : undefined,
+    );
   }
 
   // ─── Live Transcribe / Translate ─────────────────────────────────
@@ -1449,8 +1508,8 @@ export class Call {
   async liveTranscribe(
     action: Record<string, unknown>,
     extra?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    return this._execute('live_transcribe', { action, ...extra });
+  ): Promise<CallingLiveTranscribeResult> {
+    return this._execute<CallingLiveTranscribeResult>('live_transcribe', { action, ...extra });
   }
 
   /**
@@ -1466,10 +1525,10 @@ export class Call {
   async liveTranslate(
     action: Record<string, unknown>,
     options: { statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingLiveTranslateResult> {
     const params: Record<string, unknown> = { action };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('live_translate', params);
+    return this._execute<CallingLiveTranslateResult>('live_translate', params);
   }
 
   // ─── Room ────────────────────────────────────────────────────────
@@ -1486,10 +1545,10 @@ export class Call {
   async joinRoom(
     name: string,
     options: { statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingJoinRoomResult> {
     const params: Record<string, unknown> = { name };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('join_room', params);
+    return this._execute<CallingJoinRoomResult>('join_room', params);
   }
 
   /**
@@ -1499,8 +1558,8 @@ export class Call {
    * @returns The platform's leave_room response.
    * @throws {RelayError} When the leave_room command is rejected.
    */
-  async leaveRoom(extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return this._execute('leave_room', extra);
+  async leaveRoom(extra?: Record<string, unknown>): Promise<CallingLeaveRoomResult> {
+    return this._execute<CallingLeaveRoomResult>('leave_room', extra);
   }
 
   // ─── AI Agent ────────────────────────────────────────────────────
@@ -1572,7 +1631,7 @@ export class Call {
       postPrompt?: Record<string, unknown>;
       postPromptUrl?: string;
     } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingAmazonBedrockResult> {
     const params: Record<string, unknown> = {};
     if (options.prompt != null) params.prompt = options.prompt;
     if (options.SWAIG != null) params.SWAIG = options.SWAIG;
@@ -1580,7 +1639,7 @@ export class Call {
     if (options.globalData != null) params.global_data = options.globalData;
     if (options.postPrompt != null) params.post_prompt = options.postPrompt;
     if (options.postPromptUrl != null) params.post_prompt_url = options.postPromptUrl;
-    return this._execute('amazon_bedrock', params);
+    return this._execute<CallingAmazonBedrockResult>('amazon_bedrock', params);
   }
 
   /**
@@ -1601,13 +1660,13 @@ export class Call {
       reset?: Record<string, unknown>;
       globalData?: Record<string, unknown>;
     } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingAiMessageResult> {
     const params: Record<string, unknown> = {};
     if (options.messageText != null) params.message_text = options.messageText;
     if (options.role != null) params.role = options.role;
     if (options.reset != null) params.reset = options.reset;
     if (options.globalData != null) params.global_data = options.globalData;
-    return this._execute('ai_message', params);
+    return this._execute<CallingAiMessageResult>('ai_message', params);
   }
 
   /**
@@ -1619,13 +1678,14 @@ export class Call {
    * @returns The platform's ai_hold response.
    * @throws {RelayError} When the ai_hold command is rejected.
    */
-  async aiHold(
-    options: { timeout?: string; prompt?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  async aiHold(options: { timeout?: string; prompt?: string } = {}): Promise<CallingAiHoldResult> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
     if (options.prompt != null) params.prompt = options.prompt;
-    return this._execute('ai_hold', Object.keys(params).length ? params : undefined);
+    return this._execute<CallingAiHoldResult>(
+      'ai_hold',
+      Object.keys(params).length ? params : undefined,
+    );
   }
 
   /**
@@ -1636,10 +1696,13 @@ export class Call {
    * @returns The platform's ai_unhold response.
    * @throws {RelayError} When the ai_unhold command is rejected.
    */
-  async aiUnhold(options: { prompt?: string } = {}): Promise<Record<string, unknown>> {
+  async aiUnhold(options: { prompt?: string } = {}): Promise<CallingAiUnholdResult> {
     const params: Record<string, unknown> = {};
     if (options.prompt != null) params.prompt = options.prompt;
-    return this._execute('ai_unhold', Object.keys(params).length ? params : undefined);
+    return this._execute<CallingAiUnholdResult>(
+      'ai_unhold',
+      Object.keys(params).length ? params : undefined,
+    );
   }
 
   // ─── User Events ─────────────────────────────────────────────────
@@ -1654,10 +1717,10 @@ export class Call {
    */
   async userEvent(
     options: { event?: string } & Record<string, unknown> = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingUserEventResult> {
     const params: Record<string, unknown> = {};
     if (options.event != null) params.event = options.event;
-    return this._execute('user_event', params);
+    return this._execute<CallingUserEventResult>('user_event', params);
   }
 
   // ─── Queue ───────────────────────────────────────────────────────
@@ -1675,14 +1738,14 @@ export class Call {
   async queueEnter(
     queueName: string,
     options: { controlId?: string; statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingQueueEnterResult> {
     const cid = options.controlId ?? randomUUID();
     const params: Record<string, unknown> = {
       control_id: cid,
       queue_name: queueName,
     };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('queue.enter', params);
+    return this._execute<CallingQueueEnterResult>('queue.enter', params);
   }
 
   /**
@@ -1699,7 +1762,7 @@ export class Call {
   async queueLeave(
     queueName: string,
     options: { controlId?: string; queueId?: string; statusUrl?: string } = {},
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CallingQueueLeaveResult> {
     const cid = options.controlId ?? randomUUID();
     const params: Record<string, unknown> = {
       control_id: cid,
@@ -1707,7 +1770,7 @@ export class Call {
     };
     if (options.queueId != null) params.queue_id = options.queueId;
     if (options.statusUrl != null) params.status_url = options.statusUrl;
-    return this._execute('queue.leave', params);
+    return this._execute<CallingQueueLeaveResult>('queue.leave', params);
   }
 
   // ─── Repr ────────────────────────────────────────────────────────

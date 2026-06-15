@@ -8942,7 +8942,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingAiHoldResult"
             },
             "ai_message": {
               "params": [
@@ -8957,7 +8957,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingAiMessageResult"
             },
             "ai_unhold": {
               "params": [
@@ -8972,7 +8972,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingAiUnholdResult"
             },
             "amazon_bedrock": {
               "params": [
@@ -8987,7 +8987,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingAmazonBedrockResult"
             },
             "answer": {
               "params": [
@@ -9002,7 +9002,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingAnswerResult"
             },
             "bind_digit": {
               "params": [
@@ -9027,7 +9027,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingBindDigitResult"
             },
             "clear_digit_bindings": {
               "params": [
@@ -9042,7 +9042,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingClearDigitBindingsResult"
             },
             "collect": {
               "params": [
@@ -9077,7 +9077,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingConnectResult"
             },
             "denoise": {
               "params": [
@@ -9086,7 +9086,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingDenoiseResult"
             },
             "denoise_stop": {
               "params": [
@@ -9095,7 +9095,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingDenoiseStopResult"
             },
             "detect": {
               "params": [
@@ -9105,7 +9105,7 @@
                 },
                 {
                   "name": "detect",
-                  "type": "dict<string,any>",
+                  "type": "class:signalwire.relay.protocol.types.generated.__type",
                   "required": true
                 },
                 {
@@ -9178,7 +9178,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingDisconnectResult"
             },
             "echo": {
               "params": [
@@ -9193,7 +9193,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingEchoResult"
             },
             "hangup": {
               "params": [
@@ -9208,7 +9208,7 @@
                   "default": "hangup"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingEndResult"
             },
             "hold": {
               "params": [
@@ -9246,7 +9246,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingJoinConferenceResult"
             },
             "join_room": {
               "params": [
@@ -9266,7 +9266,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingJoinRoomResult"
             },
             "leave_conference": {
               "params": [
@@ -9286,7 +9286,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingLeaveConferenceResult"
             },
             "leave_room": {
               "params": [
@@ -9301,7 +9301,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingLeaveRoomResult"
             },
             "live_transcribe": {
               "params": [
@@ -9321,7 +9321,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingLiveTranscribeResult"
             },
             "live_translate": {
               "params": [
@@ -9341,7 +9341,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingLiveTranslateResult"
             },
             "on": {
               "params": [
@@ -9369,7 +9369,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPassResult"
             },
             "pay": {
               "params": [
@@ -9399,7 +9399,7 @@
                 },
                 {
                   "name": "media",
-                  "type": "list<dict<string,any>>",
+                  "type": "list<union<class:signalwire.relay.protocol.types.generated.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type>>",
                   "required": true
                 },
                 {
@@ -9419,7 +9419,7 @@
                 },
                 {
                   "name": "media",
-                  "type": "list<dict<string,any>>",
+                  "type": "list<union<class:signalwire.relay.protocol.types.generated.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type>>",
                   "required": true
                 },
                 {
@@ -9584,7 +9584,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingQueueEnterResult"
             },
             "queue_leave": {
               "params": [
@@ -9604,7 +9604,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingQueueLeaveResult"
             },
             "receive_fax": {
               "params": [
@@ -9629,7 +9629,7 @@
                 },
                 {
                   "name": "audio",
-                  "type": "dict<string,any>",
+                  "type": "class:signalwire.relay.protocol.types.generated.__type",
                   "required": false,
                   "default": null
                 },
@@ -9660,7 +9660,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingReferResult"
             },
             "send_digits": {
               "params": [
@@ -9680,7 +9680,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingSendDigitsResult"
             },
             "send_fax": {
               "params": [
@@ -9730,7 +9730,7 @@
                 },
                 {
                   "name": "tap",
-                  "type": "dict<string,any>",
+                  "type": "class:signalwire.relay.protocol.types.generated.__type",
                   "required": true
                 },
                 {
@@ -9780,7 +9780,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingTransferResult"
             },
             "unhold": {
               "params": [
@@ -9804,7 +9804,7 @@
                   "default": {}
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingUserEventResult"
             },
             "wait_for": {
               "params": [
@@ -9922,7 +9922,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingCollectStartInputTimersResult"
             },
             "stop": {
               "params": [
@@ -9931,7 +9931,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayAndCollectStopResult"
             },
             "volume": {
               "params": [
@@ -9945,7 +9945,7 @@
                   "required": true
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayAndCollectVolumeResult"
             }
           }
         },
@@ -9977,7 +9977,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingDetectStopResult"
             }
           }
         },
@@ -10046,7 +10046,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPayStopResult"
             }
           }
         },
@@ -10078,7 +10078,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayPauseResult"
             },
             "resume": {
               "params": [
@@ -10087,7 +10087,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayResumeResult"
             },
             "stop": {
               "params": [
@@ -10096,7 +10096,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayStopResult"
             },
             "volume": {
               "params": [
@@ -10110,7 +10110,7 @@
                   "required": true
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingPlayVolumeResult"
             }
           }
         },
@@ -10148,7 +10148,7 @@
                   "default": null
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingRecordPauseResult"
             },
             "resume": {
               "params": [
@@ -10157,7 +10157,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingRecordResumeResult"
             },
             "stop": {
               "params": [
@@ -10166,7 +10166,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingRecordStopResult"
             }
           }
         },
@@ -10198,7 +10198,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingCollectStartInputTimersResult"
             },
             "stop": {
               "params": [
@@ -10207,7 +10207,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingCollectStopResult"
             }
           }
         },
@@ -10239,7 +10239,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingStreamStopResult"
             }
           }
         },
@@ -10271,7 +10271,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "class:signalwire.relay.protocol.types.generated.CallingTapStopResult"
             }
           }
         },

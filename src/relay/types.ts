@@ -5,6 +5,7 @@
 import type { Call } from './Call.js';
 import type { Message } from './Message.js';
 import type { RelayEvent } from './RelayEvent.js';
+import type { CallingCollectParams, CallingPlayParams } from './protocol.types.generated.js';
 
 /** Options for constructing a RelayClient. */
 export interface RelayClientOptions {
@@ -119,37 +120,37 @@ export interface SendMessageOptions {
   tags?: string[];
 }
 
-/** Play item: TTS, audio URL, ringtone, or silence. */
+/**
+ * A play item accepted by `play()` / `playAndCollect()`.
+ *
+ * The canonical RELAY wire form is `{ type, params }`
+ * (`CallingPlayParams['play'][number]`). The SDK also accepts the friendly flat
+ * shorthands below (`{ type: 'tts', text }`, etc.), which
+ * {@link normalizePlayItem} expands into `params` before sending. So the
+ * accepted-input type is the wire shape OR one of the flat shorthands — exactly
+ * the set the normalizer handles, not the post-normalization wire shape alone.
+ */
 export type PlayItem =
+  | CallingPlayParams['play'][number]
   | { type: 'tts'; text: string; language?: string; gender?: string }
   | { type: 'audio'; url: string }
   | { type: 'ringtone'; name: string; duration?: number }
-  | { type: 'silence'; duration: number }
-  | Record<string, unknown>;
+  | { type: 'silence'; duration: number };
 
-/** Collect input configuration. */
-export interface CollectConfig {
-  /** Collect digits. */
-  digits?: {
-    max: number;
-    digit_timeout?: number;
-    terminators?: string;
-  };
-  /** Collect speech. */
-  speech?: {
-    end_silence_timeout?: number;
-    speech_timeout?: number;
-    language?: string;
-    hints?: string[];
-    model?: string;
-  };
-  /** Initial timeout in seconds. */
-  initial_timeout?: number;
-  /** Partial results? */
-  partial_results?: boolean;
-  /** Continuous mode? */
-  continuous?: boolean;
-}
+/**
+ * Collect-input configuration — the canonical `calling.collect` params minus the
+ * transport keys (`node_id`/`call_id`/`control_id`) the SDK fills internally.
+ * The `digits`/`speech`/timer field types come straight from the RELAY schema.
+ */
+export type CollectConfig = Omit<CallingCollectParams, 'node_id' | 'call_id' | 'control_id'>;
+
+/**
+ * A device descriptor accepted by `connect()` / `refer()` / `tap()`. Same
+ * wire-or-flat duality as {@link PlayItem}: {@link normalizeDevice} accepts a
+ * flat `{ type, to, from, … }` and expands it into `{ type, params }`, so the
+ * accepted-input type is an object with a `type` plus arbitrary other fields.
+ */
+export type DeviceInput = { type: string } & Record<string, unknown>;
 
 /** Queued request waiting for reconnection. */
 export interface QueuedRequest {
