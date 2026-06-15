@@ -297,6 +297,18 @@ function resolvePortingSdk(): string | null {
 }
 
 async function generateForSpec(specPath: string, outPath: string, ns: string): Promise<number> {
+  // Fail with a clear, actionable message rather than a raw ENOENT stack trace
+  // when a spec is absent — the usual cause is porting-sdk checked out at a
+  // branch/SHA that predates the spec (e.g. the spec lives on an unmerged
+  // porting-sdk PR while this repo's CI pulls porting-sdk@main).
+  if (!fs.existsSync(specPath)) {
+    throw new Error(
+      `spec not found: ${specPath}\n` +
+        `  The '${ns}' spec is missing from the resolved porting-sdk. If it lives on an\n` +
+        `  unmerged porting-sdk PR, check out that branch (or merge it) before running\n` +
+        `  GEN-FRESH; CI pulls porting-sdk@main.`,
+    );
+  }
   const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
   const schemas = doc.components?.schemas ?? {};
   const taken = new Set(Object.keys(schemas).map(tsName));
@@ -430,6 +442,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error(err);
+  // Print just the message for our own thrown errors (clean gate output); keep
+  // the full object for unexpected failures so they remain debuggable.
+  console.error(err instanceof Error ? `generate-rest-types: ${err.message}` : err);
   process.exit(1);
 });
