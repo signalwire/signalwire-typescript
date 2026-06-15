@@ -15,6 +15,13 @@
 #                                            generated_from git-sha; closes the Layer-B-
 #                                            not-gated hole — DRIFT gates Layer A only,
 #                                            so port_surface.json silently rots)
+#  4b. gen-fresh gate                      — generate-rest-types.ts --check
+#                                           (regenerates the committed *.types.generated.ts
+#                                            from the canonical schemas and fails on any
+#                                            mismatch; the ONLY gate that validates the
+#                                            generated types' SHAPE — DRIFT can't, since
+#                                            ~40% of the Python reference is Dict[str,Any]
+#                                            and `any` matches any port type)
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
 #                                           (byte-compares this port's FunctionResult
@@ -143,6 +150,20 @@ surface_fresh_gate() {
 }
 run_gate "SURFACE-FRESH" "check_surface_freshness vs committed port_surface.json" \
     surface_fresh_gate
+
+# Gate 4b: gen-fresh — the committed src/**/*.types.generated.ts (+ PlatformContracts
+# / relay protocol types) must still match what the canonical schemas produce. This
+# is the ONLY gate that validates the generated types' SHAPE: DRIFT can't, because
+# ~40% of the Python reference is `Dict[str, Any]` and the drift comparator treats
+# `any` as matching any port type — so a generated `Record→named-interface` upgrade
+# (or a hand-edit, or a spec change with stale output) sails through DRIFT unchecked.
+# Regenerating from the schema and requiring byte-equality is what proves the
+# committed types are faithful to their source. Read-only (--check never writes).
+genfresh_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-rest-types.ts --check
+}
+run_gate "GEN-FRESH" "generated types match canonical schema (--check)" genfresh_gate
 
 # Gate 5: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \

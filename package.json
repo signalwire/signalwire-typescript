@@ -15,6 +15,7 @@
   "scripts": {
     "generate:verbs": "npx tsx src/generateVerbTypes.ts",
     "generate:rest-types": "npx tsx scripts/generate-rest-types.ts",
+    "generate:rest-types:check": "npx tsx scripts/generate-rest-types.ts --check",
     "prebuild": "npm run generate:verbs && npm run generate:rest-types",
     "build": "tsc",
     "postbuild": "cp src/schema.json dist/schema.json",

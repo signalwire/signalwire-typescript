@@ -20,6 +20,25 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import * as prettier from 'prettier';
 
+// `--check` (the GEN-FRESH gate): regenerate in-memory and FAIL if any committed
+// output differs from what the canonical schema produces — instead of writing.
+// This is the real validator for the generated types' SHAPE: DRIFT can't check
+// it (≈40% of the Python reference is `Any`, which matches any TS type), so the
+// only thing proving the committed types still match their source is that they
+// reproduce exactly from that source. Mirrors the SURFACE-FRESH gate.
+const CHECK = process.argv.includes('--check');
+const staleFiles: string[] = [];
+
+/** Write `formatted` to `outPath`, or (in --check) record it as stale on mismatch. */
+function emitFile(outPath: string, formatted: string): void {
+  if (CHECK) {
+    const current = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf-8') : '';
+    if (current !== formatted) staleFiles.push(outPath);
+    return;
+  }
+  fs.writeFileSync(outPath, formatted);
+}
+
 // ---- spec types (minimal) --------------------------------------------------
 
 interface Schema {
@@ -271,7 +290,7 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
   // FMT gate by construction (the gate is `prettier --check` in CI).
   const config = (await prettier.resolveConfig(outPath)) ?? {};
   const formatted = await prettier.format(raw, { ...config, parser: 'typescript' });
-  fs.writeFileSync(outPath, formatted);
+  emitFile(outPath, formatted);
   return decls.length + ops.length;
 }
 
@@ -316,7 +335,7 @@ async function generateRelayProtocol(dir: string, outPath: string): Promise<numb
     ...config,
     parser: 'typescript',
   });
-  fs.writeFileSync(outPath, formatted);
+  emitFile(outPath, formatted);
   return decls.length;
 }
 
@@ -327,6 +346,16 @@ async function main(): Promise<void> {
   // committed, so when the spec source isn't resolvable we skip regeneration and
   // build against the committed outputs rather than erroring the build.
   if (!psdk) {
+    if (CHECK) {
+      // The freshness gate needs the canonical schemas to compare against; if
+      // they aren't reachable we can't prove freshness, so fail loudly rather
+      // than passing silently.
+      console.error(
+        'generate-rest-types --check: porting-sdk not found — cannot verify generated-type freshness ' +
+          '(set $PORTING_SDK or clone adjacent).',
+      );
+      process.exit(2);
+    }
     console.log(
       'generate-rest-types: porting-sdk not found (set $PORTING_SDK or clone adjacent) — ' +
         'skipping; using committed *.types.generated.ts.',
@@ -356,10 +385,11 @@ async function main(): Promise<void> {
     video: 'src/rest/namespaces/video.types.generated.ts',
     voice: 'src/rest/namespaces/voice.types.generated.ts',
   };
+  const verb = CHECK ? 'checked' : 'generated';
   for (const [specDir, outPath] of Object.entries(map)) {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
     const n = await generateForSpec(specPath, outPath, specDir);
-    console.log(`generated ${outPath} (${n} types)`);
+    console.log(`${verb} ${outPath} (${n} types)`);
   }
 
   // RELAY WS protocol params (separate source tree + format from the REST specs).
@@ -367,7 +397,17 @@ async function main(): Promise<void> {
   if (fs.existsSync(relayDir)) {
     const relayOut = 'src/relay/protocol.types.generated.ts';
     const n = await generateRelayProtocol(relayDir, relayOut);
-    console.log(`generated ${relayOut} (${n} types)`);
+    console.log(`${verb} ${relayOut} (${n} types)`);
+  }
+
+  if (CHECK && staleFiles.length) {
+    console.error(
+      `\nGEN-FRESH FAIL: ${staleFiles.length} generated file(s) are stale — ` +
+        `they no longer match what the canonical schema produces. Run ` +
+        `\`npx tsx scripts/generate-rest-types.ts\` and commit:`,
+    );
+    for (const f of staleFiles) console.error(`  - ${f}`);
+    process.exit(1);
   }
 }
 
