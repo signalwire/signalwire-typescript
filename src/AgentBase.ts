@@ -1318,95 +1318,11 @@ export class AgentBase extends SWMLService {
   }
 
   // ── Tools ───────────────────────────────────────────────────────────
-
-  /**
-   * Register a SWAIG tool (function) that the AI can invoke during a call.
-   *
-   * ## How this becomes a tool the model sees
-   *
-   * A SWAIG function is **exactly the same concept** as a "tool" in
-   * native OpenAI / Anthropic tool calling. On every LLM turn, the SDK
-   * renders each registered SWAIG function into the OpenAI tool schema:
-   *
-   * ```json
-   * {
-   *   "type": "function",
-   *   "function": {
-   *     "name":        "your_name_here",
-   *     "description": "your description text",
-   *     "parameters":  { /* your JSON schema *\/ }
-   *   }
-   * }
-   * ```
-   *
-   * That schema goes to the model in the same API call that produces
-   * the next assistant message. The model reads:
-   *
-   *   - the **function `description`** to decide WHEN to call this tool
-   *   - each **parameter `description`** (inside the JSON schema) to
-   *     decide HOW to fill in each argument
-   *
-   * This means **descriptions are prompt engineering**, not developer
-   * comments. A vague description is the #1 cause of "the model has the
-   * right tool but doesn't call it" failures.
-   *
-   * ### Bad vs good descriptions
-   *
-   * ```text
-   * BAD : description: 'Lookup function'
-   * GOOD: description: 'Look up a customer's account details by account
-   *       number. Use this BEFORE quoting any account-specific info
-   *       (balance, plan, status). Do not use for general product
-   *       questions.'
-   *
-   * BAD : parameters: { id: { type: 'string', description: 'the id' } }
-   * GOOD: parameters: { account_number: { type: 'string', description:
-   *       'The customer's 8-digit account number, no dashes or spaces.
-   *       Ask the user if they don't provide it.' } }
-   * ```
-   *
-   * ### Tool count matters
-   *
-   * LLM tool selection accuracy degrades past ~7-8 simultaneously-active
-   * tools per call. Use Step.setFunctions() to partition tools across
-   * steps so only the relevant subset is active at any moment.
-   *
-   * @param opts - Tool definition including name, description, parameter
-   *   schema, and handler callback. `description` and per-parameter
-   *   `description` strings are LLM-facing prompt engineering.
-   * @returns This agent instance for chaining.
-   */
-  defineTool(opts: {
-    name: string;
-    description: string;
-    parameters?: Record<string, unknown>;
-    handler: SwaigHandler;
-    secure?: boolean;
-    fillers?: Record<string, string[]>;
-    waitFile?: string;
-    waitFileLoops?: number;
-    required?: string[];
-    /** External webhook URL; makes this an externally-hosted tool. */
-    webhookUrl?: string;
-    /** Additional fields to pass through to the SWAIG function definition (Python `**swaig_fields` equivalent). */
-    extraFields?: Record<string, unknown>;
-  }): this {
-    const fn = new SwaigFunction({
-      name: opts.name,
-      description: opts.description,
-      parameters: opts.parameters,
-      handler: opts.handler,
-      secure: opts.secure,
-      fillers: opts.fillers,
-      waitFile: opts.waitFile,
-      waitFileLoops: opts.waitFileLoops,
-      required: opts.required,
-      webhookUrl: opts.webhookUrl,
-      extraFields: opts.extraFields,
-    });
-    this.toolRegistry.set(opts.name, fn);
-    return this;
-  }
+  //
+  // `defineTool<P, R>(...)` is inherited from SWMLService — one generic
+  // definition serves both classes. With a flat inline `parameters` map it
+  // infers the handler's `args` precisely (args.phone: string, enum→literal
+  // union, required vs optional); wrapped/loose schemas keep open-record args.
 
   /**
    * Register a SWAIG tool with a typed handler that receives named parameters

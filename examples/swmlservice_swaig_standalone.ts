@@ -62,7 +62,8 @@ class StandaloneSwaig extends SWMLService {
         },
       },
       handler: (args, _raw) => {
-        const competitor = (args['competitor'] as string | undefined) ?? '<unknown>';
+        // args.competitor is inferred `string | undefined` from the schema.
+        const competitor = args.competitor ?? '<unknown>';
         return {
           response: `${competitor} pricing is $99/seat; we're $79/seat.`,
         };

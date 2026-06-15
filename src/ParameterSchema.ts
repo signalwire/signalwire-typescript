@@ -128,6 +128,93 @@ export interface ParameterSchemaObject {
   required?: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Compile-time schema → handler-args inference (used by `defineTool<P, R>`).
+//
+// `defineTool({ parameters })` takes the FLAT property map (`{ name: {type,…} }`,
+// not the wrapped `{type:'object',properties}` form). When the caller writes that
+// map inline AND `defineTool` captures it with a `const` type parameter, these
+// types read the literal `type`/`enum` back out and synthesise the precise
+// `args` object the handler receives — `args.phone` is `string`, an `enum` prop
+// narrows to its literal union, `required` splits required vs optional keys.
+// Purely compile-time: erased at runtime, where args really are
+// `Record<string, unknown>` (a SWAIG handler can be handed anything the model
+// extracts — typing is an authoring convenience, not a runtime guarantee).
+// ---------------------------------------------------------------------------
+
+/**
+ * One property entry in a tool's flat parameter map, precise enough to read.
+ * Extra JSON-Schema keywords (`minLength`, `pattern`, `format`, nested wrapped
+ * forms, …) pass through via the index signature, so existing callers that
+ * carry more than `{type,description}` still satisfy it.
+ */
+export interface PropSchema {
+  type: ParameterType;
+  description?: string;
+  enum?: readonly unknown[];
+  /** Element schema, for `type: 'array'`. */
+  items?: PropSchema;
+  /** Nested property map, for `type: 'object'`. */
+  properties?: Record<string, PropSchema>;
+  [extra: string]: unknown;
+}
+
+/** The flat `name → PropSchema` map `defineTool({ parameters })` accepts. */
+export type ParametersSchema = Record<string, PropSchema>;
+
+/**
+ * Accepted `parameters` shapes for `defineTool`. The FLAT map (`{ name: {…} }`)
+ * is what enables `InferArgs` inference; the WRAPPED JSON-Schema object
+ * (`{ type:'object', properties }`) and a pre-built loose `Record` are also
+ * accepted for backward compatibility (they don't drive arg inference).
+ */
+export type ToolParameters =
+  | ParametersSchema
+  | { type: 'object'; properties?: Record<string, unknown>; required?: readonly string[] }
+  | Record<string, unknown>;
+
+/**
+ * The handler-args type for a given `parameters` (`P`) + `required` (`R`).
+ * Only narrows when `P` is a clean FLAT schema map; the wrapped JSON-Schema
+ * object and loose records degrade to the open `Record<string, unknown>` so
+ * existing callers keep their old (untyped-args) behavior unchanged.
+ */
+export type ToolArgs<P, R extends readonly PropertyKey[]> = P extends { type: 'object' }
+  ? Record<string, unknown> // wrapped form → not inferred
+  : P extends ParametersSchema
+    ? InferArgs<P, R extends readonly (keyof P)[] ? R : []>
+    : Record<string, unknown>;
+
+/** Map a single property's schema to the TS type the handler sees for it. */
+export type PropToTs<P extends PropSchema> = P extends { enum: readonly (infer E)[] }
+  ? E // enum wins: union of its literal members
+  : P['type'] extends 'string'
+    ? string
+    : P['type'] extends 'number' | 'integer'
+      ? number
+      : P['type'] extends 'boolean'
+        ? boolean
+        : P['type'] extends 'array'
+          ? P extends { items: infer I extends PropSchema }
+            ? PropToTs<I>[]
+            : unknown[]
+          : P['type'] extends 'object'
+            ? P extends { properties: infer Pr extends ParametersSchema }
+              ? InferArgs<Pr>
+              : Record<string, unknown>
+            : unknown;
+
+/**
+ * Map a whole flat parameter map to the handler's `args` type, splitting
+ * required keys (present) from the rest (optional) per the `required` list `R`.
+ * Default `R = []` makes every prop optional (matches "no required list").
+ */
+export type InferArgs<P extends ParametersSchema, R extends readonly (keyof P)[] = []> = {
+  [K in keyof P as K extends R[number] ? K : never]: PropToTs<P[K]>;
+} & {
+  [K in keyof P as K extends R[number] ? never : K]?: PropToTs<P[K]>;
+};
+
 /**
  * Fluent builder producing a {@link ParameterSchemaObject} byte-identical to
  * the equivalent hand-written `parameters` blob. Every method returns `this`

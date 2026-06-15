@@ -16,7 +16,8 @@ import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
-import { SwaigFunction, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
+import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
 import type { SwaigRequestData, SwmlRequestData } from './PlatformContracts.js';
 import type { Server } from 'node:http';
@@ -470,12 +471,43 @@ export class SWMLService {
    * parameter descriptions are LLM-facing prompt engineering — see
    * PORTING_GUIDE for guidance on writing them.
    *
-   * Accepts the full SwaigFunctionOptions surface so AgentBase's richer
-   * call sites (fillers, secure tokens, wait files, extra fields) work
-   * without overriding this method on the subclass.
+   * Generic over the `parameters` schema (`P`) and `required` list (`R`): when
+   * `parameters` is written as a FLAT inline map (`{ name: { type, … } }`), the
+   * `const` type parameters capture its literals and the handler's `args` is
+   * inferred precisely — `args.phone` typed `string`, an `enum` prop narrowed to
+   * its literal union, `required` keys present and the rest optional (see
+   * {@link ToolArgs}/{@link InferArgs}). The WRAPPED JSON-Schema object
+   * (`{ type:'object', properties }`) and a pre-built `Record` are still
+   * accepted and keep the prior open-record `args` behavior. The args type is a
+   * compile-time authoring convenience — at runtime args is the JSON the model
+   * extracted, so the handler is the ordinary {@link SwaigHandler}.
    */
-  defineTool(opts: SwaigFunctionOptions): this {
-    const fn = new SwaigFunction(opts);
+  defineTool<
+    const P extends ToolParameters = ToolParameters,
+    const R extends readonly PropertyKey[] = [],
+  >(
+    opts: Omit<SwaigFunctionOptions, 'parameters' | 'required' | 'handler'> & {
+      parameters?: P;
+      required?: R;
+      handler: (
+        args: ToolArgs<P, R>,
+        rawData: SwaigRequestData,
+      ) =>
+        | FunctionResult
+        | Record<string, unknown>
+        | string
+        | Promise<FunctionResult | Record<string, unknown> | string>;
+    },
+  ): this {
+    const fn = new SwaigFunction({
+      ...opts,
+      parameters: opts.parameters as Record<string, unknown> | undefined,
+      required: opts.required as string[] | undefined,
+      // Single type-erasure boundary: at runtime the handler is the ordinary
+      // (args: Record<string,unknown>, rawData) SwaigHandler; the inferred-args
+      // view is compile-time only.
+      handler: opts.handler as SwaigHandler,
+    });
     this.toolRegistry.set(opts.name, fn);
     return this;
   }

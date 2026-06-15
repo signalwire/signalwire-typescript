@@ -611,7 +611,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -4692,7 +4692,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -6552,7 +6552,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.swaig_function.SwaigFunctionOptions",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
