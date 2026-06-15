@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -134,7 +134,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
 
     it('label() with string', () => {
-      (builder as Record<string, Function>)['label']('greeting');
+      (builder as unknown as Record<string, (...args: unknown[]) => unknown>)['label']('greeting');
       const doc = builder.getDocument() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ label: 'greeting' });
     });

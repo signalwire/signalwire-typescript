@@ -647,14 +647,14 @@ export class SurveyAgent extends AgentBase {
     if (summary) {
       try {
         if (typeof summary === 'string') {
-          // eslint-disable-next-line no-console
+           
           console.log(`Survey summary (unstructured): ${summary}`);
         } else {
-          // eslint-disable-next-line no-console
+           
           console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.log(`Error processing survey summary: ${String(err)}`);
       }
     }

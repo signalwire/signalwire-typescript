@@ -323,7 +323,7 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * const env = restClient();  // reads env vars
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+ 
 export function restClient(args?: string[], kwargs?: Record<string, unknown>): _RestClient {
   // `args` is a positional placeholder for cross-language parity (mirrors
   // Python's ``*args``). `kwargs` carries the actual credentials object —

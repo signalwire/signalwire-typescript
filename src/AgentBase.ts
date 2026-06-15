@@ -16,7 +16,7 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { SwaigFunction, type SwaigHandler } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
@@ -2337,7 +2337,6 @@ export class AgentBase extends SWMLService {
     const app = new Hono();
 
     // Security headers
-    const requestTimeout = parseInt(process.env['SWML_REQUEST_TIMEOUT'] ?? '30000', 10);
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
     app.use('*', async (c, next) => {
       await next();
@@ -2475,6 +2474,7 @@ export class AgentBase extends SWMLService {
       const callId = (body['call_id'] as string) || undefined;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
 
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
       let agentToUse: AgentBase = this;
       if (this.dynamicConfigCallback) {
         agentToUse = this.createEphemeralCopy();
@@ -2651,7 +2651,7 @@ export class AgentBase extends SWMLService {
     // MCP server endpoint (JSON-RPC 2.0)
     if (this._mcpServerEnabled) {
       app.post(`${basePath}/mcp`, async (c: Context) => {
-        let body: Record<string, unknown> = {};
+        let body: Record<string, unknown>;
         try {
           body = await c.req.json();
         } catch {

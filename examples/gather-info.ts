@@ -6,7 +6,7 @@
  * Run: npx tsx examples/gather-info.ts
  */
 
-import { AgentBase, FunctionResult, GatherInfo, GatherQuestion } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'intake-agent',

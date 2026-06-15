@@ -75,6 +75,7 @@ export function redactUrl(url: string): string {
 export function isValidHostname(host: string): boolean {
   if (!host || host.length === 0) return false;
   // Reject whitespace, slashes, control chars
+  // eslint-disable-next-line no-control-regex -- intentional control-char rejection in hostname validation
   return !/[\s/\\]/.test(host) && !/[\x00-\x1f\x7f]/.test(host);
 }
 

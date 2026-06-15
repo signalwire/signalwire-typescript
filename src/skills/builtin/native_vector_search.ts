@@ -736,7 +736,7 @@ export class NativeVectorSearchSkill extends SkillBase {
 
     const count = Math.max(1, Math.min(20, (args['count'] as number | undefined) ?? this.count));
 
-    let results: SearchResult[] = [];
+    let results: SearchResult[];
     try {
       if (this.useRemote) {
         results = await this._searchRemote(query, count);

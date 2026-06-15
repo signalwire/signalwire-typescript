@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { Message } from '../../src/relay/Message.js';
-import { RelayError } from '../../src/relay/RelayError.js';
 import { MockWebSocket } from './helpers.js';
 
 function createClient(ws?: MockWebSocket): { client: RelayClient; ws: MockWebSocket } {
@@ -590,8 +589,6 @@ describe('RelayClient', () => {
         host: 'relay.test.com',
       });
 
-      // Create deferred response handling
-      let authReqId = '';
       mockWs.autoAuthenticate();
 
       client._wsFactory = () => mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;

@@ -126,9 +126,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     // Answer question 1
     let state: Record<string, unknown> = { questions: QUESTIONS, question_index: 0, answers: [] };
     let rawData = makeRawData(namespace, state);
-    let result = submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as {
-      response: string;
-    };
+    submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData);
     // Advance state (simulate updateSkillData)
     state = {
       questions: QUESTIONS,
@@ -137,9 +135,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     // Answer question 2 (requires confirmation)
     rawData = makeRawData(namespace, state);
-    result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
-      response: string;
-    };
+    submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData);
     state = {
       questions: QUESTIONS,
       question_index: 2,
@@ -150,7 +146,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     // Answer question 3 — last question
     rawData = makeRawData(namespace, state);
-    result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as {
+    const result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as {
       response: string;
     };
     expect(result.response).toBe(custom);

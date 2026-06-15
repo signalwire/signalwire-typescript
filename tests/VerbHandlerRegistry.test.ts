@@ -14,7 +14,7 @@ class CustomVerbHandler extends SWMLVerbHandler {
     return this.name;
   }
 
-  validateConfig(config: Record<string, unknown>): [boolean, string[]] {
+  validateConfig(_config: Record<string, unknown>): [boolean, string[]] {
     return [true, []];
   }
 

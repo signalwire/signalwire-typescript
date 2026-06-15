@@ -6,7 +6,7 @@ import { AgentBase } from '../src/AgentBase.js';
 
 describe('setupGracefulShutdown', () => {
   const originalOn = process.on;
-  const registeredHandlers: { event: string; handler: Function }[] = [];
+  const registeredHandlers: { event: string; handler: (...args: unknown[]) => void }[] = [];
 
   beforeEach(() => {
     // Reset the static flag so tests are independent

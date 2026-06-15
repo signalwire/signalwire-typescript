@@ -34,7 +34,6 @@ describe('RestClient', () => {
     // would fail these checks. We additionally probe each namespace has
     // a `list` / known-shape method to catch the case where a stub
     // returned plain `{}` placeholders.
-    type Indexable = Record<string, unknown>;
     const expected: ReadonlyArray<readonly [keyof RestClient, string]> = [
       ['fabric', 'fabric'],
       ['calling', 'calling'],

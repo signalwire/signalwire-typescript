@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ContextBuilder, Context, GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
+import { ContextBuilder, GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
 
 describe('ContextBuilder', () => {
   it('addContext throws when exceeding MAX_CONTEXTS (50)', () => {

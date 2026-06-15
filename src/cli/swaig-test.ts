@@ -30,6 +30,8 @@
  *   --simulate-serverless <platform>  Simulate serverless platform
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { loadAgent, listAgents } from './agent-loader.js';
 import type { Hono } from 'hono';
 import type { SwaigFunction } from '../SwaigFunction.js';
@@ -245,8 +247,6 @@ function parseArgs(argv: string[]): CliOptions {
 }
 
 function loadEnvFile(filePath: string): void {
-  const { readFileSync } = require('node:fs');
-  const { resolve } = require('node:path');
   const content = readFileSync(resolve(filePath), 'utf-8');
   for (const line of content.split('\n')) {
     const trimmed = line.trim();

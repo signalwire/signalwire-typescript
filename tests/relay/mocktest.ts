@@ -252,7 +252,6 @@ export class MockRelayHarness {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_WS_PORT = 8776;
-const DEFAULT_HTTP_PORT = 9776;
 const STARTUP_TIMEOUT_MS = 30_000;
 const PROBE_TIMEOUT_MS = 2_000;
 

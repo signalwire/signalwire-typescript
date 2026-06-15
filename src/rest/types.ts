@@ -49,7 +49,7 @@ export interface PaginatedResponse<T> {
 }
 
 /** LAML-style paginated response with next_page_uri. */
-export interface LamlPaginatedResponse<T> {
+export interface LamlPaginatedResponse<_T> {
   [key: string]: any;
   next_page_uri?: string | null;
   uri?: string;

@@ -410,7 +410,7 @@ export class SWMLService {
       if (c.req.method === 'GET') {
         return handler(c);
       }
-      let payload: Record<string, unknown> = {};
+      let payload: Record<string, unknown>;
       try {
         payload = (await c.req.json()) as Record<string, unknown>;
       } catch {
@@ -810,7 +810,7 @@ export class SWMLService {
 
       // Handle SIP URIs like "sip:username@domain" or "sips:username@domain"
       if (toField.startsWith('sip:') || toField.startsWith('sips:')) {
-        let uri = toField.replace(/^sips?:/, '');
+        const uri = toField.replace(/^sips?:/, '');
         const atIdx = uri.indexOf('@');
         if (atIdx > 0) return uri.substring(0, atIdx);
         return uri;

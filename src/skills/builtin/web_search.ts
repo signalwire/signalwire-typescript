@@ -23,7 +23,6 @@ import { getLogger } from '../../Logger.js';
 // point of use — mirroring how RelayClient lazy-loads `ws`. A consumer who
 // never scrapes never loads cheerio; if it is absent, `validatePackages()`
 // (REQUIRED_PACKAGES below) reports it cleanly instead of crashing.
-import type * as cheerio from 'cheerio';
 
 const log = getLogger('WebSearchSkill');
 

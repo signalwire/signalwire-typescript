@@ -23,10 +23,6 @@ export interface MockCallOptions {
   overrides?: Record<string, unknown>;
 }
 
-function randomId(): string {
-  return randomBytes(16).toString('hex');
-}
-
 function randomUuid(): string {
   const hex = randomBytes(16).toString('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;

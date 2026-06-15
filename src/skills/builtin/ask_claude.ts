@@ -55,17 +55,6 @@ interface AnthropicResponse {
   };
 }
 
-/** Error response shape from the Anthropic API. */
-interface AnthropicErrorResponse {
-  /** Always "error" for error responses. */
-  type: 'error';
-  /** Error details. */
-  error: {
-    type: string;
-    message: string;
-  };
-}
-
 /**
  * Provides access to Anthropic's Claude AI for sub-queries and complex reasoning.
  *

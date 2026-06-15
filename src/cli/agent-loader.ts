@@ -71,7 +71,7 @@ async function importModule(agentPath: string): Promise<Record<string, unknown>>
   try {
     return await import(fileUrl);
   } catch (err) {
-    throw new Error(`Failed to import agent file: ${absPath}\n${err}`);
+    throw new Error(`Failed to import agent file: ${absPath}\n${err}`, { cause: err });
   } finally {
     delete process.env['SWAIG_CLI_MODE'];
   }

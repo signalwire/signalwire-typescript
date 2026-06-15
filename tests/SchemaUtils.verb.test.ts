@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SchemaUtils } from '../src/SchemaUtils.js';
 
 describe('SchemaUtils — verb extraction and validation', () => {

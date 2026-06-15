@@ -119,6 +119,7 @@ export class SkillRegistry {
     } catch (err) {
       throw new Error(
         `${SkillClass.name}.getParameterSchema() failed: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
       );
     }
     if (this.registry.has(name)) {

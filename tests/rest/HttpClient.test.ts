@@ -71,7 +71,7 @@ describe('HttpClient', () => {
 
     try {
       await http.get('/api/test/bad');
-    } catch (e) {
+    } catch (_e) {
       // Second request will get default 200 response from our mock
     }
   });
@@ -217,13 +217,12 @@ describe('HttpClient', () => {
   });
 
   it('RestError body is plain string when server returns non-JSON error', async () => {
-    const [fetchImpl] = createMockFetch();
     // Override the mock to return a non-JSON text body
     const http = new HttpClient({
       baseUrl: 'https://test.signalwire.com',
       project: 'test-project',
       token: 'test-token',
-      fetchImpl: async (input, init) => {
+      fetchImpl: async (_input, _init) => {
         return new Response('Internal Server Error', {
           status: 500,
           statusText: 'Internal Server Error',

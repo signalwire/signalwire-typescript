@@ -46,11 +46,6 @@ function cliSuppressesColor(): boolean {
   return process.argv.includes('--raw') || process.argv.includes('--dump-swml');
 }
 
-function deriveStream(mode: string | undefined): LogStream {
-  if (mode === 'stderr') return 'stderr';
-  return 'stdout';
-}
-
 function deriveSuppressed(mode: string | undefined): boolean {
   if (mode === 'off') return true;
   if (!mode || mode === 'auto') {
@@ -176,6 +171,7 @@ function formatKvPairs(data: Record<string, unknown>): string {
 }
 
 /** Regex matching control characters that should be stripped from log values. */
+// eslint-disable-next-line no-control-regex -- intentional control-char sanitization to prevent log injection
 const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
 
 /**

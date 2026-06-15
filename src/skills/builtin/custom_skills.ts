@@ -97,7 +97,10 @@ export class CustomSkillsSkill extends SkillBase {
   static override SKILL_DESCRIPTION =
     'Register one-off SWAIG tools from a user-supplied config (name + description + handler body).';
 
-  private _compiledHandlers: Map<string, Function> = new Map();
+  private _compiledHandlers: Map<
+    string,
+    (args: Record<string, unknown>, rawData: Record<string, unknown>, resultClass: typeof FunctionResult) => unknown
+  > = new Map();
   private _compilationErrors: Map<string, string> = new Map();
 
   /**

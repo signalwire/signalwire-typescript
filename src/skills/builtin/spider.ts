@@ -39,17 +39,6 @@ interface CachedResponse {
 
 const WHITESPACE_REGEX = /\s+/g;
 
-/** Tags stripped from HTML before text extraction. */
-const STRIP_TAG_REGEXES: RegExp[] = [
-  /<script\b[^>]*>[\s\S]*?<\/script>/gi,
-  /<style\b[^>]*>[\s\S]*?<\/style>/gi,
-  /<nav\b[^>]*>[\s\S]*?<\/nav>/gi,
-  /<header\b[^>]*>[\s\S]*?<\/header>/gi,
-  /<footer\b[^>]*>[\s\S]*?<\/footer>/gi,
-  /<aside\b[^>]*>[\s\S]*?<\/aside>/gi,
-  /<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi,
-];
-
 /**
  * Fast web scraping skill optimized for speed and token efficiency.
  *

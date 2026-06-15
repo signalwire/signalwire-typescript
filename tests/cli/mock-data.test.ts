@@ -96,7 +96,7 @@ describe('mock-data', () => {
     });
 
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
-      const data = generateFakePostData({
+      generateFakePostData({
         overrides: { __proto__: { polluted: true } } as unknown as Record<string, unknown>,
       });
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
@@ -106,7 +106,7 @@ describe('mock-data', () => {
 
   describe('generateMinimalPostData - prototype pollution', () => {
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
-      const data = generateMinimalPostData(
+      generateMinimalPostData(
         'fn',
         {},
         {

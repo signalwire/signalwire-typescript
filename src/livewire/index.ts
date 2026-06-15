@@ -1098,6 +1098,7 @@ export class AgentServer {
  * constructs these classes still compiles and runs under SignalWire. The
  * first construction of each logs an advisory to stderr.
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace -- LiveKit-compat namespace; preserves the exact public API shape (value + type access for `plugins.X`)
 export namespace plugins {
   /** LiveKit Deepgram-STT plugin stub. No-op on SignalWire. */
   export class DeepgramSTT {
@@ -1185,6 +1186,7 @@ export namespace plugins {
  * TTS in its control plane. These classes exist so LiveKit code that imports
  * and instantiates them still compiles.
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace -- LiveKit-compat namespace; preserves the exact public API shape (value + type access for `inference.X`)
 export namespace inference {
   /** LiveKit inference-STT stub. Captures the model name; runs no inference locally. */
   export class STT {

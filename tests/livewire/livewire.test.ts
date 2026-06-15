@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   Agent,
   AgentSession,
@@ -15,12 +15,10 @@ import {
   ToolError,
   AgentHandoff,
   NoopTracker,
-  globalNoop,
   plugins,
   inference,
   tips,
   banner,
-  printBanner,
   voice,
   llm,
   cli,

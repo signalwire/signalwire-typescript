@@ -11,7 +11,7 @@
  * the typed Message lifecycle correctly.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
-import { ContextBuilder } from '../src/ContextBuilder.js';
 import { DataMap } from '../src/DataMap.js';
 import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
 import type { AgentOptions } from '../src/types.js';

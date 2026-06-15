@@ -78,7 +78,7 @@ function reconstructUrl(c: Context, opts: { trustProxy: boolean }): string {
   const rawUrl = c.req.url;
 
   // Extract path + query from the raw URL without losing original encoding.
-  let pathAndQuery = '';
+  let pathAndQuery: string;
   try {
     const u = new URL(rawUrl);
     pathAndQuery = u.pathname + (u.search || '');
@@ -148,7 +148,7 @@ export function webhookValidationMiddleware(opts: WebhookValidationOptions): Mid
 
     const url = reconstructUrl(c, { trustProxy });
 
-    let ok = false;
+    let ok: boolean;
     try {
       ok = validateWebhookSignature(signingKey, signature, url, rawBody);
     } catch {

@@ -30,7 +30,6 @@ import {
   CALL_STATE_ANSWERED,
   CALL_STATE_ENDING,
   CALL_STATE_ENDED,
-  EVENT_CALL_COLLECT,
   EVENT_CALL_STATE,
 } from './constants.js';
 import { normalizeDevice, normalizeDevicePlan, normalizePlayItems } from './normalize.js';

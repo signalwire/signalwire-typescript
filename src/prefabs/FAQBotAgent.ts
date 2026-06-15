@@ -373,10 +373,10 @@ export class FAQBotAgent extends AgentBase {
   ): void | Promise<void> {
     if (summary) {
       try {
-        // eslint-disable-next-line no-console
+         
         console.log(`FAQ interaction summary: ${JSON.stringify(summary, null, 2)}`);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.log(`Error processing summary: ${String(err)}`);
       }
     }
