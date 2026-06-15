@@ -7,6 +7,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { readFile, stat, readdir } from 'node:fs/promises';
@@ -561,7 +562,7 @@ export class WebService {
 
   // ── File serving ───────────────────────────────────────────────────
 
-  private async _serveFile(c: any, fullPath: string): Promise<Response> {
+  private async _serveFile(c: Context, fullPath: string): Promise<Response> {
     const content = await readFile(fullPath);
     const ext = extname(fullPath).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
@@ -576,7 +577,7 @@ export class WebService {
   // ── Directory listing ──────────────────────────────────────────────
 
   private async _serveDirectoryListing(
-    c: any,
+    c: Context,
     dirPath: string,
     urlPath: string,
   ): Promise<Response> {

@@ -6,6 +6,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
@@ -1818,7 +1819,7 @@ export class AgentBase extends SWMLService {
     return this;
   }
 
-  private detectProxyFromRequest(c: any): void {
+  private detectProxyFromRequest(c: Context): void {
     // Never override env var setting
     if (this._proxyUrlBaseFromEnv) return;
     // Only trust proxy headers when explicitly enabled
@@ -2007,7 +2008,7 @@ export class AgentBase extends SWMLService {
   onSwmlRequest(
     _rawData: Record<string, unknown>,
     _callbackPath?: string,
-    _context?: any,
+    _context?: Context,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }
@@ -2264,7 +2265,11 @@ export class AgentBase extends SWMLService {
     copy._skillManager = new SkillManager();
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
-        const skill = new (entry.SkillClass as any)(entry.config);
+        // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
+        // registry only ever holds concrete subclasses, so widen to a
+        // constructable signature before instantiating.
+        const SkillCtor = entry.SkillClass as unknown as new (config?: SkillConfig) => SkillBase;
+        const skill = new SkillCtor(entry.config);
         skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
@@ -2442,7 +2447,7 @@ export class AgentBase extends SWMLService {
     const basePath = this.route === '/' ? '' : this.route;
 
     // Root - returns SWML
-    const handleSwml = async (c: any) => {
+    const handleSwml = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: this.route });
       reqLog.debug('endpoint_called');
 
@@ -2509,7 +2514,7 @@ export class AgentBase extends SWMLService {
     }
 
     // SWAIG function dispatcher
-    const handleSwaig = async (c: any) => {
+    const handleSwaig = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: `${basePath}/swaig` });
       reqLog.debug('endpoint_called');
 
@@ -2596,7 +2601,7 @@ export class AgentBase extends SWMLService {
     }
 
     // Post-prompt handler
-    const handlePostPrompt = async (c: any) => {
+    const handlePostPrompt = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt` });
       reqLog.debug('endpoint_called');
 
@@ -2625,7 +2630,7 @@ export class AgentBase extends SWMLService {
     }
 
     // Debug events handler
-    const handleDebugEvents = async (c: any) => {
+    const handleDebugEvents = async (c: Context) => {
       const reqLog = this.log.bind({ endpoint: `${basePath}/debug_events` });
       reqLog.debug('endpoint_called');
 
@@ -2645,7 +2650,7 @@ export class AgentBase extends SWMLService {
 
     // MCP server endpoint (JSON-RPC 2.0)
     if (this._mcpServerEnabled) {
-      app.post(`${basePath}/mcp`, async (c: any) => {
+      app.post(`${basePath}/mcp`, async (c: Context) => {
         let body: Record<string, unknown> = {};
         try {
           body = await c.req.json();
@@ -2663,7 +2668,7 @@ export class AgentBase extends SWMLService {
 
     // Post-prompt override endpoint (enabled via constructor option)
     if (this._enablePostPromptOverride) {
-      const handlePostPromptOverride = async (c: any) => {
+      const handlePostPromptOverride = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt_override` });
         reqLog.debug('endpoint_called');
 
@@ -2687,7 +2692,7 @@ export class AgentBase extends SWMLService {
 
     // Check-for-input endpoint (enabled via constructor option)
     if (this._checkForInputOverride) {
-      const handleCheckForInput = async (c: any) => {
+      const handleCheckForInput = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: `${basePath}/check_for_input` });
         reqLog.debug('endpoint_called');
 
@@ -2709,7 +2714,7 @@ export class AgentBase extends SWMLService {
     // Routing callbacks (registered via registerRoutingCallback)
     for (const [callbackPath, callback] of this._routingCallbacks) {
       const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
-      const handleRouting = async (c: any) => {
+      const handleRouting = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: fullPath });
         reqLog.debug('routing_callback_called');
 
@@ -2743,8 +2748,8 @@ export class AgentBase extends SWMLService {
     }
 
     // Health / Ready
-    app.get(`${basePath}/health`, (c: any) => c.json({ status: 'ok' }));
-    app.get(`${basePath}/ready`, (c: any) => c.json({ status: 'ready' }));
+    app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
+    app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
 
     this._app = app;
     this._appBuiltByAgent = true;

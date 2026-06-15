@@ -31,6 +31,8 @@
  */
 
 import { loadAgent, listAgents } from './agent-loader.js';
+import type { Hono } from 'hono';
+import type { SwaigFunction } from '../SwaigFunction.js';
 import { generateFakePostData, generateMinimalPostData } from './mock-data.js';
 import { suppressAllLogs, setGlobalLogLevel } from '../Logger.js';
 import { ServerlessAdapter } from '../ServerlessAdapter.js';
@@ -265,6 +267,23 @@ function loadEnvFile(filePath: string): void {
   }
 }
 
+/**
+ * Structural view of a dynamically loaded target (AgentBase or standalone
+ * SWMLService). The CLI duck-types against this surface — members are probed
+ * with `typeof x === 'function'` before use because the two base classes share
+ * only part of it. `renderSwml` is intentionally loose: SWMLService returns an
+ * object, AgentBase returns a JSON string.
+ */
+interface LoadedTarget {
+  route?: string;
+  basicAuthCreds?: [string, string];
+  getApp(): Hono;
+  getRegisteredTools?(): { name: string; description: string; parameters: Record<string, unknown> }[];
+  getTool?(name: string): SwaigFunction | undefined;
+  getPrompt?(): unknown;
+  renderSwml(callId?: string): string | object;
+}
+
 async function main(): Promise<void> {
   const opts = parseArgs(process.argv);
 
@@ -298,7 +317,7 @@ async function main(): Promise<void> {
   }
 
   // Load agent
-  const agent = (await loadAgent(opts.agentPath, opts.agentClass)) as any;
+  const agent = (await loadAgent(opts.agentPath, opts.agentClass)) as LoadedTarget;
 
   // Apply --route override
   if (opts.route && typeof agent.route !== 'undefined') {
@@ -404,7 +423,9 @@ async function main(): Promise<void> {
           toExtension: opts.toExtension,
           overrides: opts.overrides,
         });
-        swmlJson = JSON.parse(agent.renderSwml(postData['call_id'] as string));
+        // AgentBase.renderSwml(callId) returns a JSON string (this branch is
+        // gated on getPrompt above, which only AgentBase exposes).
+        swmlJson = JSON.parse(agent.renderSwml(postData['call_id'] as string) as string);
       }
       if (opts.raw || opts.formatJson) {
         console.log(JSON.stringify(swmlJson, null, 2));
@@ -422,10 +443,10 @@ async function main(): Promise<void> {
         process.exit(1);
       }
 
-      const tool = agent.getTool(opts.execName);
+      const tool = agent.getTool?.(opts.execName);
       if (!tool) {
         console.error(`Error: function '${opts.execName}' not found`);
-        const available = agent.getRegisteredTools().map((t: any) => t.name);
+        const available = (agent.getRegisteredTools?.() ?? []).map((t) => t.name);
         if (available.length) {
           console.error(`Available functions: ${available.join(', ')}`);
         }

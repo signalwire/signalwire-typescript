@@ -6,7 +6,18 @@
  */
 
 import { timingSafeEqual } from 'node:crypto';
+import type { Context } from 'hono';
 import { getLogger } from './Logger.js';
+
+/** Minimal Express/Connect-style request shape consumed by {@link AuthHandler.expressMiddleware}. */
+interface ExpressLikeRequest {
+  headers: Record<string, string>;
+}
+
+/** Minimal Express/Connect-style response shape consumed by {@link AuthHandler.expressMiddleware}. */
+interface ExpressLikeResponse {
+  status(code: number): { json(body: unknown): void };
+}
 
 const log = getLogger('AuthHandler');
 
@@ -171,8 +182,8 @@ export class AuthHandler {
    * @param optional - When true, unauthenticated requests are allowed through instead of being rejected (default: false).
    * @returns A middleware function suitable for use with Hono's `app.use()`.
    */
-  middleware(optional = false): (c: any, next: () => Promise<void>) => Promise<Response | void> {
-    return async (c: any, next: () => Promise<void>) => {
+  middleware(optional = false): (c: Context, next: () => Promise<void>) => Promise<Response | void> {
+    return async (c: Context, next: () => Promise<void>) => {
       const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((v: string, k: string) => {
         headers[k] = v;
@@ -196,8 +207,10 @@ export class AuthHandler {
    * @param optional - When true, unauthenticated requests are allowed through (default: false).
    * @returns An Express-compatible middleware function.
    */
-  expressMiddleware(optional = false): (req: any, res: any, next: () => void) => Promise<void> {
-    return async (req: any, res: any, next: () => void) => {
+  expressMiddleware(
+    optional = false
+  ): (req: ExpressLikeRequest, res: ExpressLikeResponse, next: () => void) => Promise<void> {
+    return async (req: ExpressLikeRequest, res: ExpressLikeResponse, next: () => void) => {
       const headers = req.headers as Record<string, string>;
       const valid = await this.validate(headers);
       if (!valid && !optional) {

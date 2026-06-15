@@ -26,7 +26,7 @@ function isAgentInstance(obj: unknown): boolean {
 
 function isAgentClass(obj: unknown): boolean {
   if (typeof obj !== 'function') return false;
-  const proto = (obj as any).prototype;
+  const proto = (obj as { prototype?: Record<string, unknown> }).prototype;
   if (!proto) return false;
   return (
     typeof proto['renderSwml'] === 'function' &&

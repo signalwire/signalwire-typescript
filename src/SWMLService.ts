@@ -7,6 +7,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { randomBytes } from 'node:crypto';
@@ -355,7 +356,7 @@ export class SWMLService {
     this._app.get('/ready', (c) => c.json({ status: 'ready' }));
 
     // Main SWML endpoint — serves on both GET and POST
-    const handler = async (c: any) => {
+    const handler = async (c: Context) => {
       let doc: Record<string, unknown>;
 
       // Always parse request params so onRequest() hook and onRequestCallback
@@ -405,7 +406,7 @@ export class SWMLService {
     // services use the document as-is; AgentBase overrides via render hook),
     // POST validates and dispatches via onFunctionCall. Subclasses may
     // override swaigPreDispatch to add token validation / ephemeral copies.
-    const swaigHandler = async (c: any) => {
+    const swaigHandler = async (c: Context) => {
       if (c.req.method === 'GET') {
         return handler(c);
       }
@@ -763,7 +764,7 @@ export class SWMLService {
     this._routingCallbacks.set(normalized, callbackFn);
 
     // Install an endpoint on the Hono app for this callback path
-    const routeHandler = async (c: any) => {
+    const routeHandler = async (c: Context) => {
       let body: Record<string, unknown> = {};
       if (c.req.method === 'POST') {
         try {
@@ -774,8 +775,14 @@ export class SWMLService {
       }
 
       const route = callbackFn(body);
+      // Preserve the original `route !== null` runtime guard exactly — a
+      // types-only change must not alter behavior. The callback's declared
+      // return includes undefined|Promise, which the pre-typing `c: any` code
+      // passed to redirect verbatim; the cast keeps that identical rather than
+      // narrowing it away. Any real fix to non-string returns is a separate
+      // behavioral change, not part of the any-burndown.
       if (route !== null) {
-        return c.redirect(route, 307);
+        return c.redirect(route as string, 307);
       }
 
       // No redirect — serve normal SWML

@@ -132,7 +132,7 @@ export class AgentServer {
    * @throws If the route is already occupied by another agent.
    */
   register(agent: AgentBase, route?: string): void {
-    let r = route ?? (agent as any).route ?? '/';
+    let r = route ?? agent.route ?? '/';
     if (!r.startsWith('/')) r = `/${r}`;
     r = r.replace(/\/+$/, '') || '/';
 

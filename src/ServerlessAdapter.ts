@@ -32,6 +32,35 @@ export interface ServerlessEvent {
   requestContext?: Record<string, unknown>;
 }
 
+/** Minimal Google Cloud Functions request shape (Express-style) consumed by {@link ServerlessAdapter.createGcfHandler}. */
+interface GcfRequest {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Record<string, unknown>;
+  path?: string;
+  url?: string;
+}
+
+/** Minimal Google Cloud Functions response shape (Express-style) consumed by {@link ServerlessAdapter.createGcfHandler}. */
+interface GcfResponse {
+  status(code: number): void;
+  set(field: string, value: string): void;
+  send(body: string): void;
+}
+
+/** Minimal Azure Functions request shape consumed by {@link ServerlessAdapter.createAzureHandler}. */
+interface AzureRequest {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Record<string, unknown>;
+  url?: string;
+}
+
+/** Minimal Azure Functions invocation context consumed by {@link ServerlessAdapter.createAzureHandler}. */
+interface AzureContext {
+  res?: { status: number; headers: Record<string, string>; body: string };
+}
+
 /** Normalized outgoing response returned to a serverless platform. */
 export interface ServerlessResponse {
   /** HTTP status code. */
@@ -208,9 +237,9 @@ export class ServerlessAdapter {
    */
   static createGcfHandler(app: {
     fetch: (req: Request) => Response | Promise<Response>;
-  }): (req: any, res: any) => Promise<void> {
+  }): (req: GcfRequest, res: GcfResponse) => Promise<void> {
     const adapter = new ServerlessAdapter('gcf');
-    return async (req: any, res: any) => {
+    return async (req: GcfRequest, res: GcfResponse) => {
       const event: ServerlessEvent = {
         method: req.method,
         headers: req.headers,
@@ -233,9 +262,9 @@ export class ServerlessAdapter {
    */
   static createAzureHandler(app: {
     fetch: (req: Request) => Response | Promise<Response>;
-  }): (context: any, req: any) => Promise<void> {
+  }): (context: AzureContext, req: AzureRequest) => Promise<void> {
     const adapter = new ServerlessAdapter('azure');
-    return async (context: any, req: any) => {
+    return async (context: AzureContext, req: AzureRequest) => {
       const event: ServerlessEvent = {
         method: req.method,
         headers: req.headers,
