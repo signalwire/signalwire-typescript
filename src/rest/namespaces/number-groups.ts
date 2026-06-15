@@ -2,18 +2,31 @@
  * Number Groups namespace — CRUD + membership management.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  AddNumberGroupMembershipRequest,
+  CreateNumberGroupRequest,
+  NumberGroup,
+  NumberGroupListResponse,
+  NumberGroupMembership,
+  NumberGroupMembershipListResponse,
+  UpdateNumberGroupRequest,
+} from './relay-rest.types.generated.js';
 
 /**
  * Number group management with membership operations.
  *
- * Access via `client.numberGroups.*`. Extends standard CRUD with membership helpers.
+ * Access via `client.numberGroups.*`. Extends standard CRUD (typed from the
+ * canonical relay-rest OpenAPI spec) with membership helpers.
  */
-export class NumberGroupsResource extends CrudResource {
+export class NumberGroupsResource extends CrudResource<
+  NumberGroupListResponse,
+  NumberGroup,
+  Partial<CreateNumberGroupRequest>,
+  Partial<UpdateNumberGroupRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient) {
@@ -28,8 +41,14 @@ export class NumberGroupsResource extends CrudResource {
    * @returns A paginated list of number-group memberships.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMemberships(groupId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(groupId, 'number_group_memberships'), params);
+  async listMemberships(
+    groupId: string,
+    params?: QueryParams,
+  ): Promise<NumberGroupMembershipListResponse> {
+    return this._http.get<NumberGroupMembershipListResponse>(
+      this._path(groupId, 'number_group_memberships'),
+      params,
+    );
   }
 
   /**
@@ -40,8 +59,14 @@ export class NumberGroupsResource extends CrudResource {
    * @returns The newly-created membership record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async addMembership(groupId: string, body: any): Promise<any> {
-    return this._http.post(this._path(groupId, 'number_group_memberships'), body);
+  async addMembership(
+    groupId: string,
+    body: AddNumberGroupMembershipRequest,
+  ): Promise<NumberGroupMembership> {
+    return this._http.post<NumberGroupMembership>(
+      this._path(groupId, 'number_group_memberships'),
+      body,
+    );
   }
 
   /**
@@ -51,8 +76,10 @@ export class NumberGroupsResource extends CrudResource {
    * @returns The membership record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getMembership(membershipId: string): Promise<any> {
-    return this._http.get(`/api/relay/rest/number_group_memberships/${membershipId}`);
+  async getMembership(membershipId: string): Promise<NumberGroupMembership> {
+    return this._http.get<NumberGroupMembership>(
+      `/api/relay/rest/number_group_memberships/${membershipId}`,
+    );
   }
 
   /**
@@ -62,7 +89,7 @@ export class NumberGroupsResource extends CrudResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteMembership(membershipId: string): Promise<any> {
+  async deleteMembership(membershipId: string): Promise<unknown> {
     return this._http.delete(`/api/relay/rest/number_group_memberships/${membershipId}`);
   }
 }

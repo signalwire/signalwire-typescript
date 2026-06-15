@@ -2,45 +2,48 @@
  * Phone Numbers namespace — list, search, purchase, get, update, release, bind.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
 import { PhoneCallHandler } from '../callHandler.js';
+import type {
+  AvailablePhoneNumbersResponse,
+  PhoneNumber,
+  PhoneNumberListResponse,
+  PurchasePhoneNumberRequest,
+  UpdatePhoneNumberRequest,
+} from './relay-rest.types.generated.js';
 
-/** Optional companion fields for {@link PhoneNumbersResource.setSwmlWebhook}. */
-export interface SetSwmlWebhookExtra {
-  [key: string]: unknown;
-}
+/**
+ * Optional companion fields for {@link PhoneNumbersResource.setSwmlWebhook} —
+ * any other typed `UpdatePhoneNumberRequest` field (e.g. `name`) merged into the
+ * PUT body.
+ */
+export type SetSwmlWebhookExtra = Partial<UpdatePhoneNumberRequest>;
 
 /** Parameters for {@link PhoneNumbersResource.setCxmlWebhook}. */
-export interface SetCxmlWebhookParams {
+export interface SetCxmlWebhookParams extends Partial<UpdatePhoneNumberRequest> {
   /** Primary cXML document URL. Serialized as `call_request_url`. */
   url: string;
   /** Fallback URL if the primary request fails. Serialized as `call_fallback_url`. */
   fallbackUrl?: string;
   /** Status callback URL for call status updates. Serialized as `call_status_callback_url`. */
   statusCallbackUrl?: string;
-  /** Any additional wire-level fields are passed through verbatim. */
-  [key: string]: unknown;
 }
 
 /** Parameters for {@link PhoneNumbersResource.setCallFlow}. */
-export interface SetCallFlowParams {
+export interface SetCallFlowParams extends Partial<UpdatePhoneNumberRequest> {
   /** Call Flow resource ID. Serialized as `call_flow_id`. */
   flowId: string;
   /**
    * Optional pinned version — `"working_copy"` or `"current_deployed"`
    * (server default when omitted). Serialized as `call_flow_version`.
    */
-  version?: string;
-  /** Any additional wire-level fields are passed through verbatim. */
-  [key: string]: unknown;
+  version?: 'working_copy' | 'current_deployed';
 }
 
 /** Parameters for {@link PhoneNumbersResource.setRelayTopic}. */
-export interface SetRelayTopicParams {
+export interface SetRelayTopicParams extends Partial<UpdatePhoneNumberRequest> {
   /** RELAY topic name. Serialized as `call_relay_topic`. */
   topic: string;
   /**
@@ -48,8 +51,6 @@ export interface SetRelayTopicParams {
    * Serialized as `call_relay_topic_status_callback_url`.
    */
   statusCallbackUrl?: string;
-  /** Any additional wire-level fields are passed through verbatim. */
-  [key: string]: unknown;
 }
 
 /**
@@ -62,16 +63,20 @@ export interface SetRelayTopicParams {
  * auto-materializes the matching Fabric resource. See
  * {@link PhoneCallHandler} for the enum of valid `call_handler` values.
  *
- * `create` and `update` accept an untyped body object (`body: any = {}`).
- * No `PhoneNumberCreateParams` / `PhoneNumberUpdateParams` interfaces are
- * defined because the Python reference SDK uses bare `**kwargs` with no
- * named or typed parameters — there is no Python type contract to port.
- * This is an intentional IDIOMATIC_DEVIATION: Python kwargs ↔ TS `any` object
- * literal with an optional default of `{}` to preserve call-without-args
- * semantics.  If the REST API stabilises a known field set, consider adding
- * typed interfaces and specialising `CrudResource<>` generics here.
+ * `create` and `update` bodies, the list/item shapes, and the `search` result
+ * are typed from the canonical `relay-rest` OpenAPI spec (Purchase/Update
+ * request bodies, `PhoneNumber`, `PhoneNumberListResponse`,
+ * `AvailablePhoneNumbersResponse`). Both bodies stay optional (default `{}`) to
+ * preserve Python's call-without-args (`**kwargs`) ergonomics; `Partial<>`
+ * relaxes the spec's required fields at call time, as the platform validates
+ * them server-side.
  */
-export class PhoneNumbersResource extends CrudResource {
+export class PhoneNumbersResource extends CrudResource<
+  PhoneNumberListResponse,
+  PhoneNumber,
+  Partial<PurchasePhoneNumberRequest>,
+  Partial<UpdatePhoneNumberRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient) {
@@ -92,8 +97,8 @@ export class PhoneNumbersResource extends CrudResource {
    * const num = await client.phoneNumbers.create({ number: '+15551234567' });
    * ```
    */
-  override async create(body: any = {}): Promise<any> {
-    return this._http.post(this._basePath, body);
+  override async create(body: Partial<PurchasePhoneNumberRequest> = {}): Promise<PhoneNumber> {
+    return this._http.post<PhoneNumber>(this._basePath, body);
   }
 
   /**
@@ -109,8 +114,11 @@ export class PhoneNumbersResource extends CrudResource {
    * @returns The updated phone-number resource.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(resourceId: string, body: any = {}): Promise<any> {
-    return this._http.put(this._path(resourceId), body);
+  override async update(
+    resourceId: string,
+    body: Partial<UpdatePhoneNumberRequest> = {},
+  ): Promise<PhoneNumber> {
+    return this._http.put<PhoneNumber>(this._path(resourceId), body);
   }
 
   /**
@@ -126,13 +134,29 @@ export class PhoneNumbersResource extends CrudResource {
    * const results = await client.phoneNumbers.search({ areaCode: '512', contains: '5555' });
    * ```
    */
-  async search(params?: QueryParams): Promise<any> {
-    return this._http.get(this._path('search'), params);
+  async search(params?: QueryParams): Promise<AvailablePhoneNumbersResponse> {
+    return this._http.get<AvailablePhoneNumbersResponse>(this._path('search'), params);
+  }
+
+  /**
+   * Body shape for the binding helpers — the spec's `UpdatePhoneNumberRequest`
+   * with `call_handler` made required. Every companion field
+   * (`call_relay_script_url`, `call_ai_agent_id`, `call_flow_id`, …) is typed by
+   * the spec, so the helpers carry no loose `Record`/`any`.
+   */
+
+  private async _bind(
+    resourceId: string,
+    body: Partial<UpdatePhoneNumberRequest> & {
+      call_handler: NonNullable<UpdatePhoneNumberRequest['call_handler']>;
+    },
+  ): Promise<PhoneNumber> {
+    return this._http.put<PhoneNumber>(this._path(resourceId), body);
   }
 
   // -- Typed binding helpers ----------------------------------------------
   //
-  // Each helper is a one-line wrapper over `update` with the right
+  // Each helper is a one-line wrapper over `_bind` with the right
   // `call_handler` value and companion field already set. Pass through
   // extra fields for cases the helper doesn't name explicitly (e.g.
   // `call_fallback_url` on cXML webhooks).
@@ -160,8 +184,8 @@ export class PhoneNumbersResource extends CrudResource {
     resourceId: string,
     url: string,
     extra: SetSwmlWebhookExtra = {},
-  ): Promise<any> {
-    return this.update(resourceId, {
+  ): Promise<PhoneNumber> {
+    return this._bind(resourceId, {
       call_handler: PhoneCallHandler.RELAY_SCRIPT,
       call_relay_script_url: url,
       ...extra,
@@ -188,9 +212,11 @@ export class PhoneNumbersResource extends CrudResource {
    * });
    * ```
    */
-  async setCxmlWebhook(resourceId: string, params: SetCxmlWebhookParams): Promise<any> {
+  async setCxmlWebhook(resourceId: string, params: SetCxmlWebhookParams): Promise<PhoneNumber> {
     const { url, fallbackUrl, statusCallbackUrl, ...extra } = params;
-    const body: Record<string, unknown> = {
+    const body: Partial<UpdatePhoneNumberRequest> & {
+      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+    } = {
       call_handler: PhoneCallHandler.LAML_WEBHOOKS,
       call_request_url: url,
       ...extra,
@@ -201,7 +227,7 @@ export class PhoneNumbersResource extends CrudResource {
     if (statusCallbackUrl !== undefined) {
       body['call_status_callback_url'] = statusCallbackUrl;
     }
-    return this.update(resourceId, body);
+    return this._bind(resourceId, body);
   }
 
   /**
@@ -215,9 +241,9 @@ export class PhoneNumbersResource extends CrudResource {
   async setCxmlApplication(
     resourceId: string,
     applicationId: string,
-    extra: Record<string, unknown> = {},
-  ): Promise<any> {
-    return this.update(resourceId, {
+    extra: Partial<UpdatePhoneNumberRequest> = {},
+  ): Promise<PhoneNumber> {
+    return this._bind(resourceId, {
       call_handler: PhoneCallHandler.LAML_APPLICATION,
       call_laml_application_id: applicationId,
       ...extra,
@@ -235,9 +261,9 @@ export class PhoneNumbersResource extends CrudResource {
   async setAiAgent(
     resourceId: string,
     agentId: string,
-    extra: Record<string, unknown> = {},
-  ): Promise<any> {
-    return this.update(resourceId, {
+    extra: Partial<UpdatePhoneNumberRequest> = {},
+  ): Promise<PhoneNumber> {
+    return this._bind(resourceId, {
       call_handler: PhoneCallHandler.AI_AGENT,
       call_ai_agent_id: agentId,
       ...extra,
@@ -255,9 +281,11 @@ export class PhoneNumbersResource extends CrudResource {
    *   wire-level fields.
    * @returns The updated phone-number resource.
    */
-  async setCallFlow(resourceId: string, params: SetCallFlowParams): Promise<any> {
+  async setCallFlow(resourceId: string, params: SetCallFlowParams): Promise<PhoneNumber> {
     const { flowId, version, ...extra } = params;
-    const body: Record<string, unknown> = {
+    const body: Partial<UpdatePhoneNumberRequest> & {
+      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+    } = {
       call_handler: PhoneCallHandler.CALL_FLOW,
       call_flow_id: flowId,
       ...extra,
@@ -265,7 +293,7 @@ export class PhoneNumbersResource extends CrudResource {
     if (version !== undefined) {
       body['call_flow_version'] = version;
     }
-    return this.update(resourceId, body);
+    return this._bind(resourceId, body);
   }
 
   /**
@@ -279,9 +307,9 @@ export class PhoneNumbersResource extends CrudResource {
   async setRelayApplication(
     resourceId: string,
     name: string,
-    extra: Record<string, unknown> = {},
-  ): Promise<any> {
-    return this.update(resourceId, {
+    extra: Partial<UpdatePhoneNumberRequest> = {},
+  ): Promise<PhoneNumber> {
+    return this._bind(resourceId, {
       call_handler: PhoneCallHandler.RELAY_APPLICATION,
       call_relay_application: name,
       ...extra,
@@ -296,9 +324,11 @@ export class PhoneNumbersResource extends CrudResource {
    *   extra wire-level fields.
    * @returns The updated phone-number resource.
    */
-  async setRelayTopic(resourceId: string, params: SetRelayTopicParams): Promise<any> {
+  async setRelayTopic(resourceId: string, params: SetRelayTopicParams): Promise<PhoneNumber> {
     const { topic, statusCallbackUrl, ...extra } = params;
-    const body: Record<string, unknown> = {
+    const body: Partial<UpdatePhoneNumberRequest> & {
+      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+    } = {
       call_handler: PhoneCallHandler.RELAY_TOPIC,
       call_relay_topic: topic,
       ...extra,
@@ -306,6 +336,6 @@ export class PhoneNumbersResource extends CrudResource {
     if (statusCallbackUrl !== undefined) {
       body['call_relay_topic_status_callback_url'] = statusCallbackUrl;
     }
-    return this.update(resourceId, body);
+    return this._bind(resourceId, body);
   }
 }

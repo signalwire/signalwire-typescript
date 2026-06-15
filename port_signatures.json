@@ -16430,11 +16430,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.relay_rest.types.generated.AddNumberGroupMembershipRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.NumberGroupMembership"
             },
             "delete_membership": {
               "params": [
@@ -16462,7 +16462,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.NumberGroupMembership"
             },
             "list_memberships": {
               "params": [
@@ -16482,7 +16482,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.NumberGroupMembershipListResponse"
             }
           }
         }
@@ -16514,12 +16514,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "dict<string,any>",
                   "required": false,
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "search": {
               "params": [
@@ -16534,7 +16534,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.AvailablePhoneNumbersResponse"
             },
             "set_ai_agent": {
               "params": [
@@ -16559,7 +16559,7 @@
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_call_flow": {
               "params": [
@@ -16578,7 +16578,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_cxml_application": {
               "params": [
@@ -16603,7 +16603,7 @@
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_cxml_webhook": {
               "params": [
@@ -16622,7 +16622,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_relay_application": {
               "params": [
@@ -16647,7 +16647,7 @@
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_relay_topic": {
               "params": [
@@ -16666,7 +16666,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "set_swml_webhook": {
               "params": [
@@ -16686,12 +16686,12 @@
                 },
                 {
                   "name": "extra",
-                  "type": "class:signalwire.rest.namespaces.phone_numbers.SetSwmlWebhookExtra",
+                  "type": "dict<string,any>",
                   "required": false,
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             },
             "update": {
               "params": [
@@ -16706,12 +16706,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "dict<string,any>",
                   "required": false,
                   "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             }
           }
         }

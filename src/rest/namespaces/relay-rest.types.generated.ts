@@ -1171,7 +1171,7 @@ export type PhoneNumberCallHandler =
   | 'sip_gateway'
   | 'call_queue';
 
-/** Call handler type for phone number update requests. Excludes handlers that can only be set via Fabric API. */
+/** Call handler type for phone number update requests. */
 export type PhoneNumberCallHandlerRequest =
   | 'relay_context'
   | 'relay_topic'
@@ -1183,7 +1183,9 @@ export type PhoneNumberCallHandlerRequest =
   | 'laml_webhooks'
   | 'laml_application'
   | 'dialogflow'
-  | 'video_room';
+  | 'video_room'
+  | 'ai_agent'
+  | 'call_flow';
 
 /** Phone number capabilities. */
 export interface PhoneNumberCapabilities {
@@ -1907,6 +1909,12 @@ export interface UpdatePhoneNumberRequest {
   call_verto_resource?: string;
   /** The ID of the Video Room to forward incoming calls to when using the video_room call handler. */
   call_video_room_id?: uuid;
+  /** The ID of the AI Agent to forward incoming calls to when using the ai_agent call handler. */
+  call_ai_agent_id?: uuid;
+  /** The ID of the Call Flow to forward incoming calls to when using the call_flow call handler. */
+  call_flow_id?: uuid;
+  /** The Call Flow version to use when using the call_flow call handler. */
+  call_flow_version?: 'working_copy' | 'current_deployed';
   /** The message handler for the phone number. */
   message_handler?: PhoneNumberMessageHandler;
   /** The message request URL for the phone number. */

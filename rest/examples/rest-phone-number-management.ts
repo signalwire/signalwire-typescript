@@ -19,15 +19,15 @@ async function main() {
   console.log('Searching available numbers...');
   const available = await client.phoneNumbers.search({ area_code: '512', max_results: 3 });
   for (const num of available.data ?? []) {
-    console.log(`  - ${num.e164 ?? num.number ?? 'unknown'}`);
+    console.log(`  - ${num.number ?? 'unknown'}`);
   }
 
   // 2. Purchase a number
   console.log('\nPurchasing a phone number...');
   let numId: string | null = null;
   try {
-    const first = (available.data ?? [{}])[0];
-    const number = await client.phoneNumbers.create({ number: first.e164 ?? '+15125551234' });
+    const first = (available.data ?? [])[0];
+    const number = await client.phoneNumbers.create({ number: first?.number ?? '+15125551234' });
     numId = number.id;
     console.log(`  Purchased: ${numId}`);
   } catch (err) {
