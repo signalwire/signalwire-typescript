@@ -179,11 +179,17 @@ run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
 # tsc proves the types compile (strict); eslint (.golangci-equivalent: eslint.config.mjs)
 # enforces the deeper rule set incl. no-explicit-any=error after the burndown to zero.
 # Both blocking. --max-warnings 0 so a warning can't slip through.
+#
+# tsc runs over BOTH tsconfigs: the default (src) AND tsconfig.examples.json — the
+# examples have their own config (the default tsconfig only includes src/**), and
+# without the second pass a type error in examples/ slips past LINT locally and
+# only fails in the separate doc-audit workflow. Folding it in keeps local==CI.
 lint_gate() {
     npx tsc --noEmit || return 1
+    npx tsc --noEmit --project tsconfig.examples.json || return 1
     npx eslint src tests examples --max-warnings 0 || return 1
 }
-run_gate "LINT" "tsc --noEmit + eslint (lint gate)" lint_gate
+run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
 
 # Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
 # real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in
