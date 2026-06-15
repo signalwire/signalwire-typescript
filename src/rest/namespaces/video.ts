@@ -2,12 +2,28 @@
  * Video API namespace — rooms, sessions, recordings, conferences, tokens, streams.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  ConferenceToken,
+  CreateRoomTokenRequest,
+  CreateStreamRequest,
+  ListConferenceTokensResponse,
+  ListRoomRecordingEventsResponse,
+  ListRoomRecordingsResponse,
+  ListRoomSessionEventsResponse,
+  ListRoomSessionMembersResponse,
+  ListRoomSessionRecordingsResponse,
+  ListRoomSessionsResponse,
+  ListStreamsResponse,
+  RoomRecording,
+  RoomSessionSummary,
+  RoomTokenResponse,
+  Stream,
+  UpdateStreamRequest,
+} from './video.types.js';
 
 /** Video room management with streams. */
 export class VideoRooms extends CrudResource {
@@ -25,7 +41,7 @@ export class VideoRooms extends CrudResource {
    * @returns A paginated list of outbound streams.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listStreams(roomId: string, params?: QueryParams): Promise<any> {
+  async listStreams(roomId: string, params?: QueryParams): Promise<ListStreamsResponse> {
     return this._http.get(this._path(roomId, 'streams'), params);
   }
 
@@ -37,7 +53,7 @@ export class VideoRooms extends CrudResource {
    * @returns The newly-created stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createStream(roomId: string, body: any): Promise<any> {
+  async createStream(roomId: string, body: CreateStreamRequest): Promise<Stream> {
     return this._http.post(this._path(roomId, 'streams'), body);
   }
 }
@@ -55,7 +71,7 @@ export class VideoRoomTokens extends BaseResource {
    * @returns The token record, typically `{ token: "eyJ..." }`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
+  async create(body: CreateRoomTokenRequest): Promise<RoomTokenResponse> {
     return this._http.post(this._basePath, body);
   }
 }
@@ -73,7 +89,7 @@ export class VideoRoomSessions extends BaseResource {
    * @returns A paginated list of room sessions.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<ListRoomSessionsResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -84,7 +100,7 @@ export class VideoRoomSessions extends BaseResource {
    * @returns The room-session record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sessionId: string): Promise<any> {
+  async get(sessionId: string): Promise<RoomSessionSummary> {
     return this._http.get(this._path(sessionId));
   }
 
@@ -96,7 +112,10 @@ export class VideoRoomSessions extends BaseResource {
    * @returns A paginated list of session events.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listEvents(sessionId: string, params?: QueryParams): Promise<any> {
+  async listEvents(
+    sessionId: string,
+    params?: QueryParams,
+  ): Promise<ListRoomSessionEventsResponse> {
     return this._http.get(this._path(sessionId, 'events'), params);
   }
 
@@ -108,7 +127,10 @@ export class VideoRoomSessions extends BaseResource {
    * @returns A paginated list of members (past and current).
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMembers(sessionId: string, params?: QueryParams): Promise<any> {
+  async listMembers(
+    sessionId: string,
+    params?: QueryParams,
+  ): Promise<ListRoomSessionMembersResponse> {
     return this._http.get(this._path(sessionId, 'members'), params);
   }
 
@@ -120,7 +142,10 @@ export class VideoRoomSessions extends BaseResource {
    * @returns A paginated list of session recordings.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listRecordings(sessionId: string, params?: QueryParams): Promise<any> {
+  async listRecordings(
+    sessionId: string,
+    params?: QueryParams,
+  ): Promise<ListRoomSessionRecordingsResponse> {
     return this._http.get(this._path(sessionId, 'recordings'), params);
   }
 }
@@ -138,7 +163,7 @@ export class VideoRoomRecordings extends BaseResource {
    * @returns A paginated list of recordings.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<ListRoomRecordingsResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -149,7 +174,7 @@ export class VideoRoomRecordings extends BaseResource {
    * @returns The recording record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(recordingId: string): Promise<any> {
+  async get(recordingId: string): Promise<RoomRecording> {
     return this._http.get(this._path(recordingId));
   }
 
@@ -160,7 +185,7 @@ export class VideoRoomRecordings extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(recordingId: string): Promise<any> {
+  async delete(recordingId: string): Promise<unknown> {
     return this._http.delete(this._path(recordingId));
   }
 
@@ -172,7 +197,10 @@ export class VideoRoomRecordings extends BaseResource {
    * @returns A paginated list of recording events.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listEvents(recordingId: string, params?: QueryParams): Promise<any> {
+  async listEvents(
+    recordingId: string,
+    params?: QueryParams,
+  ): Promise<ListRoomRecordingEventsResponse> {
     return this._http.get(this._path(recordingId, 'events'), params);
   }
 }
@@ -193,7 +221,10 @@ export class VideoConferences extends CrudResource {
    * @returns A paginated list of conference tokens.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listConferenceTokens(conferenceId: string, params?: QueryParams): Promise<any> {
+  async listConferenceTokens(
+    conferenceId: string,
+    params?: QueryParams,
+  ): Promise<ListConferenceTokensResponse> {
     return this._http.get(this._path(conferenceId, 'conference_tokens'), params);
   }
 
@@ -205,7 +236,7 @@ export class VideoConferences extends CrudResource {
    * @returns A paginated list of streams.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listStreams(conferenceId: string, params?: QueryParams): Promise<any> {
+  async listStreams(conferenceId: string, params?: QueryParams): Promise<ListStreamsResponse> {
     return this._http.get(this._path(conferenceId, 'streams'), params);
   }
 
@@ -217,7 +248,7 @@ export class VideoConferences extends CrudResource {
    * @returns The newly-created stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createStream(conferenceId: string, body: any): Promise<any> {
+  async createStream(conferenceId: string, body: CreateStreamRequest): Promise<Stream> {
     return this._http.post(this._path(conferenceId, 'streams'), body);
   }
 }
@@ -235,7 +266,7 @@ export class VideoConferenceTokens extends BaseResource {
    * @returns The conference-token record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(tokenId: string): Promise<any> {
+  async get(tokenId: string): Promise<ConferenceToken> {
     return this._http.get(this._path(tokenId));
   }
 
@@ -246,7 +277,7 @@ export class VideoConferenceTokens extends BaseResource {
    * @returns The refreshed token record with a new secret.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async reset(tokenId: string): Promise<any> {
+  async reset(tokenId: string): Promise<ConferenceToken> {
     return this._http.post(this._path(tokenId, 'reset'));
   }
 }
@@ -264,7 +295,7 @@ export class VideoStreams extends BaseResource {
    * @returns The stream record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(streamId: string): Promise<any> {
+  async get(streamId: string): Promise<Stream> {
     return this._http.get(this._path(streamId));
   }
 
@@ -276,7 +307,7 @@ export class VideoStreams extends BaseResource {
    * @returns The updated stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(streamId: string, body: any): Promise<any> {
+  async update(streamId: string, body: UpdateStreamRequest): Promise<Stream> {
     return this._http.put(this._path(streamId), body);
   }
 
@@ -287,7 +318,7 @@ export class VideoStreams extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(streamId: string): Promise<any> {
+  async delete(streamId: string): Promise<unknown> {
     return this._http.delete(this._path(streamId));
   }
 }
