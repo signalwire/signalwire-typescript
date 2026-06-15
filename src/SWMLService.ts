@@ -426,7 +426,7 @@ export class SWMLService {
       }
       // Argument extraction: nested {argument:{parsed}} OR flat {arguments}
       let args: Record<string, unknown> = {};
-      const argument = payload['argument'] as Record<string, unknown> | undefined;
+      const argument = payload['argument'] as unknown as Record<string, unknown> | undefined;
       if (
         argument &&
         typeof argument === 'object' &&

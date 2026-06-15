@@ -2575,7 +2575,7 @@ export class AgentBase extends SWMLService {
         reqLog.debug('token_valid');
       }
 
-      const rawArgs = body['argument'];
+      const rawArgs: unknown = body['argument'];
       const args: Record<string, unknown> =
         rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
           ? (rawArgs as Record<string, unknown>)

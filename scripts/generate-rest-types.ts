@@ -227,14 +227,17 @@ function generateForSpec(specPath: string, outPath: string, ns: string): number 
 
 function main(): void {
   const psdk = resolvePortingSdk();
-  // namespace file basename → rest-apis spec dir
+  // spec dir (under rest-apis/) → output .generated.ts path
   const map: Record<string, string> = {
-    datasphere: 'datasphere',
-    // (the rest get added as we roll out — start with datasphere as the proof)
+    datasphere: 'src/rest/namespaces/datasphere.types.generated.ts',
+    // The SWML/SWAIG webhook contracts (manufactured spec from swml.md prose —
+    // no upstream OpenAPI) live alongside the others and generate the platform
+    // contract types that were previously hand-written in PlatformContracts.ts.
+    'swml-webhooks': 'src/PlatformContracts.generated.ts',
+    // (the rest get added as we roll out)
   };
-  for (const [ns, specDir] of Object.entries(map)) {
+  for (const [specDir, outPath] of Object.entries(map)) {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
-    const outPath = path.join('src', 'rest', 'namespaces', `${ns}.types.generated.ts`);
     const n = generateForSpec(specPath, outPath, specDir);
     console.log(`generated ${outPath} (${n} types)`);
   }
