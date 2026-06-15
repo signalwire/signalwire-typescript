@@ -15,7 +15,7 @@ import { RestClient } from '../../src/index.js';
 const client = new RestClient();
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
@@ -41,7 +41,7 @@ async function main() {
       vectorized = true;
       break;
     }
-    if (status === 'error' || status === 'failed') {
+    if (status === 'failed') {
       console.log(`  Document processing failed: ${status}`);
       await client.datasphere.documents.delete(docId);
       return;
@@ -76,7 +76,7 @@ async function main() {
   console.log('  Deleted.');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });
