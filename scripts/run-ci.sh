@@ -163,7 +163,12 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
 #   * LOCAL ($CI unset)  → `prettier --write`: reformats your working tree in place.
 #   * CI ($CI=true)      → `prettier --check`: read-only, FAILS on any unformatted file.
 fmt_gate() {
-    local globs=("src/**/*.ts" "tests/**/*.ts" "examples/**/*.ts")
+    # Cover every source + example tree (scripts + all three example dirs), so a
+    # mis-formatted rest/examples file can't pass FMT locally and fail in CI.
+    local globs=(
+        "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
+        "examples/**/*.ts" "rest/examples/**/*.ts" "relay/examples/**/*.ts"
+    )
     if [ -n "${CI:-}" ]; then
         npx prettier --check "${globs[@]}"
     else
@@ -187,7 +192,19 @@ run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
 lint_gate() {
     npx tsc --noEmit || return 1
     npx tsc --noEmit --project tsconfig.examples.json || return 1
-    npx eslint src tests examples --max-warnings 0 || return 1
+    # eslint must cover EVERY example tree (examples/, rest/examples/,
+    # relay/examples/), not just the top-level one — a file-level disable or `any`
+    # in rest/examples slipped past when only `examples` was linted.
+    npx eslint src tests examples rest/examples relay/examples --max-warnings 0 || return 1
+    # Honesty guard: a file-level `eslint-disable .../no-explicit-any` switches the
+    # rule OFF for the whole file, hiding every `any` from the gate (this exact
+    # blind spot once made a "no-explicit-any=0" claim false). Forbid the
+    # file-level form outright; only line-level `eslint-disable-next-line` on a
+    # justified site is allowed. Generated modules already carry zero disables.
+    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' src; then
+        echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
+        return 1
+    fi
 }
 run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
 

@@ -10,12 +10,21 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    // Generated + build output are not hand-maintained source.
+    // Generated + build output are not hand-maintained source. NOTE: the REST
+    // *.types.generated.ts + PlatformContracts.generated.ts modules are NOT
+    // ignored — generated code gets no magic pass; it passes this gate as real
+    // source (0 disables, 0 any). Only the legacy verb-types generator output
+    // (different generator, not yet held to the bar) is excepted.
     ignores: ['dist/**', 'node_modules/**', '**/*.js', 'src/SwmlVerbMethods.generated.ts'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Flag any eslint-disable directive that no longer suppresses anything, so
+    // stale/needless disables can't accumulate and quietly mask future findings.
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
     rules: {
       // The burndown made this enforceable. Open/dynamic values use `unknown`
       // (+ narrowing) or generics, never `any`.

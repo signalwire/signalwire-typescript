@@ -56,7 +56,7 @@ async function sendAndWait() {
   });
 
   try {
-    const terminalEvent = await message.wait(30_000);
+    await message.wait(30_000);
     console.log(`Final state: ${message.state}`);
     if (message.reason) {
       console.log(`Reason: ${message.reason}`);
