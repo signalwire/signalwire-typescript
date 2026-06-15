@@ -2,7 +2,6 @@
  * Generic CRUD resource with configurable update method.
  */
 
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from './BaseResource.js';

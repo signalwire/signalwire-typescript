@@ -5,7 +5,6 @@
  * outbound dial responses.
  */
 
-
 import { randomUUID } from 'node:crypto';
 import { getLogger } from '../Logger.js';
 import {
@@ -158,7 +157,9 @@ export class Call {
     } catch (err: unknown) {
       const code = (err as { code?: unknown } | null)?.code;
       if (code !== undefined) {
-        logger.warn(`Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`);
+        logger.warn(
+          `Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`,
+        );
         return {};
       }
       throw err;

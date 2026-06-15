@@ -7,26 +7,39 @@ import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
 import type {
+  Conference,
   ConferenceToken,
+  CreateConferenceRequest,
+  CreateRoomRequest,
   CreateRoomTokenRequest,
   CreateStreamRequest,
   ListConferenceTokensResponse,
+  ListConferencesResponse,
   ListRoomRecordingEventsResponse,
   ListRoomRecordingsResponse,
   ListRoomSessionEventsResponse,
   ListRoomSessionMembersResponse,
   ListRoomSessionRecordingsResponse,
   ListRoomSessionsResponse,
+  ListRoomsResponse,
   ListStreamsResponse,
   RoomRecording,
+  RoomResponse,
   RoomSessionSummary,
   RoomTokenResponse,
   Stream,
+  UpdateConferenceRequest,
+  UpdateRoomRequest,
   UpdateStreamRequest,
-} from './video.types.js';
+} from './video.types.generated.js';
 
 /** Video room management with streams. */
-export class VideoRooms extends CrudResource {
+export class VideoRooms extends CrudResource<
+  ListRoomsResponse,
+  RoomResponse,
+  Partial<CreateRoomRequest>,
+  Partial<UpdateRoomRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient, basePath: string) {
@@ -206,7 +219,12 @@ export class VideoRoomRecordings extends BaseResource {
 }
 
 /** Video conference management with tokens and streams. */
-export class VideoConferences extends CrudResource {
+export class VideoConferences extends CrudResource<
+  ListConferencesResponse,
+  Conference,
+  Partial<CreateConferenceRequest>,
+  Partial<UpdateConferenceRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient, basePath: string) {

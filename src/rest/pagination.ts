@@ -4,10 +4,20 @@
  * Supports both relay REST (links.next) and LAML (next_page_uri) pagination styles.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from './HttpClient.js';
 import type { QueryParams } from './types.js';
+
+/**
+ * The shape pagination needs from any page response: an item array under some
+ * `dataKey`, plus the two next-page styles. The item array is `unknown[]` here
+ * (cast to `T[]` at the read site) and the index signature keeps it open since
+ * `dataKey` is dynamic; both pagination styles are optional.
+ */
+interface PageEnvelope {
+  links?: { next?: string };
+  next_page_uri?: string | null;
+  [key: string]: unknown;
+}
 
 /**
  * Async generator that yields items across paginated API responses.
@@ -34,10 +44,10 @@ export async function* paginate<T>(
   let currentParams: QueryParams | undefined = params;
 
   while (currentPath) {
-    const resp = await http.get<any>(currentPath, currentParams);
+    const resp: PageEnvelope = await http.get<PageEnvelope>(currentPath, currentParams);
 
     // Extract items from the response using the data key
-    const items: T[] = resp[dataKey] ?? [];
+    const items = (resp[dataKey] as T[] | undefined) ?? [];
     for (const item of items) {
       yield item;
     }
@@ -45,7 +55,7 @@ export async function* paginate<T>(
     // Determine next page URL
     // Style 1: links.next (relay REST)
     if (resp.links?.next) {
-      const nextUrl = resp.links.next as string;
+      const nextUrl = resp.links.next;
       // If it's a full URL, extract path + query
       if (nextUrl.startsWith('http')) {
         const parsed = new URL(nextUrl);

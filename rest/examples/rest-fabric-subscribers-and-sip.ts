@@ -17,8 +17,8 @@ const client = new RestClient();
 async function main() {
   // 1. Create a subscriber
   console.log('Creating subscriber...');
-  const subscriber: any = await client.fabric.subscribers.create({
-    name: 'Alice Johnson',
+  const subscriber = await client.fabric.subscribers.create({
+    display_name: 'Alice Johnson',
     email: 'alice@example.com',
   });
   const subId = subscriber.id;
@@ -82,7 +82,6 @@ async function main() {
   console.log('\nGenerating subscriber token...');
   try {
     const token = await client.fabric.tokens.createSubscriberToken({
-      subscriber_id: innerSubId,
       reference: innerSubId,
     });
     console.log(`  Token: ${String(token.token ?? '').slice(0, 40)}...`);
@@ -102,7 +101,7 @@ async function main() {
   console.log(`  Deleted SIP gateway ${gwId}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

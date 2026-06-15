@@ -24,12 +24,16 @@ async function main() {
   let brandId: string | null = null;
   try {
     const brand = await client.registry.brands.create({
+      name: 'Acme',
       company_name: 'Acme Corp',
+      contact_email: 'compliance@acme.example.com',
+      contact_phone: '+15125550100',
       ein: '12-3456789',
-      entity_type: 'PRIVATE_PROFIT',
-      vertical: 'TECHNOLOGY',
-      website: 'https://acme.example.com',
-      country: 'US',
+      ein_issuing_country: 'US',
+      legal_entity_type: 'PRIVATE_PROFIT',
+      company_vertical: 'TECHNOLOGY',
+      company_website: 'https://acme.example.com',
+      company_address: '123 Main St, Austin, TX 78701',
     });
     brandId = brand.id;
     console.log(`  Registered brand: ${brandId}`);
@@ -61,9 +65,13 @@ async function main() {
     console.log('\nCreating campaign...');
     try {
       const campaign = await client.registry.brands.createCampaign(brandId, {
-        use_case: 'MIXED',
+        name: 'Acme Notifications',
+        brand_id: brandId,
+        sms_use_case: 'MIXED',
+        sub_use_cases: ['CUSTOMER_CARE', 'DELIVERY_NOTIFICATION'],
         description: 'Customer notifications and support messages',
-        sample_message: 'Your order #12345 has shipped.',
+        sample1: 'Your order #12345 has shipped.',
+        sample2: 'Reply STOP to unsubscribe from Acme alerts.',
       });
       campaignId = campaign.id;
       console.log(`  Created campaign: ${campaignId}`);
@@ -91,9 +99,9 @@ async function main() {
 
     try {
       await client.registry.campaigns.update(campaignId, {
-        description: 'Updated: customer notifications',
+        name: 'Acme Notifications (updated)',
       });
-      console.log('  Campaign description updated');
+      console.log('  Campaign name updated');
     } catch (err) {
       if (err instanceof RestError) {
         console.log(`  Campaign update failed: ${err.statusCode}`);
@@ -121,7 +129,7 @@ async function main() {
   // 8. Get order status
   if (orderId) {
     const orderDetail = await client.registry.orders.get(orderId);
-    console.log(`  Order status: ${orderDetail.status ?? 'N/A'}`);
+    console.log(`  Order status: ${orderDetail.state ?? 'N/A'}`);
   }
 
   // 9. List campaign numbers and orders
@@ -134,7 +142,7 @@ async function main() {
 
     const orders = await client.registry.campaigns.listOrders(campaignId);
     for (const o of orders.data ?? []) {
-      console.log(`  - Order ${o.id}: ${o.status ?? 'unknown'}`);
+      console.log(`  - Order ${o.id}: ${o.state ?? 'unknown'}`);
     }
   }
 
@@ -155,7 +163,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

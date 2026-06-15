@@ -1,12 +1,22 @@
 /**
  * Logs namespace — message, voice, fax, and conference logs (read-only).
+ *
+ * Each sub-resource is typed from its own canonical OpenAPI spec module:
+ * message logs from `message`, voice logs from `voice`, fax logs from `fax`,
+ * conference logs from `logs`.
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type { ListMessageLogsResponse, GetMessageLogResponse } from './message.types.generated.js';
+import type {
+  ListVoiceLogsResponse,
+  GetVoiceLogResponse,
+  ListVoiceLogEventsResponse,
+} from './voice.types.generated.js';
+import type { ListFaxLogsResponse, GetFaxLogResponse } from './fax.types.generated.js';
+import type { ListConferencesResponse } from './logs.types.generated.js';
 
 /** Message log queries. */
 export class MessageLogs extends BaseResource {
@@ -22,8 +32,8 @@ export class MessageLogs extends BaseResource {
    * @returns A paginated list of message log entries.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListMessageLogsResponse> {
+    return this._http.get<ListMessageLogsResponse>(this._basePath, params);
   }
 
   /**
@@ -33,8 +43,8 @@ export class MessageLogs extends BaseResource {
    * @returns The log entry record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(logId: string): Promise<any> {
-    return this._http.get(this._path(logId));
+  async get(logId: string): Promise<GetMessageLogResponse> {
+    return this._http.get<GetMessageLogResponse>(this._path(logId));
   }
 }
 
@@ -51,8 +61,8 @@ export class VoiceLogs extends BaseResource {
    * @returns A paginated list of voice log entries.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListVoiceLogsResponse> {
+    return this._http.get<ListVoiceLogsResponse>(this._basePath, params);
   }
 
   /**
@@ -62,8 +72,8 @@ export class VoiceLogs extends BaseResource {
    * @returns The log entry record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(logId: string): Promise<any> {
-    return this._http.get(this._path(logId));
+  async get(logId: string): Promise<GetVoiceLogResponse> {
+    return this._http.get<GetVoiceLogResponse>(this._path(logId));
   }
 
   /**
@@ -74,8 +84,8 @@ export class VoiceLogs extends BaseResource {
    * @returns A paginated list of events for the log entry.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listEvents(logId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(logId, 'events'), params);
+  async listEvents(logId: string, params?: QueryParams): Promise<ListVoiceLogEventsResponse> {
+    return this._http.get<ListVoiceLogEventsResponse>(this._path(logId, 'events'), params);
   }
 }
 
@@ -92,8 +102,8 @@ export class FaxLogs extends BaseResource {
    * @returns A paginated list of fax log entries.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListFaxLogsResponse> {
+    return this._http.get<ListFaxLogsResponse>(this._basePath, params);
   }
 
   /**
@@ -103,8 +113,8 @@ export class FaxLogs extends BaseResource {
    * @returns The log entry record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(logId: string): Promise<any> {
-    return this._http.get(this._path(logId));
+  async get(logId: string): Promise<GetFaxLogResponse> {
+    return this._http.get<GetFaxLogResponse>(this._path(logId));
   }
 }
 
@@ -121,8 +131,8 @@ export class ConferenceLogs extends BaseResource {
    * @returns A paginated list of conference log entries.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListConferencesResponse> {
+    return this._http.get<ListConferencesResponse>(this._basePath, params);
   }
 }
 

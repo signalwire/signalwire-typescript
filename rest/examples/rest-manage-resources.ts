@@ -28,14 +28,14 @@ async function main() {
   console.log('\nListing AI agents...');
   const agents = await client.fabric.aiAgents.list();
   for (const a of agents.data ?? []) {
-    console.log(`  - ${a.id}: ${a.name ?? 'unnamed'}`);
+    console.log(`  - ${a.id}: ${a.display_name ?? 'unnamed'}`);
   }
 
   // 3. Search for a phone number
   console.log('\nSearching for available phone numbers...');
   const available = await client.phoneNumbers.search({ area_code: '512', max_results: 3 });
   for (const num of available.data ?? []) {
-    console.log(`  - ${num.e164 ?? num.number ?? 'unknown'}`);
+    console.log(`  - ${num.number ?? 'unknown'}`);
   }
 
   // 4. Place a test call (requires valid numbers)
@@ -59,7 +59,7 @@ async function main() {
   console.log('  Deleted.');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

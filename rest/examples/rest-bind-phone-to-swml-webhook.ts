@@ -60,7 +60,7 @@ async function main(): Promise<void> {
   void PhoneCallHandler;
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

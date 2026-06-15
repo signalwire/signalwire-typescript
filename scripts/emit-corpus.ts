@@ -60,20 +60,33 @@ const corpus: Entry[] = [
   { id: 'envelope.response_only', build: () => fr('Hello, world!') },
   { id: 'envelope.post_process_no_action', build: () => fr('hi').setPostProcess(true) },
   { id: 'envelope.action_only', build: () => fr('').hangup() },
-  { id: 'envelope.post_process_with_action', build: () => fr('Transferring').setPostProcess(true).hangup() },
+  {
+    id: 'envelope.post_process_with_action',
+    build: () => fr('Transferring').setPostProcess(true).hangup(),
+  },
   { id: 'envelope.response_and_action', build: () => fr('Goodbye').hangup() },
 
   // ---- connect (final true/false, from override) --------------------------
   { id: 'connect.final_true', build: () => fr('').connect('+15551234567', true) },
   { id: 'connect.final_false', build: () => fr('').connect('+15551234567', false) },
-  { id: 'connect.from_addr', build: () => fr('').connect('support@example.com', false, '+15559876543') },
+  {
+    id: 'connect.from_addr',
+    build: () => fr('').connect('support@example.com', false, '+15559876543'),
+  },
 
   // ---- swml_transfer ------------------------------------------------------
-  { id: 'swml_transfer.default', build: () => fr('').swmlTransfer('https://dest.example.com/swml', 'Goodbye!') },
+  {
+    id: 'swml_transfer.default',
+    build: () => fr('').swmlTransfer('https://dest.example.com/swml', 'Goodbye!'),
+  },
   {
     id: 'swml_transfer.final_false',
     build: () =>
-      fr('').swmlTransfer('https://dest.example.com/swml', 'Welcome back. How else can I help?', false),
+      fr('').swmlTransfer(
+        'https://dest.example.com/swml',
+        'Welcome back. How else can I help?',
+        false,
+      ),
   },
 
   // ---- simple call-control actions ---------------------------------------
@@ -103,7 +116,8 @@ const corpus: Entry[] = [
   // ---- swml_user_event ----------------------------------------------------
   {
     id: 'swml_user_event',
-    build: () => fr('').swmlUserEvent({ type: 'cards_dealt', player_hand: ['AS', 'KH'], player_score: 21 }),
+    build: () =>
+      fr('').swmlUserEvent({ type: 'cards_dealt', player_hand: ['AS', 'KH'], player_score: 21 }),
   },
 
   // ---- step / context changes --------------------------------------------
@@ -111,7 +125,10 @@ const corpus: Entry[] = [
   { id: 'change_context', build: () => fr('').swmlChangeContext('billing') },
 
   // ---- switch_context (simple-string vs object branches) -----------------
-  { id: 'switch_context.simple', build: () => fr('').switchContext({ systemPrompt: 'You are now a billing agent.' }) },
+  {
+    id: 'switch_context.simple',
+    build: () => fr('').switchContext({ systemPrompt: 'You are now a billing agent.' }),
+  },
   {
     id: 'switch_context.object',
     build: () =>
@@ -124,7 +141,8 @@ const corpus: Entry[] = [
   },
   {
     id: 'switch_context.full_reset',
-    build: () => fr('').switchContext({ systemPrompt: 'Reset prompt', consolidate: false, fullReset: true }),
+    build: () =>
+      fr('').switchContext({ systemPrompt: 'Reset prompt', consolidate: false, fullReset: true }),
   },
 
   // ---- background file play/stop -----------------------------------------
@@ -140,7 +158,11 @@ const corpus: Entry[] = [
   {
     id: 'send_sms.body',
     build: () =>
-      fr('').sendSms({ toNumber: '+15551112222', fromNumber: '+15553334444', body: 'Your appointment is confirmed.' }),
+      fr('').sendSms({
+        toNumber: '+15551112222',
+        fromNumber: '+15553334444',
+        body: 'Your appointment is confirmed.',
+      }),
   },
   {
     id: 'send_sms.full',
@@ -156,7 +178,10 @@ const corpus: Entry[] = [
   },
 
   // ---- pay (full + helper-shaped prompts/parameters) ---------------------
-  { id: 'pay.minimal', build: () => fr('').pay({ paymentConnectorUrl: 'https://pay.example.com/connector' }) },
+  {
+    id: 'pay.minimal',
+    build: () => fr('').pay({ paymentConnectorUrl: 'https://pay.example.com/connector' }),
+  },
   {
     id: 'pay.full',
     build: () =>
@@ -193,14 +218,24 @@ const corpus: Entry[] = [
   },
   {
     id: 'pay.postal_bool',
-    build: () => fr('').pay({ paymentConnectorUrl: 'https://pay.example.com/connector', postalCode: true }),
+    build: () =>
+      fr('').pay({ paymentConnectorUrl: 'https://pay.example.com/connector', postalCode: true }),
   },
 
   // ---- record_call (incl. mp4 + each direction) --------------------------
   { id: 'record_call.defaults', build: () => fr('').recordCall() },
-  { id: 'record_call.wav_speak', build: () => fr('').recordCall({ format: 'wav', direction: 'speak' }) },
-  { id: 'record_call.mp3_listen', build: () => fr('').recordCall({ format: 'mp3', direction: 'listen' }) },
-  { id: 'record_call.mp4_both', build: () => fr('').recordCall({ format: 'mp4', direction: 'both' }) },
+  {
+    id: 'record_call.wav_speak',
+    build: () => fr('').recordCall({ format: 'wav', direction: 'speak' }),
+  },
+  {
+    id: 'record_call.mp3_listen',
+    build: () => fr('').recordCall({ format: 'mp3', direction: 'listen' }),
+  },
+  {
+    id: 'record_call.mp4_both',
+    build: () => fr('').recordCall({ format: 'mp4', direction: 'both' }),
+  },
   {
     id: 'record_call.full',
     build: () =>
@@ -223,8 +258,14 @@ const corpus: Entry[] = [
 
   // ---- tap (each direction / codec) --------------------------------------
   { id: 'tap.defaults', build: () => fr('').tap({ uri: 'rtp://10.0.0.1:5004' }) },
-  { id: 'tap.speak_pcma', build: () => fr('').tap({ uri: 'ws://ex.com/tap', direction: 'speak', codec: 'PCMA' }) },
-  { id: 'tap.hear_pcmu', build: () => fr('').tap({ uri: 'wss://ex.com/tap', direction: 'hear', codec: 'PCMU' }) },
+  {
+    id: 'tap.speak_pcma',
+    build: () => fr('').tap({ uri: 'ws://ex.com/tap', direction: 'speak', codec: 'PCMA' }),
+  },
+  {
+    id: 'tap.hear_pcmu',
+    build: () => fr('').tap({ uri: 'wss://ex.com/tap', direction: 'hear', codec: 'PCMU' }),
+  },
   {
     id: 'tap.both_full',
     build: () =>
@@ -277,7 +318,10 @@ const corpus: Entry[] = [
         nodeId: 'node-1',
       }),
   },
-  { id: 'rpc_dial', build: () => fr('').rpcDial('+15551234567', '+15559876543', 'https://ex.com/call-agent') },
+  {
+    id: 'rpc_dial',
+    build: () => fr('').rpcDial('+15551234567', '+15559876543', 'https://ex.com/call-agent'),
+  },
   { id: 'rpc_ai_message', build: () => fr('').rpcAiMessage('call-abc', 'Please take a message.') },
   { id: 'rpc_ai_unhold', build: () => fr('').rpcAiUnhold('call-abc') },
 
@@ -287,7 +331,11 @@ const corpus: Entry[] = [
   // ---- dynamic hints ------------------------------------------------------
   {
     id: 'add_dynamic_hints',
-    build: () => fr('').addDynamicHints(['Cabby', { pattern: 'cab bee', replace: 'Cabby', ignore_case: true }]),
+    build: () =>
+      fr('').addDynamicHints([
+        'Cabby',
+        { pattern: 'cab bee', replace: 'Cabby', ignore_case: true },
+      ]),
   },
   { id: 'clear_dynamic_hints', build: () => fr('').clearDynamicHints() },
 
@@ -312,7 +360,10 @@ const corpus: Entry[] = [
   { id: 'replace_in_history.str', build: () => fr('').replaceInHistory('Summarized the order.') },
 
   // ---- settings -----------------------------------------------------------
-  { id: 'settings', build: () => fr('').updateSettings({ temperature: 0.7, 'max-tokens': 256, 'top-p': 0.9 }) },
+  {
+    id: 'settings',
+    build: () => fr('').updateSettings({ temperature: 0.7, 'max-tokens': 256, 'top-p': 0.9 }),
+  },
 
   // ---- speech timeouts ----------------------------------------------------
   { id: 'end_of_speech_timeout', build: () => fr('').setEndOfSpeechTimeout(800) },
@@ -325,7 +376,8 @@ const corpus: Entry[] = [
   },
   {
     id: 'execute_swml.dict_transfer',
-    build: () => fr('').executeSwml({ version: '1.0.0', sections: { main: [{ answer: {} }] } }, true),
+    build: () =>
+      fr('').executeSwml({ version: '1.0.0', sections: { main: [{ answer: {} }] } }, true),
   },
   {
     id: 'execute_swml.json_string',

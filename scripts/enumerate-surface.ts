@@ -134,12 +134,19 @@ function loadPythonReference(pythonSurfacePath: string): {
  *  modules. */
 function moduleMatchScore(pythonMod: string, tsFileRelPath: string): number {
   const fileSlug = camelToSnake(
-    tsFileRelPath.replace(/^src\//, '').replace(/\.ts$/, '').split('/').pop() ?? '',
+    tsFileRelPath
+      .replace(/^src\//, '')
+      .replace(/\.ts$/, '')
+      .split('/')
+      .pop() ?? '',
   );
   const pyTail = pythonMod.split('.').pop() ?? '';
   if (pyTail === fileSlug) return 100;
   // Match by dir hint: "rest" in TS path → "rest" in Python module.
-  const tsDirs = tsFileRelPath.replace(/^src\//, '').split('/').slice(0, -1);
+  const tsDirs = tsFileRelPath
+    .replace(/^src\//, '')
+    .split('/')
+    .slice(0, -1);
   let score = 0;
   for (const d of tsDirs) {
     const ds = camelToSnake(d).replace(/-/g, '_');
@@ -240,15 +247,15 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
 
   // SkillManager: TS renamed for TypeScript idiom but the semantics match.
   'signalwire.core.skill_manager.SkillManager': {
-    add_skill: 'load_skill',              // TS addSkill(SkillInstance) ~ Python load_skill
-    remove_skill: 'unload_skill',         // TS removeSkill(instanceId) ~ Python unload_skill
-    list_skills: 'list_loaded_skills',    // TS listSkills ~ Python list_loaded_skills
+    add_skill: 'load_skill', // TS addSkill(SkillInstance) ~ Python load_skill
+    remove_skill: 'unload_skill', // TS removeSkill(instanceId) ~ Python unload_skill
+    list_skills: 'list_loaded_skills', // TS listSkills ~ Python list_loaded_skills
   },
 
   // SkillRegistry: TS singleton-style names map to Python methods.
   'signalwire.skills.registry.SkillRegistry': {
-    register: 'register_skill',               // TS register(cls) ~ Python register_skill
-    add_search_path: 'add_skill_directory',   // TS addSearchPath ~ Python add_skill_directory
+    register: 'register_skill', // TS register(cls) ~ Python register_skill
+    add_search_path: 'add_skill_directory', // TS addSearchPath ~ Python add_skill_directory
     discover_from_directory: 'discover_skills', // ~ Python discover_skills
     // get_skill_class matches verbatim after camelToSnake.
     // listSkills → list_skills (matches verbatim).
@@ -337,7 +344,11 @@ function enumerateFile(file: string): FileSurface {
         methods.add(camelToSnake(mName));
       }
       // Getter / setter.
-      if ((ts.isGetAccessor(member) || ts.isSetAccessor(member)) && member.name && ts.isIdentifier(member.name)) {
+      if (
+        (ts.isGetAccessor(member) || ts.isSetAccessor(member)) &&
+        member.name &&
+        ts.isIdentifier(member.name)
+      ) {
         const mName = member.name.text;
         if (mName.startsWith('_')) continue;
         const mods = ts.getCombinedModifierFlags(member);
@@ -384,9 +395,10 @@ function enumerateFile(file: string): FileSurface {
   function walk(container: ts.Node, nsPath: string[] = []): void {
     const forEachStatement = (node: ts.Node): void => {
       if (ts.isClassDeclaration(node) && isExported(node) && node.name) {
-        const nm = nsPath.length > 0
-          ? `${nsPath.join('')}${node.name.text}` // namespace-prefixed (e.g. "Inference" + "STT")
-          : node.name.text;
+        const nm =
+          nsPath.length > 0
+            ? `${nsPath.join('')}${node.name.text}` // namespace-prefixed (e.g. "Inference" + "STT")
+            : node.name.text;
         collectClass(node, nm);
       } else if (ts.isFunctionDeclaration(node) && isExported(node) && node.name) {
         // Only care about concrete functions (they have a body). Overload
@@ -399,14 +411,16 @@ function enumerateFile(file: string): FileSurface {
           // Only export-const-arrow-function and export-const-function-expression
           // count as "callable exports". Plain const values are not API surface.
           if (!decl.initializer) continue;
-          if (
-            ts.isArrowFunction(decl.initializer) ||
-            ts.isFunctionExpression(decl.initializer)
-          ) {
+          if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) {
             collectFunction(decl.name.text);
           }
         }
-      } else if (ts.isModuleDeclaration(node) && isExported(node) && node.body && ts.isModuleBlock(node.body)) {
+      } else if (
+        ts.isModuleDeclaration(node) &&
+        isExported(node) &&
+        node.body &&
+        ts.isModuleBlock(node.body)
+      ) {
         // `export namespace plugins { ... }`. Descend — classes inside still
         // count as exports, but we need to translate their names to match
         // Python. For the `inference` namespace in livewire, Python uses
@@ -425,7 +439,10 @@ function enumerateFile(file: string): FileSurface {
             if (ts.isClassDeclaration(stmt) && isExported(stmt) && stmt.name) {
               // Class inside `plugins` is emitted as-is; the caller assigns
               // it to the `signalwire.livewire.plugins` module.
-              classes.push({ name: `__NS__${nsName}__${stmt.name.text}`, methods: collectMethodsFor(stmt) });
+              classes.push({
+                name: `__NS__${nsName}__${stmt.name.text}`,
+                methods: collectMethodsFor(stmt),
+              });
             }
           }
         }
@@ -437,9 +454,15 @@ function enumerateFile(file: string): FileSurface {
   function collectMethodsFor(node: ts.ClassDeclaration): string[] {
     const methods = new Set<string>();
     for (const member of node.members) {
-      if (ts.isConstructorDeclaration(member)) { methods.add('__init__'); continue; }
-      if ((ts.isMethodDeclaration(member) || ts.isGetAccessor(member) || ts.isSetAccessor(member))
-          && member.name && ts.isIdentifier(member.name)) {
+      if (ts.isConstructorDeclaration(member)) {
+        methods.add('__init__');
+        continue;
+      }
+      if (
+        (ts.isMethodDeclaration(member) || ts.isGetAccessor(member) || ts.isSetAccessor(member)) &&
+        member.name &&
+        ts.isIdentifier(member.name)
+      ) {
         const nm = member.name.text;
         if (nm.startsWith('_')) continue;
         const mods = ts.getCombinedModifierFlags(member);
@@ -562,7 +585,8 @@ function resolvePythonSurfacePath(repoRoot: string): string {
 function getGitSha(repoRoot: string): string {
   try {
     return execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString().trim();
+      .toString()
+      .trim();
   } catch {
     return 'N/A';
   }
@@ -577,15 +601,17 @@ function main(): void {
   const writeStdout = argv.includes('--stdout');
   const outputArgIdx = argv.indexOf('--output');
   const repoRoot = path.resolve(__dirname, '..');
-  const outputPath = outputArgIdx >= 0
-    ? path.resolve(argv[outputArgIdx + 1]!)
-    : path.join(repoRoot, 'port_surface.json');
+  const outputPath =
+    outputArgIdx >= 0
+      ? path.resolve(argv[outputArgIdx + 1]!)
+      : path.join(repoRoot, 'port_surface.json');
 
   const srcDir = path.join(repoRoot, 'src');
   const files = findSourceFiles(srcDir);
 
   const pythonSurfacePath = resolvePythonSurfacePath(repoRoot);
-  const { classToModules, methodToOwners, pythonMethodsByOwner } = loadPythonReference(pythonSurfacePath);
+  const { classToModules, methodToOwners, pythonMethodsByOwner } =
+    loadPythonReference(pythonSurfacePath);
 
   interface ModuleEntry {
     classes: Record<string, string[]>;
@@ -607,7 +633,12 @@ function main(): void {
     const rel = path.relative(repoRoot, abs).replace(/\\/g, '/');
     const fs2 = enumerateFile(abs);
     for (const c of fs2.classes) {
-      rawClasses.push({ fileRel: rel, name: c.name, methods: c.methods, extendsName: c.extendsName });
+      rawClasses.push({
+        fileRel: rel,
+        name: c.name,
+        methods: c.methods,
+        extendsName: c.extendsName,
+      });
     }
     if (fs2.functions.length > 0) rawFunctions.push({ fileRel: rel, fns: fs2.functions });
   }
@@ -615,9 +646,7 @@ function main(): void {
   // Build a name → methods map for inheritance lookups (TS-class-name keyed).
   const classMethods = new Map<string, Set<string>>();
   for (const c of rawClasses) {
-    const cleanName = c.name.startsWith('__NS__')
-      ? c.name.split('__').pop()!
-      : c.name;
+    const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     if (!classMethods.has(cleanName)) classMethods.set(cleanName, new Set());
     for (const m of c.methods) classMethods.get(cleanName)!.add(m);
   }
@@ -659,7 +688,8 @@ function main(): void {
     // Apply skill aliases to the inherited set so the method names line up
     // against Python (e.g. `get_tools` → `register_tools`).
     const moduleGuess = pickModule(emitName, c.fileRel, classToModules);
-    const skillCtx = moduleGuess === 'signalwire.core.skill_base' || moduleGuess.startsWith('signalwire.skills.');
+    const skillCtx =
+      moduleGuess === 'signalwire.core.skill_base' || moduleGuess.startsWith('signalwire.skills.');
     const toAlias = (m: string): string => {
       if (skillCtx && SKILL_METHOD_ALIASES[m]) return SKILL_METHOD_ALIASES[m]!;
       return m;
@@ -687,9 +717,10 @@ function main(): void {
     const nsMatch = cls.name.match(/^__NS__([A-Za-z0-9_]+)__(.+)$/);
     if (nsMatch) {
       const [, nsName, realName] = nsMatch;
-      const mod = (rel === 'src/livewire/index.ts' && nsName === 'plugins')
-        ? 'signalwire.livewire.plugins'
-        : fallbackModuleName(rel) + '.' + nsName;
+      const mod =
+        rel === 'src/livewire/index.ts' && nsName === 'plugins'
+          ? 'signalwire.livewire.plugins'
+          : fallbackModuleName(rel) + '.' + nsName;
       const entry = ensureModule(mod);
       const existing = new Set(entry.classes[realName!] ?? []);
       for (const me of cls.methods) existing.add(me);
@@ -729,7 +760,8 @@ function main(): void {
         }
         let foldedSomewhere = false;
         for (const { mod: ownerMod, cls: ownerCls } of owners) {
-          if (!ownerMod.includes('.mixins.') && !ownerMod.startsWith('signalwire.core.agent.')) continue;
+          if (!ownerMod.includes('.mixins.') && !ownerMod.startsWith('signalwire.core.agent.'))
+            continue;
           const subEntry = ensureModule(ownerMod);
           const subExisting = new Set(subEntry.classes[ownerCls] ?? []);
           subExisting.add(m);

@@ -19,7 +19,9 @@ async function main() {
   console.log('Creating SWML script...');
   const swml = await client.fabric.swmlScripts.create({
     name: 'Greeting Script',
-    contents: { sections: { main: [{ play: { url: 'say:Hello from SignalWire' } }] } },
+    contents: JSON.stringify({
+      sections: { main: [{ play: { url: 'say:Hello from SignalWire' } }] },
+    }),
   });
   const swmlId = swml.id;
   console.log(`  Created SWML script: ${swmlId}`);
@@ -40,7 +42,7 @@ async function main() {
   // 4. Deploy a version of the call flow
   console.log('\nDeploying call flow version...');
   try {
-    const version = await client.fabric.callFlows.deployVersion(flowId, { label: 'v1' });
+    const version = await client.fabric.callFlows.deployVersion(flowId, { document_version: 1 });
     console.log(`  Deployed version: ${JSON.stringify(version)}`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -53,7 +55,7 @@ async function main() {
   try {
     const versions = await client.fabric.callFlows.listVersions(flowId);
     for (const v of versions.data ?? []) {
-      console.log(`  - Version: ${v.label ?? v.id ?? 'unknown'}`);
+      console.log(`  - Version: ${v.version ?? v.id ?? 'unknown'}`);
     }
   } catch (err) {
     if (err instanceof RestError) {
@@ -93,7 +95,7 @@ async function main() {
   console.log(`  Deleted SWML script ${swmlId}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

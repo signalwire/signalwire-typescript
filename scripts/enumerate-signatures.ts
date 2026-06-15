@@ -38,7 +38,8 @@ const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
 // PORTING_SDK is the env var run-ci.sh exports; PSDK is a legacy alias.
 // Fallback to the dev-machine adjacency convention only if neither is set.
-const PSDK = process.env.PORTING_SDK ?? process.env.PSDK ?? '/usr/local/home/devuser/src/porting-sdk';
+const PSDK =
+  process.env.PORTING_SDK ?? process.env.PSDK ?? '/usr/local/home/devuser/src/porting-sdk';
 
 // ---------------------------------------------------------------------------
 // Translation tables — kept in sync with enumerate-surface.ts.
@@ -137,24 +138,47 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
 // Project the canonical Python-mixin methods onto their owning mixin module.
 const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
-  AIConfigMixin: ['signalwire.core.mixins.ai_config_mixin', [
-    'add_function_include', 'add_hint', 'add_hints', 'add_internal_filler',
-    'add_language', 'add_pattern_hint', 'add_pronunciation',
-    'enable_debug_events',
-    'get_language_params',
-    'set_function_includes', 'set_global_data', 'set_internal_fillers',
-    'set_language_params',
-    'set_languages', 'set_native_functions', 'set_param', 'set_params',
-    'set_post_prompt_llm_params', 'set_prompt_llm_params',
-    'set_pronunciations', 'update_global_data',
-  ]],
-  PromptMixin: ['signalwire.core.mixins.prompt_mixin', [
-    'define_contexts', 'get_post_prompt', 'get_prompt',
-    'prompt_add_section',
-    'prompt_add_subsection', 'prompt_add_to_section',
-    'prompt_has_section', 'reset_contexts', 'set_post_prompt',
-    'set_prompt_text',
-  ]],
+  AIConfigMixin: [
+    'signalwire.core.mixins.ai_config_mixin',
+    [
+      'add_function_include',
+      'add_hint',
+      'add_hints',
+      'add_internal_filler',
+      'add_language',
+      'add_pattern_hint',
+      'add_pronunciation',
+      'enable_debug_events',
+      'get_language_params',
+      'set_function_includes',
+      'set_global_data',
+      'set_internal_fillers',
+      'set_language_params',
+      'set_languages',
+      'set_native_functions',
+      'set_param',
+      'set_params',
+      'set_post_prompt_llm_params',
+      'set_prompt_llm_params',
+      'set_pronunciations',
+      'update_global_data',
+    ],
+  ],
+  PromptMixin: [
+    'signalwire.core.mixins.prompt_mixin',
+    [
+      'define_contexts',
+      'get_post_prompt',
+      'get_prompt',
+      'prompt_add_section',
+      'prompt_add_subsection',
+      'prompt_add_to_section',
+      'prompt_has_section',
+      'reset_contexts',
+      'set_post_prompt',
+      'set_prompt_text',
+    ],
+  ],
   // Python additionally extracted a ``PromptManager`` class that
   // PromptMixin delegates to. The user-facing surface is identical
   // (``agent.prompt_manager.X`` ≡ ``agent.X``). Project the same set
@@ -163,41 +187,69 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   // class has a slightly different method shape (``addSection`` etc.)
   // and is enumerated separately from PromptManager.ts; the projected
   // AgentBase methods are merged into the same module entry.
-  PromptManager: ['signalwire.core.agent.prompt.manager', [
-    'define_contexts', 'get_contexts', 'get_post_prompt', 'get_prompt',
-    'get_raw_prompt',
-    'prompt_add_section', 'prompt_add_subsection', 'prompt_add_to_section',
-    'prompt_has_section', 'set_post_prompt', 'set_prompt_pom',
-    'set_prompt_text',
-  ]],
-  SkillMixin: ['signalwire.core.mixins.skill_mixin', [
-    'add_skill', 'has_skill', 'list_skills', 'remove_skill',
-  ]],
-  ToolMixin: ['signalwire.core.mixins.tool_mixin', [
-    'define_tool', 'on_function_call', 'register_swaig_function',
-  ]],
-  ToolRegistry: ['signalwire.core.agent.tools.registry', [
-    'define_tool', 'register_swaig_function',
-    'has_function', 'get_function', 'get_all_functions', 'remove_function',
-  ]],
-  AuthMixin: ['signalwire.core.mixins.auth_mixin', [
-    'validate_basic_auth', 'get_basic_auth_credentials',
-  ]],
-  WebMixin: ['signalwire.core.mixins.web_mixin', [
-    'enable_debug_routes', 'manual_set_proxy_url', 'run', 'serve',
-    'set_dynamic_config_callback', 'on_request', 'on_swml_request',
-  ]],
-  MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', [
-    'add_mcp_server',
-  ]],
-  StateMixin: ['signalwire.core.mixins.state_mixin', [
-    'validate_tool_token',
-  ]],
+  PromptManager: [
+    'signalwire.core.agent.prompt.manager',
+    [
+      'define_contexts',
+      'get_contexts',
+      'get_post_prompt',
+      'get_prompt',
+      'get_raw_prompt',
+      'prompt_add_section',
+      'prompt_add_subsection',
+      'prompt_add_to_section',
+      'prompt_has_section',
+      'set_post_prompt',
+      'set_prompt_pom',
+      'set_prompt_text',
+    ],
+  ],
+  SkillMixin: [
+    'signalwire.core.mixins.skill_mixin',
+    ['add_skill', 'has_skill', 'list_skills', 'remove_skill'],
+  ],
+  ToolMixin: [
+    'signalwire.core.mixins.tool_mixin',
+    ['define_tool', 'on_function_call', 'register_swaig_function'],
+  ],
+  ToolRegistry: [
+    'signalwire.core.agent.tools.registry',
+    [
+      'define_tool',
+      'register_swaig_function',
+      'has_function',
+      'get_function',
+      'get_all_functions',
+      'remove_function',
+    ],
+  ],
+  AuthMixin: [
+    'signalwire.core.mixins.auth_mixin',
+    ['validate_basic_auth', 'get_basic_auth_credentials'],
+  ],
+  WebMixin: [
+    'signalwire.core.mixins.web_mixin',
+    [
+      'enable_debug_routes',
+      'manual_set_proxy_url',
+      'run',
+      'serve',
+      'set_dynamic_config_callback',
+      'on_request',
+      'on_swml_request',
+    ],
+  ],
+  MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', ['add_mcp_server']],
+  StateMixin: ['signalwire.core.mixins.state_mixin', ['validate_tool_token']],
 };
 
 const SKIP_METHOD_NAMES = new Set([
-  'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf',
-  'propertyIsEnumerable', 'toLocaleString',
+  'toString',
+  'valueOf',
+  'hasOwnProperty',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
 ]);
 
 // Free-function name overrides — for cases where the Python canonical
@@ -228,7 +280,10 @@ function fallbackModuleName(fileRelPath: string): string {
 // ---------------------------------------------------------------------------
 
 class TypeTranslationError extends Error {
-  constructor(public readonly context: string, message: string) {
+  constructor(
+    public readonly context: string,
+    message: string,
+  ) {
     super(`${context}: ${message}`);
   }
 }
@@ -260,7 +315,11 @@ function translateType(
 ): string {
   // Stringify for alias lookup. Use TypeFormatFlags.NoTruncation to keep the
   // full string. typeToString() returns the source form.
-  const typeStr = checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.UseFullyQualifiedType);
+  const typeStr = checker.typeToString(
+    type,
+    undefined,
+    ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.UseFullyQualifiedType,
+  );
 
   // Direct alias hit (covers string/number/boolean/Date/etc.)
   if (aliases[typeStr] !== undefined) return aliases[typeStr];
@@ -321,11 +380,7 @@ function translateType(
     const hasWidenedStringArm = filtered.some(
       (t) => (t.flags & ts.TypeFlags.String) !== 0 || t.isIntersection(),
     );
-    if (
-      filtered.length >= 2 &&
-      hasWidenedStringArm &&
-      filtered.every(isWidenedStringConstant)
-    ) {
+    if (filtered.length >= 2 && hasWidenedStringArm && filtered.every(isWidenedStringConstant)) {
       return hasNullish ? 'optional<string>' : 'string';
     }
     if (filtered.length === 0) return 'void';
@@ -364,7 +419,12 @@ function translateType(
       const v = translateType(typeArgs[1], checker, aliases, context);
       return `dict<${k},${v}>`;
     }
-    if (symbolName === 'Iterable' || symbolName === 'AsyncIterable' || symbolName === 'IterableIterator' || symbolName === 'AsyncIterableIterator') {
+    if (
+      symbolName === 'Iterable' ||
+      symbolName === 'AsyncIterable' ||
+      symbolName === 'IterableIterator' ||
+      symbolName === 'AsyncIterableIterator'
+    ) {
       return `list<${translateType(typeArgs[0], checker, aliases, context)}>`;
     }
     if (symbolName === 'Awaited') {
@@ -414,7 +474,13 @@ function translateType(
       }
     }
     // Anonymous record / Record<string,unknown> → dict<string,any>
-    if (symbolName === '__type' || typeStr.startsWith('{') || typeStr === 'object' || typeStr === 'Object' || /^Record<.+>$/.test(typeStr)) {
+    if (
+      symbolName === '__type' ||
+      typeStr.startsWith('{') ||
+      typeStr === 'object' ||
+      typeStr === 'Object' ||
+      /^Record<.+>$/.test(typeStr)
+    ) {
       return 'dict<string,any>';
     }
   }
@@ -525,7 +591,14 @@ function collectClass(
   for (const m of cls.members) {
     if (ts.isConstructorDeclaration(m)) {
       try {
-        methods['__init__'] = signatureFromMethod(m, checker, aliases, true, false, `${mod}.${canonClass}.__init__`);
+        methods['__init__'] = signatureFromMethod(
+          m,
+          checker,
+          aliases,
+          true,
+          false,
+          `${mod}.${canonClass}.__init__`,
+        );
       } catch (e) {
         if (e instanceof TypeTranslationError) failures.push(e);
         else throw e;
@@ -547,7 +620,13 @@ function collectClass(
       const snakeProp = camelToSnake(nativeProp);
       if (methods[snakeProp] !== undefined) continue;
       try {
-        const sig = signatureFromProperty(m, checker, aliases, propIsStatic, `${mod}.${canonClass}.${snakeProp}`);
+        const sig = signatureFromProperty(
+          m,
+          checker,
+          aliases,
+          propIsStatic,
+          `${mod}.${canonClass}.${snakeProp}`,
+        );
         if (sig !== null) methods[snakeProp] = sig;
       } catch (e) {
         if (e instanceof TypeTranslationError) failures.push(e);
@@ -568,7 +647,14 @@ function collectClass(
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
 
     try {
-      methods[snake] = signatureFromMethod(m, checker, aliases, false, isStatic, `${mod}.${canonClass}.${snake}`);
+      methods[snake] = signatureFromMethod(
+        m,
+        checker,
+        aliases,
+        false,
+        isStatic,
+        `${mod}.${canonClass}.${snake}`,
+      );
     } catch (e) {
       if (e instanceof TypeTranslationError) failures.push(e);
       else throw e;
@@ -599,7 +685,8 @@ function signatureFromProperty(
   const canon = translateType(propType, checker, aliases, ctx);
   // Only project SDK class references; primitive-typed state fields
   // are excluded (matches Python adapter's _is_sdk_class_type rule).
-  const isSdkClass = canon.startsWith('class:') ||
+  const isSdkClass =
+    canon.startsWith('class:') ||
     canon.startsWith('optional<class:') ||
     canon.startsWith('list<class:') ||
     (canon.startsWith('union<') && canon.includes('class:'));
@@ -610,7 +697,12 @@ function signatureFromProperty(
 }
 
 function signatureFromMethod(
-  m: ts.ConstructorDeclaration | ts.MethodDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration | ts.FunctionDeclaration,
+  m:
+    | ts.ConstructorDeclaration
+    | ts.MethodDeclaration
+    | ts.GetAccessorDeclaration
+    | ts.SetAccessorDeclaration
+    | ts.FunctionDeclaration,
   checker: ts.TypeChecker,
   aliases: Record<string, string>,
   isCtor: boolean,
@@ -618,7 +710,8 @@ function signatureFromMethod(
   ctx: string,
 ): CanonicalSignature {
   const params: CanonicalParam[] = [];
-  const isMethod = !isCtor && (ts.isMethodDeclaration(m) || ts.isGetAccessor(m) || ts.isSetAccessor(m));
+  const isMethod =
+    !isCtor && (ts.isMethodDeclaration(m) || ts.isGetAccessor(m) || ts.isSetAccessor(m));
   if (isMethod && !isStatic) {
     params.push({ name: 'self', kind: 'self' });
   } else if (isCtor) {
@@ -671,10 +764,21 @@ function signatureFromMethod(
 
 function findTsFiles(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'tests') continue;
+    if (
+      entry.name.startsWith('.') ||
+      entry.name === 'node_modules' ||
+      entry.name === 'dist' ||
+      entry.name === 'tests'
+    )
+      continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) findTsFiles(full, out);
-    else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts') && !entry.name.endsWith('.test.ts')) out.push(full);
+    else if (
+      entry.name.endsWith('.ts') &&
+      !entry.name.endsWith('.d.ts') &&
+      !entry.name.endsWith('.test.ts')
+    )
+      out.push(full);
   }
   return out;
 }
@@ -694,7 +798,7 @@ function main(): number {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    strict: false,                  // we only need typing data, not strictness
+    strict: false, // we only need typing data, not strictness
     noEmit: true,
     skipLibCheck: true,
     esModuleInterop: true,
@@ -733,7 +837,14 @@ function main(): number {
           const projected = FREE_FN_NAME_OVERRIDES[snake] ?? snake;
           const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
           try {
-            const sig = signatureFromMethod(node, checker, aliases, false, true, `${mod}.${projected}`);
+            const sig = signatureFromMethod(
+              node,
+              checker,
+              aliases,
+              false,
+              true,
+              `${mod}.${projected}`,
+            );
             // Strip `self` from free functions
             sig.params = sig.params.filter((p) => p.kind !== 'self');
             if (!doc.modules[mod]) doc.modules[mod] = {};
@@ -762,7 +873,8 @@ function main(): number {
     const combined: Record<string, CanonicalSignature> = { ...svcMethods, ...abMethods };
     const projected = new Set<string>();
     for (const [, [targetMod, expected]] of Object.entries(MIXIN_PROJECTIONS)) {
-      const targetCls = Object.keys(MIXIN_PROJECTIONS).find(k => MIXIN_PROJECTIONS[k][0] === targetMod) ?? '';
+      const targetCls =
+        Object.keys(MIXIN_PROJECTIONS).find((k) => MIXIN_PROJECTIONS[k][0] === targetMod) ?? '';
       const present: Record<string, CanonicalSignature> = {};
       for (const m of expected) {
         if (combined[m]) present[m] = combined[m];
@@ -770,9 +882,10 @@ function main(): number {
       if (Object.keys(present).length === 0) continue;
       if (!doc.modules[targetMod]) doc.modules[targetMod] = {};
       if (!doc.modules[targetMod].classes) doc.modules[targetMod].classes = {};
-      if (!doc.modules[targetMod].classes![targetCls]) doc.modules[targetMod].classes![targetCls] = { methods: {} };
+      if (!doc.modules[targetMod].classes![targetCls])
+        doc.modules[targetMod].classes![targetCls] = { methods: {} };
       Object.assign(doc.modules[targetMod].classes![targetCls].methods, present);
-      Object.keys(present).forEach(m => projected.add(m));
+      Object.keys(present).forEach((m) => projected.add(m));
     }
     // Drop projected methods only from AgentBase (SWMLService keeps its own).
     if (abEntry) {
@@ -816,13 +929,17 @@ function main(): number {
   } else {
     fs.writeFileSync(outputPath, rendered);
     const nMods = Object.keys(doc.modules).length;
-    let nMethods = 0, nFuncs = 0, nClasses = 0;
+    let nMethods = 0,
+      nFuncs = 0,
+      nClasses = 0;
     for (const m of Object.values(doc.modules)) {
       nClasses += Object.keys(m.classes ?? {}).length;
       for (const c of Object.values(m.classes ?? {})) nMethods += Object.keys(c.methods).length;
       nFuncs += Object.keys(m.functions ?? {}).length;
     }
-    console.log(`enumerate-signatures: wrote ${outputPath} (${nMods} modules, ${nClasses} classes, ${nMethods} methods, ${nFuncs} functions)`);
+    console.log(
+      `enumerate-signatures: wrote ${outputPath} (${nMods} modules, ${nClasses} classes, ${nMethods} methods, ${nFuncs} functions)`,
+    );
   }
   return 0;
 }

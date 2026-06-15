@@ -2,11 +2,26 @@
  * 10DLC Campaign Registry namespace — brands, campaigns, orders, numbers.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  CreateBrandRequest,
+  CreateBrandResponse,
+  CreateCampaignRequest,
+  CreateCampaignResponse,
+  CreateOrderRequest,
+  CreateOrderResponse,
+  ListBrandsResponse,
+  ListCampaignsResponse,
+  ListNumberAssignmentsResponse,
+  ListOrdersResponse,
+  RetrieveBrandResponse,
+  RetrieveCampaignResponse,
+  RetrieveOrderResponse,
+  UpdateCampaignRequest,
+  UpdateCampaignResponse,
+} from './relay-rest.types.generated.js';
 
 /** 10DLC brand management. */
 export class RegistryBrands extends BaseResource {
@@ -21,8 +36,8 @@ export class RegistryBrands extends BaseResource {
    * @returns A paginated list of brands.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListBrandsResponse> {
+    return this._http.get<ListBrandsResponse>(this._basePath, params);
   }
 
   /**
@@ -32,8 +47,8 @@ export class RegistryBrands extends BaseResource {
    * @returns The newly-registered brand record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(body: Partial<CreateBrandRequest> = {}): Promise<CreateBrandResponse> {
+    return this._http.post<CreateBrandResponse>(this._basePath, body);
   }
 
   /**
@@ -43,8 +58,8 @@ export class RegistryBrands extends BaseResource {
    * @returns The brand record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(brandId: string): Promise<any> {
-    return this._http.get(this._path(brandId));
+  async get(brandId: string): Promise<RetrieveBrandResponse> {
+    return this._http.get<RetrieveBrandResponse>(this._path(brandId));
   }
 
   /**
@@ -55,8 +70,8 @@ export class RegistryBrands extends BaseResource {
    * @returns A paginated list of campaigns.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listCampaigns(brandId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(brandId, 'campaigns'), params);
+  async listCampaigns(brandId: string, params?: QueryParams): Promise<ListCampaignsResponse> {
+    return this._http.get<ListCampaignsResponse>(this._path(brandId, 'campaigns'), params);
   }
 
   /**
@@ -67,8 +82,11 @@ export class RegistryBrands extends BaseResource {
    * @returns The newly-registered campaign record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createCampaign(brandId: string, body: any): Promise<any> {
-    return this._http.post(this._path(brandId, 'campaigns'), body);
+  async createCampaign(
+    brandId: string,
+    body: Partial<CreateCampaignRequest> = {},
+  ): Promise<CreateCampaignResponse> {
+    return this._http.post<CreateCampaignResponse>(this._path(brandId, 'campaigns'), body);
   }
 }
 
@@ -85,8 +103,8 @@ export class RegistryCampaigns extends BaseResource {
    * @returns The campaign record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(campaignId: string): Promise<any> {
-    return this._http.get(this._path(campaignId));
+  async get(campaignId: string): Promise<RetrieveCampaignResponse> {
+    return this._http.get<RetrieveCampaignResponse>(this._path(campaignId));
   }
 
   /**
@@ -97,8 +115,11 @@ export class RegistryCampaigns extends BaseResource {
    * @returns The updated campaign record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(campaignId: string, body: any): Promise<any> {
-    return this._http.put(this._path(campaignId), body);
+  async update(
+    campaignId: string,
+    body: Partial<UpdateCampaignRequest> = {},
+  ): Promise<UpdateCampaignResponse> {
+    return this._http.put<UpdateCampaignResponse>(this._path(campaignId), body);
   }
 
   /**
@@ -109,8 +130,11 @@ export class RegistryCampaigns extends BaseResource {
    * @returns A paginated list of assigned numbers.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listNumbers(campaignId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(campaignId, 'numbers'), params);
+  async listNumbers(
+    campaignId: string,
+    params?: QueryParams,
+  ): Promise<ListNumberAssignmentsResponse> {
+    return this._http.get<ListNumberAssignmentsResponse>(this._path(campaignId, 'numbers'), params);
   }
 
   /**
@@ -121,8 +145,8 @@ export class RegistryCampaigns extends BaseResource {
    * @returns A paginated list of number-assignment orders.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listOrders(campaignId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(campaignId, 'orders'), params);
+  async listOrders(campaignId: string, params?: QueryParams): Promise<ListOrdersResponse> {
+    return this._http.get<ListOrdersResponse>(this._path(campaignId, 'orders'), params);
   }
 
   /**
@@ -133,8 +157,11 @@ export class RegistryCampaigns extends BaseResource {
    * @returns The newly-created order record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createOrder(campaignId: string, body: any): Promise<any> {
-    return this._http.post(this._path(campaignId, 'orders'), body);
+  async createOrder(
+    campaignId: string,
+    body: Partial<CreateOrderRequest> = {},
+  ): Promise<CreateOrderResponse> {
+    return this._http.post<CreateOrderResponse>(this._path(campaignId, 'orders'), body);
   }
 }
 
@@ -151,8 +178,8 @@ export class RegistryOrders extends BaseResource {
    * @returns The order record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(orderId: string): Promise<any> {
-    return this._http.get(this._path(orderId));
+  async get(orderId: string): Promise<RetrieveOrderResponse> {
+    return this._http.get<RetrieveOrderResponse>(this._path(orderId));
   }
 }
 
@@ -169,7 +196,7 @@ export class RegistryNumbers extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(numberId: string): Promise<any> {
+  async delete(numberId: string): Promise<unknown> {
     return this._http.delete(this._path(numberId));
   }
 }

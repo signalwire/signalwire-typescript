@@ -180,7 +180,7 @@ async function main() {
   console.log(`  Deleted room ${roomId}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

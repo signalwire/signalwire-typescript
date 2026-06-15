@@ -251,12 +251,12 @@ function pascal(s: string): string {
 
 // ---- driver ----------------------------------------------------------------
 
-function resolvePortingSdk(): string {
+function resolvePortingSdk(): string | null {
   const env = process.env.PORTING_SDK ?? process.env.PORTING_SDK_PATH;
   if (env && fs.existsSync(path.join(env, 'rest-apis'))) return env;
   const sibling = path.resolve(process.cwd(), '..', 'porting-sdk');
   if (fs.existsSync(path.join(sibling, 'rest-apis'))) return sibling;
-  throw new Error('porting-sdk not found (set $PORTING_SDK or clone adjacent)');
+  return null;
 }
 
 async function generateForSpec(specPath: string, outPath: string, ns: string): Promise<number> {
@@ -277,6 +277,17 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
 
 async function main(): Promise<void> {
   const psdk = resolvePortingSdk();
+  // Fail-soft: this runs in prebuild, but porting-sdk is only adjacent in dev/CI
+  // (not in a published consumer's node_modules). The generated files are
+  // committed, so when the spec source isn't resolvable we skip regeneration and
+  // build against the committed outputs rather than erroring the build.
+  if (!psdk) {
+    console.log(
+      'generate-rest-types: porting-sdk not found (set $PORTING_SDK or clone adjacent) — ' +
+        'skipping; using committed *.types.generated.ts.',
+    );
+    return;
+  }
   // spec dir (under rest-apis/) → output .generated.ts path
   const map: Record<string, string> = {
     // The SWML/SWAIG webhook contracts (manufactured spec from swml.md prose —

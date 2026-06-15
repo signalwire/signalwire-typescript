@@ -2,7 +2,6 @@
  * CrudResource extended with address listing.
  */
 
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from './CrudResource.js';

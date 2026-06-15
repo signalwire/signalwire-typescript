@@ -2,18 +2,31 @@
  * Queues namespace — CRUD + member management.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  CreateQueueRequest,
+  Queue,
+  QueueListResponse,
+  QueueMemberListResponse,
+  QueueMemberResponse,
+  UpdateQueueRequest,
+} from './relay-rest.types.generated.js';
 
 /**
  * Queue management with member operations.
  *
- * Access via `client.queues.*`. Extends standard CRUD with member list/fetch.
+ * Access via `client.queues.*`. Extends standard CRUD (typed from the canonical
+ * relay-rest OpenAPI spec) with member list/fetch. Create/update bodies stay
+ * `Partial<>` to preserve Python's call-without-args ergonomics.
  */
-export class QueuesResource extends CrudResource {
+export class QueuesResource extends CrudResource<
+  QueueListResponse,
+  Queue,
+  Partial<CreateQueueRequest>,
+  Partial<UpdateQueueRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient) {
@@ -28,8 +41,8 @@ export class QueuesResource extends CrudResource {
    * @returns A paginated list of queue members.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMembers(queueId: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(queueId, 'members'), params);
+  async listMembers(queueId: string, params?: QueryParams): Promise<QueueMemberListResponse> {
+    return this._http.get<QueueMemberListResponse>(this._path(queueId, 'members'), params);
   }
 
   /**
@@ -40,8 +53,8 @@ export class QueuesResource extends CrudResource {
    *   response when the queue is empty.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async getNextMember(queueId: string): Promise<any> {
-    return this._http.get(this._path(queueId, 'members', 'next'));
+  async getNextMember(queueId: string): Promise<QueueMemberResponse> {
+    return this._http.get<QueueMemberResponse>(this._path(queueId, 'members', 'next'));
   }
 
   /**
@@ -52,7 +65,7 @@ export class QueuesResource extends CrudResource {
    * @returns The queue member record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getMember(queueId: string, memberId: string): Promise<any> {
-    return this._http.get(this._path(queueId, 'members', memberId));
+  async getMember(queueId: string, memberId: string): Promise<QueueMemberResponse> {
+    return this._http.get<QueueMemberResponse>(this._path(queueId, 'members', memberId));
   }
 }

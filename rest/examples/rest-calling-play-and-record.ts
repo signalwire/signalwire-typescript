@@ -36,7 +36,7 @@ async function main() {
   console.log('Dialing outbound call...');
   let callId = 'demo-call-id';
   try {
-    const call: any = await client.calling.dial({
+    const call = await client.calling.dial({
       from: '+15559876543',
       to: '+15551234567',
       url: 'https://example.com/call-handler',

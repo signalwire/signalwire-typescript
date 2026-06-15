@@ -53,7 +53,11 @@ function enumerateFile(file: string): FileSurface {
         if (mods & ts.ModifierFlags.Private) continue;
         methods.add(mName);
       }
-      if ((ts.isGetAccessor(member) || ts.isSetAccessor(member)) && member.name && ts.isIdentifier(member.name)) {
+      if (
+        (ts.isGetAccessor(member) || ts.isSetAccessor(member)) &&
+        member.name &&
+        ts.isIdentifier(member.name)
+      ) {
         const mName = member.name.text;
         if (mName.startsWith('_')) continue;
         const mods = ts.getCombinedModifierFlags(member);
@@ -178,7 +182,8 @@ function findSourceFiles(root: string): string[] {
 function getGitSha(repoRoot: string): string {
   try {
     return execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString().trim();
+      .toString()
+      .trim();
   } catch {
     return 'N/A';
   }
@@ -189,9 +194,10 @@ function main(): void {
   const writeStdout = argv.includes('--stdout');
   const outputArgIdx = argv.indexOf('--output');
   const repoRoot = path.resolve(__dirname, '..');
-  const outputPath = outputArgIdx >= 0
-    ? path.resolve(argv[outputArgIdx + 1]!)
-    : path.join(repoRoot, 'docs_audit_surface.json');
+  const outputPath =
+    outputArgIdx >= 0
+      ? path.resolve(argv[outputArgIdx + 1]!)
+      : path.join(repoRoot, 'docs_audit_surface.json');
 
   const srcDir = path.join(repoRoot, 'src');
   const files = findSourceFiles(srcDir);
@@ -200,7 +206,7 @@ function main(): void {
     classes: Record<string, string[]>;
     functions: string[];
   }
-  const modules: Record<string, ModuleEntry> = { 'signalwire': { classes: {}, functions: [] } };
+  const modules: Record<string, ModuleEntry> = { signalwire: { classes: {}, functions: [] } };
 
   // Build inheritance map.
   const classByName = new Map<string, { methods: Set<string>; extendsName?: string }>();

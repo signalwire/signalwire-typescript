@@ -2,10 +2,9 @@
  * PubSub API namespace — token creation.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type { CreateTokenRequest, CreateTokenResponse } from './pubsub.types.generated.js';
 
 /**
  * PubSub token generation.
@@ -25,7 +24,7 @@ export class PubSubResource extends BaseResource {
    * @returns The token record, typically `{ token: "eyJ..." }`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createToken(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async createToken(body: CreateTokenRequest): Promise<CreateTokenResponse> {
+    return this._http.post<CreateTokenResponse>(this._basePath, body);
   }
 }

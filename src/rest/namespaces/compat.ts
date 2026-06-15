@@ -78,7 +78,7 @@ import type {
   UpdateQueueMemberRequest,
   UpdateQueueRequest,
   UpdateTokenRequest,
-} from './compat.types.js';
+} from './compatibility.types.generated.js';
 
 /** Compat account / subproject management (Twilio-compatible LAML). */
 export class CompatAccounts extends BaseResource {

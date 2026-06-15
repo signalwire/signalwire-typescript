@@ -2,11 +2,10 @@
  * Phone Number Lookup namespace.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type { LookupPhoneNumberResponse } from './relay-rest.types.generated.js';
 
 /**
  * Phone number lookup (carrier, CNAM).
@@ -32,7 +31,7 @@ export class LookupResource extends BaseResource {
    * @returns The lookup record containing any requested datasets.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async phoneNumber(e164: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path('phone_number', e164), params);
+  async phoneNumber(e164: string, params?: QueryParams): Promise<LookupPhoneNumberResponse> {
+    return this._http.get<LookupPhoneNumberResponse>(this._path('phone_number', e164), params);
   }
 }

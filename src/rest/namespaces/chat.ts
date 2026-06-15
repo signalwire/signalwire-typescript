@@ -2,10 +2,9 @@
  * Chat API namespace — token creation.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type { CreateChatTokenRequest, CreateChatTokenResponse } from './chat.types.generated.js';
 
 /**
  * Chat token generation.
@@ -25,7 +24,7 @@ export class ChatResource extends BaseResource {
    * @returns The token record, typically `{ token: "eyJ..." }`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createToken(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async createToken(body: CreateChatTokenRequest): Promise<CreateChatTokenResponse> {
+    return this._http.post<CreateChatTokenResponse>(this._basePath, body);
   }
 }

@@ -37,8 +37,9 @@ async function main() {
   // 3. Create a cXML script
   console.log('\nCreating cXML script...');
   const cxml = await client.fabric.cxmlScripts.create({
-    name: 'Hold Music Script',
-    contents: '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>',
+    display_name: 'Hold Music Script',
+    contents:
+      '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>',
   });
   const cxmlId = cxml.id;
   console.log(`  Created cXML script: ${cxmlId}`);
@@ -78,7 +79,9 @@ async function main() {
   // 8. Assign a domain application (demo)
   console.log('\nAssigning domain application (demo)...');
   try {
-    await client.fabric.resources.assignDomainApplication(relayId, { domain: 'app.example.com' });
+    await client.fabric.resources.assignDomainApplication(relayId, {
+      domain_application_id: 'da-00000000-0000-0000-0000-000000000000',
+    });
     console.log('  Domain application assigned');
   } catch (err) {
     if (err instanceof RestError) {
@@ -89,7 +92,7 @@ async function main() {
   // 9. Generate tokens
   console.log('\nGenerating tokens...');
   try {
-    const guest = await client.fabric.tokens.createGuestToken({ resource_id: relayId });
+    const guest = await client.fabric.tokens.createGuestToken({ allowed_addresses: [relayId] });
     console.log(`  Guest token: ${String(guest.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -98,7 +101,7 @@ async function main() {
   }
 
   try {
-    const invite = await client.fabric.tokens.createInviteToken({ resource_id: relayId });
+    const invite = await client.fabric.tokens.createInviteToken({ address_id: relayId });
     console.log(`  Invite token: ${String(invite.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -107,7 +110,9 @@ async function main() {
   }
 
   try {
-    const embed = await client.fabric.tokens.createEmbedToken({ resource_id: relayId });
+    const embed = await client.fabric.tokens.createEmbedToken({
+      token: 'click-to-call-token-from-guest-token',
+    });
     console.log(`  Embed token: ${String(embed.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -132,7 +137,7 @@ async function main() {
   console.log(`  Deleted conference room ${roomId}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

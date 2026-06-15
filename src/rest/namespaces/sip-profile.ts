@@ -2,10 +2,13 @@
  * SIP Profile namespace — get and update project SIP profile.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  RetrieveSipProfileResponse,
+  UpdateSipProfileRequest,
+  UpdateSipProfileResponse,
+} from './relay-rest.types.generated.js';
 
 /**
  * Project SIP profile (singleton resource).
@@ -23,8 +26,8 @@ export class SipProfileResource extends BaseResource {
    * @returns The SIP profile record for this project.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async get(): Promise<any> {
-    return this._http.get(this._basePath);
+  async get(): Promise<RetrieveSipProfileResponse> {
+    return this._http.get<RetrieveSipProfileResponse>(this._basePath);
   }
 
   /**
@@ -34,7 +37,7 @@ export class SipProfileResource extends BaseResource {
    * @returns The updated SIP profile.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(body: any): Promise<any> {
-    return this._http.put(this._basePath, body);
+  async update(body: Partial<UpdateSipProfileRequest> = {}): Promise<UpdateSipProfileResponse> {
+    return this._http.put<UpdateSipProfileResponse>(this._basePath, body);
   }
 }

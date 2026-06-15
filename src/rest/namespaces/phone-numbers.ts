@@ -215,7 +215,7 @@ export class PhoneNumbersResource extends CrudResource<
   async setCxmlWebhook(resourceId: string, params: SetCxmlWebhookParams): Promise<PhoneNumber> {
     const { url, fallbackUrl, statusCallbackUrl, ...extra } = params;
     const body: Partial<UpdatePhoneNumberRequest> & {
-      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+      call_handler: NonNullable<UpdatePhoneNumberRequest['call_handler']>;
     } = {
       call_handler: PhoneCallHandler.LAML_WEBHOOKS,
       call_request_url: url,
@@ -284,7 +284,7 @@ export class PhoneNumbersResource extends CrudResource<
   async setCallFlow(resourceId: string, params: SetCallFlowParams): Promise<PhoneNumber> {
     const { flowId, version, ...extra } = params;
     const body: Partial<UpdatePhoneNumberRequest> & {
-      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+      call_handler: NonNullable<UpdatePhoneNumberRequest['call_handler']>;
     } = {
       call_handler: PhoneCallHandler.CALL_FLOW,
       call_flow_id: flowId,
@@ -327,7 +327,7 @@ export class PhoneNumbersResource extends CrudResource<
   async setRelayTopic(resourceId: string, params: SetRelayTopicParams): Promise<PhoneNumber> {
     const { topic, statusCallbackUrl, ...extra } = params;
     const body: Partial<UpdatePhoneNumberRequest> & {
-      call_handler: NonNullable<UpdatePhoneNumberRequest["call_handler"]>;
+      call_handler: NonNullable<UpdatePhoneNumberRequest['call_handler']>;
     } = {
       call_handler: PhoneCallHandler.RELAY_TOPIC,
       call_relay_topic: topic,

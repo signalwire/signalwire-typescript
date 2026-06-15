@@ -2,11 +2,15 @@
  * Addresses namespace — list, create, get, delete (no update).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  CreateAddressRequest,
+  CreateAddressResponse,
+  GetAddressResponse,
+  ListAddressesResponse,
+} from './relay-rest.types.generated.js';
 
 /**
  * Address management (no update endpoint).
@@ -25,8 +29,8 @@ export class AddressesResource extends BaseResource {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListAddressesResponse> {
+    return this._http.get<ListAddressesResponse>(this._basePath, params);
   }
 
   /**
@@ -36,8 +40,8 @@ export class AddressesResource extends BaseResource {
    * @returns The newly-created address.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(body: Partial<CreateAddressRequest> = {}): Promise<CreateAddressResponse> {
+    return this._http.post<CreateAddressResponse>(this._basePath, body);
   }
 
   /**
@@ -47,8 +51,8 @@ export class AddressesResource extends BaseResource {
    * @returns The address record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(addressId: string): Promise<any> {
-    return this._http.get(this._path(addressId));
+  async get(addressId: string): Promise<GetAddressResponse> {
+    return this._http.get<GetAddressResponse>(this._path(addressId));
   }
 
   /**
@@ -58,7 +62,7 @@ export class AddressesResource extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(addressId: string): Promise<any> {
+  async delete(addressId: string): Promise<unknown> {
     return this._http.delete(this._path(addressId));
   }
 }

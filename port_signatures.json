@@ -12818,11 +12818,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.AddressResponse"
             },
             "delete": {
               "params": [
@@ -12850,7 +12851,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.AddressResponse"
             },
             "list": {
               "params": [
@@ -12865,7 +12866,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.AddressListResponse"
             }
           }
         }
@@ -13649,11 +13650,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.chat.types.generated.NewChatToken",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.chat.types.generated.ChatToken"
             }
           }
         }
@@ -13685,11 +13686,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.compat.types.CreateSubprojectRequest",
+                  "type": "class:signalwire.rest.namespaces.compatibility.types.generated.CreateSubprojectRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.Account"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.Account"
             },
             "get": {
               "params": [
@@ -13703,7 +13704,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AccountResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AccountResponse"
             },
             "list": {
               "params": [
@@ -13718,7 +13719,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AccountListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AccountListResponse"
             },
             "update": {
               "params": [
@@ -13738,7 +13739,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AccountResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AccountResponse"
             }
           }
         },
@@ -13781,7 +13782,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ApplicationResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ApplicationResponse"
             }
           }
         },
@@ -13824,7 +13825,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CallRecordingResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallRecordingResponse"
             },
             "start_stream": {
               "params": [
@@ -13844,7 +13845,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CallStreamResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallStreamResponse"
             },
             "stop_stream": {
               "params": [
@@ -13869,7 +13870,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CallStreamResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallStreamResponse"
             },
             "update": {
               "params": [
@@ -13889,7 +13890,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CallResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallResponse"
             },
             "update_recording": {
               "params": [
@@ -13914,7 +13915,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CallRecordingResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallRecordingResponse"
             }
           }
         },
@@ -13970,7 +13971,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceResponse"
             },
             "get_participant": {
               "params": [
@@ -13989,7 +13990,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceParticipantResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceParticipantResponse"
             },
             "get_recording": {
               "params": [
@@ -14008,7 +14009,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceRecordingResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceRecordingResponse"
             },
             "list": {
               "params": [
@@ -14023,7 +14024,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceListResponse"
             },
             "list_participants": {
               "params": [
@@ -14043,7 +14044,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceParticipantListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceParticipantListResponse"
             },
             "list_recordings": {
               "params": [
@@ -14063,7 +14064,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceRecordingListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceRecordingListResponse"
             },
             "remove_participant": {
               "params": [
@@ -14102,7 +14103,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceStreamResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceStreamResponse"
             },
             "stop_stream": {
               "params": [
@@ -14127,7 +14128,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceStreamResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceStreamResponse"
             },
             "update": {
               "params": [
@@ -14147,7 +14148,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceResponse"
             },
             "update_participant": {
               "params": [
@@ -14172,7 +14173,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceParticipantResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceParticipantResponse"
             },
             "update_recording": {
               "params": [
@@ -14197,7 +14198,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.ConferenceRecordingResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ConferenceRecordingResponse"
             }
           }
         },
@@ -14258,7 +14259,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.FaxMediaResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.FaxMediaResponse"
             },
             "list_media": {
               "params": [
@@ -14278,7 +14279,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.FaxMediaListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.FaxMediaListResponse"
             },
             "update": {
               "params": [
@@ -14298,7 +14299,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.FaxResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.FaxResponse"
             }
           }
         },
@@ -14341,7 +14342,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.CxmlScriptResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CxmlScriptResponse"
             }
           }
         },
@@ -14402,7 +14403,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.MessageMediaResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.MessageMediaResponse"
             },
             "list_media": {
               "params": [
@@ -14422,7 +14423,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.MessageMediaListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.MessageMediaListResponse"
             },
             "update": {
               "params": [
@@ -14442,7 +14443,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.MessageResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.MessageResponse"
             }
           }
         },
@@ -14624,7 +14625,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.IncomingPhoneNumberResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.IncomingPhoneNumberResponse"
             },
             "import_number": {
               "params": [
@@ -14634,11 +14635,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.compat.types.ImportPhoneNumberRequest",
+                  "type": "class:signalwire.rest.namespaces.compatibility.types.generated.ImportPhoneNumberRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.IncomingPhoneNumber"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.IncomingPhoneNumber"
             },
             "list": {
               "params": [
@@ -14653,7 +14654,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.IncomingPhoneNumberListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.IncomingPhoneNumberListResponse"
             },
             "list_available_countries": {
               "params": [
@@ -14668,7 +14669,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AvailablePhoneNumberResourcesResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AvailablePhoneNumberResourcesResponse"
             },
             "purchase": {
               "params": [
@@ -14678,11 +14679,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.compat.types.CreateIncomingPhoneNumberRequest",
+                  "type": "class:signalwire.rest.namespaces.compatibility.types.generated.CreateIncomingPhoneNumberRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.IncomingPhoneNumber"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.IncomingPhoneNumber"
             },
             "search_local": {
               "params": [
@@ -14702,7 +14703,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AvailablePhoneNumberListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AvailablePhoneNumberListResponse"
             },
             "search_toll_free": {
               "params": [
@@ -14722,7 +14723,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.AvailablePhoneNumberListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.AvailablePhoneNumberListResponse"
             },
             "update": {
               "params": [
@@ -14742,7 +14743,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.IncomingPhoneNumberResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.IncomingPhoneNumberResponse"
             }
           }
         },
@@ -14790,7 +14791,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.QueueMemberResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.QueueMemberResponse"
             },
             "get_member": {
               "params": [
@@ -14809,7 +14810,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.QueueMemberResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.QueueMemberResponse"
             },
             "list_members": {
               "params": [
@@ -14829,7 +14830,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.QueueMemberListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.QueueMemberListResponse"
             },
             "update": {
               "params": [
@@ -14849,7 +14850,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.QueueResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.QueueResponse"
             }
           }
         },
@@ -14900,7 +14901,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.RecordingResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.RecordingResponse"
             },
             "list": {
               "params": [
@@ -14915,7 +14916,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.RecordingListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.RecordingListResponse"
             }
           }
         },
@@ -14948,11 +14949,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.compat.types.CreateTokenRequest",
+                  "type": "class:signalwire.rest.namespaces.compatibility.types.generated.CreateTokenRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.TokenResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.TokenResponse"
             },
             "delete": {
               "params": [
@@ -14986,7 +14987,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.TokenResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.TokenResponse"
             }
           }
         },
@@ -15037,7 +15038,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.TranscriptionResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.TranscriptionResponse"
             },
             "list": {
               "params": [
@@ -15052,7 +15053,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.compat.types.TranscriptionListResponse"
+              "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.TranscriptionListResponse"
             }
           }
         }
@@ -15212,7 +15213,7 @@
                   "name": "body",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": {}
+                  "default": "{} as Partial<TCreate>"
                 }
               ],
               "returns": "any"
@@ -15258,7 +15259,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.CallFlowVersionDeployResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowVersionDeployResponse"
             },
             "list_addresses": {
               "params": [
@@ -15278,7 +15279,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.CallFlowAddressListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowAddressListResponse"
             },
             "list_versions": {
               "params": [
@@ -15298,7 +15299,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.CallFlowVersionListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowVersionListResponse"
             }
           }
         },
@@ -15341,7 +15342,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.ConferenceRoomAddressListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomAddressListResponse"
             }
           }
         },
@@ -15410,7 +15411,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.FabricAddress"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.FabricAddress"
             },
             "list": {
               "params": [
@@ -15425,7 +15426,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.FabricAddressesResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.FabricAddressesResponse"
             }
           }
         },
@@ -15666,7 +15667,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.EmbedsTokensResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.EmbedsTokensResponse"
             },
             "create_guest_token": {
               "params": [
@@ -15681,7 +15682,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberGuestTokenCreateResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberGuestTokenCreateResponse"
             },
             "create_invite_token": {
               "params": [
@@ -15696,7 +15697,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberInviteTokenCreateResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberInviteTokenCreateResponse"
             },
             "create_subscriber_token": {
               "params": [
@@ -15711,7 +15712,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberTokenResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberTokenResponse"
             },
             "refresh_subscriber_token": {
               "params": [
@@ -15726,7 +15727,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberRefreshTokenResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberRefreshTokenResponse"
             }
           }
         },
@@ -15764,11 +15765,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.fabric.types.DomainApplicationAssignRequest",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.DomainApplicationAssignRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.DomainApplicationResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.DomainApplicationResponse"
             },
             "assign_phone_route": {
               "params": [
@@ -15783,11 +15784,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.fabric.types.PhoneRouteAssignRequest",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.PhoneRouteAssignRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.PhoneRouteResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.PhoneRouteResponse"
             },
             "delete": {
               "params": [
@@ -15815,7 +15816,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.FabricResourceResponse"
+              "returns": "union<class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseAI,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCallFlow,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLWebhook,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLScript,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLApplication,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseDialogFlowAgent,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseFSConnector,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseRelayApp,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSipEndpoint,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSipGateway,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSubscriber,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSWMLWebhook,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSWMLScript,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseConferenceRoom>"
             },
             "list": {
               "params": [
@@ -15830,7 +15831,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.ResourceListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ResourceListResponse"
             },
             "list_addresses": {
               "params": [
@@ -15850,7 +15851,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.ResourceAddressListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ResourceAddressListResponse"
             }
           }
         },
@@ -15888,11 +15889,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.fabric.types.SubscriberSipEndpointRequest",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSipEndpointRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberSIPEndpoint"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSIPEndpoint"
             },
             "delete_sip_endpoint": {
               "params": [
@@ -15930,7 +15931,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberSIPEndpoint"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSIPEndpoint"
             },
             "list_sip_endpoints": {
               "params": [
@@ -15950,7 +15951,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberSipEndpointListResponse"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSipEndpointListResponse"
             },
             "update_sip_endpoint": {
               "params": [
@@ -15970,11 +15971,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.fabric.types.SubscriberSipEndpointRequestUpdate",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSipEndpointRequestUpdate",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.types.SubscriberSIPEndpoint"
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSIPEndpoint"
             }
           }
         }
@@ -16006,11 +16007,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumberResponse"
             }
           }
         }
@@ -16052,7 +16054,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.logs.types.generated.ConferencesResponse"
             }
           }
         },
@@ -16089,7 +16091,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.fax.types.generated.LogResponse"
             },
             "list": {
               "params": [
@@ -16104,7 +16106,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.fax.types.generated.LogListResponse"
             }
           }
         },
@@ -16195,7 +16197,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.message.types.generated.LogRetrieveResponse"
             },
             "list": {
               "params": [
@@ -16210,7 +16212,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.message.types.generated.LogListResponse"
             }
           }
         },
@@ -16247,7 +16249,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "union<class:signalwire.rest.namespaces.voice.types.generated.RelayVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.VideoRoomVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.DialogflowVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.FabricVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.DiscardedVoiceLog>"
             },
             "list": {
               "params": [
@@ -16262,7 +16264,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.voice.types.generated.LogListResponse"
             },
             "list_events": {
               "params": [
@@ -16282,7 +16284,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.voice.types.generated.LogEventsListResponse"
             }
           }
         }
@@ -16324,7 +16326,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumberLookupResponse"
             }
           }
         }
@@ -16356,11 +16358,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaResponse"
             },
             "sms": {
               "params": [
@@ -16370,11 +16372,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaResponse"
             },
             "verify": {
               "params": [
@@ -16389,11 +16391,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaVerifyRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.MfaVerifyResponse"
             }
           }
         }
@@ -16770,11 +16772,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.project.types.generated.CreateTokenRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.project.types.generated.TokenResponse"
             },
             "delete": {
               "params": [
@@ -16803,11 +16805,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.project.types.generated.UpdateTokenRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.project.types.generated.TokenResponse"
             }
           }
         }
@@ -16839,11 +16841,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.pubsub.types.generated.NewPubSubToken",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.pubsub.types.generated.PubSubToken"
             }
           }
         }
@@ -16884,7 +16886,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.QueueMemberResponse"
             },
             "get_next_member": {
               "params": [
@@ -16898,7 +16900,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.QueueMemberResponse"
             },
             "list_members": {
               "params": [
@@ -16918,7 +16920,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.QueueMemberListResponse"
             }
           }
         }
@@ -16968,7 +16970,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "union<class:signalwire.rest.namespaces.relay_rest.types.generated.PstnRecording,class:signalwire.rest.namespaces.relay_rest.types.generated.SipRecording,class:signalwire.rest.namespaces.relay_rest.types.generated.WebRtcRecording>"
             },
             "list": {
               "params": [
@@ -16983,7 +16985,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.RecordingListResponse"
             }
           }
         }
@@ -17020,11 +17022,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "union<dict<string,any>,dict<string,any>>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.BrandResponse"
             },
             "create_campaign": {
               "params": [
@@ -17039,11 +17042,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "union<dict<string,any>,dict<string,any>>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.CampaignResponse"
             },
             "get": {
               "params": [
@@ -17057,7 +17061,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.BrandResponse"
             },
             "list": {
               "params": [
@@ -17072,7 +17076,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.BrandListResponse"
             },
             "list_campaigns": {
               "params": [
@@ -17092,7 +17096,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.CampaignListResponse"
             }
           }
         },
@@ -17130,11 +17134,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.OrderResponse"
             },
             "get": {
               "params": [
@@ -17148,7 +17153,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.CampaignResponse"
             },
             "list_numbers": {
               "params": [
@@ -17168,7 +17173,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.AssignedNumberListResponse"
             },
             "list_orders": {
               "params": [
@@ -17188,7 +17193,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.OrderListResponse"
             },
             "update": {
               "params": [
@@ -17203,11 +17208,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.CampaignResponse"
             }
           }
         },
@@ -17335,7 +17341,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.OrderResponse"
             }
           }
         }
@@ -17371,7 +17377,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.ShortCodeResponse"
             },
             "list": {
               "params": [
@@ -17386,7 +17392,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.ShortCodeListResponse"
             },
             "update": {
               "params": [
@@ -17401,11 +17407,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.ShortCodeResponse"
             }
           }
         }
@@ -17436,7 +17443,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.SipProfileResponse"
             },
             "update": {
               "params": [
@@ -17446,11 +17453,12 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.SipProfileResponse"
             }
           }
         }
@@ -17486,7 +17494,7 @@
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.VerifiedCallerIDResponse"
             },
             "submit_verification": {
               "params": [
@@ -17501,11 +17509,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "class:signalwire.rest.namespaces.relay_rest.types.generated.VerifyCallerIDRequest",
                   "required": true
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.VerifiedCallerIDResponse"
             }
           }
         }
@@ -17546,7 +17554,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ConferenceToken"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ConferenceToken"
             },
             "reset": {
               "params": [
@@ -17560,7 +17568,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ConferenceToken"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ConferenceToken"
             }
           }
         },
@@ -17598,11 +17606,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.video.types.CreateStreamRequest",
+                  "type": "class:signalwire.rest.namespaces.video.types.generated.CreateStreamRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.Stream"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.Stream"
             },
             "list_conference_tokens": {
               "params": [
@@ -17622,7 +17630,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListConferenceTokensResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListConferenceTokensResponse"
             },
             "list_streams": {
               "params": [
@@ -17642,7 +17650,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListStreamsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListStreamsResponse"
             }
           }
         },
@@ -17774,7 +17782,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.RoomRecording"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.RoomRecording"
             },
             "list": {
               "params": [
@@ -17789,7 +17797,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomRecordingsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomRecordingsResponse"
             },
             "list_events": {
               "params": [
@@ -17809,7 +17817,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomRecordingEventsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomRecordingEventsResponse"
             }
           }
         },
@@ -17846,7 +17854,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.RoomSessionSummary"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.RoomSessionSummary"
             },
             "list": {
               "params": [
@@ -17861,7 +17869,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomSessionsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomSessionsResponse"
             },
             "list_events": {
               "params": [
@@ -17881,7 +17889,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomSessionEventsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomSessionEventsResponse"
             },
             "list_members": {
               "params": [
@@ -17901,7 +17909,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomSessionMembersResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomSessionMembersResponse"
             },
             "list_recordings": {
               "params": [
@@ -17921,7 +17929,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListRoomSessionRecordingsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListRoomSessionRecordingsResponse"
             }
           }
         },
@@ -17954,11 +17962,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.video.types.CreateRoomTokenRequest",
+                  "type": "class:signalwire.rest.namespaces.video.types.generated.CreateRoomTokenRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.RoomTokenResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.RoomTokenResponse"
             }
           }
         },
@@ -17996,11 +18004,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.video.types.CreateStreamRequest",
+                  "type": "class:signalwire.rest.namespaces.video.types.generated.CreateStreamRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.Stream"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.Stream"
             },
             "list_streams": {
               "params": [
@@ -18020,7 +18028,7 @@
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.ListStreamsResponse"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.ListStreamsResponse"
             }
           }
         },
@@ -18071,7 +18079,7 @@
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.Stream"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.Stream"
             },
             "update": {
               "params": [
@@ -18086,11 +18094,11 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.rest.namespaces.video.types.UpdateStreamRequest",
+                  "type": "class:signalwire.rest.namespaces.video.types.generated.UpdateStreamRequest",
                   "required": true
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.video.types.Stream"
+              "returns": "class:signalwire.rest.namespaces.video.types.generated.Stream"
             }
           }
         }
