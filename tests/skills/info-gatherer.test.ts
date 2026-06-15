@@ -146,7 +146,10 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     // Answer question 3 — last question
     rawData = makeRawData(namespace, state);
-    const result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as {
+    const result = submitTool.handler(
+      { answer: 'Portland', confirmed_by_user: false },
+      rawData,
+    ) as {
       response: string;
     };
     expect(result.response).toBe(custom);

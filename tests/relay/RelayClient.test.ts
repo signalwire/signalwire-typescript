@@ -591,7 +591,8 @@ describe('RelayClient', () => {
 
       mockWs.autoAuthenticate();
 
-      client._wsFactory = () => mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
+      client._wsFactory = () =>
+        mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
 
       // Connect first
       await client.connect();
@@ -736,7 +737,9 @@ describe('RelayClient', () => {
       const { client } = createClient();
       await client.connect();
       // Explicitly invoke the disposer
-      await (client as unknown as { [Symbol.asyncDispose](): Promise<void> })[Symbol.asyncDispose]();
+      await (client as unknown as { [Symbol.asyncDispose](): Promise<void> })[
+        Symbol.asyncDispose
+      ]();
       // After disposal, a second client should be able to connect without
       // tripping the _MAX_CONNECTIONS guard.
       const { client: other } = createClient();

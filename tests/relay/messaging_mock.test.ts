@@ -11,8 +11,6 @@
  * the typed Message lifecycle correctly.
  */
 
- 
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';

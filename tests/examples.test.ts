@@ -28,7 +28,10 @@ describe('examples', () => {
   describe('simple-agent.ts', () => {
     it('renders SWML with AI block and get_time tool', async () => {
       const agent = await loadExample('simple-agent.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<string, unknown>;
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version', '1.0.0');
       expect(swml).toHaveProperty('sections');
       const tools = agent.getRegisteredTools();
@@ -41,7 +44,10 @@ describe('examples', () => {
   describe('prefab-info-gatherer.ts', () => {
     it('renders SWML with start_questions and submit_answer tools', async () => {
       const agent = await loadExample('prefab-info-gatherer.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<string, unknown>;
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
       const tools = agent.getRegisteredTools();
       const names = tools.map((t) => t.name);
@@ -116,7 +122,10 @@ describe('examples', () => {
   describe('llm-params.ts', () => {
     it('renders SWML with tuned parameters', async () => {
       const agent = await loadExample('llm-params.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<string, unknown>;
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
       // Check the AI params contain temperature
       const sections = swml['sections'] as Record<string, SwmlVerb[]>;
@@ -154,7 +163,10 @@ describe('examples', () => {
     it('renders SWML and exports handler function', async () => {
       // loadAgent will find the 'agent' export
       const agent = await loadExample('serverless-lambda.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<string, unknown>;
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
     });
   });
@@ -162,7 +174,10 @@ describe('examples', () => {
   describe('verb-methods.ts', () => {
     it('renders SWML with pre-answer and post-AI verbs', async () => {
       const agent = await loadExample('verb-methods.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<string, unknown>;
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
       const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
       // Should have pre-answer play verb

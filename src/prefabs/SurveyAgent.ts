@@ -647,14 +647,11 @@ export class SurveyAgent extends AgentBase {
     if (summary) {
       try {
         if (typeof summary === 'string') {
-           
           console.log(`Survey summary (unstructured): ${summary}`);
         } else {
-           
           console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
         }
       } catch (err) {
-         
         console.log(`Error processing survey summary: ${String(err)}`);
       }
     }

@@ -1333,7 +1333,7 @@
                   "default": false
                 }
               ],
-              "returns": "callable<list<any,any,callable<list<>,void>>,void>"
+              "returns": "callable<list<class:signalwire.core.auth_handler.ExpressLikeRequest,class:signalwire.core.auth_handler.ExpressLikeResponse,callable<list<>,void>>,void>"
             },
             "get_auth_info": {
               "params": [
@@ -4511,7 +4511,7 @@
                   "required": true
                 }
               ],
-              "returns": "callable<list<any,any>,void>"
+              "returns": "callable<list<class:signalwire.core.mixins.serverless_mixin.AzureContext,class:signalwire.core.mixins.serverless_mixin.AzureRequest>,void>"
             },
             "create_gcf_handler": {
               "params": [
@@ -4521,7 +4521,7 @@
                   "required": true
                 }
               ],
-              "returns": "callable<list<any,any>,void>"
+              "returns": "callable<list<class:signalwire.core.mixins.serverless_mixin.GcfRequest,class:signalwire.core.mixins.serverless_mixin.GcfResponse>,void>"
             },
             "create_lambda_handler": {
               "params": [
@@ -5517,7 +5517,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "callable<list<any,callable<list<>,void>>,void>"
+              "returns": "callable<list<any,callable<list<>,void>>,union<void,any>>"
             },
             "is_configured": {
               "params": [
@@ -7547,7 +7547,7 @@
                   "default": null
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.livewire.__type"
             }
           }
         },
@@ -7792,11 +7792,11 @@
           "params": [
             {
               "name": "agent",
-              "type": "class:signalwire.livewire.__type",
+              "type": "class:signalwire.livewire.AgentDefinition",
               "required": true
             }
           ],
-          "returns": "class:signalwire.livewire.__type"
+          "returns": "class:signalwire.livewire.AgentDefinition"
         },
         "handoff": {
           "params": [
@@ -7812,7 +7812,7 @@
           "params": [
             {
               "name": "options",
-              "type": "any",
+              "type": "union<class:signalwire.livewire.AgentDefinition,class:signalwire.livewire.AgentServer,callable<list<class:signalwire.livewire.JobContext>,any>,class:signalwire.livewire.__type>",
               "required": true
             }
           ],

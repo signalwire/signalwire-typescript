@@ -278,7 +278,11 @@ interface LoadedTarget {
   route?: string;
   basicAuthCreds?: [string, string];
   getApp(): Hono;
-  getRegisteredTools?(): { name: string; description: string; parameters: Record<string, unknown> }[];
+  getRegisteredTools?(): {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  }[];
   getTool?(name: string): SwaigFunction | undefined;
   getPrompt?(): unknown;
   renderSwml(callId?: string): string | object;

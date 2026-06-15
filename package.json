@@ -22,7 +22,10 @@
     "test:watch": "vitest",
     "test:examples": "tsc --noEmit --project tsconfig.examples.json",
     "dev": "tsc --watch",
-    "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts"
+    "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts",
+    "lint": "eslint src tests examples",
+    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -39,12 +42,16 @@
     "cheerio": "^1.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.10",
     "cheerio": "^1.2.0",
+    "eslint": "^10.5.0",
+    "prettier": "^3.8.4",
     "tsx": "^4.21.0",
     "typescript": "^6.0.0",
+    "typescript-eslint": "^8.61.0",
     "vitest": "^4.1.5"
   }
 }

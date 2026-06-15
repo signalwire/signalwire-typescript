@@ -281,10 +281,8 @@ export class ConciergeAgent extends AgentBase {
   ): void | Promise<void> {
     if (summary) {
       try {
-         
         console.log(`Concierge interaction summary: ${JSON.stringify(summary, null, 2)}`);
       } catch (err) {
-         
         console.log(`Error processing summary: ${String(err)}`);
       }
     }

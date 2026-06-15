@@ -338,10 +338,8 @@ export class PromptObjectModel {
     const anySectionNumbered = this.sections.some((s) => s.numbered);
 
     if (this.debug) {
-       
       console.log(`Any section numbered: ${anySectionNumbered}`);
       this.sections.forEach((section, i) => {
-         
         console.log(`Section ${i + 1}: ${section.title}, numbered=${section.numbered}`);
       });
     }
@@ -363,7 +361,6 @@ export class PromptObjectModel {
       }
 
       if (this.debug) {
-         
         console.log(
           `Rendering section ${i}: ${section.title} with sectionNumber=${JSON.stringify(sectionNumber)}`,
         );

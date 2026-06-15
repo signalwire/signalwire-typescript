@@ -700,10 +700,7 @@ export function tool<P = unknown>(options: {
   let jsonSchema: Record<string, unknown> | undefined;
   if (options.parameters) {
     // If it looks like a Zod schema (has a .shape or ._def), try to extract
-    if (
-      typeof options.parameters === 'object' &&
-      '_def' in options.parameters
-    ) {
+    if (typeof options.parameters === 'object' && '_def' in options.parameters) {
       // Best-effort Zod extraction -- store as-is for now
       jsonSchema = options.parameters as Record<string, unknown>;
     } else {

@@ -99,7 +99,11 @@ export class CustomSkillsSkill extends SkillBase {
 
   private _compiledHandlers: Map<
     string,
-    (args: Record<string, unknown>, rawData: Record<string, unknown>, resultClass: typeof FunctionResult) => unknown
+    (
+      args: Record<string, unknown>,
+      rawData: Record<string, unknown>,
+      resultClass: typeof FunctionResult,
+    ) => unknown
   > = new Map();
   private _compilationErrors: Map<string, string> = new Map();
 

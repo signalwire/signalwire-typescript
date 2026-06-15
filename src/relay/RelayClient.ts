@@ -49,7 +49,7 @@ import { RelayError } from './RelayError.js';
 import type { CallHandler, MessageHandler, RelayClientOptions } from './types.js';
 
 // Polyfill Symbol.asyncDispose for runtimes that don't have it yet (Node <20.4)
- 
+
 (Symbol as any).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
 
 const logger = getLogger('relay_client');
@@ -387,7 +387,6 @@ export class RelayClient {
 
   /** Create a real WebSocket (uses dynamic import for ws). */
   private async _createWebSocket(uri: string): Promise<WsLike> {
-     
     const wsModule = await import('ws');
     const WS = wsModule.default ?? wsModule;
     const ws = new WS(uri, { maxPayload: 10 * 1024 * 1024 }) as unknown as WsLike;

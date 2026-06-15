@@ -21,6 +21,10 @@
 #                                            serialisation vs Python's to_dict() over
 #                                            the shared 81-entry corpus; closes the
 #                                            drift-0 hole the surface gates can't see)
+#   7. fmt gate                           — prettier (local: auto-fix; CI: --check)
+#   8. lint gate                          — tsc --noEmit + eslint (.golangci-equiv)
+#   9. doc-audit gate                     — porting-sdk audit_docs.py
+#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
 # Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
 # Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
@@ -65,6 +69,14 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
     echo "       (expected $PORT_ROOT/../porting-sdk or \$PORTING_SDK env var)" >&2
     exit 2
 }
+
+# Export the resolved path under every name the enumerator scripts read, so the
+# tsx subprocesses (enumerate-signatures/surface/doc-surface) find porting-sdk's
+# type_aliases.yaml / python_surface.json instead of falling back to a hardcoded
+# absolute path. PORTING_SDK is read by enumerate-signatures.ts; PORTING_SDK_PATH
+# by enumerate-surface.ts / enumerate-doc-surface.ts. Both pointed here.
+export PORTING_SDK="$PORTING_SDK_DIR"
+export PORTING_SDK_PATH="$PORTING_SDK_DIR"
 
 FAILED_GATES=""
 
@@ -144,6 +156,59 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "npx tsx scripts/emit-corpus.ts" \
         --port-repo "$PORT_ROOT"
+
+# Gate 7: FMT — the language format gate (ts: prettier, governed by .prettierrc.json:
+# printWidth 100, singleQuote, semi — the house style). Source-style only, proven
+# surface/emission-neutral (a reformat leaves port_signatures.json byte-identical).
+#   * LOCAL ($CI unset)  → `prettier --write`: reformats your working tree in place.
+#   * CI ($CI=true)      → `prettier --check`: read-only, FAILS on any unformatted file.
+fmt_gate() {
+    local globs=("src/**/*.ts" "tests/**/*.ts" "examples/**/*.ts")
+    if [ -n "${CI:-}" ]; then
+        npx prettier --check "${globs[@]}"
+    else
+        npx prettier --write "${globs[@]}" >/dev/null
+        if ! git diff --quiet 2>/dev/null; then
+            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
+        fi
+    fi
+}
+run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
+
+# Gate 8: LINT — the language lint gate (ts: tsc --noEmit type floor + eslint).
+# tsc proves the types compile (strict); eslint (.golangci-equivalent: eslint.config.mjs)
+# enforces the deeper rule set incl. no-explicit-any=error after the burndown to zero.
+# Both blocking. --max-warnings 0 so a warning can't slip through.
+lint_gate() {
+    npx tsc --noEmit || return 1
+    npx eslint src tests examples --max-warnings 0 || return 1
+}
+run_gate "LINT" "tsc --noEmit + eslint (lint gate)" lint_gate
+
+# Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
+# real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in
+# so local==CI. Regenerates docs_audit_surface.json then audits, restoring it after
+# (side-effect-free whether it passes or fails).
+docaudit_gate() {
+    trap 'git checkout -- docs_audit_surface.json 2>/dev/null' RETURN
+    PORTING_SDK_PATH="$PORTING_SDK_DIR" npx tsx scripts/enumerate-doc-surface.ts || return 1
+    python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
+        --root "$PORT_ROOT" \
+        --surface "$PORT_ROOT/docs_audit_surface.json" \
+        --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
+}
+run_gate "DOC-AUDIT" "audit_docs vs docs_audit_surface.json" docaudit_gate
+
+# Gate 10: SURFACE-DIFF — diff the port surface against the Python reference
+# (omissions/additions in PORT_OMISSIONS.md / PORT_ADDITIONS.md). SURFACE-FRESH only
+# checks the committed surface matches a regen; this checks it MATCHES PYTHON.
+# Mirrors .github/workflows/surface-audit.yml.
+run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+        --reference "$PORTING_SDK_DIR/python_surface.json" \
+        --port-surface "$PORT_ROOT/port_surface.json" \
+        --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"

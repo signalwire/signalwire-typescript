@@ -20,8 +20,6 @@
  *      on a state(finished).
  */
 
- 
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';

@@ -182,7 +182,9 @@ export class AuthHandler {
    * @param optional - When true, unauthenticated requests are allowed through instead of being rejected (default: false).
    * @returns A middleware function suitable for use with Hono's `app.use()`.
    */
-  middleware(optional = false): (c: Context, next: () => Promise<void>) => Promise<Response | void> {
+  middleware(
+    optional = false,
+  ): (c: Context, next: () => Promise<void>) => Promise<Response | void> {
     return async (c: Context, next: () => Promise<void>) => {
       const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((v: string, k: string) => {
@@ -208,7 +210,7 @@ export class AuthHandler {
    * @returns An Express-compatible middleware function.
    */
   expressMiddleware(
-    optional = false
+    optional = false,
   ): (req: ExpressLikeRequest, res: ExpressLikeResponse, next: () => void) => Promise<void> {
     return async (req: ExpressLikeRequest, res: ExpressLikeResponse, next: () => void) => {
       const headers = req.headers as Record<string, string>;
