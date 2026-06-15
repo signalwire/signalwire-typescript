@@ -453,6 +453,10 @@ signalwire.utils.url_validator.validate_url: TS validateUrl lives in SecurityUti
 
 ## ToolMixin / ToolRegistry (Python uses mixin pattern — TS uses direct methods on SWMLService)
 
+signalwire.core.agent.tools.registry.ToolRegistry: TS has no separate ToolRegistry class — tool registration is folded directly onto SWMLService (the registry is a private `toolRegistry` Map). The Python mixin/registry split has no TS counterpart class.
+signalwire.core.agent.tools.registry.ToolRegistry.__init__: no TS ToolRegistry class to construct (folded into SWMLService); see the ToolRegistry entry above.
+signalwire.core.agent.tools.registry.ToolRegistry.define_tool: TS folds tool definition into SWMLService.defineTool (a single generic method serving SWMLService + AgentBase); no separate ToolRegistry class. The capability is present — at SWMLService.defineTool, not ToolRegistry.define_tool.
+signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: TS folds tool definition into SWMLService.defineTool; the Python ToolMixin pattern is replaced by direct methods on SWMLService.
 signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function (see PORT_ADDITIONS.md SWMLService entry); no separate ToolRegistry class
 signalwire.core.mixins.tool_mixin.ToolMixin.register_swaig_function: TS folds tool registration into SWMLService.register_swaig_function; the Python ToolMixin pattern is replaced by direct methods on SWMLService
 
