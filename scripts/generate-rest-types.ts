@@ -179,7 +179,7 @@ function tsType(schema: Schema | undefined, indent = 0): string {
   }
 }
 
-function objectBody(schema: Schema, indent: number): string {
+function objectBody(schema: Schema, indent: number, topLevel = false): string {
   const props = schema.properties ?? {};
   const required = new Set(schema.required ?? []);
   const pad = '  '.repeat(indent + 1);
@@ -193,13 +193,19 @@ function objectBody(schema: Schema, indent: number): string {
     }
     lines.push(`${pad}${keyTok}${optional}: ${tsType(propSchema, indent + 1)};`);
   }
-  // additionalProperties on a property-bearing object → index signature. TS
-  // requires every declared property to be assignable to the index value, so the
-  // index value must include each declared prop's type (and `undefined` when any
-  // declared prop is optional). With no declared props this is just the ap type.
+  // additionalProperties:true → an open `[key: string]: unknown` index signature.
+  // We emit it ONLY on the TOP-LEVEL declared type, NOT on nested inline objects:
+  // an index signature on a property-bearing object silently swallows TYPOS in
+  // known fields (`{ formt: 'mp3' }` compiles), and the nested objects are what
+  // callers fill via indexed access — so closing them there is where the
+  // typo-safety matters. The top-level type keeps the open tail for forward-
+  // compatibility (a new server field round-trips). When additionalProperties is
+  // a typed schema (not `true`), the index value must also include the declared
+  // prop types so TS accepts them against the index (TS2411).
   const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
-  if (ap === true) lines.push(`${pad}[key: string]: unknown;`);
-  else if (ap && typeof ap === 'object') {
+  if (ap === true) {
+    if (topLevel) lines.push(`${pad}[key: string]: unknown;`);
+  } else if (ap && typeof ap === 'object') {
     const base = tsType(ap, indent + 1);
     const propTypes = Object.values(props).map((p) => tsType(p, indent + 1));
     const hasOptional = Object.keys(props).some((k) => !required.has(k));
@@ -207,6 +213,10 @@ function objectBody(schema: Schema, indent: number): string {
     const value = [...new Set(members)].join(' | ');
     lines.push(`${pad}[key: string]: ${value};`);
   }
+  // No declared members AND no emitted index signature → this is an open object
+  // with nothing modeled. Emit `Record<string, unknown>` rather than a bare `{}`
+  // (which `no-empty-object-type` flags and which means "any non-null value").
+  if (lines.length === 0) return 'Record<string, unknown>';
   return `{\n${lines.join('\n')}\n${closePad}}`;
 }
 
@@ -222,7 +232,9 @@ function declaration(name: string, schema: Schema): string {
     !schema.anyOf &&
     !schema.allOf;
   if (isObject && schema.properties) {
-    return `${doc}export interface ${id} ${objectBody(schema, 0)}\n`;
+    // topLevel=true: the open `[key: string]: unknown` tail is emitted here (the
+    // named type) but suppressed on nested inline objects (see objectBody).
+    return `${doc}export interface ${id} ${objectBody(schema, 0, true)}\n`;
   }
   return `${doc}export type ${id} = ${tsType(schema, 0)};\n`;
 }

@@ -67,7 +67,6 @@ export interface CallingBeginParams {
   device: {
     params?: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   };
   max_duration?: number | null;
   node_id?: string;
@@ -112,7 +111,6 @@ export interface CallingCollectParams {
     max: number;
     min?: number | null;
     terminators?: string;
-    [key: string]: unknown;
   };
   initial_timeout?: number | null;
   node_id: string;
@@ -124,7 +122,6 @@ export interface CallingCollectParams {
     language?: string;
     model?: string;
     speech_timeout?: number | null;
-    [key: string]: unknown;
   };
   start_input_timers?: boolean | null;
   [key: string]: unknown;
@@ -152,7 +149,6 @@ export interface CallingConnectParams {
   devices: {
     params?: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   }[][];
   max_duration?: number | null;
   max_price_per_minute?: number | null;
@@ -160,7 +156,6 @@ export interface CallingConnectParams {
   ringback?: {
     params: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   }[];
   tag?: string;
   [key: string]: unknown;
@@ -187,7 +182,6 @@ export interface CallingDetectParams {
   detect: {
     params: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   };
   node_id: string;
   timeout?: number | null;
@@ -207,7 +201,6 @@ export interface CallingDialParams {
   devices: {
     params?: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   }[][];
   max_price_per_minute?: number | null;
   node_id?: string;
@@ -343,7 +336,6 @@ export interface CallingPayParams {
   parameters?: {
     name: string;
     value: string;
-    [key: string]: unknown;
   }[];
   payment_connector_url: string;
   payment_method?: Record<string, unknown>;
@@ -352,14 +344,12 @@ export interface CallingPayParams {
     actions?: {
       phrase: string;
       type: Record<string, unknown>;
-      [key: string]: unknown;
     }[];
     attempt?: string;
     card_type?: string;
     error_type?: string;
     for: Record<string, unknown>;
     require_matching_inputs?: string;
-    [key: string]: unknown;
   }[];
   security_code?: string;
   status_url?: string;
@@ -386,7 +376,6 @@ export interface CallingPlayParams {
   play: {
     params: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   }[];
   volume?: number | null;
   [key: string]: unknown;
@@ -434,7 +423,6 @@ export interface CallingPlayAndCollectParams {
       max: number;
       min?: number | null;
       terminators?: string;
-      [key: string]: unknown;
     };
     initial_timeout?: number | null;
     speech?: {
@@ -443,16 +431,13 @@ export interface CallingPlayAndCollectParams {
       language?: string;
       model?: string;
       speech_timeout?: number | null;
-      [key: string]: unknown;
     };
-    [key: string]: unknown;
   };
   control_id: string;
   node_id: string;
   play: {
     params: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   }[];
   volume?: number | null;
   [key: string]: unknown;
@@ -528,9 +513,7 @@ export interface CallingRecordParams {
   record: {
     audio?: {
       direction?: string | null;
-      [key: string]: unknown;
     };
-    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -567,10 +550,8 @@ export interface CallingReferParams {
     params: {
       headers?: Record<string, unknown>;
       to: string;
-      [key: string]: unknown;
     };
     type: string;
-    [key: string]: unknown;
   };
   node_id: string;
   [key: string]: unknown;
@@ -639,13 +620,11 @@ export interface CallingTapParams {
   device: {
     params?: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   };
   node_id: string;
   tap: {
     params: Record<string, unknown>;
     type: Record<string, unknown>;
-    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -698,13 +677,11 @@ export interface SignalwireConnectParams {
   protocols?: {
     protocol: string;
     rank: number;
-    [key: string]: unknown;
   }[];
   version: {
     major: number;
     minor: number;
     revision: number;
-    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1249,7 +1226,6 @@ export interface CallingTapResult {
   source_device?: {
     params?: Record<string, unknown>;
     type: string;
-    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1295,13 +1271,11 @@ export interface SignalwireConnectResult {
   accesses?: {
     authentication: string;
     nodeid: string;
-    [key: string]: unknown;
   }[];
   authorization?: Record<string, unknown>;
   authorizations?: {
     authentication: string;
     authorization: Record<string, unknown>;
-    [key: string]: unknown;
   }[];
   host?: string;
   ice_servers?: Record<string, unknown>[];
@@ -1309,9 +1283,7 @@ export interface SignalwireConnectResult {
   master_nodeid: string;
   nodeid: string;
   protocol?: string;
-  protocols?: {
-    [key: string]: unknown;
-  }[];
+  protocols?: Record<string, unknown>[];
   protocols_uncertified?: string[];
   result?: Record<string, unknown>;
   session_restored: boolean;
@@ -1321,7 +1293,6 @@ export interface SignalwireConnectResult {
     failed_channels?: string[];
     protocol: string;
     subscribe_channels?: string[];
-    [key: string]: unknown;
   }[];
   [key: string]: unknown;
 }

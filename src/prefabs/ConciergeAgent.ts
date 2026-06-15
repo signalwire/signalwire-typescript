@@ -219,10 +219,10 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const service = ((args['service'] as string) ?? '').toLowerCase();
-        const date = (args['date'] as string) ?? '';
-        const time = (args['time'] as string) ?? '';
+      handler: (args) => {
+        const service = (args.service ?? '').toLowerCase();
+        const date = args.date ?? '';
+        const time = args.time ?? '';
 
         // Simple availability simulation — in a real app this would hit a booking system.
         const lowerServices = this.services.map((s) => s.toLowerCase());
@@ -251,8 +251,8 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const location = ((args['location'] as string) ?? '').toLowerCase();
+      handler: (args) => {
+        const location = (args.location ?? '').toLowerCase();
 
         const amenity = this.amenities[location];
         if (amenity && typeof amenity['location'] === 'string') {

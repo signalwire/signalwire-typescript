@@ -252,9 +252,9 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const name = (args['name'] as string) ?? '';
-        const reason = (args['reason'] as string) ?? '';
+      handler: (args) => {
+        const name = args.name ?? '';
+        const reason = args.reason ?? '';
         const result = new FunctionResult(
           `Thank you, ${name}. I've noted that you're calling about ${reason}.`,
         );
@@ -284,8 +284,8 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) => {
-        const departmentName = ((args['department'] as string) ?? '').trim();
+      handler: (args, rawData: SwaigRequestData) => {
+        const departmentName = (args.department ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
         const name = (callerInfo['name'] as string) ?? 'the caller';
@@ -330,10 +330,10 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) => {
-          const visitorName = args['visitor_name'] as string;
-          const purpose = args['purpose'] as string;
-          const visiting = args['visiting'] as string;
+        handler: async (args, rawData: SwaigRequestData) => {
+          const visitorName = args.visitor_name;
+          const purpose = args.purpose;
+          const visiting = args.visiting;
 
           if (!visitorName || !purpose || !visiting) {
             return new FunctionResult(

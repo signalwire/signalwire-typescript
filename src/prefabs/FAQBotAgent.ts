@@ -295,9 +295,9 @@ export class FAQBotAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const query = (args['query'] as string) ?? '';
-        const category = ((args['category'] as string) ?? '').toLowerCase().trim();
+      handler: (args) => {
+        const query = args.query ?? '';
+        const category = (args.category ?? '').toLowerCase().trim();
         if (!query) {
           return new FunctionResult('A query is required to search the FAQ.');
         }
@@ -350,8 +350,8 @@ export class FAQBotAgent extends AgentBase {
             },
           },
         },
-        handler: (_args: Record<string, unknown>) => {
-          const reason = (_args['reason'] as string) || 'Caller needs assistance beyond FAQ';
+        handler: (args) => {
+          const reason = args.reason || 'Caller needs assistance beyond FAQ';
           const result = new FunctionResult(
             `${this.escalationMessage} Transferring caller to a live agent. Reason: ${reason}`,
           );

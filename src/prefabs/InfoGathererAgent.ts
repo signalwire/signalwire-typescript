@@ -324,8 +324,9 @@ export class InfoGathererAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) => {
-        const answer = (args['answer'] as string) ?? '';
+      handler: (args, rawData) => {
+        // args.answer is inferred `string` from the wrapped schema's properties.
+        const answer = args.answer ?? '';
 
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];

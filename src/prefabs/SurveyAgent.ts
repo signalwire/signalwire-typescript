@@ -429,9 +429,9 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const questionId = (args['question_id'] as string) ?? '';
-        const response = (args['response'] as string) ?? '';
+      handler: (args) => {
+        const questionId = args.question_id ?? '';
+        const response = args.response ?? '';
 
         const question = this.questionMap.get(questionId);
         if (!question) {
@@ -461,9 +461,9 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) => {
-        const questionId = (args['question_id'] as string) ?? '';
-        const response = (args['response'] as string) ?? '';
+      handler: (args, rawData: SwaigRequestData) => {
+        const questionId = args.question_id ?? '';
+        const response = args.response ?? '';
 
         const question = this.questionMap.get(questionId);
         const questionText = question ? question.text : '';
@@ -497,9 +497,9 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) => {
-        const questionId = args['question_id'] as string;
-        const answer = args['answer'] as string;
+      handler: async (args, rawData: SwaigRequestData) => {
+        const questionId = args.question_id;
+        const answer = args.answer;
 
         if (!questionId || !answer) {
           return new FunctionResult('Both question_id and answer are required.');
@@ -570,7 +570,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
 
         if (session.completed) {
@@ -604,7 +604,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
         const totalCount = this.questions.length;

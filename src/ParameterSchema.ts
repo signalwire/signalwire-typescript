@@ -21,10 +21,13 @@
  *      `"The <name> parameter"` (useless to the model, which reads descriptions
  *      as prompt engineering).
  *   2. **Explicit `parameters`** — the user writes the JSON-Schema object by
- *      hand. This is the path where `enum`s and real descriptions live, and
- *      until now it was the *purely untyped* `Record<string, unknown>` blob:
- *      no autocomplete, no typo-checking, no help wiring the Tier-1 closed sets
- *      (record format/direction, tap direction, codec) in as `enum:[...]`.
+ *      hand. This is the path where `enum`s and real descriptions live. Written
+ *      inline, `defineTool<P, R>` now infers the handler's `args` from it (both
+ *      the flat `{name:{…}}` and wrapped `{type:'object',properties}` forms; see
+ *      {@link ToolArgs}), so explicit parameters are no longer an untyped blob.
+ *      This builder is the ergonomic way to construct that schema with
+ *      autocomplete/typo-checking and the Tier-1 closed sets wired in as
+ *      `enum:[...]` (record format/direction, tap direction, codec).
  *
  * `ParameterSchema` is the **typed builder for path 2** — the idiomatic
  * replacement for the explicit untyped blob. It is **purely additive** and the
@@ -162,28 +165,41 @@ export interface PropSchema {
 /** The flat `name → PropSchema` map `defineTool({ parameters })` accepts. */
 export type ParametersSchema = Record<string, PropSchema>;
 
+/** The WRAPPED JSON-Schema object form: `{ type:'object', properties, required }`. */
+export interface WrappedParametersSchema {
+  type: 'object';
+  properties?: ParametersSchema;
+  required?: readonly string[];
+}
+
 /**
- * Accepted `parameters` shapes for `defineTool`. The FLAT map (`{ name: {…} }`)
- * is what enables `InferArgs` inference; the WRAPPED JSON-Schema object
- * (`{ type:'object', properties }`) and a pre-built loose `Record` are also
- * accepted for backward compatibility (they don't drive arg inference).
+ * Accepted `parameters` shapes for `defineTool`. BOTH the FLAT map
+ * (`{ name: {…} }`) and the WRAPPED JSON-Schema object
+ * (`{ type:'object', properties, required }`) drive `InferArgs`; a pre-built
+ * loose `Record` is also accepted (it can't be inferred → open-record args).
  */
-export type ToolParameters =
-  | ParametersSchema
-  | { type: 'object'; properties?: Record<string, unknown>; required?: readonly string[] }
-  | Record<string, unknown>;
+export type ToolParameters = ParametersSchema | WrappedParametersSchema | Record<string, unknown>;
 
 /**
  * The handler-args type for a given `parameters` (`P`) + `required` (`R`).
- * Only narrows when `P` is a clean FLAT schema map; the wrapped JSON-Schema
- * object and loose records degrade to the open `Record<string, unknown>` so
- * existing callers keep their old (untyped-args) behavior unchanged.
+ * Infers from BOTH the flat map and the wrapped `{type:'object',properties}`
+ * form. For the wrapped form, optionality comes from the schema's OWN
+ * `required` array (`R` applies to the flat form, where `required` is a
+ * separate `defineTool` argument). A loose `Record` with no readable
+ * `properties` degrades to the open `Record<string, unknown>`, so existing
+ * pre-built-schema callers keep their prior untyped-args behavior.
  */
-export type ToolArgs<P, R extends readonly PropertyKey[]> = P extends { type: 'object' }
-  ? Record<string, unknown> // wrapped form → not inferred
-  : P extends ParametersSchema
-    ? InferArgs<P, R extends readonly (keyof P)[] ? R : []>
-    : Record<string, unknown>;
+export type ToolArgs<P, R extends readonly PropertyKey[]> = P extends {
+  type: 'object';
+  properties: infer Props extends ParametersSchema;
+}
+  ? // wrapped form → infer from its properties, honoring its own `required`
+    InferArgs<Props, P extends { required: infer WR extends readonly (keyof Props)[] } ? WR : []>
+  : P extends { type: 'object' }
+    ? Record<string, unknown> // wrapped but no readable properties
+    : P extends ParametersSchema
+      ? InferArgs<P, R extends readonly (keyof P)[] ? R : []>
+      : Record<string, unknown>;
 
 /** Map a single property's schema to the TS type the handler sees for it. */
 export type PropToTs<P extends PropSchema> = P extends { enum: readonly (infer E)[] }
