@@ -12,8 +12,6 @@
  * - Auto-reconnect with exponential backoff
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { randomUUID } from 'node:crypto';
 import { getLogger } from '../Logger.js';
 import { Call } from './Call.js';
@@ -46,11 +44,22 @@ import {
 import { Message } from './Message.js';
 import { normalizeDevicePlan } from './normalize.js';
 import { RelayError } from './RelayError.js';
-import type { CallHandler, MessageHandler, RelayClientOptions } from './types.js';
+import type { CallState, MessageState } from './closedSets.js';
+import type {
+  CallHandler,
+  CompletedCallback,
+  Device,
+  JsonRpcError,
+  MessageHandler,
+  RelayClientOptions,
+} from './types.js';
+
+/** Raw RELAY wire payload — an open JSON-RPC frame or `signalwire.event` dict. */
+type WirePayload = Record<string, unknown>;
 
 // Polyfill Symbol.asyncDispose for runtimes that don't have it yet (Node <20.4)
 
-(Symbol as any).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
+(Symbol as { asyncDispose?: symbol }).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
 
 const logger = getLogger('relay_client');
 
@@ -79,10 +88,10 @@ const _activeClients: Set<RelayClient> = new Set();
 type WsLike = {
   send(data: string): void;
   close(code?: number, reason?: string): void;
-  on(event: string, listener: (...args: any[]) => void): void;
+  on(event: string, listener: (...args: unknown[]) => void): void;
   removeAllListeners(): void;
   readyState: number;
-  ping?(data?: any, mask?: boolean, cb?: (err: Error) => void): void;
+  ping?(data?: unknown, mask?: boolean, cb?: (err: Error) => void): void;
 };
 
 /**
@@ -163,7 +172,7 @@ export class RelayClient {
   // for calls the harness never originated). Production users prefer
   // `onCall` / `onMessage` for typed delivery.
   private _onAnyEventHandler:
-    | ((eventType: string, params: Record<string, any>) => void | Promise<void>)
+    | ((eventType: string, params: Record<string, unknown>) => void | Promise<void>)
     | null = null;
 
   private _connected = false;
@@ -319,7 +328,7 @@ export class RelayClient {
    * @returns The same handler, for decorator-style usage.
    */
   onEvent(
-    handler: (eventType: string, params: Record<string, any>) => void | Promise<void>,
+    handler: (eventType: string, params: Record<string, unknown>) => void | Promise<void>,
   ): typeof handler {
     this._onAnyEventHandler = handler;
     return handler;
@@ -393,18 +402,18 @@ export class RelayClient {
     // Wait for the socket to finish the handshake before the caller tries to
     // send signalwire.connect — otherwise send() throws "readyState 0".
     await new Promise<void>((resolve, reject) => {
-      ws.on('open', resolve);
-      ws.on('error', reject);
+      ws.on('open', () => resolve());
+      ws.on('error', (err: unknown) => reject(err));
     });
     return ws;
   }
 
   private _setupWsListeners(ws: WsLike): void {
-    ws.on('message', (data: any) => {
-      const raw = typeof data === 'string' ? data : data.toString();
-      let msg: Record<string, any>;
+    ws.on('message', (data: unknown) => {
+      const raw = typeof data === 'string' ? data : (data as { toString(): string }).toString();
+      let msg: WirePayload;
       try {
-        msg = JSON.parse(raw);
+        msg = JSON.parse(raw) as WirePayload;
       } catch {
         logger.warn(`Invalid JSON received: ${raw}`);
         return;
@@ -422,7 +431,7 @@ export class RelayClient {
       this._cancelServerPingTimeout();
     });
 
-    ws.on('error', (err: any) => {
+    ws.on('error', (err: unknown) => {
       logger.error(`WebSocket error: ${err}`);
     });
 
@@ -665,7 +674,7 @@ export class RelayClient {
     media?: string[];
     tags?: string[];
     region?: string;
-    onCompleted?: (event: any) => void | Promise<void>;
+    onCompleted?: CompletedCallback;
   }): Promise<Message> {
     if (!options.body && (!options.media || options.media.length === 0)) {
       throw new Error('At least one of body or media is required');
@@ -921,7 +930,7 @@ export class RelayClient {
 
   // ─── Message Handling ──────────────────────────────────────────
 
-  private async _handleMessage(msg: Record<string, any>): Promise<void> {
+  private async _handleMessage(msg: WirePayload): Promise<void> {
     if (typeof msg !== 'object' || msg === null) {
       logger.warn('Ignoring non-object message');
       return;
@@ -932,8 +941,10 @@ export class RelayClient {
       const reqId = msg.id as string;
       const deferred = this._pending.get(reqId);
       if (deferred && !deferred.settled) {
-        const error =
-          typeof msg.error === 'object' ? msg.error : { code: -1, message: String(msg.error) };
+        const error: JsonRpcError =
+          typeof msg.error === 'object' && msg.error !== null
+            ? (msg.error as JsonRpcError)
+            : { code: -1, message: String(msg.error) };
         deferred.reject(new RelayError(error.code ?? -1, String(error.message ?? 'Unknown error')));
       }
       return;
@@ -949,11 +960,12 @@ export class RelayClient {
           deferred.resolve({ raw: result });
           return;
         }
+        const resultObj = result as Record<string, unknown>;
         const requestMethod = this._pendingMethods.get(reqId) ?? '';
         if (requestMethod === METHOD_SIGNALWIRE_CONNECT) {
-          deferred.resolve(result);
+          deferred.resolve(resultObj);
         } else {
-          const code = result.code;
+          const code = resultObj.code;
           const codeStr = code != null ? String(code) : null;
           if (codeStr != null && !SUCCESS_CODE_RE.test(codeStr)) {
             let intCode: number;
@@ -963,9 +975,9 @@ export class RelayClient {
               intCode = -1;
             }
             if (isNaN(intCode)) intCode = -1;
-            deferred.reject(new RelayError(intCode, String(result.message ?? 'Unknown error')));
+            deferred.reject(new RelayError(intCode, String(resultObj.message ?? 'Unknown error')));
           } else {
-            deferred.resolve(result);
+            deferred.resolve(resultObj);
           }
         }
       }
@@ -974,7 +986,7 @@ export class RelayClient {
 
     // Server-initiated method call
     const method = (msg.method ?? '') as string;
-    const params = (msg.params ?? {}) as Record<string, any>;
+    const params = (msg.params ?? {}) as Record<string, unknown>;
     if (typeof params !== 'object') {
       logger.warn('Ignoring message with non-object params');
       return;
@@ -1005,9 +1017,9 @@ export class RelayClient {
 
   // ─── Event Dispatch ────────────────────────────────────────────
 
-  private async _handleEvent(payload: Record<string, any>): Promise<void> {
+  private async _handleEvent(payload: WirePayload): Promise<void> {
     const eventType = (payload.event_type ?? '') as string;
-    const eventParams = (payload.params ?? {}) as Record<string, any>;
+    const eventParams = (payload.params ?? {}) as Record<string, unknown>;
     const callId = (eventParams.call_id ?? '') as string;
 
     if (!eventType) {
@@ -1086,26 +1098,26 @@ export class RelayClient {
     }
   }
 
-  private _handleInboundCall(payload: Record<string, any>): void {
+  private _handleInboundCall(payload: WirePayload): void {
     if (this._calls.size >= this._maxActiveCalls) {
       logger.error(`Max active calls (${this._maxActiveCalls}) reached, dropping inbound call`);
       return;
     }
-    const params = (payload.params ?? {}) as Record<string, any>;
+    const params = (payload.params ?? {}) as Record<string, unknown>;
     const callId = (params.call_id ?? '') as string;
 
     const call = new Call(
       this,
       callId,
-      params.node_id ?? '',
-      params.project_id ?? this.project,
-      this._relayProtocol || params.context || params.protocol || '',
+      (params.node_id ?? '') as string,
+      (params.project_id ?? this.project) as string,
+      (this._relayProtocol || params.context || params.protocol || '') as string,
       {
-        tag: params.tag ?? '',
-        direction: params.direction ?? 'inbound',
-        device: params.device,
-        state: params.call_state ?? 'created',
-        segmentId: params.segment_id ?? '',
+        tag: (params.tag ?? '') as string,
+        direction: (params.direction ?? 'inbound') as string,
+        device: params.device as Device | undefined,
+        state: (params.call_state ?? 'created') as CallState,
+        segmentId: (params.segment_id ?? '') as string,
       },
     );
     this._calls.set(callId, call);
@@ -1119,19 +1131,19 @@ export class RelayClient {
     }
   }
 
-  private _handleInboundMessage(payload: Record<string, any>): void {
-    const params = (payload.params ?? {}) as Record<string, any>;
+  private _handleInboundMessage(payload: WirePayload): void {
+    const params = (payload.params ?? {}) as Record<string, unknown>;
     const message = new Message({
-      messageId: params.message_id ?? '',
-      context: params.context ?? '',
-      direction: params.direction ?? 'inbound',
-      fromNumber: params.from_number ?? '',
-      toNumber: params.to_number ?? '',
-      body: params.body ?? '',
-      media: params.media ?? [],
-      segments: params.segments ?? 0,
-      state: params.message_state ?? 'received',
-      tags: params.tags ?? [],
+      messageId: (params.message_id ?? '') as string,
+      context: (params.context ?? '') as string,
+      direction: (params.direction ?? 'inbound') as string,
+      fromNumber: (params.from_number ?? '') as string,
+      toNumber: (params.to_number ?? '') as string,
+      body: (params.body ?? '') as string,
+      media: (params.media ?? []) as string[],
+      segments: (params.segments ?? 0) as number,
+      state: (params.message_state ?? 'received') as MessageState,
+      tags: (params.tags ?? []) as string[],
     });
 
     if (this._onMessageHandler) {
@@ -1143,8 +1155,8 @@ export class RelayClient {
     }
   }
 
-  private _handleMessageState(payload: Record<string, any>): void {
-    const params = (payload.params ?? {}) as Record<string, any>;
+  private _handleMessageState(payload: WirePayload): void {
+    const params = (payload.params ?? {}) as Record<string, unknown>;
     const messageId = (params.message_id ?? '') as string;
     const message = this._messages.get(messageId);
     if (message) {
@@ -1159,20 +1171,20 @@ export class RelayClient {
     }
   }
 
-  private _registerDialLeg(tag: string, eventParams: Record<string, any>): Call {
+  private _registerDialLeg(tag: string, eventParams: Record<string, unknown>): Call {
     const callId = (eventParams.call_id ?? '') as string;
     const nodeId = (eventParams.node_id ?? '') as string;
     const call = new Call(
       this,
       callId,
       nodeId,
-      eventParams.project_id ?? this.project,
+      (eventParams.project_id ?? this.project) as string,
       this._relayProtocol,
       {
         tag,
         direction: 'outbound',
-        device: eventParams.device,
-        state: eventParams.call_state ?? 'created',
+        device: eventParams.device as Device | undefined,
+        state: (eventParams.call_state ?? 'created') as CallState,
       },
     );
     this._calls.set(callId, call);
@@ -1183,11 +1195,11 @@ export class RelayClient {
     return call;
   }
 
-  private async _handleDialEvent(payload: Record<string, any>): Promise<void> {
-    const eventParams = (payload.params ?? {}) as Record<string, any>;
+  private async _handleDialEvent(payload: WirePayload): Promise<void> {
+    const eventParams = (payload.params ?? {}) as Record<string, unknown>;
     const tag = (eventParams.tag ?? '') as string;
     const dialState = (eventParams.dial_state ?? '') as string;
-    const callInfo = (eventParams.call ?? {}) as Record<string, any>;
+    const callInfo = (eventParams.call ?? {}) as Record<string, unknown>;
 
     logger.debug(`Dial event: tag=${tag} state=${dialState}`);
 
@@ -1212,7 +1224,7 @@ export class RelayClient {
         call = new Call(this, winnerCallId, winnerNodeId, this.project, this._relayProtocol, {
           tag,
           direction: 'outbound',
-          device: callInfo.device,
+          device: callInfo.device as Device | undefined,
           state: 'answered',
         });
         this._calls.set(winnerCallId, call);
