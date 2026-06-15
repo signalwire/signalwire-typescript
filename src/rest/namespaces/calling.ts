@@ -4,10 +4,48 @@
  * All commands are sent as POST /api/calling/calls with a command field.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  AIHoldParams,
+  AIMessageParams,
+  AIStopParams,
+  AIUnholdParams,
+  CallResponse,
+  CollectParams,
+  CollectStartInputTimersParams,
+  CollectStopParams,
+  DenoiseParams,
+  DenoiseStopParams,
+  DetectParams,
+  DetectStopParams,
+  DialParams,
+  DisconnectParams,
+  EndParams,
+  LiveTranscribeParams,
+  LiveTranslateParams,
+  PlayParams,
+  PlayPauseParams,
+  PlayResumeParams,
+  PlayStopParams,
+  PlayVolumeParams,
+  ReceiveFaxStopParams,
+  RecordParams,
+  RecordPauseParams,
+  RecordResumeParams,
+  RecordStopParams,
+  ReferParams,
+  SendFaxStopParams,
+  StreamParams,
+  StreamStopParams,
+  TapParams,
+  TapStopParams,
+  TranscribeParams,
+  TranscribeStopParams,
+  TransferParams,
+  UpdateCallParams,
+  UserEventParams,
+} from './calling.types.js';
 
 /**
  * REST call control — all 37 commands dispatched via a single POST endpoint.
@@ -43,12 +81,16 @@ export class CallingNamespace extends BaseResource {
     super(http, '/api/calling/calls');
   }
 
-  private async _execute(command: string, callId?: string, params: any = {}): Promise<any> {
-    const body: any = { command, params };
+  private async _execute(
+    command: string,
+    callId?: string,
+    params: unknown = {},
+  ): Promise<CallResponse> {
+    const body: Record<string, unknown> = { command, params };
     if (callId !== undefined) {
       body.id = callId;
     }
-    return this._http.post(this._basePath, body);
+    return this._http.post<CallResponse>(this._basePath, body);
   }
 
   // Call lifecycle
@@ -61,7 +103,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The dial command response, typically containing a new `call_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async dial(params: any = {}): Promise<any> {
+  async dial(params: Partial<DialParams> = {}): Promise<CallResponse> {
     return this._execute('dial', undefined, params);
   }
 
@@ -72,7 +114,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(params: any = {}): Promise<any> {
+  async update(params: Partial<UpdateCallParams> = {}): Promise<CallResponse> {
     return this._execute('update', undefined, params);
   }
 
@@ -84,7 +126,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async end(callId: string, params: any = {}): Promise<any> {
+  async end(callId: string, params: Partial<EndParams> = {}): Promise<CallResponse> {
     return this._execute('calling.end', callId, params);
   }
 
@@ -97,7 +139,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async transfer(callId: string, params: any = {}): Promise<any> {
+  async transfer(callId: string, params: Partial<TransferParams> = {}): Promise<CallResponse> {
     return this._execute('calling.transfer', callId, params);
   }
 
@@ -109,7 +151,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async disconnect(callId: string, params: any = {}): Promise<any> {
+  async disconnect(callId: string, params: Partial<DisconnectParams> = {}): Promise<CallResponse> {
     return this._execute('calling.disconnect', callId, params);
   }
 
@@ -124,7 +166,7 @@ export class CallingNamespace extends BaseResource {
    *   pause / resume / stop the playback later.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async play(callId: string, params: any = {}): Promise<any> {
+  async play(callId: string, params: Partial<PlayParams> = {}): Promise<CallResponse> {
     return this._execute('calling.play', callId, params);
   }
 
@@ -137,7 +179,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async playPause(callId: string, params: any = {}): Promise<any> {
+  async playPause(callId: string, params: Partial<PlayPauseParams> = {}): Promise<CallResponse> {
     return this._execute('calling.play.pause', callId, params);
   }
 
@@ -149,7 +191,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async playResume(callId: string, params: any = {}): Promise<any> {
+  async playResume(callId: string, params: Partial<PlayResumeParams> = {}): Promise<CallResponse> {
     return this._execute('calling.play.resume', callId, params);
   }
 
@@ -161,7 +203,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async playStop(callId: string, params: any = {}): Promise<any> {
+  async playStop(callId: string, params: Partial<PlayStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.play.stop', callId, params);
   }
 
@@ -173,7 +215,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async playVolume(callId: string, params: any = {}): Promise<any> {
+  async playVolume(callId: string, params: Partial<PlayVolumeParams> = {}): Promise<CallResponse> {
     return this._execute('calling.play.volume', callId, params);
   }
 
@@ -188,7 +230,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The record command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async record(callId: string, params: any = {}): Promise<any> {
+  async record(callId: string, params: Partial<RecordParams> = {}): Promise<CallResponse> {
     return this._execute('calling.record', callId, params);
   }
 
@@ -200,7 +242,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async recordPause(callId: string, params: any = {}): Promise<any> {
+  async recordPause(
+    callId: string,
+    params: Partial<RecordPauseParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.record.pause', callId, params);
   }
 
@@ -212,7 +257,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async recordResume(callId: string, params: any = {}): Promise<any> {
+  async recordResume(
+    callId: string,
+    params: Partial<RecordResumeParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.record.resume', callId, params);
   }
 
@@ -224,7 +272,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The final recording metadata.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async recordStop(callId: string, params: any = {}): Promise<any> {
+  async recordStop(callId: string, params: Partial<RecordStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.record.stop', callId, params);
   }
 
@@ -239,7 +287,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The collect command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async collect(callId: string, params: any = {}): Promise<any> {
+  async collect(callId: string, params: Partial<CollectParams> = {}): Promise<CallResponse> {
     return this._execute('calling.collect', callId, params);
   }
 
@@ -251,7 +299,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async collectStop(callId: string, params: any = {}): Promise<any> {
+  async collectStop(
+    callId: string,
+    params: Partial<CollectStopParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.collect.stop', callId, params);
   }
 
@@ -264,7 +315,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async collectStartInputTimers(callId: string, params: any = {}): Promise<any> {
+  async collectStartInputTimers(
+    callId: string,
+    params: Partial<CollectStartInputTimersParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.collect.start_input_timers', callId, params);
   }
 
@@ -278,7 +332,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The detect command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async detect(callId: string, params: any = {}): Promise<any> {
+  async detect(callId: string, params: Partial<DetectParams> = {}): Promise<CallResponse> {
     return this._execute('calling.detect', callId, params);
   }
 
@@ -290,7 +344,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async detectStop(callId: string, params: any = {}): Promise<any> {
+  async detectStop(callId: string, params: Partial<DetectStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.detect.stop', callId, params);
   }
 
@@ -305,7 +359,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The tap command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async tap(callId: string, params: any = {}): Promise<any> {
+  async tap(callId: string, params: Partial<TapParams> = {}): Promise<CallResponse> {
     return this._execute('calling.tap', callId, params);
   }
 
@@ -317,7 +371,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async tapStop(callId: string, params: any = {}): Promise<any> {
+  async tapStop(callId: string, params: Partial<TapStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.tap.stop', callId, params);
   }
 
@@ -331,7 +385,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The stream command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async stream(callId: string, params: any = {}): Promise<any> {
+  async stream(callId: string, params: Partial<StreamParams> = {}): Promise<CallResponse> {
     return this._execute('calling.stream', callId, params);
   }
 
@@ -343,7 +397,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async streamStop(callId: string, params: any = {}): Promise<any> {
+  async streamStop(callId: string, params: Partial<StreamStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.stream.stop', callId, params);
   }
 
@@ -357,7 +411,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async denoise(callId: string, params: any = {}): Promise<any> {
+  async denoise(callId: string, params: Partial<DenoiseParams> = {}): Promise<CallResponse> {
     return this._execute('calling.denoise', callId, params);
   }
 
@@ -369,7 +423,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async denoiseStop(callId: string, params: any = {}): Promise<any> {
+  async denoiseStop(
+    callId: string,
+    params: Partial<DenoiseStopParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.denoise.stop', callId, params);
   }
 
@@ -383,7 +440,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The transcribe command response containing a `control_id`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async transcribe(callId: string, params: any = {}): Promise<any> {
+  async transcribe(callId: string, params: Partial<TranscribeParams> = {}): Promise<CallResponse> {
     return this._execute('calling.transcribe', callId, params);
   }
 
@@ -395,7 +452,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The final transcription metadata.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async transcribeStop(callId: string, params: any = {}): Promise<any> {
+  async transcribeStop(
+    callId: string,
+    params: Partial<TranscribeStopParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.transcribe.stop', callId, params);
   }
 
@@ -409,7 +469,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async aiMessage(callId: string, params: any = {}): Promise<any> {
+  async aiMessage(callId: string, params: Partial<AIMessageParams> = {}): Promise<CallResponse> {
     return this._execute('calling.ai_message', callId, params);
   }
 
@@ -421,7 +481,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async aiHold(callId: string, params: any = {}): Promise<any> {
+  async aiHold(callId: string, params: Partial<AIHoldParams> = {}): Promise<CallResponse> {
     return this._execute('calling.ai_hold', callId, params);
   }
 
@@ -433,7 +493,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async aiUnhold(callId: string, params: any = {}): Promise<any> {
+  async aiUnhold(callId: string, params: Partial<AIUnholdParams> = {}): Promise<CallResponse> {
     return this._execute('calling.ai_unhold', callId, params);
   }
 
@@ -445,7 +505,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async aiStop(callId: string, params: any = {}): Promise<any> {
+  async aiStop(callId: string, params: Partial<AIStopParams> = {}): Promise<CallResponse> {
     return this._execute('calling.ai.stop', callId, params);
   }
 
@@ -460,7 +520,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async liveTranscribe(callId: string, params: any = {}): Promise<any> {
+  async liveTranscribe(
+    callId: string,
+    params: Partial<LiveTranscribeParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.live_transcribe', callId, params);
   }
 
@@ -473,7 +536,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async liveTranslate(callId: string, params: any = {}): Promise<any> {
+  async liveTranslate(
+    callId: string,
+    params: Partial<LiveTranslateParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.live_translate', callId, params);
   }
 
@@ -487,7 +553,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async sendFaxStop(callId: string, params: any = {}): Promise<any> {
+  async sendFaxStop(
+    callId: string,
+    params: Partial<SendFaxStopParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.send_fax.stop', callId, params);
   }
 
@@ -499,7 +568,10 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async receiveFaxStop(callId: string, params: any = {}): Promise<any> {
+  async receiveFaxStop(
+    callId: string,
+    params: Partial<ReceiveFaxStopParams> = {},
+  ): Promise<CallResponse> {
     return this._execute('calling.receive_fax.stop', callId, params);
   }
 
@@ -513,7 +585,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async refer(callId: string, params: any = {}): Promise<any> {
+  async refer(callId: string, params: Partial<ReferParams> = {}): Promise<CallResponse> {
     return this._execute('calling.refer', callId, params);
   }
 
@@ -528,7 +600,7 @@ export class CallingNamespace extends BaseResource {
    * @returns The platform's response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async userEvent(callId: string, params: any = {}): Promise<any> {
+  async userEvent(callId: string, params: Partial<UserEventParams> = {}): Promise<CallResponse> {
     return this._execute('calling.user_event', callId, params);
   }
 }
