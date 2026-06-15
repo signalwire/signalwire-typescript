@@ -2,12 +2,40 @@
  * Fabric API namespace — resource composition, addresses, and tokens.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudWithAddresses } from '../base/CrudWithAddresses.js';
+import type {
+  CallFlowAddressListResponse,
+  CallFlowVersionDeployRequest,
+  CallFlowVersionDeployResponse,
+  CallFlowVersionListResponse,
+  ConferenceRoomAddressListResponse,
+  DomainApplicationAssignRequest,
+  DomainApplicationResponse,
+  EmbedsTokensRequest,
+  EmbedsTokensResponse,
+  FabricAddress,
+  FabricAddressesResponse,
+  PhoneRouteAssignRequest,
+  PhoneRouteResponse,
+  ResourceAddressListResponse,
+  ResourceListResponse,
+  FabricResourceResponse,
+  SubscriberGuestTokenCreateRequest,
+  SubscriberGuestTokenCreateResponse,
+  SubscriberInviteTokenCreateRequest,
+  SubscriberInviteTokenCreateResponse,
+  SubscriberRefreshTokenRequest,
+  SubscriberRefreshTokenResponse,
+  SubscriberSIPEndpoint,
+  SubscriberSipEndpointListResponse,
+  SubscriberSipEndpointRequest,
+  SubscriberSipEndpointRequestUpdate,
+  SubscriberTokenRequest,
+  SubscriberTokenResponse,
+} from './fabric.types.js';
 
 /** Standard fabric resource with CRUD + addresses (PATCH updates). */
 export class FabricResource extends CrudWithAddresses {
@@ -39,7 +67,10 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  override async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<CallFlowAddressListResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.get(`${path}/${resourceId}/addresses`, params);
   }
@@ -52,7 +83,10 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns A paginated list of call-flow versions.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listVersions(resourceId: string, params?: QueryParams): Promise<any> {
+  async listVersions(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<CallFlowVersionListResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.get(`${path}/${resourceId}/versions`, params);
   }
@@ -65,7 +99,10 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns The newly-published version record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deployVersion(resourceId: string, body: any = {}): Promise<any> {
+  async deployVersion(
+    resourceId: string,
+    body: Partial<CallFlowVersionDeployRequest> = {},
+  ): Promise<CallFlowVersionDeployResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.post(`${path}/${resourceId}/versions`, body);
   }
@@ -85,7 +122,10 @@ export class ConferenceRoomsResource extends FabricResourcePUT {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  override async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<ConferenceRoomAddressListResponse> {
     const path = this._basePath.replace('/conference_rooms', '/conference_room');
     return this._http.get(`${path}/${resourceId}/addresses`, params);
   }
@@ -105,7 +145,10 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns A paginated list of SIP endpoints.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listSipEndpoints(subscriberId: string, params?: QueryParams): Promise<any> {
+  async listSipEndpoints(
+    subscriberId: string,
+    params?: QueryParams,
+  ): Promise<SubscriberSipEndpointListResponse> {
     return this._http.get(this._path(subscriberId, 'sip_endpoints'), params);
   }
 
@@ -117,7 +160,10 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The newly-created SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createSipEndpoint(subscriberId: string, body: any): Promise<any> {
+  async createSipEndpoint(
+    subscriberId: string,
+    body: SubscriberSipEndpointRequest,
+  ): Promise<SubscriberSIPEndpoint> {
     return this._http.post(this._path(subscriberId, 'sip_endpoints'), body);
   }
 
@@ -129,7 +175,7 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getSipEndpoint(subscriberId: string, endpointId: string): Promise<any> {
+  async getSipEndpoint(subscriberId: string, endpointId: string): Promise<SubscriberSIPEndpoint> {
     return this._http.get(this._path(subscriberId, 'sip_endpoints', endpointId));
   }
 
@@ -142,7 +188,11 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The updated SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async updateSipEndpoint(subscriberId: string, endpointId: string, body: any): Promise<any> {
+  async updateSipEndpoint(
+    subscriberId: string,
+    endpointId: string,
+    body: SubscriberSipEndpointRequestUpdate,
+  ): Promise<SubscriberSIPEndpoint> {
     return this._http.patch(this._path(subscriberId, 'sip_endpoints', endpointId), body);
   }
 
@@ -154,7 +204,7 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteSipEndpoint(subscriberId: string, endpointId: string): Promise<any> {
+  async deleteSipEndpoint(subscriberId: string, endpointId: string): Promise<unknown> {
     return this._http.delete(this._path(subscriberId, 'sip_endpoints', endpointId));
   }
 }
@@ -198,7 +248,7 @@ export class AutoMaterializedWebhookResource extends FabricResource {
    *   updates the phone number and the server auto-materializes the
    *   resource. Kept for backwards compatibility.
    */
-  override async create(body: any = {}): Promise<any> {
+  override async create(body: Record<string, unknown> = {}): Promise<unknown> {
     if (!AutoMaterializedWebhookResource._warned.has(this)) {
       AutoMaterializedWebhookResource._warned.add(this);
       console.warn(
@@ -237,7 +287,7 @@ export class GenericResources extends BaseResource {
    * @returns A paginated list of generic fabric resources.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<ResourceListResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -248,7 +298,7 @@ export class GenericResources extends BaseResource {
    * @returns The resource record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(resourceId: string): Promise<any> {
+  async get(resourceId: string): Promise<FabricResourceResponse> {
     return this._http.get(this._path(resourceId));
   }
 
@@ -259,7 +309,7 @@ export class GenericResources extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(resourceId: string): Promise<any> {
+  async delete(resourceId: string): Promise<unknown> {
     return this._http.delete(this._path(resourceId));
   }
 
@@ -271,7 +321,10 @@ export class GenericResources extends BaseResource {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<ResourceAddressListResponse> {
     return this._http.get(this._path(resourceId, 'addresses'), params);
   }
 
@@ -294,7 +347,10 @@ export class GenericResources extends BaseResource {
    * @returns The phone-route assignment record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async assignPhoneRoute(resourceId: string, body: any): Promise<any> {
+  async assignPhoneRoute(
+    resourceId: string,
+    body: PhoneRouteAssignRequest,
+  ): Promise<PhoneRouteResponse> {
     if (!GenericResources._assignPhoneRouteWarned.has(this)) {
       GenericResources._assignPhoneRouteWarned.add(this);
       console.warn(
@@ -316,7 +372,10 @@ export class GenericResources extends BaseResource {
    * @returns The domain-application assignment record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async assignDomainApplication(resourceId: string, body: any): Promise<any> {
+  async assignDomainApplication(
+    resourceId: string,
+    body: DomainApplicationAssignRequest,
+  ): Promise<DomainApplicationResponse> {
     return this._http.post(this._path(resourceId, 'domain_applications'), body);
   }
 }
@@ -334,7 +393,7 @@ export class FabricAddresses extends BaseResource {
    * @returns A paginated list of fabric addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<FabricAddressesResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -345,7 +404,7 @@ export class FabricAddresses extends BaseResource {
    * @returns The address record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(addressId: string): Promise<any> {
+  async get(addressId: string): Promise<FabricAddress> {
     return this._http.get(this._path(addressId));
   }
 }
@@ -363,7 +422,9 @@ export class FabricTokens extends BaseResource {
    * @returns The token record, typically `{ token: "eyJ..." }`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createSubscriberToken(body: any = {}): Promise<any> {
+  async createSubscriberToken(
+    body: Partial<SubscriberTokenRequest> = {},
+  ): Promise<SubscriberTokenResponse> {
     return this._http.post(this._path('subscribers', 'tokens'), body);
   }
 
@@ -375,7 +436,9 @@ export class FabricTokens extends BaseResource {
    * @returns The refreshed token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async refreshSubscriberToken(body: any = {}): Promise<any> {
+  async refreshSubscriberToken(
+    body: Partial<SubscriberRefreshTokenRequest> = {},
+  ): Promise<SubscriberRefreshTokenResponse> {
     return this._http.post(this._path('subscribers', 'tokens', 'refresh'), body);
   }
 
@@ -386,7 +449,9 @@ export class FabricTokens extends BaseResource {
    * @returns The invite record, including the share URL / code.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createInviteToken(body: any = {}): Promise<any> {
+  async createInviteToken(
+    body: Partial<SubscriberInviteTokenCreateRequest> = {},
+  ): Promise<SubscriberInviteTokenCreateResponse> {
     return this._http.post(this._path('subscriber', 'invites'), body);
   }
 
@@ -397,7 +462,9 @@ export class FabricTokens extends BaseResource {
    * @returns The token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createGuestToken(body: any = {}): Promise<any> {
+  async createGuestToken(
+    body: Partial<SubscriberGuestTokenCreateRequest> = {},
+  ): Promise<SubscriberGuestTokenCreateResponse> {
     return this._http.post(this._path('guests', 'tokens'), body);
   }
 
@@ -408,7 +475,7 @@ export class FabricTokens extends BaseResource {
    * @returns The token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createEmbedToken(body: any = {}): Promise<any> {
+  async createEmbedToken(body: Partial<EmbedsTokensRequest> = {}): Promise<EmbedsTokensResponse> {
     return this._http.post(this._path('embeds', 'tokens'), body);
   }
 }
