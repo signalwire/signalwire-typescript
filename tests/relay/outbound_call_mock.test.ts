@@ -15,8 +15,6 @@
  * `dial_winner: true`).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
@@ -235,7 +233,7 @@ describe('Dial — winner / losers', () => {
     const loserStates = stateEvents
       .filter((e) => e.frame.params.params?.call_id === 'L1')
       .map((e) => e.frame.params.params);
-    expect(loserStates.some((s: any) => s.call_state === 'ended')).toBe(true);
+    expect(loserStates.some((s) => s.call_state === 'ended')).toBe(true);
   });
 
   it('test_dial_losers_cleaned_up_from_calls_dict', async () => {
@@ -249,7 +247,7 @@ describe('Dial — winner / losers', () => {
     });
     const call = await client.dial([[phoneDevice()]], { tag: 't-cleanup', dialTimeout: 5.0 });
     await new Promise((r) => setTimeout(r, 200));
-    const calls = (client as any)._calls as Map<string, Call>;
+    const calls = (client as unknown as { _calls: Map<string, Call> })._calls;
     expect(calls.has('LOSE-CL')).toBe(false);
     expect(calls.has(call.callId)).toBe(true);
   });

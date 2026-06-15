@@ -2,11 +2,9 @@
  * Test utilities for REST client tests.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export interface MockResponse {
   status?: number;
-  body?: any;
+  body?: unknown;
   headers?: Record<string, string>;
 }
 
@@ -14,7 +12,7 @@ interface RecordedRequest {
   url: string;
   method: string;
   headers: Record<string, string>;
-  body: any;
+  body: unknown;
 }
 
 /**
@@ -51,7 +49,7 @@ export function createMockFetch(
       }
     }
 
-    let body: any = undefined;
+    let body: unknown = undefined;
     if (init?.body) {
       try {
         body = JSON.parse(init.body as string);

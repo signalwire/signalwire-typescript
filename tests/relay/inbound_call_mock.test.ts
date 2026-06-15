@@ -10,12 +10,11 @@
  * subscribed to.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
+import type { Device } from '../../src/relay/types.js';
 import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
@@ -46,7 +45,7 @@ function statePushFrame(
   callId: string,
   callState: string,
   opts: { tag?: string; direction?: string } = {},
-): Record<string, any> {
+): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -126,7 +125,7 @@ describe('Inbound call — handler dispatch', () => {
   });
 
   it('test_inbound_call_carries_from_to_in_device', async () => {
-    const seen: { device?: any } = {};
+    const seen: { device?: Device } = {};
     const done = new Promise<void>((resolve) => {
       client.onCall(async (call) => {
         seen.device = call.device;
@@ -142,7 +141,10 @@ describe('Inbound call — handler dispatch', () => {
       done,
       new Promise((_, reject) => setTimeout(() => reject(new Error('handler timed out')), 5000)),
     ]);
-    const params = (seen.device?.params ?? {}) as Record<string, any>;
+    const params = ((seen.device as Record<string, unknown> | undefined)?.params ?? {}) as Record<
+      string,
+      unknown
+    >;
     expect(params.from_number).toBe('+15551112233');
     expect(params.to_number).toBe('+15554445566');
   });
@@ -302,7 +304,9 @@ describe('Inbound call — scripted state sequences', () => {
     await waitFor(() => captured.call?.state === 'ended', 3000);
     expect(captured.call!.state).toBe('ended');
     // Ended calls are dropped from the registry.
-    expect((client as any)._calls.has('c-scripted')).toBe(false);
+    expect((client as unknown as { _calls: Map<string, Call> })._calls.has('c-scripted')).toBe(
+      false,
+    );
   });
 });
 
@@ -335,7 +339,7 @@ describe('Inbound call — handler patterns', () => {
     await mock.inboundCall({ call_id: 'c-raise' });
     await fired;
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 });
 
@@ -436,7 +440,7 @@ describe('Inbound call — no handler', () => {
     try {
       await mock.inboundCall({ call_id: 'c-nohandler' });
       await new Promise((r) => setTimeout(r, 200));
-      expect((fresh as any)._connected).toBe(true);
+      expect((fresh as unknown as { _connected: boolean })._connected).toBe(true);
     } finally {
       await fresh.disconnect();
     }

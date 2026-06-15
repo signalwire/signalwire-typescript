@@ -28,11 +28,9 @@
  * that drives the handler.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { registerBuiltinSkills } from '../src/skills/builtin/index.js';
 import { SkillRegistry } from '../src/skills/SkillRegistry.js';
-import type { SkillBase, SkillConfig } from '../src/skills/SkillBase.js';
+import type { SkillBase, SkillConfig, SkillToolDefinition } from '../src/skills/SkillBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import type { SwaigRequestData } from '../src/PlatformContracts.js';
 
@@ -145,10 +143,19 @@ function toolNameFor(skillName: string): string {
  * extracting the webhook URL from the registered DataMap and issuing
  * the HTTP call itself.
  */
-async function executeDataMap(tool: any, args: Record<string, unknown>): Promise<unknown> {
-  const dataMap = tool?.['data_map'] ?? tool?.dataMap;
+async function executeDataMap(
+  tool: SkillToolDefinition,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  // `data_map` / `dataMap` are dynamic config the DataMap builder attaches;
+  // they aren't part of the static SkillToolDefinition surface, so read them
+  // by string key off an index view of the tool.
+  const toolRecord = tool as unknown as Record<string, unknown>;
+  const dataMap = (toolRecord['data_map'] ?? toolRecord['dataMap']) as
+    | Record<string, unknown>
+    | undefined;
   if (!dataMap) return null;
-  const webhooks = (dataMap['webhooks'] ?? []) as any[];
+  const webhooks = (dataMap['webhooks'] ?? []) as Record<string, unknown>[];
   if (webhooks.length === 0) return null;
   const webhook = webhooks[0];
   const urlTemplate = String(webhook['url'] ?? '');
@@ -158,7 +165,7 @@ async function executeDataMap(tool: any, args: Record<string, unknown>): Promise
   // Naive ${...args.foo} expansion — args.foo / args.bar.baz / etc.
   const url = urlTemplate.replace(/\$\{[^}]*args\.([\w.]+)\}/g, (_, path) => {
     const parts = String(path).split('.');
-    let v: any = args;
+    let v: unknown = args;
     for (const p of parts) {
       if (v == null) return '';
       v = (v as Record<string, unknown>)[p];
@@ -202,7 +209,7 @@ async function dispatchHandler(
     return result;
   }
   // No handler — try DataMap.
-  return executeDataMap(tool as any, args);
+  return executeDataMap(tool, args);
 }
 
 async function main(): Promise<void> {

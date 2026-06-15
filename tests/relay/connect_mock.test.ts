@@ -14,8 +14,6 @@
  *      what the real RELAY expects).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import {
@@ -127,7 +125,7 @@ describe('RelayClient.connect — reconnect with protocol', () => {
       contexts: ['c1'],
     });
     // Emulate the Python `client._relay_protocol = issued` resume path.
-    (c2 as any)._relayProtocol = issued;
+    (c2 as unknown as { _relayProtocol: string })._relayProtocol = issued;
     await c2.connect();
     await c2.disconnect();
 
@@ -153,7 +151,7 @@ describe('RelayClient.connect — reconnect with protocol', () => {
       host: mock.relayHost,
       scheme: 'ws',
     });
-    (c2 as any)._relayProtocol = issued;
+    (c2 as unknown as { _relayProtocol: string })._relayProtocol = issued;
     await c2.connect();
     expect(c2.relayProtocol).toBe(issued);
     await c2.disconnect();
@@ -193,20 +191,22 @@ describe('RelayClient.connect — auth failure', () => {
     // a client with empty creds, but we still want to prove the mock's
     // 401 path is reachable so a port whose SDK *does* allow empty creds
     // would fail loudly here.
-    const wsModule: any = await import('ws');
-    const WS = wsModule.default ?? wsModule;
+    const wsModule = await import('ws');
+    const WS = wsModule.default;
     const sock = new WS(mock.wsUrl);
     await new Promise<void>((resolve, reject) => {
-      sock.on('open', resolve);
+      sock.on('open', () => resolve());
       sock.on('error', reject);
     });
     const reqId = 'auth-fail-' + Math.random().toString(36).slice(2);
-    const respPromise = new Promise<any>((resolve) => {
-      sock.on('message', (data: any) => {
-        const raw = typeof data === 'string' ? data : data.toString();
-        resolve(JSON.parse(raw));
-      });
-    });
+    const respPromise = new Promise<{ error?: { data?: { signalwire_error_code?: string } } }>(
+      (resolve) => {
+        sock.on('message', (data) => {
+          const raw = typeof data === 'string' ? data : data.toString();
+          resolve(JSON.parse(raw));
+        });
+      },
+    );
     sock.send(
       JSON.stringify({
         jsonrpc: '2.0',

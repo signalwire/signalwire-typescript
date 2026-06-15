@@ -29,16 +29,14 @@
  * 1 on any error (with a diagnostic on stderr).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { RestClient } from '../src/rest/index.js';
+import { RestClient, HttpClient } from '../src/rest/index.js';
 
 function die(msg: string): never {
   process.stderr.write(`rest_audit_harness: ${msg}\n`);
   process.exit(1);
 }
 
-function asStringMap(args: any): Record<string, string> {
+function asStringMap(args: unknown): Record<string, string> {
   // Convert {limit: 5, ...} to {limit: "5", ...} for query-param use.
   const out: Record<string, string> = {};
   if (!args || typeof args !== 'object') return out;
@@ -49,12 +47,21 @@ function asStringMap(args: any): Record<string, string> {
   return out;
 }
 
+/**
+ * The compat namespaces expose their `HttpClient` as a `protected _http`
+ * member. The audit needs to issue a raw GET/POST against an exact path
+ * (Python keeps the `.json` suffix that `CompatCalls.list` drops), so we
+ * reach the shared transport directly. This local view types that
+ * otherwise-protected access without resorting to `any`.
+ */
+type WithHttp = { readonly _http: HttpClient };
+
 async function dispatch(
   client: RestClient,
   project: string,
   operation: string,
-  args: Record<string, any>,
-): Promise<any> {
+  args: Record<string, unknown>,
+): Promise<unknown> {
   // We thread through the same HttpClient the namespace classes use so
   // every operation hits the audit fixture URL with Basic auth.
   // `client` itself is constructed pointed at REST_FIXTURE_URL.
@@ -68,7 +75,7 @@ async function dispatch(
       // `/api/laml/2010-04-01/Accounts/{proj}/Calls.json` exactly,
       // because TS's CompatCalls.list omits the `.json` suffix.
       const path = `/api/laml/2010-04-01/Accounts/${project}/Calls.json`;
-      return (client as any)['compat']['calls']['_http'].get(path, asStringMap(args));
+      return (client.compat.calls as unknown as WithHttp)._http.get(path, asStringMap(args));
     }
 
     case 'messaging.send': {
@@ -76,7 +83,7 @@ async function dispatch(
       // create. The TS surface exposes this via `client.compat.messages.create(body)`.
       // Match Python's path with the `.json` suffix.
       const path = `/api/laml/2010-04-01/Accounts/${project}/Messages.json`;
-      return (client as any)['compat']['messages']['_http'].post(path, args);
+      return (client.compat.messages as unknown as WithHttp)._http.post(path, args);
     }
 
     case 'phone_numbers.list': {
@@ -107,7 +114,7 @@ async function main(): Promise<void> {
     process.env['SIGNALWIRE_PROJECT_ID'] ?? die('SIGNALWIRE_PROJECT_ID env var required');
   const token = process.env['SIGNALWIRE_API_TOKEN'] ?? die('SIGNALWIRE_API_TOKEN env var required');
 
-  let args: Record<string, any> = {};
+  let args: Record<string, unknown> = {};
   const rawArgs = process.env['REST_OPERATION_ARGS'];
   if (rawArgs && rawArgs.length > 0) {
     try {
@@ -124,7 +131,7 @@ async function main(): Promise<void> {
   // the loopback fixture.
   const client = new RestClient({ project, token, host: fixtureUrl });
 
-  let result: any;
+  let result: unknown;
   try {
     result = await dispatch(client, project, operation, args);
   } catch (err) {

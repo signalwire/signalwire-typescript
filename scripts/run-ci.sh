@@ -222,7 +222,10 @@ lint_gate() {
     # blind spot once made a "no-explicit-any=0" claim false). Forbid the
     # file-level form outright; only line-level `eslint-disable-next-line` on a
     # justified site is allowed. Generated modules already carry zero disables.
-    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' src; then
+    # Cover EVERY tree eslint lints — not just src; the gap let file-disables hide
+    # in tests/ + examples/ (~50 `any`) undetected.
+    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' \
+        src tests examples rest/examples relay/examples; then
         echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
         return 1
     fi

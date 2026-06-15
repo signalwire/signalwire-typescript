@@ -15,8 +15,6 @@
  * the test environment if a different mock instance is already running.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -68,7 +66,7 @@ export interface JournalEntry {
   path: string;
   query_params: Record<string, string[]>;
   headers: Record<string, string>;
-  body: any;
+  body: unknown;
   matched_route: string | null;
   response_status: number | null;
 }
@@ -128,7 +126,7 @@ export class MockHarness {
    * endpointId is the Spectral-style "OperationId" from the OpenAPI spec —
    * see /__mock__/scenarios for the active list.
    */
-  async pushScenario(endpointId: string, status: number, body: any): Promise<void> {
+  async pushScenario(endpointId: string, status: number, body: unknown): Promise<void> {
     const resp = await fetch(`${this.url}/__mock__/scenarios/${endpointId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

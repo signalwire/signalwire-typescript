@@ -36,7 +36,7 @@ const VIP_NUMBERS = ['+15551234567', '+15559876543'];
 
 agent.setDynamicConfigCallback(async (queryParams, bodyParams, _headers, agentCopy) => {
   const copy = agentCopy as AgentBase;
-  const callerNumber = ((bodyParams['call'] as Record<string, unknown>)?.['from'] as string) ?? '';
+  const callerNumber = bodyParams.call?.from ?? '';
 
   // VIP detection
   if (VIP_NUMBERS.includes(callerNumber)) {

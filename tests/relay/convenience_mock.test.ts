@@ -14,15 +14,18 @@
  * short-circuit (and the block-then-resolve path for a not-yet-reached state).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { PlayAction, DetectAction, CollectAction } from '../../src/relay/Action.js';
 import { RelayEvent } from '../../src/relay/RelayEvent.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import {
+  getMockRelay,
+  newRelayClient,
+  type MockRelayHarness,
+  type RelayFrame,
+} from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -68,7 +71,10 @@ async function answeredInboundCall(callId = 'conv-call-1'): Promise<Call> {
   return call;
 }
 
-function bareEventFrame(eventType: string, params: Record<string, any>): Record<string, any> {
+function bareEventFrame(
+  eventType: string,
+  params: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -78,7 +84,7 @@ function bareEventFrame(eventType: string, params: Record<string, any>): Record<
 }
 
 /** Poll the recv journal for `method` and return the latest frame's params. */
-async function lastFrameParams(method: string): Promise<Record<string, any>> {
+async function lastFrameParams(method: string): Promise<RelayFrame> {
   const deadline = Date.now() + 2000;
   for (;;) {
     const entries = await mock.journalRecv(method);

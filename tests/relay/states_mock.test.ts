@@ -23,8 +23,6 @@
  * conflate" are verified, not merely annotated.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
@@ -160,7 +158,7 @@ afterEach(async () => {
   }
 });
 
-function statePushFrame(callId: string, callState: string): Record<string, any> {
+function statePushFrame(callId: string, callState: string): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -394,7 +392,7 @@ describe('Message.state / Message.isTerminal over a real messaging.state event',
     return client.sendMessage({ toNumber: '+15551112222', fromNumber: '+15553334444', body });
   }
 
-  function msgStateFrame(messageId: string, state: string): Record<string, any> {
+  function msgStateFrame(messageId: string, state: string): Record<string, unknown> {
     return {
       jsonrpc: '2.0',
       id: randomUUID(),

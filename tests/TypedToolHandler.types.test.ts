@@ -22,8 +22,6 @@
  * the type and the behavior are both exercised.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, it, expect } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
@@ -141,7 +139,7 @@ describe('TypedToolHandler — precise typed-tool handler signature', () => {
   });
 
   it('runtime: defineTypedTool accepts the typed handler and the wrapped tool executes it', async () => {
-    const agent = new AgentBase({ name: 'typed-handler-test', route: '/t' } as any);
+    const agent = new AgentBase({ name: 'typed-handler-test', route: '/t' });
     const captured: unknown[] = [];
     agent.defineTypedTool({
       name: 'greet',

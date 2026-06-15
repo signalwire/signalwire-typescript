@@ -24,8 +24,6 @@
  * is verified, not merely annotated.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
@@ -34,7 +32,12 @@ import * as ts from 'typescript';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { TtsGender, FaxTone } from '../../src/relay/closedSets.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import {
+  getMockRelay,
+  newRelayClient,
+  type MockRelayHarness,
+  type RelayFrame,
+} from './mocktest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLOSED_SETS_SRC = path.resolve(__dirname, '../../src/relay/closedSets.ts');
@@ -144,7 +147,7 @@ async function answeredInboundCall(callId: string): Promise<Call> {
 }
 
 /** Latest journaled frame's params for `method` (polls up to 2s). */
-async function lastFrameParams(method: string): Promise<Record<string, any>> {
+async function lastFrameParams(method: string): Promise<RelayFrame> {
   const deadline = Date.now() + 2000;
   for (;;) {
     const entries = await mock.journalRecv(method);

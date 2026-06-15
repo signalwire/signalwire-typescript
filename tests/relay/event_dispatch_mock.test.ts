@@ -8,12 +8,11 @@
  * neatly into per-action / per-call test files.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
+import type { RelayEvent } from '../../src/relay/RelayEvent.js';
 import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
@@ -59,7 +58,10 @@ async function answeredCall(callId = 'evt-call-1'): Promise<Call> {
   return call;
 }
 
-function bareEventFrame(eventType: string, params: Record<string, any>): Record<string, any> {
+function bareEventFrame(
+  eventType: string,
+  params: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -134,7 +136,7 @@ describe('Event dispatch — unknown / malformed events', () => {
   it('test_unknown_event_type_does_not_crash', async () => {
     await mock.push(bareEventFrame('nonsense.unknown', { foo: 'bar' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 
   it('test_event_with_bad_call_id_is_dropped', async () => {
@@ -146,13 +148,13 @@ describe('Event dispatch — unknown / malformed events', () => {
       }),
     );
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 
   it('test_event_with_empty_event_type_is_dropped', async () => {
     await mock.push(bareEventFrame('', { call_id: 'x' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 });
 
@@ -298,8 +300,15 @@ describe('Event dispatch — authorization state', () => {
         authorization_state: 'test-auth-state-blob',
       }),
     );
-    await waitFor(() => (client as any)._authorizationState === 'test-auth-state-blob', 2000);
-    expect((client as any)._authorizationState).toBe('test-auth-state-blob');
+    await waitFor(
+      () =>
+        (client as unknown as { _authorizationState?: string })._authorizationState ===
+        'test-auth-state-blob',
+      2000,
+    );
+    expect((client as unknown as { _authorizationState?: string })._authorizationState).toBe(
+      'test-auth-state-blob',
+    );
   });
 });
 
@@ -311,7 +320,7 @@ describe('Event dispatch — calling.error', () => {
   it('test_calling_error_event_does_not_crash', async () => {
     await mock.push(bareEventFrame('calling.error', { code: '5001', message: 'synthetic error' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 });
 
@@ -335,7 +344,7 @@ describe('Event dispatch — state events', () => {
 
   it('test_call_listener_fires_on_event', async () => {
     const call = await answeredCall('ec-list');
-    const seen: any[] = [];
+    const seen: RelayEvent[] = [];
     const fired = new Promise<void>((resolve) => {
       call.on('calling.call.play', (event) => {
         seen.push(event);

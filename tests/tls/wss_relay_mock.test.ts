@@ -18,8 +18,6 @@
  * that must actually be verified — trust is real, not skipped.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { METHOD_SIGNALWIRE_CONNECT } from '../../src/relay/constants.js';
@@ -84,7 +82,7 @@ describe.skipIf(!mockReady)('TLS: RelayClient over wss://', () => {
     // the server's cert is signed by the test CA (not in this store), proving
     // certificate verification is genuinely in force.
     const wsModule = await import('ws');
-    const WS = (wsModule as any).default ?? wsModule;
+    const WS = wsModule.default ?? wsModule.WebSocket;
     const url = `wss://${mock.relayHost}/api/relay/ws`;
 
     const code: string = await new Promise((resolve) => {
@@ -93,7 +91,9 @@ describe.skipIf(!mockReady)('TLS: RelayClient over wss://', () => {
         ws.close();
         resolve('UNEXPECTED_OPEN');
       });
-      ws.on('error', (err: any) => resolve(err?.code ?? err?.message ?? 'ERR'));
+      ws.on('error', (err: Error & { code?: string }) =>
+        resolve(err?.code ?? err?.message ?? 'ERR'),
+      );
     });
 
     expect(code).not.toBe('UNEXPECTED_OPEN');
