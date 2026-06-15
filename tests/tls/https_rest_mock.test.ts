@@ -22,11 +22,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RestClient } from '../../src/rest/index.js';
-import {
-  resolveTlsCerts,
-  startTlsMockSignalwire,
-  type TlsMockSignalwire,
-} from './support.js';
+import { resolveTlsCerts, startTlsMockSignalwire, type TlsMockSignalwire } from './support.js';
 
 const certs = resolveTlsCerts();
 const ready = certs !== null;

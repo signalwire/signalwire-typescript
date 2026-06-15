@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are an assistant with access to external tools via MCP (Model Context Protocol). ' +
-  'Use the available tools to help the caller with their requests.',
+    'Use the available tools to help the caller with their requests.',
 );
 
 // Add MCP Gateway skill — currently a stub for future implementation

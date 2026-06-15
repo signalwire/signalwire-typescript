@@ -290,10 +290,7 @@ export class PomBuilder {
    * @param opts - Body text and/or bullets to add.
    * @returns This builder for chaining.
    */
-  addToSection(
-    title: string,
-    opts?: { body?: string; bullet?: string; bullets?: string[] },
-  ): this {
+  addToSection(title: string, opts?: { body?: string; bullet?: string; bullets?: string[] }): this {
     if (!this.sectionMap.has(title)) {
       this.addSection(title);
     }

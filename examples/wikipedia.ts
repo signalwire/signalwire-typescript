@@ -19,9 +19,9 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a knowledgeable assistant with access to Wikipedia. ' +
-  'When the user asks about a topic, person, place, or concept, ' +
-  'search Wikipedia to provide accurate encyclopedic information. ' +
-  'Summarize the information naturally rather than reading it verbatim.',
+    'When the user asks about a topic, person, place, or concept, ' +
+    'search Wikipedia to provide accurate encyclopedic information. ' +
+    'Summarize the information naturally rather than reading it verbatim.',
 );
 
 // Add Wikipedia search skill — no API key needed

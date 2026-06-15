@@ -47,8 +47,7 @@ export class DateTimeSkill extends SkillBase {
     return [
       {
         name: 'get_current_time',
-        description:
-          "Get the current time, optionally in a specific timezone",
+        description: 'Get the current time, optionally in a specific timezone',
         parameters: {
           timezone: {
             type: 'string',
@@ -68,9 +67,7 @@ export class DateTimeSkill extends SkillBase {
               hour12: true,
               timeZoneName: 'short',
             });
-            return new FunctionResult(
-              `The current time is ${timeFormatter.format(now)}`,
-            );
+            return new FunctionResult(`The current time is ${timeFormatter.format(now)}`);
           } catch {
             return new FunctionResult(
               `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier.`,
@@ -98,9 +95,7 @@ export class DateTimeSkill extends SkillBase {
               month: 'long',
               day: 'numeric',
             });
-            return new FunctionResult(
-              `Today's date is ${dateFormatter.format(now)}`,
-            );
+            return new FunctionResult(`Today's date is ${dateFormatter.format(now)}`);
           } catch {
             return new FunctionResult(
               `Invalid timezone "${timezone}". Please use a valid IANA timezone identifier.`,

@@ -54,7 +54,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -88,10 +92,7 @@ async function answeredInboundCall(callId = 'act-call-1'): Promise<Call> {
 describe('PlayAction', () => {
   it('test_play_journals_calling_play', async () => {
     const call = await answeredInboundCall('call-play');
-    await call.play(
-      [{ type: 'tts', params: { text: 'hi' } }],
-      { controlId: 'play-ctl-1' },
-    );
+    await call.play([{ type: 'tts', params: { text: 'hi' } }], { controlId: 'play-ctl-1' });
     const [entry] = await mock.journalRecv('calling.play');
     const p = entry!.frame.params;
     expect(p.call_id).toBe('call-play');
@@ -105,10 +106,9 @@ describe('PlayAction', () => {
       { emit: { state: 'playing' }, delay_ms: 1 },
       { emit: { state: 'finished' }, delay_ms: 5 },
     ]);
-    const action = await call.play(
-      [{ type: 'silence', params: { duration: 1 } }],
-      { controlId: 'play-ctl-fin' },
-    );
+    const action = await call.play([{ type: 'silence', params: { duration: 1 } }], {
+      controlId: 'play-ctl-fin',
+    });
     expect(action).toBeInstanceOf(PlayAction);
     const event = await action.wait(5);
     expect(action.isDone).toBe(true);
@@ -117,10 +117,9 @@ describe('PlayAction', () => {
 
   it('test_play_stop_journals_play_stop', async () => {
     const call = await answeredInboundCall('call-play-stop');
-    const action = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: 'play-ctl-stop' },
-    );
+    const action = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: 'play-ctl-stop',
+    });
     await action.stop();
     const stops = await mock.journalRecv('calling.play.stop');
     expect(stops.length).toBeGreaterThan(0);
@@ -129,10 +128,9 @@ describe('PlayAction', () => {
 
   it('test_play_pause_resume_volume_journal', async () => {
     const call = await answeredInboundCall('call-play-prv');
-    const action = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: 'play-ctl-prv' },
-    );
+    const action = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: 'play-ctl-prv',
+    });
     await action.pause();
     await action.resume();
     await action.volume(-3.0);
@@ -146,9 +144,7 @@ describe('PlayAction', () => {
 
   it('test_play_on_completed_callback_fires', async () => {
     const call = await answeredInboundCall('call-play-cb');
-    await mock.armMethod('calling.play', [
-      { emit: { state: 'finished' }, delay_ms: 1 },
-    ]);
+    await mock.armMethod('calling.play', [{ emit: { state: 'finished' }, delay_ms: 1 }]);
     let callbackFired = false;
     const seen: { e?: RelayEvent } = {};
     const cbPromise = new Promise<void>((resolve) => {
@@ -157,10 +153,12 @@ describe('PlayAction', () => {
         callbackFired = true;
         resolve();
       };
-      call.play(
-        [{ type: 'silence', params: { duration: 1 } }],
-        { controlId: 'play-ctl-cb', onCompleted: onDone },
-      ).then((action) => action.wait(5));
+      call
+        .play([{ type: 'silence', params: { duration: 1 } }], {
+          controlId: 'play-ctl-cb',
+          onCompleted: onDone,
+        })
+        .then((action) => action.wait(5));
     });
     await Promise.race([
       cbPromise,
@@ -222,10 +220,7 @@ describe('DetectAction', () => {
       },
       { emit: { state: 'finished' }, delay_ms: 10 },
     ]);
-    const action = await call.detect(
-      { type: 'machine', params: {} },
-      { controlId: 'det-ctl-1' },
-    );
+    const action = await call.detect({ type: 'machine', params: {} }, { controlId: 'det-ctl-1' });
     expect(action).toBeInstanceOf(DetectAction);
     const event = await action.wait(5);
     expect(event.params.detect?.type).toBe('machine');
@@ -233,10 +228,7 @@ describe('DetectAction', () => {
 
   it('test_detect_stop_journals_detect_stop', async () => {
     const call = await answeredInboundCall('call-det-stop');
-    const action = await call.detect(
-      { type: 'fax', params: {} },
-      { controlId: 'det-stop' },
-    );
+    const action = await call.detect({ type: 'fax', params: {} }, { controlId: 'det-stop' });
     await action.stop();
     const stops = await mock.journalRecv('calling.detect.stop');
     expect(stops.length).toBeGreaterThan(0);
@@ -525,10 +517,9 @@ describe('AIAction', () => {
 describe('Concurrent actions', () => {
   it('test_concurrent_play_and_record_route_independently', async () => {
     const call = await answeredInboundCall('call-multi');
-    const playAction = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: 'ctl-play-x' },
-    );
+    const playAction = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: 'ctl-play-x',
+    });
     const recordAction = await call.record({ format: 'wav' }, { controlId: 'ctl-rec-y' });
     expect(playAction.controlId).toBe('ctl-play-x');
     expect(recordAction.controlId).toBe('ctl-rec-y');

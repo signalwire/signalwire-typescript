@@ -189,7 +189,8 @@ export class Step {
    * @returns This step for chaining.
    */
   setText(text: string): this {
-    if (this.sections.length) throw new Error('Cannot use setText() when POM sections have been added.');
+    if (this.sections.length)
+      throw new Error('Cannot use setText() when POM sections have been added.');
     this.text = text;
     return this;
   }
@@ -201,7 +202,8 @@ export class Step {
    * @returns This step for chaining.
    */
   addSection(title: string, body: string): this {
-    if (this.text !== null) throw new Error('Cannot add POM sections when setText() has been used.');
+    if (this.text !== null)
+      throw new Error('Cannot add POM sections when setText() has been used.');
     this.sections.push({ title, body });
     return this;
   }
@@ -213,7 +215,8 @@ export class Step {
    * @returns This step for chaining.
    */
   addBullets(title: string, bullets: string[]): this {
-    if (this.text !== null) throw new Error('Cannot add POM sections when setText() has been used.');
+    if (this.text !== null)
+      throw new Error('Cannot add POM sections when setText() has been used.');
     this.sections.push({ title, bullets });
     return this;
   }
@@ -452,7 +455,8 @@ export class Step {
 
   private renderText(): string {
     if (this.text !== null) return this.text;
-    if (!this.sections.length) throw new Error(`Step '${this.name}' has no text or POM sections defined`);
+    if (!this.sections.length)
+      throw new Error(`Step '${this.name}' has no text or POM sections defined`);
     const parts: string[] = [];
     for (const section of this.sections) {
       parts.push(`## ${section.title}`);
@@ -542,7 +546,8 @@ export class Context {
     if (this.steps.size >= MAX_STEPS_PER_CONTEXT) {
       throw new Error(`Maximum steps per context (${MAX_STEPS_PER_CONTEXT}) exceeded`);
     }
-    if (this.steps.has(name)) throw new Error(`Step '${name}' already exists in context '${this.name}'`);
+    if (this.steps.has(name))
+      throw new Error(`Step '${name}' already exists in context '${this.name}'`);
     const step = new Step(name);
     this.steps.set(name, step);
     this.stepOrder.push(name);
@@ -581,7 +586,8 @@ export class Context {
    * @returns This context for chaining.
    */
   moveStep(name: string, position: number): this {
-    if (!this.steps.has(name)) throw new Error(`Step '${name}' not found in context '${this.name}'`);
+    if (!this.steps.has(name))
+      throw new Error(`Step '${name}' not found in context '${this.name}'`);
     this.stepOrder = this.stepOrder.filter((s) => s !== name);
     this.stepOrder.splice(position, 0, name);
     return this;
@@ -623,7 +629,8 @@ export class Context {
    * @returns This context for chaining.
    */
   setSystemPrompt(systemPrompt: string): this {
-    if (this.systemPromptSections.length) throw new Error('Cannot use setSystemPrompt() when POM sections have been added.');
+    if (this.systemPromptSections.length)
+      throw new Error('Cannot use setSystemPrompt() when POM sections have been added.');
     this._systemPrompt = systemPrompt;
     return this;
   }
@@ -708,7 +715,8 @@ export class Context {
    * @returns This context for chaining.
    */
   addSystemSection(title: string, body: string): this {
-    if (this._systemPrompt !== null) throw new Error('Cannot add POM sections when setSystemPrompt() has been used.');
+    if (this._systemPrompt !== null)
+      throw new Error('Cannot add POM sections when setSystemPrompt() has been used.');
     this.systemPromptSections.push({ title, body });
     return this;
   }
@@ -720,7 +728,8 @@ export class Context {
    * @returns This context for chaining.
    */
   addSystemBullets(title: string, bullets: string[]): this {
-    if (this._systemPrompt !== null) throw new Error('Cannot add POM sections when setSystemPrompt() has been used.');
+    if (this._systemPrompt !== null)
+      throw new Error('Cannot add POM sections when setSystemPrompt() has been used.');
     this.systemPromptSections.push({ title, bullets });
     return this;
   }
@@ -731,7 +740,8 @@ export class Context {
    * @returns This context for chaining.
    */
   setPrompt(prompt: string): this {
-    if (this.promptSections.length) throw new Error('Cannot use setPrompt() when POM sections have been added.');
+    if (this.promptSections.length)
+      throw new Error('Cannot use setPrompt() when POM sections have been added.');
     this.promptText = prompt;
     return this;
   }
@@ -743,7 +753,8 @@ export class Context {
    * @returns This context for chaining.
    */
   addSection(title: string, body: string): this {
-    if (this.promptText !== null) throw new Error('Cannot add POM sections when setPrompt() has been used.');
+    if (this.promptText !== null)
+      throw new Error('Cannot add POM sections when setPrompt() has been used.');
     this.promptSections.push({ title, body });
     return this;
   }
@@ -755,7 +766,8 @@ export class Context {
    * @returns This context for chaining.
    */
   addBullets(title: string, bullets: string[]): this {
-    if (this.promptText !== null) throw new Error('Cannot add POM sections when setPrompt() has been used.');
+    if (this.promptText !== null)
+      throw new Error('Cannot add POM sections when setPrompt() has been used.');
     this.promptSections.push({ title, bullets });
     return this;
   }
@@ -1019,7 +1031,8 @@ export class ContextBuilder {
     if (!this.contexts.size) throw new Error('At least one context must be defined');
     if (this.contexts.size === 1) {
       const name = [...this.contexts.keys()][0];
-      if (name !== 'default') throw new Error("When using a single context, it must be named 'default'");
+      if (name !== 'default')
+        throw new Error("When using a single context, it must be named 'default'");
     }
     for (const [name, ctx] of this.contexts) {
       if (!ctx.getSteps().size) throw new Error(`Context '${name}' must have at least one step`);
@@ -1132,8 +1145,13 @@ export class ContextBuilder {
     // tool names. The runtime auto-injects next_step / change_context /
     // gather_submit when contexts/steps are present, so user tools sharing
     // those names would never be called.
-    if (this.agent && typeof (this.agent as { getRegisteredTools?: unknown }).getRegisteredTools === 'function') {
-      const getRegisteredTools = (this.agent as { getRegisteredTools: () => Array<{ name: string }> }).getRegisteredTools.bind(this.agent);
+    if (
+      this.agent &&
+      typeof (this.agent as { getRegisteredTools?: unknown }).getRegisteredTools === 'function'
+    ) {
+      const getRegisteredTools = (
+        this.agent as { getRegisteredTools: () => Array<{ name: string }> }
+      ).getRegisteredTools.bind(this.agent);
       const registered = getRegisteredTools();
       const colliding: string[] = [];
       for (const tool of registered) {

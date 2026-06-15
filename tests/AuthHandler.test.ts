@@ -126,7 +126,9 @@ describe('AuthHandler', () => {
       json: (body: unknown, status: number) => ({ body, status }),
     };
 
-    const result = await mw(mockCtx, async () => { nextCalled = true; });
+    const result = await mw(mockCtx, async () => {
+      nextCalled = true;
+    });
     expect(nextCalled).toBe(false);
     expect((result as any).status).toBe(401);
   });

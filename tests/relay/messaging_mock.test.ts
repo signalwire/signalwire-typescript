@@ -31,7 +31,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 

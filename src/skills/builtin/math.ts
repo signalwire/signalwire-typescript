@@ -103,16 +103,12 @@ export class MathSkill extends SkillBase {
           const expression = args.expression as string | undefined;
 
           if (!expression || typeof expression !== 'string') {
-            return new FunctionResult(
-              'Please provide a mathematical expression to evaluate.',
-            );
+            return new FunctionResult('Please provide a mathematical expression to evaluate.');
           }
 
           try {
             const result = safeEvaluate(expression);
-            return new FunctionResult(
-              `The result of ${expression.trim()} is ${result}.`,
-            );
+            return new FunctionResult(`The result of ${expression.trim()} is ${result}.`);
           } catch {
             return new FunctionResult(
               `Could not evaluate the expression. Please check that it contains only valid mathematical operators and try again.`,

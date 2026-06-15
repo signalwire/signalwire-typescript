@@ -72,9 +72,7 @@ describe('InfoGathererAgent', () => {
 
   it('start_questions uses confirmation instruction when confirm flag is true', async () => {
     const agent = new InfoGathererAgent({
-      questions: [
-        { key_name: 'email', question_text: 'Email?', confirm: true },
-      ],
+      questions: [{ key_name: 'email', question_text: 'Email?', confirm: true }],
     });
     const tool = agent.getTool('start_questions')!;
     const rawData = {
@@ -191,9 +189,7 @@ describe('InfoGathererAgent', () => {
   });
 
   it('questionCallback can be passed via config', async () => {
-    const cb = vi.fn(() => [
-      { key_name: 'company', question_text: 'What company?' },
-    ]);
+    const cb = vi.fn(() => [{ key_name: 'company', question_text: 'What company?' }]);
     const agent = new InfoGathererAgent({ questionCallback: cb });
     const mods = await agent.onSwmlRequest({});
     expect(cb).toHaveBeenCalled();
@@ -402,17 +398,11 @@ describe('SurveyAgent', () => {
     const tool = agent.getTool('answer_question')!;
 
     // Out of range
-    const result = await tool.execute(
-      { question_id: 'q1', answer: '15' },
-      { call_id: 'val-1' },
-    );
+    const result = await tool.execute({ question_id: 'q1', answer: '15' }, { call_id: 'val-1' });
     expect(result.response).toContain('between 1 and 10');
 
     // Not a number
-    const result2 = await tool.execute(
-      { question_id: 'q1', answer: 'abc' },
-      { call_id: 'val-2' },
-    );
+    const result2 = await tool.execute({ question_id: 'q1', answer: 'abc' }, { call_id: 'val-2' });
     expect(result2.response).toContain('between 1 and 10');
   });
 
@@ -442,10 +432,7 @@ describe('SurveyAgent', () => {
     await tool.execute({ question_id: 'q2', answer: 'yes' }, callData);
 
     // Invalid option
-    const result = await tool.execute(
-      { question_id: 'q3', answer: 'InvalidOption' },
-      callData,
-    );
+    const result = await tool.execute({ question_id: 'q3', answer: 'InvalidOption' }, callData);
     expect(result.response).toContain('Invalid choice');
     expect(result.response).toContain('Speed');
     expect(result.response).toContain('Price');
@@ -535,10 +522,7 @@ describe('SurveyAgent', () => {
   it('log_response acknowledges recording a response', async () => {
     const agent = createAgent();
     const tool = agent.getTool('log_response')!;
-    const result = await tool.execute(
-      { question_id: 'q1', response: '7' },
-      { call_id: 'log-1' },
-    );
+    const result = await tool.execute({ question_id: 'q1', response: '7' }, { call_id: 'log-1' });
     expect(result.response).toContain('recorded');
     expect(result.response).toContain('satisfied');
   });
@@ -663,10 +647,7 @@ describe('FAQBotAgent', () => {
     ];
     const agent = new FAQBotAgent({ faqs: categorizedFaqs, threshold: 0.01 });
     const tool = agent.getTool('search_faqs')!;
-    const result = await tool.execute(
-      { query: 'password reset', category: 'general' },
-      {},
-    );
+    const result = await tool.execute({ query: 'password reset', category: 'general' }, {});
     // Filtered to only the "general" FAQ, so no relevant password match
     expect(result.response).not.toContain('Forgot Password');
   });
@@ -1080,9 +1061,13 @@ describe('ReceptionistAgent', () => {
 
   it('throws on missing department fields', () => {
     // @ts-expect-error intentionally invalid (missing number)
-    expect(() => new ReceptionistAgent({ departments: [{ name: 'x', description: 'y' }] })).toThrow(/number/);
+    expect(() => new ReceptionistAgent({ departments: [{ name: 'x', description: 'y' }] })).toThrow(
+      /number/,
+    );
     // @ts-expect-error intentionally invalid (missing description)
-    expect(() => new ReceptionistAgent({ departments: [{ name: 'x', number: '1' }] })).toThrow(/description/);
+    expect(() => new ReceptionistAgent({ departments: [{ name: 'x', number: '1' }] })).toThrow(
+      /description/,
+    );
   });
 
   it('factory function creates agent', () => {

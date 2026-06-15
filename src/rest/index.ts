@@ -133,8 +133,8 @@ export class RestClient {
     if (!project || !token || !host) {
       throw new Error(
         'project, token, and host are required. ' +
-        'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' +
-        'SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.',
+          'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' +
+          'SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.',
       );
     }
 
@@ -199,7 +199,13 @@ export { RestError, SignalWireRestError } from './RestError.js';
 export { paginate, paginateAll } from './pagination.js';
 
 // Types
-export type { ClientOptions, HttpClientOptions, PaginatedResponse, LamlPaginatedResponse, QueryParams } from './types.js';
+export type {
+  ClientOptions,
+  HttpClientOptions,
+  PaginatedResponse,
+  LamlPaginatedResponse,
+  QueryParams,
+} from './types.js';
 
 // Base classes
 export { BaseResource } from './base/BaseResource.js';
@@ -210,11 +216,30 @@ export { CrudWithAddresses } from './base/CrudWithAddresses.js';
 export { PhoneCallHandler } from './callHandler.js';
 
 // Namespaces
-export { FabricNamespace, FabricResource, FabricResourcePUT, CallFlowsResource, ConferenceRoomsResource, SubscribersResource, CxmlApplicationsResource, AutoMaterializedWebhookResource, SwmlWebhooksResource, CxmlWebhooksResource, GenericResources, FabricAddresses, FabricTokens } from './namespaces/fabric.js';
+export {
+  FabricNamespace,
+  FabricResource,
+  FabricResourcePUT,
+  CallFlowsResource,
+  ConferenceRoomsResource,
+  SubscribersResource,
+  CxmlApplicationsResource,
+  AutoMaterializedWebhookResource,
+  SwmlWebhooksResource,
+  CxmlWebhooksResource,
+  GenericResources,
+  FabricAddresses,
+  FabricTokens,
+} from './namespaces/fabric.js';
 export { CallingNamespace } from './namespaces/calling.js';
 export { DatasphereNamespace, DatasphereDocuments } from './namespaces/datasphere.js';
 export { PhoneNumbersResource } from './namespaces/phone-numbers.js';
-export type { SetSwmlWebhookExtra, SetCxmlWebhookParams, SetCallFlowParams, SetRelayTopicParams } from './namespaces/phone-numbers.js';
+export type {
+  SetSwmlWebhookExtra,
+  SetCxmlWebhookParams,
+  SetCallFlowParams,
+  SetRelayTopicParams,
+} from './namespaces/phone-numbers.js';
 export { AddressesResource } from './namespaces/addresses.js';
 export { QueuesResource } from './namespaces/queues.js';
 export { RecordingsResource } from './namespaces/recordings.js';
@@ -225,10 +250,45 @@ export { LookupResource } from './namespaces/lookup.js';
 export { ShortCodesResource } from './namespaces/short-codes.js';
 export { ImportedNumbersResource } from './namespaces/imported-numbers.js';
 export { MfaResource } from './namespaces/mfa.js';
-export { RegistryNamespace, RegistryBrands, RegistryCampaigns, RegistryOrders, RegistryNumbers } from './namespaces/registry.js';
-export { VideoNamespace, VideoRooms, VideoRoomTokens, VideoRoomSessions, VideoRoomRecordings, VideoConferences, VideoConferenceTokens, VideoStreams } from './namespaces/video.js';
-export { LogsNamespace, MessageLogs, VoiceLogs, FaxLogs, ConferenceLogs } from './namespaces/logs.js';
+export {
+  RegistryNamespace,
+  RegistryBrands,
+  RegistryCampaigns,
+  RegistryOrders,
+  RegistryNumbers,
+} from './namespaces/registry.js';
+export {
+  VideoNamespace,
+  VideoRooms,
+  VideoRoomTokens,
+  VideoRoomSessions,
+  VideoRoomRecordings,
+  VideoConferences,
+  VideoConferenceTokens,
+  VideoStreams,
+} from './namespaces/video.js';
+export {
+  LogsNamespace,
+  MessageLogs,
+  VoiceLogs,
+  FaxLogs,
+  ConferenceLogs,
+} from './namespaces/logs.js';
 export { ProjectNamespace, ProjectTokens } from './namespaces/project.js';
 export { PubSubResource } from './namespaces/pubsub.js';
 export { ChatResource } from './namespaces/chat.js';
-export { CompatNamespace, CompatAccounts, CompatCalls, CompatMessages, CompatFaxes, CompatConferences, CompatPhoneNumbers, CompatApplications, CompatLamlBins, CompatQueues, CompatRecordings, CompatTranscriptions, CompatTokens } from './namespaces/compat.js';
+export {
+  CompatNamespace,
+  CompatAccounts,
+  CompatCalls,
+  CompatMessages,
+  CompatFaxes,
+  CompatConferences,
+  CompatPhoneNumbers,
+  CompatApplications,
+  CompatLamlBins,
+  CompatQueues,
+  CompatRecordings,
+  CompatTranscriptions,
+  CompatTokens,
+} from './namespaces/compat.js';

@@ -15,9 +15,12 @@ const voicemail = new SWMLService({
 });
 
 // Fluent chaining on the underlying SwmlBuilder for verb methods
-voicemail.getBuilder()
+voicemail
+  .getBuilder()
   .answer()
-  .play({ url: 'say:Hello, you have reached the voicemail service. Please leave a message after the beep.' })
+  .play({
+    url: 'say:Hello, you have reached the voicemail service. Please leave a message after the beep.',
+  })
   .sleep(1000)
   .play({ url: 'https://example.com/beep.wav' })
   .record({
@@ -79,16 +82,14 @@ transfer.addVerb('connect', {
   timeout: 30,
   answer_on_bridge: true,
   ringback: ['ring:us'],
-  parallel: [
-    { to: '+15552223333' },
-    { to: '+15554445555' },
-  ],
+  parallel: [{ to: '+15552223333' }, { to: '+15554445555' }],
 });
 transfer.addVerb('play', { url: 'say:All agents are busy. Please leave a message.' });
 transfer.addVerb('record', { format: 'mp3', beep: true, max_length: 120, terminators: '#' });
 transfer.getBuilder().hangup();
 
 // Run the voicemail service by default (switch via --service flag)
-const service = process.argv[2] === 'ivr' ? ivr : process.argv[2] === 'transfer' ? transfer : voicemail;
+const service =
+  process.argv[2] === 'ivr' ? ivr : process.argv[2] === 'transfer' ? transfer : voicemail;
 console.log(`Starting ${service.name} service...`);
 service.run();

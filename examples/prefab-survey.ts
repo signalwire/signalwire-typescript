@@ -45,11 +45,12 @@ export const agent = new SurveyAgent({
     },
     {
       id: 'final_comments',
-      text: 'Any other comments or feedback you\'d like to share?',
+      text: "Any other comments or feedback you'd like to share?",
       type: 'open_ended',
     },
   ],
-  introduction: 'Thank you for calling! We\'d love your feedback. This survey takes about 2 minutes.',
+  introduction:
+    "Thank you for calling! We'd love your feedback. This survey takes about 2 minutes.",
   conclusion: 'Thank you for your feedback! It helps us improve.',
   onComplete: (responses, score) => {
     console.log('Survey complete:', { responses, score });

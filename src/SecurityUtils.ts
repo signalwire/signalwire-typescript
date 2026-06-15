@@ -21,7 +21,10 @@ const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
  * @param source - The object to copy properties from.
  * @returns The target object.
  */
-export function safeAssign<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
+export function safeAssign<T extends Record<string, unknown>>(
+  target: T,
+  source: Record<string, unknown>,
+): T {
   for (const key of Object.keys(source)) {
     if (!DANGEROUS_KEYS.has(key)) {
       (target as Record<string, unknown>)[key] = source[key];

@@ -59,7 +59,11 @@ describe('CompatAccounts.get', () => {
     expect(j.method).toBe('GET');
     expect(j.path).toBe('/api/laml/2010-04-01/Accounts/AC_SAMPLE_SID');
     // GET should not carry a request body.
-    expect(j.body === null || j.body === '' || (typeof j.body === 'object' && Object.keys(j.body).length === 0)).toBe(true);
+    expect(
+      j.body === null ||
+        j.body === '' ||
+        (typeof j.body === 'object' && Object.keys(j.body).length === 0),
+    ).toBe(true);
     expect(j.matched_route).not.toBeNull();
   });
 });

@@ -80,7 +80,8 @@ export class ServerlessAdapter {
   detectPlatform(): ServerlessPlatform {
     if (process.env['AWS_LAMBDA_FUNCTION_NAME'] || process.env['_HANDLER']) return 'lambda';
     if (process.env['FUNCTION_TARGET'] || process.env['K_SERVICE']) return 'gcf';
-    if (process.env['FUNCTIONS_WORKER_RUNTIME'] || process.env['AZURE_FUNCTIONS_ENVIRONMENT']) return 'azure';
+    if (process.env['FUNCTIONS_WORKER_RUNTIME'] || process.env['AZURE_FUNCTIONS_ENVIRONMENT'])
+      return 'azure';
     if (process.env['GATEWAY_INTERFACE']) return 'cgi';
     return 'lambda'; // default fallback
   }
@@ -99,7 +100,10 @@ export class ServerlessAdapter {
    * @param event - The incoming serverless event to process.
    * @returns The normalized serverless response.
    */
-  async handleRequest(app: { fetch: (req: Request) => Response | Promise<Response> }, event: ServerlessEvent): Promise<ServerlessResponse> {
+  async handleRequest(
+    app: { fetch: (req: Request) => Response | Promise<Response> },
+    event: ServerlessEvent,
+  ): Promise<ServerlessResponse> {
     const method = event.httpMethod ?? event.method ?? 'POST';
     const path = event.rawPath ?? event.path ?? '/';
     const headers = event.headers ?? {};
@@ -108,7 +112,8 @@ export class ServerlessAdapter {
     const host = process.env['AWS_LAMBDA_FUNCTION_URL']
       ? new URL(process.env['AWS_LAMBDA_FUNCTION_URL']).hostname
       : (headers['host'] ?? 'localhost');
-    const proto = process.env['AWS_LAMBDA_FUNCTION_URL'] ? 'https'
+    const proto = process.env['AWS_LAMBDA_FUNCTION_URL']
+      ? 'https'
       : (headers['x-forwarded-proto'] ?? 'https');
     let url = `${proto}://${host}${path}`;
     if (event.queryStringParameters) {
@@ -136,7 +141,9 @@ export class ServerlessAdapter {
 
     // Convert back to serverless response
     const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((v, k) => { responseHeaders[k] = v; });
+    response.headers.forEach((v, k) => {
+      responseHeaders[k] = v;
+    });
 
     return {
       statusCode: response.status,
@@ -187,7 +194,9 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts a Lambda event and returns a promise of a serverless response.
    */
-  static createLambdaHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (event: ServerlessEvent) => Promise<ServerlessResponse> {
+  static createLambdaHandler(app: {
+    fetch: (req: Request) => Response | Promise<Response>;
+  }): (event: ServerlessEvent) => Promise<ServerlessResponse> {
     const adapter = new ServerlessAdapter('lambda');
     return (event: ServerlessEvent) => adapter.handleRequest(app, event);
   }
@@ -197,7 +206,9 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts GCF request/response objects.
    */
-  static createGcfHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (req: any, res: any) => Promise<void> {
+  static createGcfHandler(app: {
+    fetch: (req: Request) => Response | Promise<Response>;
+  }): (req: any, res: any) => Promise<void> {
     const adapter = new ServerlessAdapter('gcf');
     return async (req: any, res: any) => {
       const event: ServerlessEvent = {
@@ -220,7 +231,9 @@ export class ServerlessAdapter {
    * @param app - A Hono-compatible application with a `fetch` method.
    * @returns A function that accepts an Azure context and request object.
    */
-  static createAzureHandler(app: { fetch: (req: Request) => Response | Promise<Response> }): (context: any, req: any) => Promise<void> {
+  static createAzureHandler(app: {
+    fetch: (req: Request) => Response | Promise<Response>;
+  }): (context: any, req: any) => Promise<void> {
     const adapter = new ServerlessAdapter('azure');
     return async (context: any, req: any) => {
       const event: ServerlessEvent = {

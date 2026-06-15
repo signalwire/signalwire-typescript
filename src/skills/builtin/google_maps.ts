@@ -178,18 +178,9 @@ export class GoogleMapsSkill extends SkillBase {
   /** @returns Two tools: `get_directions` for route info and `find_place` for place discovery. */
   getTools(): SkillToolDefinition[] {
     const defaultMode = this.getConfig<string>('default_mode', 'driving');
-    const routeToolName = this.getConfig<string>(
-      'route_tool_name',
-      'compute_route',
-    );
-    const lookupToolName = this.getConfig<string>(
-      'lookup_tool_name',
-      'lookup_address',
-    );
-    const geocodeToolName = this.getConfig<string>(
-      'geocode_tool_name',
-      'geocode_address',
-    );
+    const routeToolName = this.getConfig<string>('route_tool_name', 'compute_route');
+    const lookupToolName = this.getConfig<string>('lookup_tool_name', 'lookup_address');
+    const geocodeToolName = this.getConfig<string>('geocode_tool_name', 'geocode_address');
     const routeByCoordsToolName = this.getConfig<string>(
       'route_by_coords_tool_name',
       'compute_route_by_coords',
@@ -203,18 +194,15 @@ export class GoogleMapsSkill extends SkillBase {
         parameters: {
           origin: {
             type: 'string',
-            description:
-              'Starting location (address, city name, or place name).',
+            description: 'Starting location (address, city name, or place name).',
           },
           destination: {
             type: 'string',
-            description:
-              'Destination location (address, city name, or place name).',
+            description: 'Destination location (address, city name, or place name).',
           },
           mode: {
             type: 'string',
-            description:
-              `Travel mode: "driving", "walking", "bicycling", or "transit". Defaults to "${defaultMode}".`,
+            description: `Travel mode: "driving", "walking", "bicycling", or "transit". Defaults to "${defaultMode}".`,
           },
         },
         required: ['origin', 'destination'],
@@ -231,7 +219,10 @@ export class GoogleMapsSkill extends SkillBase {
             return new FunctionResult('Please provide a destination.');
           }
 
-          if (origin.length > MAX_SKILL_INPUT_LENGTH || destination.length > MAX_SKILL_INPUT_LENGTH) {
+          if (
+            origin.length > MAX_SKILL_INPUT_LENGTH ||
+            destination.length > MAX_SKILL_INPUT_LENGTH
+          ) {
             return new FunctionResult('Input is too long.');
           }
 
@@ -271,9 +262,7 @@ export class GoogleMapsSkill extends SkillBase {
             }
 
             if (data.routes.length === 0) {
-              return new FunctionResult(
-                `No routes found from "${origin}" to "${destination}".`,
-              );
+              return new FunctionResult(`No routes found from "${origin}" to "${destination}".`);
             }
 
             const route = data.routes[0];
@@ -314,10 +303,10 @@ export class GoogleMapsSkill extends SkillBase {
 
             return new FunctionResult(parts.join('\n'));
           } catch (err) {
-            log.error('get_directions_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('get_directions_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -352,7 +341,8 @@ export class GoogleMapsSkill extends SkillBase {
           }
 
           try {
-            const fields = 'name,formatted_address,geometry,rating,user_ratings_total,opening_hours,business_status,types';
+            const fields =
+              'name,formatted_address,geometry,rating,user_ratings_total,opening_hours,business_status,types';
             const url =
               `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
               `?input=${encodeURIComponent(query.trim())}` +
@@ -421,10 +411,10 @@ export class GoogleMapsSkill extends SkillBase {
 
             return new FunctionResult(parts.join('\n'));
           } catch (err) {
-            log.error('find_place_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('find_place_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -479,8 +469,7 @@ export class GoogleMapsSkill extends SkillBase {
             if (biasLat !== undefined && biasLng !== undefined) {
               // Bias toward a 50 km radius around the given coordinates
               const delta = 0.45; // ~50 km in degrees
-              urlStr +=
-                `&bounds=${biasLat - delta},${biasLng - delta}|${biasLat + delta},${biasLng + delta}`;
+              urlStr += `&bounds=${biasLat - delta},${biasLng - delta}|${biasLat + delta},${biasLng + delta}`;
             }
 
             const controller = new AbortController();
@@ -509,10 +498,10 @@ export class GoogleMapsSkill extends SkillBase {
 
             return new FunctionResult(parts.join('\n'));
           } catch (err) {
-            log.error('geocode_address_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('geocode_address_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -546,7 +535,12 @@ export class GoogleMapsSkill extends SkillBase {
           const destLat = typeof args.dest_lat === 'number' ? args.dest_lat : undefined;
           const destLng = typeof args.dest_lng === 'number' ? args.dest_lng : undefined;
 
-          if (originLat === undefined || originLng === undefined || destLat === undefined || destLng === undefined) {
+          if (
+            originLat === undefined ||
+            originLng === undefined ||
+            destLat === undefined ||
+            destLng === undefined
+          ) {
             return new FunctionResult(
               'All four coordinates are required: origin_lat, origin_lng, dest_lat, dest_lng.',
             );
@@ -604,19 +598,21 @@ export class GoogleMapsSkill extends SkillBase {
 
             const route = data.routes[0];
             const distanceMeters = route.distanceMeters ?? 0;
-            const durationSeconds = route.duration ? parseInt(route.duration.replace(/s$/, ''), 10) : 0;
+            const durationSeconds = route.duration
+              ? parseInt(route.duration.replace(/s$/, ''), 10)
+              : 0;
             const distanceMiles = distanceMeters / 1609.344;
             const durationMin = durationSeconds / 60.0;
 
             return new FunctionResult(
               `Distance: ${distanceMiles.toFixed(1)} miles\n` +
-              `Estimated travel time: ${Math.floor(durationMin)} minutes`,
+                `Estimated travel time: ${Math.floor(durationMin)} minutes`,
             );
           } catch (err) {
-            log.error('compute_route_by_coords_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('compute_route_by_coords_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },

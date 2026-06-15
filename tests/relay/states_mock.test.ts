@@ -59,8 +59,12 @@ const CLOSED_SETS_SRC = path.resolve(__dirname, '../../src/relay/closedSets.ts')
 function extractAlias(aliasName: string): string {
   const src = readFileSync(CLOSED_SETS_SRC, 'utf-8');
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
-  if (!m) throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1].replace(/\s+/g, ' ').replace(/^\|\s*/, '').trim();
+  if (!m)
+    throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
+  return m[1]
+    .replace(/\s+/g, ' ')
+    .replace(/^\|\s*/, '')
+    .trim();
 }
 
 /**
@@ -121,7 +125,7 @@ function probeBatch(
     if (preambleErr) {
       throw new Error(
         `state probe preamble error on alias line ${i} (${aliases[i]}): ${preambleErr} — ` +
-        `did you forget to also declare its base alias? aliases=[${aliases.join(', ')}]`,
+          `did you forget to also declare its base alias? aliases=[${aliases.join(', ')}]`,
       );
     }
   }
@@ -148,7 +152,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -165,7 +173,10 @@ function statePushFrame(callId: string, callState: string): Record<string, any> 
         tag: '',
         call_state: callState,
         direction: 'inbound',
-        device: { type: 'phone', params: { from_number: '+15551110000', to_number: '+15552220000' } },
+        device: {
+          type: 'phone',
+          params: { from_number: '+15551110000', to_number: '+15552220000' },
+        },
       },
     },
   };
@@ -207,7 +218,10 @@ describe('CallState / DialState / MessageState — compile-time typing', () => {
     const known = ['created', 'ringing', 'answered', 'ending', 'ended'];
     const r = probeBatch(
       ['CallState'],
-      [...known.map((s) => ({ alias: 'CallState', value: q(s) })), { alias: 'CallState', value: q('anwsered') }],
+      [
+        ...known.map((s) => ({ alias: 'CallState', value: q(s) })),
+        { alias: 'CallState', value: q('anwsered') },
+      ],
     );
     for (let i = 0; i < known.length; i++) expect(r[i]).toBeUndefined();
     const typo = r[known.length];
@@ -219,7 +233,10 @@ describe('CallState / DialState / MessageState — compile-time typing', () => {
     const known = ['dialing', 'answered', 'failed'];
     const r = probeBatch(
       ['DialState'],
-      [...known.map((s) => ({ alias: 'DialState', value: q(s) })), { alias: 'DialState', value: q('diallng') }],
+      [
+        ...known.map((s) => ({ alias: 'DialState', value: q(s) })),
+        { alias: 'DialState', value: q('diallng') },
+      ],
     );
     for (let i = 0; i < known.length; i++) expect(r[i]).toBeUndefined();
     expect(r[known.length]).toBeDefined();
@@ -229,7 +246,10 @@ describe('CallState / DialState / MessageState — compile-time typing', () => {
     const known = ['queued', 'initiated', 'sent', 'delivered', 'undelivered', 'failed', 'received'];
     const r = probeBatch(
       ['MessageState'],
-      [...known.map((s) => ({ alias: 'MessageState', value: q(s) })), { alias: 'MessageState', value: q('delivrd') }],
+      [
+        ...known.map((s) => ({ alias: 'MessageState', value: q(s) })),
+        { alias: 'MessageState', value: q('delivrd') },
+      ],
     );
     for (let i = 0; i < known.length; i++) expect(r[i]).toBeUndefined();
     expect(r[known.length]).toBeDefined();
@@ -263,12 +283,12 @@ describe('CallState / DialState / MessageState — compile-time typing', () => {
     const r = probeBatch(
       ['CallState', 'DialState', 'MessageState'],
       [
-        { alias: 'CallState', value: q('dialing') },    // [0] DialState-only → reject
-        { alias: 'DialState', value: q('ringing') },    // [1] CallState-only → reject
-        { alias: 'CallState', value: q('queued') },     // [2] MessageState-only → reject
-        { alias: 'MessageState', value: q('ended') },   // [3] CallState-only → reject
-        { alias: 'CallState', value: q('answered') },   // [4] overlaps Call+Dial → accept
-        { alias: 'DialState', value: q('answered') },   // [5] overlaps Call+Dial → accept
+        { alias: 'CallState', value: q('dialing') }, // [0] DialState-only → reject
+        { alias: 'DialState', value: q('ringing') }, // [1] CallState-only → reject
+        { alias: 'CallState', value: q('queued') }, // [2] MessageState-only → reject
+        { alias: 'MessageState', value: q('ended') }, // [3] CallState-only → reject
+        { alias: 'CallState', value: q('answered') }, // [4] overlaps Call+Dial → accept
+        { alias: 'DialState', value: q('answered') }, // [5] overlaps Call+Dial → accept
       ],
     );
     expect(r[0]).toBeDefined();

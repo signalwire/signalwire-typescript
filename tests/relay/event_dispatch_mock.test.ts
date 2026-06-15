@@ -28,7 +28,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -112,10 +116,9 @@ describe('Event dispatch — sub-command journaling', () => {
 
   it('test_play_volume_carries_negative_value', async () => {
     const call = await answeredCall('ec-pvol');
-    const action = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: 'ec-pvol-1' },
-    );
+    const action = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: 'ec-pvol-1',
+    });
     await action.volume(-5.5);
     const vol = await mock.journalRecv('calling.play.volume');
     expect(vol.length).toBeGreaterThan(0);
@@ -135,11 +138,13 @@ describe('Event dispatch — unknown / malformed events', () => {
   });
 
   it('test_event_with_bad_call_id_is_dropped', async () => {
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'no-such-call-bogus',
-      control_id: 'stranger',
-      state: 'playing',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'no-such-call-bogus',
+        control_id: 'stranger',
+        state: 'playing',
+      }),
+    );
     await new Promise((r) => setTimeout(r, 100));
     expect((client as any)._connected).toBe(true);
   });
@@ -158,29 +163,35 @@ describe('Event dispatch — unknown / malformed events', () => {
 describe('Event dispatch — multi-action concurrency', () => {
   it('test_three_concurrent_actions_resolve_independently', async () => {
     const call = await answeredCall('ec-3acts');
-    const play1 = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: '3a-p1' },
-    );
-    const play2 = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: '3a-p2' },
-    );
+    const play1 = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: '3a-p1',
+    });
+    const play2 = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: '3a-p2',
+    });
     const rec = await call.record({ format: 'wav' }, { controlId: '3a-r1' });
 
     // Fire only play1's finished.
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-3acts', control_id: '3a-p1', state: 'finished',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-3acts',
+        control_id: '3a-p1',
+        state: 'finished',
+      }),
+    );
     await play1.wait(2);
     expect(play1.isDone).toBe(true);
     expect(play2.isDone).toBe(false);
     expect(rec.isDone).toBe(false);
 
     // Fire play2's.
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-3acts', control_id: '3a-p2', state: 'finished',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-3acts',
+        control_id: '3a-p2',
+        state: 'finished',
+      }),
+    );
     await play2.wait(2);
     expect(play2.isDone).toBe(true);
     expect(rec.isDone).toBe(false);
@@ -206,10 +217,8 @@ describe('Event dispatch — event ACK', () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const j = await mock.journal();
-    const acks = j.filter((e) =>
-      e.direction === 'recv'
-      && e.frame.id === evtId
-      && 'result' in e.frame,
+    const acks = j.filter(
+      (e) => e.direction === 'recv' && e.frame.id === evtId && 'result' in e.frame,
     );
     expect(acks.length).toBeGreaterThan(0);
   });
@@ -271,10 +280,8 @@ describe('Event dispatch — server ping', () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const j = await mock.journal();
-    const pongs = j.filter((e) =>
-      e.direction === 'recv'
-      && e.frame.id === pingId
-      && 'result' in e.frame,
+    const pongs = j.filter(
+      (e) => e.direction === 'recv' && e.frame.id === pingId && 'result' in e.frame,
     );
     expect(pongs.length).toBeGreaterThan(0);
   });
@@ -286,10 +293,11 @@ describe('Event dispatch — server ping', () => {
 
 describe('Event dispatch — authorization state', () => {
   it('test_authorization_state_event_captured', async () => {
-    await mock.push(bareEventFrame(
-      'signalwire.authorization.state',
-      { authorization_state: 'test-auth-state-blob' },
-    ));
+    await mock.push(
+      bareEventFrame('signalwire.authorization.state', {
+        authorization_state: 'test-auth-state-blob',
+      }),
+    );
     await waitFor(() => (client as any)._authorizationState === 'test-auth-state-blob', 2000);
     expect((client as any)._authorizationState).toBe('test-auth-state-blob');
   });
@@ -314,9 +322,13 @@ describe('Event dispatch — calling.error', () => {
 describe('Event dispatch — state events', () => {
   it('test_call_state_event_updates_state', async () => {
     const call = await answeredCall('ec-stt');
-    await mock.push(bareEventFrame('calling.call.state', {
-      call_id: 'ec-stt', call_state: 'ending', direction: 'inbound',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.state', {
+        call_id: 'ec-stt',
+        call_state: 'ending',
+        direction: 'inbound',
+      }),
+    );
     await waitFor(() => call.state === 'ending', 2000);
     expect(call.state).toBe('ending');
   });
@@ -330,9 +342,13 @@ describe('Event dispatch — state events', () => {
         resolve();
       });
     });
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-list', control_id: 'x', state: 'playing',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-list',
+        control_id: 'x',
+        state: 'playing',
+      }),
+    );
     await Promise.race([
       fired,
       new Promise((_, reject) => setTimeout(() => reject(new Error('listener timeout')), 2000)),

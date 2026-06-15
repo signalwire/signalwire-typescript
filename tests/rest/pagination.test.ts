@@ -65,14 +65,17 @@ describe('paginate', () => {
     ]);
     const http = new HttpClient(options);
 
-    const items = await paginateAll(http, '/api/laml/2010-04-01/Accounts/xxx/Calls', undefined, 'calls');
+    const items = await paginateAll(
+      http,
+      '/api/laml/2010-04-01/Accounts/xxx/Calls',
+      undefined,
+      'calls',
+    );
     expect(items).toEqual([{ sid: 'CA1' }, { sid: 'CA2' }]);
   });
 
   it('handles empty first page', async () => {
-    const { options } = mockClientOptions([
-      { status: 200, body: { data: [] } },
-    ]);
+    const { options } = mockClientOptions([{ status: 200, body: { data: [] } }]);
     const http = new HttpClient(options);
 
     const items = await paginateAll(http, '/api/test');
@@ -80,9 +83,7 @@ describe('paginate', () => {
   });
 
   it('handles missing data key gracefully', async () => {
-    const { options } = mockClientOptions([
-      { status: 200, body: { other: 'stuff' } },
-    ]);
+    const { options } = mockClientOptions([{ status: 200, body: { other: 'stuff' } }]);
     const http = new HttpClient(options);
 
     const items = await paginateAll(http, '/api/test');

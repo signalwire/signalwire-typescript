@@ -203,9 +203,9 @@ export class AutoMaterializedWebhookResource extends FabricResource {
       AutoMaterializedWebhookResource._warned.add(this);
       console.warn(
         `[signalwire] Creating a webhook Fabric resource directly produces ` +
-        `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
-        `instead; it updates the phone number and the server auto-materializes ` +
-        `the resource. See porting-sdk's phone-binding.md.`,
+          `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
+          `instead; it updates the phone number and the server auto-materializes ` +
+          `the resource. See porting-sdk's phone-binding.md.`,
       );
     }
     return super.create(body);
@@ -299,10 +299,10 @@ export class GenericResources extends BaseResource {
       GenericResources._assignPhoneRouteWarned.add(this);
       console.warn(
         '[signalwire] assignPhoneRoute does not bind phone numbers to ' +
-        'swml_webhook / cxml_webhook / ai_agent resources — those are ' +
-        'configured via phoneNumbers.setSwmlWebhook / setCxmlWebhook / ' +
-        'setAiAgent. This method applies only to a narrow set of legacy ' +
-        "resource types. See porting-sdk's phone-binding.md.",
+          'swml_webhook / cxml_webhook / ai_agent resources — those are ' +
+          'configured via phoneNumbers.setSwmlWebhook / setCxmlWebhook / ' +
+          'setAiAgent. This method applies only to a narrow set of legacy ' +
+          "resource types. See porting-sdk's phone-binding.md.",
       );
     }
     return this._http.post(this._path(resourceId, 'phone_routes'), body);

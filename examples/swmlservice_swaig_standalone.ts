@@ -53,7 +53,7 @@ class StandaloneSwaig extends SWMLService {
     this.defineTool({
       name: 'lookup_competitor',
       description:
-        "Look up competitor pricing by company name. Use this when the user " +
+        'Look up competitor pricing by company name. Use this when the user ' +
         "asks how a competitor's price compares to ours.",
       parameters: {
         competitor: {

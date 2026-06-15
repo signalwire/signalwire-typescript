@@ -85,9 +85,7 @@ describe('PomBuilder', () => {
   });
 
   it('hasSection / getSection / findSection', () => {
-    const b = new PomBuilder()
-      .addSection('Top')
-      .addSubsection('Top', 'Nested', { body: 'x' });
+    const b = new PomBuilder().addSection('Top').addSubsection('Top', 'Nested', { body: 'x' });
 
     expect(b.hasSection('Top')).toBe(true);
     expect(b.hasSection('Missing')).toBe(false);
@@ -178,9 +176,7 @@ describe('addPomAsSubsection', () => {
   it('appends sections when target is a PomSection reference', () => {
     const target = new PomBuilder().addSection('Parent');
     const parent = target.getSection('Parent')!;
-    const other = new PomBuilder()
-      .addSection('One')
-      .addSection('Two');
+    const other = new PomBuilder().addSection('One').addSection('Two');
 
     target.addPomAsSubsection(parent, other);
 
@@ -200,10 +196,7 @@ describe('addPomAsSubsection', () => {
 
   it('preserves order and count of appended sections', () => {
     const target = new PomBuilder().addSection('Parent');
-    const other = new PomBuilder()
-      .addSection('First')
-      .addSection('Second')
-      .addSection('Third');
+    const other = new PomBuilder().addSection('First').addSection('Second').addSection('Third');
 
     target.addPomAsSubsection('Parent', other);
 

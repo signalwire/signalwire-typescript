@@ -76,7 +76,10 @@ function extractSkillNameUnion(): string {
   if (!m) throw new Error('could not locate `export type SkillName = ...;` in ' + SKILLNAME_DTS);
   // Flatten the (multi-line, leading-pipe) union onto ONE line so the inlined
   // alias is exactly file line 0 and the probed statements map to stable lines.
-  return m[1].replace(/\s+/g, ' ').replace(/^\|\s*/, '').trim();
+  return m[1]
+    .replace(/\s+/g, ' ')
+    .replace(/^\|\s*/, '')
+    .trim();
 }
 
 beforeAll(() => {
@@ -100,7 +103,10 @@ describe('SkillName closed-set typing', () => {
     // not a nullness check).
     const typedAgent = makeAgent();
     await typedAgent.addSkillByName(typed);
-    const typedToolNames = typedAgent.getTools().map((f) => f.name).sort();
+    const typedToolNames = typedAgent
+      .getTools()
+      .map((f) => f.name)
+      .sort();
     expect(typedToolNames).toEqual(['get_current_date', 'get_current_time']);
 
     // hasSkill() accepts both the typed value and the bare string — same skill.
@@ -111,7 +117,10 @@ describe('SkillName closed-set typing', () => {
     // Parity: the bare string loads byte-for-byte the same skill + tools.
     const stringAgent = makeAgent();
     await stringAgent.addSkillByName('datetime');
-    const stringToolNames = stringAgent.getTools().map((f) => f.name).sort();
+    const stringToolNames = stringAgent
+      .getTools()
+      .map((f) => f.name)
+      .sort();
     expect(stringToolNames).toEqual(typedToolNames);
     expect(stringAgent.hasSkill('datetime' as SkillName)).toBe(true);
   });
@@ -129,7 +138,7 @@ describe('SkillName closed-set typing', () => {
     // bindings "used" so the only diagnostic is the assignability check itself.
     const errs = typeCheckLines(
       `const good: SkillName = 'datetime'; void good;\n` +
-      `const bad: SkillName = 'datetiem'; void bad;`,
+        `const bad: SkillName = 'datetiem'; void bad;`,
     );
 
     // The valid built-in name type-checks clean (body line 0 → file line 1).

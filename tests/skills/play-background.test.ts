@@ -3,12 +3,17 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { PlayBackgroundFileSkill, createPlayBackgroundFileSkill } from '../../src/skills/builtin/index.js';
+import {
+  PlayBackgroundFileSkill,
+  createPlayBackgroundFileSkill,
+} from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('PlayBackgroundFileSkill', () => {
   it('should instantiate via constructor and factory', () => {

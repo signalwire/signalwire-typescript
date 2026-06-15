@@ -62,9 +62,12 @@ export function generateFakePostData(opts?: MockCallOptions): Record<string, unk
     channel_type: callType === 'sip' ? 'phone' : 'web',
     from: fromNumber,
     to: toExtension,
-    sip_headers: callType === 'sip' ? {
-      'X-SignalWire-Agent': 'swaig-test-cli',
-    } : undefined,
+    sip_headers:
+      callType === 'sip'
+        ? {
+            'X-SignalWire-Agent': 'swaig-test-cli',
+          }
+        : undefined,
     vars: {
       call_type: callType,
       direction: callDirection,

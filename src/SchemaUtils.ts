@@ -45,7 +45,8 @@ export class SchemaUtils {
    * @param opts - Optional settings for skipping validation, limiting cache size, or overriding the schema file path.
    */
   constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number; schemaPath?: string }) {
-    this.skipValidation = opts?.skipValidation ?? (process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true');
+    this.skipValidation =
+      opts?.skipValidation ?? process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
     this.maxCacheSize = opts?.maxCacheSize ?? 100;
     this.schemaPath = opts?.schemaPath ?? null;
     this.loadSchema();
@@ -259,7 +260,9 @@ export class SchemaUtils {
 
     // Check version
     if (doc['version'] && !VALID_VERSIONS.includes(doc['version'] as string)) {
-      errors.push(`Invalid version: ${doc['version']}. Expected one of: ${VALID_VERSIONS.join(', ')}`);
+      errors.push(
+        `Invalid version: ${doc['version']}. Expected one of: ${VALID_VERSIONS.join(', ')}`,
+      );
     }
 
     // Check sections
@@ -287,7 +290,10 @@ export class SchemaUtils {
       if (Array.isArray(main)) {
         for (const verb of main) {
           if (typeof verb === 'object' && verb !== null && 'ai' in verb) {
-            this.validateAiVerb((verb as Record<string, unknown>)['ai'] as Record<string, unknown>, errors);
+            this.validateAiVerb(
+              (verb as Record<string, unknown>)['ai'] as Record<string, unknown>,
+              errors,
+            );
           }
         }
       }

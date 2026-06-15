@@ -47,12 +47,14 @@ agent.addMcpServer('https://mcp.example.com/crm', {
 
 // -- Agent Configuration --
 agent.promptAddSection('Role', {
-  body: 'You are a helpful customer support agent. '
-    + 'You have access to the customer\'s profile via global_data.',
+  body:
+    'You are a helpful customer support agent. ' +
+    "You have access to the customer's profile via global_data.",
 });
 agent.promptAddSection('Customer Context', {
-  body: 'Customer name: ${global_data.customer_name}\n'
-    + 'Account status: ${global_data.account_status}',
+  body:
+    'Customer name: ${global_data.customer_name}\n' +
+    'Account status: ${global_data.account_status}',
 });
 
 agent.setParams({ attention_timeout: 15000 });

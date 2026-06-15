@@ -173,7 +173,8 @@ describe('AgentBase', () => {
     agent.setPromptText('You are a quiz master');
     const ctx = agent.defineContexts();
     const def = ctx.addContext('default');
-    def.addStep('greeting', { task: 'Greet the user' })
+    def
+      .addStep('greeting', { task: 'Greet the user' })
       .setStepCriteria('User has been greeted')
       .setValidSteps(['quiz']);
     def.addStep('quiz', { task: 'Ask a quiz question' });
@@ -274,7 +275,7 @@ describe('AgentBase', () => {
     const res = await app.request('/health', {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'https://example.com',
+        Origin: 'https://example.com',
         'Access-Control-Request-Method': 'POST',
       },
     });
@@ -301,7 +302,7 @@ describe('AgentBase', () => {
     const res = await app.request('/debug_events', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ event: 'test' }),
@@ -456,7 +457,7 @@ describe('AgentBase', () => {
       const res = await app.request('/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
           'Content-Length': '100000',
         },
@@ -481,9 +482,9 @@ describe('AgentBase', () => {
       const res = await app.request('http://evil.example.com/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
-          'Host': 'evil.example.com',
+          Host: 'evil.example.com',
         },
         body: '{}',
       });
@@ -508,9 +509,9 @@ describe('AgentBase', () => {
       const res = await app.request('http://allowed.example.com/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
-          'Host': 'allowed.example.com',
+          Host: 'allowed.example.com',
         },
         body: '{}',
       });
@@ -529,15 +530,16 @@ describe('AgentBase', () => {
       agent.setPromptText('hello');
       const app = agent.getApp();
 
-      const makeReq = () => app.request('/', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
-          'Content-Type': 'application/json',
-          'X-Forwarded-For': '1.2.3.4',
-        },
-        body: '{}',
-      });
+      const makeReq = () =>
+        app.request('/', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Basic ' + btoa('u:p'),
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': '1.2.3.4',
+          },
+          body: '{}',
+        });
 
       // First two should succeed
       const r1 = await makeReq();
@@ -597,7 +599,11 @@ describe('AgentBase', () => {
   it('onFunctionCall hook is invoked when SWAIG function called', async () => {
     const calls: string[] = [];
     class HookAgent extends AgentBase {
-      onFunctionCall(name: string, _args: Record<string, unknown>, _rawData: Record<string, unknown>): void {
+      onFunctionCall(
+        name: string,
+        _args: Record<string, unknown>,
+        _rawData: Record<string, unknown>,
+      ): void {
         calls.push(name);
       }
     }
@@ -612,7 +618,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'test_fn', argument: {} }),
@@ -635,7 +641,7 @@ describe('AgentBase', () => {
       const res = await app.request('/health', {
         method: 'OPTIONS',
         headers: {
-          'Origin': 'https://example.com',
+          Origin: 'https://example.com',
           'Access-Control-Request-Method': 'POST',
         },
       });
@@ -652,14 +658,20 @@ describe('AgentBase', () => {
       static override SKILL_NAME = 'test_skill';
       static override SKILL_DESCRIPTION = 'Test';
       getTools(): SkillToolDefinition[] {
-        return [{
-          name: 'skill_tool',
-          description: 'Skill tool',
-          handler: () => new FunctionResult('skill result'),
-        }];
+        return [
+          {
+            name: 'skill_tool',
+            description: 'Skill tool',
+            handler: () => new FunctionResult('skill result'),
+          },
+        ];
       }
-      getPromptSections() { return [{ title: 'Skill Info', body: 'From test skill' }]; }
-      getHints() { return ['skill hint']; }
+      getPromptSections() {
+        return [{ title: 'Skill Info', body: 'From test skill' }];
+      }
+      getHints() {
+        return ['skill hint'];
+      }
     }
 
     const agent = createAgent();
@@ -675,7 +687,9 @@ describe('AgentBase', () => {
     class RemoveSkill extends SkillBase {
       static override SKILL_NAME = 'removable';
       static override SKILL_DESCRIPTION = 'Test';
-      getTools(): SkillToolDefinition[] { return []; }
+      getTools(): SkillToolDefinition[] {
+        return [];
+      }
     }
 
     const agent = createAgent();
@@ -690,7 +704,9 @@ describe('AgentBase', () => {
     class ChainSkill extends SkillBase {
       static override SKILL_NAME = 'chain';
       static override SKILL_DESCRIPTION = 'Test';
-      getTools(): SkillToolDefinition[] { return []; }
+      getTools(): SkillToolDefinition[] {
+        return [];
+      }
     }
 
     const agent = createAgent();
@@ -729,7 +745,7 @@ describe('AgentBase', () => {
       const app = agent.getApp();
       const res = await app.request('/health', {
         method: 'GET',
-        headers: { 'Origin': 'https://example.com' },
+        headers: { Origin: 'https://example.com' },
       });
       // When origin is *, credentials should not be included
       const credHeader = res.headers.get('Access-Control-Allow-Credentials');
@@ -752,7 +768,7 @@ describe('AgentBase', () => {
     const res = await app.request('/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
         'Content-Length': 'not-a-number',
       },
@@ -767,13 +783,15 @@ describe('AgentBase', () => {
       name: 'crash_fn',
       description: 'Will crash',
       parameters: {},
-      handler: () => { throw new Error('secret internal error details'); },
+      handler: () => {
+        throw new Error('secret internal error details');
+      },
     });
     const app = agent.getApp();
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'crash_fn', argument: {} }),
@@ -802,7 +820,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: longName, argument: {} }),
@@ -825,7 +843,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'nonexistent_fn', argument: {} }),
@@ -851,7 +869,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'secure_fn', argument: {} }),
@@ -864,7 +882,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'secure_fn', argument: {} }),
@@ -883,7 +901,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'valid_fn; DROP TABLE', argument: {} }),
@@ -894,7 +912,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: '123invalid', argument: {} }),
@@ -905,7 +923,7 @@ describe('AgentBase', () => {
     const res3 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'valid_fn_name', argument: {} }),
@@ -931,7 +949,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: 'not-an-object' }),
@@ -942,7 +960,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: [1, 2, 3] }),
@@ -953,7 +971,7 @@ describe('AgentBase', () => {
     const res3 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: null }),
@@ -982,7 +1000,10 @@ describe('AgentBase', () => {
     expect(tool!.isTypedHandler).toBe(true);
     expect(tool!.parameters['city']).toBeDefined();
     expect(tool!.parameters['city']).toEqual({ type: 'string', description: 'The city parameter' });
-    expect(tool!.parameters['days']).toEqual({ type: 'integer', description: 'The days parameter' });
+    expect(tool!.parameters['days']).toEqual({
+      type: 'integer',
+      description: 'The days parameter',
+    });
     expect(tool!.required).toEqual(['city']);
   });
 

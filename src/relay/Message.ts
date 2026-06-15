@@ -70,19 +70,21 @@ export class Message {
   /** @internal */ _onCompleted: CompletedCallback | null = null;
   private _listeners: EventHandler[] = [];
 
-  constructor(options: {
-    messageId?: string;
-    context?: string;
-    direction?: string;
-    fromNumber?: string;
-    toNumber?: string;
-    body?: string;
-    media?: string[];
-    segments?: number;
-    state?: MessageState;
-    reason?: string;
-    tags?: string[];
-  } = {}) {
+  constructor(
+    options: {
+      messageId?: string;
+      context?: string;
+      direction?: string;
+      fromNumber?: string;
+      toNumber?: string;
+      body?: string;
+      media?: string[];
+      segments?: number;
+      state?: MessageState;
+      reason?: string;
+      tags?: string[];
+    } = {},
+  ) {
     this.messageId = options.messageId ?? '';
     this.context = options.context ?? '';
     this.direction = options.direction ?? '';
@@ -156,8 +158,14 @@ export class Message {
         }, ms);
 
         this._done.promise.then(
-          (v) => { clearTimeout(timer); resolve(v); },
-          (e) => { clearTimeout(timer); reject(e); },
+          (v) => {
+            clearTimeout(timer);
+            resolve(v);
+          },
+          (e) => {
+            clearTimeout(timer);
+            reject(e);
+          },
         );
       });
     }

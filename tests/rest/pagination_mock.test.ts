@@ -91,7 +91,12 @@ describe('paginate (async generator)', () => {
     });
 
     const collected: Array<{ id: string }> = [];
-    for await (const item of paginate<{ id: string }>(http, FABRIC_ADDRESSES_PATH, undefined, 'data')) {
+    for await (const item of paginate<{ id: string }>(
+      http,
+      FABRIC_ADDRESSES_PATH,
+      undefined,
+      'data',
+    )) {
       collected.push(item);
     }
 
@@ -125,12 +130,7 @@ describe('paginate (async generator)', () => {
   });
 
   it('iter_returns_self_async', async () => {
-    const gen = paginate<Record<string, unknown>>(
-      http,
-      FABRIC_ADDRESSES_PATH,
-      undefined,
-      'data',
-    );
+    const gen = paginate<Record<string, unknown>>(http, FABRIC_ADDRESSES_PATH, undefined, 'data');
     const same = gen[Symbol.asyncIterator]();
     expect(same).toBe(gen);
     // Still no HTTP yet.

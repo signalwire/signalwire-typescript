@@ -31,7 +31,11 @@ import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
-import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from '../src/TypeInference.js';
+import {
+  inferSchema,
+  createTypedHandlerWrapper,
+  type TypedToolHandler,
+} from '../src/TypeInference.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TYPE_INFERENCE_SRC = path.resolve(__dirname, '../src/TypeInference.ts');
@@ -40,7 +44,10 @@ const TYPE_INFERENCE_SRC = path.resolve(__dirname, '../src/TypeInference.ts');
 function extractTypedToolHandler(): string {
   const src = readFileSync(TYPE_INFERENCE_SRC, 'utf-8');
   const m = src.match(/export type TypedToolHandler\s*=\s*([\s\S]*?);/);
-  if (!m) throw new Error(`could not locate \`export type TypedToolHandler = …;\` in ${TYPE_INFERENCE_SRC}`);
+  if (!m)
+    throw new Error(
+      `could not locate \`export type TypedToolHandler = …;\` in ${TYPE_INFERENCE_SRC}`,
+    );
   return m[1].replace(/\s+/g, ' ').trim();
 }
 
@@ -82,10 +89,10 @@ function typeCheckHandler(body: string): Map<number, string> {
 describe('TypedToolHandler — precise typed-tool handler signature', () => {
   it('accepts every legitimate handler shape (string / record / FunctionResult / async)', () => {
     const errs = typeCheckHandler(
-      `const h1: TypedToolHandler = (city: string) => 'ok'; void h1;\n` +                        // line 0 → diag 2
-      `const h2: TypedToolHandler = (city: string, n = 1) => ({ response: 'ok' }); void h2;\n` + // line 1 → diag 3
-      `const h3: TypedToolHandler = () => new FunctionResult(); void h3;\n` +                    // line 2 → diag 4
-      `const h4: TypedToolHandler = async (q: string) => 'later'; void h4;`,                     // line 3 → diag 5
+      `const h1: TypedToolHandler = (city: string) => 'ok'; void h1;\n` + // line 0 → diag 2
+        `const h2: TypedToolHandler = (city: string, n = 1) => ({ response: 'ok' }); void h2;\n` + // line 1 → diag 3
+        `const h3: TypedToolHandler = () => new FunctionResult(); void h3;\n` + // line 2 → diag 4
+        `const h4: TypedToolHandler = async (q: string) => 'later'; void h4;`, // line 3 → diag 5
     );
     expect(errs.get(2)).toBeUndefined(); // string return
     expect(errs.get(3)).toBeUndefined(); // record return
@@ -95,8 +102,8 @@ describe('TypedToolHandler — precise typed-tool handler signature', () => {
 
   it('REJECTS a non-callable (the bare `Function` would too — but as `unknown`, not a SWAIG result)', () => {
     const errs = typeCheckHandler(
-      `const notFn: TypedToolHandler = 42; void notFn;\n` +              // line 0 → diag 2
-      `const obj: TypedToolHandler = { run() {} }; void obj;`,           // line 1 → diag 3
+      `const notFn: TypedToolHandler = 42; void notFn;\n` + // line 0 → diag 2
+        `const obj: TypedToolHandler = { run() {} }; void obj;`, // line 1 → diag 3
     );
     expect(errs.get(2)).toBeDefined();
     expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
@@ -106,7 +113,7 @@ describe('TypedToolHandler — precise typed-tool handler signature', () => {
   it('REJECTS a callable whose return cannot be a SWAIG result (void / boolean)', () => {
     const errs = typeCheckHandler(
       `const voidH: TypedToolHandler = (city: string): void => { void city; }; void voidH;\n` + // line 0 → diag 2
-      `const boolH: TypedToolHandler = (city: string): boolean => true; void boolH;`,           // line 1 → diag 3
+        `const boolH: TypedToolHandler = (city: string): boolean => true; void boolH;`, // line 1 → diag 3
     );
     // A `() => void` / `() => boolean` is NOT assignable to a handler whose
     // declared return is FunctionResult | record | string | Promise<…>.

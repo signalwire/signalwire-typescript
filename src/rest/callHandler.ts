@@ -58,4 +58,4 @@ export const PhoneCallHandler = {
 } as const;
 
 /** Union of every valid `call_handler` wire value. */
-export type PhoneCallHandler = typeof PhoneCallHandler[keyof typeof PhoneCallHandler];
+export type PhoneCallHandler = (typeof PhoneCallHandler)[keyof typeof PhoneCallHandler];

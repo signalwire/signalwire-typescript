@@ -210,9 +210,7 @@ describe('AIVerbHandler', () => {
       expect((config['prompt'] as Record<string, unknown>)['text']).toBe(
         'You are a helpful assistant',
       );
-      expect((config['post_prompt'] as Record<string, unknown>)['text']).toBe(
-        'Provide a summary',
-      );
+      expect((config['post_prompt'] as Record<string, unknown>)['text']).toBe('Provide a summary');
       expect(config['post_prompt_url']).toBe('https://example.com/summary');
     });
 

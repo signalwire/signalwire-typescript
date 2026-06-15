@@ -36,13 +36,13 @@ const VIP_NUMBERS = ['+15551234567', '+15559876543'];
 
 agent.setDynamicConfigCallback(async (queryParams, bodyParams, _headers, agentCopy) => {
   const copy = agentCopy as AgentBase;
-  const callerNumber = (bodyParams['call'] as Record<string, unknown>)?.['from'] as string ?? '';
+  const callerNumber = ((bodyParams['call'] as Record<string, unknown>)?.['from'] as string) ?? '';
 
   // VIP detection
   if (VIP_NUMBERS.includes(callerNumber)) {
     copy.setPromptText(
       'You are a premium concierge assistant. This is a VIP caller — provide priority service, ' +
-      'be extra attentive, and offer to escalate any issues immediately.',
+        'be extra attentive, and offer to escalate any issues immediately.',
     );
     copy.setParam('temperature', 0.3);
     copy.updateGlobalData({ tier: 'vip', caller: callerNumber });

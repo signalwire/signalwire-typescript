@@ -165,15 +165,7 @@ export class AIVerbHandler extends SWMLVerbHandler {
    * @returns AI verb configuration dictionary.
    */
   buildConfig(opts: AIVerbBuildOptions = {}): Record<string, unknown> {
-    const {
-      promptText,
-      promptPom,
-      contexts,
-      postPrompt,
-      postPromptUrl,
-      swaig,
-      ...rest
-    } = opts;
+    const { promptText, promptPom, contexts, postPrompt, postPromptUrl, swaig, ...rest } = opts;
 
     const config: Record<string, unknown> = {};
 

@@ -79,18 +79,109 @@ interface SearchResult {
  */
 function tokenize(text: string): string[] {
   const stopWords = new Set([
-    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'for',
-    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
-    'before', 'after', 'above', 'below', 'between', 'and', 'but', 'or',
-    'nor', 'not', 'so', 'yet', 'both', 'either', 'neither', 'each',
-    'every', 'all', 'any', 'few', 'more', 'most', 'other', 'some',
-    'such', 'no', 'only', 'own', 'same', 'than', 'too', 'very',
-    'just', 'because', 'if', 'when', 'where', 'how', 'what', 'which',
-    'who', 'whom', 'this', 'that', 'these', 'those', 'i', 'me', 'my',
-    'we', 'our', 'you', 'your', 'he', 'him', 'his', 'she', 'her',
-    'it', 'its', 'they', 'them', 'their', 'about', 'up', 'out',
+    'a',
+    'an',
+    'the',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'shall',
+    'can',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'as',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'and',
+    'but',
+    'or',
+    'nor',
+    'not',
+    'so',
+    'yet',
+    'both',
+    'either',
+    'neither',
+    'each',
+    'every',
+    'all',
+    'any',
+    'few',
+    'more',
+    'most',
+    'other',
+    'some',
+    'such',
+    'no',
+    'only',
+    'own',
+    'same',
+    'than',
+    'too',
+    'very',
+    'just',
+    'because',
+    'if',
+    'when',
+    'where',
+    'how',
+    'what',
+    'which',
+    'who',
+    'whom',
+    'this',
+    'that',
+    'these',
+    'those',
+    'i',
+    'me',
+    'my',
+    'we',
+    'our',
+    'you',
+    'your',
+    'he',
+    'him',
+    'his',
+    'she',
+    'her',
+    'it',
+    'its',
+    'they',
+    'them',
+    'their',
+    'about',
+    'up',
+    'out',
   ]);
 
   return text
@@ -183,20 +274,17 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       source_dir: {
         type: 'string',
-        description:
-          'Directory containing documents to index (required if build_index=True)',
+        description: 'Directory containing documents to index (required if build_index=True)',
         required: false,
       },
       remote_url: {
         type: 'string',
-        description:
-          'URL of remote search server for network mode (e.g., http://localhost:8001)',
+        description: 'URL of remote search server for network mode (e.g., http://localhost:8001)',
         required: false,
       },
       index_name: {
         type: 'string',
-        description:
-          'Name of index on remote server (network mode only, used with remote_url)',
+        description: 'Name of index on remote server (network mode only, used with remote_url)',
         default: 'default',
         required: false,
       },
@@ -210,8 +298,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       similarity_threshold: {
         type: 'number',
-        description:
-          'Minimum similarity score for results (0.0 = no limit, 1.0 = exact match)',
+        description: 'Minimum similarity score for results (0.0 = no limit, 1.0 = exact match)',
         default: 0.0,
         required: false,
         min: 0.0,
@@ -241,12 +328,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       exclude_patterns: {
         type: 'array',
         description: 'Patterns to exclude when building index',
-        default: [
-          '**/node_modules/**',
-          '**/.git/**',
-          '**/dist/**',
-          '**/build/**',
-        ],
+        default: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
         required: false,
         items: { type: 'string' },
       },
@@ -270,16 +352,14 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       max_content_length: {
         type: 'integer',
-        description:
-          'Maximum total response size in characters (distributed across all results)',
+        description: 'Maximum total response size in characters (distributed across all results)',
         default: 32768,
         required: false,
         min: 1000,
       },
       response_format_callback: {
         type: 'object',
-        description:
-          'Optional callback function to format/transform the response.',
+        description: 'Optional callback function to format/transform the response.',
         required: false,
       },
       description: {
@@ -340,8 +420,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       keyword_weight: {
         type: 'number',
-        description:
-          'Manual keyword weight (0.0-1.0). Overrides automatic weight detection',
+        description: 'Manual keyword weight (0.0-1.0). Overrides automatic weight detection',
         required: false,
         min: 0.0,
         max: 1.0,
@@ -568,10 +647,7 @@ export class NativeVectorSearchSkill extends SkillBase {
     this._documents = docs
       .filter(
         (d) =>
-          d &&
-          typeof d.id === 'string' &&
-          typeof d.text === 'string' &&
-          d.text.trim().length > 0,
+          d && typeof d.id === 'string' && typeof d.text === 'string' && d.text.trim().length > 0,
       )
       .map((d) => ({
         ...d,
@@ -609,10 +685,8 @@ export class NativeVectorSearchSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (
-          args: Record<string, unknown>,
-          rawData: Record<string, unknown>,
-        ) => this._searchHandler(args, rawData),
+        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
+          this._searchHandler(args, rawData),
       },
     ];
   }
@@ -655,16 +729,12 @@ export class NativeVectorSearchSkill extends SkillBase {
       }
     }
 
-    const query =
-      typeof args['query'] === 'string' ? (args['query'] as string).trim() : '';
+    const query = typeof args['query'] === 'string' ? (args['query'] as string).trim() : '';
     if (!query) {
       return new FunctionResult('Please provide a search query.');
     }
 
-    const count = Math.max(
-      1,
-      Math.min(20, (args['count'] as number | undefined) ?? this.count),
-    );
+    const count = Math.max(1, Math.min(20, (args['count'] as number | undefined) ?? this.count));
 
     let results: SearchResult[] = [];
     try {
@@ -700,10 +770,9 @@ export class NativeVectorSearchSkill extends SkillBase {
           });
           if (typeof formatted === 'string') msg = formatted;
         } catch (err) {
-          log.error(
-            'native_vector_search: response_format_callback error (no results)',
-            { error: err instanceof Error ? err.message : String(err) },
-          );
+          log.error('native_vector_search: response_format_callback error (no results)', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
       return new FunctionResult(msg);
@@ -715,19 +784,14 @@ export class NativeVectorSearchSkill extends SkillBase {
     responseParts.push(`Found ${results.length} relevant results for '${query}':\n`);
 
     const estimatedOverheadPerResult = 300;
-    const prefixPostfixOverhead =
-      this.responsePrefix.length + this.responsePostfix.length + 100;
-    const totalOverhead =
-      results.length * estimatedOverheadPerResult + prefixPostfixOverhead;
+    const prefixPostfixOverhead = this.responsePrefix.length + this.responsePostfix.length + 100;
+    const totalOverhead = results.length * estimatedOverheadPerResult + prefixPostfixOverhead;
     const available = this.maxContentLength - totalOverhead;
     const perResultLimit =
-      results.length > 0
-        ? Math.max(500, Math.floor(available / results.length))
-        : 1000;
+      results.length > 0 ? Math.max(500, Math.floor(available / results.length)) : 1000;
 
     results.forEach((r, i) => {
-      const filename =
-        (r.metadata['filename'] as string | undefined) ?? `result-${i + 1}`;
+      const filename = (r.metadata['filename'] as string | undefined) ?? `result-${i + 1}`;
       const section = (r.metadata['section'] as string | undefined) ?? '';
       const score = r.score;
       let content = r.content;
@@ -761,9 +825,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         if (typeof formatted === 'string') {
           response = formatted;
         } else {
-          log.warn(
-            'native_vector_search: response_format_callback returned non-string',
-          );
+          log.warn('native_vector_search: response_format_callback returned non-string');
         }
       } catch (err) {
         log.error('native_vector_search: response_format_callback error', {
@@ -824,10 +886,7 @@ export class NativeVectorSearchSkill extends SkillBase {
   }
 
   /** Perform search against a remote search server. */
-  private async _searchRemote(
-    query: string,
-    count: number,
-  ): Promise<SearchResult[]> {
+  private async _searchRemote(query: string, count: number): Promise<SearchResult[]> {
     if (!this.remoteBaseUrl) return [];
 
     try {
@@ -839,14 +898,11 @@ export class NativeVectorSearchSkill extends SkillBase {
         tags: this.filterTags,
       };
 
-      const response = await this._fetchWithAuth(
-        `${this.remoteBaseUrl}/search`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        },
-      );
+      const response = await this._fetchWithAuth(`${this.remoteBaseUrl}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
       if (response.status !== 200) {
         log.error('native_vector_search: remote search failed', {
@@ -885,9 +941,9 @@ export class NativeVectorSearchSkill extends SkillBase {
       ...((init.headers as Record<string, string>) ?? {}),
     };
     if (this.remoteAuth) {
-      const creds = Buffer.from(
-        `${this.remoteAuth.user}:${this.remoteAuth.pass}`,
-      ).toString('base64');
+      const creds = Buffer.from(`${this.remoteAuth.user}:${this.remoteAuth.pass}`).toString(
+        'base64',
+      );
       headers['Authorization'] = `Basic ${creds}`;
     }
     const controller = new AbortController();

@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode } from '../src/Logger.js';
+import {
+  Logger,
+  getLogger,
+  setGlobalLogLevel,
+  suppressAllLogs,
+  setGlobalLogFormat,
+  setGlobalLogColor,
+  setGlobalLogStream,
+  resetLoggingConfiguration,
+  getExecutionMode,
+} from '../src/Logger.js';
 
 describe('Logger', () => {
   let spyDebug: ReturnType<typeof vi.spyOn>;
@@ -190,9 +200,7 @@ describe('Logger', () => {
   });
 
   it('bind context can be chained', () => {
-    const log = new Logger('test')
-      .bind({ callId: 'c1' })
-      .bind({ step: 'auth' });
+    const log = new Logger('test').bind({ callId: 'c1' }).bind({ step: 'auth' });
     log.info('ok');
     const output = spyInfo.mock.calls[0][0] as string;
     expect(output).toContain('callId=c1');

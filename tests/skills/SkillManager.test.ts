@@ -13,11 +13,13 @@ class MockSkill extends SkillBase {
   cleanupCalled = false;
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: `${this.skillName}_tool`,
-      description: 'Mock tool',
-      handler: () => new FunctionResult('mock result'),
-    }];
+    return [
+      {
+        name: `${this.skillName}_tool`,
+        description: 'Mock tool',
+        handler: () => new FunctionResult('mock result'),
+      },
+    ];
   }
 
   getPromptSections() {
@@ -141,8 +143,8 @@ describe('SkillManager', () => {
     await manager.addSkill(makeMockSkill('b'));
     const list = manager.listSkills();
     expect(list).toHaveLength(2);
-    expect(list.map(s => s.name)).toContain('a');
-    expect(list.map(s => s.name)).toContain('b');
+    expect(list.map((s) => s.name)).toContain('a');
+    expect(list.map((s) => s.name)).toContain('b');
   });
 
   it('getAllTools aggregates tools from all skills', async () => {

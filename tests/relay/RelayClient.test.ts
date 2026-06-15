@@ -45,10 +45,14 @@ describe('RelayClient', () => {
     });
 
     it('validates host', () => {
-      expect(() => new RelayClient({
-        project: 'p', token: 't',
-        host: 'relay.test.com/path',
-      })).toThrow('Invalid host');
+      expect(
+        () =>
+          new RelayClient({
+            project: 'p',
+            token: 't',
+            host: 'relay.test.com/path',
+          }),
+      ).toThrow('Invalid host');
     });
 
     it('allows JWT auth without project/token', () => {
@@ -156,7 +160,9 @@ describe('RelayClient', () => {
       await client.connect();
 
       const receivedCalls: Call[] = [];
-      client.onCall(async (call) => { receivedCalls.push(call); });
+      client.onCall(async (call) => {
+        receivedCalls.push(call);
+      });
 
       // Simulate inbound call event
       ws.receiveMessage({
@@ -193,7 +199,9 @@ describe('RelayClient', () => {
       await client.connect();
 
       const receivedMessages: Message[] = [];
-      client.onMessage(async (msg) => { receivedMessages.push(msg); });
+      client.onMessage(async (msg) => {
+        receivedMessages.push(msg);
+      });
 
       ws.receiveMessage({
         jsonrpc: '2.0',
@@ -287,9 +295,9 @@ describe('RelayClient', () => {
       // The pong must echo the JSON-RPC envelope shape exactly: same id,
       // empty `result` object, no error. A stub that returned `{}` with
       // a different id would break correlation on the server side.
-      const pong = ws.getAllSent().find(
-        (m: Record<string, unknown>) => m['id'] === 'ping-1' && 'result' in m,
-      );
+      const pong = ws
+        .getAllSent()
+        .find((m: Record<string, unknown>) => m['id'] === 'ping-1' && 'result' in m);
       expect(pong).toBeDefined();
       expect((pong as Record<string, unknown>)['jsonrpc']).toBe('2.0');
       expect((pong as Record<string, unknown>)['result']).toEqual({});
@@ -377,8 +385,9 @@ describe('RelayClient', () => {
       const { client } = createClient();
       await client.connect();
 
-      await expect(client.sendMessage({ toNumber: '+222', fromNumber: '+111' }))
-        .rejects.toThrow('At least one of body or media');
+      await expect(client.sendMessage({ toNumber: '+222', fromNumber: '+111' })).rejects.toThrow(
+        'At least one of body or media',
+      );
 
       await client.disconnect();
     });
@@ -392,9 +401,9 @@ describe('RelayClient', () => {
       const promise = client.receive(['office', 'support']);
 
       await new Promise((r) => setTimeout(r, 10));
-      const recvReq = ws.getAllSent().find(
-        (m: Record<string, unknown>) => m['method'] === 'signalwire.receive',
-      );
+      const recvReq = ws
+        .getAllSent()
+        .find((m: Record<string, unknown>) => m['method'] === 'signalwire.receive');
       expect(recvReq).toBeDefined();
       // The wire frame must carry the documented `params.contexts` array
       // verbatim. A stub that emitted `signalwire.receive` with a wrong
@@ -436,10 +445,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'test-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'test-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -481,10 +489,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'fail-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'fail-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -520,10 +527,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'leg-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'leg-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -579,7 +585,8 @@ describe('RelayClient', () => {
     it('queues requests when not connected', async () => {
       const mockWs = new MockWebSocket();
       const client = new RelayClient({
-        project: 'p', token: 't',
+        project: 'p',
+        token: 't',
         host: 'relay.test.com',
       });
 
@@ -778,7 +785,9 @@ describe('RelayClient', () => {
         const freshCreate = (): { client: InstanceType<typeof mod.RelayClient>; ws: any } => {
           const mockWs = new FreshMockWs();
           const client = new mod.RelayClient({
-            project: 'p', token: 't', host: 'relay.test.com',
+            project: 'p',
+            token: 't',
+            host: 'relay.test.com',
           });
           (client as any)._wsFactory = () => {
             mockWs.autoAuthenticate();

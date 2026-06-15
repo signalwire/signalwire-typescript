@@ -9,11 +9,13 @@ class EphemeralTestSkill extends SkillBase {
   static override SKILL_DESCRIPTION = 'Ephemeral test';
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: 'ephemeral_tool',
-      description: 'A tool from ephemeral test skill',
-      handler: () => new FunctionResult('ephemeral result'),
-    }];
+    return [
+      {
+        name: 'ephemeral_tool',
+        description: 'A tool from ephemeral test skill',
+        handler: () => new FunctionResult('ephemeral result'),
+      },
+    ];
   }
   protected override _getPromptSections() {
     return [{ title: 'Ephemeral Section', body: 'ephemeral body' }];
@@ -33,12 +35,12 @@ describe('Ephemeral Skill Copy', () => {
 
     // Verify original has the tool
     const tools = agent.getRegisteredTools();
-    expect(tools.some(t => t.name === 'ephemeral_tool')).toBe(true);
+    expect(tools.some((t) => t.name === 'ephemeral_tool')).toBe(true);
 
     // Render SWML with dynamic config callback to test ephemeral copy
     let ephemeralToolNames: string[] = [];
     agent.setDynamicConfigCallback((_qp, _body, _headers, copy) => {
-      ephemeralToolNames = copy.getRegisteredTools().map(t => t.name);
+      ephemeralToolNames = copy.getRegisteredTools().map((t) => t.name);
     });
 
     // Trigger SWML rendering via getApp()
@@ -47,7 +49,7 @@ describe('Ephemeral Skill Copy', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from('user:pass').toString('base64'),
+        Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64'),
       },
       body: JSON.stringify({}),
     });
@@ -75,7 +77,7 @@ describe('Ephemeral Skill Copy', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from('user:pass').toString('base64'),
+        Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64'),
       },
       body: JSON.stringify({}),
     });

@@ -70,7 +70,11 @@ describe('mock-data', () => {
     });
 
     it('accepts overrides', () => {
-      const data = generateMinimalPostData('fn', {}, { overrides: { custom_field: 'custom_value' } });
+      const data = generateMinimalPostData(
+        'fn',
+        {},
+        { overrides: { custom_field: 'custom_value' } },
+      );
       expect(data['custom_field']).toBe('custom_value');
     });
   });
@@ -93,7 +97,7 @@ describe('mock-data', () => {
 
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
       const data = generateFakePostData({
-        overrides: { '__proto__': { polluted: true } } as any,
+        overrides: { __proto__: { polluted: true } } as any,
       });
       // @ts-expect-error - checking prototype pollution
       expect(({} as any).polluted).toBeUndefined();
@@ -103,9 +107,13 @@ describe('mock-data', () => {
 
   describe('generateMinimalPostData - prototype pollution', () => {
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
-      const data = generateMinimalPostData('fn', {}, {
-        overrides: { '__proto__': { polluted: true } } as any,
-      });
+      const data = generateMinimalPostData(
+        'fn',
+        {},
+        {
+          overrides: { __proto__: { polluted: true } } as any,
+        },
+      );
       // @ts-expect-error - checking prototype pollution
       expect(({} as any).polluted).toBeUndefined();
     });

@@ -84,7 +84,9 @@ export class AgentServer {
   private _sipRoute: string | null = null;
   private _sipAutoMap = false;
   private _sipUsernameMapping: Map<string, string> = new Map();
-  private _sipRoutingCallback: ((req: Request, body: Record<string, unknown>) => string | undefined) | null = null;
+  private _sipRoutingCallback:
+    | ((req: Request, body: Record<string, unknown>) => string | undefined)
+    | null = null;
 
   // Global routing callbacks registered via registerGlobalRoutingCallback
   // Stored so they can be applied to agents registered after the call.
@@ -274,7 +276,10 @@ export class AgentServer {
     }
 
     // Create a unified routing callback
-    const serverSipRoutingCallback = (_req: Request, body: Record<string, unknown>): string | undefined => {
+    const serverSipRoutingCallback = (
+      _req: Request,
+      body: Record<string, unknown>,
+    ): string | undefined => {
       const sipUsername = AgentBase.extractSipUsername(body);
       if (sipUsername) {
         this.log.info(`Extracted SIP username: ${sipUsername}`);
@@ -335,10 +340,7 @@ export class AgentServer {
    * @param callbackFn - The callback function that receives a request and body, returning a route string or undefined.
    * @param path - The path to register the callback at.
    */
-  registerGlobalRoutingCallback(
-    callbackFn: RoutingCallback,
-    path: string,
-  ): void {
+  registerGlobalRoutingCallback(callbackFn: RoutingCallback, path: string): void {
     // Normalize path: ensure leading slash, strip trailing slash
     let p = path;
     if (!p.startsWith('/')) p = `/${p}`;

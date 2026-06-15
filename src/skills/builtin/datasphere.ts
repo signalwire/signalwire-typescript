@@ -89,8 +89,7 @@ export class DataSphereSkill extends SkillBase {
       },
       space_name: {
         type: 'string',
-        description:
-          "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
+        description: "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
         required: true,
       },
       project_id: {
@@ -121,8 +120,7 @@ export class DataSphereSkill extends SkillBase {
       },
       distance: {
         type: 'number',
-        description:
-          'Maximum distance threshold for results (lower is more relevant)',
+        description: 'Maximum distance threshold for results (lower is more relevant)',
         default: 3.0,
         required: false,
         min: 0,
@@ -200,8 +198,7 @@ export class DataSphereSkill extends SkillBase {
       this.getConfig<string | undefined>('project_id', undefined) ??
       process.env['SIGNALWIRE_PROJECT_ID'];
     const token =
-      this.getConfig<string | undefined>('token', undefined) ??
-      process.env['SIGNALWIRE_TOKEN'];
+      this.getConfig<string | undefined>('token', undefined) ?? process.env['SIGNALWIRE_TOKEN'];
     const documentId = this.getConfig<string | undefined>('document_id', undefined);
     const missing: string[] = [];
     if (!spaceName) missing.push('space_name');
@@ -251,11 +248,7 @@ export class DataSphereSkill extends SkillBase {
         handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
           const rawQuery = args['query'];
 
-          if (
-            !rawQuery ||
-            typeof rawQuery !== 'string' ||
-            rawQuery.trim().length === 0
-          ) {
+          if (!rawQuery || typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for in the knowledge base?',
             );
@@ -374,9 +367,7 @@ export class DataSphereSkill extends SkillBase {
               );
             }
 
-            return new FunctionResult(
-              DataSphereSkill._formatSearchResults(query, chunks),
-            );
+            return new FunctionResult(DataSphereSkill._formatSearchResults(query, chunks));
           } catch (err) {
             log.error('datasphere_search_failed', {
               error: err instanceof Error ? err.message : String(err),
@@ -391,10 +382,7 @@ export class DataSphereSkill extends SkillBase {
   }
 
   /** Format search result chunks into a user-facing string. */
-  private static _formatSearchResults(
-    query: string,
-    chunks: DataSphereChunk[],
-  ): string {
+  private static _formatSearchResults(query: string, chunks: DataSphereChunk[]): string {
     const header =
       chunks.length === 1
         ? `I found 1 result for '${query}':\n\n`
@@ -426,9 +414,7 @@ export class DataSphereSkill extends SkillBase {
 
   /** Apply the `{query}` template to the no-results message. */
   private static _formatNoResultsMessage(template: string, query: string): string {
-    return template.includes('{query}')
-      ? template.replace(/\{query\}/g, query)
-      : template;
+    return template.includes('{query}') ? template.replace(/\{query\}/g, query) : template;
   }
 
   /** @returns Prompt section describing DataSphere knowledge base search capabilities. */

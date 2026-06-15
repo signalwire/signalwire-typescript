@@ -22,7 +22,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a production-grade assistant running in Kubernetes. ' +
-  'Respond helpfully and professionally.',
+    'Respond helpfully and professionally.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });

@@ -37,7 +37,10 @@ interface McpToolDefinition {
   name: string;
   description?: string;
   inputSchema?: {
-    properties?: Record<string, { type?: string; description?: string; enum?: unknown[]; default?: unknown }>;
+    properties?: Record<
+      string,
+      { type?: string; description?: string; enum?: unknown[]; default?: unknown }
+    >;
     required?: string[];
   };
 }
@@ -78,31 +81,27 @@ export class McpGatewaySkill extends SkillBase {
       },
       auth_token: {
         type: 'string',
-        description:
-          'Bearer token for authentication (alternative to basic auth)',
+        description: 'Bearer token for authentication (alternative to basic auth)',
         required: false,
         hidden: true,
         env_var: 'MCP_GATEWAY_AUTH_TOKEN',
       },
       auth_user: {
         type: 'string',
-        description:
-          'Username for basic authentication (required if auth_token not provided)',
+        description: 'Username for basic authentication (required if auth_token not provided)',
         required: false,
         env_var: 'MCP_GATEWAY_AUTH_USER',
       },
       auth_password: {
         type: 'string',
-        description:
-          'Password for basic authentication (required if auth_token not provided)',
+        description: 'Password for basic authentication (required if auth_token not provided)',
         required: false,
         hidden: true,
         env_var: 'MCP_GATEWAY_AUTH_PASSWORD',
       },
       services: {
         type: 'array',
-        description:
-          'List of MCP services to connect to (empty for all available)',
+        description: 'List of MCP services to connect to (empty for all available)',
         default: [],
         required: false,
         items: {
@@ -111,8 +110,7 @@ export class McpGatewaySkill extends SkillBase {
             name: { type: 'string', description: 'Service name' },
             tools: {
               type: ['string', 'array'],
-              description:
-                "Tools to expose ('*' for all, or list of tool names)",
+              description: "Tools to expose ('*' for all, or list of tool names)",
             },
           },
         },
@@ -208,8 +206,7 @@ export class McpGatewaySkill extends SkillBase {
       return false;
     }
 
-    this.services =
-      this.getConfig<McpServiceConfig[]>('services', []) ?? [];
+    this.services = this.getConfig<McpServiceConfig[]>('services', []) ?? [];
     this.sessionTimeout = this.getConfig<number>('session_timeout', 300);
     this.toolPrefix = this.getConfig<string>('tool_prefix', 'mcp_');
     this.retryAttempts = this.getConfig<number>('retry_attempts', 3);
@@ -390,9 +387,7 @@ export class McpGatewaySkill extends SkillBase {
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
     } else if (this.authUser && this.authPassword) {
-      const creds = Buffer.from(`${this.authUser}:${this.authPassword}`).toString(
-        'base64',
-      );
+      const creds = Buffer.from(`${this.authUser}:${this.authPassword}`).toString('base64');
       headers['Authorization'] = `Basic ${creds}`;
     }
 
@@ -403,10 +398,7 @@ export class McpGatewaySkill extends SkillBase {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(
-      () => controller.abort(),
-      this.requestTimeout * 1000,
-    );
+    const timer = setTimeout(() => controller.abort(), this.requestTimeout * 1000);
     init.signal = controller.signal;
 
     // Mirror Python `requests.request(..., verify=self.verify_ssl)`. Node's
@@ -430,10 +422,7 @@ export class McpGatewaySkill extends SkillBase {
     // If no services configured, fetch all available
     let services = this.services;
     if (services.length === 0) {
-      const response = await this._makeRequest(
-        'GET',
-        `${this.gatewayUrl}/services`,
-      );
+      const response = await this._makeRequest('GET', `${this.gatewayUrl}/services`);
       if (!response.ok) {
         log.error('mcp_gateway: failed to list services', {
           status: response.status,
@@ -517,10 +506,8 @@ export class McpGatewaySkill extends SkillBase {
       description: `[${serviceName}] ${toolDef.description ?? toolName}`,
       parameters: swaigParams,
       required,
-      handler: async (
-        args: Record<string, unknown>,
-        rawData: Record<string, unknown>,
-      ) => this._callMcpTool(serviceName, toolName, args, rawData),
+      handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
+        this._callMcpTool(serviceName, toolName, args, rawData),
     };
   }
 
@@ -619,9 +606,7 @@ export class McpGatewaySkill extends SkillBase {
         // Python aborts the retry loop on non-network exceptions; mirror that.
         const isNetwork =
           err instanceof Error &&
-          (err.name === 'AbortError' ||
-            err.name === 'TypeError' ||
-            err.message.includes('fetch'));
+          (err.name === 'AbortError' || err.name === 'TypeError' || err.message.includes('fetch'));
         if (!isNetwork) {
           log.error('mcp_gateway: unexpected error, aborting retry', {
             attempt: attempt + 1,

@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('WeatherApiSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -65,7 +67,7 @@ describe('WeatherApiSkill', () => {
   it('should return error when API key is missing', async () => {
     delete process.env['WEATHER_API_KEY'];
     const handler = new WeatherApiSkill().getTools()[0].handler;
-    const result = await handler({ location: 'London' }, {}) as FunctionResult;
+    const result = (await handler({ location: 'London' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 

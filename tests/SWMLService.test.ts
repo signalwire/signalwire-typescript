@@ -289,7 +289,7 @@ describe('SWMLService', () => {
         const res = await app.request('/', {
           method: 'OPTIONS',
           headers: {
-            'Origin': 'https://example.com',
+            Origin: 'https://example.com',
             'Access-Control-Request-Method': 'GET',
           },
         });
@@ -310,7 +310,7 @@ describe('SWMLService', () => {
         const res = await app.request('/', {
           method: 'OPTIONS',
           headers: {
-            'Origin': 'https://example.com',
+            Origin: 'https://example.com',
             'Access-Control-Request-Method': 'GET',
           },
         });

@@ -21,7 +21,11 @@ export interface AuthConfig {
   /** Basic auth credentials as a [username, password] tuple. */
   basicAuth?: [string, string];
   /** Custom validator function; return true to allow the request. */
-  customValidator?: (request: { headers: Record<string, string>; method: string; url: string }) => boolean | Promise<boolean>;
+  customValidator?: (request: {
+    headers: Record<string, string>;
+    method: string;
+    url: string;
+  }) => boolean | Promise<boolean>;
   /** When explicitly set to false, deny requests if no auth methods are configured. */
   allowUnauthenticated?: boolean;
 }
@@ -100,11 +104,18 @@ export class AuthHandler {
     }
 
     // If no methods configured, check allowUnauthenticated flag
-    if (!this.config.bearerToken && !this.config.apiKey && !this.config.basicAuth && !this.config.customValidator) {
+    if (
+      !this.config.bearerToken &&
+      !this.config.apiKey &&
+      !this.config.basicAuth &&
+      !this.config.customValidator
+    ) {
       if (this.config.allowUnauthenticated === false) {
         return false;
       }
-      log.warn('No auth methods configured; allowing unauthenticated access. Set allowUnauthenticated to false to deny.');
+      log.warn(
+        'No auth methods configured; allowing unauthenticated access. Set allowUnauthenticated to false to deny.',
+      );
       return true;
     }
 
@@ -163,7 +174,9 @@ export class AuthHandler {
   middleware(optional = false): (c: any, next: () => Promise<void>) => Promise<Response | void> {
     return async (c: any, next: () => Promise<void>) => {
       const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
+      c.req.raw.headers.forEach((v: string, k: string) => {
+        headers[k] = v;
+      });
 
       const valid = await this.validate(headers);
       if (!valid && !optional) {

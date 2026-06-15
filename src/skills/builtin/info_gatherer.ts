@@ -23,7 +23,7 @@ import { getLogger } from '../../Logger.js';
 const log = getLogger('InfoGathererSkill');
 
 const DEFAULT_COMPLETION_MESSAGE =
-  "Thank you! All questions have been answered. You can now summarize the " +
+  'Thank you! All questions have been answered. You can now summarize the ' +
   "information collected or ask if there's anything else the user would like " +
   'to discuss.';
 
@@ -199,8 +199,7 @@ export class InfoGathererSkill extends SkillBase {
       },
       {
         name: this.submitToolName,
-        description:
-          'Submit an answer to the current question and move to the next one',
+        description: 'Submit an answer to the current question and move to the next one',
         parameters: {
           answer: {
             type: 'string',
@@ -263,7 +262,8 @@ export class InfoGathererSkill extends SkillBase {
 
     const questions = (state['questions'] as QuestionDefinition[] | undefined) ?? [];
     const questionIndex = (state['question_index'] as number | undefined) ?? 0;
-    const answers = (state['answers'] as Array<{ key_name: string; answer: string }> | undefined) ?? [];
+    const answers =
+      (state['answers'] as Array<{ key_name: string; answer: string }> | undefined) ?? [];
 
     if (questionIndex >= questions.length) {
       return new FunctionResult('All questions have already been answered.');

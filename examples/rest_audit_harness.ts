@@ -103,7 +103,8 @@ async function main(): Promise<void> {
 
   const operation = process.env['REST_OPERATION'] ?? die('REST_OPERATION env var required');
   const fixtureUrl = process.env['REST_FIXTURE_URL'] ?? die('REST_FIXTURE_URL env var required');
-  const project = process.env['SIGNALWIRE_PROJECT_ID'] ?? die('SIGNALWIRE_PROJECT_ID env var required');
+  const project =
+    process.env['SIGNALWIRE_PROJECT_ID'] ?? die('SIGNALWIRE_PROJECT_ID env var required');
   const token = process.env['SIGNALWIRE_API_TOKEN'] ?? die('SIGNALWIRE_API_TOKEN env var required');
 
   let args: Record<string, any> = {};
@@ -135,5 +136,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  die(`unhandled error: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+  die(`unhandled error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
 });

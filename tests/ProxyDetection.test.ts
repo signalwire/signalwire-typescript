@@ -42,7 +42,7 @@ describe('ProxyDetection', () => {
     const res = await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'ngrok.example.com',
         'X-Forwarded-Proto': 'https',
@@ -59,7 +59,7 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'tunnel.io',
       },
@@ -73,9 +73,9 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
-        'Forwarded': 'host=proxy.example.com;proto=https',
+        Forwarded: 'host=proxy.example.com;proto=https',
       },
       body: JSON.stringify({}),
     });
@@ -87,9 +87,9 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
-        'Forwarded': 'host=proxy.example.com',
+        Forwarded: 'host=proxy.example.com',
       },
       body: JSON.stringify({}),
     });
@@ -101,7 +101,7 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Original-Host': 'original.example.com',
       },
@@ -115,11 +115,11 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'xfh.example.com',
         'X-Forwarded-Proto': 'https',
-        'Forwarded': 'host=fwd.example.com;proto=https',
+        Forwarded: 'host=fwd.example.com;proto=https',
       },
       body: JSON.stringify({}),
     });
@@ -135,7 +135,7 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'ngrok.example.com',
         'X-Forwarded-Proto': 'https',
@@ -159,7 +159,7 @@ describe('ProxyDetection', () => {
     const res = await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'webhook.example.com',
         'X-Forwarded-Proto': 'https',
@@ -178,7 +178,7 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
@@ -188,14 +188,18 @@ describe('ProxyDetection', () => {
 
   it('proxy detection disabled by default when SWML_TRUST_PROXY_HEADERS is not set', async () => {
     delete process.env['SWML_TRUST_PROXY_HEADERS'];
-    const noTrustAgent = new AgentBase({ name: 'no-trust', route: '/', basicAuth: ['user', 'pass'] });
+    const noTrustAgent = new AgentBase({
+      name: 'no-trust',
+      route: '/',
+      basicAuth: ['user', 'pass'],
+    });
     noTrustAgent.setPromptText('test');
     const beforeUrl = noTrustAgent.getFullUrl();
     const app = noTrustAgent.getApp();
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
         'X-Forwarded-Host': 'should-be-ignored.com',
         'X-Forwarded-Proto': 'https',
@@ -212,9 +216,9 @@ describe('ProxyDetection', () => {
     await app.request('http://localhost/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('user:pass'),
+        Authorization: 'Basic ' + btoa('user:pass'),
         'Content-Type': 'application/json',
-        'Forwarded': 'host=evil/path;proto=https',
+        Forwarded: 'host=evil/path;proto=https',
       },
       body: JSON.stringify({}),
     });

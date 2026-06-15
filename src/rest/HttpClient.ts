@@ -44,11 +44,17 @@ export class HttpClient {
     const rawUrl = options.host ? `https://${options.host}` : options.baseUrl!;
     this.baseUrl = rawUrl.replace(/\/+$/, '');
 
-    this._authHeader = 'Basic ' + Buffer.from(`${options.project}:${options.token}`).toString('base64');
+    this._authHeader =
+      'Basic ' + Buffer.from(`${options.project}:${options.token}`).toString('base64');
     this._fetch = options.fetchImpl ?? globalThis.fetch;
   }
 
-  private async _request<T = any>(method: string, path: string, body?: any, params?: QueryParams): Promise<T> {
+  private async _request<T = any>(
+    method: string,
+    path: string,
+    body?: any,
+    params?: QueryParams,
+  ): Promise<T> {
     let url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
     if (params) {
@@ -63,8 +69,8 @@ export class HttpClient {
     logger.debug(`${method} ${url}`);
 
     const headers: Record<string, string> = {
-      'Authorization': this._authHeader,
-      'Accept': 'application/json',
+      Authorization: this._authHeader,
+      Accept: 'application/json',
       'User-Agent': '@signalwire/sdk-ts/2.0.0',
     };
     if (body !== undefined) {

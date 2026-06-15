@@ -60,14 +60,12 @@ export class PlayBackgroundFileSkill extends SkillBase {
       ...super.getParameterSchema(),
       tool_name: {
         type: 'string',
-        description:
-          'Custom name for the generated SWAIG function (enables multiple instances).',
+        description: 'Custom name for the generated SWAIG function (enables multiple instances).',
         default: 'play_background_file',
       },
       files: {
         type: 'array',
-        description:
-          'Array of pre-configured file entries to make available for playback.',
+        description: 'Array of pre-configured file entries to make available for playback.',
         required: true,
         items: {
           type: 'object',
@@ -95,8 +93,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
       },
       default_file_url: {
         type: 'string',
-        description:
-          'Default audio file URL to use when no URL is specified (free-form mode).',
+        description: 'Default audio file URL to use when no URL is specified (free-form mode).',
       },
       allowed_domains: {
         type: 'array',
@@ -105,7 +102,6 @@ export class PlayBackgroundFileSkill extends SkillBase {
       },
     };
   }
-
 
   /**
    * Produce a compound instance key so multiple copies of the skill with
@@ -143,9 +139,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
     return this._getFreeFormTools();
   }
 
-  private _getPreConfiguredTools(
-    files: PreConfiguredFile[],
-  ): SkillToolDefinition[] {
+  private _getPreConfiguredTools(files: PreConfiguredFile[]): SkillToolDefinition[] {
     const toolName = this.getConfig<string>('tool_name', 'play_background_file');
 
     const enumValues: string[] = [];
@@ -159,9 +153,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
     descriptions.push('stop: Stop any currently playing background file');
 
     const description = `Action to perform. Options: ${descriptions.join('; ')}`;
-    const byAction = new Map<string, PreConfiguredFile>(
-      files.map((f) => [`start_${f.key}`, f]),
-    );
+    const byAction = new Map<string, PreConfiguredFile>(files.map((f) => [`start_${f.key}`, f]));
 
     return [
       {
@@ -180,9 +172,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
         handler: (args: Record<string, unknown>) => {
           const action = args['action'] as string | undefined;
           if (!action || typeof action !== 'string') {
-            return new FunctionResult(
-              'Please specify an action to perform.',
-            );
+            return new FunctionResult('Please specify an action to perform.');
           }
 
           if (action === 'stop') {
@@ -211,14 +201,8 @@ export class PlayBackgroundFileSkill extends SkillBase {
   }
 
   private _getFreeFormTools(): SkillToolDefinition[] {
-    const defaultFileUrl = this.getConfig<string | undefined>(
-      'default_file_url',
-      undefined,
-    );
-    const allowedDomains = this.getConfig<string[] | undefined>(
-      'allowed_domains',
-      undefined,
-    );
+    const defaultFileUrl = this.getConfig<string | undefined>('default_file_url', undefined);
+    const allowedDomains = this.getConfig<string[] | undefined>('allowed_domains', undefined);
 
     return [
       {
@@ -297,9 +281,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
         wait_for_fillers: true,
         skip_fillers: true,
         handler: () => {
-          const result = new FunctionResult(
-            'Background audio playback has been stopped.',
-          );
+          const result = new FunctionResult('Background audio playback has been stopped.');
           result.stopBackgroundFile();
 
           return result;
@@ -329,10 +311,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
       ];
     }
 
-    const defaultFileUrl = this.getConfig<string | undefined>(
-      'default_file_url',
-      undefined,
-    );
+    const defaultFileUrl = this.getConfig<string | undefined>('default_file_url', undefined);
 
     const bullets: string[] = [
       'Use the play_background tool to start playing audio in the background during a call.',

@@ -227,7 +227,16 @@ async function ensureServer(): Promise<MockHarness> {
     // binary lifetime. detached + unref() releases the parent.
     const child = spawn(
       'python',
-      ['-m', 'mock_signalwire', '--host', '127.0.0.1', '--port', String(port), '--log-level', 'error'],
+      [
+        '-m',
+        'mock_signalwire',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        String(port),
+        '--log-level',
+        'error',
+      ],
       {
         detached: true,
         stdio: 'ignore',

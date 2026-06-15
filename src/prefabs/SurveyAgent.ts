@@ -123,7 +123,10 @@ export class SurveyAgent extends AgentBase {
   public conclusion: string;
 
   private questionMap: Map<string, SurveyQuestion>;
-  private onCompleteCallback?: (responses: Record<string, unknown>, score: number) => void | Promise<void>;
+  private onCompleteCallback?: (
+    responses: Record<string, unknown>,
+    score: number,
+  ) => void | Promise<void>;
   private sessions: Map<string, SurveySession> = new Map();
 
   /**
@@ -145,7 +148,8 @@ export class SurveyAgent extends AgentBase {
     this.brandName = config.brandName ?? 'Our Company';
     this.maxRetries = config.maxRetries ?? 2;
     this.introduction =
-      config.introduction ?? `Welcome to our ${config.surveyName}. We appreciate your participation.`;
+      config.introduction ??
+      `Welcome to our ${config.surveyName}. We appreciate your participation.`;
     this.conclusion =
       config.conclusion ?? 'Thank you for completing our survey. Your feedback is valuable to us.';
     this.onCompleteCallback = config.onComplete;
@@ -469,16 +473,15 @@ export class SurveyAgent extends AgentBase {
           session.responses[questionId] = this.normalizeAnswer(question, response);
         }
 
-        return new FunctionResult(
-          `Response to '${questionText}' has been recorded.`,
-        );
+        return new FunctionResult(`Response to '${questionText}' has been recorded.`);
       },
     });
 
     // Tool: answer_question (TS-specific atomic validate+record+advance)
     this.defineTool({
       name: 'answer_question',
-      description: "Record the caller's answer to the current survey question. Validates the answer based on question type and advances to the next question.",
+      description:
+        "Record the caller's answer to the current survey question. Validates the answer based on question type and advances to the next question.",
       parameters: {
         type: 'object',
         properties: {
@@ -594,7 +597,8 @@ export class SurveyAgent extends AgentBase {
     // Tool: get_survey_progress
     this.defineTool({
       name: 'get_survey_progress',
-      description: 'Get the current progress of the survey, including how many questions have been answered and the current score.',
+      description:
+        'Get the current progress of the survey, including how many questions have been answered and the current score.',
       parameters: {
         type: 'object',
         properties: {},

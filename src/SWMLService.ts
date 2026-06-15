@@ -284,7 +284,8 @@ export class SWMLService {
 
     // Schema utils — pass through schemaPath so callers can supply a custom schema file.
     // Mirrors Python's SchemaUtils(schema_path, schema_validation=...) call in SWMLService.__init__.
-    const skipValidation = opts?.schemaValidation === false || process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
+    const skipValidation =
+      opts?.schemaValidation === false || process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
     this.schemaUtils = new SchemaUtils({
       skipValidation,
       ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
@@ -361,7 +362,9 @@ export class SWMLService {
       // can both receive them (mirrors Python's _handle_request param extraction).
       const url = new URL(c.req.url);
       const queryParams: Record<string, string> = {};
-      url.searchParams.forEach((v, k) => { queryParams[k] = v; });
+      url.searchParams.forEach((v, k) => {
+        queryParams[k] = v;
+      });
 
       let bodyParams: Record<string, unknown> = {};
       if (c.req.method === 'POST') {
@@ -373,7 +376,9 @@ export class SWMLService {
       }
 
       const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
+      c.req.raw.headers.forEach((v: string, k: string) => {
+        headers[k] = v;
+      });
 
       // Protected override hook (Service-side SWML builder dispatch).
       // Try buildSwmlForRequest() first; if it returns a SwmlBuilder use
@@ -420,7 +425,12 @@ export class SWMLService {
       // Argument extraction: nested {argument:{parsed}} OR flat {arguments}
       let args: Record<string, unknown> = {};
       const argument = payload['argument'] as Record<string, unknown> | undefined;
-      if (argument && typeof argument === 'object' && Array.isArray(argument['parsed']) && (argument['parsed'] as unknown[]).length > 0) {
+      if (
+        argument &&
+        typeof argument === 'object' &&
+        Array.isArray(argument['parsed']) &&
+        (argument['parsed'] as unknown[]).length > 0
+      ) {
         const first = (argument['parsed'] as unknown[])[0];
         if (first && typeof first === 'object') args = first as Record<string, unknown>;
       } else {
@@ -554,7 +564,11 @@ export class SWMLService {
    *
    * @returns Array of tool descriptors.
    */
-  getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[] {
+  getRegisteredTools(): {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  }[] {
     const tools: { name: string; description: string; parameters: Record<string, unknown> }[] = [];
     for (const [name, fn] of this.toolRegistry) {
       if (fn instanceof SwaigFunction) {
@@ -739,10 +753,7 @@ export class SWMLService {
    * @param callbackFn - Callback receiving the request body and returning a route or null.
    * @param path - HTTP path for the callback (default '/sip').
    */
-  registerRoutingCallback(
-    callbackFn: RoutingCallback,
-    path: string = '/sip',
-  ): void {
+  registerRoutingCallback(callbackFn: RoutingCallback, path: string = '/sip'): void {
     // Normalize: ensure leading /, strip trailing /
     let normalized = path.replace(/\/+$/, '');
     if (!normalized.startsWith('/')) {
@@ -861,8 +872,12 @@ export class SWMLService {
    * @returns A tuple of [username, password] or [username, password, source].
    */
   getBasicAuthCredentials(includeSource?: false): [string, string];
-  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
-  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  getBasicAuthCredentials(
+    includeSource: true,
+  ): [string, string, 'provided' | 'environment' | 'generated'];
+  getBasicAuthCredentials(
+    includeSource?: boolean,
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;
@@ -927,14 +942,16 @@ export class SWMLService {
    * @returns Resolves once the server has begun listening.
    */
   async run(
-    hostOrOpts?: string | {
-      host?: string;
-      port?: number;
-      sslCert?: string;
-      sslKey?: string;
-      sslEnabled?: boolean;
-      domain?: string;
-    },
+    hostOrOpts?:
+      | string
+      | {
+          host?: string;
+          port?: number;
+          sslCert?: string;
+          sslKey?: string;
+          sslEnabled?: boolean;
+          domain?: string;
+        },
     port?: number,
     opts?: {
       sslCert?: string;

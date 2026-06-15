@@ -18,7 +18,6 @@ export class CrudWithAddresses<
   TCreate = any,
   TUpdate = any,
 > extends CrudResource<TList, TItem, TCreate, TUpdate> {
-
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }

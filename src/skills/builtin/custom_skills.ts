@@ -113,7 +113,8 @@ export class CustomSkillsSkill extends SkillBase {
       ...super.getParameterSchema(),
       tools: {
         type: 'array',
-        description: 'Array of custom tool definitions: { name, description, handler_code, parameters?, required?, prompt_description?, secure?, fillers? }.',
+        description:
+          'Array of custom tool definitions: { name, description, handler_code, parameters?, required?, prompt_description?, secure?, fillers? }.',
         items: { type: 'object' },
       },
       prompt_title: {
@@ -127,7 +128,6 @@ export class CustomSkillsSkill extends SkillBase {
       },
     };
   }
-
 
   /**
    * Pre-compile handler code into functions during construction.
@@ -150,12 +150,7 @@ export class CustomSkillsSkill extends SkillBase {
         log.warn(`Compiling custom handler code for tool '${toolDef.name}'`);
         // The handler code receives: args, rawData, FunctionResult
         // It should return a FunctionResult, string, or plain object
-        const handler = new Function(
-          'args',
-          'rawData',
-          'FunctionResult',
-          toolDef.handler_code,
-        ) as (
+        const handler = new Function('args', 'rawData', 'FunctionResult', toolDef.handler_code) as (
           args: Record<string, unknown>,
           rawData: Record<string, unknown>,
           resultClass: typeof FunctionResult,
@@ -163,7 +158,10 @@ export class CustomSkillsSkill extends SkillBase {
 
         this._compiledHandlers.set(toolDef.name, handler);
       } catch (err) {
-        log.error('custom_handler_compile_error', { tool: toolDef.name, error: err instanceof Error ? err.message : String(err) });
+        log.error('custom_handler_compile_error', {
+          tool: toolDef.name,
+          error: err instanceof Error ? err.message : String(err),
+        });
         this._compilationErrors.set(toolDef.name, 'Handler compilation failed.');
       }
     }
@@ -215,10 +213,7 @@ export class CustomSkillsSkill extends SkillBase {
         required: toolDef.required,
         secure: toolDef.secure,
         fillers: toolDef.fillers,
-        handler: async (
-          args: Record<string, unknown>,
-          rawData: Record<string, unknown>,
-        ) => {
+        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
           try {
             const result = await compiledHandler(args, rawData, FunctionResult);
 
@@ -237,7 +232,10 @@ export class CustomSkillsSkill extends SkillBase {
 
             return new FunctionResult('Action completed.');
           } catch (err) {
-            log.error('custom_tool_runtime_error', { tool: toolDef.name, error: err instanceof Error ? err.message : String(err) });
+            log.error('custom_tool_runtime_error', {
+              tool: toolDef.name,
+              error: err instanceof Error ? err.message : String(err),
+            });
             return new FunctionResult(
               `Custom tool "${toolDef.name}" encountered an error. Please try again.`,
             );
@@ -259,9 +257,7 @@ export class CustomSkillsSkill extends SkillBase {
     }
 
     const title = configData.prompt_title ?? 'Custom Tools';
-    const body =
-      configData.prompt_body ??
-      'The following custom tools are available for use.';
+    const body = configData.prompt_body ?? 'The following custom tools are available for use.';
 
     const bullets: string[] = [];
 
@@ -291,9 +287,7 @@ export class CustomSkillsSkill extends SkillBase {
   /**
    * Build tool parameters from the custom tool definition.
    */
-  private _buildParameters(
-    toolDef: CustomToolDefinition,
-  ): Record<string, unknown> {
+  private _buildParameters(toolDef: CustomToolDefinition): Record<string, unknown> {
     if (!toolDef.parameters || toolDef.parameters.length === 0) {
       return {};
     }

@@ -7,7 +7,9 @@ import { ClaudeSkillsSkill, createClaudeSkillsSkill } from '../../src/skills/bui
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('ClaudeSkillsSkill', () => {
   it('should instantiate via constructor and factory', () => {

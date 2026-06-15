@@ -46,7 +46,7 @@ export class SslConfig {
    * @param opts - Optional SSL configuration overrides.
    */
   constructor(opts?: SslOptions) {
-    this.enabled = opts?.enabled ?? (process.env['SWML_SSL_ENABLED'] === 'true');
+    this.enabled = opts?.enabled ?? process.env['SWML_SSL_ENABLED'] === 'true';
     this.certPath = opts?.certPath ?? process.env['SWML_SSL_CERT_PATH'] ?? null;
     this.keyPath = opts?.keyPath ?? process.env['SWML_SSL_KEY_PATH'] ?? null;
     this.domain = opts?.domain ?? process.env['SWML_SSL_DOMAIN'] ?? null;

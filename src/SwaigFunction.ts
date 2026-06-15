@@ -19,7 +19,11 @@ const log = getLogger('SwaigFunction');
 export type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: Record<string, unknown>,
-) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
+) =>
+  | FunctionResult
+  | Record<string, unknown>
+  | string
+  | Promise<FunctionResult | Record<string, unknown> | string>;
 
 /** Configuration options for creating a SwaigFunction. */
 export interface SwaigFunctionOptions {

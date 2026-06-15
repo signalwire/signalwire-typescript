@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('GoogleMapsSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -67,7 +69,7 @@ describe('GoogleMapsSkill', () => {
   it('should return error when origin is missing', async () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const handler = new GoogleMapsSkill().getTools()[0].handler;
-    const result = await handler({}, {}) as FunctionResult;
+    const result = (await handler({}, {})) as FunctionResult;
     // Without an origin the handler must surface a user-facing error
     // string. We assert real content (the word "origin") so the test
     // catches a stub returning a generic non-empty placeholder.

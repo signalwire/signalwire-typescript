@@ -192,15 +192,17 @@ export class MockRelayHarness {
   }
 
   /** Inject an inbound-call announcement (calling.call.receive + state events). */
-  async inboundCall(opts: {
-    call_id?: string;
-    from_number?: string;
-    to_number?: string;
-    context?: string;
-    auto_states?: string[];
-    delay_ms?: number;
-    session_id?: string;
-  } = {}): Promise<any> {
+  async inboundCall(
+    opts: {
+      call_id?: string;
+      from_number?: string;
+      to_number?: string;
+      context?: string;
+      auto_states?: string[];
+      delay_ms?: number;
+      session_id?: string;
+    } = {},
+  ): Promise<any> {
     const body: Record<string, any> = {
       from_number: opts.from_number ?? '+15551234567',
       to_number: opts.to_number ?? '+15559876543',

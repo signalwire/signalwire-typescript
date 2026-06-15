@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('SwmlTransferSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -116,19 +118,23 @@ describe('SwmlTransferSkill', () => {
     // description must both be populated — a stub returning `{key:
     // undefined}` would fail the type check.
     const required = [
-      'transfers', 'tool_name', 'description', 'parameter_name',
-      'parameter_description', 'default_message', 'default_post_process',
-      'required_fields', 'patterns', 'allow_arbitrary',
+      'transfers',
+      'tool_name',
+      'description',
+      'parameter_name',
+      'parameter_description',
+      'default_message',
+      'default_post_process',
+      'required_fields',
+      'patterns',
+      'allow_arbitrary',
     ];
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
   });
 

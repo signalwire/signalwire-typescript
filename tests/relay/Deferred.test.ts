@@ -52,9 +52,7 @@ describe('withTimeout', () => {
 
   it('rejects on timeout', async () => {
     const slow = new Promise<string>(() => {}); // never resolves
-    await expect(withTimeout(slow, 10, 'slow op')).rejects.toThrow(
-      'slow op timed out after 10ms',
-    );
+    await expect(withTimeout(slow, 10, 'slow op')).rejects.toThrow('slow op timed out after 10ms');
   });
 
   it('propagates rejection before timeout', async () => {
@@ -64,8 +62,6 @@ describe('withTimeout', () => {
 
   it('uses default label', async () => {
     const slow = new Promise<string>(() => {});
-    await expect(withTimeout(slow, 10)).rejects.toThrow(
-      'Operation timed out after 10ms',
-    );
+    await expect(withTimeout(slow, 10)).rejects.toThrow('Operation timed out after 10ms');
   });
 });

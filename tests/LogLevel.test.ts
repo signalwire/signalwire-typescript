@@ -112,9 +112,15 @@ afterEach(() => {
  * that actually emitted a line, given the current global level.
  */
 function emittedSeverities(name: string): Set<string> {
-  spyDebug.mockClear(); spyInfo.mockClear(); spyWarn.mockClear(); spyError.mockClear();
+  spyDebug.mockClear();
+  spyInfo.mockClear();
+  spyWarn.mockClear();
+  spyError.mockClear();
   const log = getLogger(name);
-  log.debug('d'); log.info('i'); log.warn('w'); log.error('e');
+  log.debug('d');
+  log.info('i');
+  log.warn('w');
+  log.error('e');
   const out = new Set<string>();
   if (spyDebug.mock.calls.length) out.add('debug');
   if (spyInfo.mock.calls.length) out.add('info');
@@ -166,8 +172,7 @@ describe('LogLevel closed-set typing (setGlobalLogLevel)', () => {
 
   it('rejects a typo’d level at COMPILE time, accepts the correct one', () => {
     const errs = typeCheckLines(
-      `const good: LogLevel = 'debug'; void good;\n` +
-      `const bad: LogLevel = 'debgu'; void bad;`,
+      `const good: LogLevel = 'debug'; void good;\n` + `const bad: LogLevel = 'debgu'; void bad;`,
     );
     expect(errs.get(1)).toBeUndefined();
     const typoError = errs.get(2);

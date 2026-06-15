@@ -70,8 +70,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
       ...super.getParameterSchema(),
       tool_name: {
         type: 'string',
-        description:
-          'Custom name for the SWAIG trivia tool (enables multiple instances).',
+        description: 'Custom name for the SWAIG trivia tool (enables multiple instances).',
         default: 'get_trivia',
       },
       api_key: {
@@ -83,8 +82,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
       },
       categories: {
         type: 'array',
-        description:
-          'Subset of trivia categories to enable. Defaults to all categories.',
+        description: 'Subset of trivia categories to enable. Defaults to all categories.',
         required: false,
         default: [...VALID_CATEGORIES],
         items: {
@@ -119,15 +117,9 @@ export class ApiNinjasTriviaSkill extends SkillBase {
   /** @returns A single trivia tool (configurable name) that fetches a random trivia question with optional category. */
   getTools(): SkillToolDefinition[] {
     const toolName = this.getConfig<string>('tool_name', 'get_trivia');
-    const defaultCategory = this.getConfig<string | undefined>(
-      'default_category',
-      undefined,
-    );
+    const defaultCategory = this.getConfig<string | undefined>('default_category', undefined);
     const revealAnswer = this.getConfig<boolean>('reveal_answer', false);
-    const configuredCategories = this.getConfig<string[] | undefined>(
-      'categories',
-      undefined,
-    );
+    const configuredCategories = this.getConfig<string[] | undefined>('categories', undefined);
     const enabledCategories =
       Array.isArray(configuredCategories) && configuredCategories.length > 0
         ? configuredCategories.filter((c): c is string =>
@@ -164,10 +156,11 @@ export class ApiNinjasTriviaSkill extends SkillBase {
 
           // Validate category if provided
           if (category && typeof category === 'string') {
-            const normalized = category.toLowerCase().trim().replace(/[\s_-]/g, '');
-            if (
-              !enabledCategories.includes(normalized)
-            ) {
+            const normalized = category
+              .toLowerCase()
+              .trim()
+              .replace(/[\s_-]/g, '');
+            if (!enabledCategories.includes(normalized)) {
               return new FunctionResult(
                 `Unknown trivia category "${category}". Available categories: ${enabledCategories.join(', ')}.`,
               );
@@ -179,8 +172,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             // Base URL defaults to API Ninjas; the porting-sdk's
             // `audit_skills_dispatch.py` overrides via `API_NINJAS_BASE_URL`
             // so a loopback fixture can stand in.
-            const apiBase =
-              process.env['API_NINJAS_BASE_URL'] ?? 'https://api.api-ninjas.com';
+            const apiBase = process.env['API_NINJAS_BASE_URL'] ?? 'https://api.api-ninjas.com';
             const url = category
               ? `${apiBase.replace(/\/+$/, '')}/v1/trivia?category=${encodeURIComponent(category)}`
               : `${apiBase.replace(/\/+$/, '')}/v1/trivia`;
@@ -230,10 +222,10 @@ export class ApiNinjasTriviaSkill extends SkillBase {
                 `[The correct answer is: ${trivia.answer}. Do not reveal this unless the user attempts an answer or asks for it.]`,
             );
           } catch (err) {
-            log.error('get_trivia_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('get_trivia_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -261,9 +253,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
       );
     }
 
-    bullets.push(
-      'Keep trivia fun and engaging. Encourage the user to try more questions.',
-    );
+    bullets.push('Keep trivia fun and engaging. Encourage the user to try more questions.');
 
     return [
       {

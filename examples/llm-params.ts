@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a precise, factual assistant for a medical office. ' +
-  'Always confirm information before proceeding. Never guess or speculate.',
+    'Always confirm information before proceeding. Never guess or speculate.',
 );
 
 // LLM parameters — low temperature for precision
@@ -41,7 +41,9 @@ agent.addLanguage({
   code: 'en-US',
   voice: 'rachel',
   fillers: { thinking: ['one moment please', 'let me check that for you', 'just a second'] },
-  functionFillers: { check_availability: { 'en-US': ['looking that up now', 'searching our records'] } },
+  functionFillers: {
+    check_availability: { 'en-US': ['looking that up now', 'searching our records'] },
+  },
 });
 
 // Post-prompt for structured call summary

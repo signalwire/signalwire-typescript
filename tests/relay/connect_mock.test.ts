@@ -37,7 +37,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
     client = null;
   }
 });
@@ -169,11 +173,14 @@ describe('RelayClient.connect — auth failure', () => {
     delete process.env.SIGNALWIRE_API_TOKEN;
     delete process.env.SIGNALWIRE_JWT_TOKEN;
     try {
-      expect(() => new RelayClient({
-        project: '',
-        token: '',
-        host: 'anywhere',
-      })).toThrow(/project and token are required/);
+      expect(
+        () =>
+          new RelayClient({
+            project: '',
+            token: '',
+            host: 'anywhere',
+          }),
+      ).toThrow(/project and token are required/);
     } finally {
       if (origProject !== undefined) process.env.SIGNALWIRE_PROJECT_ID = origProject;
       if (origToken !== undefined) process.env.SIGNALWIRE_API_TOKEN = origToken;
@@ -200,16 +207,18 @@ describe('RelayClient.connect — auth failure', () => {
         resolve(JSON.parse(raw));
       });
     });
-    sock.send(JSON.stringify({
-      jsonrpc: '2.0',
-      id: reqId,
-      method: 'signalwire.connect',
-      params: {
-        version: PROTOCOL_VERSION,
-        agent: AGENT_STRING,
-        authentication: { project: '', token: '' },
-      },
-    }));
+    sock.send(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: reqId,
+        method: 'signalwire.connect',
+        params: {
+          version: PROTOCOL_VERSION,
+          agent: AGENT_STRING,
+          authentication: { project: '', token: '' },
+        },
+      }),
+    );
     const resp = await respPromise;
     sock.close();
 

@@ -129,8 +129,8 @@ function parseFormBody(rawBody: string): Array<[string, string]> {
 
 interface SplitUrl {
   scheme: string;
-  host: string;     // hostname only (no port, no brackets)
-  port: string;     // empty string if absent
+  host: string; // hostname only (no port, no brackets)
+  port: string; // empty string if absent
   path: string;
   query: string;
   fragment: string;
@@ -307,9 +307,7 @@ export function validateWebhookSignature(
     throw new Error('signingKey is required');
   }
   if (typeof rawBody !== 'string') {
-    throw new TypeError(
-      'rawBody must be a string; did you pass parsed JSON by mistake?',
-    );
+    throw new TypeError('rawBody must be a string; did you pass parsed JSON by mistake?');
   }
   if (signature === null || signature === undefined || signature === '') {
     return false;
@@ -393,8 +391,7 @@ export function validateRequest(
 
   const isMap = paramsOrRawBody instanceof Map;
   const isArray = Array.isArray(paramsOrRawBody);
-  const isPlainObj =
-    !isMap && !isArray && typeof paramsOrRawBody === 'object';
+  const isPlainObj = !isMap && !isArray && typeof paramsOrRawBody === 'object';
 
   if (!isMap && !isArray && !isPlainObj) {
     throw new TypeError(

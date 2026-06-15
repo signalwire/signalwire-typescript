@@ -23,7 +23,10 @@ describe('MCP Integration', () => {
   it('buildMcpToolList via tools/list returns tools in MCP format', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 1, method: 'tools/list', params: {},
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/list',
+      params: {},
     });
     expect(resp['id']).toBe(1);
     const result = resp['result'] as Record<string, unknown>;
@@ -39,8 +42,14 @@ describe('MCP Integration', () => {
   it('initialize returns protocol version and capabilities', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 1, method: 'initialize',
-      params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '1.0' } },
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-06-18',
+        capabilities: {},
+        clientInfo: { name: 'test', version: '1.0' },
+      },
     });
     expect(resp['jsonrpc']).toBe('2.0');
     expect(resp['id']).toBe(1);
@@ -54,7 +63,8 @@ describe('MCP Integration', () => {
   it('notifications/initialized returns empty result', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', method: 'notifications/initialized',
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
     });
     // The notification ack must echo JSON-RPC 2.0 framing AND carry an
     // EMPTY result object. Anything else (a stub returning null, or a
@@ -69,7 +79,9 @@ describe('MCP Integration', () => {
   it('tools/call invokes the handler and returns content', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 3, method: 'tools/call',
+      jsonrpc: '2.0',
+      id: 3,
+      method: 'tools/call',
       params: { name: 'get_weather', arguments: { location: 'Orlando' } },
     });
     expect(resp['id']).toBe(3);
@@ -78,7 +90,7 @@ describe('MCP Integration', () => {
     const content = result['content'] as Record<string, unknown>[];
     expect(content).toHaveLength(1);
     expect(content[0]['type']).toBe('text');
-    expect((content[0]['text'] as string)).toContain('Orlando');
+    expect(content[0]['text'] as string).toContain('Orlando');
   });
 
   // ── Tools Call Unknown ─────────────────────────────────────
@@ -86,13 +98,15 @@ describe('MCP Integration', () => {
   it('tools/call with unknown tool returns error', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 4, method: 'tools/call',
+      jsonrpc: '2.0',
+      id: 4,
+      method: 'tools/call',
       params: { name: 'nonexistent', arguments: {} },
     });
     const error = resp['error'] as Record<string, unknown>;
     expect(error).toBeDefined();
     expect(error['code']).toBe(-32602);
-    expect((error['message'] as string)).toContain('nonexistent');
+    expect(error['message'] as string).toContain('nonexistent');
   });
 
   // ── Unknown Method ─────────────────────────────────────────
@@ -100,7 +114,10 @@ describe('MCP Integration', () => {
   it('unknown method returns method not found error', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 5, method: 'resources/list', params: {},
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'resources/list',
+      params: {},
     });
     const error = resp['error'] as Record<string, unknown>;
     expect(error).toBeDefined();
@@ -112,7 +129,9 @@ describe('MCP Integration', () => {
   it('ping returns empty result', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '2.0', id: 6, method: 'ping',
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'ping',
     });
     // MCP ping MUST round-trip the request id, return an empty
     // `result: {}`, and NOT carry an error field. Asserting all three
@@ -128,7 +147,9 @@ describe('MCP Integration', () => {
   it('non-2.0 version returns error', async () => {
     const agent = createAgentWithTool();
     const resp = await agent.handleMcpRequest({
-      jsonrpc: '1.0', id: 7, method: 'initialize',
+      jsonrpc: '1.0',
+      id: 7,
+      method: 'initialize',
     });
     const error = resp['error'] as Record<string, unknown>;
     expect(error).toBeDefined();

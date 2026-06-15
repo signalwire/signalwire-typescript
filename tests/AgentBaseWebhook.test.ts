@@ -18,7 +18,9 @@ import { FunctionResult } from '../src/FunctionResult.js';
 const KEY = 'PSKtest1234567890abcdef';
 
 function schemeASig(key: string, url: string, body: string): string {
-  return createHmac('sha1', key).update(url + body, 'utf8').digest('hex');
+  return createHmac('sha1', key)
+    .update(url + body, 'utf8')
+    .digest('hex');
 }
 
 /**

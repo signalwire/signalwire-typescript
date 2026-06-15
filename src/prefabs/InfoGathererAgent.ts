@@ -161,7 +161,9 @@ export class InfoGathererAgent extends AgentBase {
     return this;
   }
 
-  private static validateQuestions(questions: unknown): asserts questions is InfoGathererQuestion[] {
+  private static validateQuestions(
+    questions: unknown,
+  ): asserts questions is InfoGathererQuestion[] {
     if (!Array.isArray(questions) || questions.length === 0) {
       throw new Error('At least one question is required');
     }

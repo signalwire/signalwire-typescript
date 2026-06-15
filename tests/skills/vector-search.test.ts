@@ -3,12 +3,17 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { NativeVectorSearchSkill, createNativeVectorSearchSkill } from '../../src/skills/builtin/index.js';
+import {
+  NativeVectorSearchSkill,
+  createNativeVectorSearchSkill,
+} from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('NativeVectorSearchSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -96,20 +101,26 @@ describe('NativeVectorSearchSkill', () => {
     // Each documented param must be a real entry. Type and description
     // both populated. A stub returning `{key: undefined}` would fail.
     const required = [
-      'count', 'similarity_threshold', 'tags', 'global_tags',
-      'no_results_message', 'response_prefix', 'response_postfix',
-      'max_content_length', 'description', 'hints', 'verbose',
-      'remote_url', 'backend',
+      'count',
+      'similarity_threshold',
+      'tags',
+      'global_tags',
+      'no_results_message',
+      'response_prefix',
+      'response_postfix',
+      'max_content_length',
+      'description',
+      'hints',
+      'verbose',
+      'remote_url',
+      'backend',
     ];
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
   });
 

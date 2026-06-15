@@ -3,12 +3,17 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { WikipediaSearchSkill, createWikipediaSearchSkill } from '../../src/skills/builtin/index.js';
+import {
+  WikipediaSearchSkill,
+  createWikipediaSearchSkill,
+} from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('WikipediaSearchSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -51,7 +56,7 @@ describe('WikipediaSearchSkill', () => {
 
   it('should reject empty query', async () => {
     const handler = new WikipediaSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: '' }, {}) as FunctionResult;
+    const result = (await handler({ query: '' }, {})) as FunctionResult;
     expect(result.response).toContain('provide a search query');
   });
 
@@ -61,7 +66,9 @@ describe('WikipediaSearchSkill', () => {
     expect(schema['num_results'].default).toBe(1);
     expect(schema['num_results'].max).toBe(5);
     expect(schema['no_results_message'].type).toBe('string');
-    expect(typeof schema['no_results_message'].default === 'string' &&
-      (schema['no_results_message'].default as string).length > 0).toBe(true);
+    expect(
+      typeof schema['no_results_message'].default === 'string' &&
+        (schema['no_results_message'].default as string).length > 0,
+    ).toBe(true);
   });
 });

@@ -15,7 +15,9 @@ const KEY = 'PSKtest1234567890abcdef';
 const RAW_BODY = '{"event":"call.state","params":{"call_id":"abc-123"}}';
 
 function schemeASig(key: string, url: string, body: string): string {
-  return createHmac('sha1', key).update(url + body, 'utf8').digest('hex');
+  return createHmac('sha1', key)
+    .update(url + body, 'utf8')
+    .digest('hex');
 }
 
 describe('webhookValidationMiddleware', () => {
@@ -198,10 +200,7 @@ describe('webhookValidationMiddleware', () => {
 
   it('honors X-Forwarded-* headers when trustProxy is true', async () => {
     const app = new Hono();
-    app.use(
-      '/webhook',
-      webhookValidationMiddleware({ signingKey: KEY, trustProxy: true }),
-    );
+    app.use('/webhook', webhookValidationMiddleware({ signingKey: KEY, trustProxy: true }));
     app.post('/webhook', (c) => c.json({ ok: true }));
 
     const publicUrl = 'https://public.example.com/webhook';

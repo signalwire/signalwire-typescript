@@ -279,7 +279,8 @@ export class DataMap {
    * @returns This instance for chaining.
    */
   webhookExpressions(expressions: Record<string, unknown>[]): this {
-    if (!this._webhooks.length) throw new Error('Must add webhook before setting webhook expressions');
+    if (!this._webhooks.length)
+      throw new Error('Must add webhook before setting webhook expressions');
     this._webhooks[this._webhooks.length - 1]['expressions'] = expressions;
     return this;
   }
@@ -311,12 +312,7 @@ export class DataMap {
    * @param config - Foreach configuration with input/output keys, append template, and optional max.
    * @returns This instance for chaining.
    */
-  foreach(config: {
-    input_key: string;
-    output_key: string;
-    append: string;
-    max?: number;
-  }): this {
+  foreach(config: { input_key: string; output_key: string; append: string; max?: number }): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting foreach');
     this._webhooks[this._webhooks.length - 1]['foreach'] = config;
     return this;

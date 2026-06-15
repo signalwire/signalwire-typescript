@@ -163,7 +163,9 @@ describe('NumberGroupsResource', () => {
     const { http, getRequests } = makeHttp();
     const res = new NumberGroupsResource(http);
     await res.listMemberships('ng1');
-    expect(getRequests()[0].url).toContain('/api/relay/rest/number_groups/ng1/number_group_memberships');
+    expect(getRequests()[0].url).toContain(
+      '/api/relay/rest/number_groups/ng1/number_group_memberships',
+    );
   });
 
   it('adds a membership', async () => {

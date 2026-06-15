@@ -19,9 +19,9 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a research assistant with access to web search. ' +
-  'When the user asks about current events, facts, or anything you are not sure about, ' +
-  'use the web_search tool to find up-to-date information. ' +
-  'Summarize search results concisely.',
+    'When the user asks about current events, facts, or anything you are not sure about, ' +
+    'use the web_search tool to find up-to-date information. ' +
+    'Summarize search results concisely.',
 );
 
 // Add web search skill with custom configuration

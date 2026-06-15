@@ -60,7 +60,7 @@ async function importModule(agentPath: string): Promise<Record<string, unknown>>
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     throw new Error(
       `Unsupported file extension '${ext}' for agent file: ${absPath}. ` +
-      `Only ${[...ALLOWED_EXTENSIONS].join(', ')} files are allowed.`,
+        `Only ${[...ALLOWED_EXTENSIONS].join(', ')} files are allowed.`,
     );
   }
   const fileUrl = pathToFileURL(absPath).href;
@@ -145,7 +145,7 @@ export async function loadAgent(agentPath: string, agentClass?: string): Promise
 
   throw new Error(
     `Could not find an AgentBase or SWMLService instance in ${resolve(agentPath)}.\n` +
-    'Export your agent as `export const agent = new AgentBase(...)` or as default export.',
+      'Export your agent as `export const agent = new AgentBase(...)` or as default export.',
   );
 }
 

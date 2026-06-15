@@ -80,7 +80,9 @@ describe('FabricNamespace', () => {
     it('lists SIP endpoints', async () => {
       const { fabric, getRequests } = setup();
       await fabric.subscribers.listSipEndpoints('sub1');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/subscribers/sub1/sip_endpoints');
+      expect(getRequests()[0].url).toContain(
+        '/api/fabric/resources/subscribers/sub1/sip_endpoints',
+      );
     });
 
     it('creates a SIP endpoint', async () => {
@@ -121,7 +123,10 @@ describe('FabricNamespace', () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh1' } }]);
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
-        await fabric.swmlWebhooks.create({ name: 'oops', primary_request_url: 'https://example.com' });
+        await fabric.swmlWebhooks.create({
+          name: 'oops',
+          primary_request_url: 'https://example.com',
+        });
         expect(getRequests()[0].method).toBe('POST');
         expect(getRequests()[0].url).toContain('/api/fabric/resources/swml_webhooks');
         expect(warnSpy).toHaveBeenCalledTimes(1);
@@ -137,7 +142,10 @@ describe('FabricNamespace', () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh2' } }]);
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
-        await fabric.cxmlWebhooks.create({ name: 'oops', primary_request_url: 'https://example.com' });
+        await fabric.cxmlWebhooks.create({
+          name: 'oops',
+          primary_request_url: 'https://example.com',
+        });
         expect(getRequests()[0].method).toBe('POST');
         expect(getRequests()[0].url).toContain('/api/fabric/resources/cxml_webhooks');
         expect(warnSpy).toHaveBeenCalledTimes(1);
@@ -177,7 +185,10 @@ describe('FabricNamespace', () => {
     });
 
     it('assigns phone route (deprecated) and emits one-time warning', async () => {
-      const { fabric, getRequests } = setup([{ status: 200, body: {} }, { status: 200, body: {} }]);
+      const { fabric, getRequests } = setup([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });

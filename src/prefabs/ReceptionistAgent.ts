@@ -86,7 +86,9 @@ export class ReceptionistAgent extends AgentBase {
   private readonly departments: ReceptionistDepartment[];
   private readonly companyName: string | undefined;
   private readonly checkInEnabled: boolean;
-  private readonly onVisitorCheckInCallback?: (visitor: Record<string, string>) => void | Promise<void>;
+  private readonly onVisitorCheckInCallback?: (
+    visitor: Record<string, string>,
+  ) => void | Promise<void>;
   private readonly sessions: Map<string, CheckInSession> = new Map();
 
   /**
@@ -124,7 +126,9 @@ export class ReceptionistAgent extends AgentBase {
     this.defineTools();
   }
 
-  private static validateDepartments(departments: unknown): asserts departments is ReceptionistDepartment[] {
+  private static validateDepartments(
+    departments: unknown,
+  ): asserts departments is ReceptionistDepartment[] {
     if (!Array.isArray(departments) || departments.length === 0) {
       throw new Error('At least one department is required');
     }
@@ -169,7 +173,7 @@ export class ReceptionistAgent extends AgentBase {
       'Use the collect_caller_info function when you have their name and reason for calling.',
       'Use the transfer_call function to transfer them to the appropriate department.',
       "Before transferring, always confirm with the caller that they're being transferred to the right department.",
-      'If a caller\'s request does not clearly match a department, ask follow-up questions to clarify.',
+      "If a caller's request does not clearly match a department, ask follow-up questions to clarify.",
     ];
     if (this.checkInEnabled) {
       instructions.push(
@@ -179,9 +183,7 @@ export class ReceptionistAgent extends AgentBase {
     this.promptAddSection('Instructions', { bullets: instructions });
 
     // Departments list as a bulleted section
-    const deptBullets = this.departments.map(
-      (dept) => `${dept.name}: ${dept.description}`,
-    );
+    const deptBullets = this.departments.map((dept) => `${dept.name}: ${dept.description}`);
     this.promptAddSection('Available Departments', { bullets: deptBullets });
 
     // Post-prompt JSON summary template (Python parity)
@@ -289,9 +291,7 @@ export class ReceptionistAgent extends AgentBase {
 
         const dept = this.departments.find((d) => d.name === departmentName);
         if (!dept) {
-          return new FunctionResult(
-            `Sorry, I couldn't find the ${departmentName} department.`,
-          );
+          return new FunctionResult(`Sorry, I couldn't find the ${departmentName} department.`);
         }
 
         // Python uses post_process=True and final=True so the AI speaks
@@ -309,7 +309,8 @@ export class ReceptionistAgent extends AgentBase {
     if (this.checkInEnabled) {
       this.defineTool({
         name: 'check_in_visitor',
-        description: 'Check in a visitor by recording their name, purpose of visit, and who they are visiting.',
+        description:
+          'Check in a visitor by recording their name, purpose of visit, and who they are visiting.',
         parameters: {
           type: 'object',
           properties: {

@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { parseFunctionParams, inferSchema, createTypedHandlerWrapper } from '../src/TypeInference.js';
+import {
+  parseFunctionParams,
+  inferSchema,
+  createTypedHandlerWrapper,
+} from '../src/TypeInference.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
 describe('parseFunctionParams', () => {
   it('parses arrow function with defaults', () => {
-    const fn = (city: string, count = 5) => { return city + count; };
+    const fn = (city: string, count = 5) => {
+      return city + count;
+    };
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(2);
     expect(params[0].name).toBe('city');
@@ -14,7 +20,9 @@ describe('parseFunctionParams', () => {
   });
 
   it('parses regular function', () => {
-    function myFunc(city: string, count: number) { return city + count; }
+    function myFunc(city: string, count: number) {
+      return city + count;
+    }
     const params = parseFunctionParams(myFunc.toString());
     expect(params.length).toBe(2);
     expect(params[0].name).toBe('city');

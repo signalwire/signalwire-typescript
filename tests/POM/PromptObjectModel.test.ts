@@ -7,10 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as yaml from 'js-yaml';
-import {
-  PromptObjectModel,
-  Section,
-} from '../../src/POM/PromptObjectModel.js';
+import { PromptObjectModel, Section } from '../../src/POM/PromptObjectModel.js';
 
 // ---------------------------------------------------------------------------
 // Section
@@ -28,7 +25,12 @@ describe('Section.constructor', () => {
   });
 
   it('keyword options are applied', () => {
-    const s = new Section('T', { body: 'B', bullets: ['x'], numbered: true, numberedBullets: true });
+    const s = new Section('T', {
+      body: 'B',
+      bullets: ['x'],
+      numbered: true,
+      numberedBullets: true,
+    });
     expect(s.title).toBe('T');
     expect(s.body).toBe('B');
     expect(s.bullets).toEqual(['x']);
@@ -92,10 +94,22 @@ describe('Section.toDict', () => {
   });
 
   it('emits keys in title/body/bullets/subsections/numbered/numberedBullets order', () => {
-    const s = new Section('T', { body: 'B', bullets: ['x'], numbered: true, numberedBullets: true });
+    const s = new Section('T', {
+      body: 'B',
+      bullets: ['x'],
+      numbered: true,
+      numberedBullets: true,
+    });
     s.addSubsection('Sub', { body: 'sb' });
     const keys = Object.keys(s.toDict());
-    expect(keys).toEqual(['title', 'body', 'bullets', 'subsections', 'numbered', 'numberedBullets']);
+    expect(keys).toEqual([
+      'title',
+      'body',
+      'bullets',
+      'subsections',
+      'numbered',
+      'numberedBullets',
+    ]);
   });
 
   it('round-trips body, bullets, subsections', () => {
@@ -152,7 +166,9 @@ describe('Section.renderXml', () => {
 
   it('honors indent parameter for nested sections', () => {
     const s = new Section('T', { body: 'B' });
-    expect(s.renderXml(1)).toBe('  <section>\n    <title>T</title>\n    <body>B</body>\n  </section>');
+    expect(s.renderXml(1)).toBe(
+      '  <section>\n    <title>T</title>\n    <body>B</body>\n  </section>',
+    );
   });
 });
 
@@ -274,7 +290,9 @@ describe('PromptObjectModel.fromJson / fromYaml', () => {
   });
 
   it('fromJson rejects non-string title', () => {
-    expect(() => PromptObjectModel.fromJson([{ title: 42, body: 'x' }])).toThrow(/'title' must be a string/);
+    expect(() => PromptObjectModel.fromJson([{ title: 42, body: 'x' }])).toThrow(
+      /'title' must be a string/,
+    );
   });
 
   it('fromJson rejects non-list bullets', () => {
@@ -288,10 +306,7 @@ describe('PromptObjectModel.fromJson / fromYaml', () => {
   });
 
   it('fromJson injects "Untitled Section" for any non-first section missing a title', () => {
-    const data = [
-      { title: 'First', body: 'one' },
-      { body: 'no title' },
-    ];
+    const data = [{ title: 'First', body: 'one' }, { body: 'no title' }];
     const pom = PromptObjectModel.fromJson(data);
     expect(pom.sections[1].title).toBe('Untitled Section');
   });

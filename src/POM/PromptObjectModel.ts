@@ -488,8 +488,14 @@ export class PromptObjectModel {
       }
 
       const hasBody = 'body' in dict && Boolean(dict['body']);
-      const hasBullets = 'bullets' in dict && Array.isArray(dict['bullets']) && (dict['bullets'] as unknown[]).length > 0;
-      const hasSubsections = 'subsections' in dict && Array.isArray(dict['subsections']) && (dict['subsections'] as unknown[]).length > 0;
+      const hasBullets =
+        'bullets' in dict &&
+        Array.isArray(dict['bullets']) &&
+        (dict['bullets'] as unknown[]).length > 0;
+      const hasSubsections =
+        'subsections' in dict &&
+        Array.isArray(dict['subsections']) &&
+        (dict['subsections'] as unknown[]).length > 0;
       if (!hasBody && !hasBullets && !hasSubsections) {
         throw new Error(
           'All sections must have either a non-empty body, non-empty bullets, or subsections',
@@ -511,7 +517,8 @@ export class PromptObjectModel {
       };
 
       if ('numbered' in dict) sectionOpts.numbered = dict['numbered'] as boolean;
-      if ('numberedBullets' in dict) sectionOpts.numberedBullets = dict['numberedBullets'] as boolean;
+      if ('numberedBullets' in dict)
+        sectionOpts.numberedBullets = dict['numberedBullets'] as boolean;
 
       const section = new Section(
         typeof dict['title'] === 'string' ? (dict['title'] as string) : null,

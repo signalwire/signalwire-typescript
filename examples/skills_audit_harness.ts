@@ -51,10 +51,8 @@ function buildSkillConfig(skillName: string): SkillConfig {
       // Audit sets GOOGLE_API_KEY / GOOGLE_CSE_ID. The TS skill reads
       // GOOGLE_SEARCH_API_KEY / GOOGLE_SEARCH_ENGINE_ID by default; pull
       // through whichever the audit provided.
-      const apiKey =
-        process.env['GOOGLE_API_KEY'] ?? process.env['GOOGLE_SEARCH_API_KEY'];
-      const cseId =
-        process.env['GOOGLE_CSE_ID'] ?? process.env['GOOGLE_SEARCH_ENGINE_ID'];
+      const apiKey = process.env['GOOGLE_API_KEY'] ?? process.env['GOOGLE_SEARCH_API_KEY'];
+      const cseId = process.env['GOOGLE_CSE_ID'] ?? process.env['GOOGLE_SEARCH_ENGINE_ID'];
       if (apiKey) cfg['api_key'] = apiKey;
       if (cseId) cfg['search_engine_id'] = cseId;
       // Force one result so the harness only fetches once. The skill's
@@ -146,10 +144,7 @@ function toolNameFor(skillName: string): string {
  * extracting the webhook URL from the registered DataMap and issuing
  * the HTTP call itself.
  */
-async function executeDataMap(
-  tool: any,
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function executeDataMap(tool: any, args: Record<string, unknown>): Promise<unknown> {
   const dataMap = tool?.['data_map'] ?? tool?.dataMap;
   if (!dataMap) return null;
   const webhooks = (dataMap['webhooks'] ?? []) as any[];
@@ -246,5 +241,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  die(`unhandled error: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+  die(`unhandled error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
 });

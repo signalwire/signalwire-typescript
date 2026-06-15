@@ -74,9 +74,7 @@ export class SessionManager {
     const expiry = Math.floor(Date.now() / 1000) + this.tokenExpirySecs;
     const nonce = randomBytes(16).toString('hex');
     const message = `${callId}:${functionName}:${expiry}:${nonce}`;
-    const signature = createHmac('sha256', this.secretKey)
-      .update(message)
-      .digest('hex');
+    const signature = createHmac('sha256', this.secretKey).update(message).digest('hex');
     const token = `${callId}.${functionName}.${expiry}.${nonce}.${signature}`;
     const encoded = Buffer.from(token).toString('base64url');
     this.log.debug('created_token', { function: functionName, call_id: callId });
@@ -126,9 +124,7 @@ export class SessionManager {
       }
 
       const message = `${tokenCallId}:${tokenFunction}:${tokenExpiry}:${tokenNonce}`;
-      const expectedSig = createHmac('sha256', this.secretKey)
-        .update(message)
-        .digest('hex');
+      const expectedSig = createHmac('sha256', this.secretKey).update(message).digest('hex');
       if (tokenSignature !== expectedSig) {
         this.log.warn('token_invalid', { function: functionName });
         return false;
@@ -203,7 +199,8 @@ export class SessionManager {
           expiry: tokenExpiry,
           expiry_date: expiryDate,
           nonce: tokenNonce,
-          signature: tokenSignature.length > 8 ? tokenSignature.slice(0, 8) + '...' : tokenSignature,
+          signature:
+            tokenSignature.length > 8 ? tokenSignature.slice(0, 8) + '...' : tokenSignature,
         },
         status: {
           current_time: currentTime,
@@ -247,17 +244,27 @@ export class SessionManager {
    */
   setSessionMetadata(sessionId: string, metadataOrKey: Record<string, unknown>): void;
   setSessionMetadata(sessionId: string, key: string, value: unknown): boolean;
-  setSessionMetadata(sessionId: string, metadataOrKey: Record<string, unknown> | string, value?: unknown): void | boolean {
+  setSessionMetadata(
+    sessionId: string,
+    metadataOrKey: Record<string, unknown> | string,
+    value?: unknown,
+  ): void | boolean {
     if (typeof metadataOrKey === 'string') {
       // Python-compatible single key/value overload — returns bool for parity
-      this.sessionMetadata.set(sessionId, { ...this.sessionMetadata.get(sessionId), [metadataOrKey]: value });
+      this.sessionMetadata.set(sessionId, {
+        ...this.sessionMetadata.get(sessionId),
+        [metadataOrKey]: value,
+      });
       this.sessionTimestamps.set(sessionId, Date.now());
       if (this.sessionMetadata.size > 1000) {
         this.cleanup();
       }
       return true;
     }
-    this.sessionMetadata.set(sessionId, { ...this.sessionMetadata.get(sessionId), ...metadataOrKey });
+    this.sessionMetadata.set(sessionId, {
+      ...this.sessionMetadata.get(sessionId),
+      ...metadataOrKey,
+    });
     this.sessionTimestamps.set(sessionId, Date.now());
     // Auto-cleanup when map grows too large
     if (this.sessionMetadata.size > 1000) {

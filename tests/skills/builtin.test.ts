@@ -246,7 +246,7 @@ describe('WeatherApiSkill', () => {
     delete process.env['WEATHER_API_KEY'];
     const skill = createWeatherApiSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ location: 'London' }, {}) as FunctionResult;
+    const result = (await handler({ location: 'London' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (originalKey !== undefined) process.env['WEATHER_API_KEY'] = originalKey;
@@ -363,9 +363,7 @@ describe('SwmlTransferSkill', () => {
 
   it('should use default_message when patterns configured and arbitrary disallowed', () => {
     const skill = createSwmlTransferSkill({
-      patterns: [
-        { name: 'sales', destination: 'sip:sales@example.com' },
-      ],
+      patterns: [{ name: 'sales', destination: 'sip:sales@example.com' }],
       allow_arbitrary: false,
       default_message: 'Please specify a valid transfer type.',
     });
@@ -405,14 +403,13 @@ describe('ApiNinjasTriviaSkill', () => {
       // Intercept fetch to avoid a real network call; we only need to assert
       // that the handler treats the config value as present (no "not configured").
       const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async () => new Response(
-        JSON.stringify([
-          { category: 'general', question: 'q?', answer: 'a' },
-        ]),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )) as typeof fetch;
+      globalThis.fetch = (async () =>
+        new Response(JSON.stringify([{ category: 'general', question: 'q?', answer: 'a' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })) as typeof fetch;
       try {
-        const result = await handler({}, {}) as FunctionResult;
+        const result = (await handler({}, {})) as FunctionResult;
         expect(result.response).not.toContain('not configured');
       } finally {
         globalThis.fetch = originalFetch;
@@ -441,7 +438,7 @@ describe('ApiNinjasTriviaSkill', () => {
     delete process.env['API_NINJAS_KEY'];
     const skill = createApiNinjasTriviaSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({}, {}) as FunctionResult;
+    const result = (await handler({}, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('API_NINJAS_KEY');
     expect(result.response).toContain('not configured');
@@ -534,7 +531,7 @@ describe('CustomSkillsSkill', () => {
         ],
       });
       const handler = skill.getTools()[0].handler;
-      const result = await handler({ name: 'World' }, {}) as FunctionResult;
+      const result = (await handler({ name: 'World' }, {})) as FunctionResult;
       expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).toBe('Hello, World!');
     } finally {
@@ -589,7 +586,7 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_CX'];
     const skill = createWebSearchSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_SEARCH_API_KEY'] = origKey;
@@ -683,10 +680,10 @@ describe('GoogleMapsSkill', () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
     const dirTool = skill.getTools().find((t) => t.name === 'compute_route')!;
-    const result = await dirTool.handler(
+    const result = (await dirTool.handler(
       { origin: 'New York', destination: 'Boston' },
       {},
-    ) as FunctionResult;
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
@@ -697,10 +694,7 @@ describe('GoogleMapsSkill', () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
     const placeTool = skill.getTools().find((t) => t.name === 'lookup_address')!;
-    const result = await placeTool.handler(
-      { query: 'pizza near me' },
-      {},
-    ) as FunctionResult;
+    const result = (await placeTool.handler({ query: 'pizza near me' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
@@ -750,7 +744,7 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_SPACE'];
     const skill = createDataSphereSkill();
     const handler = skill.getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     expect(result.response).toContain('SIGNALWIRE_PROJECT_ID');
@@ -809,8 +803,14 @@ describe('DataSphereServerlessSkill', () => {
 // ---------------------------------------------------------------------------
 describe('NativeVectorSearchSkill', () => {
   const testDocuments = [
-    { id: 'doc1', text: 'TypeScript is a strongly typed programming language that builds on JavaScript.' },
-    { id: 'doc2', text: 'Python is a versatile programming language used for web development and data science.' },
+    {
+      id: 'doc1',
+      text: 'TypeScript is a strongly typed programming language that builds on JavaScript.',
+    },
+    {
+      id: 'doc2',
+      text: 'Python is a versatile programming language used for web development and data science.',
+    },
     { id: 'doc3', text: 'Rust focuses on safety and performance, ideal for systems programming.' },
     { id: 'doc4', text: 'The weather today is sunny with clear skies and warm temperatures.' },
   ];
@@ -960,14 +960,8 @@ describe('ClaudeSkillsSkill', () => {
       join(sectionSkillDir, 'SKILL.md'),
       '---\nname: helper\ndescription: A helper skill\n---\n\nMain helper content.',
     );
-    writeFileSync(
-      join(sectionSkillDir, 'advanced.md'),
-      'Advanced helper content.',
-    );
-    writeFileSync(
-      join(sectionSkillDir, 'basics.md'),
-      'Basic helper content.',
-    );
+    writeFileSync(join(sectionSkillDir, 'advanced.md'), 'Advanced helper content.');
+    writeFileSync(join(sectionSkillDir, 'basics.md'), 'Basic helper content.');
 
     // Create a skill with nested section
     const nestedDir = join(sectionSkillDir, 'references');
@@ -1110,7 +1104,10 @@ describe('ClaudeSkillsSkill', () => {
     expect(enumValues).toContain('references/api');
 
     // Load a section
-    const result = helperTool!.handler({ section: 'advanced', arguments: '' }, {}) as FunctionResult;
+    const result = helperTool!.handler(
+      { section: 'advanced', arguments: '' },
+      {},
+    ) as FunctionResult;
     expect(result.response).toContain('Advanced helper content.');
   });
 
@@ -1440,7 +1437,13 @@ describe('Skill error messages do not leak internal details', () => {
     process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = 'true';
     try {
       const skill = createCustomSkillsSkill({
-        tools: [{ name: 'bad_tool', description: 'Bad', handler_code: 'this is not valid javascript {{{{' }],
+        tools: [
+          {
+            name: 'bad_tool',
+            description: 'Bad',
+            handler_code: 'this is not valid javascript {{{{',
+          },
+        ],
       });
       const errors = skill.getCompilationErrors();
       expect(errors.has('bad_tool')).toBe(true);
@@ -1457,10 +1460,16 @@ describe('Skill error messages do not leak internal details', () => {
     process.env['SWML_ALLOW_CUSTOM_HANDLER_CODE'] = 'true';
     try {
       const skill = createCustomSkillsSkill({
-        tools: [{ name: 'crash_tool', description: 'Crash', handler_code: 'throw new Error("secret internal stack trace info");' }],
+        tools: [
+          {
+            name: 'crash_tool',
+            description: 'Crash',
+            handler_code: 'throw new Error("secret internal stack trace info");',
+          },
+        ],
       });
       const handler = skill.getTools()[0].handler;
-      const result = await handler({}, {}) as FunctionResult;
+      const result = (await handler({}, {})) as FunctionResult;
       expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).not.toContain('secret internal stack trace info');
       expect(result.response).toContain('encountered an error');

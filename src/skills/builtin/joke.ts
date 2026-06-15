@@ -49,24 +49,24 @@ const JOKES: Joke[] = [
   },
   {
     category: 'programming',
-    setup: 'What is a programmer\'s favorite hangout place?',
+    setup: "What is a programmer's favorite hangout place?",
     punchline: 'Foo Bar.',
   },
   {
     category: 'programming',
     setup: 'Why do Java developers wear glasses?',
-    punchline: 'Because they can\'t C#.',
+    punchline: "Because they can't C#.",
   },
   {
     category: 'programming',
     setup: 'How many programmers does it take to change a light bulb?',
-    punchline: 'None. That\'s a hardware problem.',
+    punchline: "None. That's a hardware problem.",
   },
   // Dad jokes
   {
     category: 'dad',
-    setup: 'I\'m reading a book about anti-gravity.',
-    punchline: 'It\'s impossible to put down.',
+    setup: "I'm reading a book about anti-gravity.",
+    punchline: "It's impossible to put down.",
   },
   {
     category: 'dad',
@@ -75,8 +75,8 @@ const JOKES: Joke[] = [
   },
   {
     category: 'dad',
-    setup: 'Why don\'t skeletons fight each other?',
-    punchline: 'They don\'t have the guts.',
+    setup: "Why don't skeletons fight each other?",
+    punchline: "They don't have the guts.",
   },
 ];
 
@@ -154,16 +154,12 @@ export class JokeSkill extends SkillBase {
           }
 
           if (pool.length === 0) {
-            return new FunctionResult(
-              'Sorry, I could not find any jokes for that category.',
-            );
+            return new FunctionResult('Sorry, I could not find any jokes for that category.');
           }
 
           const joke = pool[Math.floor(Math.random() * pool.length)]!;
 
-          return new FunctionResult(
-            `${joke.setup} ... ${joke.punchline}`,
-          );
+          return new FunctionResult(`${joke.setup} ... ${joke.punchline}`);
         },
       },
     ];

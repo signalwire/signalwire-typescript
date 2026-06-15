@@ -37,7 +37,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a knowledge assistant with access to a document library via webhook. ' +
-  'Use the search tool to find answers from the knowledge base.',
+    'Use the search tool to find answers from the knowledge base.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });

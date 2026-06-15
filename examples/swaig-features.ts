@@ -20,7 +20,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a demo assistant showing off all SWAIG function result actions. ' +
-  'The user can ask you to perform various call control actions.',
+    'The user can ask you to perform various call control actions.',
 );
 
 // Hang up the call
@@ -44,9 +44,7 @@ agent.defineTool({
   },
   handler: (args) => {
     const secs = (args.seconds as number) ?? 60;
-    const result = new FunctionResult(
-      `Placing you on hold for ${secs} seconds.`,
-    );
+    const result = new FunctionResult(`Placing you on hold for ${secs} seconds.`);
     result.hold(secs);
     return result;
   },
@@ -101,9 +99,7 @@ agent.defineTool({
     value: { type: 'string', description: 'Preference value' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `Saved preference: ${args.key} = ${args.value}`,
-    );
+    const result = new FunctionResult(`Saved preference: ${args.key} = ${args.value}`);
     result.updateGlobalData({ [args.key as string]: args.value });
     return result;
   },
@@ -150,9 +146,7 @@ agent.defineTool({
     message: { type: 'string', description: 'SMS message text' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `SMS sent to ${args.to}: "${args.message}"`,
-    );
+    const result = new FunctionResult(`SMS sent to ${args.to}: "${args.message}"`);
     result.sendSms({
       toNumber: args.to as string,
       fromNumber: '+15551234567',

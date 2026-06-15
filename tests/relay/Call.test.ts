@@ -1,11 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Call, type RelayClientLike } from '../../src/relay/Call.js';
-import { PlayAction, RecordAction, DetectAction, CollectAction, StandaloneCollectAction, FaxAction, TapAction, StreamAction, PayAction, TranscribeAction, AIAction } from '../../src/relay/Action.js';
+import {
+  PlayAction,
+  RecordAction,
+  DetectAction,
+  CollectAction,
+  StandaloneCollectAction,
+  FaxAction,
+  TapAction,
+  StreamAction,
+  PayAction,
+  TranscribeAction,
+  AIAction,
+} from '../../src/relay/Action.js';
 import { RelayEvent } from '../../src/relay/RelayEvent.js';
 import { RelayError } from '../../src/relay/RelayError.js';
 
 // Mock client that records execute calls
-function mockClient(): RelayClientLike & { execCalls: Array<{ method: string; params: Record<string, unknown> }> } {
+function mockClient(): RelayClientLike & {
+  execCalls: Array<{ method: string; params: Record<string, unknown> }>;
+} {
   const execCalls: Array<{ method: string; params: Record<string, unknown> }> = [];
   return {
     execCalls,
@@ -19,26 +33,26 @@ function mockClient(): RelayClientLike & { execCalls: Array<{ method: string; pa
 // Mock client that returns empty (call-gone)
 function goneClient(): RelayClientLike {
   return {
-    async execute() { return {}; },
+    async execute() {
+      return {};
+    },
   };
 }
 
 // Mock client that throws a RelayError
 function errorClient(code: number, msg: string): RelayClientLike {
   return {
-    async execute() { throw new RelayError(code, msg); },
+    async execute() {
+      throw new RelayError(code, msg);
+    },
   };
 }
 
 function makeCall(client?: RelayClientLike): Call {
-  return new Call(
-    client ?? mockClient(),
-    'call-id-1',
-    'node-id-1',
-    'project-1',
-    'default',
-    { direction: 'inbound', state: 'created' },
-  );
+  return new Call(client ?? mockClient(), 'call-id-1', 'node-id-1', 'project-1', 'default', {
+    direction: 'inbound',
+    state: 'created',
+  });
 }
 
 describe('Call', () => {
@@ -82,7 +96,9 @@ describe('Call', () => {
 
     it('rethrows non-RelayError', async () => {
       const client: RelayClientLike = {
-        async execute() { throw new Error('network'); },
+        async execute() {
+          throw new Error('network');
+        },
       };
       const call = makeCall(client);
       await expect(call._execute('answer')).rejects.toThrow('network');
@@ -135,7 +151,9 @@ describe('Call', () => {
     it('notifies registered listeners', async () => {
       const call = makeCall();
       const events: RelayEvent[] = [];
-      call.on('calling.call.play', (e) => { events.push(e); });
+      call.on('calling.call.play', (e) => {
+        events.push(e);
+      });
 
       await call._dispatchEvent({
         event_type: 'calling.call.play',
@@ -148,7 +166,9 @@ describe('Call', () => {
 
     it('handles listener errors gracefully', async () => {
       const call = makeCall();
-      call.on('calling.call.state', () => { throw new Error('boom'); });
+      call.on('calling.call.state', () => {
+        throw new Error('boom');
+      });
 
       // Should not throw
       await call._dispatchEvent({
@@ -178,10 +198,7 @@ describe('Call', () => {
     it('filters with predicate', async () => {
       const call = makeCall();
 
-      const promise = call.waitFor(
-        'calling.call.play',
-        (e) => e.params.state === 'finished',
-      );
+      const promise = call.waitFor('calling.call.play', (e) => e.params.state === 'finished');
 
       // First event doesn't match predicate
       await call._dispatchEvent({
@@ -201,8 +218,7 @@ describe('Call', () => {
 
     it('times out', async () => {
       const call = makeCall();
-      await expect(call.waitFor('calling.call.play', undefined, 10))
-        .rejects.toThrow('timed out');
+      await expect(call.waitFor('calling.call.play', undefined, 10)).rejects.toThrow('timed out');
     });
   });
 
@@ -235,7 +251,9 @@ describe('Call', () => {
 
     it('rejects action on RPC error and rethrows', async () => {
       const client: RelayClientLike = {
-        async execute() { throw new Error('network fail'); },
+        async execute() {
+          throw new Error('network fail');
+        },
       };
       const call = makeCall(client);
 
@@ -304,10 +322,9 @@ describe('Call', () => {
 
     it('playAndCollect returns CollectAction', async () => {
       const call = makeCall();
-      const action = await call.playAndCollect(
-        [{ type: 'tts', text: 'Press 1' }],
-        { digits: { max: 1 } },
-      );
+      const action = await call.playAndCollect([{ type: 'tts', text: 'Press 1' }], {
+        digits: { max: 1 },
+      });
       expect(action).toBeInstanceOf(CollectAction);
     });
 

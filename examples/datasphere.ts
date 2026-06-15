@@ -19,8 +19,8 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a knowledge assistant with access to a document library. ' +
-  'Use the search tool to find answers to user questions from the knowledge base. ' +
-  'Always cite the source when providing information from the knowledge base.',
+    'Use the search tool to find answers to user questions from the knowledge base. ' +
+    'Always cite the source when providing information from the knowledge base.',
 );
 
 // Add DataSphere skill with custom configuration

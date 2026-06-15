@@ -27,7 +27,7 @@ const questionSets: Record<string, InfoGathererQuestion[]> = {
     { key_name: 'priority', question_text: 'Is this low, medium, or high priority?' },
   ],
   medical: [
-    { key_name: 'patient_name', question_text: 'What is the patient\'s full name?' },
+    { key_name: 'patient_name', question_text: "What is the patient's full name?" },
     { key_name: 'symptoms', question_text: 'What are the current symptoms?' },
     { key_name: 'duration', question_text: 'How long have these symptoms been present?' },
     { key_name: 'medications', question_text: 'Is the patient taking any medications?' },

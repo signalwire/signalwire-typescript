@@ -54,9 +54,7 @@ function httpsGet(
       const peerCN = cert?.subject?.CN;
       let data = '';
       res.on('data', (c) => (data += c));
-      res.on('end', () =>
-        resolve({ status: res.statusCode ?? 0, body: data, authorized, peerCN }),
-      );
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, body: data, authorized, peerCN }));
     });
     req.on('error', reject);
     req.setTimeout(5_000, () => req.destroy(new Error('timeout')));

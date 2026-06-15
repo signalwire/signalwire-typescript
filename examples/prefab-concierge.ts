@@ -12,12 +12,7 @@ import { ConciergeAgent } from '../src/index.js';
 export const agent = new ConciergeAgent({
   name: 'hotel-concierge',
   venueName: 'Grand Plaza Hotel',
-  services: [
-    'room service',
-    'spa bookings',
-    'restaurant reservations',
-    'airport shuttle',
-  ],
+  services: ['room service', 'spa bookings', 'restaurant reservations', 'airport shuttle'],
   amenities: {
     pool: { hours: '7 AM - 10 PM', location: '2nd Floor (West Wing)' },
     gym: { hours: '24 hours', location: '3rd Floor' },

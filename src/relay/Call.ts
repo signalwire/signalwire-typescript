@@ -33,18 +33,10 @@ import {
   EVENT_CALL_COLLECT,
   EVENT_CALL_STATE,
 } from './constants.js';
-import {
-  normalizeDevice,
-  normalizeDevicePlan,
-  normalizePlayItems,
-} from './normalize.js';
+import { normalizeDevice, normalizeDevicePlan, normalizePlayItems } from './normalize.js';
 import { RelayEvent, parseEvent } from './RelayEvent.js';
 import type { CompletedCallback, EventHandler } from './types.js';
-import type {
-  TtsGender,
-  FaxTone,
-  CallState,
-} from './closedSets.js';
+import type { TtsGender, FaxTone, CallState } from './closedSets.js';
 import { isCallStateTerminal } from './closedSets.js';
 
 const logger = getLogger('relay_call');
@@ -151,7 +143,10 @@ export class Call {
   // ─── Internal RPC Primitive ──────────────────────────────────────
 
   /** @internal Send a calling.<method> JSON-RPC request for this call. */
-  async _execute(method: string, extraParams?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async _execute(
+    method: string,
+    extraParams?: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const rpcMethod = `calling.${method}`;
     const params: Record<string, unknown> = {
       node_id: this.nodeId,
@@ -261,8 +256,14 @@ export class Call {
             reject(new Error(`waitFor(${eventType}) timed out after ${timeout}ms`));
           }, timeout);
           deferred.promise.then(
-            (v) => { clearTimeout(timer); resolve(v); },
-            (e) => { clearTimeout(timer); reject(e); },
+            (v) => {
+              clearTimeout(timer);
+              resolve(v);
+            },
+            (e) => {
+              clearTimeout(timer);
+              reject(e);
+            },
           );
         });
       }
@@ -291,8 +292,14 @@ export class Call {
           reject(new Error(`waitForEnded timed out after ${timeout}ms`));
         }, timeout);
         this._ended.promise.then(
-          (v) => { clearTimeout(timer); resolve(v); },
-          (e) => { clearTimeout(timer); reject(e); },
+          (v) => {
+            clearTimeout(timer);
+            resolve(v);
+          },
+          (e) => {
+            clearTimeout(timer);
+            reject(e);
+          },
         );
       });
     }
@@ -323,11 +330,7 @@ export class Call {
     if (rank(this.state) >= rank(target)) {
       return new RelayEvent(EVENT_CALL_STATE, { call_state: this.state });
     }
-    return this.waitFor(
-      EVENT_CALL_STATE,
-      (e) => e.params.call_state === target,
-      timeout,
-    );
+    return this.waitFor(EVENT_CALL_STATE, (e) => e.params.call_state === target, timeout);
   }
 
   /**
@@ -758,17 +761,19 @@ export class Call {
    * @returns A {@link StandaloneCollectAction} for control and completion tracking.
    * @throws {RelayError} When the collect command is rejected.
    */
-  async collect(options: {
-    digits?: Record<string, unknown>;
-    speech?: Record<string, unknown>;
-    initialTimeout?: number;
-    partialResults?: boolean;
-    continuous?: boolean;
-    sendStartOfInput?: boolean;
-    startInputTimers?: boolean;
-    controlId?: string;
-    onCompleted?: CompletedCallback;
-  } = {}): Promise<StandaloneCollectAction> {
+  async collect(
+    options: {
+      digits?: Record<string, unknown>;
+      speech?: Record<string, unknown>;
+      initialTimeout?: number;
+      partialResults?: boolean;
+      continuous?: boolean;
+      sendStartOfInput?: boolean;
+      startInputTimers?: boolean;
+      controlId?: string;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<StandaloneCollectAction> {
     const cid = options.controlId ?? randomUUID();
     const params: Record<string, unknown> = { control_id: cid };
     if (options.digits != null) params.digits = options.digits;
@@ -892,10 +897,13 @@ export class Call {
   ): Promise<DetectAction> {
     const params: Record<string, unknown> = {};
     if (options.digits != null) params.digits = options.digits;
-    return this.detect({ type: 'digit', params }, {
-      timeout: options.timeout,
-      onCompleted: options.onCompleted,
-    });
+    return this.detect(
+      { type: 'digit', params },
+      {
+        timeout: options.timeout,
+        onCompleted: options.onCompleted,
+      },
+    );
   }
 
   /**
@@ -935,14 +943,20 @@ export class Call {
     const params: Record<string, unknown> = {};
     if (options.initialTimeout != null) params.initial_timeout = options.initialTimeout;
     if (options.endSilenceTimeout != null) params.end_silence_timeout = options.endSilenceTimeout;
-    if (options.machineVoiceThreshold != null) params.machine_voice_threshold = options.machineVoiceThreshold;
-    if (options.machineWordsThreshold != null) params.machine_words_threshold = options.machineWordsThreshold;
-    if (options.detectInterruptions != null) params.detect_interruptions = options.detectInterruptions;
+    if (options.machineVoiceThreshold != null)
+      params.machine_voice_threshold = options.machineVoiceThreshold;
+    if (options.machineWordsThreshold != null)
+      params.machine_words_threshold = options.machineWordsThreshold;
+    if (options.detectInterruptions != null)
+      params.detect_interruptions = options.detectInterruptions;
     if (options.detectMessageEnd != null) params.detect_message_end = options.detectMessageEnd;
-    return this.detect({ type: 'machine', params }, {
-      timeout: options.timeout,
-      onCompleted: options.onCompleted,
-    });
+    return this.detect(
+      { type: 'machine', params },
+      {
+        timeout: options.timeout,
+        onCompleted: options.onCompleted,
+      },
+    );
   }
 
   /**
@@ -967,10 +981,13 @@ export class Call {
   ): Promise<DetectAction> {
     const params: Record<string, unknown> = {};
     if (options.tone != null) params.tone = options.tone;
-    return this.detect({ type: 'fax', params }, {
-      timeout: options.timeout,
-      onCompleted: options.onCompleted,
-    });
+    return this.detect(
+      { type: 'fax', params },
+      {
+        timeout: options.timeout,
+        onCompleted: options.onCompleted,
+      },
+    );
   }
 
   // ─── SIP Refer ───────────────────────────────────────────────────
@@ -1041,7 +1058,8 @@ export class Call {
     if (options.maxAttempts != null) params.max_attempts = options.maxAttempts;
     if (options.securityCode != null) params.security_code = options.securityCode;
     if (options.postalCode != null) params.postal_code = options.postalCode;
-    if (options.minPostalCodeLength != null) params.min_postal_code_length = options.minPostalCodeLength;
+    if (options.minPostalCodeLength != null)
+      params.min_postal_code_length = options.minPostalCodeLength;
     if (options.tokenType != null) params.token_type = options.tokenType;
     if (options.chargeAmount != null) params.charge_amount = options.chargeAmount;
     if (options.currency != null) params.currency = options.currency;
@@ -1179,7 +1197,8 @@ export class Call {
     if (options.track != null) params.track = options.track;
     if (options.statusUrl != null) params.status_url = options.statusUrl;
     if (options.statusUrlMethod != null) params.status_url_method = options.statusUrlMethod;
-    if (options.authorizationBearerToken != null) params.authorization_bearer_token = options.authorizationBearerToken;
+    if (options.authorizationBearerToken != null)
+      params.authorization_bearer_token = options.authorizationBearerToken;
     if (options.customParameters != null) params.custom_parameters = options.customParameters;
     const action = new StreamAction(this, cid);
     return this._startAction(action, 'stream', params, options.onCompleted);
@@ -1246,13 +1265,20 @@ export class Call {
     if (options.trim != null) params.trim = options.trim;
     if (options.coach != null) params.coach = options.coach;
     if (options.statusCallback != null) params.status_callback = options.statusCallback;
-    if (options.statusCallbackEvent != null) params.status_callback_event = options.statusCallbackEvent;
-    if (options.statusCallbackEventType != null) params.status_callback_event_type = options.statusCallbackEventType;
-    if (options.statusCallbackMethod != null) params.status_callback_method = options.statusCallbackMethod;
-    if (options.recordingStatusCallback != null) params.recording_status_callback = options.recordingStatusCallback;
-    if (options.recordingStatusCallbackEvent != null) params.recording_status_callback_event = options.recordingStatusCallbackEvent;
-    if (options.recordingStatusCallbackEventType != null) params.recording_status_callback_event_type = options.recordingStatusCallbackEventType;
-    if (options.recordingStatusCallbackMethod != null) params.recording_status_callback_method = options.recordingStatusCallbackMethod;
+    if (options.statusCallbackEvent != null)
+      params.status_callback_event = options.statusCallbackEvent;
+    if (options.statusCallbackEventType != null)
+      params.status_callback_event_type = options.statusCallbackEventType;
+    if (options.statusCallbackMethod != null)
+      params.status_callback_method = options.statusCallbackMethod;
+    if (options.recordingStatusCallback != null)
+      params.recording_status_callback = options.recordingStatusCallback;
+    if (options.recordingStatusCallbackEvent != null)
+      params.recording_status_callback_event = options.recordingStatusCallbackEvent;
+    if (options.recordingStatusCallbackEventType != null)
+      params.recording_status_callback_event_type = options.recordingStatusCallbackEventType;
+    if (options.recordingStatusCallbackMethod != null)
+      params.recording_status_callback_method = options.recordingStatusCallbackMethod;
     if (options.stream != null) params.stream = options.stream;
     return this._execute('join_conference', params);
   }
@@ -1265,7 +1291,10 @@ export class Call {
    * @returns The platform's leave-conference response.
    * @throws {RelayError} When the leave_conference command is rejected.
    */
-  async leaveConference(conferenceId: string, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async leaveConference(
+    conferenceId: string,
+    extra?: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     return this._execute('leave_conference', { conference_id: conferenceId, ...extra });
   }
 
@@ -1350,7 +1379,9 @@ export class Call {
    * @returns The platform's echo response.
    * @throws {RelayError} When the echo command is rejected.
    */
-  async echo(options: { timeout?: number; statusUrl?: string } = {}): Promise<Record<string, unknown>> {
+  async echo(
+    options: { timeout?: number; statusUrl?: string } = {},
+  ): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
     if (options.statusUrl != null) params.status_url = options.statusUrl;
@@ -1415,7 +1446,10 @@ export class Call {
    * @returns The platform's live_transcribe response.
    * @throws {RelayError} When the live_transcribe command is rejected.
    */
-  async liveTranscribe(action: Record<string, unknown>, extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async liveTranscribe(
+    action: Record<string, unknown>,
+    extra?: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     return this._execute('live_transcribe', { action, ...extra });
   }
 
@@ -1478,30 +1512,34 @@ export class Call {
    * @returns An {@link AIAction} for control and completion tracking.
    * @throws {RelayError} When the ai command is rejected.
    */
-  async ai(options: {
-    controlId?: string;
-    agent?: string;
-    prompt?: Record<string, unknown>;
-    postPrompt?: Record<string, unknown>;
-    postPromptUrl?: string;
-    postPromptAuthUser?: string;
-    postPromptAuthPassword?: string;
-    globalData?: Record<string, unknown>;
-    pronounce?: Record<string, unknown>[];
-    hints?: string[];
-    languages?: Record<string, unknown>[];
-    SWAIG?: Record<string, unknown>;
-    aiParams?: Record<string, unknown>;
-    onCompleted?: CompletedCallback;
-  } = {}): Promise<AIAction> {
+  async ai(
+    options: {
+      controlId?: string;
+      agent?: string;
+      prompt?: Record<string, unknown>;
+      postPrompt?: Record<string, unknown>;
+      postPromptUrl?: string;
+      postPromptAuthUser?: string;
+      postPromptAuthPassword?: string;
+      globalData?: Record<string, unknown>;
+      pronounce?: Record<string, unknown>[];
+      hints?: string[];
+      languages?: Record<string, unknown>[];
+      SWAIG?: Record<string, unknown>;
+      aiParams?: Record<string, unknown>;
+      onCompleted?: CompletedCallback;
+    } = {},
+  ): Promise<AIAction> {
     const cid = options.controlId ?? randomUUID();
     const params: Record<string, unknown> = { control_id: cid };
     if (options.agent != null) params.agent = options.agent;
     if (options.prompt != null) params.prompt = options.prompt;
     if (options.postPrompt != null) params.post_prompt = options.postPrompt;
     if (options.postPromptUrl != null) params.post_prompt_url = options.postPromptUrl;
-    if (options.postPromptAuthUser != null) params.post_prompt_auth_user = options.postPromptAuthUser;
-    if (options.postPromptAuthPassword != null) params.post_prompt_auth_password = options.postPromptAuthPassword;
+    if (options.postPromptAuthUser != null)
+      params.post_prompt_auth_user = options.postPromptAuthUser;
+    if (options.postPromptAuthPassword != null)
+      params.post_prompt_auth_password = options.postPromptAuthPassword;
     if (options.globalData != null) params.global_data = options.globalData;
     if (options.pronounce != null) params.pronounce = options.pronounce;
     if (options.hints != null) params.hints = options.hints;
@@ -1525,14 +1563,16 @@ export class Call {
    * @returns The platform's amazon_bedrock response.
    * @throws {RelayError} When the amazon_bedrock command is rejected.
    */
-  async amazonBedrock(options: {
-    prompt?: unknown;
-    SWAIG?: Record<string, unknown>;
-    aiParams?: Record<string, unknown>;
-    globalData?: Record<string, unknown>;
-    postPrompt?: Record<string, unknown>;
-    postPromptUrl?: string;
-  } = {}): Promise<Record<string, unknown>> {
+  async amazonBedrock(
+    options: {
+      prompt?: unknown;
+      SWAIG?: Record<string, unknown>;
+      aiParams?: Record<string, unknown>;
+      globalData?: Record<string, unknown>;
+      postPrompt?: Record<string, unknown>;
+      postPromptUrl?: string;
+    } = {},
+  ): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.prompt != null) params.prompt = options.prompt;
     if (options.SWAIG != null) params.SWAIG = options.SWAIG;
@@ -1554,12 +1594,14 @@ export class Call {
    * @returns The platform's ai_message response.
    * @throws {RelayError} When the ai_message command is rejected.
    */
-  async aiMessage(options: {
-    messageText?: string;
-    role?: string;
-    reset?: Record<string, unknown>;
-    globalData?: Record<string, unknown>;
-  } = {}): Promise<Record<string, unknown>> {
+  async aiMessage(
+    options: {
+      messageText?: string;
+      role?: string;
+      reset?: Record<string, unknown>;
+      globalData?: Record<string, unknown>;
+    } = {},
+  ): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.messageText != null) params.message_text = options.messageText;
     if (options.role != null) params.role = options.role;
@@ -1577,7 +1619,9 @@ export class Call {
    * @returns The platform's ai_hold response.
    * @throws {RelayError} When the ai_hold command is rejected.
    */
-  async aiHold(options: { timeout?: string; prompt?: string } = {}): Promise<Record<string, unknown>> {
+  async aiHold(
+    options: { timeout?: string; prompt?: string } = {},
+  ): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.timeout != null) params.timeout = options.timeout;
     if (options.prompt != null) params.prompt = options.prompt;
@@ -1608,7 +1652,9 @@ export class Call {
    * @returns The platform's user_event response.
    * @throws {RelayError} When the user_event command is rejected.
    */
-  async userEvent(options: { event?: string } & Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  async userEvent(
+    options: { event?: string } & Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
     const params: Record<string, unknown> = {};
     if (options.event != null) params.event = options.event;
     return this._execute('user_event', params);

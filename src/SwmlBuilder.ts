@@ -159,7 +159,8 @@ export class SwmlBuilder {
       }
 
       // Closure factory to capture verbName
-      const makeMethod = (name: string) =>
+      const makeMethod =
+        (name: string) =>
         (config?: Record<string, unknown>): SwmlBuilder => {
           this.addVerb(name, config ?? {});
           return this;

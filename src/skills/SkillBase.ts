@@ -184,7 +184,8 @@ export abstract class SkillBase {
     const schema: Record<string, ParameterSchemaEntry> = {
       swaig_fields: {
         type: 'object',
-        description: 'Additional SWAIG fields to merge into each tool definition provided by this skill.',
+        description:
+          'Additional SWAIG fields to merge into each tool definition provided by this skill.',
         default: {},
         required: false,
       },

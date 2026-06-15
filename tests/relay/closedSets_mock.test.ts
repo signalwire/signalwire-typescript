@@ -33,10 +33,7 @@ import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
-import type {
-  TtsGender,
-  FaxTone,
-} from '../../src/relay/closedSets.js';
+import type { TtsGender, FaxTone } from '../../src/relay/closedSets.js';
 import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,8 +48,12 @@ const CLOSED_SETS_SRC = path.resolve(__dirname, '../../src/relay/closedSets.ts')
 function extractUnion(aliasName: string): string {
   const src = readFileSync(CLOSED_SETS_SRC, 'utf-8');
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
-  if (!m) throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1].replace(/\s+/g, ' ').replace(/^\|\s*/, '').trim();
+  if (!m)
+    throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
+  return m[1]
+    .replace(/\s+/g, ' ')
+    .replace(/^\|\s*/, '')
+    .trim();
 }
 
 /**
@@ -91,7 +92,7 @@ function assertTypoRejected(aliasName: string, good: string, typo: string): void
   const errs = typeCheckLines(
     aliasName,
     `const ok: ${aliasName} = '${good}'; void ok;\n` +
-    `const bad: ${aliasName} = '${typo}'; void bad;`,
+      `const bad: ${aliasName} = '${typo}'; void bad;`,
   );
   expect(errs.get(1)).toBeUndefined(); // valid literal is clean
   const typoError = errs.get(2);
@@ -115,7 +116,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 

@@ -60,9 +60,7 @@ describe('Skill Parameter Schemas', () => {
         // Allowed JSON-Schema-style types every parameter entry must use.
         // A bare nullness check would pass for `{type: 0, description: false}`;
         // the enum membership + non-empty string check catches that.
-        const validTypes = new Set([
-          'string', 'integer', 'number', 'boolean', 'array', 'object',
-        ]);
+        const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
         for (const [paramName, entry] of Object.entries(schema)) {
           expect(
             validTypes.has(entry.type),

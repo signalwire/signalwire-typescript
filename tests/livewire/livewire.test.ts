@@ -772,9 +772,10 @@ describe('ChatContext', () => {
 
   it('chains multiple appends', () => {
     const ctx = new ChatContext();
-    ctx.append({ role: 'system', text: 'You are a bot' })
-       .append({ role: 'user', text: 'Hello' })
-       .append({ role: 'assistant', text: 'Hi there' });
+    ctx
+      .append({ role: 'system', text: 'You are a bot' })
+      .append({ role: 'user', text: 'Hello' })
+      .append({ role: 'assistant', text: 'Hi there' });
     expect(ctx.messages).toHaveLength(3);
     expect(ctx.messages[0].role).toBe('system');
     expect(ctx.messages[1].role).toBe('user');

@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a helpful assistant with access to time and math tools. ' +
-  'Use the available tools to answer questions about dates, times, and calculations.',
+    'Use the available tools to answer questions about dates, times, and calculations.',
 );
 
 // Add skills — each injects its own tools, prompt sections, and hints
@@ -27,7 +27,10 @@ await agent.addSkill(new DateTimeSkill());
 await agent.addSkill(new MathSkill());
 
 // List what skills are loaded
-console.log('Loaded skills:', agent.listSkills().map(s => s.name));
+console.log(
+  'Loaded skills:',
+  agent.listSkills().map((s) => s.name),
+);
 
 // Query parameter schemas programmatically
 console.log('DateTimeSkill parameters:', DateTimeSkill.getParameterSchema());

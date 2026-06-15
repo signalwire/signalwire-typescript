@@ -13,10 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import {
-  validateRequest,
-  validateWebhookSignature,
-} from '../src/WebhookValidator.js';
+import { validateRequest, validateWebhookSignature } from '../src/WebhookValidator.js';
 
 // ---------------------------------------------------------------------------
 // Canonical test vectors from porting-sdk/webhooks.md
@@ -25,8 +22,7 @@ import {
 const VECTOR_A = {
   signingKey: 'PSKtest1234567890abcdef',
   url: 'https://example.ngrok.io/webhook',
-  rawBody:
-    '{"event":"call.state","params":{"call_id":"abc-123","state":"answered"}}',
+  rawBody: '{"event":"call.state","params":{"call_id":"abc-123","state":"answered"}}',
   expected: 'c3c08c1fefaf9ee198a100d5906765a6f394bf0f',
 };
 
@@ -92,23 +88,13 @@ describe('WebhookValidator — Scheme A (RELAY/JSON, hex)', () => {
   it('negative: tampered body returns false', () => {
     const tampered = VECTOR_A.rawBody.replace('answered', 'ringing');
     expect(
-      validateWebhookSignature(
-        VECTOR_A.signingKey,
-        VECTOR_A.expected,
-        VECTOR_A.url,
-        tampered,
-      ),
+      validateWebhookSignature(VECTOR_A.signingKey, VECTOR_A.expected, VECTOR_A.url, tampered),
     ).toBe(false);
   });
 
   it('negative: wrong signing key returns false', () => {
     expect(
-      validateWebhookSignature(
-        'wrong-key',
-        VECTOR_A.expected,
-        VECTOR_A.url,
-        VECTOR_A.rawBody,
-      ),
+      validateWebhookSignature('wrong-key', VECTOR_A.expected, VECTOR_A.url, VECTOR_A.rawBody),
     ).toBe(false);
   });
 
@@ -132,36 +118,21 @@ describe('WebhookValidator — Scheme B (Compat/cXML, base64)', () => {
   it('positive: canonical form Vector B with raw body', () => {
     const body = formEncoded(VECTOR_B.params);
     expect(
-      validateWebhookSignature(
-        VECTOR_B.signingKey,
-        VECTOR_B.expected,
-        VECTOR_B.url,
-        body,
-      ),
+      validateWebhookSignature(VECTOR_B.signingKey, VECTOR_B.expected, VECTOR_B.url, body),
     ).toBe(true);
   });
 
   it('positive: canonical Vector B via validateRequest with dict', () => {
     expect(
-      validateRequest(
-        VECTOR_B.signingKey,
-        VECTOR_B.expected,
-        VECTOR_B.url,
-        VECTOR_B.params,
-      ),
+      validateRequest(VECTOR_B.signingKey, VECTOR_B.expected, VECTOR_B.url, VECTOR_B.params),
     ).toBe(true);
   });
 
   it('positive: canonical Vector B via validateRequest with array of tuples', () => {
     const tuples = Object.entries(VECTOR_B.params) as Array<[string, string]>;
-    expect(
-      validateRequest(
-        VECTOR_B.signingKey,
-        VECTOR_B.expected,
-        VECTOR_B.url,
-        tuples,
-      ),
-    ).toBe(true);
+    expect(validateRequest(VECTOR_B.signingKey, VECTOR_B.expected, VECTOR_B.url, tuples)).toBe(
+      true,
+    );
   });
 
   it('positive: canonical Vector B via validateRequest with Map (runtime accepts Map)', () => {
@@ -197,12 +168,7 @@ describe('WebhookValidator — Scheme B (Compat/cXML, base64)', () => {
     // body-hash check fails, so the result must be false.
     const wrongBody = '{"event":"DIFFERENT"}';
     expect(
-      validateWebhookSignature(
-        VECTOR_C.signingKey,
-        VECTOR_C.expected,
-        VECTOR_C.url,
-        wrongBody,
-      ),
+      validateWebhookSignature(VECTOR_C.signingKey, VECTOR_C.expected, VECTOR_C.url, wrongBody),
     ).toBe(false);
   });
 });
@@ -215,38 +181,28 @@ describe('WebhookValidator — URL port normalization', () => {
   it('signed with :443, request URL has no port — accepted', () => {
     const key = 'test-key';
     const sig = b64Sig(key, 'https://example.com:443/webhook');
-    expect(
-      validateWebhookSignature(key, sig, 'https://example.com/webhook', '{}'),
-    ).toBe(true);
+    expect(validateWebhookSignature(key, sig, 'https://example.com/webhook', '{}')).toBe(true);
   });
 
   it('signed without port, request URL has :443 — accepted', () => {
     const key = 'test-key';
     const sig = b64Sig(key, 'https://example.com/webhook');
-    expect(
-      validateWebhookSignature(key, sig, 'https://example.com:443/webhook', '{}'),
-    ).toBe(true);
+    expect(validateWebhookSignature(key, sig, 'https://example.com:443/webhook', '{}')).toBe(true);
   });
 
   it('http + :80 normalization mirrors https + :443', () => {
     const key = 'test-key';
     const sig = b64Sig(key, 'http://example.com:80/path');
-    expect(
-      validateWebhookSignature(key, sig, 'http://example.com/path', ''),
-    ).toBe(true);
+    expect(validateWebhookSignature(key, sig, 'http://example.com/path', '')).toBe(true);
   });
 
   it('non-standard explicit port is preserved as-is (no with/without variants)', () => {
     const key = 'test-key';
     // Sign for :8080 and confirm request URL with :8080 matches.
     const sig8080 = b64Sig(key, 'https://example.com:8080/path');
-    expect(
-      validateWebhookSignature(key, sig8080, 'https://example.com:8080/path', ''),
-    ).toBe(true);
+    expect(validateWebhookSignature(key, sig8080, 'https://example.com:8080/path', '')).toBe(true);
     // Same sig must NOT match a request URL with :443 (no port-variant logic kicks in).
-    expect(
-      validateWebhookSignature(key, sig8080, 'https://example.com:443/path', ''),
-    ).toBe(false);
+    expect(validateWebhookSignature(key, sig8080, 'https://example.com:443/path', '')).toBe(false);
   });
 });
 
@@ -280,9 +236,7 @@ describe('WebhookValidator — repeated form keys', () => {
     const url = 'https://example.com/hook';
     const dataAb = url + 'ToaTob';
     const sigForAb = createHmac('sha1', key).update(dataAb, 'utf8').digest('base64');
-    expect(
-      validateRequest(key, sigForAb, url, { To: ['a', 'b'] }),
-    ).toBe(true);
+    expect(validateRequest(key, sigForAb, url, { To: ['a', 'b'] })).toBe(true);
   });
 });
 
@@ -292,14 +246,9 @@ describe('WebhookValidator — repeated form keys', () => {
 
 describe('WebhookValidator — error modes', () => {
   it('missing signature returns false (no throw)', () => {
-    expect(
-      validateWebhookSignature(
-        VECTOR_A.signingKey,
-        '',
-        VECTOR_A.url,
-        VECTOR_A.rawBody,
-      ),
-    ).toBe(false);
+    expect(validateWebhookSignature(VECTOR_A.signingKey, '', VECTOR_A.url, VECTOR_A.rawBody)).toBe(
+      false,
+    );
     // The public type signature names ``string`` for cross-language parity
     // with Python's signature; we type-cast through to verify the runtime
     // guard against null/undefined still returns false (not throw).
@@ -322,17 +271,10 @@ describe('WebhookValidator — error modes', () => {
   });
 
   it('missing signing key throws', () => {
-    expect(() =>
-      validateWebhookSignature('', 'sig', VECTOR_A.url, VECTOR_A.rawBody),
-    ).toThrow();
+    expect(() => validateWebhookSignature('', 'sig', VECTOR_A.url, VECTOR_A.rawBody)).toThrow();
     // Cast to satisfy TS — the runtime guard rejects null too.
     expect(() =>
-      validateWebhookSignature(
-        null as unknown as string,
-        'sig',
-        VECTOR_A.url,
-        VECTOR_A.rawBody,
-      ),
+      validateWebhookSignature(null as unknown as string, 'sig', VECTOR_A.url, VECTOR_A.rawBody),
     ).toThrow();
   });
 
@@ -351,12 +293,7 @@ describe('WebhookValidator — error modes', () => {
   it('malformed signatures return false without throwing', () => {
     for (const garbage of ['xyz', '!!!!', 'a'.repeat(100), '%%notbase64%%']) {
       expect(
-        validateWebhookSignature(
-          VECTOR_A.signingKey,
-          garbage,
-          VECTOR_A.url,
-          VECTOR_A.rawBody,
-        ),
+        validateWebhookSignature(VECTOR_A.signingKey, garbage, VECTOR_A.url, VECTOR_A.rawBody),
       ).toBe(false);
     }
   });
@@ -369,34 +306,19 @@ describe('WebhookValidator — error modes', () => {
 describe('WebhookValidator — validateRequest dispatch', () => {
   it('string 4th arg delegates to combined validator (Scheme A path)', () => {
     expect(
-      validateRequest(
-        VECTOR_A.signingKey,
-        VECTOR_A.expected,
-        VECTOR_A.url,
-        VECTOR_A.rawBody,
-      ),
+      validateRequest(VECTOR_A.signingKey, VECTOR_A.expected, VECTOR_A.url, VECTOR_A.rawBody),
     ).toBe(true);
   });
 
   it('object 4th arg runs Scheme B directly', () => {
     expect(
-      validateRequest(
-        VECTOR_B.signingKey,
-        VECTOR_B.expected,
-        VECTOR_B.url,
-        VECTOR_B.params,
-      ),
+      validateRequest(VECTOR_B.signingKey, VECTOR_B.expected, VECTOR_B.url, VECTOR_B.params),
     ).toBe(true);
   });
 
   it('numeric 4th arg throws TypeError', () => {
     expect(() =>
-      validateRequest(
-        VECTOR_A.signingKey,
-        'sig',
-        VECTOR_A.url,
-        42 as unknown as string,
-      ),
+      validateRequest(VECTOR_A.signingKey, 'sig', VECTOR_A.url, 42 as unknown as string),
     ).toThrow(TypeError);
   });
 
@@ -408,21 +330,15 @@ describe('WebhookValidator — validateRequest dispatch', () => {
     const url = 'https://example.com/hook';
     const sig = createHmac('sha1', key).update(url, 'utf8').digest('base64');
     expect(validateRequest(key, sig, url, null)).toBe(true);
-    expect(
-      validateRequest(key, sig, url, undefined as unknown as null),
-    ).toBe(true);
+    expect(validateRequest(key, sig, url, undefined as unknown as null)).toBe(true);
   });
 
   it('missing signature returns false even when key is set', () => {
-    expect(
-      validateRequest(VECTOR_A.signingKey, '', VECTOR_A.url, VECTOR_A.rawBody),
-    ).toBe(false);
+    expect(validateRequest(VECTOR_A.signingKey, '', VECTOR_A.url, VECTOR_A.rawBody)).toBe(false);
   });
 
   it('missing signing key throws', () => {
-    expect(() =>
-      validateRequest('', 'sig', VECTOR_A.url, VECTOR_A.rawBody),
-    ).toThrow();
+    expect(() => validateRequest('', 'sig', VECTOR_A.url, VECTOR_A.rawBody)).toThrow();
   });
 });
 
@@ -433,10 +349,7 @@ describe('WebhookValidator — validateRequest dispatch', () => {
 describe('WebhookValidator — constant-time compare', () => {
   it('source uses crypto.timingSafeEqual and never plain == on digests', () => {
     // Read the source so we catch a future refactor that switches to ==.
-    const src = readFileSync(
-      new URL('../src/WebhookValidator.ts', import.meta.url),
-      'utf8',
-    );
+    const src = readFileSync(new URL('../src/WebhookValidator.ts', import.meta.url), 'utf8');
     expect(src).toContain('timingSafeEqual');
     // Forbid the obviously-wrong patterns. The validator's local _safeEq
     // helper is the only place signatures are compared.

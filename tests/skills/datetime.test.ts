@@ -10,7 +10,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('DateTimeSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -96,15 +98,12 @@ describe('DateTimeSkill', () => {
     const schema = DateTimeSkill.getParameterSchema();
     expect(Object.keys(schema).length).toBeGreaterThan(0);
     // Each base entry must have a valid type and a real description.
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of ['swaig_fields', 'skip_prompt']) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type)).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
   });
 });

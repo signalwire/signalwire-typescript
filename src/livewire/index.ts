@@ -44,16 +44,16 @@ function printBanner(): void {
  * Exported for tests; reorder or extend to change what's displayed.
  */
 export const tips: string[] = [
-  "SignalWire agents support DataMap tools that execute server-side — no webhook infrastructure needed. See: docs/datamap-guide.md",
-  "SignalWire Contexts & Steps give you mechanical state control over conversations — no prompt engineering needed. See: docs/contexts-guide.md",
-  "SignalWire agents can transfer calls between agents with a single SwmlTransfer() action",
-  "SignalWire handles 18 built-in skills (datetime, math, web search, etc.) with one-liner integration via agent.addSkill()",
-  "SignalWire agents support SMS, conferencing, call recording, and SIP — all from the same agent",
+  'SignalWire agents support DataMap tools that execute server-side — no webhook infrastructure needed. See: docs/datamap-guide.md',
+  'SignalWire Contexts & Steps give you mechanical state control over conversations — no prompt engineering needed. See: docs/contexts-guide.md',
+  'SignalWire agents can transfer calls between agents with a single SwmlTransfer() action',
+  'SignalWire handles 18 built-in skills (datetime, math, web search, etc.) with one-liner integration via agent.addSkill()',
+  'SignalWire agents support SMS, conferencing, call recording, and SIP — all from the same agent',
   "Your agent's entire AI pipeline (STT, LLM, TTS, VAD) runs in SignalWire's cloud — zero infrastructure to manage",
-  "SignalWire prefab agents (Survey, Receptionist, FAQ, Concierge) give you production patterns in 10 lines of code",
+  'SignalWire prefab agents (Survey, Receptionist, FAQ, Concierge) give you production patterns in 10 lines of code',
   "SignalWire's RELAY client gives you real-time WebSocket call control with 57+ methods — play, record, detect, conference, and more",
-  "SignalWire agents auto-generate SWML documents — the platform handles media, turn detection, and barge-in for you",
-  "You can host multiple agents on one server with AgentServer — each with its own route, prompt, and tools",
+  'SignalWire agents auto-generate SWML documents — the platform handles media, turn detection, and barge-in for you',
+  'You can host multiple agents on one server with AgentServer — each with its own route, prompt, and tools',
 ];
 
 function printTip(): void {
@@ -627,7 +627,10 @@ export class AgentSession<UserData = any> {
    * automatically by the control plane.
    */
   interrupt(): void {
-    this.noop.once('interrupt', "Interrupt(): SignalWire handles barge-in automatically via its control plane");
+    this.noop.once(
+      'interrupt',
+      'Interrupt(): SignalWire handles barge-in automatically via its control plane',
+    );
   }
 
   /**
@@ -893,9 +896,8 @@ export function runApp(options: any): void {
   printBanner();
 
   // If passed an AgentServer instance, convert it to an agentDef-compatible object
-  const agentDef = options instanceof AgentServer
-    ? options._toAgentDef()
-    : (options?.agent ?? options);
+  const agentDef =
+    options instanceof AgentServer ? options._toAgentDef() : (options?.agent ?? options);
 
   // Run prewarm if registered
   if (agentDef?.prewarm) {
@@ -916,17 +918,19 @@ export function runApp(options: any): void {
   // Call the entry function
   const entryFn = agentDef?.entry ?? agentDef;
   if (typeof entryFn === 'function') {
-    Promise.resolve(entryFn(ctx)).then(() => {
-      // After entry completes, the session should have bound a swAgent to ctx
-      // If someone stored it on ctx, start it
-      if (ctx._swAgent) {
-        ctx._swAgent.run().catch((err: Error) => {
-          process.stderr.write(`[LiveWire] agent error: ${err.message}\n`);
-        });
-      }
-    }).catch((err: Error) => {
-      process.stderr.write(`[LiveWire] entry function error: ${err.message}\n`);
-    });
+    Promise.resolve(entryFn(ctx))
+      .then(() => {
+        // After entry completes, the session should have bound a swAgent to ctx
+        // If someone stored it on ctx, start it
+        if (ctx._swAgent) {
+          ctx._swAgent.run().catch((err: Error) => {
+            process.stderr.write(`[LiveWire] agent error: ${err.message}\n`);
+          });
+        }
+      })
+      .catch((err: Error) => {
+        process.stderr.write(`[LiveWire] entry function error: ${err.message}\n`);
+      });
   }
 }
 
@@ -1075,7 +1079,7 @@ export namespace plugins {
     constructor(_opts?: any) {
       globalNoop.once(
         'stt_plugin',
-        'DeepgramSTT: SignalWire\'s control plane handles the full media pipeline at scale',
+        "DeepgramSTT: SignalWire's control plane handles the full media pipeline at scale",
       );
     }
   }
@@ -1168,7 +1172,7 @@ export namespace inference {
       this.model = model;
       globalNoop.once(
         'inference_stt',
-        'inference.STT: SignalWire\'s control plane handles speech recognition at scale',
+        "inference.STT: SignalWire's control plane handles speech recognition at scale",
       );
     }
   }
@@ -1198,7 +1202,7 @@ export namespace inference {
       this.model = model;
       globalNoop.once(
         'inference_tts',
-        'inference.TTS: SignalWire\'s control plane handles text-to-speech at scale',
+        "inference.TTS: SignalWire's control plane handles text-to-speech at scale",
       );
     }
   }

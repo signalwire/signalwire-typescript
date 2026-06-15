@@ -20,8 +20,8 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a friendly greeter. Welcome each caller warmly, ' +
-  'ask how their day is going, and make pleasant small talk. ' +
-  'Keep responses brief and conversational.',
+    'ask how their day is going, and make pleasant small talk. ' +
+    'Keep responses brief and conversational.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });

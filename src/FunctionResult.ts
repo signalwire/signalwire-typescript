@@ -170,10 +170,7 @@ export class FunctionResult {
       SWML: {
         version: '1.0.0',
         sections: {
-          main: [
-            { set: { ai_response: aiResponse } },
-            { transfer: { dest } },
-          ],
+          main: [{ set: { ai_response: aiResponse } }, { transfer: { dest } }],
         },
       },
       transfer: String(final),
@@ -262,7 +259,9 @@ export class FunctionResult {
    * @param hints - Array of hint strings or pattern-replacement objects.
    * @returns This instance for chaining.
    */
-  addDynamicHints(hints: (string | { pattern: string; replace: string; ignore_case?: boolean })[]): this {
+  addDynamicHints(
+    hints: (string | { pattern: string; replace: string; ignore_case?: boolean })[],
+  ): this {
     return this.addAction('add_dynamic_hints', hints);
   }
 
@@ -339,7 +338,10 @@ export class FunctionResult {
    * @param transfer - Whether this SWML execution should transfer the call.
    * @returns This instance for chaining.
    */
-  executeSwml(swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> }, transfer = false): this {
+  executeSwml(
+    swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> },
+    transfer = false,
+  ): this {
     let swmlData: Record<string, unknown>;
     if (typeof swmlContent === 'string') {
       try {
@@ -555,7 +557,8 @@ export class FunctionResult {
     if (opts?.controlId) params['control_id'] = opts.controlId;
     if (opts?.terminators) params['terminators'] = opts.terminators;
     if (opts?.initialTimeout !== undefined) params['initial_timeout'] = opts.initialTimeout;
-    if (opts?.endSilenceTimeout !== undefined) params['end_silence_timeout'] = opts.endSilenceTimeout;
+    if (opts?.endSilenceTimeout !== undefined)
+      params['end_silence_timeout'] = opts.endSilenceTimeout;
     if (opts?.maxLength !== undefined) params['max_length'] = opts.maxLength;
     if (opts?.statusUrl) params['status_url'] = opts.statusUrl;
 
@@ -655,46 +658,58 @@ export class FunctionResult {
    * @param opts - Optional conference settings such as mute, recording, and callbacks.
    * @returns This instance for chaining.
    */
-  joinConference(name: string, opts?: {
-    muted?: boolean;
-    beep?: 'true' | 'false' | 'onEnter' | 'onExit';
-    startOnEnter?: boolean;
-    endOnExit?: boolean;
-    waitUrl?: string;
-    maxParticipants?: number;
-    record?: 'do-not-record' | 'record-from-start';
-    region?: string;
-    trim?: 'trim-silence' | 'do-not-trim';
-    coach?: string;
-    statusCallbackEvent?: string;
-    statusCallback?: string;
-    statusCallbackMethod?: 'GET' | 'POST';
-    recordingStatusCallback?: string;
-    recordingStatusCallbackMethod?: 'GET' | 'POST';
-    recordingStatusCallbackEvent?: string;
-    result?: unknown;
-  }): this {
+  joinConference(
+    name: string,
+    opts?: {
+      muted?: boolean;
+      beep?: 'true' | 'false' | 'onEnter' | 'onExit';
+      startOnEnter?: boolean;
+      endOnExit?: boolean;
+      waitUrl?: string;
+      maxParticipants?: number;
+      record?: 'do-not-record' | 'record-from-start';
+      region?: string;
+      trim?: 'trim-silence' | 'do-not-trim';
+      coach?: string;
+      statusCallbackEvent?: string;
+      statusCallback?: string;
+      statusCallbackMethod?: 'GET' | 'POST';
+      recordingStatusCallback?: string;
+      recordingStatusCallbackMethod?: 'GET' | 'POST';
+      recordingStatusCallbackEvent?: string;
+      result?: unknown;
+    },
+  ): this {
     // Runtime guards matching the Python reference (beep/record/trim/method are
     // covered at compile time by the literal-union types above; these two cannot be).
     if (!name.trim()) {
       throw new Error('name cannot be empty');
     }
-    if (opts?.maxParticipants !== undefined && (opts.maxParticipants <= 0 || opts.maxParticipants > 250)) {
+    if (
+      opts?.maxParticipants !== undefined &&
+      (opts.maxParticipants <= 0 || opts.maxParticipants > 250)
+    ) {
       throw new Error('max_participants must be a positive integer <= 250');
     }
-    const hasNonDefaults = opts && (
-      opts.muted || (opts.beep && opts.beep !== 'true') ||
-      opts.startOnEnter === false || opts.endOnExit ||
-      opts.waitUrl || (opts.maxParticipants && opts.maxParticipants !== 250) ||
-      (opts.record && opts.record !== 'do-not-record') || opts.region ||
-      (opts.trim && opts.trim !== 'trim-silence') || opts.coach ||
-      opts.statusCallbackEvent || opts.statusCallback ||
-      (opts.statusCallbackMethod && opts.statusCallbackMethod !== 'POST') ||
-      opts.recordingStatusCallback ||
-      (opts.recordingStatusCallbackMethod && opts.recordingStatusCallbackMethod !== 'POST') ||
-      (opts.recordingStatusCallbackEvent && opts.recordingStatusCallbackEvent !== 'completed') ||
-      opts.result !== undefined
-    );
+    const hasNonDefaults =
+      opts &&
+      (opts.muted ||
+        (opts.beep && opts.beep !== 'true') ||
+        opts.startOnEnter === false ||
+        opts.endOnExit ||
+        opts.waitUrl ||
+        (opts.maxParticipants && opts.maxParticipants !== 250) ||
+        (opts.record && opts.record !== 'do-not-record') ||
+        opts.region ||
+        (opts.trim && opts.trim !== 'trim-silence') ||
+        opts.coach ||
+        opts.statusCallbackEvent ||
+        opts.statusCallback ||
+        (opts.statusCallbackMethod && opts.statusCallbackMethod !== 'POST') ||
+        opts.recordingStatusCallback ||
+        (opts.recordingStatusCallbackMethod && opts.recordingStatusCallbackMethod !== 'POST') ||
+        (opts.recordingStatusCallbackEvent && opts.recordingStatusCallbackEvent !== 'completed') ||
+        opts.result !== undefined);
 
     let joinParams: unknown;
     if (!hasNonDefaults) {
@@ -706,17 +721,22 @@ export class FunctionResult {
       if (opts!.startOnEnter === false) p['start_on_enter'] = false;
       if (opts!.endOnExit) p['end_on_exit'] = opts!.endOnExit;
       if (opts!.waitUrl) p['wait_url'] = opts!.waitUrl;
-      if (opts!.maxParticipants && opts!.maxParticipants !== 250) p['max_participants'] = opts!.maxParticipants;
+      if (opts!.maxParticipants && opts!.maxParticipants !== 250)
+        p['max_participants'] = opts!.maxParticipants;
       if (opts!.record && opts!.record !== 'do-not-record') p['record'] = opts!.record;
       if (opts!.region) p['region'] = opts!.region;
       if (opts!.trim && opts!.trim !== 'trim-silence') p['trim'] = opts!.trim;
       if (opts!.coach) p['coach'] = opts!.coach;
       if (opts!.statusCallbackEvent) p['status_callback_event'] = opts!.statusCallbackEvent;
       if (opts!.statusCallback) p['status_callback'] = opts!.statusCallback;
-      if (opts!.statusCallbackMethod && opts!.statusCallbackMethod !== 'POST') p['status_callback_method'] = opts!.statusCallbackMethod;
-      if (opts!.recordingStatusCallback) p['recording_status_callback'] = opts!.recordingStatusCallback;
-      if (opts!.recordingStatusCallbackMethod && opts!.recordingStatusCallbackMethod !== 'POST') p['recording_status_callback_method'] = opts!.recordingStatusCallbackMethod;
-      if (opts!.recordingStatusCallbackEvent && opts!.recordingStatusCallbackEvent !== 'completed') p['recording_status_callback_event'] = opts!.recordingStatusCallbackEvent;
+      if (opts!.statusCallbackMethod && opts!.statusCallbackMethod !== 'POST')
+        p['status_callback_method'] = opts!.statusCallbackMethod;
+      if (opts!.recordingStatusCallback)
+        p['recording_status_callback'] = opts!.recordingStatusCallback;
+      if (opts!.recordingStatusCallbackMethod && opts!.recordingStatusCallbackMethod !== 'POST')
+        p['recording_status_callback_method'] = opts!.recordingStatusCallbackMethod;
+      if (opts!.recordingStatusCallbackEvent && opts!.recordingStatusCallbackEvent !== 'completed')
+        p['recording_status_callback_event'] = opts!.recordingStatusCallbackEvent;
       if (opts!.result !== undefined) p['result'] = opts!.result;
       joinParams = p;
     }
@@ -855,16 +875,14 @@ export class FunctionResult {
     if (opts.parameters) payParams['parameters'] = opts.parameters;
     if (opts.prompts) payParams['prompts'] = opts.prompts;
 
-    const aiResponse = opts.aiResponse ??
+    const aiResponse =
+      opts.aiResponse ??
       'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.';
 
     return this.executeSwml({
       version: '1.0.0',
       sections: {
-        main: [
-          { set: { ai_response: aiResponse } },
-          { pay: payParams },
-        ],
+        main: [{ set: { ai_response: aiResponse } }, { pay: payParams }],
       },
     });
   }

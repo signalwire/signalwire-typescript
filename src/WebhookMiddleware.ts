@@ -123,9 +123,7 @@ function reconstructUrl(c: Context, opts: { trustProxy: boolean }): string {
  *
  * @throws Error at construction time if ``signingKey`` is empty.
  */
-export function webhookValidationMiddleware(
-  opts: WebhookValidationOptions,
-): MiddlewareHandler {
+export function webhookValidationMiddleware(opts: WebhookValidationOptions): MiddlewareHandler {
   if (!opts.signingKey || typeof opts.signingKey !== 'string') {
     throw new Error('signingKey is required');
   }

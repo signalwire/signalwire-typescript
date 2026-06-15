@@ -156,7 +156,11 @@ export class PhoneNumbersResource extends CrudResource {
    * await client.phoneNumbers.setSwmlWebhook('pn-1', 'https://example.com/swml');
    * ```
    */
-  async setSwmlWebhook(resourceId: string, url: string, extra: SetSwmlWebhookExtra = {}): Promise<any> {
+  async setSwmlWebhook(
+    resourceId: string,
+    url: string,
+    extra: SetSwmlWebhookExtra = {},
+  ): Promise<any> {
     return this.update(resourceId, {
       call_handler: PhoneCallHandler.RELAY_SCRIPT,
       call_relay_script_url: url,
@@ -208,7 +212,11 @@ export class PhoneNumbersResource extends CrudResource {
    * @param extra - Additional wire-level fields merged into the body.
    * @returns The updated phone-number resource.
    */
-  async setCxmlApplication(resourceId: string, applicationId: string, extra: Record<string, unknown> = {}): Promise<any> {
+  async setCxmlApplication(
+    resourceId: string,
+    applicationId: string,
+    extra: Record<string, unknown> = {},
+  ): Promise<any> {
     return this.update(resourceId, {
       call_handler: PhoneCallHandler.LAML_APPLICATION,
       call_laml_application_id: applicationId,
@@ -224,7 +232,11 @@ export class PhoneNumbersResource extends CrudResource {
    * @param extra - Additional wire-level fields merged into the body.
    * @returns The updated phone-number resource.
    */
-  async setAiAgent(resourceId: string, agentId: string, extra: Record<string, unknown> = {}): Promise<any> {
+  async setAiAgent(
+    resourceId: string,
+    agentId: string,
+    extra: Record<string, unknown> = {},
+  ): Promise<any> {
     return this.update(resourceId, {
       call_handler: PhoneCallHandler.AI_AGENT,
       call_ai_agent_id: agentId,
@@ -264,7 +276,11 @@ export class PhoneNumbersResource extends CrudResource {
    * @param extra - Additional wire-level fields merged into the body.
    * @returns The updated phone-number resource.
    */
-  async setRelayApplication(resourceId: string, name: string, extra: Record<string, unknown> = {}): Promise<any> {
+  async setRelayApplication(
+    resourceId: string,
+    name: string,
+    extra: Record<string, unknown> = {},
+  ): Promise<any> {
     return this.update(resourceId, {
       call_handler: PhoneCallHandler.RELAY_APPLICATION,
       call_relay_application: name,

@@ -84,7 +84,9 @@ export class WeatherApiSkill extends SkillBase {
   override async setup(): Promise<boolean> {
     const key = this.getConfig<string>('api_key') ?? process.env['WEATHER_API_KEY'];
     if (!key) {
-      log.error('WeatherApiSkill: api_key is required. Set the WEATHER_API_KEY environment variable or pass api_key in skill config.');
+      log.error(
+        'WeatherApiSkill: api_key is required. Set the WEATHER_API_KEY environment variable or pass api_key in skill config.',
+      );
       return false;
     }
     return true;
@@ -122,9 +124,7 @@ export class WeatherApiSkill extends SkillBase {
     // Normalize Python SDK unit aliases to OpenWeatherMap unit names.
     const rawUnits = this.getConfig<string>('units', 'metric');
     const units =
-      rawUnits === 'fahrenheit' ? 'imperial' :
-      rawUnits === 'celsius'    ? 'metric'   :
-      rawUnits;
+      rawUnits === 'fahrenheit' ? 'imperial' : rawUnits === 'celsius' ? 'metric' : rawUnits;
     const toolName = this.getConfig<string>('tool_name', 'get_weather');
 
     return [
@@ -144,9 +144,7 @@ export class WeatherApiSkill extends SkillBase {
           const location = args.location as string | undefined;
 
           if (!location || typeof location !== 'string' || location.trim().length === 0) {
-            return new FunctionResult(
-              'Please provide a location to get the weather for.',
-            );
+            return new FunctionResult('Please provide a location to get the weather for.');
           }
 
           if (location.length > MAX_SKILL_INPUT_LENGTH) {
@@ -228,10 +226,10 @@ export class WeatherApiSkill extends SkillBase {
 
             return new FunctionResult(parts.join(' '));
           } catch (err) {
-            log.error('get_weather_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('get_weather_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -241,11 +239,7 @@ export class WeatherApiSkill extends SkillBase {
   protected override _getPromptSections(): SkillPromptSection[] {
     const units = this.getConfig<string>('units', 'metric');
     const unitDesc =
-      units === 'imperial'
-        ? 'Fahrenheit'
-        : units === 'standard'
-          ? 'Kelvin'
-          : 'Celsius';
+      units === 'imperial' ? 'Fahrenheit' : units === 'standard' ? 'Kelvin' : 'Celsius';
 
     return [
       {

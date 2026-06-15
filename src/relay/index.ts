@@ -12,13 +12,7 @@ export type { RelayClientLike } from './Call.js';
 
 // Closed-set option unions (typo-checked + autocomplete; closed literal unions).
 // SkillName is the one set left open — see ./closedSets.ts.
-export type {
-  TtsGender,
-  FaxTone,
-  CallState,
-  DialState,
-  MessageState,
-} from './closedSets.js';
+export type { TtsGender, FaxTone, CallState, DialState, MessageState } from './closedSets.js';
 export {
   CALL_STATE_TERMINAL,
   DIAL_STATE_TERMINAL,

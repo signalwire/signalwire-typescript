@@ -101,8 +101,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       ...super.getParameterSchema(),
       skills_path: {
         type: 'string',
-        description:
-          'Path to directory containing Claude skill folders (each with SKILL.md)',
+        description: 'Path to directory containing Claude skill folders (each with SKILL.md)',
         required: true,
       },
       include: {
@@ -124,12 +123,11 @@ export class ClaudeSkillsSkill extends SkillBase {
         type: 'string',
         description: 'Introductory text for the prompt section',
         default:
-          'You have access to specialized skills. Call the appropriate tool when the user\'s question matches:',
+          "You have access to specialized skills. Call the appropriate tool when the user's question matches:",
       },
       skill_descriptions: {
         type: 'object',
-        description:
-          'Override descriptions for specific skills (skill_name -> description)',
+        description: 'Override descriptions for specific skills (skill_name -> description)',
         default: {},
       },
       tool_prefix: {
@@ -140,14 +138,12 @@ export class ClaudeSkillsSkill extends SkillBase {
       },
       response_prefix: {
         type: 'string',
-        description:
-          'Text to prepend to skill results (e.g., instructions for the AI)',
+        description: 'Text to prepend to skill results (e.g., instructions for the AI)',
         default: '',
       },
       response_postfix: {
         type: 'string',
-        description:
-          'Text to append to skill results (e.g., reminders or constraints)',
+        description: 'Text to append to skill results (e.g., reminders or constraints)',
         default: '',
       },
       allow_shell_injection: {
@@ -158,8 +154,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       },
       allow_script_execution: {
         type: 'boolean',
-        description:
-          'Discover and list scripts/, assets/ files in prompt sections',
+        description: 'Discover and list scripts/, assets/ files in prompt sections',
         default: false,
       },
       ignore_invocation_control: {
@@ -205,9 +200,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       return false;
     }
     if (!stat.isDirectory()) {
-      log.error(
-        `claude_skills: skills_path is not a directory: ${this._skillsPath}`,
-      );
+      log.error(`claude_skills: skills_path is not a directory: ${this._skillsPath}`);
       return false;
     }
 
@@ -216,18 +209,9 @@ export class ClaudeSkillsSkill extends SkillBase {
     this._excludePatterns = this.getConfig<string[]>('exclude', []);
 
     // Store safety/control flags
-    this._allowShellInjection = this.getConfig<boolean>(
-      'allow_shell_injection',
-      false,
-    );
-    this._allowScriptExecution = this.getConfig<boolean>(
-      'allow_script_execution',
-      false,
-    );
-    this._ignoreInvocationControl = this.getConfig<boolean>(
-      'ignore_invocation_control',
-      false,
-    );
+    this._allowShellInjection = this.getConfig<boolean>('allow_shell_injection', false);
+    this._allowScriptExecution = this.getConfig<boolean>('allow_script_execution', false);
+    this._ignoreInvocationControl = this.getConfig<boolean>('ignore_invocation_control', false);
     this._shellTimeout = this.getConfig<number>('shell_timeout', 30);
 
     if (this._allowShellInjection) {
@@ -244,9 +228,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       log.warn(`claude_skills: no skills found in ${this._skillsPath}`);
     }
 
-    log.info(
-      `claude_skills: loaded ${this._skills.length} skills from ${this._skillsPath}`,
-    );
+    log.info(`claude_skills: loaded ${this._skills.length} skills from ${this._skillsPath}`);
     return true;
   }
 
@@ -261,9 +243,7 @@ export class ClaudeSkillsSkill extends SkillBase {
     try {
       entries = readdirSync(this._skillsPath);
     } catch {
-      log.error(
-        `claude_skills: failed to read skills directory: ${this._skillsPath}`,
-      );
+      log.error(`claude_skills: failed to read skills directory: ${this._skillsPath}`);
       return skills;
     }
 
@@ -384,9 +364,7 @@ export class ClaudeSkillsSkill extends SkillBase {
     }
   }
 
-  private _discoverAllFiles(
-    skillDir: string,
-  ): Record<string, string[]> {
+  private _discoverAllFiles(skillDir: string): Record<string, string[]> {
     const files: Record<string, string[]> = {
       scripts: [],
       assets: [],
@@ -457,9 +435,7 @@ export class ClaudeSkillsSkill extends SkillBase {
   // Parsing
   // ---------------------------------------------------------------------------
 
-  private _parseSkillMd(
-    filePath: string,
-  ): ParsedSkill | null {
+  private _parseSkillMd(filePath: string): ParsedSkill | null {
     let content: string;
     try {
       content = readFileSync(filePath, 'utf-8');
@@ -586,24 +562,17 @@ export class ClaudeSkillsSkill extends SkillBase {
     for (const [parsedKey, frontmatterKey] of fieldMapping) {
       const value = parsed[parsedKey];
       if (value !== null && value !== undefined) {
-        const msg = _UNSUPPORTED_FIELDS[frontmatterKey].replace(
-          '{name}',
-          name,
-        );
+        const msg = _UNSUPPORTED_FIELDS[frontmatterKey].replace('{name}', name);
         log.warn(`claude_skills: ${msg}`);
       }
     }
 
     // Log informational fields at debug level
     if (parsed.license) {
-      log.debug(
-        `claude_skills: skill '${name}' has license: ${parsed.license}`,
-      );
+      log.debug(`claude_skills: skill '${name}' has license: ${parsed.license}`);
     }
     if (parsed.compatibility) {
-      log.debug(
-        `claude_skills: skill '${name}' has compatibility: ${parsed.compatibility}`,
-      );
+      log.debug(`claude_skills: skill '${name}' has compatibility: ${parsed.compatibility}`);
     }
   }
 
@@ -617,7 +586,9 @@ export class ClaudeSkillsSkill extends SkillBase {
     while ((match = re.exec(body)) !== null) {
       const command = match[1];
       log.warn(
-        'claude_skills: shell injection pattern `!' + command + '` found in skill ' +
+        'claude_skills: shell injection pattern `!' +
+          command +
+          '` found in skill ' +
           `'${name}' but allow_shell_injection is disabled — pattern will be ` +
           'passed through as-is. Set allow_shell_injection=True to enable.',
       );
@@ -672,11 +643,7 @@ export class ClaudeSkillsSkill extends SkillBase {
   // Content processing
   // ---------------------------------------------------------------------------
 
-  private _executeShellInjection(
-    content: string,
-    skillDir: string,
-    timeout: number,
-  ): string {
+  private _executeShellInjection(content: string, skillDir: string, timeout: number): string {
     return content.replace(/!`([^`]+)`/g, (_match, command: string) => {
       try {
         const result = execSync(command, {
@@ -693,12 +660,12 @@ export class ClaudeSkillsSkill extends SkillBase {
           'killed' in err &&
           (err as { killed: boolean }).killed
         ) {
-          log.error(
-            `claude_skills: shell command timed out after ${timeout}s: ${command}`,
-          );
+          log.error(`claude_skills: shell command timed out after ${timeout}s: ${command}`);
           return `[command timed out: ${command}]`;
         }
-        log.error(`claude_skills: shell command failed: ${command}: ${err instanceof Error ? err.message : String(err)}`);
+        log.error(
+          `claude_skills: shell command failed: ${command}: ${err instanceof Error ? err.message : String(err)}`,
+        );
         return `[command error: ${command}]`;
       }
     });
@@ -730,13 +697,10 @@ export class ClaudeSkillsSkill extends SkillBase {
     const positional = arguments_ ? arguments_.split(/\s+/) : [];
 
     // Replace $ARGUMENTS[N] with positional args
-    let result = body.replace(
-      /\$ARGUMENTS\[(\d+)\]/g,
-      (_m: string, indexStr: string) => {
-        const index = parseInt(indexStr, 10);
-        return index < positional.length ? positional[index] : '';
-      },
-    );
+    let result = body.replace(/\$ARGUMENTS\[(\d+)\]/g, (_m: string, indexStr: string) => {
+      const index = parseInt(indexStr, 10);
+      return index < positional.length ? positional[index] : '';
+    });
 
     // Replace $N shorthand (must do after $ARGUMENTS to avoid conflicts)
     result = result.replace(/\$(\d+)(?!\d)/g, (_m: string, indexStr: string) => {
@@ -761,10 +725,7 @@ export class ClaudeSkillsSkill extends SkillBase {
 
   getTools(): SkillToolDefinition[] {
     const prefix = this.getConfig<string>('tool_prefix', 'claude_');
-    const overrides = this.getConfig<Record<string, string>>(
-      'skill_descriptions',
-      {},
-    );
+    const overrides = this.getConfig<Record<string, string>>('skill_descriptions', {});
     const responsePrefix = this.getConfig<string>('response_prefix', '');
     const responsePostfix = this.getConfig<string>('response_postfix', '');
     const tools: SkillToolDefinition[] = [];
@@ -782,16 +743,13 @@ export class ClaudeSkillsSkill extends SkillBase {
 
       // Get description (with override support)
       const description =
-        overrides[skill.name] ??
-        skill.description ??
-        `Use the ${skill.name} skill`;
+        overrides[skill.name] ?? skill.description ?? `Use the ${skill.name} skill`;
 
       // Build parameters
       const parameters: Record<string, unknown> = {
         arguments: {
           type: 'string',
-          description:
-            skill.argumentHint || 'Arguments or context to pass to the skill',
+          description: skill.argumentHint || 'Arguments or context to pass to the skill',
         },
       };
 
@@ -806,11 +764,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       }
 
       // Create handler that captures the skill and prefix/postfix
-      const handler = this._makeHandler(
-        skill,
-        responsePrefix,
-        responsePostfix,
-      );
+      const handler = this._makeHandler(skill, responsePrefix, responsePostfix);
 
       tools.push({
         name: toolName,
@@ -820,9 +774,7 @@ export class ClaudeSkillsSkill extends SkillBase {
       });
 
       const sectionInfo =
-        sectionNames.length > 0
-          ? ` with sections: ${JSON.stringify(sectionNames)}`
-          : '';
+        sectionNames.length > 0 ? ` with sections: ${JSON.stringify(sectionNames)}` : '';
       log.debug(`claude_skills: registered tool '${toolName}'${sectionInfo}`);
     }
 
@@ -833,14 +785,8 @@ export class ClaudeSkillsSkill extends SkillBase {
     skill: ParsedSkill,
     responsePrefix: string,
     responsePostfix: string,
-  ): (
-    args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
-  ) => FunctionResult {
-    return (
-      args: Record<string, unknown>,
-      rawData: Record<string, unknown>,
-    ): FunctionResult => {
+  ): (args: Record<string, unknown>, rawData: Record<string, unknown>) => FunctionResult {
+    return (args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult => {
       const section = args['section'] as string | undefined;
       const arguments_ = (args['arguments'] as string) ?? '';
 
@@ -865,11 +811,7 @@ export class ClaudeSkillsSkill extends SkillBase {
 
       // 1. Shell injection (if enabled)
       if (this._allowShellInjection) {
-        content = this._executeShellInjection(
-          content,
-          skillDir,
-          this._shellTimeout,
-        );
+        content = this._executeShellInjection(content, skillDir, this._shellTimeout);
       }
 
       // 2. Variable substitution

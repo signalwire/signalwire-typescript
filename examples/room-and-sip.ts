@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a meeting coordinator. You can help callers join rooms, ' +
-  'transfer calls via SIP, and manage conferences.',
+    'transfer calls via SIP, and manage conferences.',
 );
 
 // Join a SignalWire room
@@ -30,9 +30,7 @@ agent.defineTool({
     room_name: { type: 'string', description: 'Name of the meeting room' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `Connecting you to room "${args.room_name}" now.`,
-    );
+    const result = new FunctionResult(`Connecting you to room "${args.room_name}" now.`);
     result.joinRoom(args.room_name as string);
     return result;
   },
@@ -46,9 +44,7 @@ agent.defineTool({
     sip_uri: { type: 'string', description: 'SIP URI to transfer to (e.g., sip:user@domain.com)' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `Transferring your call to ${args.sip_uri}.`,
-    );
+    const result = new FunctionResult(`Transferring your call to ${args.sip_uri}.`);
     result.sipRefer(args.sip_uri as string);
     return result;
   },
@@ -80,9 +76,7 @@ agent.defineTool({
     phone_number: { type: 'string', description: 'Phone number to connect to' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `Connecting you to ${args.phone_number}. Please hold.`,
-    );
+    const result = new FunctionResult(`Connecting you to ${args.phone_number}. Please hold.`);
     result.connect(args.phone_number as string);
     return result;
   },

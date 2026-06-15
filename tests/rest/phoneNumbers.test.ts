@@ -77,7 +77,9 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('passes through extra fields (e.g. name)', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setSwmlWebhook('pn-1', 'https://example.com/swml', { name: 'Support Line' });
+      await phoneNumbers.setSwmlWebhook('pn-1', 'https://example.com/swml', {
+        name: 'Support Line',
+      });
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'relay_script',
         call_relay_script_url: 'https://example.com/swml',

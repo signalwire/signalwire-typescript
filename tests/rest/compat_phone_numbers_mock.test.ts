@@ -171,7 +171,9 @@ describe('CompatPhoneNumbers.searchTollFree(country, params) = GET /AvailablePho
     await client.compat.phoneNumbers.searchTollFree('US', { AreaCode: '888' });
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers/US/TollFree');
+    expect(j.path).toBe(
+      '/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers/US/TollFree',
+    );
     // The AreaCode should be on the query string, not body.
     expect(j.query_params['AreaCode']).toEqual(['888']);
   });

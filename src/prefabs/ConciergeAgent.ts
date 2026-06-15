@@ -158,11 +158,7 @@ export class ConciergeAgent extends AgentBase {
         `);
 
     // Hints for speech recognition
-    this.addHints([
-      this.venueName,
-      ...this.services,
-      ...Object.keys(this.amenities),
-    ]);
+    this.addHints([this.venueName, ...this.services, ...Object.keys(this.amenities)]);
 
     // AI behavior params
     this.setParams({

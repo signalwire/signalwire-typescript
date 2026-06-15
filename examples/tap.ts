@@ -20,8 +20,8 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a helpful assistant. The call audio can be streamed to ' +
-  'an external system for real-time processing. You can start and stop ' +
-  'the audio tap when the caller requests it.',
+    'an external system for real-time processing. You can start and stop ' +
+    'the audio tap when the caller requests it.',
 );
 
 // Start audio streaming via TAP
@@ -54,9 +54,7 @@ agent.defineTool({
   description: 'Stop streaming call audio to the external endpoint',
   parameters: {},
   handler: () => {
-    const result = new FunctionResult(
-      'Audio streaming stopped.',
-    );
+    const result = new FunctionResult('Audio streaming stopped.');
     result.stopTap('main-tap');
     return result;
   },

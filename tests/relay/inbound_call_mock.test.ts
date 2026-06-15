@@ -30,7 +30,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -89,7 +93,11 @@ describe('Inbound call — handler dispatch', () => {
         resolve();
       });
     });
-    await mock.inboundCall({ call_id: 'c-handler', from_number: '+15551110000', to_number: '+15552220000' });
+    await mock.inboundCall({
+      call_id: 'c-handler',
+      from_number: '+15551110000',
+      to_number: '+15552220000',
+    });
     await Promise.race([
       handlerDone,
       new Promise((_, reject) => setTimeout(() => reject(new Error('handler not called')), 5000)),
@@ -394,7 +402,9 @@ describe('Inbound call — scenario_play', () => {
 describe('Inbound call — wire shape', () => {
   it('test_inbound_call_journal_send_records_calling_call_receive', async () => {
     const handlerDone = new Promise<void>((resolve) => {
-      client.onCall(async (_call) => { resolve(); });
+      client.onCall(async (_call) => {
+        resolve();
+      });
     });
     await mock.inboundCall({ call_id: 'c-wire' });
     await handlerDone;

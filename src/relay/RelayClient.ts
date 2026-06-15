@@ -201,10 +201,11 @@ export class RelayClient {
     // fixtures bind a loopback host:port and set this) > SIGNALWIRE_SPACE
     // (production) > built-in default. The audit-only env var is checked
     // first because it overrides the production env var.
-    this.host = options.host
-      ?? process.env.SIGNALWIRE_RELAY_HOST
-      ?? process.env.SIGNALWIRE_SPACE
-      ?? DEFAULT_RELAY_HOST;
+    this.host =
+      options.host ??
+      process.env.SIGNALWIRE_RELAY_HOST ??
+      process.env.SIGNALWIRE_SPACE ??
+      DEFAULT_RELAY_HOST;
     // Scheme precedence: explicit option > SIGNALWIRE_RELAY_SCHEME > 'wss'.
     // Only 'ws' and 'wss' are accepted; anything else falls back to 'wss'.
     const envScheme = process.env.SIGNALWIRE_RELAY_SCHEME;
@@ -222,7 +223,7 @@ export class RelayClient {
     } else if (!this.project || !this.token) {
       throw new Error(
         'project and token are required (or provide jwt_token). ' +
-        'Pass them directly or set SIGNALWIRE_PROJECT_ID / SIGNALWIRE_API_TOKEN env vars.',
+          'Pass them directly or set SIGNALWIRE_PROJECT_ID / SIGNALWIRE_API_TOKEN env vars.',
       );
     }
 
@@ -237,7 +238,8 @@ export class RelayClient {
     } else {
       const envVal = process.env.RELAY_MAX_ACTIVE_CALLS ?? '';
       const parsed = parseInt(envVal, 10);
-      this._maxActiveCalls = envVal && !isNaN(parsed) ? Math.max(1, parsed) : DEFAULT_MAX_ACTIVE_CALLS;
+      this._maxActiveCalls =
+        envVal && !isNaN(parsed) ? Math.max(1, parsed) : DEFAULT_MAX_ACTIVE_CALLS;
     }
   }
 
@@ -348,9 +350,9 @@ export class RelayClient {
     if (otherCount >= _MAX_CONNECTIONS) {
       throw new Error(
         `RelayClient connection limit reached (${_MAX_CONNECTIONS}). ` +
-        `There are already ${otherCount} active connection(s) in this process. ` +
-        `Call disconnect() on existing clients first, or set ` +
-        `RELAY_MAX_CONNECTIONS env var to allow more.`,
+          `There are already ${otherCount} active connection(s) in this process. ` +
+          `Call disconnect() on existing clients first, or set ` +
+          `RELAY_MAX_CONNECTIONS env var to allow more.`,
       );
     }
     _activeClients.add(this);
@@ -361,9 +363,7 @@ export class RelayClient {
     const uri = `${this.scheme}://${this.host}`;
     logger.info(`Connecting to ${uri}`);
 
-    const ws = this._wsFactory
-      ? this._wsFactory(uri)
-      : await this._createWebSocket(uri);
+    const ws = this._wsFactory ? this._wsFactory(uri) : await this._createWebSocket(uri);
 
     this._ws = ws;
     this._connected = true;
@@ -614,8 +614,14 @@ export class RelayClient {
           reject(new RelayError(-1, `Dial timed out waiting for answer (tag=${dialTag})`));
         }, timeoutMs);
         dialDeferred.promise.then(
-          (v) => { clearTimeout(timer); resolve(v); },
-          (e) => { clearTimeout(timer); reject(e); },
+          (v) => {
+            clearTimeout(timer);
+            resolve(v);
+          },
+          (e) => {
+            clearTimeout(timer);
+            reject(e);
+          },
         );
       });
       return call;
@@ -773,7 +779,10 @@ export class RelayClient {
 
           // Block until connection closes
           await new Promise<void>((resolve) => {
-            if (!this._ws) { resolve(); return; }
+            if (!this._ws) {
+              resolve();
+              return;
+            }
             this._ws.on('close', () => resolve());
           });
         } catch (err) {
@@ -816,7 +825,10 @@ export class RelayClient {
 
   // ─── Internal: Send / Receive ──────────────────────────────────
 
-  private async _sendRequest(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async _sendRequest(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const reqId = randomUUID();
     const message: Record<string, unknown> = {
       jsonrpc: '2.0',
@@ -852,8 +864,14 @@ export class RelayClient {
         }, REQUEST_TIMEOUT);
 
         deferred.promise.then(
-          (v) => { clearTimeout(timer); resolve(v); },
-          (e) => { clearTimeout(timer); reject(e); },
+          (v) => {
+            clearTimeout(timer);
+            resolve(v);
+          },
+          (e) => {
+            clearTimeout(timer);
+            reject(e);
+          },
         );
       });
     } finally {
@@ -915,11 +933,9 @@ export class RelayClient {
       const reqId = msg.id as string;
       const deferred = this._pending.get(reqId);
       if (deferred && !deferred.settled) {
-        const error = typeof msg.error === 'object' ? msg.error : { code: -1, message: String(msg.error) };
-        deferred.reject(new RelayError(
-          error.code ?? -1,
-          String(error.message ?? 'Unknown error'),
-        ));
+        const error =
+          typeof msg.error === 'object' ? msg.error : { code: -1, message: String(msg.error) };
+        deferred.reject(new RelayError(error.code ?? -1, String(error.message ?? 'Unknown error')));
       }
       return;
     }
@@ -942,12 +958,13 @@ export class RelayClient {
           const codeStr = code != null ? String(code) : null;
           if (codeStr != null && !SUCCESS_CODE_RE.test(codeStr)) {
             let intCode: number;
-            try { intCode = parseInt(codeStr, 10); } catch { intCode = -1; }
+            try {
+              intCode = parseInt(codeStr, 10);
+            } catch {
+              intCode = -1;
+            }
             if (isNaN(intCode)) intCode = -1;
-            deferred.reject(new RelayError(
-              intCode,
-              String(result.message ?? 'Unknown error'),
-            ));
+            deferred.reject(new RelayError(intCode, String(result.message ?? 'Unknown error')));
           } else {
             deferred.resolve(result);
           }
@@ -1193,19 +1210,12 @@ export class RelayClient {
       const winnerNodeId = (callInfo.node_id ?? '') as string;
       let call = this._calls.get(winnerCallId);
       if (!call) {
-        call = new Call(
-          this,
-          winnerCallId,
-          winnerNodeId,
-          this.project,
-          this._relayProtocol,
-          {
-            tag,
-            direction: 'outbound',
-            device: callInfo.device,
-            state: 'answered',
-          },
-        );
+        call = new Call(this, winnerCallId, winnerNodeId, this.project, this._relayProtocol, {
+          tag,
+          direction: 'outbound',
+          device: callInfo.device,
+          state: 'answered',
+        });
         this._calls.set(winnerCallId, call);
       } else {
         if (winnerNodeId && !call.nodeId) {
@@ -1246,10 +1256,12 @@ export class RelayClient {
       } catch {
         this._pingFailures++;
         const backoff = Math.min(
-          RECONNECT_MIN_DELAY * (RECONNECT_BACKOFF_FACTOR ** this._pingFailures),
+          RECONNECT_MIN_DELAY * RECONNECT_BACKOFF_FACTOR ** this._pingFailures,
           RECONNECT_MAX_DELAY,
         );
-        logger.warn(`Client ping failed (${this._pingFailures}/${CLIENT_PING_MAX_FAILURES}), backoff ${backoff.toFixed(1)}s`);
+        logger.warn(
+          `Client ping failed (${this._pingFailures}/${CLIENT_PING_MAX_FAILURES}), backoff ${backoff.toFixed(1)}s`,
+        );
         if (this._pingFailures >= CLIENT_PING_MAX_FAILURES) {
           logger.error('Max ping failures reached, forcing reconnect');
           this._forceClose();

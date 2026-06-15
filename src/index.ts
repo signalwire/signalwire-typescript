@@ -80,11 +80,32 @@ export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
 // Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the
 // explicit-params path; byte-identical to the untyped `parameters` blob).
-export { ParameterSchema, paramSchema, RECORD_FORMATS, RECORD_DIRECTIONS, TAP_DIRECTIONS, TAP_CODECS } from './ParameterSchema.js';
-export type { ParameterType, ParameterProperty, ParameterSchemaObject, RecordFormat, RecordDirection, TapDirection, TapCodec } from './ParameterSchema.js';
+export {
+  ParameterSchema,
+  paramSchema,
+  RECORD_FORMATS,
+  RECORD_DIRECTIONS,
+  TAP_DIRECTIONS,
+  TAP_CODECS,
+} from './ParameterSchema.js';
+export type {
+  ParameterType,
+  ParameterProperty,
+  ParameterSchemaObject,
+  RecordFormat,
+  RecordDirection,
+  TapDirection,
+  TapCodec,
+} from './ParameterSchema.js';
 
 // DataMap (server-side tools)
-export { DataMap, createSimpleApiTool, createExpressionTool, setAllowedEnvPrefixes, getAllowedEnvPrefixes } from './DataMap.js';
+export {
+  DataMap,
+  createSimpleApiTool,
+  createExpressionTool,
+  setAllowedEnvPrefixes,
+  getAllowedEnvPrefixes,
+} from './DataMap.js';
 
 // Prompt Object Model
 export { PomBuilder, PomSection } from './PomBuilder.js';
@@ -135,7 +156,14 @@ export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './T
 export type { InferredSchema, ParsedParam, TypedToolHandler } from './TypeInference.js';
 
 // Security utilities
-export { safeAssign, filterSensitiveHeaders, redactUrl, MAX_SKILL_INPUT_LENGTH, validateUrl, isServerlessMode } from './SecurityUtils.js';
+export {
+  safeAssign,
+  filterSensitiveHeaders,
+  redactUrl,
+  MAX_SKILL_INPUT_LENGTH,
+  validateUrl,
+  isServerlessMode,
+} from './SecurityUtils.js';
 
 // Webhook signature validation
 export { validateWebhookSignature, validateRequest } from './WebhookValidator.js';
@@ -151,38 +179,82 @@ export type { WebhookValidationOptions } from './WebhookMiddleware.js';
 export { ConfigLoader } from './ConfigLoader.js';
 
 // Logging
-export { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode, stripControlChars } from './Logger.js';
+export {
+  Logger,
+  getLogger,
+  setGlobalLogLevel,
+  suppressAllLogs,
+  setGlobalLogFormat,
+  setGlobalLogColor,
+  setGlobalLogStream,
+  resetLoggingConfiguration,
+  getExecutionMode,
+  stripControlChars,
+} from './Logger.js';
 export type { LogLevel } from './Logger.js';
 
 // Serverless
 export { ServerlessAdapter } from './ServerlessAdapter.js';
-export type { ServerlessPlatform, ServerlessEvent, ServerlessResponse } from './ServerlessAdapter.js';
+export type {
+  ServerlessPlatform,
+  ServerlessEvent,
+  ServerlessResponse,
+} from './ServerlessAdapter.js';
 
 // Skills
 export { SkillBase, SkillManager, SkillRegistry } from './skills/index.js';
-export type { SkillConfig, SkillToolDefinition, SkillPromptSection, ParameterSchemaEntry, SkillSchemaInfo } from './skills/index.js';
+export type {
+  SkillConfig,
+  SkillToolDefinition,
+  SkillPromptSection,
+  ParameterSchemaEntry,
+  SkillSchemaInfo,
+} from './skills/index.js';
 export type { SkillName, SkillNameOrString } from './skills/index.js';
 
 // Built-in Skills
 export { registerBuiltinSkills } from './skills/builtin/index.js';
 export {
-  DateTimeSkill, MathSkill, JokeSkill,
-  WeatherApiSkill, PlayBackgroundFileSkill, SwmlTransferSkill,
-  ApiNinjasTriviaSkill, InfoGathererSkill, CustomSkillsSkill,
-  WebSearchSkill, WikipediaSearchSkill, GoogleMapsSkill,
-  DataSphereSkill, DataSphereServerlessSkill, NativeVectorSearchSkill,
-  SpiderSkill, ClaudeSkillsSkill, AskClaudeSkill, McpGatewaySkill,
+  DateTimeSkill,
+  MathSkill,
+  JokeSkill,
+  WeatherApiSkill,
+  PlayBackgroundFileSkill,
+  SwmlTransferSkill,
+  ApiNinjasTriviaSkill,
+  InfoGathererSkill,
+  CustomSkillsSkill,
+  WebSearchSkill,
+  WikipediaSearchSkill,
+  GoogleMapsSkill,
+  DataSphereSkill,
+  DataSphereServerlessSkill,
+  NativeVectorSearchSkill,
+  SpiderSkill,
+  ClaudeSkillsSkill,
+  AskClaudeSkill,
+  McpGatewaySkill,
 } from './skills/builtin/index.js';
 
 // Prefab Agents
 export {
-  InfoGathererAgent, SurveyAgent, FAQBotAgent,
-  ConciergeAgent, ReceptionistAgent,
+  InfoGathererAgent,
+  SurveyAgent,
+  FAQBotAgent,
+  ConciergeAgent,
+  ReceptionistAgent,
 } from './prefabs/index.js';
 export type {
-  InfoGathererConfig, InfoGathererQuestion, InfoGathererQuestionCallback,
-  SurveyConfig, SurveyQuestion, FAQBotConfig, FAQEntry,
-  ConciergeConfig, ReceptionistConfig, ReceptionistDepartment,
+  InfoGathererConfig,
+  InfoGathererQuestion,
+  InfoGathererQuestionCallback,
+  SurveyConfig,
+  SurveyQuestion,
+  FAQBotConfig,
+  FAQEntry,
+  ConciergeConfig,
+  ReceptionistConfig,
+  ReceptionistDepartment,
 } from './prefabs/index.js';
 
 // Types

@@ -36,7 +36,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -274,7 +278,11 @@ describe('Call.waitForAnswered', () => {
     const ev = await Promise.race([
       call.waitForAnswered(),
       new Promise<RelayEvent>((_, reject) =>
-        setTimeout(() => reject(new Error('waitForAnswered blocked instead of short-circuiting')), 1000)),
+        setTimeout(
+          () => reject(new Error('waitForAnswered blocked instead of short-circuiting')),
+          1000,
+        ),
+      ),
     ]);
     expect(ev).toBeInstanceOf(RelayEvent);
     expect(ev.eventType).toBe('calling.call.state');
@@ -288,7 +296,11 @@ describe('Call.waitForRinging', () => {
     const ev = await Promise.race([
       call.waitForRinging(),
       new Promise<RelayEvent>((_, reject) =>
-        setTimeout(() => reject(new Error('waitForRinging blocked instead of short-circuiting')), 1000)),
+        setTimeout(
+          () => reject(new Error('waitForRinging blocked instead of short-circuiting')),
+          1000,
+        ),
+      ),
     ]);
     expect(ev.eventType).toBe('calling.call.state');
     // Synthesized event reports the *current* state, which is past ringing.
@@ -304,9 +316,13 @@ describe('Call.waitForEnding', () => {
     const waiting = call.waitForEnding(3000);
     // Push the ending state shortly after the wait begins.
     setTimeout(() => {
-      void mock.push(bareEventFrame('calling.call.state', {
-        call_id: 'conv-wfe', call_state: 'ending', direction: 'inbound',
-      }));
+      void mock.push(
+        bareEventFrame('calling.call.state', {
+          call_id: 'conv-wfe',
+          call_state: 'ending',
+          direction: 'inbound',
+        }),
+      );
     }, 100);
     const ev = await waiting;
     expect(ev.eventType).toBe('calling.call.state');

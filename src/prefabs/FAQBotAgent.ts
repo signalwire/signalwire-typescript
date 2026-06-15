@@ -130,15 +130,14 @@ export class FAQBotAgent extends AgentBase {
 
     // Goal
     this.promptAddSection('Goal', {
-      body:
-        'Answer user questions by matching them to the most similar FAQ in your database.',
+      body: 'Answer user questions by matching them to the most similar FAQ in your database.',
     });
 
     // Instructions
     const instructions = [
       'Compare user questions to your FAQ database and find the best match.',
       'Provide the answer from the FAQ database for the matching question.',
-      'If no close match exists, politely say you don\'t have that information.',
+      "If no close match exists, politely say you don't have that information.",
       'Be concise and factual in your responses.',
     ];
     if (this.suggestRelated) {
@@ -165,8 +164,7 @@ export class FAQBotAgent extends AgentBase {
 
     if (this.suggestRelated) {
       this.promptAddSection('Related Questions', {
-        body:
-          'When appropriate, suggest other related questions from the FAQ database that might be helpful.',
+        body: 'When appropriate, suggest other related questions from the FAQ database that might be helpful.',
       });
     }
   }
@@ -210,11 +208,7 @@ export class FAQBotAgent extends AgentBase {
     });
 
     // Global data: faq count and categories
-    const categories = Array.from(
-      new Set(
-        this.faqs.flatMap((faq) => faq.categories ?? []),
-      ),
-    );
+    const categories = Array.from(new Set(this.faqs.flatMap((faq) => faq.categories ?? [])));
     this.setGlobalData({
       faq_count: this.faqs.length,
       categories,
@@ -309,9 +303,8 @@ export class FAQBotAgent extends AgentBase {
 
         // Optionally filter by category
         const pool = category
-          ? this.faqs.filter(
-              (faq) =>
-                (faq.categories ?? []).some((c) => c.toLowerCase().trim() === category),
+          ? this.faqs.filter((faq) =>
+              (faq.categories ?? []).some((c) => c.toLowerCase().trim() === category),
             )
           : this.faqs;
 
@@ -345,7 +338,8 @@ export class FAQBotAgent extends AgentBase {
     if (this.escalationNumber) {
       this.defineTool({
         name: 'escalate',
-        description: 'Transfer the caller to a live agent when the FAQ knowledge base cannot answer their question.',
+        description:
+          'Transfer the caller to a live agent when the FAQ knowledge base cannot answer their question.',
         parameters: {
           type: 'object',
           properties: {
@@ -392,13 +386,74 @@ export class FAQBotAgent extends AgentBase {
 // ── Common English stop words filtered from matching ────────────────────────
 
 const STOP_WORDS = new Set([
-  'a', 'an', 'the', 'is', 'it', 'to', 'in', 'of', 'and', 'or', 'for',
-  'on', 'at', 'by', 'do', 'if', 'my', 'so', 'up', 'am', 'as', 'be',
-  'he', 'me', 'we', 'no', 'not', 'are', 'was', 'has', 'had', 'how',
-  'its', 'can', 'did', 'get', 'but', 'you', 'her', 'him', 'his', 'she',
-  'our', 'who', 'this', 'that', 'what', 'with', 'have', 'from', 'will',
-  'your', 'they', 'them', 'been', 'does', 'just', 'than', 'when', 'which',
-  'would', 'could', 'should', 'about', 'their', 'there', 'these', 'those',
+  'a',
+  'an',
+  'the',
+  'is',
+  'it',
+  'to',
+  'in',
+  'of',
+  'and',
+  'or',
+  'for',
+  'on',
+  'at',
+  'by',
+  'do',
+  'if',
+  'my',
+  'so',
+  'up',
+  'am',
+  'as',
+  'be',
+  'he',
+  'me',
+  'we',
+  'no',
+  'not',
+  'are',
+  'was',
+  'has',
+  'had',
+  'how',
+  'its',
+  'can',
+  'did',
+  'get',
+  'but',
+  'you',
+  'her',
+  'him',
+  'his',
+  'she',
+  'our',
+  'who',
+  'this',
+  'that',
+  'what',
+  'with',
+  'have',
+  'from',
+  'will',
+  'your',
+  'they',
+  'them',
+  'been',
+  'does',
+  'just',
+  'than',
+  'when',
+  'which',
+  'would',
+  'could',
+  'should',
+  'about',
+  'their',
+  'there',
+  'these',
+  'those',
 ]);
 
 // ── Factory function ────────────────────────────────────────────────────────

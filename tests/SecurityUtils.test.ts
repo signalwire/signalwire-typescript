@@ -124,23 +124,23 @@ describe('SecurityUtils', () => {
   describe('filterSensitiveHeaders', () => {
     it('removes authorization and cookie, keeps content-type and host', () => {
       const headers = {
-        'authorization': 'Bearer secret',
-        'cookie': 'session=abc',
+        authorization: 'Bearer secret',
+        cookie: 'session=abc',
         'content-type': 'application/json',
-        'host': 'example.com',
+        host: 'example.com',
         'x-api-key': 'key123',
         'proxy-authorization': 'Basic xxx',
       };
       const filtered = filterSensitiveHeaders(headers);
       expect(filtered).toEqual({
         'content-type': 'application/json',
-        'host': 'example.com',
+        host: 'example.com',
       });
     });
 
     it('handles case-insensitive header names', () => {
       const headers = {
-        'Authorization': 'Bearer secret',
+        Authorization: 'Bearer secret',
         'Content-Type': 'application/json',
       };
       const filtered = filterSensitiveHeaders(headers);
@@ -151,7 +151,9 @@ describe('SecurityUtils', () => {
   // ── redactUrl ───────────────────────────────────────────────────────
   describe('redactUrl', () => {
     it('redacts password in https://user:secret@host.com', () => {
-      expect(redactUrl('https://user:secret@host.com/path')).toBe('https://user:****@host.com/path');
+      expect(redactUrl('https://user:secret@host.com/path')).toBe(
+        'https://user:****@host.com/path',
+      );
     });
 
     it('is no-op without credentials', () => {
@@ -159,7 +161,9 @@ describe('SecurityUtils', () => {
     });
 
     it('redacts in http URLs', () => {
-      expect(redactUrl('http://admin:p4ss@localhost:3000')).toBe('http://admin:****@localhost:3000');
+      expect(redactUrl('http://admin:p4ss@localhost:3000')).toBe(
+        'http://admin:****@localhost:3000',
+      );
     });
   });
 
@@ -195,9 +199,13 @@ describe('SecurityUtils', () => {
   describe('isServerlessMode', () => {
     const ENV_VARS = [
       'GATEWAY_INTERFACE',
-      'AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT',
-      'FUNCTION_TARGET', 'K_SERVICE', 'GOOGLE_CLOUD_PROJECT',
-      'AZURE_FUNCTIONS_ENVIRONMENT', 'FUNCTIONS_WORKER_RUNTIME',
+      'AWS_LAMBDA_FUNCTION_NAME',
+      'LAMBDA_TASK_ROOT',
+      'FUNCTION_TARGET',
+      'K_SERVICE',
+      'GOOGLE_CLOUD_PROJECT',
+      'AZURE_FUNCTIONS_ENVIRONMENT',
+      'FUNCTIONS_WORKER_RUNTIME',
     ];
     const originals: Record<string, string | undefined> = {};
 

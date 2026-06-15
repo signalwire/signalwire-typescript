@@ -22,7 +22,9 @@ export const support = new AgentBase({
   ],
 });
 
-support.setPromptText('You are a customer support agent. Help resolve issues quickly and politely.');
+support.setPromptText(
+  'You are a customer support agent. Help resolve issues quickly and politely.',
+);
 support.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 
 support.defineTool({
@@ -32,7 +34,9 @@ support.defineTool({
     ticket_id: { type: 'string', description: 'The ticket ID' },
   },
   handler: (args) => {
-    return new FunctionResult(`Ticket ${args.ticket_id}: Status is "In Progress", assigned to Team B.`);
+    return new FunctionResult(
+      `Ticket ${args.ticket_id}: Status is "In Progress", assigned to Team B.`,
+    );
   },
 });
 
@@ -46,7 +50,9 @@ export const sales = new AgentBase({
   ],
 });
 
-sales.setPromptText('You are a sales agent. Help potential customers understand our products and pricing.');
+sales.setPromptText(
+  'You are a sales agent. Help potential customers understand our products and pricing.',
+);
 sales.addLanguage({ name: 'English', code: 'en-US', voice: 'dave' });
 
 sales.defineTool({

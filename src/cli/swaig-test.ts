@@ -254,7 +254,10 @@ function loadEnvFile(filePath: string): void {
       const key = trimmed.slice(0, eqIdx).trim();
       let val = trimmed.slice(eqIdx + 1).trim();
       // Strip quotes
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       process.env[key] = val;
@@ -295,7 +298,7 @@ async function main(): Promise<void> {
   }
 
   // Load agent
-  const agent = await loadAgent(opts.agentPath, opts.agentClass) as any;
+  const agent = (await loadAgent(opts.agentPath, opts.agentClass)) as any;
 
   // Apply --route override
   if (opts.route && typeof agent.route !== 'undefined') {
@@ -321,7 +324,11 @@ async function main(): Promise<void> {
       path: agent.route ?? '/',
       headers: {
         'content-type': 'application/json',
-        'authorization': 'Basic ' + Buffer.from(`${agent.basicAuthCreds?.[0] ?? 'user'}:${agent.basicAuthCreds?.[1] ?? 'pass'}`).toString('base64'),
+        authorization:
+          'Basic ' +
+          Buffer.from(
+            `${agent.basicAuthCreds?.[0] ?? 'user'}:${agent.basicAuthCreds?.[1] ?? 'pass'}`,
+          ).toString('base64'),
       },
       body: postData,
     };
@@ -367,7 +374,9 @@ async function main(): Promise<void> {
             console.log(`  ${tool.name}`);
             console.log(`    Description: ${tool.description}`);
             if (tool.parameters && Object.keys(tool.parameters).length) {
-              console.log(`    Parameters: ${JSON.stringify(tool.parameters, null, 6).replace(/\n/g, '\n    ')}`);
+              console.log(
+                `    Parameters: ${JSON.stringify(tool.parameters, null, 6).replace(/\n/g, '\n    ')}`,
+              );
             }
             console.log();
           }
