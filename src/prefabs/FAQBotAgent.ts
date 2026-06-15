@@ -11,6 +11,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -369,7 +370,7 @@ export class FAQBotAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     if (summary) {
       try {

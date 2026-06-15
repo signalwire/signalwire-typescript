@@ -10,6 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -216,7 +217,7 @@ export class ReceptionistAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: Record<string, unknown>): CheckInSession {
+  private getSession(rawData: SwaigRequestData): CheckInSession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -283,7 +284,7 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const departmentName = ((args['department'] as string) ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
@@ -329,7 +330,7 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+        handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) => {
           const visitorName = args['visitor_name'] as string;
           const purpose = args['purpose'] as string;
           const visiting = args['visiting'] as string;
@@ -376,7 +377,7 @@ export class ReceptionistAgent extends AgentBase {
    */
   override onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     // Intentional no-op pass-through; subclasses override to handle the summary.
   }

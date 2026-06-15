@@ -18,6 +18,7 @@ import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
 import { SwaigFunction, type SwaigFunctionOptions } from './SwaigFunction.js';
 import { FunctionResult } from './FunctionResult.js';
+import type { SwaigRequestData, SwmlRequestData } from './PlatformContracts.js';
 import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
@@ -140,14 +141,14 @@ export class SecurityConfig {
 /** Callback invoked per-request to dynamically build SWML. */
 export type OnRequestCallback = (
   queryParams: Record<string, string>,
-  bodyParams: Record<string, unknown>,
+  bodyParams: SwmlRequestData,
   headers: Record<string, string>,
 ) => SwmlBuilder | Promise<SwmlBuilder>;
 
 // RoutingCallback is owned by AgentBase.ts; SWMLService uses a structurally
 // compatible local alias to avoid an import cycle and stay independent.
 type RoutingCallback = (
-  requestBody: Record<string, unknown>,
+  requestBody: SwmlRequestData,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -410,9 +411,9 @@ export class SWMLService {
       if (c.req.method === 'GET') {
         return handler(c);
       }
-      let payload: Record<string, unknown>;
+      let payload: SwaigRequestData;
       try {
-        payload = (await c.req.json()) as Record<string, unknown>;
+        payload = (await c.req.json()) as SwaigRequestData;
       } catch {
         return c.json({ error: 'Invalid JSON' }, 400);
       }
@@ -501,7 +502,7 @@ export class SWMLService {
   onFunctionCall(
     name: string,
     args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ):
     | FunctionResult
     | Record<string, unknown>
@@ -605,7 +606,7 @@ export class SWMLService {
    * override to add session-token validation or ephemeral dynamic-config.
    */
   protected swaigPreDispatch(
-    _requestData: Record<string, unknown>,
+    _requestData: SwaigRequestData,
     _funcName: string,
   ): [SWMLService, unknown] {
     return [this, null];
@@ -765,7 +766,7 @@ export class SWMLService {
 
     // Install an endpoint on the Hono app for this callback path
     const routeHandler = async (c: Context) => {
-      let body: Record<string, unknown> = {};
+      let body: SwmlRequestData = {};
       if (c.req.method === 'POST') {
         try {
           body = await c.req.json();
@@ -802,7 +803,7 @@ export class SWMLService {
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
    */
-  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+  static extractSipUsername(requestBody: SwmlRequestData): string | null {
     try {
       const call = requestBody?.['call'] as Record<string, unknown> | undefined;
       const toField = call?.['to'] as string | undefined;

@@ -5,7 +5,7 @@
  * without requiring webhook endpoints.
  */
 
-import { FunctionResult } from './FunctionResult.js';
+import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 
 const ENV_PATTERN = /\$\{ENV\.([^}]+)\}/g;
 
@@ -98,7 +98,7 @@ export class DataMap {
   private _parameters: Record<string, unknown> = {};
   private _expressions: Record<string, unknown>[] = [];
   private _webhooks: Record<string, unknown>[] = [];
-  private _output: Record<string, unknown> | null = null;
+  private _output: SwaigResultDict | null = null;
   private _errorKeys: string[] = [];
   private _expandEnv = false;
   private _allowedEnvPrefixes: string[] | null = null;

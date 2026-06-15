@@ -27,6 +27,90 @@ export const RESERVED_NATIVE_TOOL_NAMES: ReadonlySet<string> = new Set([
   'gather_submit',
 ]);
 
+// ── Serialized shapes ───────────────────────────────────────────────
+// The plain objects the `toDict()` serializers emit for SWML output. Each
+// matches its serializer exactly: only the keys that serializer can write,
+// every conditional key optional. No index signatures — the serializers
+// never emit keys beyond those enumerated here.
+
+/**
+ * Serialized form of a {@link GatherInfo} (`GatherInfo.toDict()`). The
+ * `questions` array holds each {@link GatherQuestion}'s own `toDict()` output.
+ */
+export interface GatherInfoDict {
+  /** Serialized questions; always at least one (toDict throws on empty). */
+  questions: Record<string, unknown>[];
+  /** Optional gather prompt. */
+  prompt?: string;
+  /** Optional output key the collected answers are stored under. */
+  output_key?: string;
+  /** Optional action taken once gathering completes. */
+  completion_action?: string;
+}
+
+/** Serialized form of a {@link Step} (`Step.toDict()`). */
+export interface StepDict {
+  /** Step name. */
+  name: string;
+  /** Rendered step instruction text. */
+  text: string;
+  /** Optional completion criteria. */
+  step_criteria?: string;
+  /** Optional function restriction (single name or list). */
+  functions?: string | string[];
+  /** Optional list of steps this step may navigate to. */
+  valid_steps?: string[];
+  /** Optional list of contexts this step may navigate to. */
+  valid_contexts?: string[];
+  /** Present (true) when this step ends the flow. */
+  end?: boolean;
+  /** Present (true) when the user turn is skipped after this step. */
+  skip_user_turn?: boolean;
+  /** Present (true) when the runtime advances to the next step automatically. */
+  skip_to_next_step?: boolean;
+  /** Optional prompt-reset directives for this step. */
+  reset?: {
+    system_prompt?: string;
+    user_prompt?: string;
+    consolidate?: boolean;
+    full_reset?: boolean;
+  };
+  /** Optional gather-info block. */
+  gather_info?: GatherInfoDict;
+}
+
+/** Serialized form of a {@link Context} (`Context.toDict()`). */
+export interface ContextDict {
+  /** Serialized steps in order; always at least one (toDict throws on empty). */
+  steps: StepDict[];
+  /** Optional contexts reachable from this context. */
+  valid_contexts?: string[];
+  /** Optional steps reachable within this context. */
+  valid_steps?: string[];
+  /** Optional name of the initial step. */
+  initial_step?: string;
+  /** Optional post-prompt text. */
+  post_prompt?: string;
+  /** Optional rendered system prompt. */
+  system_prompt?: string;
+  /** Present (true) when prompt consolidation is enabled. */
+  consolidate?: boolean;
+  /** Present (true) when a full prompt reset is enabled. */
+  full_reset?: boolean;
+  /** Optional user prompt text. */
+  user_prompt?: string;
+  /** Present (true) when this context is isolated. */
+  isolated?: boolean;
+  /** Optional POM sections (mutually exclusive with `prompt`). */
+  pom?: StepSection[];
+  /** Optional plain prompt text (mutually exclusive with `pom`). */
+  prompt?: string;
+  /** Optional enter-fillers keyed by language. */
+  enter_fillers?: Record<string, string[]>;
+  /** Optional exit-fillers keyed by language. */
+  exit_fillers?: Record<string, string[]>;
+}
+
 // ── GatherQuestion ──────────────────────────────────────────────────
 
 /** Represents a single question within a gather operation. */
@@ -134,12 +218,12 @@ export class GatherInfo {
    * Serializes this gather operation to a plain object for SWML output.
    * @returns A dictionary representation of the gather info and its questions.
    */
-  toDict(): Record<string, unknown> {
+  toDict(): GatherInfoDict {
     if (!this.questions.length) throw new Error('gather_info must have at least one question');
-    const d: Record<string, unknown> = { questions: this.questions.map((q) => q.toDict()) };
-    if (this.prompt) d['prompt'] = this.prompt;
-    if (this.outputKey) d['output_key'] = this.outputKey;
-    if (this.completionAction) d['completion_action'] = this.completionAction;
+    const d: GatherInfoDict = { questions: this.questions.map((q) => q.toDict()) };
+    if (this.prompt) d.prompt = this.prompt;
+    if (this.outputKey) d.output_key = this.outputKey;
+    if (this.completionAction) d.completion_action = this.completionAction;
     return d;
   }
 }
@@ -474,24 +558,24 @@ export class Step {
    * Serializes this step to a plain object for SWML output.
    * @returns A dictionary representation of this step.
    */
-  toDict(): Record<string, unknown> {
-    const d: Record<string, unknown> = { name: this.name, text: this.renderText() };
-    if (this.stepCriteria) d['step_criteria'] = this.stepCriteria;
-    if (this.functions !== null) d['functions'] = this.functions;
-    if (this.validSteps !== null) d['valid_steps'] = this.validSteps;
-    if (this.validContexts !== null) d['valid_contexts'] = this.validContexts;
-    if (this._end) d['end'] = true;
-    if (this.skipUserTurn) d['skip_user_turn'] = true;
-    if (this._skipToNextStep) d['skip_to_next_step'] = true;
+  toDict(): StepDict {
+    const d: StepDict = { name: this.name, text: this.renderText() };
+    if (this.stepCriteria) d.step_criteria = this.stepCriteria;
+    if (this.functions !== null) d.functions = this.functions;
+    if (this.validSteps !== null) d.valid_steps = this.validSteps;
+    if (this.validContexts !== null) d.valid_contexts = this.validContexts;
+    if (this._end) d.end = true;
+    if (this.skipUserTurn) d.skip_user_turn = true;
+    if (this._skipToNextStep) d.skip_to_next_step = true;
 
-    const reset: Record<string, unknown> = {};
-    if (this.resetSystemPrompt !== null) reset['system_prompt'] = this.resetSystemPrompt;
-    if (this.resetUserPrompt !== null) reset['user_prompt'] = this.resetUserPrompt;
-    if (this.resetConsolidate) reset['consolidate'] = true;
-    if (this.resetFullReset) reset['full_reset'] = true;
-    if (Object.keys(reset).length) d['reset'] = reset;
+    const reset: NonNullable<StepDict['reset']> = {};
+    if (this.resetSystemPrompt !== null) reset.system_prompt = this.resetSystemPrompt;
+    if (this.resetUserPrompt !== null) reset.user_prompt = this.resetUserPrompt;
+    if (this.resetConsolidate) reset.consolidate = true;
+    if (this.resetFullReset) reset.full_reset = true;
+    if (Object.keys(reset).length) d.reset = reset;
 
-    if (this.gatherInfo) d['gather_info'] = this.gatherInfo.toDict();
+    if (this.gatherInfo) d.gather_info = this.gatherInfo.toDict();
     return d;
   }
 }
@@ -863,28 +947,28 @@ export class Context {
    * Serializes this context and all its steps to a plain object for SWML output.
    * @returns A dictionary representation of this context.
    */
-  toDict(): Record<string, unknown> {
+  toDict(): ContextDict {
     if (!this.steps.size) throw new Error(`Context '${this.name}' has no steps defined`);
-    const d: Record<string, unknown> = {
+    const d: ContextDict = {
       steps: this.stepOrder.map((name) => this.steps.get(name)!.toDict()),
     };
-    if (this._validContexts !== null) d['valid_contexts'] = this._validContexts;
-    if (this._validSteps !== null) d['valid_steps'] = this._validSteps;
-    if (this._initialStep !== null) d['initial_step'] = this._initialStep;
-    if (this._postPrompt !== null) d['post_prompt'] = this._postPrompt;
+    if (this._validContexts !== null) d.valid_contexts = this._validContexts;
+    if (this._validSteps !== null) d.valid_steps = this._validSteps;
+    if (this._initialStep !== null) d.initial_step = this._initialStep;
+    if (this._postPrompt !== null) d.post_prompt = this._postPrompt;
     const sp = this.renderSystemPrompt();
-    if (sp !== null) d['system_prompt'] = sp;
-    if (this._consolidate) d['consolidate'] = true;
-    if (this._fullReset) d['full_reset'] = true;
-    if (this._userPrompt !== null) d['user_prompt'] = this._userPrompt;
-    if (this._isolated) d['isolated'] = true;
+    if (sp !== null) d.system_prompt = sp;
+    if (this._consolidate) d.consolidate = true;
+    if (this._fullReset) d.full_reset = true;
+    if (this._userPrompt !== null) d.user_prompt = this._userPrompt;
+    if (this._isolated) d.isolated = true;
     if (this.promptSections.length) {
-      d['pom'] = this.promptSections;
+      d.pom = this.promptSections;
     } else if (this.promptText !== null) {
-      d['prompt'] = this.promptText;
+      d.prompt = this.promptText;
     }
-    if (this._enterFillers) d['enter_fillers'] = this._enterFillers;
-    if (this._exitFillers) d['exit_fillers'] = this._exitFillers;
+    if (this._enterFillers) d.enter_fillers = this._enterFillers;
+    if (this._exitFillers) d.exit_fillers = this._exitFillers;
     return d;
   }
 }
@@ -1177,9 +1261,9 @@ export class ContextBuilder {
    * Validates and serializes all contexts to a plain object for SWML output.
    * @returns A dictionary mapping context names to their serialized representations.
    */
-  toDict(): Record<string, unknown> {
+  toDict(): Record<string, ContextDict> {
     this.validate();
-    const result: Record<string, unknown> = {};
+    const result: Record<string, ContextDict> = {};
     for (const name of this.contextOrder) {
       result[name] = this.contexts.get(name)!.toDict();
     }

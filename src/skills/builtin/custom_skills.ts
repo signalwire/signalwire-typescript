@@ -19,6 +19,7 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
+import type { JSONSchemaProperty } from './mcp_gateway.js';
 
 const log = getLogger('CustomSkillsSkill');
 
@@ -294,12 +295,12 @@ export class CustomSkillsSkill extends SkillBase {
   /**
    * Build tool parameters from the custom tool definition.
    */
-  private _buildParameters(toolDef: CustomToolDefinition): Record<string, unknown> {
+  private _buildParameters(toolDef: CustomToolDefinition): Record<string, JSONSchemaProperty> {
     if (!toolDef.parameters || toolDef.parameters.length === 0) {
       return {};
     }
 
-    const params: Record<string, unknown> = {};
+    const params: Record<string, JSONSchemaProperty> = {};
     for (const param of toolDef.parameters) {
       params[param.name] = {
         type: param.type,

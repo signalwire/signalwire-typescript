@@ -5,6 +5,30 @@
  * Every mutating method returns `this` for fluent chaining.
  */
 
+/**
+ * A single SWAIG action object. Each action is keyed by its action name
+ * (e.g. `hangup`, `say`, `SWML`, `transfer`) mapped to that action's payload;
+ * the name set is open-ended (SWML grows new actions), so this is modeled as an
+ * open key→value map rather than a closed union. Built by {@link FunctionResult}'s
+ * `addAction` / `connect` / `swmlTransfer` / etc. and emitted verbatim under the
+ * `action` key of the SWAIG response.
+ */
+export type SwaigAction = Record<string, unknown>;
+
+/**
+ * The object {@link FunctionResult.toDict} serializes to — the SWAIG response
+ * body. `toDict` only ever sets these three keys (plus the `response` fallback),
+ * so the shape is closed (no index signature).
+ */
+export interface SwaigResultDict {
+  /** Text response returned to the AI agent. Omitted when empty (unless it is the sole fallback). */
+  response?: string;
+  /** Ordered list of actions to execute. Omitted when there are none. */
+  action?: SwaigAction[];
+  /** Present (and `true`) only when post-processing is enabled and actions exist. */
+  post_process?: boolean;
+}
+
 /** Prompt configuration for a payment collection flow. */
 export interface PaymentPrompt {
   /** The situation this prompt applies to (e.g., "payment-card-number"). */
@@ -77,7 +101,7 @@ export class FunctionResult {
   /** The text response returned to the AI agent. */
   response: string;
   /** Ordered list of actions to execute after the response. */
-  action: Record<string, unknown>[];
+  action: SwaigAction[];
   /** Whether actions should be post-processed after the AI responds. */
   postProcess: boolean;
 
@@ -129,7 +153,7 @@ export class FunctionResult {
    * @param actions - Array of action objects to append.
    * @returns This instance for chaining.
    */
-  addActions(actions: Record<string, unknown>[]): this {
+  addActions(actions: SwaigAction[]): this {
     this.action.push(...actions);
     return this;
   }
@@ -935,19 +959,19 @@ export class FunctionResult {
    * Serialize this result to a plain object for the SWAIG response.
    * @returns A dictionary with response, action, and post_process fields; falls back to "Action completed." if empty.
    */
-  toDict(): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
+  toDict(): SwaigResultDict {
+    const result: SwaigResultDict = {};
     if (this.response) {
-      result['response'] = this.response;
+      result.response = this.response;
     }
     if (this.action.length > 0) {
-      result['action'] = this.action;
+      result.action = this.action;
     }
     if (this.postProcess && this.action.length > 0) {
-      result['post_process'] = true;
+      result.post_process = true;
     }
     if (Object.keys(result).length === 0) {
-      result['response'] = 'Action completed.';
+      result.response = 'Action completed.';
     }
     return result;
   }

@@ -23,6 +23,7 @@ import type {
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
+import type { JSONSchemaProperty } from './mcp_gateway.js';
 
 const log = getLogger('ClaudeSkillsSkill');
 
@@ -746,7 +747,7 @@ export class ClaudeSkillsSkill extends SkillBase {
         overrides[skill.name] ?? skill.description ?? `Use the ${skill.name} skill`;
 
       // Build parameters
-      const parameters: Record<string, unknown> = {
+      const parameters: Record<string, JSONSchemaProperty> = {
         arguments: {
           type: 'string',
           description: skill.argumentHint || 'Arguments or context to pass to the skill',

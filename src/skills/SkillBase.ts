@@ -7,6 +7,7 @@
 
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
+import type { SwaigRequestData } from '../PlatformContracts.js';
 import type { FunctionResult } from '../FunctionResult.js';
 import type { AgentBase } from '../AgentBase.js';
 import { getLogger, type Logger } from '../Logger.js';
@@ -448,7 +449,7 @@ export abstract class SkillBase {
    * @param rawData - The raw request data containing global_data.
    * @returns The skill's stored data, or an empty object if not found.
    */
-  getSkillData(rawData: Record<string, unknown>): Record<string, unknown> {
+  getSkillData(rawData: SwaigRequestData): Record<string, unknown> {
     const globalData = rawData['global_data'] as Record<string, unknown> | undefined;
     if (!globalData) return {};
     return (globalData[this.getSkillNamespace()] as Record<string, unknown>) ?? {};

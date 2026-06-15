@@ -10,6 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -288,7 +289,7 @@ export class SurveyAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: Record<string, unknown>): SurveySession {
+  private getSession(rawData: SwaigRequestData): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -460,7 +461,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const questionId = (args['question_id'] as string) ?? '';
         const response = (args['response'] as string) ?? '';
 
@@ -496,7 +497,7 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const questionId = args['question_id'] as string;
         const answer = args['answer'] as string;
 
@@ -569,7 +570,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
 
         if (session.completed) {
@@ -603,7 +604,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
         const totalCount = this.questions.length;
@@ -642,7 +643,7 @@ export class SurveyAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     if (summary) {
       try {

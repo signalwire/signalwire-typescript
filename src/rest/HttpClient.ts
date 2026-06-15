@@ -9,6 +9,7 @@
 
 import { getLogger } from '../Logger.js';
 import { RestError } from './RestError.js';
+import type { SignalWireErrorBody } from '../PlatformContracts.js';
 import type { HttpClientOptions, QueryParams } from './types.js';
 
 const logger = getLogger('rest_client');
@@ -85,9 +86,9 @@ export class HttpClient {
 
     if (!resp.ok) {
       const text = await resp.text();
-      let errBody: string | Record<string, unknown> = text;
+      let errBody: string | SignalWireErrorBody = text;
       try {
-        errBody = JSON.parse(text) as Record<string, unknown>;
+        errBody = JSON.parse(text) as SignalWireErrorBody;
       } catch {
         // Response was not valid JSON — keep as plain string.
       }

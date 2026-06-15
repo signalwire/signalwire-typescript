@@ -18,6 +18,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import type { SwaigRequestData } from '../../PlatformContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
 import { Agent as UndiciAgent } from 'undici';
@@ -32,15 +33,38 @@ interface McpServiceConfig {
   tools?: string | string[];
 }
 
+/**
+ * A single JSON-Schema property descriptor, as used inside a SWAIG/MCP tool's
+ * `parameters.properties` map. Models the JSON-Schema subset the SDK reads and
+ * emits — every field optional (a property may declare any combination). The
+ * index signature keeps it forward-compatible with JSON-Schema keywords the SDK
+ * passes through verbatim (e.g. `format`, `minimum`).
+ */
+export interface JSONSchemaProperty {
+  /** JSON-Schema type (e.g. `"string"`), or a list of allowed types. */
+  type?: string | string[];
+  /** Human/LLM-facing description of the property. */
+  description?: string;
+  /** Permitted values (closed set). */
+  enum?: unknown[];
+  /** Default value applied when the property is omitted. */
+  default?: unknown;
+  /** Nested property schemas (for `type: "object"`). */
+  properties?: Record<string, JSONSchemaProperty>;
+  /** Item schema (for `type: "array"`). */
+  items?: JSONSchemaProperty;
+  /** Names of required nested properties. */
+  required?: string[];
+  /** Forward-compatible: other JSON-Schema keywords passed through unchanged. */
+  [key: string]: unknown;
+}
+
 /** MCP tool definition returned by the gateway's /services/<name>/tools endpoint. */
 interface McpToolDefinition {
   name: string;
   description?: string;
   inputSchema?: {
-    properties?: Record<
-      string,
-      { type?: string; description?: string; enum?: unknown[]; default?: unknown }
-    >;
+    properties?: Record<string, JSONSchemaProperty>;
     required?: string[];
   };
 }
@@ -321,7 +345,7 @@ export class McpGatewaySkill extends SkillBase {
       name: '_mcp_gateway_hangup',
       description: 'Internal cleanup function for MCP sessions',
       parameters: {},
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
+      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) =>
         this._hangupHandler(args, rawData),
       isHangupHook: true,
     });
@@ -486,15 +510,15 @@ export class McpGatewaySkill extends SkillBase {
     const properties = inputSchema.properties ?? {};
     const required = inputSchema.required ?? [];
 
-    const swaigParams: Record<string, Record<string, unknown>> = {};
+    const swaigParams: Record<string, JSONSchemaProperty> = {};
     for (const [propName, propDef] of Object.entries(properties)) {
-      const paramDef: Record<string, unknown> = {
+      const paramDef: JSONSchemaProperty = {
         type: propDef.type ?? 'string',
         description: propDef.description ?? '',
       };
-      if (propDef.enum !== undefined) paramDef['enum'] = propDef.enum;
+      if (propDef.enum !== undefined) paramDef.enum = propDef.enum;
       if (propDef.default !== undefined && !required.includes(propName)) {
-        paramDef['default'] = propDef.default;
+        paramDef.default = propDef.default;
       }
       swaigParams[propName] = paramDef;
     }
@@ -506,7 +530,7 @@ export class McpGatewaySkill extends SkillBase {
       description: `[${serviceName}] ${toolDef.description ?? toolName}`,
       parameters: swaigParams,
       required,
-      handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
+      handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) =>
         this._callMcpTool(serviceName, toolName, args, rawData),
     };
   }
@@ -516,7 +540,7 @@ export class McpGatewaySkill extends SkillBase {
     serviceName: string,
     toolName: string,
     args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     log.debug('mcp_gateway: raw_data keys', { keys: Object.keys(rawData) });
@@ -629,7 +653,7 @@ export class McpGatewaySkill extends SkillBase {
   /** Handle call hangup — clean up any MCP session on the gateway. */
   private async _hangupHandler(
     _args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     const sessionId =

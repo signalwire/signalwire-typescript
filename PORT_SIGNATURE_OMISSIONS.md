@@ -1084,6 +1084,21 @@ signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params r
 
 signalwire.pom.pom.PromptObjectModel.to_dict: TS returns `list<class:signalwire.pom.pom.SectionData>` where SectionData is a typed shape; Python returns the equivalent `list<dict<string,any>>`. Same JSON-serializable structure with stronger TS typing.
 
+## Typed payload/serializer shapes vs dict<string,any> (idiomatic TS, same wire)
+
+Where Python types a webhook payload or serializer output as `Dict[str, Any]`, the
+TS port captures the actual wire shape as a named interface (sourced from the
+canonical backend contract / the serializer itself). Same JSON structure, byte-
+identical emission (proven by the EMISSION gate); the TS type is strictly richer.
+Per-port idiom: TS prefers a named shape over an opaque dict.
+
+signalwire.core.contexts.Context.to_dict: TS returns `class:...ContextDict` (named shape of the emitted context dict); Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.contexts.GatherInfo.to_dict: TS returns `class:...GatherInfoDict`; Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.contexts.Step.to_dict: TS returns `class:...StepDict`; Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.function_result.FunctionResult.to_dict: TS returns `class:...SwaigResultDict` (typed `{response?, action?, post_process?}`); Python returns the equivalent `dict<string,any>`. Same SWAIG response JSON, stronger TS typing.
+signalwire.core.mixins.web_mixin.WebMixin.on_request: TS types the request body param as `class:...SwmlRequestData` (the canonical dynamic-SWML request shape, swml.md); Python types it `Optional[Dict[str, Any]]`. Same payload, stronger TS typing.
+signalwire.core.skill_base.SkillBase.get_skill_data: TS types the raw_data param as `class:...SwaigRequestData` (the canonical SWAIG-webhook request shape, swml.md); Python types it `Dict[str, Any]`. Same payload, stronger TS typing.
+
 ## Webhook validator: optional<union<...>> vs union<...,void>
 
 signalwire.core.security.webhook_validator.validate_request: Python's source uses `Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`, which the canonical translator emits as `union<...,void>`; TypeScript's `string | Record<string, unknown> | Array<[string, unknown]> | null | undefined` is emitted as `optional<union<...>>` because the TS translator collapses null/undefined into the `optional<...>` wrapper rather than keeping `void` as a sibling union member. Same call-site contract; both forms accept the same set of values at runtime.

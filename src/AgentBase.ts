@@ -39,6 +39,7 @@ import type {
   FunctionInclude,
   DynamicConfigCallback,
 } from './types.js';
+import type { SwaigRequestData, PostPromptData, SwmlRequestData } from './PlatformContracts.js';
 
 /**
  * Callback invoked at a registered routing endpoint to determine how to handle an
@@ -49,7 +50,7 @@ import type {
  * variant — Hono request object is not forwarded; use the parsed body instead).
  */
 export type RoutingCallback = (
-  body: Record<string, unknown>,
+  body: SwmlRequestData,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
@@ -1139,7 +1140,7 @@ export class AgentBase extends SWMLService {
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
    */
-  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+  static extractSipUsername(requestBody: SwmlRequestData): string | null {
     const call = requestBody?.['call'] as Record<string, unknown> | undefined;
     const callTo = call?.['to'] as string | undefined;
     if (callTo) {
@@ -1281,7 +1282,12 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const rawData = { function: toolName, argument: { parsed: [args] } };
+        // MCP bridge synthesizes a minimal SWAIG payload — only the fields the
+        // handler path needs. Runtime shape unchanged; cast is compile-time only.
+        const rawData = {
+          function: toolName,
+          argument: { parsed: [args] },
+        } as unknown as SwaigRequestData;
         const resultDict = await fn.execute(args, rawData);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
@@ -1962,7 +1968,7 @@ export class AgentBase extends SWMLService {
    */
   onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     // Default no-op
   }
@@ -1983,7 +1989,7 @@ export class AgentBase extends SWMLService {
    *   default rendering.
    */
   onRequest(
-    requestData?: Record<string, unknown> | null,
+    requestData?: SwmlRequestData | null,
     callbackPath?: string | null,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     return this.onSwmlRequest(requestData ?? {}, callbackPath ?? undefined);
@@ -2006,7 +2012,7 @@ export class AgentBase extends SWMLService {
    * @returns Optionally a dict of SWML modifications, or void.
    */
   onSwmlRequest(
-    _rawData: Record<string, unknown>,
+    _rawData: SwmlRequestData,
     _callbackPath?: string,
     _context?: Context,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
@@ -2450,7 +2456,7 @@ export class AgentBase extends SWMLService {
       let reqLog = this.log.bind({ endpoint: this.route });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
+      let body: SwmlRequestData = {};
       try {
         body = await c.req.json();
       } catch {
@@ -2518,7 +2524,10 @@ export class AgentBase extends SWMLService {
       let reqLog = this.log.bind({ endpoint: `${basePath}/swaig` });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
+      // Runtime fallback is the empty object (unchanged); the cast is
+      // compile-time only — the backend always POSTs the full SWAIG payload,
+      // and the parse-failure path below is rejected before any field is read.
+      let body: SwaigRequestData = {} as SwaigRequestData;
       try {
         body = await c.req.json();
       } catch {
@@ -2605,7 +2614,10 @@ export class AgentBase extends SWMLService {
       let reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt` });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
+      // Runtime fallback is the empty object (unchanged); the cast is
+      // compile-time only — the backend always POSTs the full post_prompt
+      // payload, and the parse-failure path leaves an empty summary lookup.
+      let body: PostPromptData = {} as PostPromptData;
       try {
         body = await c.req.json();
       } catch {
@@ -2876,7 +2888,7 @@ export class AgentBase extends SWMLService {
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
-  private findSummary(body: Record<string, unknown>): Record<string, unknown> | null {
+  private findSummary(body: PostPromptData): Record<string, unknown> | null {
     if (!body) return null;
     if (body['summary']) return body['summary'] as Record<string, unknown>;
     const ppd = body['post_prompt_data'] as Record<string, unknown> | undefined;

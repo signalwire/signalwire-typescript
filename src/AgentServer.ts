@@ -10,6 +10,7 @@ import { cors } from 'hono/cors';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
 
 /** Common MIME types for static file serving. */
@@ -85,7 +86,7 @@ export class AgentServer {
   private _sipAutoMap = false;
   private _sipUsernameMapping: Map<string, string> = new Map();
   private _sipRoutingCallback:
-    | ((req: Request, body: Record<string, unknown>) => string | undefined)
+    | ((req: Request, body: SwmlRequestData) => string | undefined)
     | null = null;
 
   // Global routing callbacks registered via registerGlobalRoutingCallback
@@ -276,10 +277,7 @@ export class AgentServer {
     }
 
     // Create a unified routing callback
-    const serverSipRoutingCallback = (
-      _req: Request,
-      body: Record<string, unknown>,
-    ): string | undefined => {
+    const serverSipRoutingCallback = (_req: Request, body: SwmlRequestData): string | undefined => {
       const sipUsername = AgentBase.extractSipUsername(body);
       if (sipUsername) {
         this.log.info(`Extracted SIP username: ${sipUsername}`);

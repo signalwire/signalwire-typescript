@@ -4,6 +4,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { safeAssign } from '../SecurityUtils.js';
+import type { SwaigRequestData } from '../PlatformContracts.js';
 
 /** Options for generating mock call data in CLI testing. */
 export interface MockCallOptions {
@@ -89,7 +90,7 @@ export function generateMinimalPostData(
   fnName: string,
   args?: Record<string, unknown>,
   opts?: { callId?: string; overrides?: Record<string, unknown> },
-): Record<string, unknown> {
+): SwaigRequestData {
   const data: Record<string, unknown> = {
     function: fnName,
     argument: args ?? {},
@@ -106,5 +107,8 @@ export function generateMinimalPostData(
     safeAssign(data, opts.overrides);
   }
 
-  return data;
+  // CLI test harness: a deliberately-minimal stand-in for the SWAIG webhook
+  // payload (the `argument` field is the flat args object, not the backend's
+  // {parsed,raw,substituted} shape). Cast is compile-time only.
+  return data as unknown as SwaigRequestData;
 }
