@@ -5,7 +5,7 @@
  * needed to create, register, and manage agent skills.
  */
 
-export { SkillBase } from './SkillBase.js';
+export { SkillBase, defineSkillTool } from './SkillBase.js';
 export type {
   SkillConfig,
   SkillToolDefinition,

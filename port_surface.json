@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ beadd3f2c01c7891129c40a4f469169641a2c77d",
+  "generated_from": "signalwire-typescript @ d6e0ffb6157a231037311bf8bbe35795e1d4bdb3",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -582,7 +582,9 @@
           "validate_packages"
         ]
       },
-      "functions": []
+      "functions": [
+        "define_skill_tool"
+      ]
     },
     "signalwire.core.skill_manager": {
       "classes": {

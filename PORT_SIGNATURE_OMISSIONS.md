@@ -477,6 +477,7 @@ signalwire.core.security.session_manager.SessionManager.get_session_metadata: BA
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: BACKLOG / param-count-mismatch/ reference has 4 param(s), port has 3/ reference=['self', 'call_id', 'key', 'valu; return-mismatch/
 signalwire.core.security_config.SecurityConfig.get_basic_auth: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.security_config.SecurityConfig.validate_ssl_config: BACKLOG / missing-port/ in reference, not in port
+signalwire.core.skill_base.define_skill_tool: TS port-only module-level helper — the getTools()-level counterpart to SWMLService.defineTool's schema→handler-args inference (infers a tool entry's handler `args` from its `parameters`+`required`). No Python equivalent: Python skills hand-write loose Dict[str, Any] tool dicts. Adds author-side typing only; wire emission byte-identical.
 signalwire.core.skill_base.SkillBase.define_tool: BACKLOG / param-mismatch/ param[1] (kwargs)/ name 'kwargs' vs 'tool_def'; kind 'var_keyword' vs 'positiona
 signalwire.core.skill_base.SkillBase.get_parameter_schema: BACKLOG / param-count-mismatch/ reference has 1 param(s), port has 0/ reference=['cls'] port=[]; return-mismatch/ returns 'dict<st
 signalwire.core.skill_base.SkillBase.validate_env_vars: BACKLOG / return-mismatch/ returns 'bool' vs 'list<string>'

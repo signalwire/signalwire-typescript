@@ -6,7 +6,7 @@
  * ambient sounds) during a call using SWML playback actions.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -156,22 +156,25 @@ export class PlayBackgroundFileSkill extends SkillBase {
     const byAction = new Map<string, PreConfiguredFile>(files.map((f) => [`start_${f.key}`, f]));
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description: `Control background file playback for ${toolName.replace(/_/g, ' ')}`,
         parameters: {
           action: {
             type: 'string',
             description,
+            // enum is computed at runtime (start_<key> + 'stop'), so it widens
+            // to `string` rather than a literal union — args.action is `string`.
             enum: enumValues,
           },
         },
         required: ['action'],
         wait_for_fillers: true,
         skip_fillers: true,
-        handler: (args: Record<string, unknown>) => {
-          const action = args['action'] as string | undefined;
-          if (!action || typeof action !== 'string') {
+        handler: (args) => {
+          // args.action is `string` (required); the model can still emit empty.
+          const action = args.action;
+          if (!action) {
             return new FunctionResult('Please specify an action to perform.');
           }
 
@@ -196,7 +199,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
           result.playBackgroundFile(file.url, file.wait ?? false);
           return result;
         },
-      },
+      }),
     ];
   }
 
@@ -205,7 +208,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
     const allowedDomains = this.getConfig<string[] | undefined>('allowed_domains', undefined);
 
     return [
-      {
+      defineSkillTool({
         name: 'play_background',
         description:
           'Play an audio file in the background during the call. The audio will loop continuously unless stopped. Useful for hold music, ambient sounds, or background audio.',
@@ -221,14 +224,16 @@ export class PlayBackgroundFileSkill extends SkillBase {
               'If true, wait for the audio file to finish playing before continuing. Defaults to false (play in background).',
           },
         },
+        // `required` depends on whether a default URL is configured (runtime
+        // value), so it widens and both args infer optional.
         required: defaultFileUrl ? [] : ['file_url'],
         wait_for_fillers: true,
         skip_fillers: true,
-        handler: (args: Record<string, unknown>) => {
-          let fileUrl = (args.file_url as string | undefined) ?? defaultFileUrl;
-          const wait = (args.wait as boolean | undefined) ?? false;
+        handler: (args) => {
+          let fileUrl = args.file_url ?? defaultFileUrl;
+          const wait = args.wait ?? false;
 
-          if (!fileUrl || typeof fileUrl !== 'string' || fileUrl.trim().length === 0) {
+          if (!fileUrl || fileUrl.trim().length === 0) {
             return new FunctionResult(
               'Please provide a file URL for the audio to play in the background.',
             );
@@ -272,8 +277,8 @@ export class PlayBackgroundFileSkill extends SkillBase {
 
           return result;
         },
-      },
-      {
+      }),
+      defineSkillTool({
         name: 'stop_background',
         description:
           'Stop any audio file currently playing in the background. Use this when the caller is ready to resume the conversation or when background audio is no longer needed.',
@@ -286,7 +291,7 @@ export class PlayBackgroundFileSkill extends SkillBase {
 
           return result;
         },
-      },
+      }),
     ];
   }
 

@@ -133,7 +133,8 @@ describe('MathSkill', () => {
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('calculate');
-    expect(tools[0].required).toContain('expression');
+    // Matches Python: no `required` on the calculate tool (math/skill.py:33).
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {

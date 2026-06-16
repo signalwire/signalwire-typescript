@@ -10,7 +10,7 @@
  * side).
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -192,13 +192,16 @@ export class InfoGathererSkill extends SkillBase {
       return [];
     }
     return [
-      {
+      defineSkillTool({
         name: this.startToolName,
         description: 'Start the question sequence with the first question',
         parameters: {},
         handler: (args, rawData) => this._handleStartQuestions(args, rawData),
-      },
-      {
+      }),
+      // No `required` is declared (matches the wire emission), so the inferred
+      // args are optional; `_handleSubmitAnswer` keeps its `?? ''` / `?? false`
+      // defaults for the values the model may omit.
+      defineSkillTool({
         name: this.submitToolName,
         description: 'Submit an answer to the current question and move to the next one',
         parameters: {
@@ -213,7 +216,7 @@ export class InfoGathererSkill extends SkillBase {
           },
         },
         handler: (args, rawData) => this._handleSubmitAnswer(args, rawData),
-      },
+      }),
     ];
   }
 

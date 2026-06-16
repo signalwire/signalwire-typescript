@@ -202,7 +202,7 @@ export type {
 } from './ServerlessAdapter.js';
 
 // Skills
-export { SkillBase, SkillManager, SkillRegistry } from './skills/index.js';
+export { SkillBase, SkillManager, SkillRegistry, defineSkillTool } from './skills/index.js';
 export type {
   SkillConfig,
   SkillToolDefinition,

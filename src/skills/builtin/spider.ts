@@ -12,7 +12,7 @@
  * Multiple instances are supported; use `tool_name` in config to differentiate.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type { SkillToolDefinition, SkillConfig, ParameterSchemaEntry } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
@@ -314,8 +314,11 @@ export class SpiderSkill extends SkillBase {
     const toolPrefix = this.getConfig<string>('tool_name', '');
     const prefix = toolPrefix ? `${toolPrefix}_` : '';
 
+    // The three handlers keep their defensive typeof/.trim()/URL-validation
+    // narrowing in the private methods: `url`/`start_url` are required, but the
+    // model can still emit an empty or wrong-typed value.
     return [
-      {
+      defineSkillTool({
         name: `${prefix}scrape_url`,
         description: 'Extract text content from a single web page',
         parameters: {
@@ -325,10 +328,9 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
-          this._scrapeUrlHandler(args, rawData),
-      },
-      {
+        handler: async (args, rawData) => this._scrapeUrlHandler(args, rawData),
+      }),
+      defineSkillTool({
         name: `${prefix}crawl_site`,
         description: 'Crawl multiple pages starting from a URL',
         parameters: {
@@ -338,10 +340,9 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['start_url'],
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
-          this._crawlSiteHandler(args, rawData),
-      },
-      {
+        handler: async (args, rawData) => this._crawlSiteHandler(args, rawData),
+      }),
+      defineSkillTool({
         name: `${prefix}extract_structured_data`,
         description: 'Extract specific data from a web page using selectors',
         parameters: {
@@ -351,9 +352,8 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
-          this._extractStructuredHandler(args, rawData),
-      },
+        handler: async (args, rawData) => this._extractStructuredHandler(args, rawData),
+      }),
     ];
   }
 

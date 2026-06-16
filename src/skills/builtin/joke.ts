@@ -5,7 +5,7 @@
  * Contains a curated set of jokes across multiple categories.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -125,7 +125,7 @@ export class JokeSkill extends SkillBase {
     const toolName = this.getConfig<string>('tool_name', 'tell_joke');
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description:
           'Tell a random joke. Optionally specify a category to get a joke from that category.',
@@ -136,12 +136,13 @@ export class JokeSkill extends SkillBase {
               'Joke category: "general", "programming", or "dad". If not specified, a random joke from any category is returned.',
           },
         },
-        handler: (args: Record<string, unknown>) => {
-          const category = args.category as string | undefined;
+        handler: (args) => {
+          // `category` is optional → args.category is `string | undefined`.
+          const category = args.category;
 
           let pool = JOKES;
 
-          if (category && typeof category === 'string') {
+          if (category) {
             const normalized = category.toLowerCase().trim();
 
             if (!VALID_CATEGORIES.includes(normalized)) {
@@ -161,7 +162,7 @@ export class JokeSkill extends SkillBase {
 
           return new FunctionResult(`${joke.setup} ... ${joke.punchline}`);
         },
-      },
+      }),
     ];
   }
 

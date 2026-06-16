@@ -6,7 +6,7 @@
  * Matches the Python SDK's `num_results` / `no_results_message` parity.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -118,7 +118,7 @@ export class WikipediaSearchSkill extends SkillBase {
   /** @returns A `search_wiki` tool that fetches article summaries from Wikipedia. */
   getTools(): SkillToolDefinition[] {
     return [
-      {
+      defineSkillTool({
         name: 'search_wiki',
         description: 'Search Wikipedia for information about a topic and get article summaries',
         parameters: {
@@ -128,17 +128,17 @@ export class WikipediaSearchSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
-          const rawQuery = args['query'];
-
-          if (!rawQuery || typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
+        handler: async (args) => {
+          // args.query is `string` (required). The model can still emit an
+          // empty/whitespace value, so the runtime guard stays.
+          if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult('Please provide a search query for Wikipedia.');
           }
 
-          const result = await this.searchWiki(rawQuery.trim());
+          const result = await this.searchWiki(args.query.trim());
           return new FunctionResult(result);
         },
-      },
+      }),
     ];
   }
 

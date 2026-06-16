@@ -7,7 +7,7 @@
  * are honored when the corresponding param is not set.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -233,7 +233,7 @@ export class DataSphereSkill extends SkillBase {
     const toolName = this.getToolName();
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description:
           'Search the knowledge base for information on any topic and return relevant results.',
@@ -245,16 +245,16 @@ export class DataSphereSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
-          const rawQuery = args['query'];
-
-          if (!rawQuery || typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
+        handler: async (args) => {
+          // args.query is `string` (required); the model can still emit an
+          // empty/whitespace value, so the runtime guard stays.
+          if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for in the knowledge base?',
             );
           }
 
-          const query = rawQuery.trim();
+          const query = args.query.trim();
 
           const projectId =
             this.getConfig<string | undefined>('project_id', undefined) ??
@@ -377,7 +377,7 @@ export class DataSphereSkill extends SkillBase {
             );
           }
         },
-      },
+      }),
     ];
   }
 

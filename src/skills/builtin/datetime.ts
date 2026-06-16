@@ -4,7 +4,7 @@
  * Tier 1 built-in skill: no external dependencies required.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -45,7 +45,7 @@ export class DateTimeSkill extends SkillBase {
    */
   getTools(): SkillToolDefinition[] {
     return [
-      {
+      defineSkillTool({
         name: 'get_current_time',
         description: 'Get the current time, optionally in a specific timezone',
         parameters: {
@@ -55,8 +55,9 @@ export class DateTimeSkill extends SkillBase {
               "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC.",
           },
         },
-        handler: (args: Record<string, unknown>) => {
-          const timezone = (args.timezone as string | undefined) ?? 'UTC';
+        handler: (args) => {
+          // `timezone` is optional → args.timezone is `string | undefined`.
+          const timezone = args.timezone ?? 'UTC';
           const now = new Date();
           try {
             const timeFormatter = new Intl.DateTimeFormat('en-US', {
@@ -74,8 +75,8 @@ export class DateTimeSkill extends SkillBase {
             );
           }
         },
-      },
-      {
+      }),
+      defineSkillTool({
         name: 'get_current_date',
         description: 'Get the current date',
         parameters: {
@@ -84,8 +85,9 @@ export class DateTimeSkill extends SkillBase {
             description: 'Timezone name for the date. Defaults to UTC.',
           },
         },
-        handler: (args: Record<string, unknown>) => {
-          const timezone = (args.timezone as string | undefined) ?? 'UTC';
+        handler: (args) => {
+          // `timezone` is optional → args.timezone is `string | undefined`.
+          const timezone = args.timezone ?? 'UTC';
           const now = new Date();
           try {
             const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -102,7 +104,7 @@ export class DateTimeSkill extends SkillBase {
             );
           }
         },
-      },
+      }),
     ];
   }
 

@@ -26,7 +26,10 @@ describe('MathSkill', () => {
     const tools = new MathSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('calculate');
-    expect(tools[0].required).toContain('expression');
+    // Python's math skill passes no `required` (math/skill.py:33) and
+    // SWAIGFunction omits the key when empty (swaig_function.py:128), so the
+    // wire schema has no `required` — the TS port matches that.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {

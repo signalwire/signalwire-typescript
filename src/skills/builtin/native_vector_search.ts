@@ -15,7 +15,7 @@
  * written for the Python SDK remains valid.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -670,7 +670,7 @@ export class NativeVectorSearchSkill extends SkillBase {
     );
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description,
         parameters: {
@@ -685,9 +685,10 @@ export class NativeVectorSearchSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
-          this._searchHandler(args, rawData),
-      },
+        // _searchHandler keeps its defensive typeof/clamp narrowing: even though
+        // `query` is required, the model can emit an empty or wrong-typed value.
+        handler: async (args, rawData) => this._searchHandler(args, rawData),
+      }),
     ];
   }
 

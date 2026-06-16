@@ -7,7 +7,7 @@
  * JSON API to perform web searches and return formatted results.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -443,7 +443,7 @@ export class WebSearchSkill extends SkillBase {
     const toolName = this.getToolName();
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description:
           'Search the web for high-quality information, automatically filtering low-quality results',
@@ -454,16 +454,16 @@ export class WebSearchSkill extends SkillBase {
           },
         },
         required: ['query'],
-        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
-          const rawQuery = args['query'];
-
-          if (!rawQuery || typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
+        handler: async (args) => {
+          // args.query is `string` (required); the model can still emit an
+          // empty/whitespace value, so the runtime guard stays.
+          if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for?',
             );
           }
 
-          const query = rawQuery.trim();
+          const query = args.query.trim();
 
           if (query.length > MAX_SKILL_INPUT_LENGTH) {
             return new FunctionResult('Search query is too long.');
@@ -757,7 +757,7 @@ export class WebSearchSkill extends SkillBase {
             );
           }
         },
-      },
+      }),
     ];
   }
 

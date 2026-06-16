@@ -6,7 +6,7 @@
  * parentheses, decimal points, and spaces.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -87,7 +87,7 @@ export class MathSkill extends SkillBase {
   /** @returns A single `calculate` tool that evaluates a math expression string. */
   getTools(): SkillToolDefinition[] {
     return [
-      {
+      defineSkillTool({
         name: 'calculate',
         description:
           'Evaluate a mathematical expression. Supports basic arithmetic: addition (+), subtraction (-), multiplication (*), division (/), exponentiation (^), modulo (%), and parentheses for grouping.',
@@ -98,24 +98,26 @@ export class MathSkill extends SkillBase {
               'The mathematical expression to evaluate (e.g., "2 + 3 * 4", "100 / (5 + 5)", "2 ^ 10").',
           },
         },
-        required: ['expression'],
-        handler: (args: Record<string, unknown>) => {
-          const expression = args.expression as string | undefined;
-
-          if (!expression || typeof expression !== 'string') {
+        // Python's math skill passes no `required` (math/skill.py:33), and
+        // SWAIGFunction omits the `required` key when it's empty
+        // (swaig_function.py:128) — so the wire schema has no `required`.
+        // Match that: `expression` is optional → args.expression is
+        // `string | undefined`, narrowed by the guard below.
+        handler: (args) => {
+          if (!args.expression) {
             return new FunctionResult('Please provide a mathematical expression to evaluate.');
           }
 
           try {
-            const result = safeEvaluate(expression);
-            return new FunctionResult(`The result of ${expression.trim()} is ${result}.`);
+            const result = safeEvaluate(args.expression);
+            return new FunctionResult(`The result of ${args.expression.trim()} is ${result}.`);
           } catch {
             return new FunctionResult(
               `Could not evaluate the expression. Please check that it contains only valid mathematical operators and try again.`,
             );
           }
         },
-      },
+      }),
     ];
   }
 

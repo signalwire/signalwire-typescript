@@ -5809,6 +5809,18 @@
             }
           }
         }
+      },
+      "functions": {
+        "define_skill_tool": {
+          "params": [
+            {
+              "name": "tool_def",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "class:signalwire.core.skill_base.SkillToolDefinition"
+        }
       }
     },
     "signalwire.core.skill_manager": {
