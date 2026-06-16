@@ -6,7 +6,7 @@
  * with optional category filtering.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -128,7 +128,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
         : [...VALID_CATEGORIES];
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description:
           'Get a random trivia question. Optionally specify a category to narrow the topic.',
@@ -142,7 +142,12 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             enum: enabledCategories,
           },
         },
-        handler: async (args: Record<string, unknown>) => {
+        // Python's DataMap tool marks `category` required (api_ninjas_trivia/
+        // skill.py:179). Match that on the wire. The handler still defaults a
+        // missing/empty value to defaultCategory (the model can omit it), so
+        // args.category is treated as possibly-absent at runtime.
+        required: ['category'],
+        handler: async (args) => {
           const apiKey =
             this.getConfig<string | undefined>('api_key', undefined) ??
             process.env['API_NINJAS_KEY'];
@@ -152,7 +157,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             );
           }
 
-          let category = (args.category as string | undefined) ?? defaultCategory;
+          let category: string | undefined = args.category ?? defaultCategory;
 
           // Validate category if provided
           if (category && typeof category === 'string') {
@@ -228,7 +233,7 @@ export class ApiNinjasTriviaSkill extends SkillBase {
             return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
-      },
+      }),
     ];
   }
 

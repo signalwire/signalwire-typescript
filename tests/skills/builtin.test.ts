@@ -727,7 +727,8 @@ describe('DataSphereSkill', () => {
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('search_knowledge');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (datasphere/skill.py:171); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {

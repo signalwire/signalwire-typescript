@@ -44,7 +44,9 @@ describe('DataSphereSkill', () => {
     const tools = new DataSphereSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('search_knowledge');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (datasphere/skill.py:171), so the wire schema
+    // has no `required` key — the TS port matches that.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {

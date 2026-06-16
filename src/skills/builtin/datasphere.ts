@@ -244,10 +244,11 @@ export class DataSphereSkill extends SkillBase {
               "The search query — what information you're looking for in the knowledge base.",
           },
         },
-        required: ['query'],
+        // Python passes no `required` (datasphere/skill.py:171); SWAIGFunction
+        // omits the key when empty (swaig_function.py:128), so the wire schema
+        // has no `required`. Match that — args.query is `string | undefined`,
+        // narrowed by the guard below.
         handler: async (args) => {
-          // args.query is `string` (required); the model can still emit an
-          // empty/whitespace value, so the runtime guard stays.
           if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for in the knowledge base?',
