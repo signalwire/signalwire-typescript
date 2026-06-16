@@ -72,18 +72,20 @@ the list is empty (`core/swaig_function.py:128`). So "Python passes no
   the MCP schema's `required` through. TS is intentionally ahead of the
   reference here.
 
-### joke — OPEN (substantial divergence; documented, not yet reconciled)
-- TS: a single tool named `tell_joke` with a `category` param (enum
-  `general / programming / dad`), served from a **local, offline joke library**
-  (`joke.ts:27,83,110`).
-- Python: a DataMap tool named `get_joke` with a `type` param (enum
-  `jokes / dadjokes`), served from the **API-Ninjas** webhook
-  (`joke/skill.py:64-80`).
-- Different tool name, different param name + enum values, different data source
-  (offline vs networked). A model trained against one will not drive the other.
-- Verdict: **OPEN** — deliberately documented rather than rewritten. Reconciling
-  means choosing offline-library vs API-Ninjas parity; deferred to a focused
-  pass.
+### joke — FIXED (interface aligned; implementation stays lang-specific)
+- Was: TS tool `tell_joke` with a `category` param (enum
+  `general / programming / dad`); Python DataMap tool `get_joke` with a `type`
+  param (enum `jokes / dadjokes`, required) from the API-Ninjas webhook
+  (`joke/skill.py:68-77`).
+- Principle applied (user, 2026-06-15): **what matters is the skill's
+  interface, not its internal implementation** — the implementation may be
+  language-specific. So the SWAIG *contract* was aligned to Python while the
+  offline library was kept.
+- Verdict: **FIXED** — TS now emits the Python interface: tool `get_joke`
+  (default `tool_name`), required `type` param with enum `['jokes',
+  'dadjokes']`. The offline collection stays: `dadjokes` → the curated `dad`
+  category, `jokes` → general/programming. No API key needed (intentional
+  implementation difference; the contract a model sees is identical).
 
 ### google_maps — OPEN (name collision with divergent semantics + extra tools)
 - `compute_route` is the same tool *name* on both sides but a **different

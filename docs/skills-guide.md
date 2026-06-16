@@ -112,7 +112,7 @@ These skills work out of the box with no API keys or configuration.
 |---|---|---|---|---|---|
 | `datetime` | `DateTimeSkill` | Current date/time with timezone support | `get_datetime` | None | None |
 | `math` | `MathSkill` | Safe mathematical expression evaluation | `calculate` | None | None |
-| `joke` | `JokeSkill` | Random jokes from built-in collection | `tell_joke` | None | None |
+| `joke` | `JokeSkill` | Random jokes from built-in collection | `get_joke` (`type`: jokes/dadjokes) | None | `tool_name` |
 
 **datetime** -- Provides the current date and time in any IANA timezone via the `get_datetime` tool. Uses the `Intl.DateTimeFormat` API.
 
@@ -128,7 +128,7 @@ import { MathSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new MathSkill());
 ```
 
-**joke** -- Tells random jokes from a curated built-in collection. Categories: `general`, `programming`, `dad`.
+**joke** -- Tells random jokes from a curated built-in collection. Exposes the `get_joke` tool with a required `type` parameter (`jokes` or `dadjokes`), matching the Python skill's interface; the implementation is offline (no API key needed).
 
 ```typescript
 import { JokeSkill } from '@signalwire/sdk/skills/builtin';

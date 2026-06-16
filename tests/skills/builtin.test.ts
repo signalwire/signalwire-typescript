@@ -182,11 +182,13 @@ describe('JokeSkill', () => {
     expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return a tell_joke tool', () => {
+  it('should return a get_joke tool with the Python interface', () => {
     const skill = createJokeSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('tell_joke');
+    // Interface matches Python (get_joke, required `type` enum jokes|dadjokes).
+    expect(tools[0].name).toBe('get_joke');
+    expect(tools[0].required).toEqual(['type']);
   });
 
   it('should return non-empty prompt sections', () => {
@@ -200,7 +202,7 @@ describe('JokeSkill', () => {
   it('should execute handler and return a joke', () => {
     const skill = createJokeSkill();
     const handler = skill.getTools()[0].handler;
-    const result = handler({}, {}) as FunctionResult;
+    const result = handler({ type: 'jokes' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     // Jokes contain " ... " between setup and punchline
     expect(result.response).toContain('...');

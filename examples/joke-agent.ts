@@ -22,7 +22,7 @@ agent.setPromptText(
     'You can also tell the time if someone asks.',
 );
 
-// Add the joke skill — injects the tell_joke tool, prompt sections, and hints
+// Add the joke skill — injects the get_joke tool, prompt sections, and hints
 await agent.addSkill(new JokeSkill());
 
 // Also add datetime so we can answer "what time is it?" questions
