@@ -18907,6 +18907,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }

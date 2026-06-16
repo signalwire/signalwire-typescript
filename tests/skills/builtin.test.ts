@@ -271,37 +271,38 @@ describe('PlayBackgroundFileSkill', () => {
     expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return play_background and stop_background tools', () => {
-    const skill = createPlayBackgroundFileSkill();
-    const tools = skill.getTools();
-    expect(tools).toHaveLength(2);
-    const names = tools.map((t) => t.name);
-    expect(names).toContain('play_background');
-    expect(names).toContain('stop_background');
+  // Matches Python: the skill REQUIRES a non-empty `files` list. Python's
+  // _validate_config (skill.py:106) raises on empty; TS mirrors that by failing
+  // setup() (fatal — the skill is never registered). There is no free-form mode.
+  const HOLD_MUSIC = {
+    files: [{ key: 'hold', url: 'https://example.com/hold.mp3', description: 'Hold music' }],
+  };
+
+  it('setup() fails when no files are configured (matches Python validation)', async () => {
+    await expect(createPlayBackgroundFileSkill().setup()).resolves.toBe(false);
   });
 
-  it('should execute play_background handler with a valid URL', () => {
-    const skill = createPlayBackgroundFileSkill();
-    const playTool = skill.getTools().find((t) => t.name === 'play_background')!;
-    const result = playTool.handler(
-      { file_url: 'https://example.com/music.mp3' },
-      {},
-    ) as FunctionResult;
-    expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('playing background audio');
-    // Should have a playback_bg action
-    expect(result.action.length).toBeGreaterThan(0);
-    expect(result.action[0]).toHaveProperty('playback_bg');
+  it('setup() succeeds with a non-empty files list', async () => {
+    await expect(createPlayBackgroundFileSkill(HOLD_MUSIC).setup()).resolves.toBe(true);
   });
 
-  it('should execute stop_background handler', () => {
-    const skill = createPlayBackgroundFileSkill();
-    const stopTool = skill.getTools().find((t) => t.name === 'stop_background')!;
-    const result = stopTool.handler({}, {}) as FunctionResult;
-    expect(result).toBeInstanceOf(FunctionResult);
-    expect(result.response).toContain('stopped');
-    expect(result.action.length).toBeGreaterThan(0);
-    expect(result.action[0]).toHaveProperty('stop_playback_bg');
+  it('emits a single action-enum tool (start_<key> / stop), like Python', () => {
+    const tools = createPlayBackgroundFileSkill(HOLD_MUSIC).getTools();
+    expect(tools).toHaveLength(1);
+    expect(tools[0].name).toBe('play_background_file');
+    expect(tools[0].required).toEqual(['action']);
+    const action = (tools[0].parameters as Record<string, { enum?: string[] }>)['action'];
+    expect(action.enum).toEqual(['start_hold', 'stop']);
+  });
+
+  it('executes start_<key> to play the configured file and stop to stop it', () => {
+    const tool = createPlayBackgroundFileSkill(HOLD_MUSIC).getTools()[0];
+    const play = tool.handler({ action: 'start_hold' }, {}) as FunctionResult;
+    expect(play).toBeInstanceOf(FunctionResult);
+    expect(play.action[0]).toHaveProperty('playback_bg');
+
+    const stop = tool.handler({ action: 'stop' }, {}) as FunctionResult;
+    expect(stop.action[0]).toHaveProperty('stop_playback_bg');
   });
 });
 

@@ -14,29 +14,38 @@ beforeAll(() => {
   suppressAllLogs(true);
 });
 
+// The skill requires a non-empty `files` list (matches Python, which raises on
+// empty). setup() fails without it, so the tool/prompt cases configure files.
+const FILES = {
+  files: [{ key: 'hold', url: 'https://example.com/hold.mp3', description: 'Hold music' }],
+};
+
 describe('PlayBackgroundFileSkill', () => {
   it('should instantiate via constructor and factory', () => {
     expect(new PlayBackgroundFileSkill()).toBeInstanceOf(SkillBase);
     expect(createPlayBackgroundFileSkill()).toBeInstanceOf(PlayBackgroundFileSkill);
   });
 
-  it('should complete setup without errors', async () => {
-    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBe(true);
+  it('setup() succeeds with files, fails without (matches Python validation)', async () => {
+    await expect(new PlayBackgroundFileSkill(FILES).setup()).resolves.toBe(true);
+    await expect(new PlayBackgroundFileSkill().setup()).resolves.toBe(false);
   });
 
   it('should register tools', () => {
-    const tools = new PlayBackgroundFileSkill().getTools();
+    const tools = new PlayBackgroundFileSkill(FILES).getTools();
     expect(tools.length).toBeGreaterThan(0);
     expect(tools[0].handler).toBeTypeOf('function');
   });
 
   it('should provide prompt sections', () => {
-    const sections = new PlayBackgroundFileSkill().getPromptSections();
+    const sections = new PlayBackgroundFileSkill(FILES).getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
-    expect(new PlayBackgroundFileSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
+    expect(
+      new PlayBackgroundFileSkill({ ...FILES, skip_prompt: true }).getPromptSections(),
+    ).toHaveLength(0);
   });
 
   it('should return empty hints and global data', () => {

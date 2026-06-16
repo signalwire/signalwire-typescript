@@ -144,7 +144,7 @@ These skills integrate with a single external API or provide focused call-contro
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
 | `weather_api` | `WeatherApiSkill` | Current weather from OpenWeatherMap | `get_weather` | `WEATHER_API_KEY` | `units` |
-| `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background`, `stop_background` | None | `default_file_url`, `allowed_domains` |
+| `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background_file` (configurable; `action` enum) | None | `files` (required), `tool_name` |
 | `swml_transfer` | `SwmlTransferSkill` | Call transfer via SWML actions | `transfer_call`, `list_transfer_destinations` | None | `patterns`, `allow_arbitrary`, `default_message` |
 | `api_ninjas_trivia` | `ApiNinjasTriviaSkill` | Trivia questions from API Ninjas | `get_trivia` | `API_NINJAS_KEY` | `default_category`, `reveal_answer` |
 | `info_gatherer` | `InfoGathererSkill` | Sequential question flow that stores answers in `global_data` | `start_questions`, `submit_answer` | None | `questions`, `prefix`, `completion_message` |
@@ -157,13 +157,14 @@ import { WeatherApiSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WeatherApiSkill({ units: 'imperial' }));
 ```
 
-**play_background_file** -- Controls background audio playback during calls (hold music, ambient sounds). Supports domain restrictions for audio file URLs.
+**play_background_file** -- Controls playback of pre-configured background audio files during calls (hold music, ambient sounds). Requires a non-empty `files` list (matching the Python skill); emits one tool whose `action` enum is `start_<key>` for each file plus `stop`.
 
 ```typescript
 import { PlayBackgroundFileSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new PlayBackgroundFileSkill({
-  default_file_url: 'https://example.com/hold-music.mp3',
-  allowed_domains: ['example.com', 'cdn.example.com'],
+  files: [
+    { key: 'hold', url: 'https://example.com/hold-music.mp3', description: 'Hold music' },
+  ],
 }));
 ```
 
