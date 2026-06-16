@@ -236,7 +236,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 |---|---|---|---|---|---|
 | `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID` | `num_results`, `tool_name`, `no_results_message`, `safe_search`, `delay`, `max_content_length`, `oversample_factor`, `min_quality_score` |
 | `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
-| `google_maps` | `GoogleMapsSkill` | Directions and place search | `get_directions`, `find_place` | `GOOGLE_MAPS_API_KEY` | `default_mode` |
+| `google_maps` | `GoogleMapsSkill` | Address geocoding + coordinate routing | `lookup_address`, `compute_route` | `GOOGLE_MAPS_API_KEY` | `lookup_tool_name`, `route_tool_name` |
 | `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
@@ -262,11 +262,11 @@ import { WikipediaSearchSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WikipediaSearchSkill());
 ```
 
-**google_maps** -- Provides driving/walking/bicycling/transit directions and place search via Google Maps APIs (Directions API and Places Find Place API).
+**google_maps** -- Geocodes an address or business name (`lookup_address`, with optional lat/lng bias) and computes a driving route between two coordinates (`compute_route`) via the Google Geocoding and Routes v2 APIs. The two-tool interface matches the Python reference.
 
 ```typescript
 import { GoogleMapsSkill } from '@signalwire/sdk/skills/builtin';
-await agent.addSkill(new GoogleMapsSkill({ default_mode: 'walking' }));
+await agent.addSkill(new GoogleMapsSkill());
 ```
 
 **datasphere** -- Searches SignalWire DataSphere for knowledge base content using semantic search across uploaded documents. Results are ranked by relevance score.

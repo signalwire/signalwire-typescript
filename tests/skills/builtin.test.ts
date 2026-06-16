@@ -658,34 +658,31 @@ describe('GoogleMapsSkill', () => {
     expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
-  it('should return compute_route, lookup_address, geocode_address, and compute_route_by_coords tools by default', () => {
+  it('should return exactly lookup_address + compute_route (matches Python)', () => {
     const skill = createGoogleMapsSkill();
     const tools = skill.getTools();
-    expect(tools).toHaveLength(4);
-    const names = tools.map((t) => t.name);
-    expect(names).toContain('compute_route');
-    expect(names).toContain('lookup_address');
-    expect(names).toContain('geocode_address');
-    expect(names).toContain('compute_route_by_coords');
+    expect(tools.map((t) => t.name)).toEqual(['lookup_address', 'compute_route']);
   });
 
   it('should honor configurable route_tool_name / lookup_tool_name', () => {
     const skill = createGoogleMapsSkill({
-      route_tool_name: 'get_directions',
-      lookup_tool_name: 'find_place',
+      route_tool_name: 'drive_route',
+      lookup_tool_name: 'find_address',
     });
     const names = skill.getTools().map((t) => t.name);
-    expect(names).toContain('get_directions');
-    expect(names).toContain('find_place');
+    expect(names).toContain('drive_route');
+    expect(names).toContain('find_address');
   });
 
-  it('should return error from the route tool when API key is not set', async () => {
+  it('should return error from compute_route when API key is not set', async () => {
     const origKey = process.env['GOOGLE_MAPS_API_KEY'];
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
-    const dirTool = skill.getTools().find((t) => t.name === 'compute_route')!;
-    const result = (await dirTool.handler(
-      { origin: 'New York', destination: 'Boston' },
+    const routeTool = skill.getTools().find((t) => t.name === 'compute_route')!;
+    // Coordinate args (Python's contract) get past the presence check, so the
+    // API-key guard fires.
+    const result = (await routeTool.handler(
+      { origin_lat: 40.7, origin_lng: -74, dest_lat: 42.3, dest_lng: -71 },
       {},
     )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
@@ -693,12 +690,15 @@ describe('GoogleMapsSkill', () => {
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;
   });
 
-  it('should return error from the lookup tool when API key is not set', async () => {
+  it('should return error from lookup_address when API key is not set', async () => {
     const origKey = process.env['GOOGLE_MAPS_API_KEY'];
     delete process.env['GOOGLE_MAPS_API_KEY'];
     const skill = createGoogleMapsSkill();
-    const placeTool = skill.getTools().find((t) => t.name === 'lookup_address')!;
-    const result = (await placeTool.handler({ query: 'pizza near me' }, {})) as FunctionResult;
+    const lookupTool = skill.getTools().find((t) => t.name === 'lookup_address')!;
+    const result = (await lookupTool.handler(
+      { address: '1600 Amphitheatre Pkwy' },
+      {},
+    )) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
     if (origKey !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = origKey;

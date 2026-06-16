@@ -87,22 +87,21 @@ the list is empty (`core/swaig_function.py:128`). So "Python passes no
   category, `jokes` → general/programming. No API key needed (intentional
   implementation difference; the contract a model sees is identical).
 
-### google_maps — OPEN (name collision with divergent semantics + extra tools)
-- `compute_route` is the same tool *name* on both sides but a **different
-  contract**: Python takes 4 coordinate floats `origin_lat/lng`,
-  `dest_lat/lng`, no `required` (`google_maps/skill.py:457-481`); TS takes
-  string `origin`/`destination` + `mode` with `required: ['origin',
-  'destination']` (`google_maps.ts:191-208`). A model calling `compute_route`
-  with Python's coord args fails on TS, and vice versa.
-- TS additionally registers two tools Python lacks: `geocode_address` and
-  `compute_route_by_coords` (the latter carrying Python's coord-based route
-  contract under a different name). Added deliberately in
-  `124a615 "align(skills-batch3)"` to give "callers porting Python's geocode-
-  then-route-by-coords workflow equivalent capability."
-- Verdict: **OPEN** — the *extra* tools are a defensible TS superset, but the
-  `compute_route` name carrying a different param contract than the reference is
-  a genuine parity break. Reconciling (rename, or realign params) is a focused
-  change; deferred.
+### google_maps — FIXED (matched Python's two-tool interface exactly)
+- Was a multi-divergence: `compute_route` shared the Python name but a
+  different contract (TS address strings + `mode` vs Python 4 coordinate
+  floats); `lookup_address` shared the name but used a `query` place-search
+  param vs Python's `address` + `bias_lat`/`bias_lng` geocode; and TS carried
+  two extra tools Python lacks (`geocode_address`, `compute_route_by_coords`,
+  from `124a615 align-batch3`).
+- Verdict: **FIXED** (user: match Python exactly, drop the TS extras). The skill
+  now registers exactly the Python two: `lookup_address` (params `address`,
+  `bias_lat`, `bias_lng`; Geocoding API) and `compute_route` (params
+  `origin_lat/lng`, `dest_lat/lng`; Routes API v2). No `required` arrays
+  (Python omits them). The richer TS-only tools (address directions, place
+  search, standalone geocode) and the `default_mode` config were removed.
+  Hints + prompt sections aligned to Python. Handlers keep defensive runtime
+  presence/`typeof` checks.
 
 ### weather_api — KEEP (intentional, documented)
 - TS uses OpenWeatherMap (`weather_api.ts` header); Python uses WeatherAPI.com
