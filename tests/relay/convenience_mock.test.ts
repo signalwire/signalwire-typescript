@@ -14,15 +14,18 @@
  * short-circuit (and the block-then-resolve path for a not-yet-reached state).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { PlayAction, DetectAction, CollectAction } from '../../src/relay/Action.js';
 import { RelayEvent } from '../../src/relay/RelayEvent.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import {
+  getMockRelay,
+  newRelayClient,
+  type MockRelayHarness,
+  type RelayFrame,
+} from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -36,7 +39,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -64,7 +71,10 @@ async function answeredInboundCall(callId = 'conv-call-1'): Promise<Call> {
   return call;
 }
 
-function bareEventFrame(eventType: string, params: Record<string, any>): Record<string, any> {
+function bareEventFrame(
+  eventType: string,
+  params: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -74,7 +84,7 @@ function bareEventFrame(eventType: string, params: Record<string, any>): Record<
 }
 
 /** Poll the recv journal for `method` and return the latest frame's params. */
-async function lastFrameParams(method: string): Promise<Record<string, any>> {
+async function lastFrameParams(method: string): Promise<RelayFrame> {
   const deadline = Date.now() + 2000;
   for (;;) {
     const entries = await mock.journalRecv(method);
@@ -274,7 +284,11 @@ describe('Call.waitForAnswered', () => {
     const ev = await Promise.race([
       call.waitForAnswered(),
       new Promise<RelayEvent>((_, reject) =>
-        setTimeout(() => reject(new Error('waitForAnswered blocked instead of short-circuiting')), 1000)),
+        setTimeout(
+          () => reject(new Error('waitForAnswered blocked instead of short-circuiting')),
+          1000,
+        ),
+      ),
     ]);
     expect(ev).toBeInstanceOf(RelayEvent);
     expect(ev.eventType).toBe('calling.call.state');
@@ -288,7 +302,11 @@ describe('Call.waitForRinging', () => {
     const ev = await Promise.race([
       call.waitForRinging(),
       new Promise<RelayEvent>((_, reject) =>
-        setTimeout(() => reject(new Error('waitForRinging blocked instead of short-circuiting')), 1000)),
+        setTimeout(
+          () => reject(new Error('waitForRinging blocked instead of short-circuiting')),
+          1000,
+        ),
+      ),
     ]);
     expect(ev.eventType).toBe('calling.call.state');
     // Synthesized event reports the *current* state, which is past ringing.
@@ -304,9 +322,13 @@ describe('Call.waitForEnding', () => {
     const waiting = call.waitForEnding(3000);
     // Push the ending state shortly after the wait begins.
     setTimeout(() => {
-      void mock.push(bareEventFrame('calling.call.state', {
-        call_id: 'conv-wfe', call_state: 'ending', direction: 'inbound',
-      }));
+      void mock.push(
+        bareEventFrame('calling.call.state', {
+          call_id: 'conv-wfe',
+          call_state: 'ending',
+          direction: 'inbound',
+        }),
+      );
     }, 100);
     const ev = await waiting;
     expect(ev.eventType).toBe('calling.call.state');

@@ -81,11 +81,7 @@ describe('ParameterSchema (unit: byte-identical to the untyped blob)', () => {
   });
 
   it('required() emits required:[...] in call order; omitted when none', () => {
-    const withReq = paramSchema()
-      .string('a', 'A')
-      .string('b', 'B')
-      .required('b', 'a')
-      .build();
+    const withReq = paramSchema().string('a', 'A').string('b', 'B').required('b', 'a').build();
     expect(withReq).toEqual({
       type: 'object',
       properties: {
@@ -124,9 +120,7 @@ describe('ParameterSchema (unit: byte-identical to the untyped blob)', () => {
   });
 
   it('array() emits items when provided', () => {
-    const built = paramSchema()
-      .array('tags', { type: 'string' }, 'List of tags')
-      .build();
+    const built = paramSchema().array('tags', { type: 'string' }, 'List of tags').build();
     expect(built.properties['tags']).toEqual({
       type: 'array',
       description: 'List of tags',
@@ -192,9 +186,7 @@ describe('ParameterSchema (Tier-1 closed-set convenience → enum:[...])', () =>
 
   it('a baked enum is byte-identical to writing the same enum explicitly', () => {
     const baked = paramSchema().recordFormat('fmt', 'Recording format').build();
-    const explicit = paramSchema()
-      .enum('fmt', ['wav', 'mp3', 'mp4'], 'Recording format')
-      .build();
+    const explicit = paramSchema().enum('fmt', ['wav', 'mp3', 'mp4'], 'Recording format').build();
     expect(JSON.stringify(baked)).toBe(JSON.stringify(explicit));
   });
 });

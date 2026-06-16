@@ -2,8 +2,6 @@
  * CrudResource extended with address listing.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from './CrudResource.js';
@@ -13,12 +11,11 @@ import { CrudResource } from './CrudResource.js';
  * have associated Address records (e.g. fabric resources).
  */
 export class CrudWithAddresses<
-  TList = any,
-  TItem = any,
-  TCreate = any,
-  TUpdate = any,
+  TList = unknown,
+  TItem = unknown,
+  TCreate = unknown,
+  TUpdate = unknown,
 > extends CrudResource<TList, TItem, TCreate, TUpdate> {
-
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -31,7 +28,7 @@ export class CrudWithAddresses<
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  async listAddresses(resourceId: string, params?: QueryParams): Promise<unknown> {
     return this._http.get(this._path(resourceId, 'addresses'), params);
   }
 }

@@ -17,7 +17,9 @@ import {
 import { RelayEvent } from '../../src/relay/RelayEvent.js';
 
 // Mock call that records _execute calls
-function mockCall(): CallLike & { execCalls: Array<{ method: string; params?: Record<string, unknown> }> } {
+function mockCall(): CallLike & {
+  execCalls: Array<{ method: string; params?: Record<string, unknown> }>;
+} {
   const execCalls: Array<{ method: string; params?: Record<string, unknown> }> = [];
   return {
     execCalls,
@@ -183,10 +185,12 @@ describe('DetectAction', () => {
     const a = new DetectAction(call, 'ctrl1');
 
     // First event with detect data — should resolve
-    a._checkEvent(makeEvent('calling.call.detect', {
-      control_id: 'ctrl1',
-      detect: { type: 'machine', params: { event: 'HUMAN' } },
-    }));
+    a._checkEvent(
+      makeEvent('calling.call.detect', {
+        control_id: 'ctrl1',
+        detect: { type: 'machine', params: { event: 'HUMAN' } },
+      }),
+    );
     expect(a.isDone).toBe(true);
   });
 
@@ -228,10 +232,12 @@ describe('CollectAction', () => {
     const call = mockCall();
     const a = new CollectAction(call, 'ctrl1');
 
-    a._checkEvent(makeEvent('calling.call.collect', {
-      control_id: 'ctrl1',
-      result: { type: 'digit', params: { digits: '1234' } },
-    }));
+    a._checkEvent(
+      makeEvent('calling.call.collect', {
+        control_id: 'ctrl1',
+        result: { type: 'digit', params: { digits: '1234' } },
+      }),
+    );
     expect(a.isDone).toBe(true);
   });
 
@@ -270,10 +276,12 @@ describe('StandaloneCollectAction', () => {
     const call = mockCall();
     const a = new StandaloneCollectAction(call, 'ctrl1');
 
-    a._checkEvent(makeEvent('calling.call.collect', {
-      control_id: 'ctrl1',
-      result: { type: 'speech', params: { text: 'hello' } },
-    }));
+    a._checkEvent(
+      makeEvent('calling.call.collect', {
+        control_id: 'ctrl1',
+        result: { type: 'speech', params: { text: 'hello' } },
+      }),
+    );
     expect(a.isDone).toBe(true);
   });
 

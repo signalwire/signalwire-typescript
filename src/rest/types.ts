@@ -2,8 +2,6 @@
  * Types for the REST client module.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 /** Options for constructing a RestClient. */
 export interface ClientOptions {
   /** SignalWire project ID. Falls back to SIGNALWIRE_PROJECT_ID env var. */
@@ -48,9 +46,14 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/** LAML-style paginated response with next_page_uri. */
-export interface LamlPaginatedResponse<T> {
-  [key: string]: any;
+/**
+ * LAML-style paginated response with next_page_uri. The resource array is
+ * carried under a resource-named key (e.g. `calls`, `messages`), so the index
+ * signature is open; callers read the known key. Values are `unknown` (the
+ * caller narrows) rather than `any`.
+ */
+export interface LamlPaginatedResponse<_T = unknown> {
+  [key: string]: unknown;
   next_page_uri?: string | null;
   uri?: string;
   page?: number;

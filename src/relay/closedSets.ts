@@ -72,12 +72,7 @@ export type FaxTone = 'CED' | 'CNG';
  * call through `created → ringing → answered → ending → ended`; `ended` is the
  * sole terminal state (see {@link isCallStateTerminal}).
  */
-export type CallState =
-  | 'created'
-  | 'ringing'
-  | 'answered'
-  | 'ending'
-  | 'ended';
+export type CallState = 'created' | 'ringing' | 'answered' | 'ending' | 'ended';
 
 /**
  * Outbound-dial state for the `dial_state` field of a `calling.call.dial`
@@ -89,10 +84,7 @@ export type CallState =
  * NOTE: distinct from {@link CallState}. A dial's `answered` is the *dial*
  * resolving, not a `Call.state` transition.
  */
-export type DialState =
-  | 'dialing'
-  | 'answered'
-  | 'failed';
+export type DialState = 'dialing' | 'answered' | 'failed';
 
 /**
  * Message lifecycle state for {@link ../relay/Message.Message.state} and the
@@ -130,7 +122,11 @@ export const DIAL_STATE_TERMINAL = ['answered', 'failed'] as const satisfies rea
  * (`'delivered'`, `'undelivered'`, `'failed'`). Mirrors the runtime
  * `MESSAGE_TERMINAL_STATES` in `relay/constants.ts`.
  */
-export const MESSAGE_STATE_TERMINAL = ['delivered', 'undelivered', 'failed'] as const satisfies readonly MessageState[];
+export const MESSAGE_STATE_TERMINAL = [
+  'delivered',
+  'undelivered',
+  'failed',
+] as const satisfies readonly MessageState[];
 
 /**
  * True when `state` is a terminal {@link CallState} — i.e. the call has reached

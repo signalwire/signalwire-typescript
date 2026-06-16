@@ -34,13 +34,15 @@ async function main() {
   console.log('\nListing queues...');
   const queues = await client.queues.list();
   for (const q of queues.data ?? []) {
-    console.log(`  - ${q.id}: ${q.friendly_name ?? q.name ?? 'unnamed'}`);
+    console.log(`  - ${q.id}: ${q.friendly_name ?? 'unnamed'}`);
   }
 
   // 3. Get and update queue
   if (queueId) {
     const detail = await client.queues.get(queueId);
-    console.log(`\nQueue detail: ${detail.friendly_name ?? 'N/A'} (max: ${detail.max_size ?? 'N/A'})`);
+    console.log(
+      `\nQueue detail: ${detail.friendly_name ?? 'N/A'} (max: ${detail.max_size ?? 'N/A'})`,
+    );
 
     await client.queues.update(queueId, { name: 'Priority Support Queue' });
     console.log('  Updated queue name');
@@ -52,7 +54,7 @@ async function main() {
     try {
       const members = await client.queues.listMembers(queueId);
       for (const m of members.data ?? []) {
-        console.log(`  - Member: ${m.call_id ?? m.id ?? 'unknown'}`);
+        console.log(`  - Member: ${m.call_id ?? 'unknown'} (position ${m.position})`);
       }
 
       const nextMember = await client.queues.getNextMember(queueId);
@@ -70,14 +72,14 @@ async function main() {
   console.log('\nListing recordings...');
   const recordings = await client.recordings.list();
   for (const r of (recordings.data ?? []).slice(0, 5)) {
-    console.log(`  - ${r.id}: ${r.duration ?? 'N/A'}s`);
+    console.log(`  - ${r.id}: ${r.duration_in_seconds}s`);
   }
 
   // 6. Get recording details
-  const firstRec = (recordings.data ?? [{}])[0];
+  const firstRec = (recordings.data ?? [])[0];
   if (firstRec?.id) {
     const recDetail = await client.recordings.get(firstRec.id);
-    console.log(`  Recording: ${recDetail.duration ?? 'N/A'}s, ${recDetail.format ?? 'N/A'}`);
+    console.log(`  Recording: ${recDetail.duration_in_seconds}s, status ${recDetail.status}`);
   }
 
   // --- MFA ---
@@ -92,7 +94,7 @@ async function main() {
       message: 'Your code is {{code}}',
       token_length: 6,
     });
-    requestId = smsResult.id ?? smsResult.request_id ?? null;
+    requestId = smsResult.id;
     console.log(`  MFA SMS sent: ${requestId}`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -109,7 +111,7 @@ async function main() {
       message: 'Your verification code is {{code}}',
       token_length: 6,
     });
-    console.log(`  MFA call sent: ${voiceResult.id ?? voiceResult.request_id}`);
+    console.log(`  MFA call sent: ${voiceResult.id}`);
   } catch (err) {
     if (err instanceof RestError) {
       console.log(`  MFA call failed (expected in demo): ${err.statusCode}`);
@@ -137,7 +139,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

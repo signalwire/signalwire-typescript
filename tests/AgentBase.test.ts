@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
-import { ContextBuilder } from '../src/ContextBuilder.js';
 import { DataMap } from '../src/DataMap.js';
 import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
+import type { AgentOptions } from '../src/types.js';
+
+/** Subset of the agent's private SessionManager that the token tests stub/inspect. */
+interface SessionManagerInternals {
+  createToolToken(functionName: string, callId: string): string;
+  validateToolToken(functionName: string, token: string, callId: string): boolean;
+}
 
 describe('AgentBase', () => {
-  function createAgent(opts?: Partial<Parameters<typeof AgentBase.prototype.setPromptText>[0]>) {
-    return new AgentBase({ name: 'test-agent', route: '/test', ...opts } as any);
+  function createAgent(opts?: Partial<AgentOptions>) {
+    return new AgentBase({ name: 'test-agent', route: '/test', ...opts });
   }
 
   it('renders basic SWML with prompt', () => {
@@ -173,7 +179,8 @@ describe('AgentBase', () => {
     agent.setPromptText('You are a quiz master');
     const ctx = agent.defineContexts();
     const def = ctx.addContext('default');
-    def.addStep('greeting', { task: 'Greet the user' })
+    def
+      .addStep('greeting', { task: 'Greet the user' })
       .setStepCriteria('User has been greeted')
       .setValidSteps(['quiz']);
     def.addStep('quiz', { task: 'Ask a quiz question' });
@@ -274,7 +281,7 @@ describe('AgentBase', () => {
     const res = await app.request('/health', {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'https://example.com',
+        Origin: 'https://example.com',
         'Access-Control-Request-Method': 'POST',
       },
     });
@@ -301,7 +308,7 @@ describe('AgentBase', () => {
     const res = await app.request('/debug_events', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ event: 'test' }),
@@ -375,7 +382,7 @@ describe('AgentBase', () => {
   });
 
   it('agentId can be provided via options', () => {
-    const agent = new AgentBase({ name: 'test', route: '/test', agentId: 'custom-id-123' } as any);
+    const agent = new AgentBase({ name: 'test', route: '/test', agentId: 'custom-id-123' });
     expect(agent.agentId).toBe('custom-id-123');
   });
 
@@ -456,7 +463,7 @@ describe('AgentBase', () => {
       const res = await app.request('/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
           'Content-Length': '100000',
         },
@@ -481,9 +488,9 @@ describe('AgentBase', () => {
       const res = await app.request('http://evil.example.com/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
-          'Host': 'evil.example.com',
+          Host: 'evil.example.com',
         },
         body: '{}',
       });
@@ -508,9 +515,9 @@ describe('AgentBase', () => {
       const res = await app.request('http://allowed.example.com/', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
+          Authorization: 'Basic ' + btoa('u:p'),
           'Content-Type': 'application/json',
-          'Host': 'allowed.example.com',
+          Host: 'allowed.example.com',
         },
         body: '{}',
       });
@@ -529,15 +536,16 @@ describe('AgentBase', () => {
       agent.setPromptText('hello');
       const app = agent.getApp();
 
-      const makeReq = () => app.request('/', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + btoa('u:p'),
-          'Content-Type': 'application/json',
-          'X-Forwarded-For': '1.2.3.4',
-        },
-        body: '{}',
-      });
+      const makeReq = () =>
+        app.request('/', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Basic ' + btoa('u:p'),
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': '1.2.3.4',
+          },
+          body: '{}',
+        });
 
       // First two should succeed
       const r1 = await makeReq();
@@ -561,8 +569,8 @@ describe('AgentBase', () => {
   it('defineTools is not called automatically — subclass calls it explicitly', () => {
     let defineToolsCalled = false;
     class MyAgent extends AgentBase {
-      constructor(opts: Parameters<typeof AgentBase.prototype.constructor>[0]) {
-        super(opts as any);
+      constructor(opts: AgentOptions) {
+        super(opts);
         this.defineTools();
       }
       protected override defineTools(): void {
@@ -597,7 +605,11 @@ describe('AgentBase', () => {
   it('onFunctionCall hook is invoked when SWAIG function called', async () => {
     const calls: string[] = [];
     class HookAgent extends AgentBase {
-      onFunctionCall(name: string, _args: Record<string, unknown>, _rawData: Record<string, unknown>): void {
+      onFunctionCall(
+        name: string,
+        _args: Record<string, unknown>,
+        _rawData: Record<string, unknown>,
+      ): void {
         calls.push(name);
       }
     }
@@ -612,7 +624,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'test_fn', argument: {} }),
@@ -635,7 +647,7 @@ describe('AgentBase', () => {
       const res = await app.request('/health', {
         method: 'OPTIONS',
         headers: {
-          'Origin': 'https://example.com',
+          Origin: 'https://example.com',
           'Access-Control-Request-Method': 'POST',
         },
       });
@@ -652,14 +664,20 @@ describe('AgentBase', () => {
       static override SKILL_NAME = 'test_skill';
       static override SKILL_DESCRIPTION = 'Test';
       getTools(): SkillToolDefinition[] {
-        return [{
-          name: 'skill_tool',
-          description: 'Skill tool',
-          handler: () => new FunctionResult('skill result'),
-        }];
+        return [
+          {
+            name: 'skill_tool',
+            description: 'Skill tool',
+            handler: () => new FunctionResult('skill result'),
+          },
+        ];
       }
-      getPromptSections() { return [{ title: 'Skill Info', body: 'From test skill' }]; }
-      getHints() { return ['skill hint']; }
+      getPromptSections() {
+        return [{ title: 'Skill Info', body: 'From test skill' }];
+      }
+      getHints() {
+        return ['skill hint'];
+      }
     }
 
     const agent = createAgent();
@@ -675,7 +693,9 @@ describe('AgentBase', () => {
     class RemoveSkill extends SkillBase {
       static override SKILL_NAME = 'removable';
       static override SKILL_DESCRIPTION = 'Test';
-      getTools(): SkillToolDefinition[] { return []; }
+      getTools(): SkillToolDefinition[] {
+        return [];
+      }
     }
 
     const agent = createAgent();
@@ -690,7 +710,9 @@ describe('AgentBase', () => {
     class ChainSkill extends SkillBase {
       static override SKILL_NAME = 'chain';
       static override SKILL_DESCRIPTION = 'Test';
-      getTools(): SkillToolDefinition[] { return []; }
+      getTools(): SkillToolDefinition[] {
+        return [];
+      }
     }
 
     const agent = createAgent();
@@ -713,11 +735,15 @@ describe('AgentBase', () => {
   it('setParams with __proto__ key does NOT pollute Object prototype', () => {
     const agent = createAgent();
     agent.setParams({ __proto__: { polluted: true }, temperature: 0.7 });
-    expect(({} as any).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     // Normal key should still work
-    const swml = JSON.parse(agent.renderSwml());
+    const swml = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
     // params are in AI config
-    const ai = swml.sections.main.find((v: any) => v.ai)?.ai;
+    const ai = (
+      swml.sections.main.find((v) => v.ai) as { ai?: { params?: Record<string, unknown> } }
+    )?.ai;
     expect(ai?.params?.temperature).toBe(0.7);
   });
 
@@ -729,7 +755,7 @@ describe('AgentBase', () => {
       const app = agent.getApp();
       const res = await app.request('/health', {
         method: 'GET',
-        headers: { 'Origin': 'https://example.com' },
+        headers: { Origin: 'https://example.com' },
       });
       // When origin is *, credentials should not be included
       const credHeader = res.headers.get('Access-Control-Allow-Credentials');
@@ -752,7 +778,7 @@ describe('AgentBase', () => {
     const res = await app.request('/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
         'Content-Length': 'not-a-number',
       },
@@ -767,13 +793,15 @@ describe('AgentBase', () => {
       name: 'crash_fn',
       description: 'Will crash',
       parameters: {},
-      handler: () => { throw new Error('secret internal error details'); },
+      handler: () => {
+        throw new Error('secret internal error details');
+      },
     });
     const app = agent.getApp();
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'crash_fn', argument: {} }),
@@ -802,7 +830,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: longName, argument: {} }),
@@ -825,7 +853,7 @@ describe('AgentBase', () => {
     const res = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'nonexistent_fn', argument: {} }),
@@ -851,7 +879,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'secure_fn', argument: {} }),
@@ -864,7 +892,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'secure_fn', argument: {} }),
@@ -883,7 +911,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'valid_fn; DROP TABLE', argument: {} }),
@@ -894,7 +922,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: '123invalid', argument: {} }),
@@ -905,7 +933,7 @@ describe('AgentBase', () => {
     const res3 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'valid_fn_name', argument: {} }),
@@ -931,7 +959,7 @@ describe('AgentBase', () => {
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: 'not-an-object' }),
@@ -942,7 +970,7 @@ describe('AgentBase', () => {
     const res2 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: [1, 2, 3] }),
@@ -953,7 +981,7 @@ describe('AgentBase', () => {
     const res3 = await app.request('/swaig', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('u:p'),
+        Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ function: 'arg_test', argument: null }),
@@ -982,7 +1010,10 @@ describe('AgentBase', () => {
     expect(tool!.isTypedHandler).toBe(true);
     expect(tool!.parameters['city']).toBeDefined();
     expect(tool!.parameters['city']).toEqual({ type: 'string', description: 'The city parameter' });
-    expect(tool!.parameters['days']).toEqual({ type: 'integer', description: 'The days parameter' });
+    expect(tool!.parameters['days']).toEqual({
+      type: 'integer',
+      description: 'The days parameter',
+    });
     expect(tool!.required).toEqual(['city']);
   });
 
@@ -1066,7 +1097,7 @@ describe('AgentBase', () => {
       });
 
       // Fail loudly if SessionManager is consulted — non-secure tools must short-circuit.
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const orig = sm.validateToolToken.bind(sm);
       sm.validateToolToken = () => {
         throw new Error('SessionManager.validateToolToken must not be called for non-secure tools');
@@ -1088,7 +1119,7 @@ describe('AgentBase', () => {
         secure: true,
       });
 
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const callId = 'call-abc';
       const token = sm.createToolToken('secure_tool', callId);
       expect(agent.validateToolToken('secure_tool', token, callId)).toBe(true);
@@ -1131,7 +1162,7 @@ describe('AgentBase', () => {
 
     it('returns "" when the underlying SessionManager throws', () => {
       const agent = createAgent();
-      const sm = (agent as any).sessionManager;
+      const sm = (agent as unknown as { sessionManager: SessionManagerInternals }).sessionManager;
       const orig = sm.createToolToken.bind(sm);
       sm.createToolToken = () => {
         throw new Error('boom');
@@ -1180,7 +1211,7 @@ describe('AgentBase', () => {
     });
 
     it('returns null when usePom is false', () => {
-      const agent = new AgentBase({ name: 'no-pom', route: '/x', usePom: false } as any);
+      const agent = new AgentBase({ name: 'no-pom', route: '/x', usePom: false });
       expect(agent.pom).toBeNull();
     });
 
@@ -1206,7 +1237,7 @@ describe('AgentBase', () => {
   // -----------------------------------------------------------------------
   describe('per-language params', () => {
     function makeAgent() {
-      return new AgentBase({ name: 'test-agent', route: '/test' } as any);
+      return new AgentBase({ name: 'test-agent', route: '/test' });
     }
 
     it('addLanguage with params attaches the params dict on the wire', () => {

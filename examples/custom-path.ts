@@ -21,7 +21,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a helpful assistant hosted at a custom URL path. ' +
-  'Tell the caller your name and offer to help.',
+    'Tell the caller your name and offer to help.',
 );
 
 agent.defineTool({

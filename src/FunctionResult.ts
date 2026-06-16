@@ -5,6 +5,30 @@
  * Every mutating method returns `this` for fluent chaining.
  */
 
+/**
+ * A single SWAIG action object. Each action is keyed by its action name
+ * (e.g. `hangup`, `say`, `SWML`, `transfer`) mapped to that action's payload;
+ * the name set is open-ended (SWML grows new actions), so this is modeled as an
+ * open key→value map rather than a closed union. Built by {@link FunctionResult}'s
+ * `addAction` / `connect` / `swmlTransfer` / etc. and emitted verbatim under the
+ * `action` key of the SWAIG response.
+ */
+export type SwaigAction = Record<string, unknown>;
+
+/**
+ * The object {@link FunctionResult.toDict} serializes to — the SWAIG response
+ * body. `toDict` only ever sets these three keys (plus the `response` fallback),
+ * so the shape is closed (no index signature).
+ */
+export interface SwaigResultDict {
+  /** Text response returned to the AI agent. Omitted when empty (unless it is the sole fallback). */
+  response?: string;
+  /** Ordered list of actions to execute. Omitted when there are none. */
+  action?: SwaigAction[];
+  /** Present (and `true`) only when post-processing is enabled and actions exist. */
+  post_process?: boolean;
+}
+
 /** Prompt configuration for a payment collection flow. */
 export interface PaymentPrompt {
   /** The situation this prompt applies to (e.g., "payment-card-number"). */
@@ -77,7 +101,7 @@ export class FunctionResult {
   /** The text response returned to the AI agent. */
   response: string;
   /** Ordered list of actions to execute after the response. */
-  action: Record<string, unknown>[];
+  action: SwaigAction[];
   /** Whether actions should be post-processed after the AI responds. */
   postProcess: boolean;
 
@@ -129,7 +153,7 @@ export class FunctionResult {
    * @param actions - Array of action objects to append.
    * @returns This instance for chaining.
    */
-  addActions(actions: Record<string, unknown>[]): this {
+  addActions(actions: SwaigAction[]): this {
     this.action.push(...actions);
     return this;
   }
@@ -170,10 +194,7 @@ export class FunctionResult {
       SWML: {
         version: '1.0.0',
         sections: {
-          main: [
-            { set: { ai_response: aiResponse } },
-            { transfer: { dest } },
-          ],
+          main: [{ set: { ai_response: aiResponse } }, { transfer: { dest } }],
         },
       },
       transfer: String(final),
@@ -262,7 +283,9 @@ export class FunctionResult {
    * @param hints - Array of hint strings or pattern-replacement objects.
    * @returns This instance for chaining.
    */
-  addDynamicHints(hints: (string | { pattern: string; replace: string; ignore_case?: boolean })[]): this {
+  addDynamicHints(
+    hints: (string | { pattern: string; replace: string; ignore_case?: boolean })[],
+  ): this {
     return this.addAction('add_dynamic_hints', hints);
   }
 
@@ -339,7 +362,10 @@ export class FunctionResult {
    * @param transfer - Whether this SWML execution should transfer the call.
    * @returns This instance for chaining.
    */
-  executeSwml(swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> }, transfer = false): this {
+  executeSwml(
+    swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> },
+    transfer = false,
+  ): this {
     let swmlData: Record<string, unknown>;
     if (typeof swmlContent === 'string') {
       try {
@@ -555,7 +581,8 @@ export class FunctionResult {
     if (opts?.controlId) params['control_id'] = opts.controlId;
     if (opts?.terminators) params['terminators'] = opts.terminators;
     if (opts?.initialTimeout !== undefined) params['initial_timeout'] = opts.initialTimeout;
-    if (opts?.endSilenceTimeout !== undefined) params['end_silence_timeout'] = opts.endSilenceTimeout;
+    if (opts?.endSilenceTimeout !== undefined)
+      params['end_silence_timeout'] = opts.endSilenceTimeout;
     if (opts?.maxLength !== undefined) params['max_length'] = opts.maxLength;
     if (opts?.statusUrl) params['status_url'] = opts.statusUrl;
 
@@ -655,46 +682,58 @@ export class FunctionResult {
    * @param opts - Optional conference settings such as mute, recording, and callbacks.
    * @returns This instance for chaining.
    */
-  joinConference(name: string, opts?: {
-    muted?: boolean;
-    beep?: 'true' | 'false' | 'onEnter' | 'onExit';
-    startOnEnter?: boolean;
-    endOnExit?: boolean;
-    waitUrl?: string;
-    maxParticipants?: number;
-    record?: 'do-not-record' | 'record-from-start';
-    region?: string;
-    trim?: 'trim-silence' | 'do-not-trim';
-    coach?: string;
-    statusCallbackEvent?: string;
-    statusCallback?: string;
-    statusCallbackMethod?: 'GET' | 'POST';
-    recordingStatusCallback?: string;
-    recordingStatusCallbackMethod?: 'GET' | 'POST';
-    recordingStatusCallbackEvent?: string;
-    result?: unknown;
-  }): this {
+  joinConference(
+    name: string,
+    opts?: {
+      muted?: boolean;
+      beep?: 'true' | 'false' | 'onEnter' | 'onExit';
+      startOnEnter?: boolean;
+      endOnExit?: boolean;
+      waitUrl?: string;
+      maxParticipants?: number;
+      record?: 'do-not-record' | 'record-from-start';
+      region?: string;
+      trim?: 'trim-silence' | 'do-not-trim';
+      coach?: string;
+      statusCallbackEvent?: string;
+      statusCallback?: string;
+      statusCallbackMethod?: 'GET' | 'POST';
+      recordingStatusCallback?: string;
+      recordingStatusCallbackMethod?: 'GET' | 'POST';
+      recordingStatusCallbackEvent?: string;
+      result?: unknown;
+    },
+  ): this {
     // Runtime guards matching the Python reference (beep/record/trim/method are
     // covered at compile time by the literal-union types above; these two cannot be).
     if (!name.trim()) {
       throw new Error('name cannot be empty');
     }
-    if (opts?.maxParticipants !== undefined && (opts.maxParticipants <= 0 || opts.maxParticipants > 250)) {
+    if (
+      opts?.maxParticipants !== undefined &&
+      (opts.maxParticipants <= 0 || opts.maxParticipants > 250)
+    ) {
       throw new Error('max_participants must be a positive integer <= 250');
     }
-    const hasNonDefaults = opts && (
-      opts.muted || (opts.beep && opts.beep !== 'true') ||
-      opts.startOnEnter === false || opts.endOnExit ||
-      opts.waitUrl || (opts.maxParticipants && opts.maxParticipants !== 250) ||
-      (opts.record && opts.record !== 'do-not-record') || opts.region ||
-      (opts.trim && opts.trim !== 'trim-silence') || opts.coach ||
-      opts.statusCallbackEvent || opts.statusCallback ||
-      (opts.statusCallbackMethod && opts.statusCallbackMethod !== 'POST') ||
-      opts.recordingStatusCallback ||
-      (opts.recordingStatusCallbackMethod && opts.recordingStatusCallbackMethod !== 'POST') ||
-      (opts.recordingStatusCallbackEvent && opts.recordingStatusCallbackEvent !== 'completed') ||
-      opts.result !== undefined
-    );
+    const hasNonDefaults =
+      opts &&
+      (opts.muted ||
+        (opts.beep && opts.beep !== 'true') ||
+        opts.startOnEnter === false ||
+        opts.endOnExit ||
+        opts.waitUrl ||
+        (opts.maxParticipants && opts.maxParticipants !== 250) ||
+        (opts.record && opts.record !== 'do-not-record') ||
+        opts.region ||
+        (opts.trim && opts.trim !== 'trim-silence') ||
+        opts.coach ||
+        opts.statusCallbackEvent ||
+        opts.statusCallback ||
+        (opts.statusCallbackMethod && opts.statusCallbackMethod !== 'POST') ||
+        opts.recordingStatusCallback ||
+        (opts.recordingStatusCallbackMethod && opts.recordingStatusCallbackMethod !== 'POST') ||
+        (opts.recordingStatusCallbackEvent && opts.recordingStatusCallbackEvent !== 'completed') ||
+        opts.result !== undefined);
 
     let joinParams: unknown;
     if (!hasNonDefaults) {
@@ -706,17 +745,22 @@ export class FunctionResult {
       if (opts!.startOnEnter === false) p['start_on_enter'] = false;
       if (opts!.endOnExit) p['end_on_exit'] = opts!.endOnExit;
       if (opts!.waitUrl) p['wait_url'] = opts!.waitUrl;
-      if (opts!.maxParticipants && opts!.maxParticipants !== 250) p['max_participants'] = opts!.maxParticipants;
+      if (opts!.maxParticipants && opts!.maxParticipants !== 250)
+        p['max_participants'] = opts!.maxParticipants;
       if (opts!.record && opts!.record !== 'do-not-record') p['record'] = opts!.record;
       if (opts!.region) p['region'] = opts!.region;
       if (opts!.trim && opts!.trim !== 'trim-silence') p['trim'] = opts!.trim;
       if (opts!.coach) p['coach'] = opts!.coach;
       if (opts!.statusCallbackEvent) p['status_callback_event'] = opts!.statusCallbackEvent;
       if (opts!.statusCallback) p['status_callback'] = opts!.statusCallback;
-      if (opts!.statusCallbackMethod && opts!.statusCallbackMethod !== 'POST') p['status_callback_method'] = opts!.statusCallbackMethod;
-      if (opts!.recordingStatusCallback) p['recording_status_callback'] = opts!.recordingStatusCallback;
-      if (opts!.recordingStatusCallbackMethod && opts!.recordingStatusCallbackMethod !== 'POST') p['recording_status_callback_method'] = opts!.recordingStatusCallbackMethod;
-      if (opts!.recordingStatusCallbackEvent && opts!.recordingStatusCallbackEvent !== 'completed') p['recording_status_callback_event'] = opts!.recordingStatusCallbackEvent;
+      if (opts!.statusCallbackMethod && opts!.statusCallbackMethod !== 'POST')
+        p['status_callback_method'] = opts!.statusCallbackMethod;
+      if (opts!.recordingStatusCallback)
+        p['recording_status_callback'] = opts!.recordingStatusCallback;
+      if (opts!.recordingStatusCallbackMethod && opts!.recordingStatusCallbackMethod !== 'POST')
+        p['recording_status_callback_method'] = opts!.recordingStatusCallbackMethod;
+      if (opts!.recordingStatusCallbackEvent && opts!.recordingStatusCallbackEvent !== 'completed')
+        p['recording_status_callback_event'] = opts!.recordingStatusCallbackEvent;
       if (opts!.result !== undefined) p['result'] = opts!.result;
       joinParams = p;
     }
@@ -855,16 +899,14 @@ export class FunctionResult {
     if (opts.parameters) payParams['parameters'] = opts.parameters;
     if (opts.prompts) payParams['prompts'] = opts.prompts;
 
-    const aiResponse = opts.aiResponse ??
+    const aiResponse =
+      opts.aiResponse ??
       'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.';
 
     return this.executeSwml({
       version: '1.0.0',
       sections: {
-        main: [
-          { set: { ai_response: aiResponse } },
-          { pay: payParams },
-        ],
+        main: [{ set: { ai_response: aiResponse } }, { pay: payParams }],
       },
     });
   }
@@ -917,19 +959,19 @@ export class FunctionResult {
    * Serialize this result to a plain object for the SWAIG response.
    * @returns A dictionary with response, action, and post_process fields; falls back to "Action completed." if empty.
    */
-  toDict(): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
+  toDict(): SwaigResultDict {
+    const result: SwaigResultDict = {};
     if (this.response) {
-      result['response'] = this.response;
+      result.response = this.response;
     }
     if (this.action.length > 0) {
-      result['action'] = this.action;
+      result.action = this.action;
     }
     if (this.postProcess && this.action.length > 0) {
-      result['post_process'] = true;
+      result.post_process = true;
     }
     if (Object.keys(result).length === 0) {
-      result['response'] = 'Action completed.';
+      result.response = 'Action completed.';
     }
     return result;
   }

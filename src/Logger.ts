@@ -28,20 +28,22 @@ type LogStream = 'stdout' | 'stderr';
  */
 export function getExecutionMode(): [string, 'off' | 'stderr' | 'default'] {
   if (process.env['GATEWAY_INTERFACE']) return ['cgi', 'off'];
-  if (process.env['AWS_LAMBDA_FUNCTION_NAME'] || process.env['LAMBDA_TASK_ROOT']) return ['lambda', 'stderr'];
-  if (process.env['FUNCTION_TARGET'] || process.env['K_SERVICE'] || process.env['GOOGLE_CLOUD_PROJECT']) return ['google_cloud_function', 'default'];
-  if (process.env['AZURE_FUNCTIONS_ENVIRONMENT'] || process.env['FUNCTIONS_WORKER_RUNTIME']) return ['azure_function', 'default'];
+  if (process.env['AWS_LAMBDA_FUNCTION_NAME'] || process.env['LAMBDA_TASK_ROOT'])
+    return ['lambda', 'stderr'];
+  if (
+    process.env['FUNCTION_TARGET'] ||
+    process.env['K_SERVICE'] ||
+    process.env['GOOGLE_CLOUD_PROJECT']
+  )
+    return ['google_cloud_function', 'default'];
+  if (process.env['AZURE_FUNCTIONS_ENVIRONMENT'] || process.env['FUNCTIONS_WORKER_RUNTIME'])
+    return ['azure_function', 'default'];
   return ['server', 'default'];
 }
 
 /** Check process.argv for CLI flags that should disable colors. */
 function cliSuppressesColor(): boolean {
   return process.argv.includes('--raw') || process.argv.includes('--dump-swml');
-}
-
-function deriveStream(mode: string | undefined): LogStream {
-  if (mode === 'stderr') return 'stderr';
-  return 'stdout';
 }
 
 function deriveSuppressed(mode: string | undefined): boolean {
@@ -78,10 +80,10 @@ let globalStream: LogStream = deriveStreamFromMode(process.env['SIGNALWIRE_LOG_M
 
 // ANSI color codes
 const COLORS: Record<LogLevel, string> = {
-  debug: '\x1b[36m',  // cyan
-  info: '\x1b[32m',   // green
-  warn: '\x1b[33m',   // yellow
-  error: '\x1b[31m',  // red
+  debug: '\x1b[36m', // cyan
+  info: '\x1b[32m', // green
+  warn: '\x1b[33m', // yellow
+  error: '\x1b[31m', // red
 };
 const RESET = '\x1b[0m';
 const DIM = '\x1b[2m';
@@ -169,6 +171,7 @@ function formatKvPairs(data: Record<string, unknown>): string {
 }
 
 /** Regex matching control characters that should be stripped from log values. */
+// eslint-disable-next-line no-control-regex -- intentional control-char sanitization to prevent log injection
 const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
 
 /**
@@ -191,7 +194,7 @@ export function stripControlChars<T extends Record<string, unknown>>(data: T): T
           ? item.replace(CONTROL_CHAR_RE, '')
           : item !== null && typeof item === 'object' && !Array.isArray(item)
             ? stripControlChars(item as Record<string, unknown>)
-            : item
+            : item,
       ) as T[keyof T];
     } else if (value !== null && typeof value === 'object') {
       result[key] = stripControlChars(value as Record<string, unknown>) as T[keyof T];
@@ -283,9 +286,10 @@ export class Logger {
     const serialized = data ? serializeErrors(data) : data;
     const safeData = serialized ? stripControlChars(serialized) : serialized;
 
-    const merged = (safeData && Object.keys(safeData).length) || Object.keys(this.context).length
-      ? { ...this.context, ...safeData }
-      : undefined;
+    const merged =
+      (safeData && Object.keys(safeData).length) || Object.keys(this.context).length
+        ? { ...this.context, ...safeData }
+        : undefined;
 
     if (globalFormat === 'json') {
       this.logJson(level, msg, merged);
@@ -330,10 +334,18 @@ export class Logger {
       return;
     }
     switch (level) {
-      case 'debug': console.debug(line); break;
-      case 'info': console.info(line); break;
-      case 'warn': console.warn(line); break;
-      case 'error': console.error(line); break;
+      case 'debug':
+        console.debug(line);
+        break;
+      case 'info':
+        console.info(line);
+        break;
+      case 'warn':
+        console.warn(line);
+        break;
+      case 'error':
+        console.error(line);
+        break;
     }
   }
 }

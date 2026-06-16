@@ -70,7 +70,11 @@ describe('mock-data', () => {
     });
 
     it('accepts overrides', () => {
-      const data = generateMinimalPostData('fn', {}, { overrides: { custom_field: 'custom_value' } });
+      const data = generateMinimalPostData(
+        'fn',
+        {},
+        { overrides: { custom_field: 'custom_value' } },
+      );
       expect(data['custom_field']).toBe('custom_value');
     });
   });
@@ -92,22 +96,24 @@ describe('mock-data', () => {
     });
 
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
-      const data = generateFakePostData({
-        overrides: { '__proto__': { polluted: true } } as any,
+      generateFakePostData({
+        overrides: { __proto__: { polluted: true } } as unknown as Record<string, unknown>,
       });
-      // @ts-expect-error - checking prototype pollution
-      expect(({} as any).polluted).toBeUndefined();
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
       // The data object itself should NOT have __proto__ as own property from pollution
     });
   });
 
   describe('generateMinimalPostData - prototype pollution', () => {
     it('overrides with __proto__ do NOT pollute Object prototype', () => {
-      const data = generateMinimalPostData('fn', {}, {
-        overrides: { '__proto__': { polluted: true } } as any,
-      });
-      // @ts-expect-error - checking prototype pollution
-      expect(({} as any).polluted).toBeUndefined();
+      generateMinimalPostData(
+        'fn',
+        {},
+        {
+          overrides: { __proto__: { polluted: true } } as unknown as Record<string, unknown>,
+        },
+      );
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
   });
 });

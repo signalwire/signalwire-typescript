@@ -21,10 +21,13 @@
  *      `"The <name> parameter"` (useless to the model, which reads descriptions
  *      as prompt engineering).
  *   2. **Explicit `parameters`** — the user writes the JSON-Schema object by
- *      hand. This is the path where `enum`s and real descriptions live, and
- *      until now it was the *purely untyped* `Record<string, unknown>` blob:
- *      no autocomplete, no typo-checking, no help wiring the Tier-1 closed sets
- *      (record format/direction, tap direction, codec) in as `enum:[...]`.
+ *      hand. This is the path where `enum`s and real descriptions live. Written
+ *      inline, `defineTool<P, R>` now infers the handler's `args` from it (both
+ *      the flat `{name:{…}}` and wrapped `{type:'object',properties}` forms; see
+ *      {@link ToolArgs}), so explicit parameters are no longer an untyped blob.
+ *      This builder is the ergonomic way to construct that schema with
+ *      autocomplete/typo-checking and the Tier-1 closed sets wired in as
+ *      `enum:[...]` (record format/direction, tap direction, codec).
  *
  * `ParameterSchema` is the **typed builder for path 2** — the idiomatic
  * replacement for the explicit untyped blob. It is **purely additive** and the
@@ -127,6 +130,106 @@ export interface ParameterSchemaObject {
   properties: Record<string, ParameterProperty>;
   required?: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Compile-time schema → handler-args inference (used by `defineTool<P, R>`).
+//
+// `defineTool({ parameters })` takes the FLAT property map (`{ name: {type,…} }`,
+// not the wrapped `{type:'object',properties}` form). When the caller writes that
+// map inline AND `defineTool` captures it with a `const` type parameter, these
+// types read the literal `type`/`enum` back out and synthesise the precise
+// `args` object the handler receives — `args.phone` is `string`, an `enum` prop
+// narrows to its literal union, `required` splits required vs optional keys.
+// Purely compile-time: erased at runtime, where args really are
+// `Record<string, unknown>` (a SWAIG handler can be handed anything the model
+// extracts — typing is an authoring convenience, not a runtime guarantee).
+// ---------------------------------------------------------------------------
+
+/**
+ * One property entry in a tool's flat parameter map, precise enough to read.
+ * Extra JSON-Schema keywords (`minLength`, `pattern`, `format`, nested wrapped
+ * forms, …) pass through via the index signature, so existing callers that
+ * carry more than `{type,description}` still satisfy it.
+ */
+export interface PropSchema {
+  type: ParameterType;
+  description?: string;
+  enum?: readonly unknown[];
+  /** Element schema, for `type: 'array'`. */
+  items?: PropSchema;
+  /** Nested property map, for `type: 'object'`. */
+  properties?: Record<string, PropSchema>;
+  [extra: string]: unknown;
+}
+
+/** The flat `name → PropSchema` map `defineTool({ parameters })` accepts. */
+export type ParametersSchema = Record<string, PropSchema>;
+
+/** The WRAPPED JSON-Schema object form: `{ type:'object', properties, required }`. */
+export interface WrappedParametersSchema {
+  type: 'object';
+  properties?: ParametersSchema;
+  required?: readonly string[];
+}
+
+/**
+ * Accepted `parameters` shapes for `defineTool`. BOTH the FLAT map
+ * (`{ name: {…} }`) and the WRAPPED JSON-Schema object
+ * (`{ type:'object', properties, required }`) drive `InferArgs`; a pre-built
+ * loose `Record` is also accepted (it can't be inferred → open-record args).
+ */
+export type ToolParameters = ParametersSchema | WrappedParametersSchema | Record<string, unknown>;
+
+/**
+ * The handler-args type for a given `parameters` (`P`) + `required` (`R`).
+ * Infers from BOTH the flat map and the wrapped `{type:'object',properties}`
+ * form. For the wrapped form, optionality comes from the schema's OWN
+ * `required` array (`R` applies to the flat form, where `required` is a
+ * separate `defineTool` argument). A loose `Record` with no readable
+ * `properties` degrades to the open `Record<string, unknown>`, so existing
+ * pre-built-schema callers keep their prior untyped-args behavior.
+ */
+export type ToolArgs<P, R extends readonly PropertyKey[]> = P extends {
+  type: 'object';
+  properties: infer Props extends ParametersSchema;
+}
+  ? // wrapped form → infer from its properties, honoring its own `required`
+    InferArgs<Props, P extends { required: infer WR extends readonly (keyof Props)[] } ? WR : []>
+  : P extends { type: 'object' }
+    ? Record<string, unknown> // wrapped but no readable properties
+    : P extends ParametersSchema
+      ? InferArgs<P, R extends readonly (keyof P)[] ? R : []>
+      : Record<string, unknown>;
+
+/** Map a single property's schema to the TS type the handler sees for it. */
+export type PropToTs<P extends PropSchema> = P extends { enum: readonly (infer E)[] }
+  ? E // enum wins: union of its literal members
+  : P['type'] extends 'string'
+    ? string
+    : P['type'] extends 'number' | 'integer'
+      ? number
+      : P['type'] extends 'boolean'
+        ? boolean
+        : P['type'] extends 'array'
+          ? P extends { items: infer I extends PropSchema }
+            ? PropToTs<I>[]
+            : unknown[]
+          : P['type'] extends 'object'
+            ? P extends { properties: infer Pr extends ParametersSchema }
+              ? InferArgs<Pr>
+              : Record<string, unknown>
+            : unknown;
+
+/**
+ * Map a whole flat parameter map to the handler's `args` type, splitting
+ * required keys (present) from the rest (optional) per the `required` list `R`.
+ * Default `R = []` makes every prop optional (matches "no required list").
+ */
+export type InferArgs<P extends ParametersSchema, R extends readonly (keyof P)[] = []> = {
+  [K in keyof P as K extends R[number] ? K : never]: PropToTs<P[K]>;
+} & {
+  [K in keyof P as K extends R[number] ? never : K]?: PropToTs<P[K]>;
+};
 
 /**
  * Fluent builder producing a {@link ParameterSchemaObject} byte-identical to

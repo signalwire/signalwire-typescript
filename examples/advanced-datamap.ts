@@ -6,12 +6,7 @@
  * Run: npx tsx examples/advanced-datamap.ts
  */
 
-import {
-  AgentBase,
-  DataMap,
-  FunctionResult,
-  createExpressionTool,
-} from '../src/index.js';
+import { AgentBase, DataMap, FunctionResult, createExpressionTool } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'advanced-datamap-agent',
@@ -24,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a helpful assistant with tools for language detection, stock lookup, ' +
-  'and currency conversion. Use the appropriate tool based on the user request.',
+    'and currency conversion. Use the appropriate tool based on the user request.',
 );
 
 // Pattern 1: Expression-based tool (no HTTP call)
@@ -48,15 +43,9 @@ const translationTool = new DataMap('lookup_definition')
   .purpose('Look up the definition of a word in the dictionary')
   .parameter('word', 'string', 'The word to look up', { required: true })
   .webhook('GET', 'https://api.dictionaryapi.dev/api/v2/entries/en/${args.word}')
-  .output(
-    new FunctionResult(
-      'Definition of ${args.word}: The word was found in the dictionary.',
-    ),
-  )
+  .output(new FunctionResult('Definition of ${args.word}: The word was found in the dictionary.'))
   .errorKeys(['title'])
-  .fallbackOutput(
-    new FunctionResult('Could not find a definition for that word.'),
-  );
+  .fallbackOutput(new FunctionResult('Could not find a definition for that word.'));
 
 agent.registerSwaigFunction(translationTool.toSwaigFunction());
 
@@ -64,7 +53,10 @@ agent.registerSwaigFunction(translationTool.toSwaigFunction());
 const newsTool = new DataMap('get_news')
   .purpose('Get the latest news headlines')
   .parameter('topic', 'string', 'News topic to search for')
-  .webhook('GET', 'https://newsapi.org/v2/everything?q=${args.topic}&pageSize=3&apiKey=${ENV.SW_NEWS_API_KEY}')
+  .webhook(
+    'GET',
+    'https://newsapi.org/v2/everything?q=${args.topic}&pageSize=3&apiKey=${ENV.SW_NEWS_API_KEY}',
+  )
   .foreach({
     input_key: 'response.articles',
     output_key: 'headlines',

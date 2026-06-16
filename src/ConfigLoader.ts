@@ -85,7 +85,11 @@ export class ConfigLoader {
    * @param serviceName - Optional service name; prepends service-specific filenames to the search.
    * @returns A loaded ConfigLoader if found, or null if the file does not exist in any search path.
    */
-  static search(filename: string, additionalPaths?: string[], serviceName?: string): ConfigLoader | null {
+  static search(
+    filename: string,
+    additionalPaths?: string[],
+    serviceName?: string,
+  ): ConfigLoader | null {
     const searchPaths = ConfigLoader._buildSearchPaths(filename, additionalPaths, serviceName);
 
     for (const fp of searchPaths) {
@@ -111,10 +115,7 @@ export class ConfigLoader {
 
     // Service-specific config
     if (serviceName) {
-      paths.push(
-        `${serviceName}_config.json`,
-        join('.swml', `${serviceName}_config.json`),
-      );
+      paths.push(`${serviceName}_config.json`, join('.swml', `${serviceName}_config.json`));
     }
 
     // Additional paths
@@ -144,7 +145,11 @@ export class ConfigLoader {
   /**
    * Build the list of file paths to search.
    */
-  private static _buildSearchPaths(filename: string, additionalPaths?: string[], serviceName?: string): string[] {
+  private static _buildSearchPaths(
+    filename: string,
+    additionalPaths?: string[],
+    serviceName?: string,
+  ): string[] {
     const paths: string[] = [];
 
     // Service-specific variants
@@ -181,7 +186,7 @@ export class ConfigLoader {
    */
   get<T = unknown>(path: string, defaultValue?: T): T {
     const parts = path.split('.');
-    if (parts.some(p => ConfigLoader.DANGEROUS_KEYS.has(p))) {
+    if (parts.some((p) => ConfigLoader.DANGEROUS_KEYS.has(p))) {
       return defaultValue as T;
     }
     let current: unknown = this.data;
@@ -204,7 +209,7 @@ export class ConfigLoader {
    */
   set(path: string, value: unknown): this {
     const parts = path.split('.');
-    if (parts.some(p => ConfigLoader.DANGEROUS_KEYS.has(p))) {
+    if (parts.some((p) => ConfigLoader.DANGEROUS_KEYS.has(p))) {
       return this;
     }
     let current: Record<string, unknown> = this.data;
@@ -319,12 +324,15 @@ export class ConfigLoader {
     }
 
     if (typeof value === 'string') {
-      const result = value.replace(ENV_VAR_PATTERN, (_match, varName: string, defaultValue?: string) => {
-        const envVal = process.env[varName.trim()];
-        if (envVal !== undefined) return envVal;
-        if (defaultValue !== undefined) return defaultValue;
-        return '';
-      });
+      const result = value.replace(
+        ENV_VAR_PATTERN,
+        (_match, varName: string, defaultValue?: string) => {
+          const envVal = process.env[varName.trim()];
+          if (envVal !== undefined) return envVal;
+          if (defaultValue !== undefined) return defaultValue;
+          return '';
+        },
+      );
 
       // Coerce to boolean
       if (result.toLowerCase() === 'true') return true;
@@ -338,7 +346,7 @@ export class ConfigLoader {
     }
 
     if (Array.isArray(value)) {
-      return value.map(item => this.substituteVars(item, maxDepth - 1));
+      return value.map((item) => this.substituteVars(item, maxDepth - 1));
     }
 
     if (value !== null && typeof value === 'object') {
@@ -366,9 +374,9 @@ export class ConfigLoader {
    */
   mergeWithEnv(envPrefix = 'SWML_'): Record<string, unknown> {
     // Start with substituted config
-    const result = (Object.keys(this.data).length > 0
-      ? this.substituteVars(this.data)
-      : {}) as Record<string, unknown>;
+    const result = (
+      Object.keys(this.data).length > 0 ? this.substituteVars(this.data) : {}
+    ) as Record<string, unknown>;
 
     // Add env vars not already present in config
     for (const [key, value] of Object.entries(process.env)) {

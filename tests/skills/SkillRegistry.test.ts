@@ -9,11 +9,13 @@ class SimpleSkill extends SkillBase {
   static override SKILL_DESCRIPTION = 'Simple skill';
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: 'simple_tool',
-      description: 'Simple tool',
-      handler: () => new FunctionResult('ok'),
-    }];
+    return [
+      {
+        name: 'simple_tool',
+        description: 'Simple tool',
+        handler: () => new FunctionResult('ok'),
+      },
+    ];
   }
 }
 
@@ -88,7 +90,9 @@ describe('SkillRegistry', () => {
     class Nameless extends SkillBase {
       static override SKILL_NAME = '';
       static override SKILL_DESCRIPTION = 'nameless';
-      getTools(): SkillToolDefinition[] { return []; }
+      getTools(): SkillToolDefinition[] {
+        return [];
+      }
     }
     expect(() => registry.register(Nameless)).toThrow('SKILL_NAME');
   });
@@ -127,7 +131,7 @@ describe('SkillRegistry', () => {
   it('addSearchPath deduplicates', () => {
     registry.addSearchPath('/skills');
     registry.addSearchPath('/skills');
-    expect(registry.getSearchPaths().filter(p => p === '/skills')).toHaveLength(1);
+    expect(registry.getSearchPaths().filter((p) => p === '/skills')).toHaveLength(1);
   });
 
   it('passes config to constructor', () => {

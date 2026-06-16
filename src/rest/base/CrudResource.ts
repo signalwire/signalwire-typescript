@@ -2,8 +2,6 @@
  * Generic CRUD resource with configurable update method.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from './BaseResource.js';
@@ -22,10 +20,10 @@ import { BaseResource } from './BaseResource.js';
  * @typeParam TUpdate - Request body type for `update()`.
  */
 export class CrudResource<
-  TList = any,
-  TItem = any,
-  TCreate = any,
-  TUpdate = any,
+  TList = unknown,
+  TItem = unknown,
+  TCreate = unknown,
+  TUpdate = unknown,
 > extends BaseResource {
   /** Override to 'PUT' for resources that use PUT instead of PATCH. */
   protected _updateMethod: 'PATCH' | 'PUT' = 'PATCH';
@@ -92,7 +90,7 @@ export class CrudResource<
    * @returns The platform's delete response (often an empty body on success).
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(resourceId: string): Promise<any> {
+  async delete(resourceId: string): Promise<unknown> {
     return this._http.delete(this._path(resourceId));
   }
 }

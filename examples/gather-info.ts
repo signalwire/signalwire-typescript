@@ -6,7 +6,7 @@
  * Run: npx tsx examples/gather-info.ts
  */
 
-import { AgentBase, FunctionResult, GatherInfo, GatherQuestion } from '../src/index.js';
+import { AgentBase, FunctionResult } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'intake-agent',
@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a medical office intake assistant. Collect patient information ' +
-  'step by step. Be polite and professional.',
+    'step by step. Be polite and professional.',
 );
 
 // Define a tool for final submission
@@ -33,7 +33,7 @@ agent.defineTool({
   handler: (args) => {
     return new FunctionResult(
       `Intake form submitted for ${args.patient_name}. Reason: ${args.reason}. ` +
-      'A nurse will be with you shortly.',
+        'A nurse will be with you shortly.',
     );
   },
 });

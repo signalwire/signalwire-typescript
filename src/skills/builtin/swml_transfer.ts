@@ -97,8 +97,7 @@ export class SwmlTransferSkill extends SkillBase {
       },
       allow_arbitrary: {
         type: 'boolean',
-        description:
-          'Whether to allow transfers to arbitrary destinations not in patterns list.',
+        description: 'Whether to allow transfers to arbitrary destinations not in patterns list.',
         required: false,
       },
       tool_name: {
@@ -139,8 +138,7 @@ export class SwmlTransferSkill extends SkillBase {
       },
       required_fields: {
         type: 'object',
-        description:
-          'Additional required fields to collect before transfer (name -> description).',
+        description: 'Additional required fields to collect before transfer (name -> description).',
         default: {},
         required: false,
       },
@@ -180,16 +178,11 @@ export class SwmlTransferSkill extends SkillBase {
       'Please specify a valid transfer type.',
     );
     this.defaultPostProcess = this.getConfig<boolean>('default_post_process', false);
-    this.requiredFields =
-      this.getConfig<Record<string, string>>('required_fields', {}) ?? {};
-    this.allowArbitraryOverride = this.getConfig<boolean | undefined>(
-      'allow_arbitrary',
-      undefined,
-    );
+    this.requiredFields = this.getConfig<Record<string, string>>('required_fields', {}) ?? {};
+    this.allowArbitraryOverride = this.getConfig<boolean | undefined>('allow_arbitrary', undefined);
 
     // Python-style `transfers` config
-    const transfers =
-      this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+    const transfers = this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
     this.transfers = {};
     for (const [pattern, rawConfig] of Object.entries(transfers)) {
       if (!rawConfig || typeof rawConfig !== 'object') {
@@ -198,17 +191,11 @@ export class SwmlTransferSkill extends SkillBase {
       }
       const config = { ...rawConfig };
       if (!('url' in config) && !('address' in config)) {
-        log.error(
-          'swml_transfer: transfer config must include either url or address',
-          { pattern },
-        );
+        log.error('swml_transfer: transfer config must include either url or address', { pattern });
         continue;
       }
       if ('url' in config && 'address' in config) {
-        log.error(
-          'swml_transfer: transfer config cannot have both url and address',
-          { pattern },
-        );
+        log.error('swml_transfer: transfer config cannot have both url and address', { pattern });
         continue;
       }
       if (config.message === undefined) config.message = 'Transferring you now...';
@@ -226,13 +213,8 @@ export class SwmlTransferSkill extends SkillBase {
     // false when `transfers` is absent. TS additionally supports a `patterns`
     // config shape, so accept either — but not neither, otherwise the skill
     // registers a transfer tool that matches nothing and always falls back.
-    if (
-      Object.keys(this.transfers).length === 0 &&
-      this.patterns.length === 0
-    ) {
-      log.error(
-        'swml_transfer: at least one of "transfers" or "patterns" must be configured',
-      );
+    if (Object.keys(this.transfers).length === 0 && this.patterns.length === 0) {
+      log.error('swml_transfer: at least one of "transfers" or "patterns" must be configured');
       return false;
     }
     return true;
@@ -271,25 +253,17 @@ export class SwmlTransferSkill extends SkillBase {
   /** @returns A `transfer_call` tool, plus `list_transfer_destinations` when patterns are configured. */
   getTools(): SkillToolDefinition[] {
     // Rehydrate config for cases where getTools is called without setup()
-    const toolName = this.toolName !== 'transfer_call'
-      ? this.toolName
-      : this.getConfig<string>('tool_name', 'transfer_call');
-    const toolDescription = this.getConfig<string>(
-      'description',
-      this.toolDescription,
-    );
-    const parameterName = this.getConfig<string>(
-      'parameter_name',
-      this.parameterName,
-    );
+    const toolName =
+      this.toolName !== 'transfer_call'
+        ? this.toolName
+        : this.getConfig<string>('tool_name', 'transfer_call');
+    const toolDescription = this.getConfig<string>('description', this.toolDescription);
+    const parameterName = this.getConfig<string>('parameter_name', this.parameterName);
     const parameterDescription = this.getConfig<string>(
       'parameter_description',
       this.parameterDescription,
     );
-    const defaultMessage = this.getConfig<string>(
-      'default_message',
-      this.defaultMessage,
-    );
+    const defaultMessage = this.getConfig<string>('default_message', this.defaultMessage);
     const defaultPostProcess = this.getConfig<boolean>(
       'default_post_process',
       this.defaultPostProcess,
@@ -299,11 +273,11 @@ export class SwmlTransferSkill extends SkillBase {
     const transfers =
       Object.keys(this.transfers).length > 0
         ? this.transfers
-        : this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+        : (this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {});
     const patterns =
       this.patterns.length > 0
         ? this.patterns
-        : this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+        : (this.getConfig<TransferPattern[]>('patterns', []) ?? []);
     const allowArbitrary = this.getConfig<boolean | undefined>(
       'allow_arbitrary',
       this.allowArbitraryOverride,
@@ -404,22 +378,14 @@ export class SwmlTransferSkill extends SkillBase {
           // 1. Try Python-style transfers (regex match)
           for (const entry of compiledTransfers) {
             if (entry.regex.test(destination)) {
-              return this._buildTransferResult(
-                entry.config,
-                undefined,
-                callData,
-              );
+              return this._buildTransferResult(entry.config, undefined, callData);
             }
           }
 
           // 2. Try TS-style named patterns
           const matchedPattern = patternMap.get(destination.toLowerCase());
           if (matchedPattern) {
-            return this._buildPatternResult(
-              matchedPattern,
-              'Transferring you now...',
-              callData,
-            );
+            return this._buildPatternResult(matchedPattern, 'Transferring you now...', callData);
           }
 
           // 3. Arbitrary destinations
@@ -447,17 +413,14 @@ export class SwmlTransferSkill extends SkillBase {
     if (patterns.length > 0) {
       tools.push({
         name: 'list_transfer_destinations',
-        description:
-          'List all available named transfer destinations that calls can be routed to.',
+        description: 'List all available named transfer destinations that calls can be routed to.',
         parameters: {},
         handler: () => {
           const lines = patterns.map((p) => {
             const desc = p.description ? ` - ${p.description}` : '';
             return `${p.name}${desc}`;
           });
-          return new FunctionResult(
-            `Available transfer destinations:\n${lines.join('\n')}`,
-          );
+          return new FunctionResult(`Available transfer destinations:\n${lines.join('\n')}`);
         },
       });
     }
@@ -467,18 +430,15 @@ export class SwmlTransferSkill extends SkillBase {
 
   protected override _getPromptSections(): SkillPromptSection[] {
     const toolName = this.getConfig<string>('tool_name', this.toolName);
-    const parameterName = this.getConfig<string>(
-      'parameter_name',
-      this.parameterName,
-    );
+    const parameterName = this.getConfig<string>('parameter_name', this.parameterName);
     const transfers =
       Object.keys(this.transfers).length > 0
         ? this.transfers
-        : this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {};
+        : (this.getConfig<Record<string, TransferConfig>>('transfers', {}) ?? {});
     const patterns =
       this.patterns.length > 0
         ? this.patterns
-        : this.getConfig<TransferPattern[]>('patterns', []) ?? [];
+        : (this.getConfig<TransferPattern[]>('patterns', []) ?? []);
     const requiredFields =
       this.getConfig<Record<string, string>>('required_fields', this.requiredFields) ?? {};
     const allowArbitrary = this.getConfig<boolean | undefined>(
@@ -525,9 +485,7 @@ export class SwmlTransferSkill extends SkillBase {
       ];
 
       if (Object.keys(requiredFields).length > 0) {
-        instructionBullets.push(
-          'You must provide the following information before transferring:',
-        );
+        instructionBullets.push('You must provide the following information before transferring:');
         for (const [fieldName, description] of Object.entries(requiredFields)) {
           instructionBullets.push(`  - ${fieldName}: ${description}`);
         }
@@ -537,9 +495,7 @@ export class SwmlTransferSkill extends SkillBase {
       }
 
       if (canUseArbitrary) {
-        instructionBullets.push(
-          'You can also transfer to arbitrary phone numbers or SIP URIs.',
-        );
+        instructionBullets.push('You can also transfer to arbitrary phone numbers or SIP URIs.');
       }
 
       instructionBullets.push(
@@ -629,9 +585,7 @@ export class SwmlTransferSkill extends SkillBase {
       return baseDescription;
     }
     const base = `${baseDescription}. Named destinations: ${names.join(', ')}.`;
-    return canUseArbitrary
-      ? `${base} You may also use arbitrary phone numbers or SIP URIs.`
-      : base;
+    return canUseArbitrary ? `${base} You may also use arbitrary phone numbers or SIP URIs.` : base;
   }
 }
 

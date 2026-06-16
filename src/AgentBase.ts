@@ -6,6 +6,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
@@ -15,7 +16,7 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import { SwaigFunction, type SwaigHandler, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { SwaigFunction, type SwaigHandler } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
@@ -25,7 +26,11 @@ import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
 import type { SkillNameOrString } from './skills/SkillName.js';
-import { ServerlessAdapter, type ServerlessEvent, type ServerlessResponse } from './ServerlessAdapter.js';
+import {
+  ServerlessAdapter,
+  type ServerlessEvent,
+  type ServerlessResponse,
+} from './ServerlessAdapter.js';
 import { webhookValidationMiddleware } from './WebhookMiddleware.js';
 import type {
   AgentOptions,
@@ -34,6 +39,7 @@ import type {
   FunctionInclude,
   DynamicConfigCallback,
 } from './types.js';
+import type { SwaigRequestData, PostPromptData, SwmlRequestData } from './PlatformContracts.js';
 
 /**
  * Callback invoked at a registered routing endpoint to determine how to handle an
@@ -44,7 +50,7 @@ import type {
  * variant — Hono request object is not forwarded; use the parsed body instead).
  */
 export type RoutingCallback = (
-  body: Record<string, unknown>,
+  body: SwmlRequestData,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
@@ -228,22 +234,27 @@ export class AgentBase extends SWMLService {
     if (opts.configFile) {
       try {
         const loader = new ConfigLoader(opts.configFile);
-        serviceConfig = (loader.get<Record<string, unknown>>('service') ?? {});
+        serviceConfig = loader.get<Record<string, unknown>>('service') ?? {};
       } catch {
         // Config file not found or invalid — continue with constructor args
       }
     }
     const resolvedName = (serviceConfig['name'] as string | undefined) ?? opts.name;
     const routeArg = opts.route ?? '/';
-    const resolvedRoute = (routeArg !== '/'
-      ? routeArg
-      : ((serviceConfig['route'] as string | undefined) ?? routeArg)).replace(/\/+$/, '') || '/';
+    const resolvedRoute =
+      (routeArg !== '/'
+        ? routeArg
+        : ((serviceConfig['route'] as string | undefined) ?? routeArg)
+      ).replace(/\/+$/, '') || '/';
     const hostArg = opts.host ?? '0.0.0.0';
-    const resolvedHost = hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
+    const resolvedHost =
+      hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
     const configPort = serviceConfig['port'] as number | undefined;
     const parsedPort = opts.port ?? configPort ?? parseInt(process.env['PORT'] ?? '3000', 10);
     if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
-      throw new Error(`Invalid port: ${opts.port ?? process.env['PORT']}. Must be between 1 and 65535.`);
+      throw new Error(
+        `Invalid port: ${opts.port ?? process.env['PORT']}. Must be between 1 and 65535.`,
+      );
     }
 
     super({
@@ -278,9 +289,8 @@ export class AgentBase extends SWMLService {
     // Per porting-sdk/webhooks.md: when null, validation is disabled and we
     // log a prominent one-shot warning so operators don't ship an unsigned
     // production agent by accident.
-    const explicitKey = typeof opts.signingKey === 'string' && opts.signingKey.length > 0
-      ? opts.signingKey
-      : null;
+    const explicitKey =
+      typeof opts.signingKey === 'string' && opts.signingKey.length > 0 ? opts.signingKey : null;
     const envKey = process.env['SIGNALWIRE_SIGNING_KEY'];
     this._signingKey =
       explicitKey ?? (typeof envKey === 'string' && envKey.length > 0 ? envKey : null);
@@ -349,7 +359,12 @@ export class AgentBase extends SWMLService {
    * Static prompt sections: subclasses can define these declaratively.
    * Each entry is applied via promptAddSection() in the constructor.
    */
-  static PROMPT_SECTIONS?: { title: string; body?: string; bullets?: string[]; numbered?: boolean }[];
+  static PROMPT_SECTIONS?: {
+    title: string;
+    body?: string;
+    bullets?: string[];
+    numbered?: boolean;
+  }[];
 
   /**
    * Lifecycle method to register tools. Subclasses should call this at the
@@ -499,7 +514,11 @@ export class AgentBase extends SWMLService {
    * @param opts - Optional body text and bullet points for the subsection.
    * @returns This agent instance for chaining.
    */
-  promptAddSubsection(parentTitle: string, title: string, opts?: { body?: string; bullets?: string[] }): this {
+  promptAddSubsection(
+    parentTitle: string,
+    title: string,
+    opts?: { body?: string; bullets?: string[] },
+  ): this {
     this._promptManager.addSubsection(parentTitle, title, opts);
     return this;
   }
@@ -588,7 +607,9 @@ export class AgentBase extends SWMLService {
         bullets: section['bullets'] as string[] | undefined,
         numbered: section['numbered'] as boolean | undefined,
         numberedBullets: section['numberedBullets'] as boolean | undefined,
-        subsections: section['subsections'] as { title: string; body?: string; bullets?: string[] }[] | undefined,
+        subsections: section['subsections'] as
+          | { title: string; body?: string; bullets?: string[] }[]
+          | undefined,
       });
     }
     return this;
@@ -671,7 +692,12 @@ export class AgentBase extends SWMLService {
    *   regex pattern, replacement string, and optional case-insensitive flag.
    * @returns This agent instance for chaining.
    */
-  addPatternHint(opts: { hint: string; pattern: string; replace: string; ignoreCase?: boolean }): this {
+  addPatternHint(opts: {
+    hint: string;
+    pattern: string;
+    replace: string;
+    ignoreCase?: boolean;
+  }): this {
     const entry: Record<string, unknown> = {
       hint: opts.hint,
       pattern: opts.pattern,
@@ -857,15 +883,15 @@ export class AgentBase extends SWMLService {
    * setInternalFillers warn if you pass an unknown name.
    */
   static readonly SUPPORTED_INTERNAL_FILLER_NAMES: ReadonlySet<string> = new Set([
-    'hangup',                  // AI is hanging up the call
-    'check_time',              // AI is checking the time
-    'wait_for_user',           // AI is waiting for user input
-    'wait_seconds',            // deliberate pause / wait period
+    'hangup', // AI is hanging up the call
+    'check_time', // AI is checking the time
+    'wait_for_user', // AI is waiting for user input
+    'wait_seconds', // deliberate pause / wait period
     'adjust_response_latency', // AI is adjusting response timing
-    'next_step',               // transitioning between steps in prompt.contexts
-    'change_context',          // switching between contexts in prompt.contexts
-    'get_visual_input',        // processing visual input (enable_vision)
-    'get_ideal_strategy',      // thinking (enable_thinking)
+    'next_step', // transitioning between steps in prompt.contexts
+    'change_context', // switching between contexts in prompt.contexts
+    'get_visual_input', // processing visual input (enable_vision)
+    'get_ideal_strategy', // thinking (enable_thinking)
   ]);
 
   /**
@@ -977,9 +1003,7 @@ export class AgentBase extends SWMLService {
    * @returns This agent instance for chaining.
    */
   setFunctionIncludes(includes: FunctionInclude[]): this {
-    this.functionIncludes = includes.filter(
-      (inc) => inc.url && Array.isArray(inc.functions),
-    );
+    this.functionIncludes = includes.filter((inc) => inc.url && Array.isArray(inc.functions));
     return this;
   }
 
@@ -1099,10 +1123,7 @@ export class AgentBase extends SWMLService {
    *   (default: '/sip').
    * @returns This agent instance for chaining.
    */
-  registerRoutingCallback(
-    callback: RoutingCallback,
-    path = '/sip',
-  ): this {
+  registerRoutingCallback(callback: RoutingCallback, path = '/sip'): this {
     // Normalize path: ensure leading slash, strip trailing slash
     let normalized = path.replace(/\/+$/, '') || '/';
     if (!normalized.startsWith('/')) normalized = `/${normalized}`;
@@ -1119,7 +1140,7 @@ export class AgentBase extends SWMLService {
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
    */
-  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+  static extractSipUsername(requestBody: SwmlRequestData): string | null {
     const call = requestBody?.['call'] as Record<string, unknown> | undefined;
     const callTo = call?.['to'] as string | undefined;
     if (callTo) {
@@ -1143,11 +1164,19 @@ export class AgentBase extends SWMLService {
    * @param opts - Optional configuration: headers, resources, resourceVars
    * @returns This agent instance for chaining
    */
-  addMcpServer(url: string, opts?: { headers?: Record<string, string>; resources?: boolean; resourceVars?: Record<string, string> }): this {
+  addMcpServer(
+    url: string,
+    opts?: {
+      headers?: Record<string, string>;
+      resources?: boolean;
+      resourceVars?: Record<string, string>;
+    },
+  ): this {
     const server: Record<string, unknown> = { url };
     if (opts?.headers && Object.keys(opts.headers).length) server['headers'] = opts.headers;
     if (opts?.resources) server['resources'] = true;
-    if (opts?.resourceVars && Object.keys(opts.resourceVars).length) server['resource_vars'] = opts.resourceVars;
+    if (opts?.resourceVars && Object.keys(opts.resourceVars).length)
+      server['resource_vars'] = opts.resourceVars;
     this._mcpServers.push(server);
     return this;
   }
@@ -1208,13 +1237,18 @@ export class AgentBase extends SWMLService {
     const params = (body['params'] as Record<string, unknown>) || {};
 
     if (jsonrpc !== '2.0') {
-      return { jsonrpc: '2.0', id: reqId, error: { code: -32600, message: 'Invalid JSON-RPC version' } };
+      return {
+        jsonrpc: '2.0',
+        id: reqId,
+        error: { code: -32600, message: 'Invalid JSON-RPC version' },
+      };
     }
 
     // Initialize handshake
     if (method === 'initialize') {
       return {
-        jsonrpc: '2.0', id: reqId,
+        jsonrpc: '2.0',
+        id: reqId,
         result: {
           protocolVersion: '2025-06-18',
           capabilities: { tools: {} },
@@ -1240,21 +1274,32 @@ export class AgentBase extends SWMLService {
 
       const fn = this.toolRegistry.get(toolName);
       if (!fn || !(fn instanceof SwaigFunction)) {
-        return { jsonrpc: '2.0', id: reqId, error: { code: -32602, message: `Unknown tool: ${toolName}` } };
+        return {
+          jsonrpc: '2.0',
+          id: reqId,
+          error: { code: -32602, message: `Unknown tool: ${toolName}` },
+        };
       }
 
       try {
-        const rawData = { function: toolName, argument: { parsed: [args] } };
+        // MCP bridge synthesizes a minimal SWAIG payload — only the fields the
+        // handler path needs. Runtime shape unchanged; cast is compile-time only.
+        const rawData = {
+          function: toolName,
+          argument: { parsed: [args] },
+        } as unknown as SwaigRequestData;
         const resultDict = await fn.execute(args, rawData);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
-          jsonrpc: '2.0', id: reqId,
+          jsonrpc: '2.0',
+          id: reqId,
           result: { content: [{ type: 'text', text: responseText }], isError: false },
         };
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         return {
-          jsonrpc: '2.0', id: reqId,
+          jsonrpc: '2.0',
+          id: reqId,
           result: { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true },
         };
       }
@@ -1265,99 +1310,19 @@ export class AgentBase extends SWMLService {
       return { jsonrpc: '2.0', id: reqId, result: {} };
     }
 
-    return { jsonrpc: '2.0', id: reqId, error: { code: -32601, message: `Method not found: ${method}` } };
+    return {
+      jsonrpc: '2.0',
+      id: reqId,
+      error: { code: -32601, message: `Method not found: ${method}` },
+    };
   }
 
   // ── Tools ───────────────────────────────────────────────────────────
-
-  /**
-   * Register a SWAIG tool (function) that the AI can invoke during a call.
-   *
-   * ## How this becomes a tool the model sees
-   *
-   * A SWAIG function is **exactly the same concept** as a "tool" in
-   * native OpenAI / Anthropic tool calling. On every LLM turn, the SDK
-   * renders each registered SWAIG function into the OpenAI tool schema:
-   *
-   * ```json
-   * {
-   *   "type": "function",
-   *   "function": {
-   *     "name":        "your_name_here",
-   *     "description": "your description text",
-   *     "parameters":  { /* your JSON schema *\/ }
-   *   }
-   * }
-   * ```
-   *
-   * That schema goes to the model in the same API call that produces
-   * the next assistant message. The model reads:
-   *
-   *   - the **function `description`** to decide WHEN to call this tool
-   *   - each **parameter `description`** (inside the JSON schema) to
-   *     decide HOW to fill in each argument
-   *
-   * This means **descriptions are prompt engineering**, not developer
-   * comments. A vague description is the #1 cause of "the model has the
-   * right tool but doesn't call it" failures.
-   *
-   * ### Bad vs good descriptions
-   *
-   * ```text
-   * BAD : description: 'Lookup function'
-   * GOOD: description: 'Look up a customer's account details by account
-   *       number. Use this BEFORE quoting any account-specific info
-   *       (balance, plan, status). Do not use for general product
-   *       questions.'
-   *
-   * BAD : parameters: { id: { type: 'string', description: 'the id' } }
-   * GOOD: parameters: { account_number: { type: 'string', description:
-   *       'The customer's 8-digit account number, no dashes or spaces.
-   *       Ask the user if they don't provide it.' } }
-   * ```
-   *
-   * ### Tool count matters
-   *
-   * LLM tool selection accuracy degrades past ~7-8 simultaneously-active
-   * tools per call. Use Step.setFunctions() to partition tools across
-   * steps so only the relevant subset is active at any moment.
-   *
-   * @param opts - Tool definition including name, description, parameter
-   *   schema, and handler callback. `description` and per-parameter
-   *   `description` strings are LLM-facing prompt engineering.
-   * @returns This agent instance for chaining.
-   */
-  defineTool(opts: {
-    name: string;
-    description: string;
-    parameters?: Record<string, unknown>;
-    handler: SwaigHandler;
-    secure?: boolean;
-    fillers?: Record<string, string[]>;
-    waitFile?: string;
-    waitFileLoops?: number;
-    required?: string[];
-    /** External webhook URL; makes this an externally-hosted tool. */
-    webhookUrl?: string;
-    /** Additional fields to pass through to the SWAIG function definition (Python `**swaig_fields` equivalent). */
-    extraFields?: Record<string, unknown>;
-  }): this {
-    const fn = new SwaigFunction({
-      name: opts.name,
-      description: opts.description,
-      parameters: opts.parameters,
-      handler: opts.handler,
-      secure: opts.secure,
-      fillers: opts.fillers,
-      waitFile: opts.waitFile,
-      waitFileLoops: opts.waitFileLoops,
-      required: opts.required,
-      webhookUrl: opts.webhookUrl,
-      extraFields: opts.extraFields,
-    });
-    this.toolRegistry.set(opts.name, fn);
-    return this;
-  }
+  //
+  // `defineTool<P, R>(...)` is inherited from SWMLService — one generic
+  // definition serves both classes. With a flat inline `parameters` map it
+  // infers the handler's `args` precisely (args.phone: string, enum→literal
+  // union, required vs optional); wrapped/loose schemas keep open-record args.
 
   /**
    * Register a SWAIG tool with a typed handler that receives named parameters
@@ -1406,9 +1371,10 @@ export class AgentBase extends SWMLService {
       paramNames = [];
     }
 
-    const wrapper = paramNames.length > 0
-      ? createTypedHandlerWrapper(opts.handler, paramNames, hasRawData)
-      : opts.handler as SwaigHandler;
+    const wrapper =
+      paramNames.length > 0
+        ? createTypedHandlerWrapper(opts.handler, paramNames, hasRawData)
+        : (opts.handler as SwaigHandler);
 
     const fn = new SwaigFunction({
       name: opts.name,
@@ -1775,14 +1741,13 @@ export class AgentBase extends SWMLService {
     return this;
   }
 
-  private detectProxyFromRequest(c: any): void {
+  private detectProxyFromRequest(c: Context): void {
     // Never override env var setting
     if (this._proxyUrlBaseFromEnv) return;
     // Only trust proxy headers when explicitly enabled
     if (!this._trustProxyHeaders) return;
 
-    const get = (name: string): string | undefined =>
-      c.req.header(name) ?? undefined;
+    const get = (name: string): string | undefined => c.req.header(name) ?? undefined;
 
     // 1. X-Forwarded-Host + X-Forwarded-Proto
     const xfHost = get('x-forwarded-host');
@@ -1823,7 +1788,9 @@ export class AgentBase extends SWMLService {
     // 4. X-Forwarded-For (warn only - no host info)
     const xff = get('x-forwarded-for');
     if (xff && this._proxyDebug) {
-      this.log.debug(`X-Forwarded-For detected (${xff}) but cannot determine host - set SWML_PROXY_URL_BASE manually`);
+      this.log.debug(
+        `X-Forwarded-For detected (${xff}) but cannot determine host - set SWML_PROXY_URL_BASE manually`,
+      );
     }
   }
 
@@ -1880,7 +1847,9 @@ export class AgentBase extends SWMLService {
     const params = { ...extraParams };
     const entries = Object.entries(params).filter(([, v]) => v);
     if (entries.length) {
-      url += '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+      url +=
+        '?' +
+        entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
     }
     return url;
   }
@@ -1913,7 +1882,10 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(_summary: Record<string, unknown> | null, _rawData: Record<string, unknown>): void | Promise<void> {
+  onSummary(
+    _summary: Record<string, unknown> | null,
+    _rawData: PostPromptData,
+  ): void | Promise<void> {
     // Default no-op
   }
 
@@ -1933,7 +1905,7 @@ export class AgentBase extends SWMLService {
    *   default rendering.
    */
   onRequest(
-    requestData?: Record<string, unknown> | null,
+    requestData?: SwmlRequestData | null,
     callbackPath?: string | null,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     return this.onSwmlRequest(requestData ?? {}, callbackPath ?? undefined);
@@ -1956,9 +1928,9 @@ export class AgentBase extends SWMLService {
    * @returns Optionally a dict of SWML modifications, or void.
    */
   onSwmlRequest(
-    _rawData: Record<string, unknown>,
+    _rawData: SwmlRequestData,
     _callbackPath?: string,
-    _context?: any,
+    _context?: Context,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }
@@ -2032,7 +2004,8 @@ export class AgentBase extends SWMLService {
     const swaigObj: Record<string, unknown> = {};
     if (this._nativeFunctions.length) swaigObj['native_functions'] = this._nativeFunctions;
     if (this.functionIncludes.length) swaigObj['includes'] = this.functionIncludes;
-    if (Object.keys(this.internalFillers).length) swaigObj['internal_fillers'] = this.internalFillers;
+    if (Object.keys(this.internalFillers).length)
+      swaigObj['internal_fillers'] = this.internalFillers;
 
     // Build functions array
     const functions: Record<string, unknown>[] = [];
@@ -2045,11 +2018,16 @@ export class AgentBase extends SWMLService {
         const entry: Record<string, unknown> = {
           function: name,
           description: fn.description,
-          parameters: fn.parameters && Object.keys(fn.parameters).length
-            ? ('type' in fn.parameters && 'properties' in fn.parameters
-              ? fn.parameters
-              : { type: 'object', properties: fn.parameters, ...(fn.required.length ? { required: fn.required } : {}) })
-            : { type: 'object', properties: {} },
+          parameters:
+            fn.parameters && Object.keys(fn.parameters).length
+              ? 'type' in fn.parameters && 'properties' in fn.parameters
+                ? fn.parameters
+                : {
+                    type: 'object',
+                    properties: fn.parameters,
+                    ...(fn.required.length ? { required: fn.required } : {}),
+                  }
+              : { type: 'object', properties: {} },
         };
         if (fn.fillers && Object.keys(fn.fillers).length) entry['fillers'] = fn.fillers;
         if (fn.waitFile) entry['wait_file'] = fn.waitFile;
@@ -2119,7 +2097,9 @@ export class AgentBase extends SWMLService {
     // Prompt
     if (this.contextsBuilder) {
       const contextsDict = this.contextsBuilder.toDict();
-      const promptObj: Record<string, unknown> = { text: prompt || `You are ${this.name}, a helpful AI assistant.` };
+      const promptObj: Record<string, unknown> = {
+        text: prompt || `You are ${this.name}, a helpful AI assistant.`,
+      };
       if (Object.keys(this.promptLlmParams).length) Object.assign(promptObj, this.promptLlmParams);
       aiConfig['prompt'] = promptObj;
       aiConfig['contexts'] = contextsDict;
@@ -2132,7 +2112,8 @@ export class AgentBase extends SWMLService {
     // Post-prompt
     if (postPrompt) {
       const ppObj: Record<string, unknown> = { text: postPrompt };
-      if (Object.keys(this.postPromptLlmParams).length) Object.assign(ppObj, this.postPromptLlmParams);
+      if (Object.keys(this.postPromptLlmParams).length)
+        Object.assign(ppObj, this.postPromptLlmParams);
       aiConfig['post_prompt'] = ppObj;
       if (postPromptUrl) aiConfig['post_prompt_url'] = postPromptUrl;
     }
@@ -2158,7 +2139,7 @@ export class AgentBase extends SWMLService {
     if (modifications && typeof modifications === 'object') {
       if (modifications['global_data'] && typeof modifications['global_data'] === 'object') {
         aiConfig['global_data'] = {
-          ...(aiConfig['global_data'] as Record<string, unknown> ?? {}),
+          ...((aiConfig['global_data'] as Record<string, unknown>) ?? {}),
           ...(modifications['global_data'] as Record<string, unknown>),
         };
       }
@@ -2206,7 +2187,11 @@ export class AgentBase extends SWMLService {
     copy._skillManager = new SkillManager();
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
-        const skill = new (entry.SkillClass as any)(entry.config);
+        // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
+        // registry only ever holds concrete subclasses, so widen to a
+        // constructable signature before instantiating.
+        const SkillCtor = entry.SkillClass as unknown as new (config?: SkillConfig) => SkillBase;
+        const skill = new SkillCtor(entry.config);
         skill.setAgent(copy);
         // Synchronous re-add: mark initialized, register tools/prompts/hints/data
         skill.markInitialized();
@@ -2274,7 +2259,6 @@ export class AgentBase extends SWMLService {
     const app = new Hono();
 
     // Security headers
-    const requestTimeout = parseInt(process.env['SWML_REQUEST_TIMEOUT'] ?? '30000', 10);
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
     app.use('*', async (c, next) => {
       await next();
@@ -2299,7 +2283,7 @@ export class AgentBase extends SWMLService {
     // Allowed hosts (configurable via env)
     const allowedHosts = process.env['SWML_ALLOWED_HOSTS'];
     if (allowedHosts) {
-      const hostSet = new Set(allowedHosts.split(',').map(h => h.trim().toLowerCase()));
+      const hostSet = new Set(allowedHosts.split(',').map((h) => h.trim().toLowerCase()));
       app.use('*', async (c, next) => {
         const host = (c.req.header('host') ?? '').split(':')[0].toLowerCase();
         if (!hostSet.has(host)) {
@@ -2317,9 +2301,9 @@ export class AgentBase extends SWMLService {
         const hits = new Map<string, { count: number; resetAt: number }>();
         app.use('*', async (c, next) => {
           const ip = this._trustProxyHeaders
-            ? (c.req.header('x-forwarded-for')?.split(',')[0].trim()
-              ?? c.req.header('x-real-ip')
-              ?? 'unknown')
+            ? (c.req.header('x-forwarded-for')?.split(',')[0].trim() ??
+              c.req.header('x-real-ip') ??
+              'unknown')
             : 'unknown';
           const now = Date.now();
           let entry = hits.get(ip);
@@ -2344,14 +2328,14 @@ export class AgentBase extends SWMLService {
 
     // CORS (configurable via env)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map(o => o.trim()) : '*';
+    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
     const corsCredentials = corsOrigin !== '*';
     app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
 
     // CSRF protection (optional, gated by env)
     if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
       const allowedOrigins = corsOrigins
-        ? new Set(corsOrigins.split(',').map(o => o.trim().toLowerCase()))
+        ? new Set(corsOrigins.split(',').map((o) => o.trim().toLowerCase()))
         : null;
       app.use('*', async (c, next) => {
         if (c.req.method === 'POST') {
@@ -2373,22 +2357,27 @@ export class AgentBase extends SWMLService {
     // porting-sdk/webhooks.md, signed routes are POST / (SWML), POST /swaig,
     // and POST /post_prompt. GET / serves SWML to the platform's GET probe,
     // which is unsigned, so we don't apply the middleware to GET.
-    const sigMw = this._signingKey !== null
-      ? webhookValidationMiddleware({
-          signingKey: this._signingKey,
-          trustProxy: this._webhookTrustProxy,
-        })
-      : null;
+    const sigMw =
+      this._signingKey !== null
+        ? webhookValidationMiddleware({
+            signingKey: this._signingKey,
+            trustProxy: this._webhookTrustProxy,
+          })
+        : null;
 
     const basePath = this.route === '/' ? '' : this.route;
 
     // Root - returns SWML
-    const handleSwml = async (c: any) => {
+    const handleSwml = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: this.route });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
-      try { body = await c.req.json(); } catch { /* GET or no body */ }
+      let body: SwmlRequestData = {};
+      try {
+        body = await c.req.json();
+      } catch {
+        /* GET or no body */
+      }
 
       reqLog.debug('request_body_received', { body_size: JSON.stringify(body).length });
 
@@ -2399,20 +2388,27 @@ export class AgentBase extends SWMLService {
         swmlMods = await this.onSwmlRequest(body, callbackPath, c);
         if (swmlMods) reqLog.debug('on_swml_request_modifications_applied');
       } catch (err) {
-        reqLog.error('error_in_on_swml_request', { error: err instanceof Error ? err.message : String(err) });
+        reqLog.error('error_in_on_swml_request', {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
 
       const callId = (body['call_id'] as string) || undefined;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
 
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
       let agentToUse: AgentBase = this;
       if (this.dynamicConfigCallback) {
         agentToUse = this.createEphemeralCopy();
         const queryParams: Record<string, string> = {};
         const url = new URL(c.req.url);
-        url.searchParams.forEach((v: string, k: string) => { queryParams[k] = v; });
+        url.searchParams.forEach((v: string, k: string) => {
+          queryParams[k] = v;
+        });
         const rawHeaders: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => { rawHeaders[k] = v; });
+        c.req.raw.headers.forEach((v: string, k: string) => {
+          rawHeaders[k] = v;
+        });
         const headers = filterSensitiveHeaders(rawHeaders);
         await this.dynamicConfigCallback(queryParams, body, headers, agentToUse);
         reqLog.debug('dynamic_config_complete');
@@ -2440,12 +2436,19 @@ export class AgentBase extends SWMLService {
     }
 
     // SWAIG function dispatcher
-    const handleSwaig = async (c: any) => {
+    const handleSwaig = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: `${basePath}/swaig` });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
-      try { body = await c.req.json(); } catch { /* empty */ }
+      // Runtime fallback is the empty object (unchanged); the cast is
+      // compile-time only — the backend always POSTs the full SWAIG payload,
+      // and the parse-failure path below is rejected before any field is read.
+      let body: SwaigRequestData = {} as SwaigRequestData;
+      try {
+        body = await c.req.json();
+      } catch {
+        /* empty */
+      }
 
       const fnName = body['function'] as string;
       if (!fnName) return c.json({ error: 'Missing function name' }, 400);
@@ -2474,24 +2477,24 @@ export class AgentBase extends SWMLService {
         if (!token) {
           reqLog.warn('missing_token');
           const result = new FunctionResult(
-            'The security token for this function is missing or expired. This action cannot be completed.'
+            'The security token for this function is missing or expired. This action cannot be completed.',
           );
           return c.json(result.toDict());
         }
         if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
           reqLog.warn('token_invalid');
           const result = new FunctionResult(
-            'The security token for this function is invalid or expired. This action cannot be completed.'
+            'The security token for this function is invalid or expired. This action cannot be completed.',
           );
           return c.json(result.toDict());
         }
         reqLog.debug('token_valid');
       }
 
-      const rawArgs = body['argument'];
+      const rawArgs: unknown = body['argument'];
       const args: Record<string, unknown> =
-        (rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs))
-          ? rawArgs as Record<string, unknown>
+        rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
+          ? (rawArgs as Record<string, unknown>)
           : {};
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
       const hookResult = await this.onFunctionCall(fnName, args, body);
@@ -2508,7 +2511,9 @@ export class AgentBase extends SWMLService {
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
       } catch (err) {
-        reqLog.error('function_execution_error', { error: err instanceof Error ? err.message : String(err) });
+        reqLog.error('function_execution_error', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         return c.json({ error: 'Function execution failed' }, 500);
       }
     };
@@ -2521,12 +2526,19 @@ export class AgentBase extends SWMLService {
     }
 
     // Post-prompt handler
-    const handlePostPrompt = async (c: any) => {
+    const handlePostPrompt = async (c: Context) => {
       let reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt` });
       reqLog.debug('endpoint_called');
 
-      let body: Record<string, unknown> = {};
-      try { body = await c.req.json(); } catch { /* empty */ }
+      // Runtime fallback is the empty object (unchanged); the cast is
+      // compile-time only — the backend always POSTs the full post_prompt
+      // payload, and the parse-failure path leaves an empty summary lookup.
+      let body: PostPromptData = {} as PostPromptData;
+      try {
+        body = await c.req.json();
+      } catch {
+        /* empty */
+      }
 
       const callId = (body['call_id'] as string) || undefined;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
@@ -2546,12 +2558,16 @@ export class AgentBase extends SWMLService {
     }
 
     // Debug events handler
-    const handleDebugEvents = async (c: any) => {
+    const handleDebugEvents = async (c: Context) => {
       const reqLog = this.log.bind({ endpoint: `${basePath}/debug_events` });
       reqLog.debug('endpoint_called');
 
       let body: Record<string, unknown> = {};
-      try { body = await c.req.json(); } catch { /* empty */ }
+      try {
+        body = await c.req.json();
+      } catch {
+        /* empty */
+      }
 
       reqLog.debug('debug_event_received', body);
       await this.onDebugEvent(body);
@@ -2562,10 +2578,16 @@ export class AgentBase extends SWMLService {
 
     // MCP server endpoint (JSON-RPC 2.0)
     if (this._mcpServerEnabled) {
-      app.post(`${basePath}/mcp`, async (c: any) => {
-        let body: Record<string, unknown> = {};
-        try { body = await c.req.json(); } catch {
-          return c.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+      app.post(`${basePath}/mcp`, async (c: Context) => {
+        let body: Record<string, unknown>;
+        try {
+          body = await c.req.json();
+        } catch {
+          return c.json({
+            jsonrpc: '2.0',
+            id: null,
+            error: { code: -32700, message: 'Parse error' },
+          });
         }
         const result = await this.handleMcpRequest(body);
         return c.json(result);
@@ -2574,12 +2596,16 @@ export class AgentBase extends SWMLService {
 
     // Post-prompt override endpoint (enabled via constructor option)
     if (this._enablePostPromptOverride) {
-      const handlePostPromptOverride = async (c: any) => {
+      const handlePostPromptOverride = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: `${basePath}/post_prompt_override` });
         reqLog.debug('endpoint_called');
 
         let body: Record<string, unknown> = {};
-        try { body = await c.req.json(); } catch { /* empty */ }
+        try {
+          body = await c.req.json();
+        } catch {
+          /* empty */
+        }
 
         const newPostPrompt = body['post_prompt'] as string | undefined;
         if (newPostPrompt !== undefined) {
@@ -2594,12 +2620,16 @@ export class AgentBase extends SWMLService {
 
     // Check-for-input endpoint (enabled via constructor option)
     if (this._checkForInputOverride) {
-      const handleCheckForInput = async (c: any) => {
+      const handleCheckForInput = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: `${basePath}/check_for_input` });
         reqLog.debug('endpoint_called');
 
         let body: Record<string, unknown> = {};
-        try { body = await c.req.json(); } catch { /* empty */ }
+        try {
+          body = await c.req.json();
+        } catch {
+          /* empty */
+        }
 
         reqLog.info('check_for_input_received');
         return c.json({ ok: true, received: body });
@@ -2609,16 +2639,19 @@ export class AgentBase extends SWMLService {
       app.post(`${basePath}/check_for_input`, authMw, handleCheckForInput);
     }
 
-
     // Routing callbacks (registered via registerRoutingCallback)
     for (const [callbackPath, callback] of this._routingCallbacks) {
       const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
-      const handleRouting = async (c: any) => {
+      const handleRouting = async (c: Context) => {
         const reqLog = this.log.bind({ endpoint: fullPath });
         reqLog.debug('routing_callback_called');
 
         let body: Record<string, unknown> = {};
-        try { body = await c.req.json(); } catch { /* GET or no body */ }
+        try {
+          body = await c.req.json();
+        } catch {
+          /* GET or no body */
+        }
 
         try {
           const route = await callback(body);
@@ -2631,7 +2664,9 @@ export class AgentBase extends SWMLService {
           const swml = this.renderSwml();
           return c.json(JSON.parse(swml));
         } catch (err) {
-          reqLog.error('routing_callback_error', { error: err instanceof Error ? err.message : String(err) });
+          reqLog.error('routing_callback_error', {
+            error: err instanceof Error ? err.message : String(err),
+          });
           return c.json({ error: 'Routing callback failed' }, 500);
         }
       };
@@ -2641,8 +2676,8 @@ export class AgentBase extends SWMLService {
     }
 
     // Health / Ready
-    app.get(`${basePath}/health`, (c: any) => c.json({ status: 'ok' }));
-    app.get(`${basePath}/ready`, (c: any) => c.json({ status: 'ready' }));
+    app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
+    app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
 
     this._app = app;
     this._appBuiltByAgent = true;
@@ -2769,7 +2804,7 @@ export class AgentBase extends SWMLService {
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
-  private findSummary(body: Record<string, unknown>): Record<string, unknown> | null {
+  private findSummary(body: PostPromptData): Record<string, unknown> | null {
     if (!body) return null;
     if (body['summary']) return body['summary'] as Record<string, unknown>;
     const ppd = body['post_prompt_data'] as Record<string, unknown> | undefined;
@@ -2792,8 +2827,12 @@ export class AgentBase extends SWMLService {
    * @returns A tuple of [username, password] or [username, password, source].
    */
   getBasicAuthCredentials(includeSource?: false): [string, string];
-  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
-  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  getBasicAuthCredentials(
+    includeSource: true,
+  ): [string, string, 'provided' | 'environment' | 'generated'];
+  getBasicAuthCredentials(
+    includeSource?: boolean,
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;
   }

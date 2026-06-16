@@ -53,7 +53,7 @@ class StandaloneSwaig extends SWMLService {
     this.defineTool({
       name: 'lookup_competitor',
       description:
-        "Look up competitor pricing by company name. Use this when the user " +
+        'Look up competitor pricing by company name. Use this when the user ' +
         "asks how a competitor's price compares to ours.",
       parameters: {
         competitor: {
@@ -62,7 +62,8 @@ class StandaloneSwaig extends SWMLService {
         },
       },
       handler: (args, _raw) => {
-        const competitor = (args['competitor'] as string | undefined) ?? '<unknown>';
+        // args.competitor is inferred `string | undefined` from the schema.
+        const competitor = args.competitor ?? '<unknown>';
         return {
           response: `${competitor} pricing is $99/seat; we're $79/seat.`,
         };

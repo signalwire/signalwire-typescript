@@ -1,3 +1,5 @@
+import type { SignalWireErrorBody } from '../PlatformContracts.js';
+
 /**
  * Custom error class for REST API errors.
  *
@@ -12,7 +14,7 @@ export class RestError extends Error {
    * Parsed response body. An object when the server returned valid JSON,
    * otherwise the raw response text as a string.
    */
-  readonly body: string | Record<string, unknown>;
+  readonly body: string | SignalWireErrorBody;
   /** Fully-qualified URL that produced the error. */
   readonly url: string;
   /** HTTP method that produced the error (`GET`, `POST`, etc.). */
@@ -27,7 +29,7 @@ export class RestError extends Error {
    */
   constructor(
     statusCode: number,
-    body: string | Record<string, unknown>,
+    body: string | SignalWireErrorBody,
     url: string,
     method: string = 'GET',
   ) {

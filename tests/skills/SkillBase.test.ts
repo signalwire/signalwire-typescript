@@ -8,12 +8,14 @@ class TestSkill extends SkillBase {
   static override REQUIRED_ENV_VARS: readonly string[] = ['TEST_API_KEY'];
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: 'test_tool',
-      description: 'A test tool',
-      parameters: { query: { type: 'string' } },
-      handler: (args) => new FunctionResult(`Result: ${args['query']}`),
-    }];
+    return [
+      {
+        name: 'test_tool',
+        description: 'A test tool',
+        parameters: { query: { type: 'string' } },
+        handler: (args) => new FunctionResult(`Result: ${args['query']}`),
+      },
+    ];
   }
 
   getPromptSections() {

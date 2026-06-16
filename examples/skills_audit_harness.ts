@@ -28,12 +28,11 @@
  * that drives the handler.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { registerBuiltinSkills } from '../src/skills/builtin/index.js';
 import { SkillRegistry } from '../src/skills/SkillRegistry.js';
-import type { SkillBase, SkillConfig } from '../src/skills/SkillBase.js';
+import type { SkillBase, SkillConfig, SkillToolDefinition } from '../src/skills/SkillBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
+import type { SwaigRequestData } from '../src/PlatformContracts.js';
 
 function die(msg: string): never {
   process.stderr.write(`skills_audit_harness: ${msg}\n`);
@@ -51,10 +50,8 @@ function buildSkillConfig(skillName: string): SkillConfig {
       // Audit sets GOOGLE_API_KEY / GOOGLE_CSE_ID. The TS skill reads
       // GOOGLE_SEARCH_API_KEY / GOOGLE_SEARCH_ENGINE_ID by default; pull
       // through whichever the audit provided.
-      const apiKey =
-        process.env['GOOGLE_API_KEY'] ?? process.env['GOOGLE_SEARCH_API_KEY'];
-      const cseId =
-        process.env['GOOGLE_CSE_ID'] ?? process.env['GOOGLE_SEARCH_ENGINE_ID'];
+      const apiKey = process.env['GOOGLE_API_KEY'] ?? process.env['GOOGLE_SEARCH_API_KEY'];
+      const cseId = process.env['GOOGLE_CSE_ID'] ?? process.env['GOOGLE_SEARCH_ENGINE_ID'];
       if (apiKey) cfg['api_key'] = apiKey;
       if (cseId) cfg['search_engine_id'] = cseId;
       // Force one result so the harness only fetches once. The skill's
@@ -147,12 +144,18 @@ function toolNameFor(skillName: string): string {
  * the HTTP call itself.
  */
 async function executeDataMap(
-  tool: any,
+  tool: SkillToolDefinition,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  const dataMap = tool?.['data_map'] ?? tool?.dataMap;
+  // `data_map` / `dataMap` are dynamic config the DataMap builder attaches;
+  // they aren't part of the static SkillToolDefinition surface, so read them
+  // by string key off an index view of the tool.
+  const toolRecord = tool as unknown as Record<string, unknown>;
+  const dataMap = (toolRecord['data_map'] ?? toolRecord['dataMap']) as
+    | Record<string, unknown>
+    | undefined;
   if (!dataMap) return null;
-  const webhooks = (dataMap['webhooks'] ?? []) as any[];
+  const webhooks = (dataMap['webhooks'] ?? []) as Record<string, unknown>[];
   if (webhooks.length === 0) return null;
   const webhook = webhooks[0];
   const urlTemplate = String(webhook['url'] ?? '');
@@ -162,7 +165,7 @@ async function executeDataMap(
   // Naive ${...args.foo} expansion — args.foo / args.bar.baz / etc.
   const url = urlTemplate.replace(/\$\{[^}]*args\.([\w.]+)\}/g, (_, path) => {
     const parts = String(path).split('.');
-    let v: any = args;
+    let v: unknown = args;
     for (const p of parts) {
       if (v == null) return '';
       v = (v as Record<string, unknown>)[p];
@@ -196,14 +199,17 @@ async function dispatchHandler(
     die(`tool '${toolName}' not registered by skill '${skill.constructor.name}'`);
   }
   if (typeof tool.handler === 'function') {
-    const result = await tool.handler(args, {});
+    // This audit harness invokes handlers directly with synthetic args and no
+    // real webhook envelope; pass an empty rawData (handlers tolerate missing
+    // fields here). Cast is compile-time only — runtime object is unchanged.
+    const result = await tool.handler(args, {} as SwaigRequestData);
     if (result instanceof FunctionResult) {
       return result.toDict();
     }
     return result;
   }
   // No handler — try DataMap.
-  return executeDataMap(tool as any, args);
+  return executeDataMap(tool, args);
 }
 
 async function main(): Promise<void> {
@@ -246,5 +252,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  die(`unhandled error: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
+  die(`unhandled error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
 });

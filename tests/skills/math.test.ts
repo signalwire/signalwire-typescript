@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('MathSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -24,7 +26,10 @@ describe('MathSkill', () => {
     const tools = new MathSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('calculate');
-    expect(tools[0].required).toContain('expression');
+    // Python's math skill passes no `required` (math/skill.py:33) and
+    // SWAIGFunction omits the key when empty (swaig_function.py:128), so the
+    // wire schema has no `required` — the TS port matches that.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
@@ -66,7 +71,8 @@ describe('MathSkill', () => {
     const swaigEntry = schema['swaig_fields'];
     expect(swaigEntry).toBeDefined();
     expect(swaigEntry.type).toBe('object');
-    expect(typeof swaigEntry.description === 'string' && swaigEntry.description.length > 0)
-      .toBe(true);
+    expect(typeof swaigEntry.description === 'string' && swaigEntry.description.length > 0).toBe(
+      true,
+    );
   });
 });

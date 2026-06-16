@@ -2,22 +2,117 @@
  * Fabric API namespace — resource composition, addresses, and tokens.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudWithAddresses } from '../base/CrudWithAddresses.js';
+import type {
+  AIAgentCreateRequest,
+  AIAgentListResponse,
+  AIAgentResponse,
+  AIAgentUpdateRequest,
+  CallFlowAddressListResponse,
+  CallFlowCreateRequest,
+  CallFlowListResponse,
+  CallFlowResponse,
+  CallFlowUpdateRequest,
+  CallFlowVersionDeployRequest,
+  CallFlowVersionDeployResponse,
+  CallFlowVersionListResponse,
+  ConferenceRoomAddressListResponse,
+  ConferenceRoomCreateRequest,
+  ConferenceRoomListResponse,
+  ConferenceRoomResponse,
+  ConferenceRoomUpdateRequest,
+  CXMLScriptCreateRequest,
+  CXMLScriptListResponse,
+  CXMLScriptResponse,
+  CXMLScriptUpdateRequest,
+  CXMLWebhookCreateRequest,
+  CXMLWebhookListResponse,
+  CXMLWebhookResponse,
+  CXMLWebhookUpdateRequest,
+  CxmlApplicationListResponse,
+  CxmlApplicationResponse,
+  CxmlApplicationUpdateRequest,
+  DomainApplicationAssignRequest,
+  DomainApplicationResponse,
+  EmbedsTokensRequest,
+  EmbedsTokensResponse,
+  FabricAddress,
+  FabricAddressesResponse,
+  FreeswitchConnectorCreateRequest,
+  FreeswitchConnectorListResponse,
+  FreeswitchConnectorResponse,
+  FreeswitchConnectorUpdateRequest,
+  PhoneRouteAssignRequest,
+  PhoneRouteResponse,
+  RelayApplicationCreateRequest,
+  RelayApplicationListResponse,
+  RelayApplicationResponse,
+  RelayApplicationUpdateRequest,
+  ResourceAddressListResponse,
+  ResourceListResponse,
+  ResourceResponse,
+  SipEndpointCreateRequest,
+  SipEndpointListResponse,
+  SipEndpointResponse,
+  SipEndpointUpdateRequest,
+  SipGatewayListResponse,
+  SipGatewayRequest,
+  SipGatewayRequestUpdate,
+  SipGatewayResponse,
+  SubscriberGuestTokenCreateRequest,
+  SubscriberGuestTokenCreateResponse,
+  SubscriberInviteTokenCreateRequest,
+  SubscriberInviteTokenCreateResponse,
+  SubscriberListResponse,
+  SubscriberRefreshTokenRequest,
+  SubscriberRefreshTokenResponse,
+  SubscriberRequest,
+  SubscriberResponse,
+  SubscriberSIPEndpoint,
+  SubscriberSipEndpointListResponse,
+  SubscriberSipEndpointRequest,
+  SubscriberSipEndpointRequestUpdate,
+  SubscriberTokenRequest,
+  SubscriberTokenResponse,
+  SWMLWebhookCreateRequest,
+  SWMLWebhookListResponse,
+  SWMLWebhookResponse,
+  SWMLWebhookUpdateRequest,
+  SwmlScriptCreateRequest,
+  SwmlScriptListResponse,
+  SwmlScriptResponse,
+  SwmlScriptUpdateRequest,
+} from './fabric.types.generated.js';
 
-/** Standard fabric resource with CRUD + addresses (PATCH updates). */
-export class FabricResource extends CrudWithAddresses {
+/**
+ * Standard fabric resource with CRUD + addresses (PATCH updates).
+ *
+ * Generic over the per-resource list / item / create / update shapes from the
+ * canonical Fabric OpenAPI spec. Create and update bodies are wrapped in
+ * `Partial<>` at the call site to preserve Python's call-without-args
+ * (`**kwargs`) ergonomics — the platform validates required fields server-side.
+ */
+export class FabricResource<
+  TList = unknown,
+  TItem = unknown,
+  TCreate = unknown,
+  TUpdate = unknown,
+> extends CrudWithAddresses<TList, TItem, TCreate, TUpdate> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
 }
 
 /** Fabric resource that uses PUT for updates. */
-export class FabricResourcePUT extends CrudWithAddresses {
+export class FabricResourcePUT<
+  TList = unknown,
+  TItem = unknown,
+  TCreate = unknown,
+  TUpdate = unknown,
+> extends CrudWithAddresses<TList, TItem, TCreate, TUpdate> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient, basePath: string) {
@@ -26,7 +121,12 @@ export class FabricResourcePUT extends CrudWithAddresses {
 }
 
 /** Call flows with version management. Uses singular `call_flow` for sub-resource paths. */
-export class CallFlowsResource extends FabricResourcePUT {
+export class CallFlowsResource extends FabricResourcePUT<
+  CallFlowListResponse,
+  CallFlowResponse,
+  Partial<CallFlowCreateRequest>,
+  Partial<CallFlowUpdateRequest>
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -39,7 +139,10 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  override async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<CallFlowAddressListResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.get(`${path}/${resourceId}/addresses`, params);
   }
@@ -52,7 +155,10 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns A paginated list of call-flow versions.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listVersions(resourceId: string, params?: QueryParams): Promise<any> {
+  async listVersions(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<CallFlowVersionListResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.get(`${path}/${resourceId}/versions`, params);
   }
@@ -65,14 +171,22 @@ export class CallFlowsResource extends FabricResourcePUT {
    * @returns The newly-published version record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deployVersion(resourceId: string, body: any = {}): Promise<any> {
+  async deployVersion(
+    resourceId: string,
+    body: Partial<CallFlowVersionDeployRequest> = {},
+  ): Promise<CallFlowVersionDeployResponse> {
     const path = this._basePath.replace('/call_flows', '/call_flow');
     return this._http.post(`${path}/${resourceId}/versions`, body);
   }
 }
 
 /** Conference rooms — uses singular 'conference_room' for sub-resource paths. */
-export class ConferenceRoomsResource extends FabricResourcePUT {
+export class ConferenceRoomsResource extends FabricResourcePUT<
+  ConferenceRoomListResponse,
+  ConferenceRoomResponse,
+  Partial<ConferenceRoomCreateRequest>,
+  Partial<ConferenceRoomUpdateRequest>
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -85,14 +199,22 @@ export class ConferenceRoomsResource extends FabricResourcePUT {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  override async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<ConferenceRoomAddressListResponse> {
     const path = this._basePath.replace('/conference_rooms', '/conference_room');
     return this._http.get(`${path}/${resourceId}/addresses`, params);
   }
 }
 
 /** Subscribers with SIP endpoint management. */
-export class SubscribersResource extends FabricResourcePUT {
+export class SubscribersResource extends FabricResourcePUT<
+  SubscriberListResponse,
+  SubscriberResponse,
+  Partial<SubscriberRequest>,
+  Partial<SubscriberRequest>
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -105,7 +227,10 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns A paginated list of SIP endpoints.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listSipEndpoints(subscriberId: string, params?: QueryParams): Promise<any> {
+  async listSipEndpoints(
+    subscriberId: string,
+    params?: QueryParams,
+  ): Promise<SubscriberSipEndpointListResponse> {
     return this._http.get(this._path(subscriberId, 'sip_endpoints'), params);
   }
 
@@ -117,7 +242,10 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The newly-created SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createSipEndpoint(subscriberId: string, body: any): Promise<any> {
+  async createSipEndpoint(
+    subscriberId: string,
+    body: SubscriberSipEndpointRequest,
+  ): Promise<SubscriberSIPEndpoint> {
     return this._http.post(this._path(subscriberId, 'sip_endpoints'), body);
   }
 
@@ -129,7 +257,7 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getSipEndpoint(subscriberId: string, endpointId: string): Promise<any> {
+  async getSipEndpoint(subscriberId: string, endpointId: string): Promise<SubscriberSIPEndpoint> {
     return this._http.get(this._path(subscriberId, 'sip_endpoints', endpointId));
   }
 
@@ -142,7 +270,11 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The updated SIP endpoint record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async updateSipEndpoint(subscriberId: string, endpointId: string, body: any): Promise<any> {
+  async updateSipEndpoint(
+    subscriberId: string,
+    endpointId: string,
+    body: SubscriberSipEndpointRequestUpdate,
+  ): Promise<SubscriberSIPEndpoint> {
     return this._http.patch(this._path(subscriberId, 'sip_endpoints', endpointId), body);
   }
 
@@ -154,13 +286,18 @@ export class SubscribersResource extends FabricResourcePUT {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteSipEndpoint(subscriberId: string, endpointId: string): Promise<any> {
+  async deleteSipEndpoint(subscriberId: string, endpointId: string): Promise<unknown> {
     return this._http.delete(this._path(subscriberId, 'sip_endpoints', endpointId));
   }
 }
 
 /** cXML applications — no create method (read/update/delete only). */
-export class CxmlApplicationsResource extends FabricResourcePUT {
+export class CxmlApplicationsResource extends FabricResourcePUT<
+  CxmlApplicationListResponse,
+  CxmlApplicationResponse,
+  never,
+  Partial<CxmlApplicationUpdateRequest>
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -182,7 +319,12 @@ export class CxmlApplicationsResource extends FabricResourcePUT {
  *
  * See the porting-sdk's `phone-binding.md` for the full model.
  */
-export class AutoMaterializedWebhookResource extends FabricResource {
+export class AutoMaterializedWebhookResource<
+  TList = unknown,
+  TItem = unknown,
+  TCreate = unknown,
+  TUpdate = unknown,
+> extends FabricResource<TList, TItem, Partial<TCreate>, Partial<TUpdate>> {
   /** Label used in the deprecation warning (subclasses override). */
   protected _autoHelperName: string = 'phoneNumbers.set*Webhook';
   private static _warned = new WeakSet<object>();
@@ -198,14 +340,14 @@ export class AutoMaterializedWebhookResource extends FabricResource {
    *   updates the phone number and the server auto-materializes the
    *   resource. Kept for backwards compatibility.
    */
-  override async create(body: any = {}): Promise<any> {
+  override async create(body: Partial<TCreate> = {} as Partial<TCreate>): Promise<TItem> {
     if (!AutoMaterializedWebhookResource._warned.has(this)) {
       AutoMaterializedWebhookResource._warned.add(this);
       console.warn(
         `[signalwire] Creating a webhook Fabric resource directly produces ` +
-        `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
-        `instead; it updates the phone number and the server auto-materializes ` +
-        `the resource. See porting-sdk's phone-binding.md.`,
+          `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
+          `instead; it updates the phone number and the server auto-materializes ` +
+          `the resource. See porting-sdk's phone-binding.md.`,
       );
     }
     return super.create(body);
@@ -213,12 +355,22 @@ export class AutoMaterializedWebhookResource extends FabricResource {
 }
 
 /** Auto-materialized SWML webhook — normally created via `phoneNumbers.setSwmlWebhook`. */
-export class SwmlWebhooksResource extends AutoMaterializedWebhookResource {
+export class SwmlWebhooksResource extends AutoMaterializedWebhookResource<
+  SWMLWebhookListResponse,
+  SWMLWebhookResponse,
+  SWMLWebhookCreateRequest,
+  SWMLWebhookUpdateRequest
+> {
   protected override _autoHelperName = 'phoneNumbers.setSwmlWebhook(sid, url)';
 }
 
 /** Auto-materialized cXML webhook — normally created via `phoneNumbers.setCxmlWebhook`. */
-export class CxmlWebhooksResource extends AutoMaterializedWebhookResource {
+export class CxmlWebhooksResource extends AutoMaterializedWebhookResource<
+  CXMLWebhookListResponse,
+  CXMLWebhookResponse,
+  CXMLWebhookCreateRequest,
+  CXMLWebhookUpdateRequest
+> {
   protected override _autoHelperName = 'phoneNumbers.setCxmlWebhook(sid, { url })';
 }
 
@@ -237,7 +389,7 @@ export class GenericResources extends BaseResource {
    * @returns A paginated list of generic fabric resources.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<ResourceListResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -248,7 +400,7 @@ export class GenericResources extends BaseResource {
    * @returns The resource record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(resourceId: string): Promise<any> {
+  async get(resourceId: string): Promise<ResourceResponse> {
     return this._http.get(this._path(resourceId));
   }
 
@@ -259,7 +411,7 @@ export class GenericResources extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(resourceId: string): Promise<any> {
+  async delete(resourceId: string): Promise<unknown> {
     return this._http.delete(this._path(resourceId));
   }
 
@@ -271,7 +423,10 @@ export class GenericResources extends BaseResource {
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listAddresses(resourceId: string, params?: QueryParams): Promise<any> {
+  async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+  ): Promise<ResourceAddressListResponse> {
     return this._http.get(this._path(resourceId, 'addresses'), params);
   }
 
@@ -294,15 +449,18 @@ export class GenericResources extends BaseResource {
    * @returns The phone-route assignment record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async assignPhoneRoute(resourceId: string, body: any): Promise<any> {
+  async assignPhoneRoute(
+    resourceId: string,
+    body: PhoneRouteAssignRequest,
+  ): Promise<PhoneRouteResponse> {
     if (!GenericResources._assignPhoneRouteWarned.has(this)) {
       GenericResources._assignPhoneRouteWarned.add(this);
       console.warn(
         '[signalwire] assignPhoneRoute does not bind phone numbers to ' +
-        'swml_webhook / cxml_webhook / ai_agent resources — those are ' +
-        'configured via phoneNumbers.setSwmlWebhook / setCxmlWebhook / ' +
-        'setAiAgent. This method applies only to a narrow set of legacy ' +
-        "resource types. See porting-sdk's phone-binding.md.",
+          'swml_webhook / cxml_webhook / ai_agent resources — those are ' +
+          'configured via phoneNumbers.setSwmlWebhook / setCxmlWebhook / ' +
+          'setAiAgent. This method applies only to a narrow set of legacy ' +
+          "resource types. See porting-sdk's phone-binding.md.",
       );
     }
     return this._http.post(this._path(resourceId, 'phone_routes'), body);
@@ -316,7 +474,10 @@ export class GenericResources extends BaseResource {
    * @returns The domain-application assignment record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async assignDomainApplication(resourceId: string, body: any): Promise<any> {
+  async assignDomainApplication(
+    resourceId: string,
+    body: DomainApplicationAssignRequest,
+  ): Promise<DomainApplicationResponse> {
     return this._http.post(this._path(resourceId, 'domain_applications'), body);
   }
 }
@@ -334,7 +495,7 @@ export class FabricAddresses extends BaseResource {
    * @returns A paginated list of fabric addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
+  async list(params?: QueryParams): Promise<FabricAddressesResponse> {
     return this._http.get(this._basePath, params);
   }
 
@@ -345,7 +506,7 @@ export class FabricAddresses extends BaseResource {
    * @returns The address record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(addressId: string): Promise<any> {
+  async get(addressId: string): Promise<FabricAddress> {
     return this._http.get(this._path(addressId));
   }
 }
@@ -363,7 +524,9 @@ export class FabricTokens extends BaseResource {
    * @returns The token record, typically `{ token: "eyJ..." }`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createSubscriberToken(body: any = {}): Promise<any> {
+  async createSubscriberToken(
+    body: Partial<SubscriberTokenRequest> = {},
+  ): Promise<SubscriberTokenResponse> {
     return this._http.post(this._path('subscribers', 'tokens'), body);
   }
 
@@ -375,7 +538,9 @@ export class FabricTokens extends BaseResource {
    * @returns The refreshed token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async refreshSubscriberToken(body: any = {}): Promise<any> {
+  async refreshSubscriberToken(
+    body: Partial<SubscriberRefreshTokenRequest> = {},
+  ): Promise<SubscriberRefreshTokenResponse> {
     return this._http.post(this._path('subscribers', 'tokens', 'refresh'), body);
   }
 
@@ -386,7 +551,9 @@ export class FabricTokens extends BaseResource {
    * @returns The invite record, including the share URL / code.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createInviteToken(body: any = {}): Promise<any> {
+  async createInviteToken(
+    body: Partial<SubscriberInviteTokenCreateRequest> = {},
+  ): Promise<SubscriberInviteTokenCreateResponse> {
     return this._http.post(this._path('subscriber', 'invites'), body);
   }
 
@@ -397,7 +564,9 @@ export class FabricTokens extends BaseResource {
    * @returns The token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createGuestToken(body: any = {}): Promise<any> {
+  async createGuestToken(
+    body: Partial<SubscriberGuestTokenCreateRequest> = {},
+  ): Promise<SubscriberGuestTokenCreateResponse> {
     return this._http.post(this._path('guests', 'tokens'), body);
   }
 
@@ -408,7 +577,7 @@ export class FabricTokens extends BaseResource {
    * @returns The token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async createEmbedToken(body: any = {}): Promise<any> {
+  async createEmbedToken(body: Partial<EmbedsTokensRequest> = {}): Promise<EmbedsTokensResponse> {
     return this._http.post(this._path('embeds', 'tokens'), body);
   }
 }
@@ -428,21 +597,46 @@ export class FabricTokens extends BaseResource {
 export class FabricNamespace {
   // PUT-update resources
   /** SWML script CRUD (full-replacement `PUT` update). */
-  readonly swmlScripts: FabricResourcePUT;
+  readonly swmlScripts: FabricResourcePUT<
+    SwmlScriptListResponse,
+    SwmlScriptResponse,
+    Partial<SwmlScriptCreateRequest>,
+    Partial<SwmlScriptUpdateRequest>
+  >;
   /** Relay Application CRUD (full-replacement `PUT` update). */
-  readonly relayApplications: FabricResourcePUT;
+  readonly relayApplications: FabricResourcePUT<
+    RelayApplicationListResponse,
+    RelayApplicationResponse,
+    Partial<RelayApplicationCreateRequest>,
+    Partial<RelayApplicationUpdateRequest>
+  >;
   /** Call Flow CRUD with version listing and publishing. */
   readonly callFlows: CallFlowsResource;
   /** Conference Room CRUD with address listing. */
   readonly conferenceRooms: ConferenceRoomsResource;
   /** FreeSWITCH Connector CRUD. */
-  readonly freeswitchConnectors: FabricResourcePUT;
+  readonly freeswitchConnectors: FabricResourcePUT<
+    FreeswitchConnectorListResponse,
+    FreeswitchConnectorResponse,
+    Partial<FreeswitchConnectorCreateRequest>,
+    Partial<FreeswitchConnectorUpdateRequest>
+  >;
   /** Subscriber CRUD plus nested SIP endpoint management. */
   readonly subscribers: SubscribersResource;
   /** Top-level SIP endpoint CRUD. */
-  readonly sipEndpoints: FabricResourcePUT;
+  readonly sipEndpoints: FabricResourcePUT<
+    SipEndpointListResponse,
+    SipEndpointResponse,
+    Partial<SipEndpointCreateRequest>,
+    Partial<SipEndpointUpdateRequest>
+  >;
   /** cXML (LaML) script CRUD. */
-  readonly cxmlScripts: FabricResourcePUT;
+  readonly cxmlScripts: FabricResourcePUT<
+    CXMLScriptListResponse,
+    CXMLScriptResponse,
+    Partial<CXMLScriptCreateRequest>,
+    Partial<CXMLScriptUpdateRequest>
+  >;
   /** cXML application read / update / delete (no create). */
   readonly cxmlApplications: CxmlApplicationsResource;
 
@@ -454,9 +648,19 @@ export class FabricNamespace {
    */
   readonly swmlWebhooks: SwmlWebhooksResource;
   /** AI Agent CRUD — the platform-managed agent registration resource. */
-  readonly aiAgents: FabricResource;
+  readonly aiAgents: FabricResource<
+    AIAgentListResponse,
+    AIAgentResponse,
+    Partial<AIAgentCreateRequest>,
+    Partial<AIAgentUpdateRequest>
+  >;
   /** SIP Gateway CRUD. */
-  readonly sipGateways: FabricResource;
+  readonly sipGateways: FabricResource<
+    SipGatewayListResponse,
+    SipGatewayResponse,
+    Partial<SipGatewayRequest>,
+    Partial<SipGatewayRequestUpdate>
+  >;
   /**
    * cXML webhook CRUD. **Auto-materialized** as a side-effect of
    * {@link PhoneNumbersResource.setCxmlWebhook}; direct `create` produces
@@ -476,14 +680,39 @@ export class FabricNamespace {
     const base = '/api/fabric/resources';
 
     // PUT-update resources
-    this.swmlScripts = new FabricResourcePUT(http, `${base}/swml_scripts`);
-    this.relayApplications = new FabricResourcePUT(http, `${base}/relay_applications`);
+    this.swmlScripts = new FabricResourcePUT<
+      SwmlScriptListResponse,
+      SwmlScriptResponse,
+      Partial<SwmlScriptCreateRequest>,
+      Partial<SwmlScriptUpdateRequest>
+    >(http, `${base}/swml_scripts`);
+    this.relayApplications = new FabricResourcePUT<
+      RelayApplicationListResponse,
+      RelayApplicationResponse,
+      Partial<RelayApplicationCreateRequest>,
+      Partial<RelayApplicationUpdateRequest>
+    >(http, `${base}/relay_applications`);
     this.callFlows = new CallFlowsResource(http, `${base}/call_flows`);
     this.conferenceRooms = new ConferenceRoomsResource(http, `${base}/conference_rooms`);
-    this.freeswitchConnectors = new FabricResourcePUT(http, `${base}/freeswitch_connectors`);
+    this.freeswitchConnectors = new FabricResourcePUT<
+      FreeswitchConnectorListResponse,
+      FreeswitchConnectorResponse,
+      Partial<FreeswitchConnectorCreateRequest>,
+      Partial<FreeswitchConnectorUpdateRequest>
+    >(http, `${base}/freeswitch_connectors`);
     this.subscribers = new SubscribersResource(http, `${base}/subscribers`);
-    this.sipEndpoints = new FabricResourcePUT(http, `${base}/sip_endpoints`);
-    this.cxmlScripts = new FabricResourcePUT(http, `${base}/cxml_scripts`);
+    this.sipEndpoints = new FabricResourcePUT<
+      SipEndpointListResponse,
+      SipEndpointResponse,
+      Partial<SipEndpointCreateRequest>,
+      Partial<SipEndpointUpdateRequest>
+    >(http, `${base}/sip_endpoints`);
+    this.cxmlScripts = new FabricResourcePUT<
+      CXMLScriptListResponse,
+      CXMLScriptResponse,
+      Partial<CXMLScriptCreateRequest>,
+      Partial<CXMLScriptUpdateRequest>
+    >(http, `${base}/cxml_scripts`);
     this.cxmlApplications = new CxmlApplicationsResource(http, `${base}/cxml_applications`);
 
     // PATCH-update resources
@@ -491,8 +720,18 @@ export class FabricNamespace {
     // phoneNumbers.setSwmlWebhook / setCxmlWebhook. Direct create still
     // works for backcompat but emits a deprecation warning.
     this.swmlWebhooks = new SwmlWebhooksResource(http, `${base}/swml_webhooks`);
-    this.aiAgents = new FabricResource(http, `${base}/ai_agents`);
-    this.sipGateways = new FabricResource(http, `${base}/sip_gateways`);
+    this.aiAgents = new FabricResource<
+      AIAgentListResponse,
+      AIAgentResponse,
+      Partial<AIAgentCreateRequest>,
+      Partial<AIAgentUpdateRequest>
+    >(http, `${base}/ai_agents`);
+    this.sipGateways = new FabricResource<
+      SipGatewayListResponse,
+      SipGatewayResponse,
+      Partial<SipGatewayRequest>,
+      Partial<SipGatewayRequestUpdate>
+    >(http, `${base}/sip_gateways`);
     this.cxmlWebhooks = new CxmlWebhooksResource(http, `${base}/cxml_webhooks`);
 
     // Special resources

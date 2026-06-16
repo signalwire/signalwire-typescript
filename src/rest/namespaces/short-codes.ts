@@ -2,11 +2,15 @@
  * Short Codes namespace — list, get, update (no create/delete).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  ListShortCodesResponse,
+  RetrieveShortCodeResponse,
+  UpdateShortCodeRequest,
+  UpdateShortCodeResponse,
+} from './relay-rest.types.generated.js';
 
 /**
  * Short code management (read + update only).
@@ -25,8 +29,8 @@ export class ShortCodesResource extends BaseResource {
    * @returns A paginated list of short codes.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ListShortCodesResponse> {
+    return this._http.get<ListShortCodesResponse>(this._basePath, params);
   }
 
   /**
@@ -36,8 +40,8 @@ export class ShortCodesResource extends BaseResource {
    * @returns The short-code record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(shortCodeId: string): Promise<any> {
-    return this._http.get(this._path(shortCodeId));
+  async get(shortCodeId: string): Promise<RetrieveShortCodeResponse> {
+    return this._http.get<RetrieveShortCodeResponse>(this._path(shortCodeId));
   }
 
   /**
@@ -48,7 +52,10 @@ export class ShortCodesResource extends BaseResource {
    * @returns The updated short-code record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(shortCodeId: string, body: any): Promise<any> {
-    return this._http.put(this._path(shortCodeId), body);
+  async update(
+    shortCodeId: string,
+    body: Partial<UpdateShortCodeRequest> = {},
+  ): Promise<UpdateShortCodeResponse> {
+    return this._http.put<UpdateShortCodeResponse>(this._path(shortCodeId), body);
   }
 }

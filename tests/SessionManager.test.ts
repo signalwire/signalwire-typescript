@@ -187,7 +187,10 @@ describe('SessionManager', () => {
     const sm = new SessionManager(1); // 1 second expiry
     sm.setSessionMetadata('old-session', { a: 1 });
     // Artificially age the entry by overwriting its timestamp
-    (sm as any).sessionTimestamps.set('old-session', Date.now() - 5000);
+    (sm as unknown as { sessionTimestamps: Map<string, number> }).sessionTimestamps.set(
+      'old-session',
+      Date.now() - 5000,
+    );
     sm.cleanup();
     expect(sm.getSessionMetadata('old-session')).toEqual({});
   });

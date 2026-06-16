@@ -34,7 +34,6 @@ describe('RestClient', () => {
     // would fail these checks. We additionally probe each namespace has
     // a `list` / known-shape method to catch the case where a stub
     // returned plain `{}` placeholders.
-    type Indexable = Record<string, unknown>;
     const expected: ReadonlyArray<readonly [keyof RestClient, string]> = [
       ['fabric', 'fabric'],
       ['calling', 'calling'],
@@ -70,35 +69,42 @@ describe('RestClient', () => {
 
   it('throws when project is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new RestClient({
-      token: 'tok',
-      host: 'test.signalwire.com',
-      fetchImpl,
-    })).toThrow(/project, token, and host are required/);
+    expect(
+      () =>
+        new RestClient({
+          token: 'tok',
+          host: 'test.signalwire.com',
+          fetchImpl,
+        }),
+    ).toThrow(/project, token, and host are required/);
   });
 
   it('throws when token is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new RestClient({
-      project: 'proj',
-      host: 'test.signalwire.com',
-      fetchImpl,
-    })).toThrow(/project, token, and host are required/);
+    expect(
+      () =>
+        new RestClient({
+          project: 'proj',
+          host: 'test.signalwire.com',
+          fetchImpl,
+        }),
+    ).toThrow(/project, token, and host are required/);
   });
 
   it('throws when host is missing', () => {
     const [fetchImpl] = createMockFetch();
-    expect(() => new RestClient({
-      project: 'proj',
-      token: 'tok',
-      fetchImpl,
-    })).toThrow(/project, token, and host are required/);
+    expect(
+      () =>
+        new RestClient({
+          project: 'proj',
+          token: 'tok',
+          fetchImpl,
+        }),
+    ).toThrow(/project, token, and host are required/);
   });
 
   it('reads from environment variables', async () => {
-    const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { data: [] } },
-    ]);
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
     process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
     process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
     process.env['SIGNALWIRE_SPACE'] = 'env.signalwire.com';
@@ -113,15 +119,12 @@ describe('RestClient', () => {
     const reqs = getRequests();
     expect(reqs).toHaveLength(1);
     expect(reqs[0].url).toContain('env.signalwire.com');
-    const expectedAuth =
-      'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
+    const expectedAuth = 'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
     expect(reqs[0].headers['Authorization']).toBe(expectedAuth);
   });
 
   it('explicit options override env vars', () => {
-    const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { data: [] } },
-    ]);
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
     process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
     process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
     process.env['SIGNALWIRE_SPACE'] = 'env.signalwire.com';
@@ -144,9 +147,7 @@ describe('RestClient', () => {
   });
 
   it('normalizes host without https://', () => {
-    const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { data: [] } },
-    ]);
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
     const client = new RestClient({
       project: 'proj',
       token: 'tok',
@@ -159,9 +160,7 @@ describe('RestClient', () => {
   });
 
   it('preserves https:// if already present', () => {
-    const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { data: [] } },
-    ]);
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
     const client = new RestClient({
       project: 'proj',
       token: 'tok',
@@ -175,9 +174,7 @@ describe('RestClient', () => {
   });
 
   it('compat namespace is scoped to project ID', async () => {
-    const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { calls: [] } },
-    ]);
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { calls: [] } }]);
     const client = new RestClient({
       project: 'proj-abc',
       token: 'tok',
@@ -191,10 +188,10 @@ describe('RestClient', () => {
 
   it('all namespaces route through same HttpClient', async () => {
     const [fetchImpl, getRequests] = createMockFetch([
-      { status: 200, body: { data: [] } },  // fabric
-      { status: 200, body: {} },             // calling
-      { status: 200, body: { data: [] } },   // phoneNumbers
-      { status: 200, body: { data: [] } },   // video
+      { status: 200, body: { data: [] } }, // fabric
+      { status: 200, body: {} }, // calling
+      { status: 200, body: { data: [] } }, // phoneNumbers
+      { status: 200, body: { data: [] } }, // video
     ]);
     const client = new RestClient({
       project: 'proj',

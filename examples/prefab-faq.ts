@@ -18,27 +18,31 @@ export const agent = new FAQBotAgent({
     },
     {
       question: 'How do I reset my password?',
-      answer: 'Go to the login page and click "Forgot Password". Enter your email and we\'ll send a reset link.',
+      answer:
+        'Go to the login page and click "Forgot Password". Enter your email and we\'ll send a reset link.',
       keywords: ['password', 'reset', 'forgot', 'login', 'access'],
     },
     {
       question: 'What is your return policy?',
-      answer: 'We accept returns within 30 days of purchase with a valid receipt. Items must be in original condition.',
+      answer:
+        'We accept returns within 30 days of purchase with a valid receipt. Items must be in original condition.',
       keywords: ['return', 'refund', 'exchange', 'money back'],
     },
     {
       question: 'How can I track my order?',
-      answer: 'Log into your account and go to Order History. Click on your order number to see tracking details.',
+      answer:
+        'Log into your account and go to Order History. Click on your order number to see tracking details.',
       keywords: ['track', 'order', 'shipping', 'delivery', 'where'],
     },
     {
       question: 'Do you offer international shipping?',
-      answer: 'Yes, we ship to over 50 countries. International shipping rates are calculated at checkout.',
+      answer:
+        'Yes, we ship to over 50 countries. International shipping rates are calculated at checkout.',
       keywords: ['international', 'shipping', 'overseas', 'global', 'country'],
     },
   ],
   threshold: 0.4,
-  escalationMessage: 'I couldn\'t find an answer to that. Let me connect you with a team member.',
+  escalationMessage: "I couldn't find an answer to that. Let me connect you with a team member.",
   escalationNumber: '+18005551234',
   agentOptions: {
     route: '/',

@@ -2,14 +2,26 @@
  * Datasphere API namespace — document management and semantic search.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  Document,
+  DocumentListResponse,
+  DocumentCreateRequest,
+  DocumentSearchRequest,
+  SearchResponse,
+  ChunkListResponse,
+  Chunk,
+} from './datasphere.types.generated.js';
 
 /** Document management with search and chunk operations. */
-export class DatasphereDocuments extends CrudResource {
+export class DatasphereDocuments extends CrudResource<
+  DocumentListResponse,
+  Document,
+  DocumentCreateRequest,
+  Partial<DocumentCreateRequest>
+> {
   constructor(http: HttpClient) {
     super(http, '/api/datasphere/documents');
   }
@@ -22,7 +34,7 @@ export class DatasphereDocuments extends CrudResource {
    * @returns The ranked search hits.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async search(body: any): Promise<any> {
+  async search(body: DocumentSearchRequest): Promise<SearchResponse> {
     return this._http.post(this._path('search'), body);
   }
 
@@ -34,7 +46,7 @@ export class DatasphereDocuments extends CrudResource {
    * @returns A paginated list of chunks.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listChunks(documentId: string, params?: QueryParams): Promise<any> {
+  async listChunks(documentId: string, params?: QueryParams): Promise<ChunkListResponse> {
     return this._http.get(this._path(documentId, 'chunks'), params);
   }
 
@@ -46,7 +58,7 @@ export class DatasphereDocuments extends CrudResource {
    * @returns The chunk record with its content.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getChunk(documentId: string, chunkId: string): Promise<any> {
+  async getChunk(documentId: string, chunkId: string): Promise<Chunk> {
     return this._http.get(this._path(documentId, 'chunks', chunkId));
   }
 
@@ -58,7 +70,7 @@ export class DatasphereDocuments extends CrudResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteChunk(documentId: string, chunkId: string): Promise<any> {
+  async deleteChunk(documentId: string, chunkId: string): Promise<unknown> {
     return this._http.delete(this._path(documentId, 'chunks', chunkId));
   }
 }

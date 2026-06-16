@@ -82,6 +82,10 @@ signalwire.relay.call.StandaloneCollectAction.__init__: TS constructor signature
 signalwire.relay.call.StreamAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.TapAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.TranscribeAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.relay.call.Call.device: TS declares `device: Device` as a typed class field; Python has the same attribute but sets it dynamically (`self.device = device or {}`), so the static signature enumerator records it "in port, not in reference". Same attribute, stronger TS typing (the Device union from the Tier-3 typed-objects pass).
+signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
+signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
+signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.client.RelayClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.client.RelayError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.event.CallReceiveEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -473,6 +477,7 @@ signalwire.core.security.session_manager.SessionManager.get_session_metadata: BA
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: BACKLOG / param-count-mismatch/ reference has 4 param(s), port has 3/ reference=['self', 'call_id', 'key', 'valu; return-mismatch/
 signalwire.core.security_config.SecurityConfig.get_basic_auth: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.security_config.SecurityConfig.validate_ssl_config: BACKLOG / missing-port/ in reference, not in port
+signalwire.core.skill_base.define_skill_tool: TS port-only module-level helper — the getTools()-level counterpart to SWMLService.defineTool's schema→handler-args inference (infers a tool entry's handler `args` from its `parameters`+`required`). No Python equivalent: Python skills hand-write loose Dict[str, Any] tool dicts. Adds author-side typing only; wire emission byte-identical.
 signalwire.core.skill_base.SkillBase.define_tool: BACKLOG / param-mismatch/ param[1] (kwargs)/ name 'kwargs' vs 'tool_def'; kind 'var_keyword' vs 'positiona
 signalwire.core.skill_base.SkillBase.get_parameter_schema: BACKLOG / param-count-mismatch/ reference has 1 param(s), port has 0/ reference=['cls'] port=[]; return-mismatch/ returns 'dict<st
 signalwire.core.skill_base.SkillBase.validate_env_vars: BACKLOG / return-mismatch/ returns 'bool' vs 'list<string>'
@@ -1083,6 +1088,21 @@ signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params r
 ## POM SectionData vs dict<string,any>
 
 signalwire.pom.pom.PromptObjectModel.to_dict: TS returns `list<class:signalwire.pom.pom.SectionData>` where SectionData is a typed shape; Python returns the equivalent `list<dict<string,any>>`. Same JSON-serializable structure with stronger TS typing.
+
+## Typed payload/serializer shapes vs dict<string,any> (idiomatic TS, same wire)
+
+Where Python types a webhook payload or serializer output as `Dict[str, Any]`, the
+TS port captures the actual wire shape as a named interface (sourced from the
+canonical backend contract / the serializer itself). Same JSON structure, byte-
+identical emission (proven by the EMISSION gate); the TS type is strictly richer.
+Per-port idiom: TS prefers a named shape over an opaque dict.
+
+signalwire.core.contexts.Context.to_dict: TS returns `class:...ContextDict` (named shape of the emitted context dict); Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.contexts.GatherInfo.to_dict: TS returns `class:...GatherInfoDict`; Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.contexts.Step.to_dict: TS returns `class:...StepDict`; Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
+signalwire.core.function_result.FunctionResult.to_dict: TS returns `class:...SwaigResultDict` (typed `{response?, action?, post_process?}`); Python returns the equivalent `dict<string,any>`. Same SWAIG response JSON, stronger TS typing.
+signalwire.core.mixins.web_mixin.WebMixin.on_request: TS types the request body param as `class:...SwmlRequestData` (the canonical dynamic-SWML request shape, swml.md); Python types it `Optional[Dict[str, Any]]`. Same payload, stronger TS typing.
+signalwire.core.skill_base.SkillBase.get_skill_data: TS types the raw_data param as `class:...SwaigRequestData` (the canonical SWAIG-webhook request shape, swml.md); Python types it `Dict[str, Any]`. Same payload, stronger TS typing.
 
 ## Webhook validator: optional<union<...>> vs union<...,void>
 

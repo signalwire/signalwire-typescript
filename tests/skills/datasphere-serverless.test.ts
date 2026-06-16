@@ -3,11 +3,16 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { DataSphereServerlessSkill, createDataSphereServerlessSkill } from '../../src/skills/builtin/index.js';
+import {
+  DataSphereServerlessSkill,
+  createDataSphereServerlessSkill,
+} from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('DataSphereServerlessSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -41,7 +46,9 @@ describe('DataSphereServerlessSkill', () => {
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
-    expect(new DataSphereServerlessSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
+    expect(new DataSphereServerlessSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(
+      0,
+    );
   });
 
   it('should return empty hints', () => {

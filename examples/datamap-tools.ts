@@ -7,12 +7,7 @@
  * Run: npx tsx examples/datamap-tools.ts
  */
 
-import {
-  AgentBase,
-  DataMap,
-  FunctionResult,
-  createSimpleApiTool,
-} from '../src/index.js';
+import { AgentBase, DataMap, FunctionResult, createSimpleApiTool } from '../src/index.js';
 
 export const agent = new AgentBase({
   name: 'weather-agent',
@@ -23,9 +18,7 @@ export const agent = new AgentBase({
   ],
 });
 
-agent.setPromptText(
-  'You are a weather assistant. Help users check the weather in any city.',
-);
+agent.setPromptText('You are a weather assistant. Help users check the weather in any city.');
 
 // Method 1: Build a DataMap manually with full control
 const weatherTool = new DataMap('get_weather')
@@ -37,9 +30,7 @@ const weatherTool = new DataMap('get_weather')
       'Weather in ${args.city}: ${response.current_condition[0].temp_F}°F, ${response.current_condition[0].weatherDesc[0].value}',
     ),
   )
-  .fallbackOutput(
-    new FunctionResult('Sorry, I could not fetch the weather for that city.'),
-  );
+  .fallbackOutput(new FunctionResult('Sorry, I could not fetch the weather for that city.'));
 
 agent.registerSwaigFunction(weatherTool.toSwaigFunction());
 

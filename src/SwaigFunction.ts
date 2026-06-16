@@ -3,8 +3,9 @@
  */
 
 import Ajv from 'ajv';
-import { FunctionResult } from './FunctionResult.js';
+import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
+import type { SwaigRequestData } from './PlatformContracts.js';
 
 const ajv = new Ajv({ allErrors: true });
 
@@ -18,8 +19,12 @@ const log = getLogger('SwaigFunction');
  */
 export type SwaigHandler = (
   args: Record<string, unknown>,
-  rawData: Record<string, unknown>,
-) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
+  rawData: SwaigRequestData,
+) =>
+  | FunctionResult
+  | Record<string, unknown>
+  | string
+  | Promise<FunctionResult | Record<string, unknown> | string>;
 
 /** Configuration options for creating a SwaigFunction. */
 export interface SwaigFunctionOptions {
@@ -212,10 +217,13 @@ export class SwaigFunction {
    */
   async execute(
     args: Record<string, unknown>,
-    rawData?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+    rawData?: SwaigRequestData,
+  ): Promise<SwaigResultDict> {
     try {
-      const result = await this.handler(args, rawData ?? {});
+      // Runtime fallback is the empty object (unchanged); the cast is
+      // compile-time only — the backend always sends the full payload, but
+      // `execute` allows callers to omit it (e.g. CLI/test harnesses).
+      const result = await this.handler(args, rawData ?? ({} as SwaigRequestData));
       if (result instanceof FunctionResult) {
         return result.toDict();
       }
@@ -226,7 +234,9 @@ export class SwaigFunction {
         return new FunctionResult('Function completed successfully').toDict();
       }
       if (typeof result === 'object' && result !== null) {
-        return result as Record<string, unknown>;
+        // Handler returned a plain object that already carries a `response`
+        // key — it IS the SWAIG response dict; pass it through unchanged.
+        return result as SwaigResultDict;
       }
       // Neither a FunctionResult nor a dict — warn and fall back to
       // wrapping the stringified value. See Python's web_mixin /

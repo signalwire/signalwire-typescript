@@ -1,7 +1,7 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ cf978ffdfb1fc32a3f61a1f011470eb79e36499f",
-  "typescript_version": "5.9.3",
+  "generated_from": "signalwire-typescript @ d6e0ffb6157a231037311bf8bbe35795e1d4bdb3",
+  "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -67,15 +67,6 @@
           "set_post_prompt",
           "set_prompt_pom",
           "set_prompt_text"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.core.agent.tools.registry": {
-      "classes": {
-        "ToolRegistry": [
-          "__init__",
-          "define_tool"
         ]
       },
       "functions": []
@@ -458,7 +449,6 @@
     "signalwire.core.mixins.tool_mixin": {
       "classes": {
         "ToolMixin": [
-          "define_tool",
           "define_tools",
           "on_function_call"
         ]
@@ -592,7 +582,9 @@
           "validate_packages"
         ]
       },
-      "functions": []
+      "functions": [
+        "define_skill_tool"
+      ]
     },
     "signalwire.core.skill_manager": {
       "classes": {

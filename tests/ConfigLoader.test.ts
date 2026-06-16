@@ -8,16 +8,22 @@ const TEST_DIR = join(process.cwd(), '__config_test_tmp__');
 describe('ConfigLoader', () => {
   beforeAll(() => {
     mkdirSync(TEST_DIR, { recursive: true });
-    writeFileSync(join(TEST_DIR, 'test.json'), JSON.stringify({
-      server: { host: '0.0.0.0', port: 3000 },
-      name: 'test-agent',
-      nested: { deep: { value: 42 } },
-    }));
-    writeFileSync(join(TEST_DIR, 'env-test.json'), JSON.stringify({
-      host: '${TEST_CONFIG_HOST|localhost}',
-      port: '${TEST_CONFIG_PORT|8080}',
-      secret: '${TEST_CONFIG_SECRET}',
-    }));
+    writeFileSync(
+      join(TEST_DIR, 'test.json'),
+      JSON.stringify({
+        server: { host: '0.0.0.0', port: 3000 },
+        name: 'test-agent',
+        nested: { deep: { value: 42 } },
+      }),
+    );
+    writeFileSync(
+      join(TEST_DIR, 'env-test.json'),
+      JSON.stringify({
+        host: '${TEST_CONFIG_HOST|localhost}',
+        port: '${TEST_CONFIG_PORT|8080}',
+        secret: '${TEST_CONFIG_SECRET}',
+      }),
+    );
   });
 
   afterAll(() => {
@@ -124,8 +130,7 @@ describe('ConfigLoader', () => {
     const config = new ConfigLoader();
     config.loadFromObject({});
     config.set('__proto__.polluted', true);
-    // @ts-expect-error - checking prototype pollution
-    expect(({} as any).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it('set() with constructor key is silently ignored', () => {

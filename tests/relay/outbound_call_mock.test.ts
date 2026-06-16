@@ -15,8 +15,6 @@
  * `dial_winner: true`).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
@@ -35,7 +33,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -61,10 +63,7 @@ describe('Dial — happy path', () => {
       device: phoneDevice(),
       delay_ms: 1,
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-happy', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-happy', dialTimeout: 5.0 });
     expect(call).toBeInstanceOf(Call);
     expect(call.callId).toBe('winner-1');
     expect(call.tag).toBe('t-happy');
@@ -80,10 +79,7 @@ describe('Dial — happy path', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-frame', dialTimeout: 5.0 },
-    );
+    await client.dial([[phoneDevice()]], { tag: 't-frame', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     const p = entry!.frame.params;
     expect(p.tag).toBe('t-frame');
@@ -99,10 +95,7 @@ describe('Dial — happy path', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-md', maxDuration: 300, dialTimeout: 5.0 },
-    );
+    await client.dial([[phoneDevice()]], { tag: 't-md', maxDuration: 300, dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     expect(entry!.frame.params.max_duration).toBe(300);
   });
@@ -214,10 +207,7 @@ describe('Dial — winner / losers', () => {
         { call_id: 'LOSE-B', states: ['created', 'ended'] },
       ],
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-winner', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-winner', dialTimeout: 5.0 });
     expect(call.callId).toBe('WIN-ID');
 
     const sends = await mock.journalSend('calling.call.dial');
@@ -238,15 +228,12 @@ describe('Dial — winner / losers', () => {
       device: phoneDevice(),
       losers: [{ call_id: 'L1', states: ['created', 'ended'] }],
     });
-    await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-losers', dialTimeout: 5.0 },
-    );
+    await client.dial([[phoneDevice()]], { tag: 't-losers', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const loserStates = stateEvents
       .filter((e) => e.frame.params.params?.call_id === 'L1')
       .map((e) => e.frame.params.params);
-    expect(loserStates.some((s: any) => s.call_state === 'ended')).toBe(true);
+    expect(loserStates.some((s) => s.call_state === 'ended')).toBe(true);
   });
 
   it('test_dial_losers_cleaned_up_from_calls_dict', async () => {
@@ -258,12 +245,9 @@ describe('Dial — winner / losers', () => {
       device: phoneDevice(),
       losers: [{ call_id: 'LOSE-CL', states: ['created', 'ended'] }],
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-cleanup', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-cleanup', dialTimeout: 5.0 });
     await new Promise((r) => setTimeout(r, 200));
-    const calls = (client as any)._calls as Map<string, Call>;
+    const calls = (client as unknown as { _calls: Map<string, Call> })._calls;
     expect(calls.has('LOSE-CL')).toBe(false);
     expect(calls.has(call.callId)).toBe(true);
   });
@@ -282,12 +266,7 @@ describe('Dial — devices shape', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const devs = [
-      [
-        phoneDevice('+15551110001'),
-        phoneDevice('+15551110002'),
-      ],
-    ];
+    const devs = [[phoneDevice('+15551110001'), phoneDevice('+15551110002')]];
     await client.dial(devs, { tag: 't-serial', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     const params = entry!.frame.params;
@@ -304,10 +283,7 @@ describe('Dial — devices shape', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const devs = [
-      [phoneDevice('+15551110001')],
-      [phoneDevice('+15551110002')],
-    ];
+    const devs = [[phoneDevice('+15551110001')], [phoneDevice('+15551110002')]];
     await client.dial(devs, { tag: 't-par', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     expect(entry!.frame.params.devices.length).toBe(2);
@@ -327,10 +303,7 @@ describe('Dial — state progression', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-prog', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-prog', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const winnerStates = stateEvents
       .filter((e) => e.frame.params.params?.call_id === 'WIN-PROG')
@@ -355,10 +328,7 @@ describe('Dial — usable call after answer', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-after', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-after', dialTimeout: 5.0 });
     await call.hangup();
     const ends = await mock.journalRecv('calling.end');
     expect(ends.length).toBeGreaterThan(0);
@@ -373,10 +343,7 @@ describe('Dial — usable call after answer', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 't-play', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], { tag: 't-play', dialTimeout: 5.0 });
     await call.play([{ type: 'tts', params: { text: 'hi' } }]);
     const plays = await mock.journalRecv('calling.play');
     expect(plays.length).toBeGreaterThan(0);
@@ -399,10 +366,10 @@ describe('Dial — tag preservation', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    const call = await client.dial(
-      [[phoneDevice()]],
-      { tag: 'my-very-explicit-tag-99', dialTimeout: 5.0 },
-    );
+    const call = await client.dial([[phoneDevice()]], {
+      tag: 'my-very-explicit-tag-99',
+      dialTimeout: 5.0,
+    });
     expect(call.tag).toBe('my-very-explicit-tag-99');
   });
 });

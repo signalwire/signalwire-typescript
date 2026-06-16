@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, setGlobalLogStream, resetLoggingConfiguration, getExecutionMode } from '../src/Logger.js';
+import {
+  Logger,
+  getLogger,
+  setGlobalLogLevel,
+  suppressAllLogs,
+  setGlobalLogFormat,
+  setGlobalLogColor,
+  setGlobalLogStream,
+  resetLoggingConfiguration,
+  getExecutionMode,
+} from '../src/Logger.js';
 
 describe('Logger', () => {
   let spyDebug: ReturnType<typeof vi.spyOn>;
@@ -190,9 +200,7 @@ describe('Logger', () => {
   });
 
   it('bind context can be chained', () => {
-    const log = new Logger('test')
-      .bind({ callId: 'c1' })
-      .bind({ step: 'auth' });
+    const log = new Logger('test').bind({ callId: 'c1' }).bind({ step: 'auth' });
     log.info('ok');
     const output = spyInfo.mock.calls[0][0] as string;
     expect(output).toContain('callId=c1');
@@ -412,7 +420,7 @@ describe('Logger', () => {
 
   it('null and undefined values are rendered in key=value mode', () => {
     const log = new Logger('kv-test');
-    log.info('op', { a: null as any, b: undefined as any });
+    log.info('op', { a: null, b: undefined });
     const output = spyInfo.mock.calls[0][0] as string;
     expect(output).toContain('a=null');
     expect(output).toContain('b=undefined');

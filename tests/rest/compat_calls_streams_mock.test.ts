@@ -68,7 +68,9 @@ describe('CompatCalls.stopStream(callSid, streamSid, body) -> POST .../Streams/{
 
 describe('CompatCalls.updateRecording(callSid, recSid, body)', () => {
   it('returns_recording_resource', async () => {
-    const result = await client.compat.calls.updateRecording('CA_T2', 'RE_T2', { Status: 'paused' });
+    const result = await client.compat.calls.updateRecording('CA_T2', 'RE_T2', {
+      Status: 'paused',
+    });
     expect(typeof result).toBe('object');
     expect(result).not.toBeNull();
     // Recording resources carry a sid plus duration/status fields.

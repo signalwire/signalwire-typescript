@@ -8,17 +8,32 @@ export { DateTimeSkill, createSkill as createDateTimeSkill } from './datetime.js
 export { MathSkill, createSkill as createMathSkill } from './math.js';
 export { JokeSkill, createSkill as createJokeSkill } from './joke.js';
 export { WeatherApiSkill, createSkill as createWeatherApiSkill } from './weather_api.js';
-export { PlayBackgroundFileSkill, createSkill as createPlayBackgroundFileSkill } from './play_background_file.js';
+export {
+  PlayBackgroundFileSkill,
+  createSkill as createPlayBackgroundFileSkill,
+} from './play_background_file.js';
 export { SwmlTransferSkill, createSkill as createSwmlTransferSkill } from './swml_transfer.js';
-export { ApiNinjasTriviaSkill, createSkill as createApiNinjasTriviaSkill } from './api_ninjas_trivia.js';
+export {
+  ApiNinjasTriviaSkill,
+  createSkill as createApiNinjasTriviaSkill,
+} from './api_ninjas_trivia.js';
 export { InfoGathererSkill, createSkill as createInfoGathererSkill } from './info_gatherer.js';
 export { CustomSkillsSkill, createSkill as createCustomSkillsSkill } from './custom_skills.js';
 export { WebSearchSkill, createSkill as createWebSearchSkill } from './web_search.js';
-export { WikipediaSearchSkill, createSkill as createWikipediaSearchSkill } from './wikipedia_search.js';
+export {
+  WikipediaSearchSkill,
+  createSkill as createWikipediaSearchSkill,
+} from './wikipedia_search.js';
 export { GoogleMapsSkill, createSkill as createGoogleMapsSkill } from './google_maps.js';
 export { DataSphereSkill, createSkill as createDataSphereSkill } from './datasphere.js';
-export { DataSphereServerlessSkill, createSkill as createDataSphereServerlessSkill } from './datasphere_serverless.js';
-export { NativeVectorSearchSkill, createSkill as createNativeVectorSearchSkill } from './native_vector_search.js';
+export {
+  DataSphereServerlessSkill,
+  createSkill as createDataSphereServerlessSkill,
+} from './datasphere_serverless.js';
+export {
+  NativeVectorSearchSkill,
+  createSkill as createNativeVectorSearchSkill,
+} from './native_vector_search.js';
 export { SpiderSkill, createSkill as createSpiderSkill } from './spider.js';
 export { ClaudeSkillsSkill, createSkill as createClaudeSkillsSkill } from './claude_skills.js';
 export { AskClaudeSkill, createSkill as createAskClaudeSkill } from './ask_claude.js';

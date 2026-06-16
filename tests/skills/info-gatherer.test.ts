@@ -7,7 +7,9 @@ import { InfoGathererSkill, createInfoGathererSkill } from '../../src/skills/bui
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 // ── Basic skill identity + setup contract ──────────────────────────────────
 
@@ -33,15 +35,11 @@ describe('InfoGathererSkill', () => {
 
   it('should return false from setup when questions is an empty array', async () => {
     // Python parity: skill.py:301 — `At least one question is required`.
-    await expect(
-      new InfoGathererSkill({ questions: [] }).setup(),
-    ).resolves.toBe(false);
+    await expect(new InfoGathererSkill({ questions: [] }).setup()).resolves.toBe(false);
   });
 
   it('should return false from setup when questions is not an array', async () => {
-    await expect(
-      new InfoGathererSkill({ questions: 'not-an-array' }).setup(),
-    ).resolves.toBe(false);
+    await expect(new InfoGathererSkill({ questions: 'not-an-array' }).setup()).resolves.toBe(false);
   });
 
   it('should return false from setup when a question is missing key_name', async () => {
@@ -59,9 +57,7 @@ describe('InfoGathererSkill', () => {
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
-    expect(
-      new InfoGathererSkill({ skip_prompt: true }).getPromptSections(),
-    ).toHaveLength(0);
+    expect(new InfoGathererSkill({ skip_prompt: true }).getPromptSections()).toHaveLength(0);
   });
 
   it('should return empty hints', () => {
@@ -88,14 +84,15 @@ describe('InfoGathererSkill — sequential question flow', () => {
   const QUESTIONS = [
     { key_name: 'first_name', question_text: 'What is your first name?' },
     { key_name: 'last_name', question_text: 'What is your last name?', confirm: true },
-    { key_name: 'city', question_text: 'What city do you live in?', prompt_add: 'City only, please.' },
+    {
+      key_name: 'city',
+      question_text: 'What city do you live in?',
+      prompt_add: 'City only, please.',
+    },
   ];
 
   // Helper: build a rawData envelope with skill state seeded under the given namespace.
-  function makeRawData(
-    namespace: string,
-    state: Record<string, unknown>,
-  ): Record<string, unknown> {
+  function makeRawData(namespace: string, state: Record<string, unknown>): Record<string, unknown> {
     return { global_data: { [namespace]: state } };
   }
 
@@ -129,16 +126,32 @@ describe('InfoGathererSkill — sequential question flow', () => {
     // Answer question 1
     let state: Record<string, unknown> = { questions: QUESTIONS, question_index: 0, answers: [] };
     let rawData = makeRawData(namespace, state);
-    let result = submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as { response: string };
+    submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData);
     // Advance state (simulate updateSkillData)
-    state = { questions: QUESTIONS, question_index: 1, answers: [{ key_name: 'first_name', answer: 'Alice' }] };
+    state = {
+      questions: QUESTIONS,
+      question_index: 1,
+      answers: [{ key_name: 'first_name', answer: 'Alice' }],
+    };
     // Answer question 2 (requires confirmation)
     rawData = makeRawData(namespace, state);
-    result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as { response: string };
-    state = { questions: QUESTIONS, question_index: 2, answers: [{ key_name: 'first_name', answer: 'Alice' }, { key_name: 'last_name', answer: 'Smith' }] };
+    submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData);
+    state = {
+      questions: QUESTIONS,
+      question_index: 2,
+      answers: [
+        { key_name: 'first_name', answer: 'Alice' },
+        { key_name: 'last_name', answer: 'Smith' },
+      ],
+    };
     // Answer question 3 — last question
     rawData = makeRawData(namespace, state);
-    result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as { response: string };
+    const result = submitTool.handler(
+      { answer: 'Portland', confirmed_by_user: false },
+      rawData,
+    ) as {
+      response: string;
+    };
     expect(result.response).toBe(custom);
   });
 
@@ -179,7 +192,9 @@ describe('InfoGathererSkill — sequential question flow', () => {
   });
 
   it('getInstanceKey() — returns "info_gatherer_<prefix>" when prefix set', () => {
-    expect(new InfoGathererSkill({ prefix: 'intake' }).getInstanceKey()).toBe('info_gatherer_intake');
+    expect(new InfoGathererSkill({ prefix: 'intake' }).getInstanceKey()).toBe(
+      'info_gatherer_intake',
+    );
   });
 
   // ── getGlobalData() ──────────────────────────────────────────────────
@@ -237,7 +252,11 @@ describe('InfoGathererSkill — sequential question flow', () => {
     await skill.setup();
     const startTool = skill.getTools()[0];
     const namespace = skill.getSkillNamespace();
-    const rawData = makeRawData(namespace, { questions: QUESTIONS, question_index: 0, answers: [] });
+    const rawData = makeRawData(namespace, {
+      questions: QUESTIONS,
+      question_index: 0,
+      answers: [],
+    });
     const result = startTool.handler({}, rawData) as { response: string };
     expect(result.response).toContain('q_submit_answer');
   });
@@ -264,7 +283,10 @@ describe('InfoGathererSkill — sequential question flow', () => {
     const state = { questions: QUESTIONS, question_index: 0, answers: [] };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as { response: string; action: Record<string, unknown>[] };
+    const result = submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as {
+      response: string;
+      action: Record<string, unknown>[];
+    };
     // Should return the second question instruction
     expect(result.response).toContain(QUESTIONS[1].question_text);
     expect(result.response).toContain('Question 2 of 3');
@@ -284,7 +306,9 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: false }, rawData) as { response: string };
+    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: false }, rawData) as {
+      response: string;
+    };
     expect(result.response).toContain('must read the answer');
     expect(result.response).toContain('"Smith"');
   });
@@ -302,7 +326,9 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as { response: string };
+    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
+      response: string;
+    };
     // Should proceed to question 3
     expect(result.response).toContain(QUESTIONS[2].question_text);
     expect(result.response).toContain('Question 3 of 3');
@@ -322,7 +348,9 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
     // Answer q2 with confirmation
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as { response: string };
+    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
+      response: string;
+    };
     expect(result.response).toContain('City only, please.');
   });
 
@@ -342,13 +370,19 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as { response: string; action: Record<string, unknown>[] };
+    const result = submitTool.handler(
+      { answer: 'Portland', confirmed_by_user: false },
+      rawData,
+    ) as { response: string; action: Record<string, unknown>[] };
     // Response should be the completion message
     expect(result.response).toContain('Thank you! All questions have been answered');
     // Action should include toggle_functions to disable both tools
     const toggleAction = result.action.find((a) => 'toggle_functions' in a);
     expect(toggleAction).toBeDefined();
-    const toggles = toggleAction!['toggle_functions'] as Array<{ function: string; active: boolean }>;
+    const toggles = toggleAction!['toggle_functions'] as Array<{
+      function: string;
+      active: boolean;
+    }>;
     const startToggle = toggles.find((t) => t.function === 'start_questions');
     const submitToggle = toggles.find((t) => t.function === 'submit_answer');
     expect(startToggle?.active).toBe(false);
@@ -370,7 +404,10 @@ describe('InfoGathererSkill — sequential question flow', () => {
       ],
     };
     const rawData = makeRawData(namespace, state);
-    const result = submitTool.handler({ answer: 'Portland', confirmed_by_user: false }, rawData) as { response: string; action: Record<string, unknown>[] };
+    const result = submitTool.handler(
+      { answer: 'Portland', confirmed_by_user: false },
+      rawData,
+    ) as { response: string; action: Record<string, unknown>[] };
 
     const globalDataAction = result.action.find((a) => 'set_global_data' in a);
     expect(globalDataAction).toBeDefined();
@@ -396,7 +433,9 @@ describe('InfoGathererSkill — sequential question flow', () => {
       ],
     };
     const rawData = makeRawData(namespace, state);
-    const result = submitTool.handler({ answer: 'extra', confirmed_by_user: false }, rawData) as { response: string };
+    const result = submitTool.handler({ answer: 'extra', confirmed_by_user: false }, rawData) as {
+      response: string;
+    };
     expect(result.response).toBe('All questions have already been answered.');
   });
 

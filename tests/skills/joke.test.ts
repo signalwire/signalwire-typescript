@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('JokeSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -20,10 +22,15 @@ describe('JokeSkill', () => {
     await expect(new JokeSkill().setup()).resolves.toBe(true);
   });
 
-  it('should register a tell_joke tool', () => {
+  it('should register a get_joke tool matching the Python interface', () => {
     const tools = new JokeSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('tell_joke');
+    // Interface matches Python (joke/skill.py:68-77): name get_joke, required
+    // `type` param, enum jokes|dadjokes. (Offline impl; Python uses API-Ninjas.)
+    expect(tools[0].name).toBe('get_joke');
+    expect(tools[0].required).toEqual(['type']);
+    const typeParam = (tools[0].parameters as Record<string, { enum?: string[] }>)['type'];
+    expect(typeParam.enum).toEqual(['jokes', 'dadjokes']);
   });
 
   it('should provide prompt sections', () => {
@@ -43,10 +50,10 @@ describe('JokeSkill', () => {
   });
 
   it('should use a configurable tool_name', () => {
-    const skill = new JokeSkill({ tool_name: 'get_joke' });
+    const skill = new JokeSkill({ tool_name: 'make_me_laugh' });
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_joke');
+    expect(tools[0].name).toBe('make_me_laugh');
   });
 
   it('should return correct manifest', () => {
@@ -55,28 +62,22 @@ describe('JokeSkill', () => {
     expect(klass.SKILL_VERSION).toBe('1.0.0');
   });
 
-  it('should return a joke from any category', () => {
+  it('should return a regular joke for type "jokes"', () => {
     const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({}, {}) as FunctionResult;
+    const result = handler({ type: 'jokes' }, {}) as FunctionResult;
+    expect(result).toBeInstanceOf(FunctionResult);
+    // A real joke from the collection: setup ... punchline.
+    expect(typeof result.response).toBe('string');
+    expect(result.response).toContain('...');
+    expect((result.response as string).length).toBeGreaterThan(5);
+  });
+
+  it('should return a dad joke for type "dadjokes"', () => {
+    const handler = new JokeSkill().getTools()[0].handler;
+    const result = handler({ type: 'dadjokes' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('...');
-  });
-
-  it('should return a joke from a specific category', () => {
-    const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({ category: 'programming' }, {}) as FunctionResult;
-    // The 'programming' category must yield a real joke (a non-empty
-    // string longer than a placeholder). A stub returning the empty
-    // string or a generic "..." would now fail.
-    expect(typeof result.response).toBe('string');
     expect((result.response as string).length).toBeGreaterThan(5);
-    expect(result.response).not.toContain('Unknown');
-  });
-
-  it('should handle unknown category', () => {
-    const handler = new JokeSkill().getTools()[0].handler;
-    const result = handler({ category: 'nonexistent' }, {}) as FunctionResult;
-    expect(result.response).toContain('Unknown');
   });
 
   it('should have a parameter schema', () => {

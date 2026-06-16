@@ -77,7 +77,8 @@ class SalesSidecar extends SWMLService {
         },
       },
       handler: (args, _raw) => {
-        const competitor = (args['competitor'] as string | undefined) ?? '<unknown>';
+        // args.competitor is inferred `string | undefined` from the schema.
+        const competitor = args.competitor ?? '<unknown>';
         return {
           response:
             `Pricing for ${competitor}: $99/seat. Our equivalent plan is ` +

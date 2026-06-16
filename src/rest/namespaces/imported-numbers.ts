@@ -2,10 +2,12 @@
  * Imported Phone Numbers namespace — create only.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  CreateImportedPhoneNumberRequest,
+  CreateImportedPhoneNumberResponse,
+} from './relay-rest.types.generated.js';
 
 /**
  * Import externally-hosted phone numbers.
@@ -25,7 +27,9 @@ export class ImportedNumbersResource extends BaseResource {
    * @returns The newly-imported phone-number record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(
+    body: Partial<CreateImportedPhoneNumberRequest> = {},
+  ): Promise<CreateImportedPhoneNumberResponse> {
+    return this._http.post<CreateImportedPhoneNumberResponse>(this._basePath, body);
   }
 }

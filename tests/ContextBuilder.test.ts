@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ContextBuilder, Context, GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
+import { ContextBuilder, GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
 
 describe('ContextBuilder', () => {
   it('addContext throws when exceeding MAX_CONTEXTS (50)', () => {
@@ -17,7 +17,7 @@ describe('ContextBuilder', () => {
       ctx.addStep(`step_${i}`, { task: `Task ${i}` });
     }
     expect(() => ctx.addStep('one_too_many', { task: 'Overflow' })).toThrow(
-      'Maximum steps per context (100) exceeded'
+      'Maximum steps per context (100) exceeded',
     );
   });
 
@@ -43,7 +43,8 @@ describe('ContextBuilder', () => {
   it('next_step valid when following step exists', () => {
     const cb = new ContextBuilder();
     const ctx = cb.addContext('default');
-    ctx.addStep('step1', { task: 'First step' })
+    ctx
+      .addStep('step1', { task: 'First step' })
       .setGatherInfo({ completionAction: 'next_step' })
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     ctx.addStep('step2', { task: 'Second step' });
@@ -53,7 +54,8 @@ describe('ContextBuilder', () => {
   it('next_step invalid on last step', () => {
     const cb = new ContextBuilder();
     const ctx = cb.addContext('default');
-    ctx.addStep('only_step', { task: 'Only step' })
+    ctx
+      .addStep('only_step', { task: 'Only step' })
       .setGatherInfo({ completionAction: 'next_step' })
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     expect(() => cb.validate()).toThrow(
@@ -64,7 +66,8 @@ describe('ContextBuilder', () => {
   it('named step valid when step exists', () => {
     const cb = new ContextBuilder();
     const ctx = cb.addContext('default');
-    ctx.addStep('step1', { task: 'First step' })
+    ctx
+      .addStep('step1', { task: 'First step' })
       .setGatherInfo({ completionAction: 'step2' })
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     ctx.addStep('step2', { task: 'Second step' });
@@ -74,7 +77,8 @@ describe('ContextBuilder', () => {
   it('named step invalid when not defined', () => {
     const cb = new ContextBuilder();
     const ctx = cb.addContext('default');
-    ctx.addStep('step1', { task: 'First step' })
+    ctx
+      .addStep('step1', { task: 'First step' })
       .setGatherInfo({ completionAction: 'nonexistent' })
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     ctx.addStep('step2', { task: 'Second step' });
@@ -86,7 +90,8 @@ describe('ContextBuilder', () => {
   it('no completion_action always valid', () => {
     const cb = new ContextBuilder();
     const ctx = cb.addContext('default');
-    ctx.addStep('step1', { task: 'First step' })
+    ctx
+      .addStep('step1', { task: 'First step' })
       .setGatherInfo({})
       .addGatherQuestion({ key: 'name', question: 'What is your name?' });
     expect(() => cb.validate()).not.toThrow();
@@ -98,7 +103,12 @@ describe('ContextBuilder', () => {
   });
 
   it('GatherQuestion basic creation and serialization', () => {
-    const q = new GatherQuestion({ key: 'age', question: 'How old are you?', type: 'number', confirm: true });
+    const q = new GatherQuestion({
+      key: 'age',
+      question: 'How old are you?',
+      type: 'number',
+      confirm: true,
+    });
     const d = q.toDict();
     expect(d.key).toBe('age');
     expect(d.question).toBe('How old are you?');

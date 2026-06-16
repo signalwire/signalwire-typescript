@@ -6,18 +6,18 @@ import { AgentBase } from '../src/AgentBase.js';
 
 describe('setupGracefulShutdown', () => {
   const originalOn = process.on;
-  const registeredHandlers: { event: string; handler: Function }[] = [];
+  const registeredHandlers: { event: string; handler: (...args: unknown[]) => void }[] = [];
 
   beforeEach(() => {
     // Reset the static flag so tests are independent
-    (AgentBase as any)._shutdownRegistered = false;
+    (AgentBase as unknown as { _shutdownRegistered: boolean })._shutdownRegistered = false;
     registeredHandlers.length = 0;
 
     // Mock process.on to capture registered handlers
-    process.on = vi.fn((event: string, handler: any) => {
+    process.on = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       registeredHandlers.push({ event, handler });
       return process;
-    }) as any;
+    }) as unknown as typeof process.on;
   });
 
   afterEach(() => {

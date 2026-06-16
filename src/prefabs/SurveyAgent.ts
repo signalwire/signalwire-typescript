@@ -10,6 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -123,7 +124,10 @@ export class SurveyAgent extends AgentBase {
   public conclusion: string;
 
   private questionMap: Map<string, SurveyQuestion>;
-  private onCompleteCallback?: (responses: Record<string, unknown>, score: number) => void | Promise<void>;
+  private onCompleteCallback?: (
+    responses: Record<string, unknown>,
+    score: number,
+  ) => void | Promise<void>;
   private sessions: Map<string, SurveySession> = new Map();
 
   /**
@@ -145,7 +149,8 @@ export class SurveyAgent extends AgentBase {
     this.brandName = config.brandName ?? 'Our Company';
     this.maxRetries = config.maxRetries ?? 2;
     this.introduction =
-      config.introduction ?? `Welcome to our ${config.surveyName}. We appreciate your participation.`;
+      config.introduction ??
+      `Welcome to our ${config.surveyName}. We appreciate your participation.`;
     this.conclusion =
       config.conclusion ?? 'Thank you for completing our survey. Your feedback is valuable to us.';
     this.onCompleteCallback = config.onComplete;
@@ -284,7 +289,7 @@ export class SurveyAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: Record<string, unknown>): SurveySession {
+  private getSession(rawData: SwaigRequestData): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -424,9 +429,9 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const questionId = (args['question_id'] as string) ?? '';
-        const response = (args['response'] as string) ?? '';
+      handler: (args) => {
+        const questionId = args.question_id ?? '';
+        const response = args.response ?? '';
 
         const question = this.questionMap.get(questionId);
         if (!question) {
@@ -456,9 +461,9 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const questionId = (args['question_id'] as string) ?? '';
-        const response = (args['response'] as string) ?? '';
+      handler: (args, rawData: SwaigRequestData) => {
+        const questionId = args.question_id ?? '';
+        const response = args.response ?? '';
 
         const question = this.questionMap.get(questionId);
         const questionText = question ? question.text : '';
@@ -469,16 +474,15 @@ export class SurveyAgent extends AgentBase {
           session.responses[questionId] = this.normalizeAnswer(question, response);
         }
 
-        return new FunctionResult(
-          `Response to '${questionText}' has been recorded.`,
-        );
+        return new FunctionResult(`Response to '${questionText}' has been recorded.`);
       },
     });
 
     // Tool: answer_question (TS-specific atomic validate+record+advance)
     this.defineTool({
       name: 'answer_question',
-      description: "Record the caller's answer to the current survey question. Validates the answer based on question type and advances to the next question.",
+      description:
+        "Record the caller's answer to the current survey question. Validates the answer based on question type and advances to the next question.",
       parameters: {
         type: 'object',
         properties: {
@@ -493,9 +497,9 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const questionId = args['question_id'] as string;
-        const answer = args['answer'] as string;
+      handler: async (args, rawData: SwaigRequestData) => {
+        const questionId = args.question_id;
+        const answer = args.answer;
 
         if (!questionId || !answer) {
           return new FunctionResult('Both question_id and answer are required.');
@@ -566,7 +570,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (_args, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
 
         if (session.completed) {
@@ -594,12 +598,13 @@ export class SurveyAgent extends AgentBase {
     // Tool: get_survey_progress
     this.defineTool({
       name: 'get_survey_progress',
-      description: 'Get the current progress of the survey, including how many questions have been answered and the current score.',
+      description:
+        'Get the current progress of the survey, including how many questions have been answered and the current score.',
       parameters: {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (_args, rawData: SwaigRequestData) => {
         const session = this.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
         const totalCount = this.questions.length;
@@ -638,19 +643,16 @@ export class SurveyAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     if (summary) {
       try {
         if (typeof summary === 'string') {
-          // eslint-disable-next-line no-console
           console.log(`Survey summary (unstructured): ${summary}`);
         } else {
-          // eslint-disable-next-line no-console
           console.log(`Survey completed: ${JSON.stringify(summary, null, 2)}`);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.log(`Error processing survey summary: ${String(err)}`);
       }
     }

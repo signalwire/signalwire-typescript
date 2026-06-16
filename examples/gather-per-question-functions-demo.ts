@@ -127,8 +127,7 @@ class GatherPerQuestionFunctionsAgent extends AgentBase {
     ctx
       .addStep('confirm')
       .setText(
-        'Read the collected info back to the customer and ' +
-          'confirm everything is correct.',
+        'Read the collected info back to the customer and ' + 'confirm everything is correct.',
       )
       .setFunctions([])
       .setEnd(true);

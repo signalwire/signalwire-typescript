@@ -19,15 +19,15 @@ async function main() {
   console.log('Searching available numbers...');
   const available = await client.phoneNumbers.search({ area_code: '512', max_results: 3 });
   for (const num of available.data ?? []) {
-    console.log(`  - ${num.e164 ?? num.number ?? 'unknown'}`);
+    console.log(`  - ${num.number ?? 'unknown'}`);
   }
 
   // 2. Purchase a number
   console.log('\nPurchasing a phone number...');
   let numId: string | null = null;
   try {
-    const first = (available.data ?? [{}])[0];
-    const number = await client.phoneNumbers.create({ number: first.e164 ?? '+15125551234' });
+    const first = (available.data ?? [])[0];
+    const number = await client.phoneNumbers.create({ number: first?.number ?? '+15125551234' });
     numId = number.id;
     console.log(`  Purchased: ${numId}`);
   } catch (err) {
@@ -72,7 +72,9 @@ async function main() {
   if (groupId && numId) {
     console.log('\nAdding number to group...');
     try {
-      const membership = await client.numberGroups.addMembership(groupId, { phone_number_id: numId });
+      const membership = await client.numberGroups.addMembership(groupId, {
+        phone_number_id: numId,
+      });
       const memId = membership.id;
       console.log(`  Membership: ${memId}`);
 
@@ -91,7 +93,7 @@ async function main() {
   console.log('\nLooking up carrier info...');
   try {
     const info = await client.lookup.phoneNumber('+15125551234');
-    console.log(`  Carrier: ${info.carrier?.name ?? 'unknown'}`);
+    console.log(`  Carrier: ${info.carrier?.lec ?? 'unknown'}`);
   } catch (err) {
     if (err instanceof RestError) {
       console.log(`  Lookup failed (expected in demo): ${err.statusCode}`);
@@ -102,10 +104,12 @@ async function main() {
   console.log('\nCreating verified caller...');
   let callerId: string | null = null;
   try {
-    const caller = await client.verifiedCallers.create({ phone_number: '+15125559999' });
+    const caller = await client.verifiedCallers.create({ number: '+15125559999' });
     callerId = caller.id;
     console.log(`  Created verified caller: ${callerId}`);
-    await client.verifiedCallers.submitVerification(callerId as string, { verification_code: '123456' });
+    await client.verifiedCallers.submitVerification(callerId as string, {
+      verification_code: '123456',
+    });
     console.log('  Verification code submitted');
   } catch (err) {
     if (err instanceof RestError) {
@@ -131,7 +135,7 @@ async function main() {
   try {
     const codes = await client.shortCodes.list();
     for (const sc of codes.data ?? []) {
-      console.log(`  - ${sc.short_code ?? 'unknown'}`);
+      console.log(`  - ${sc.number ?? 'unknown'}`);
     }
   } catch (err) {
     if (err instanceof RestError) {
@@ -144,12 +148,15 @@ async function main() {
   let addrId: string | null = null;
   try {
     const addr = await client.addresses.create({
-      friendly_name: 'HQ Address',
-      street: '123 Main St',
+      label: 'HQ Address',
+      country: 'US',
+      first_name: 'Acme',
+      last_name: 'Corp',
+      street_number: '123',
+      street_name: 'Main St',
       city: 'Austin',
-      region: 'TX',
+      state: 'TX',
       postal_code: '78701',
-      iso_country: 'US',
     });
     addrId = addr.id;
     console.log(`  Created address: ${addrId}`);
@@ -191,7 +198,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

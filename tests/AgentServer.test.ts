@@ -93,7 +93,7 @@ describe('AgentServer', () => {
     const res = await app.request('/health', {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'https://example.com',
+        Origin: 'https://example.com',
         'Access-Control-Request-Method': 'POST',
       },
     });
@@ -107,7 +107,7 @@ describe('AgentServer', () => {
       const server = new AgentServer();
       const app = server.getApp();
       const res = await app.request('/health', {
-        headers: { 'Origin': 'https://example.com' },
+        headers: { Origin: 'https://example.com' },
       });
       const credHeader = res.headers.get('Access-Control-Allow-Credentials');
       expect(credHeader).toBeNull();

@@ -61,8 +61,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for the transfer' },
   },
   handler: (_args) => {
-    return new FunctionResult('Transferring you to a human agent now.')
-      .connect('+15551234567');
+    return new FunctionResult('Transferring you to a human agent now.').connect('+15551234567');
   },
 });
 

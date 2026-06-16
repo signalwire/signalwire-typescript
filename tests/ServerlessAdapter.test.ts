@@ -108,7 +108,11 @@ describe('ServerlessAdapter', () => {
 
   it('generateUrl produces GCF URL', () => {
     const adapter = new ServerlessAdapter('gcf');
-    const url = adapter.generateUrl({ projectId: 'my-proj', region: 'us-central1', functionName: 'agent' });
+    const url = adapter.generateUrl({
+      projectId: 'my-proj',
+      region: 'us-central1',
+      functionName: 'agent',
+    });
     expect(url).toContain('my-proj');
     expect(url).toContain('us-central1');
     expect(url).toContain('agent');

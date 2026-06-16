@@ -7,7 +7,7 @@
  * JSON API to perform web searches and return formatted results.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -23,7 +23,6 @@ import { getLogger } from '../../Logger.js';
 // point of use — mirroring how RelayClient lazy-loads `ws`. A consumer who
 // never scrapes never loads cheerio; if it is absent, `validatePackages()`
 // (REQUIRED_PACKAGES below) reports it cleanly instead of crashing.
-import type * as cheerio from 'cheerio';
 
 const log = getLogger('WebSearchSkill');
 
@@ -106,10 +105,7 @@ const UNWANTED_PATTERNS = [
  */
 export async function extractTextFromHtml(html: string): Promise<string> {
   const cheerio = await import('cheerio');
-  const normalized = html.replace(
-    /<!\[CDATA\[([\s\S]*?)\]\]>/g,
-    (_, content: string) => content,
-  );
+  const normalized = html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_, content: string) => content);
   const $ = cheerio.load(normalized);
 
   let pickedHtml = '';
@@ -437,10 +433,7 @@ export class WebSearchSkill extends SkillBase {
     //   parallelScrape: dispatch all scrapes concurrently and race them
     //     against the deadline, vs. one-after-the-other.
     //   snippetsOnly: skip scraping; format CSE snippets directly (sub-second).
-    const perPageTimeoutMs = Math.max(
-      100,
-      this.getConfig<number>('per_page_timeout', 2.0) * 1000,
-    );
+    const perPageTimeoutMs = Math.max(100, this.getConfig<number>('per_page_timeout', 2.0) * 1000);
     const overallDeadlineMs = Math.max(
       1000,
       this.getConfig<number>('overall_deadline', 10.0) * 1000,
@@ -450,32 +443,27 @@ export class WebSearchSkill extends SkillBase {
     const toolName = this.getToolName();
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
         description:
           'Search the web for high-quality information, automatically filtering low-quality results',
         parameters: {
           query: {
             type: 'string',
-            description:
-              "The search query - what you want to find information about",
+            description: 'The search query - what you want to find information about',
           },
         },
-        required: ['query'],
-        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
-          const rawQuery = args['query'];
-
-          if (
-            !rawQuery ||
-            typeof rawQuery !== 'string' ||
-            rawQuery.trim().length === 0
-          ) {
+        // Python passes no `required` (web_search/skill.py:707), so the wire
+        // schema has no `required` key. args.query is `string | undefined`,
+        // narrowed by the guard below.
+        handler: async (args) => {
+          if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for?',
             );
           }
 
-          const query = rawQuery.trim();
+          const query = args.query.trim();
 
           if (query.length > MAX_SKILL_INPUT_LENGTH) {
             return new FunctionResult('Search query is too long.');
@@ -500,10 +488,7 @@ export class WebSearchSkill extends SkillBase {
           // Python's `int()` truncates toward zero; for positive values that's
           // equivalent to Math.floor. Do NOT add a `max(count, …)` floor —
           // Python's fetch_count can be less than num_results (e.g. factor=0.5).
-          const fetchCount = Math.min(
-            10,
-            Math.floor(count * oversampleFactor),
-          );
+          const fetchCount = Math.min(10, Math.floor(count * oversampleFactor));
 
           try {
             const encodedQuery = encodeURIComponent(query);
@@ -511,8 +496,7 @@ export class WebSearchSkill extends SkillBase {
             // Base URL is normally googleapis.com; the porting-sdk's
             // `audit_skills_dispatch.py` overrides via `WEB_SEARCH_BASE_URL`
             // so the loopback fixture can stand in for Google CSE.
-            const base =
-              process.env['WEB_SEARCH_BASE_URL'] ?? 'https://www.googleapis.com';
+            const base = process.env['WEB_SEARCH_BASE_URL'] ?? 'https://www.googleapis.com';
             const url =
               `${base.replace(/\/+$/, '')}/customsearch/v1` +
               // Python uses timeout=15 on the API request (skill.py:220).
@@ -558,10 +542,7 @@ export class WebSearchSkill extends SkillBase {
             // kernel webhook timeout.
             const deadlineAt = Date.now() + overallDeadlineMs;
             const deadlineController = new AbortController();
-            const deadlineTimer = setTimeout(
-              () => deadlineController.abort(),
-              overallDeadlineMs,
-            );
+            const deadlineTimer = setTimeout(() => deadlineController.abort(), overallDeadlineMs);
 
             // Scrape each result page, score for quality, dedupe by domain,
             // return the top `count` above the min threshold. Port of
@@ -588,9 +569,7 @@ export class WebSearchSkill extends SkillBase {
             // Fetch + score one candidate. Returns an enriched Candidate or
             // null (parse failure / SSRF rejection / below-threshold / past
             // the deadline). Mirrors Python's `_scrape_one` (skill.py:458-481).
-            const scrapeOne = async (
-              item: GoogleSearchItem,
-            ): Promise<Candidate | null> => {
+            const scrapeOne = async (item: GoogleSearchItem): Promise<Candidate | null> => {
               if (Date.now() >= deadlineAt) return null;
               let host: string;
               try {
@@ -644,14 +623,12 @@ export class WebSearchSkill extends SkillBase {
                   ),
                 );
                 const deadlineSentinel = Symbol('deadline');
-                const deadlineRace = new Promise<typeof deadlineSentinel>(
-                  (resolve) => {
-                    const remaining = Math.max(0, deadlineAt - Date.now());
-                    const t = setTimeout(() => resolve(deadlineSentinel), remaining);
-                    // Don't keep the event loop alive solely for this timer.
-                    if (typeof t.unref === 'function') t.unref();
-                  },
-                );
+                const deadlineRace = new Promise<typeof deadlineSentinel>((resolve) => {
+                  const remaining = Math.max(0, deadlineAt - Date.now());
+                  const t = setTimeout(() => resolve(deadlineSentinel), remaining);
+                  // Don't keep the event loop alive solely for this timer.
+                  if (typeof t.unref === 'function') t.unref();
+                });
                 // When the deadline wins, allCandidates already holds whatever
                 // resolved in time; the stragglers are aborted in `finally`.
                 await Promise.race([allScrapes, deadlineRace]);
@@ -721,12 +698,8 @@ export class WebSearchSkill extends SkillBase {
             // by `len(best_results)` (the chosen count), not `num_results`,
             // so under-filled result sets get more room per source.
             const overheadPerResult = 400;
-            const availableForContent =
-              maxContentLength - scored.length * overheadPerResult;
-            const perResultBudget = Math.max(
-              2000,
-              Math.floor(availableForContent / scored.length),
-            );
+            const availableForContent = maxContentLength - scored.length * overheadPerResult;
+            const perResultBudget = Math.max(2000, Math.floor(availableForContent / scored.length));
 
             // Ranked-by-score output with full page content.
             // Python skill.py:499-524 format — header lines + per-result
@@ -784,7 +757,7 @@ export class WebSearchSkill extends SkillBase {
             );
           }
         },
-      },
+      }),
     ];
   }
 
@@ -812,10 +785,7 @@ export class WebSearchSkill extends SkillBase {
       return `No search results found for query: ${query}`;
     }
     const top = items.slice(0, Math.max(numResults, 1));
-    const lines: string[] = [
-      `Snippet-only results for '${query}' (page content not scraped):`,
-      '',
-    ];
+    const lines: string[] = [`Snippet-only results for '${query}' (page content not scraped):`, ''];
     for (let i = 0; i < top.length; i++) {
       const it = top[i];
       lines.push(`=== RESULT ${i + 1} ===`);
@@ -830,9 +800,7 @@ export class WebSearchSkill extends SkillBase {
 
   /** Apply the `{query}` template to the no-results message. */
   private static _formatNoResultsMessage(template: string, query: string): string {
-    return template.includes('{query}')
-      ? template.replace(/\{query\}/g, query)
-      : template;
+    return template.includes('{query}') ? template.replace(/\{query\}/g, query) : template;
   }
 
   /**
@@ -874,13 +842,8 @@ export class WebSearchSkill extends SkillBase {
         log.debug('web_search: reddit URL rejected by SSRF guard', { url });
         return null;
       }
-      const jsonUrl = url.endsWith('.json')
-        ? url
-        : `${url.replace(/\/+$/, '')}.json`;
-      const { signal, dispose } = WebSearchSkill._fetchSignal(
-        timeoutMs,
-        externalSignal,
-      );
+      const jsonUrl = url.endsWith('.json') ? url : `${url.replace(/\/+$/, '')}.json`;
+      const { signal, dispose } = WebSearchSkill._fetchSignal(timeoutMs, externalSignal);
       let response: Response;
       try {
         response = await fetch(jsonUrl, {
@@ -922,9 +885,7 @@ export class WebSearchSkill extends SkillBase {
       const parts: string[] = [];
       parts.push(`Reddit r/${subreddit} Discussion`);
       parts.push(`\nPost: ${title}`);
-      parts.push(
-        `Author: ${author} | Score: ${postScore} | Comments: ${numComments}`,
-      );
+      parts.push(`Author: ${author} | Score: ${postScore} | Comments: ${numComments}`);
       if (selftext && selftext !== '[removed]' && selftext !== '[deleted]') {
         parts.push(`\nOriginal Post:\n${selftext.slice(0, 1000)}`);
       }
@@ -940,12 +901,7 @@ export class WebSearchSkill extends SkillBase {
         for (const c of comments.slice(0, 20)) {
           if (c.kind !== 't1' || !c.data) continue;
           const body = ((c.data['body'] as string | undefined) ?? '').trim();
-          if (
-            !body ||
-            body === '[removed]' ||
-            body === '[deleted]' ||
-            body.length <= 50
-          ) {
+          if (!body || body === '[removed]' || body === '[deleted]' || body.length <= 50) {
             continue;
           }
           validComments.push({
@@ -961,9 +917,7 @@ export class WebSearchSkill extends SkillBase {
           validComments.slice(0, 5).forEach((c, i) => {
             let commentText = c.body.slice(0, 500);
             if (c.body.length > 500) commentText += '...';
-            parts.push(
-              `\nComment ${i + 1} (Score: ${c.score}, Author: ${c.author}):`,
-            );
+            parts.push(`\nComment ${i + 1} (Score: ${c.score}, Author: ${c.author}):`);
             parts.push(commentText);
           });
         }
@@ -1007,25 +961,17 @@ export class WebSearchSkill extends SkillBase {
     timeoutMs: number,
     query: string,
     externalSignal?: AbortSignal,
-  ): Promise<
-    | {
-        text: string;
-        score: number;
-        text_length: number;
-        sentence_count: number;
-        query_relevance: number;
-        query_words_found: string;
-        domain: string;
-      }
-    | null
-  > {
+  ): Promise<{
+    text: string;
+    score: number;
+    text_length: number;
+    sentence_count: number;
+    query_relevance: number;
+    query_words_found: string;
+    domain: string;
+  } | null> {
     if (WebSearchSkill._isRedditUrl(url)) {
-      const reddit = await this._extractRedditContent(
-        url,
-        contentLimit,
-        timeoutMs,
-        externalSignal,
-      );
+      const reddit = await this._extractRedditContent(url, contentLimit, timeoutMs, externalSignal);
       if (reddit) {
         const metrics = WebSearchSkill._qualityMetrics(reddit.text, url, query);
         return { text: reddit.text, ...metrics };
@@ -1043,10 +989,7 @@ export class WebSearchSkill extends SkillBase {
     // Per-page timeout OR the shared overall-deadline signal, whichever trips
     // first. The deadline can thus cancel a slow fetch that hasn't yet hit its
     // own per-page timeout.
-    const { signal, dispose } = WebSearchSkill._fetchSignal(
-      timeoutMs,
-      externalSignal,
-    );
+    const { signal, dispose } = WebSearchSkill._fetchSignal(timeoutMs, externalSignal);
     try {
       const response = await fetch(url, {
         signal,
@@ -1165,9 +1108,7 @@ export class WebSearchSkill extends SkillBase {
     // 2. Word diversity — unique / (total * 0.3). Python skill.py:313-321.
     const words = text.toLowerCase().split(/\s+/).filter(Boolean);
     const diversityScore =
-      words.length === 0
-        ? 0
-        : Math.min(1, new Set(words).size / (words.length * 0.3));
+      words.length === 0 ? 0 : Math.min(1, new Set(words).size / (words.length * 0.3));
 
     // 3. Boilerplate penalty — 26 phrases, -15% per phrase.
     // Python skill.py:324-335.
@@ -1208,9 +1149,7 @@ export class WebSearchSkill extends SkillBase {
 
     // 4. Sentence score — count sentences with >30 chars; target 10.
     // Python skill.py:339-342.
-    const sentences = text
-      .split(/[.!?]+/)
-      .filter((s) => s.trim().length > 30);
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 30);
     const sentenceScore = Math.min(1, sentences.length / 10);
 
     // 5. Domain score — quality domains +1.5×, low-quality 0.1×, else 1.0.

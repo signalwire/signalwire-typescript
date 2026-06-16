@@ -18,11 +18,11 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a friendly comedian named Chuckles. Your job is to make people laugh! ' +
-  'Tell jokes when asked, and try to keep the mood light and fun. ' +
-  'You can also tell the time if someone asks.',
+    'Tell jokes when asked, and try to keep the mood light and fun. ' +
+    'You can also tell the time if someone asks.',
 );
 
-// Add the joke skill — injects the tell_joke tool, prompt sections, and hints
+// Add the joke skill — injects the get_joke tool, prompt sections, and hints
 await agent.addSkill(new JokeSkill());
 
 // Also add datetime so we can answer "what time is it?" questions

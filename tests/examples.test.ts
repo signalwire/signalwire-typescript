@@ -7,9 +7,19 @@
 
 import { loadAgent } from '../src/cli/agent-loader.js';
 
+/** Minimal structural shape of a loaded agent/service that these smoke tests touch. */
+interface LoadedAgent {
+  // AgentBase returns a serialized JSON string; plain SWMLService returns the document object.
+  renderSwml(callId?: string): string | Record<string, unknown>;
+  getRegisteredTools(): { name: string }[];
+}
+
+/** SWML verb objects are keyed maps; tests probe individual verb keys. */
+type SwmlVerb = Record<string, unknown>;
+
 // Helper: load an example and return the agent
-async function loadExample(name: string): Promise<any> {
-  return loadAgent(`examples/${name}`);
+async function loadExample(name: string): Promise<LoadedAgent> {
+  return loadAgent(`examples/${name}`) as Promise<LoadedAgent>;
 }
 
 describe('examples', () => {
@@ -18,11 +28,14 @@ describe('examples', () => {
   describe('simple-agent.ts', () => {
     it('renders SWML with AI block and get_time tool', async () => {
       const agent = await loadExample('simple-agent.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id'));
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version', '1.0.0');
       expect(swml).toHaveProperty('sections');
       const tools = agent.getRegisteredTools();
-      expect(tools.some((t: any) => t.name === 'get_time')).toBe(true);
+      expect(tools.some((t) => t.name === 'get_time')).toBe(true);
     });
   });
 
@@ -31,10 +44,13 @@ describe('examples', () => {
   describe('prefab-info-gatherer.ts', () => {
     it('renders SWML with start_questions and submit_answer tools', async () => {
       const agent = await loadExample('prefab-info-gatherer.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id'));
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('start_questions');
       expect(names).toContain('submit_answer');
     });
@@ -44,7 +60,7 @@ describe('examples', () => {
     it('renders SWML with survey tools', async () => {
       const agent = await loadExample('prefab-survey.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('answer_question');
       expect(names).toContain('get_current_question');
       expect(names).toContain('get_survey_progress');
@@ -55,7 +71,7 @@ describe('examples', () => {
     it('renders SWML with search_faqs and escalate tools', async () => {
       const agent = await loadExample('prefab-faq.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('search_faqs');
       expect(names).toContain('escalate');
     });
@@ -65,7 +81,7 @@ describe('examples', () => {
     it('renders SWML with concierge tools', async () => {
       const agent = await loadExample('prefab-concierge.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('check_availability');
       expect(names).toContain('get_directions');
     });
@@ -75,7 +91,7 @@ describe('examples', () => {
     it('renders SWML with receptionist tools', async () => {
       const agent = await loadExample('prefab-receptionist.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('collect_caller_info');
       expect(names).toContain('transfer_call');
       expect(names).toContain('check_in_visitor');
@@ -88,7 +104,7 @@ describe('examples', () => {
     it('renders SWML with datetime and math tools from skills', async () => {
       const agent = await loadExample('skills-demo.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('get_current_time');
       expect(names).toContain('get_current_date');
       expect(names).toContain('calculate');
@@ -99,19 +115,24 @@ describe('examples', () => {
     it('renders SWML with lookup_account tool', async () => {
       const agent = await loadExample('advanced-dynamic-config.ts');
       const tools = agent.getRegisteredTools();
-      expect(tools.some((t: any) => t.name === 'lookup_account')).toBe(true);
+      expect(tools.some((t) => t.name === 'lookup_account')).toBe(true);
     });
   });
 
   describe('llm-params.ts', () => {
     it('renders SWML with tuned parameters', async () => {
       const agent = await loadExample('llm-params.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id'));
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
       // Check the AI params contain temperature
-      const sections = swml['sections'];
+      const sections = swml['sections'] as Record<string, SwmlVerb[]>;
       const main = sections['main'];
-      const aiVerb = main.find((v: any) => v['ai']);
+      const aiVerb = main.find((v) => v['ai']) as {
+        ai: { params: Record<string, unknown> };
+      };
       expect(aiVerb).toBeDefined();
       expect(aiVerb['ai']['params']['temperature']).toBe(0.2);
     });
@@ -121,7 +142,7 @@ describe('examples', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');
       const tools = agent.getRegisteredTools();
-      expect(tools.some((t: any) => t.name === 'lookup_order')).toBe(true);
+      expect(tools.some((t) => t.name === 'lookup_order')).toBe(true);
     });
   });
 
@@ -129,7 +150,7 @@ describe('examples', () => {
     it('renders SWML with recording tools', async () => {
       const agent = await loadExample('record-call.ts');
       const tools = agent.getRegisteredTools();
-      const names = tools.map((t: any) => t.name);
+      const names = tools.map((t) => t.name);
       expect(names).toContain('start_recording');
       expect(names).toContain('stop_recording');
       expect(names).toContain('transfer_to_supervisor');
@@ -142,7 +163,10 @@ describe('examples', () => {
     it('renders SWML and exports handler function', async () => {
       // loadAgent will find the 'agent' export
       const agent = await loadExample('serverless-lambda.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id'));
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
     });
   });
@@ -150,11 +174,14 @@ describe('examples', () => {
   describe('verb-methods.ts', () => {
     it('renders SWML with pre-answer and post-AI verbs', async () => {
       const agent = await loadExample('verb-methods.ts');
-      const swml = JSON.parse(agent.renderSwml('test-call-id'));
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
       expect(swml).toHaveProperty('version');
-      const main = swml['sections']['main'];
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
       // Should have pre-answer play verb
-      expect(main.some((v: any) => v['play'])).toBe(true);
+      expect(main.some((v) => v['play'])).toBe(true);
     });
   });
 
@@ -162,7 +189,7 @@ describe('examples', () => {
     it('renders SWML with get_status tool', async () => {
       const agent = await loadExample('kubernetes-agent.ts');
       const tools = agent.getRegisteredTools();
-      expect(tools.some((t: any) => t.name === 'get_status')).toBe(true);
+      expect(tools.some((t) => t.name === 'get_status')).toBe(true);
     });
   });
 
@@ -171,9 +198,9 @@ describe('examples', () => {
   describe('swml-service.ts', () => {
     it('produces SWML with no AI block', async () => {
       const svc = await loadExample('swml-service.ts');
-      const doc = svc.renderSwml();
+      const doc = svc.renderSwml() as Record<string, unknown>;
       expect(doc).toHaveProperty('version', '1.0.0');
-      const main = doc['sections']['main'];
+      const main = (doc['sections'] as Record<string, SwmlVerb[]>)['main'];
       expect(main.length).toBeGreaterThan(0);
       // No AI block in any verb
       for (const verb of main) {

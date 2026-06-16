@@ -12,12 +12,8 @@
  * Multiple instances are supported; use `tool_name` in config to differentiate.
  */
 
-import { SkillBase } from '../SkillBase.js';
-import type {
-  SkillToolDefinition,
-  SkillConfig,
-  ParameterSchemaEntry,
-} from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
+import type { SkillToolDefinition, SkillConfig, ParameterSchemaEntry } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
@@ -42,17 +38,6 @@ interface CachedResponse {
 }
 
 const WHITESPACE_REGEX = /\s+/g;
-
-/** Tags stripped from HTML before text extraction. */
-const STRIP_TAG_REGEXES: RegExp[] = [
-  /<script\b[^>]*>[\s\S]*?<\/script>/gi,
-  /<style\b[^>]*>[\s\S]*?<\/style>/gi,
-  /<nav\b[^>]*>[\s\S]*?<\/nav>/gi,
-  /<header\b[^>]*>[\s\S]*?<\/header>/gi,
-  /<footer\b[^>]*>[\s\S]*?<\/footer>/gi,
-  /<aside\b[^>]*>[\s\S]*?<\/aside>/gi,
-  /<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi,
-];
 
 /**
  * Fast web scraping skill optimized for speed and token efficiency.
@@ -268,10 +253,9 @@ export class SpiderSkill extends SkillBase {
       return false;
     }
     if (this.concurrentRequests < 1 || this.concurrentRequests > 20) {
-      log.error(
-        'spider: concurrent_requests must be between 1 and 20',
-        { concurrent_requests: this.concurrentRequests },
-      );
+      log.error('spider: concurrent_requests must be between 1 and 20', {
+        concurrent_requests: this.concurrentRequests,
+      });
       return false;
     }
     if (this.maxPages < 1) {
@@ -330,8 +314,11 @@ export class SpiderSkill extends SkillBase {
     const toolPrefix = this.getConfig<string>('tool_name', '');
     const prefix = toolPrefix ? `${toolPrefix}_` : '';
 
+    // The three handlers keep their defensive typeof/.trim()/URL-validation
+    // narrowing in the private methods: `url`/`start_url` are required, but the
+    // model can still emit an empty or wrong-typed value.
     return [
-      {
+      defineSkillTool({
         name: `${prefix}scrape_url`,
         description: 'Extract text content from a single web page',
         parameters: {
@@ -341,12 +328,9 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (
-          args: Record<string, unknown>,
-          rawData: Record<string, unknown>,
-        ) => this._scrapeUrlHandler(args, rawData),
-      },
-      {
+        handler: async (args, rawData) => this._scrapeUrlHandler(args, rawData),
+      }),
+      defineSkillTool({
         name: `${prefix}crawl_site`,
         description: 'Crawl multiple pages starting from a URL',
         parameters: {
@@ -356,12 +340,9 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['start_url'],
-        handler: async (
-          args: Record<string, unknown>,
-          rawData: Record<string, unknown>,
-        ) => this._crawlSiteHandler(args, rawData),
-      },
-      {
+        handler: async (args, rawData) => this._crawlSiteHandler(args, rawData),
+      }),
+      defineSkillTool({
         name: `${prefix}extract_structured_data`,
         description: 'Extract specific data from a web page using selectors',
         parameters: {
@@ -371,11 +352,8 @@ export class SpiderSkill extends SkillBase {
           },
         },
         required: ['url'],
-        handler: async (
-          args: Record<string, unknown>,
-          rawData: Record<string, unknown>,
-        ) => this._extractStructuredHandler(args, rawData),
-      },
+        handler: async (args, rawData) => this._extractStructuredHandler(args, rawData),
+      }),
     ];
   }
 
@@ -491,15 +469,7 @@ export class SpiderSkill extends SkillBase {
       const $ = this._cheerio.load(body);
       // Strip noise tags before extracting text — matches Python's
       // lxml drop_tree() on the same 7 tags.
-      for (const tag of [
-        'script',
-        'style',
-        'nav',
-        'header',
-        'footer',
-        'aside',
-        'noscript',
-      ]) {
+      for (const tag of ['script', 'style', 'nav', 'header', 'footer', 'aside', 'noscript']) {
         $(tag).remove();
       }
       let text = $('body').text();
@@ -516,9 +486,7 @@ export class SpiderSkill extends SkillBase {
         const keepStart = Math.floor((this.maxTextLength * 2) / 3);
         const keepEnd = Math.floor(this.maxTextLength / 3);
         text =
-          text.slice(0, keepStart) +
-          '\n\n[...CONTENT TRUNCATED...]\n\n' +
-          text.slice(-keepEnd);
+          text.slice(0, keepStart) + '\n\n[...CONTENT TRUNCATED...]\n\n' + text.slice(-keepEnd);
       }
 
       return text;
@@ -540,10 +508,7 @@ export class SpiderSkill extends SkillBase {
    * subset), everything else is full CSS via cheerio's querySelector-style
    * engine.
    */
-  private _applySelector(
-    $: cheerio.CheerioAPI,
-    selector: string,
-  ): string[] {
+  private _applySelector($: cheerio.CheerioAPI, selector: string): string[] {
     const trimmed = selector.trim();
     if (!trimmed) return [];
 
@@ -679,9 +644,7 @@ export class SpiderSkill extends SkillBase {
     try {
       await resolveAndValidateUrl(url, allowPrivate);
     } catch {
-      return new FunctionResult(
-        'URL rejected: cannot access private or internal URLs',
-      );
+      return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
     const cached = await this._fetchUrl(url);
@@ -737,9 +700,7 @@ export class SpiderSkill extends SkillBase {
     try {
       await resolveAndValidateUrl(startUrl, allowPrivate);
     } catch {
-      return new FunctionResult(
-        'URL rejected: cannot access private or internal URLs',
-      );
+      return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
     const maxDepth = this.maxDepth;
@@ -782,8 +743,7 @@ export class SpiderSkill extends SkillBase {
           url,
           depth,
           contentLength: content.length,
-          summary:
-            content.length > 500 ? content.slice(0, 500) + '...' : content,
+          summary: content.length > 500 ? content.slice(0, 500) + '...' : content,
         });
       }
 
@@ -808,9 +768,7 @@ export class SpiderSkill extends SkillBase {
             }
 
             if (this.compiledFollowPatterns.length > 0) {
-              const allowed = this.compiledFollowPatterns.some((re) =>
-                re.test(absoluteUrl),
-              );
+              const allowed = this.compiledFollowPatterns.some((re) => re.test(absoluteUrl));
               if (!allowed) continue;
             }
 
@@ -852,14 +810,9 @@ export class SpiderSkill extends SkillBase {
       return new FunctionResult(`No pages could be crawled from ${startUrl}`);
     }
 
-    const lines: string[] = [
-      `Crawled ${results.length} pages from ${startHost}:`,
-      '',
-    ];
+    const lines: string[] = [`Crawled ${results.length} pages from ${startHost}:`, ''];
     results.forEach((r, i) => {
-      lines.push(
-        `${i + 1}. ${r.url} (depth: ${r.depth}, ${r.contentLength} chars)`,
-      );
+      lines.push(`${i + 1}. ${r.url} (depth: ${r.depth}, ${r.contentLength} chars)`);
       lines.push(`   Summary: ${r.summary.slice(0, 100)}...`);
       lines.push('');
     });
@@ -890,15 +843,11 @@ export class SpiderSkill extends SkillBase {
     try {
       await resolveAndValidateUrl(url, allowPrivate);
     } catch {
-      return new FunctionResult(
-        'URL rejected: cannot access private or internal URLs',
-      );
+      return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
     if (!this.selectors || Object.keys(this.selectors).length === 0) {
-      return new FunctionResult(
-        'No selectors configured for structured data extraction',
-      );
+      return new FunctionResult('No selectors configured for structured data extraction');
     }
 
     const cached = await this._fetchUrl(url);

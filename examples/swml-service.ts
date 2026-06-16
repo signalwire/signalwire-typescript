@@ -6,7 +6,7 @@
  * Run: npx tsx examples/swml-service.ts
  */
 
-import { SWMLService, SwmlBuilder } from '../src/index.js';
+import { SWMLService } from '../src/index.js';
 
 export const agent = new SWMLService({
   name: 'ivr-menu',

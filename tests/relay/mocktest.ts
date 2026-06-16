@@ -17,8 +17,6 @@
  * environment if a different mock instance is already running.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -56,6 +54,25 @@ function discoverPortingSdkPackage(name: string): string | null {
 }
 
 /**
+ * A decoded JSON-RPC frame as journaled by the mock. Tests reach deep into
+ * `frame.params.<...>` to assert wire shape, so the frame is modeled as an
+ * open, self-nesting structure rather than `any`: every property OR numeric
+ * index read hands back the same open node, which keeps chained reads
+ * (`frame.params.authentication.project`, `p.devices[0][0].type`) and
+ * array-shape reads (`p.devices.length`, `.filter(...)`) ergonomic without
+ * per-site casts, while the file stays free of `any`. A `RelayFrame` is an
+ * open object; the numeric index + `length`/array members let the same node
+ * stand in for the array payloads the wire frames carry.
+ */
+export interface RelayFrame {
+  [key: string]: RelayFrameValue;
+  [index: number]: RelayFrameValue;
+}
+
+/** A node inside a journaled frame — itself an open `RelayFrame`. */
+export type RelayFrameValue = RelayFrame;
+
+/**
  * One recorded WebSocket frame from the mock server's journal. Mirrors
  * mock_relay.journal.JournalEntry over the wire.
  */
@@ -64,7 +81,7 @@ export interface RelayJournalEntry {
   direction: 'recv' | 'send';
   method: string;
   request_id: string;
-  frame: any;
+  frame: RelayFrame;
   connection_id: string;
   session_id: string;
 }
@@ -143,7 +160,7 @@ export class MockRelayHarness {
    * Queue scripted post-RPC events for `method` (FIFO consume-once).
    * Each event is `{emit: {...}, delay_ms: N, event_type?: "..."}`.
    */
-  async armMethod(method: string, events: Array<Record<string, any>>): Promise<void> {
+  async armMethod(method: string, events: Array<Record<string, unknown>>): Promise<void> {
     const resp = await fetch(`${this.httpUrl}/__mock__/scenarios/${method}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -160,7 +177,7 @@ export class MockRelayHarness {
     winner_call_id: string;
     states: string[];
     node_id?: string;
-    device?: any;
+    device?: Record<string, unknown>;
     losers?: Array<{ call_id: string; states: string[] }>;
     delay_ms?: number;
   }): Promise<void> {
@@ -177,7 +194,7 @@ export class MockRelayHarness {
   // ─── Server-initiated pushes ──────────────────────────────────────
 
   /** Push a single signalwire.event (or any frame) to the SDK. */
-  async push(frame: Record<string, any>, sessionId?: string): Promise<any> {
+  async push(frame: Record<string, unknown>, sessionId?: string): Promise<RelayFrame> {
     let url = `${this.httpUrl}/__mock__/push`;
     if (sessionId) url = `${url}?session_id=${encodeURIComponent(sessionId)}`;
     const resp = await fetch(url, {
@@ -188,20 +205,22 @@ export class MockRelayHarness {
     if (!resp.ok) {
       throw new Error(`mocktest: push failed: ${resp.status}`);
     }
-    return resp.json();
+    return (await resp.json()) as RelayFrame;
   }
 
   /** Inject an inbound-call announcement (calling.call.receive + state events). */
-  async inboundCall(opts: {
-    call_id?: string;
-    from_number?: string;
-    to_number?: string;
-    context?: string;
-    auto_states?: string[];
-    delay_ms?: number;
-    session_id?: string;
-  } = {}): Promise<any> {
-    const body: Record<string, any> = {
+  async inboundCall(
+    opts: {
+      call_id?: string;
+      from_number?: string;
+      to_number?: string;
+      context?: string;
+      auto_states?: string[];
+      delay_ms?: number;
+      session_id?: string;
+    } = {},
+  ): Promise<RelayFrame> {
+    const body: Record<string, unknown> = {
       from_number: opts.from_number ?? '+15551234567',
       to_number: opts.to_number ?? '+15559876543',
       context: opts.context ?? 'default',
@@ -218,11 +237,11 @@ export class MockRelayHarness {
     if (!resp.ok) {
       throw new Error(`mocktest: inboundCall failed: ${resp.status}`);
     }
-    return resp.json();
+    return (await resp.json()) as RelayFrame;
   }
 
   /** Run a scripted timeline of pushes/sleeps/expect_recv on the server. */
-  async scenarioPlay(ops: Array<Record<string, any>>): Promise<any> {
+  async scenarioPlay(ops: Array<Record<string, unknown>>): Promise<RelayFrame> {
     const resp = await fetch(`${this.httpUrl}/__mock__/scenario_play`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -231,17 +250,17 @@ export class MockRelayHarness {
     if (!resp.ok) {
       throw new Error(`mocktest: scenarioPlay failed: ${resp.status}`);
     }
-    return resp.json();
+    return (await resp.json()) as RelayFrame;
   }
 
   /** List active WebSocket sessions on the mock. */
-  async sessions(): Promise<any[]> {
+  async sessions(): Promise<RelayFrame[]> {
     const resp = await fetch(`${this.httpUrl}/__mock__/sessions`);
     if (!resp.ok) {
       throw new Error(`mocktest: sessions failed: ${resp.status}`);
     }
     const body = (await resp.json()) as Record<string, unknown>;
-    return ((body.sessions as any[]) ?? []) as any[];
+    return (body.sessions as RelayFrame[]) ?? [];
   }
 }
 
@@ -250,7 +269,6 @@ export class MockRelayHarness {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_WS_PORT = 8776;
-const DEFAULT_HTTP_PORT = 9776;
 const STARTUP_TIMEOUT_MS = 30_000;
 const PROBE_TIMEOUT_MS = 2_000;
 

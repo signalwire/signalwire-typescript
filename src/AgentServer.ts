@@ -10,6 +10,7 @@ import { cors } from 'hono/cors';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
 
 /** Common MIME types for static file serving. */
@@ -84,7 +85,9 @@ export class AgentServer {
   private _sipRoute: string | null = null;
   private _sipAutoMap = false;
   private _sipUsernameMapping: Map<string, string> = new Map();
-  private _sipRoutingCallback: ((req: Request, body: Record<string, unknown>) => string | undefined) | null = null;
+  private _sipRoutingCallback:
+    | ((req: Request, body: SwmlRequestData) => string | undefined)
+    | null = null;
 
   // Global routing callbacks registered via registerGlobalRoutingCallback
   // Stored so they can be applied to agents registered after the call.
@@ -130,7 +133,7 @@ export class AgentServer {
    * @throws If the route is already occupied by another agent.
    */
   register(agent: AgentBase, route?: string): void {
-    let r = route ?? (agent as any).route ?? '/';
+    let r = route ?? agent.route ?? '/';
     if (!r.startsWith('/')) r = `/${r}`;
     r = r.replace(/\/+$/, '') || '/';
 
@@ -274,7 +277,7 @@ export class AgentServer {
     }
 
     // Create a unified routing callback
-    const serverSipRoutingCallback = (_req: Request, body: Record<string, unknown>): string | undefined => {
+    const serverSipRoutingCallback = (_req: Request, body: SwmlRequestData): string | undefined => {
       const sipUsername = AgentBase.extractSipUsername(body);
       if (sipUsername) {
         this.log.info(`Extracted SIP username: ${sipUsername}`);
@@ -335,10 +338,7 @@ export class AgentServer {
    * @param callbackFn - The callback function that receives a request and body, returning a route string or undefined.
    * @param path - The path to register the callback at.
    */
-  registerGlobalRoutingCallback(
-    callbackFn: RoutingCallback,
-    path: string,
-  ): void {
+  registerGlobalRoutingCallback(callbackFn: RoutingCallback, path: string): void {
     // Normalize path: ensure leading slash, strip trailing slash
     let p = path;
     if (!p.startsWith('/')) p = `/${p}`;

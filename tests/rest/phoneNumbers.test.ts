@@ -13,11 +13,11 @@ import { HttpClient } from '../../src/rest/HttpClient.js';
 import { PhoneNumbersResource } from '../../src/rest/namespaces/phone-numbers.js';
 import { FabricNamespace } from '../../src/rest/namespaces/fabric.js';
 import { PhoneCallHandler } from '../../src/rest/callHandler.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 const BASE = '/api/relay/rest/phone_numbers';
 
-function setup(responses: any[] = [{ status: 200, body: {} }]) {
+function setup(responses: MockResponse[] = [{ status: 200, body: {} }]) {
   const { options, getRequests } = mockClientOptions(responses);
   const http = new HttpClient(options);
   const phoneNumbers = new PhoneNumbersResource(http);
@@ -77,7 +77,9 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('passes through extra fields (e.g. name)', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setSwmlWebhook('pn-1', 'https://example.com/swml', { name: 'Support Line' });
+      await phoneNumbers.setSwmlWebhook('pn-1', 'https://example.com/swml', {
+        name: 'Support Line',
+      });
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'relay_script',
         call_relay_script_url: 'https://example.com/swml',

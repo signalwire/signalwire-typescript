@@ -18,9 +18,7 @@ describe('FunctionResult', () => {
   });
 
   it('supports addAction chaining', () => {
-    const r = new FunctionResult('ok')
-      .addAction('hangup', true)
-      .addAction('stop', true);
+    const r = new FunctionResult('ok').addAction('hangup', true).addAction('stop', true);
     const d = r.toDict();
     expect(d.response).toBe('ok');
     expect(d.action).toEqual([{ hangup: true }, { stop: true }]);
@@ -83,14 +81,18 @@ describe('FunctionResult', () => {
   });
 
   it('waitForUser variants', () => {
-    expect(new FunctionResult('w').waitForUser().toDict().action)
-      .toEqual([{ wait_for_user: true }]);
-    expect(new FunctionResult('w').waitForUser({ answerFirst: true }).toDict().action)
-      .toEqual([{ wait_for_user: 'answer_first' }]);
-    expect(new FunctionResult('w').waitForUser({ timeout: 10 }).toDict().action)
-      .toEqual([{ wait_for_user: 10 }]);
-    expect(new FunctionResult('w').waitForUser({ enabled: false }).toDict().action)
-      .toEqual([{ wait_for_user: false }]);
+    expect(new FunctionResult('w').waitForUser().toDict().action).toEqual([
+      { wait_for_user: true },
+    ]);
+    expect(new FunctionResult('w').waitForUser({ answerFirst: true }).toDict().action).toEqual([
+      { wait_for_user: 'answer_first' },
+    ]);
+    expect(new FunctionResult('w').waitForUser({ timeout: 10 }).toDict().action).toEqual([
+      { wait_for_user: 10 },
+    ]);
+    expect(new FunctionResult('w').waitForUser({ enabled: false }).toDict().action).toEqual([
+      { wait_for_user: false },
+    ]);
   });
 
   it('say / playBackgroundFile / stopBackgroundFile', () => {
@@ -215,9 +217,7 @@ describe('FunctionResult', () => {
   });
 
   it('tap / stopTap', () => {
-    const r = new FunctionResult('ok')
-      .tap({ uri: 'wss://example.com' })
-      .stopTap();
+    const r = new FunctionResult('ok').tap({ uri: 'wss://example.com' }).stopTap();
     expect((r.toDict().action as unknown[]).length).toBe(2);
   });
 
@@ -235,7 +235,10 @@ describe('FunctionResult', () => {
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    const params = (sections['main'][0] as Record<string, unknown>)['tap'] as Record<string, unknown>;
+    const params = (sections['main'][0] as Record<string, unknown>)['tap'] as Record<
+      string,
+      unknown
+    >;
     expect(params['rtp_ptime']).toBe(40);
   });
 
@@ -244,7 +247,9 @@ describe('FunctionResult', () => {
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    expect((sections['main'][0] as Record<string, unknown>)['join_room']).toEqual({ name: 'room1' });
+    expect((sections['main'][0] as Record<string, unknown>)['join_room']).toEqual({
+      name: 'room1',
+    });
   });
 
   it('sipRefer', () => {
@@ -252,7 +257,9 @@ describe('FunctionResult', () => {
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    expect((sections['main'][0] as Record<string, unknown>)['sip_refer']).toEqual({ to_uri: 'sip:user@example.com' });
+    expect((sections['main'][0] as Record<string, unknown>)['sip_refer']).toEqual({
+      to_uri: 'sip:user@example.com',
+    });
   });
 
   it('joinConference simple', () => {
@@ -268,7 +275,10 @@ describe('FunctionResult', () => {
     const acts = r.toDict().action as Record<string, unknown>[];
     const swml = acts[0]['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    const params = (sections['main'][0] as Record<string, unknown>)['join_conference'] as Record<string, unknown>;
+    const params = (sections['main'][0] as Record<string, unknown>)['join_conference'] as Record<
+      string,
+      unknown
+    >;
     expect(params['name']).toBe('conf1');
     expect(params['muted']).toBe(true);
   });
@@ -280,9 +290,9 @@ describe('FunctionResult', () => {
   });
 
   it('joinConference rejects max_participants > 250 (runtime guard, parity with Python)', () => {
-    expect(() => new FunctionResult('ok').joinConference('conf1', { maxParticipants: 300 })).toThrow(
-      'max_participants must be a positive integer <= 250',
-    );
+    expect(() =>
+      new FunctionResult('ok').joinConference('conf1', { maxParticipants: 300 }),
+    ).toThrow('max_participants must be a positive integer <= 250');
   });
 
   it('executeRpc', () => {
@@ -307,7 +317,10 @@ describe('FunctionResult', () => {
     const act = (r.toDict().action as Record<string, unknown>[])[0];
     const swml = act['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    return (sections['main'][0] as Record<string, unknown>)['execute_rpc'] as Record<string, unknown>;
+    return (sections['main'][0] as Record<string, unknown>)['execute_rpc'] as Record<
+      string,
+      unknown
+    >;
   };
 
   // rpc_ai_unhold calls execute_rpc(method, call_id, params={}). Python's

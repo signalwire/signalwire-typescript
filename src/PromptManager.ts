@@ -67,10 +67,7 @@ export class PromptManager {
    * @param title - The section heading to append to.
    * @param opts - Body text and/or bullets to add.
    */
-  addToSection(
-    title: string,
-    opts?: { body?: string; bullet?: string; bullets?: string[] },
-  ): void {
+  addToSection(title: string, opts?: { body?: string; bullet?: string; bullets?: string[] }): void {
     if (!this.pom) {
       this.pom = new PomBuilder();
       this.usePom = true;

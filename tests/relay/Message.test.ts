@@ -29,7 +29,9 @@ describe('Message', () => {
   it('dispatches state events and updates state', async () => {
     const msg = new Message({ messageId: 'm1', state: 'queued' });
     const events: string[] = [];
-    msg.on(async (e) => { events.push((e.params.message_state as string) || ''); });
+    msg.on(async (e) => {
+      events.push((e.params.message_state as string) || '');
+    });
 
     await msg._dispatchEvent({
       event_type: 'messaging.state',
@@ -123,7 +125,9 @@ describe('Message', () => {
 
   it('handles listener errors gracefully', async () => {
     const msg = new Message({ messageId: 'm1' });
-    msg.on(() => { throw new Error('handler crash'); });
+    msg.on(() => {
+      throw new Error('handler crash');
+    });
 
     // Should not throw
     await msg._dispatchEvent({
@@ -156,7 +160,13 @@ describe('Message', () => {
   });
 
   it('toString returns human-readable string', () => {
-    const msg = new Message({ messageId: 'm1', direction: 'outbound', state: 'sent', fromNumber: '+111', toNumber: '+222' });
+    const msg = new Message({
+      messageId: 'm1',
+      direction: 'outbound',
+      state: 'sent',
+      fromNumber: '+111',
+      toNumber: '+222',
+    });
     const s = msg.toString();
     expect(s).toContain('m1');
     expect(s).toContain('outbound');

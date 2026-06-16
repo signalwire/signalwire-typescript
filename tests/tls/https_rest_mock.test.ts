@@ -18,15 +18,9 @@
  * is genuinely verified.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RestClient } from '../../src/rest/index.js';
-import {
-  resolveTlsCerts,
-  startTlsMockSignalwire,
-  type TlsMockSignalwire,
-} from './support.js';
+import { resolveTlsCerts, startTlsMockSignalwire, type TlsMockSignalwire } from './support.js';
 
 const certs = resolveTlsCerts();
 const ready = certs !== null;
@@ -60,7 +54,7 @@ describe.skipIf(!ready)('TLS: RestClient over https://', () => {
 
     // Real JSON response over HTTPS.
     expect('data' in body).toBe(true);
-    expect(Array.isArray((body as any).data)).toBe(true);
+    expect(Array.isArray((body as Record<string, unknown>).data)).toBe(true);
 
     // Wire proof: the GET landed on the mock's HTTPS control plane.
     const last = await mock.last();
@@ -79,9 +73,13 @@ describe.skipIf(!ready)('TLS: RestClient over https://', () => {
 
     let code = 'UNEXPECTED_OK';
     try {
-      await fetch(`${mock.baseUrl}/__mock__/health`, { dispatcher: untrusted } as any);
-    } catch (e: any) {
-      code = e?.cause?.code ?? e?.code ?? e?.message ?? 'ERR';
+      // `dispatcher` is an undici extension to RequestInit, not in the DOM lib types.
+      await fetch(`${mock.baseUrl}/__mock__/health`, {
+        dispatcher: untrusted,
+      } as unknown as RequestInit);
+    } catch (e: unknown) {
+      const err = e as { cause?: { code?: string }; code?: string; message?: string };
+      code = err?.cause?.code ?? err?.code ?? err?.message ?? 'ERR';
     } finally {
       await untrusted.close();
     }

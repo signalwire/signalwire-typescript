@@ -7,9 +7,11 @@
 
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
+import type { SwaigRequestData } from '../PlatformContracts.js';
 import type { FunctionResult } from '../FunctionResult.js';
 import type { AgentBase } from '../AgentBase.js';
 import { getLogger, type Logger } from '../Logger.js';
+import type { ToolParameters, ToolArgs } from '../ParameterSchema.js';
 
 /** Configuration key-value pairs passed to a skill at construction time. */
 export interface SkillConfig {
@@ -43,6 +45,77 @@ export interface SkillToolDefinition {
    * The flag is serialised as `"is_hangup_hook": true` in the SWAIG JSON.
    */
   isHangupHook?: boolean;
+}
+
+/**
+ * Build a {@link SkillToolDefinition} whose `handler` args are *inferred* from
+ * its `parameters` schema + `required` list — the `getTools()`-level counterpart
+ * to {@link ../SWMLService.SWMLService.defineTool}'s typed-tool inference.
+ *
+ * A skill returns its tools as a plain `SkillToolDefinition[]`, and that
+ * interface types `handler` as the loose {@link SwaigHandler} (`args:
+ * Record<string, unknown>`) — so a hand-written entry's handler sees untyped
+ * args and must reach for `args['query'] as string`. Wrapping the entry in
+ * `defineSkillTool` captures `parameters` (`P`) and `required` (`R`) via `const`
+ * type parameters and feeds them through {@link ToolArgs}, so the handler's
+ * `args` is precise: a `required` string prop is `args.query: string`, an `enum`
+ * prop narrows to its literal union, optional props are `?`. It then erases the
+ * typed handler back to {@link SwaigHandler} at a single boundary and returns an
+ * ordinary `SkillToolDefinition`, so the result drops straight into a
+ * `getTools()` array with no other change.
+ *
+ * The inferred `args` is a **compile-time authoring convenience only** — at
+ * runtime `args` is still whatever JSON the model extracted, so a handler that
+ * cares (most do, since the model can emit an empty/typeless value even for a
+ * `required` param) keeps its defensive `typeof`/`.trim()` narrowing. The wire
+ * output is byte-identical to the equivalent hand-written entry (drift/emission
+ * unaffected); this is purely an author-side type gain.
+ *
+ * @example
+ * ```ts
+ * override getTools(): SkillToolDefinition[] {
+ *   return [
+ *     defineSkillTool({
+ *       name: 'search_wiki',
+ *       description: 'Search Wikipedia for a topic',
+ *       parameters: { query: { type: 'string', description: 'The search term' } },
+ *       required: ['query'],
+ *       handler: async (args) => {
+ *         // args.query is `string` (required) — no cast needed
+ *         if (!args.query.trim()) return new FunctionResult('Provide a query.');
+ *         return new FunctionResult(await this.searchWiki(args.query.trim()));
+ *       },
+ *     }),
+ *   ];
+ * }
+ * ```
+ */
+export function defineSkillTool<
+  const P extends ToolParameters = ToolParameters,
+  const R extends readonly PropertyKey[] = [],
+>(
+  toolDef: Omit<SkillToolDefinition, 'parameters' | 'required' | 'handler'> & {
+    parameters?: P;
+    required?: R;
+    handler: (
+      args: ToolArgs<P, R>,
+      rawData: SwaigRequestData,
+    ) =>
+      | FunctionResult
+      | Record<string, unknown>
+      | string
+      | Promise<FunctionResult | Record<string, unknown> | string>;
+  },
+): SkillToolDefinition {
+  return {
+    ...toolDef,
+    parameters: toolDef.parameters as Record<string, unknown> | undefined,
+    required: toolDef.required as string[] | undefined,
+    // Single type-erasure boundary: at runtime the handler is the ordinary
+    // (args: Record<string,unknown>, rawData) SwaigHandler; the inferred-args
+    // view is compile-time only (mirrors SWMLService.defineTool).
+    handler: toolDef.handler as SwaigHandler,
+  };
 }
 
 /** A section of prompt content injected into the agent's system prompt by a skill. */
@@ -184,7 +257,8 @@ export abstract class SkillBase {
     const schema: Record<string, ParameterSchemaEntry> = {
       swaig_fields: {
         type: 'object',
-        description: 'Additional SWAIG fields to merge into each tool definition provided by this skill.',
+        description:
+          'Additional SWAIG fields to merge into each tool definition provided by this skill.',
         default: {},
         required: false,
       },
@@ -447,7 +521,7 @@ export abstract class SkillBase {
    * @param rawData - The raw request data containing global_data.
    * @returns The skill's stored data, or an empty object if not found.
    */
-  getSkillData(rawData: Record<string, unknown>): Record<string, unknown> {
+  getSkillData(rawData: SwaigRequestData): Record<string, unknown> {
     const globalData = rawData['global_data'] as Record<string, unknown> | undefined;
     if (!globalData) return {};
     return (globalData[this.getSkillNamespace()] as Record<string, unknown>) ?? {};

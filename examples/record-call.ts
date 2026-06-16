@@ -22,7 +22,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a customer service agent. All calls are recorded for quality assurance. ' +
-  'If the caller asks, you can pause or stop the recording.',
+    'If the caller asks, you can pause or stop the recording.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
@@ -56,9 +56,7 @@ agent.defineTool({
     reason: { type: 'string', description: 'Reason for the transfer' },
   },
   handler: (args) => {
-    const result = new FunctionResult(
-      `Transferring you to a supervisor. Reason: ${args.reason}`,
-    );
+    const result = new FunctionResult(`Transferring you to a supervisor. Reason: ${args.reason}`);
     result.connect('+18005551234');
     return result;
   },

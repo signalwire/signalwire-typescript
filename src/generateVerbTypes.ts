@@ -59,14 +59,17 @@ function mapType(prop: SchemaProperty, opts?: { widenStringEnum?: boolean }): st
   // Handle anyOf
   if (prop.anyOf) {
     // If wideningStringEnum, and every branch is a string const, collapse to 'string'
-    if (opts?.widenStringEnum && prop.anyOf.every(p => p.const !== undefined && typeof p.const === 'string')) {
+    if (
+      opts?.widenStringEnum &&
+      prop.anyOf.every((p) => p.const !== undefined && typeof p.const === 'string')
+    ) {
       return 'string';
     }
     const types = prop.anyOf
-      .map(p => mapType(p, opts))
+      .map((p) => mapType(p, opts))
       .filter((t, i, arr) => arr.indexOf(t) === i); // deduplicate
     // Filter out 'unknown' from SWMLVar refs if there are concrete types
-    const concreteTypes = types.filter(t => t !== 'unknown');
+    const concreteTypes = types.filter((t) => t !== 'unknown');
     if (concreteTypes.length > 0) {
       return concreteTypes.join(' | ');
     }
@@ -146,7 +149,10 @@ const TYPE_AS_SAY_GENDER: Record<string, Set<string>> = {
  * Keyed by verbName. interfaceName is emitted as a top-level export in the generated file;
  * configType references that name; isOptional=true because all Python params are optional.
  */
-const CUSTOM_VERB_TYPES: Record<string, { interfaceName: string; interfaceBody: string; isOptional: boolean }> = {
+const CUSTOM_VERB_TYPES: Record<
+  string,
+  { interfaceName: string; interfaceBody: string; isOptional: boolean }
+> = {
   ai: {
     interfaceName: 'AiVerbConfig',
     interfaceBody: [
@@ -313,8 +319,10 @@ function generate(): void {
 
   // Collect custom interface definitions to emit before the module augmentation
   const customInterfaces = Object.values(CUSTOM_VERB_TYPES)
-    .map(({ interfaceName, interfaceBody }) =>
-      `export interface ${interfaceName} {\n${interfaceBody}\n}`)
+    .map(
+      ({ interfaceName, interfaceBody }) =>
+        `export interface ${interfaceName} {\n${interfaceBody}\n}`,
+    )
     .join('\n\n');
 
   const output = `/**
@@ -339,7 +347,7 @@ export {};
 `;
 
   writeFileSync(outputPath, output, 'utf-8');
-  const verbCount = methods.filter(l => l.includes('): this;')).length;
+  const verbCount = methods.filter((l) => l.includes('): this;')).length;
   console.log(`Generated ${outputPath} with ${verbCount} verb methods.`);
 }
 

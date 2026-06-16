@@ -22,6 +22,23 @@ import {
   RECORD_STATE_FINISHED,
   RECORD_STATE_NO_INPUT,
 } from './constants.js';
+import type {
+  CallingCollectStartInputTimersResult,
+  CallingCollectStopResult,
+  CallingDetectStopResult,
+  CallingPayStopResult,
+  CallingPlayAndCollectStopResult,
+  CallingPlayAndCollectVolumeResult,
+  CallingPlayPauseResult,
+  CallingPlayResumeResult,
+  CallingPlayStopResult,
+  CallingPlayVolumeResult,
+  CallingRecordPauseResult,
+  CallingRecordResumeResult,
+  CallingRecordStopResult,
+  CallingStreamStopResult,
+  CallingTapStopResult,
+} from './protocol.types.generated.js';
 import { RelayEvent } from './RelayEvent.js';
 import type { CompletedCallback } from './types.js';
 
@@ -32,7 +49,10 @@ const logger = getLogger('relay_action');
  * import between `Call.ts` and `Action.ts`.
  */
 export interface CallLike {
-  _execute(method: string, extraParams?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  _execute<R extends object = Record<string, unknown>>(
+    method: string,
+    extraParams?: Record<string, unknown>,
+  ): Promise<R>;
 }
 
 // ─── Base Action ─────────────────────────────────────────────────────
@@ -164,8 +184,8 @@ export class PlayAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('play.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingPlayStopResult> {
+    return this.call._execute<CallingPlayStopResult>('play.stop', { control_id: this.controlId });
   }
 
   /**
@@ -174,8 +194,8 @@ export class PlayAction extends Action {
    * @returns The platform's pause response.
    * @throws {RelayError} When the pause command is rejected.
    */
-  async pause(): Promise<Record<string, unknown>> {
-    return this.call._execute('play.pause', { control_id: this.controlId });
+  async pause(): Promise<CallingPlayPauseResult> {
+    return this.call._execute<CallingPlayPauseResult>('play.pause', { control_id: this.controlId });
   }
 
   /**
@@ -184,8 +204,10 @@ export class PlayAction extends Action {
    * @returns The platform's resume response.
    * @throws {RelayError} When the resume command is rejected.
    */
-  async resume(): Promise<Record<string, unknown>> {
-    return this.call._execute('play.resume', { control_id: this.controlId });
+  async resume(): Promise<CallingPlayResumeResult> {
+    return this.call._execute<CallingPlayResumeResult>('play.resume', {
+      control_id: this.controlId,
+    });
   }
 
   /**
@@ -195,8 +217,11 @@ export class PlayAction extends Action {
    * @returns The platform's volume response.
    * @throws {RelayError} When the volume command is rejected.
    */
-  async volume(volume: number): Promise<Record<string, unknown>> {
-    return this.call._execute('play.volume', { control_id: this.controlId, volume });
+  async volume(volume: number): Promise<CallingPlayVolumeResult> {
+    return this.call._execute<CallingPlayVolumeResult>('play.volume', {
+      control_id: this.controlId,
+      volume,
+    });
   }
 }
 
@@ -214,8 +239,10 @@ export class RecordAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('record.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingRecordStopResult> {
+    return this.call._execute<CallingRecordStopResult>('record.stop', {
+      control_id: this.controlId,
+    });
   }
 
   /**
@@ -226,10 +253,10 @@ export class RecordAction extends Action {
    * @returns The platform's pause response.
    * @throws {RelayError} When the pause command is rejected.
    */
-  async pause(behavior?: string): Promise<Record<string, unknown>> {
+  async pause(behavior?: string): Promise<CallingRecordPauseResult> {
     const params: Record<string, unknown> = { control_id: this.controlId };
     if (behavior) params.behavior = behavior;
-    return this.call._execute('record.pause', params);
+    return this.call._execute<CallingRecordPauseResult>('record.pause', params);
   }
 
   /**
@@ -238,8 +265,10 @@ export class RecordAction extends Action {
    * @returns The platform's resume response.
    * @throws {RelayError} When the resume command is rejected.
    */
-  async resume(): Promise<Record<string, unknown>> {
-    return this.call._execute('record.resume', { control_id: this.controlId });
+  async resume(): Promise<CallingRecordResumeResult> {
+    return this.call._execute<CallingRecordResumeResult>('record.resume', {
+      control_id: this.controlId,
+    });
   }
 }
 
@@ -266,8 +295,10 @@ export class DetectAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('detect.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingDetectStopResult> {
+    return this.call._execute<CallingDetectStopResult>('detect.stop', {
+      control_id: this.controlId,
+    });
   }
 }
 
@@ -299,8 +330,10 @@ export class CollectAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('play_and_collect.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingPlayAndCollectStopResult> {
+    return this.call._execute<CallingPlayAndCollectStopResult>('play_and_collect.stop', {
+      control_id: this.controlId,
+    });
   }
 
   /**
@@ -310,8 +343,11 @@ export class CollectAction extends Action {
    * @returns The platform's volume response.
    * @throws {RelayError} When the volume command is rejected.
    */
-  async volume(volume: number): Promise<Record<string, unknown>> {
-    return this.call._execute('play_and_collect.volume', { control_id: this.controlId, volume });
+  async volume(volume: number): Promise<CallingPlayAndCollectVolumeResult> {
+    return this.call._execute<CallingPlayAndCollectVolumeResult>('play_and_collect.volume', {
+      control_id: this.controlId,
+      volume,
+    });
   }
 
   /**
@@ -321,8 +357,10 @@ export class CollectAction extends Action {
    * @returns The platform's start_input_timers response.
    * @throws {RelayError} When the command is rejected.
    */
-  async startInputTimers(): Promise<Record<string, unknown>> {
-    return this.call._execute('collect.start_input_timers', { control_id: this.controlId });
+  async startInputTimers(): Promise<CallingCollectStartInputTimersResult> {
+    return this.call._execute<CallingCollectStartInputTimersResult>('collect.start_input_timers', {
+      control_id: this.controlId,
+    });
   }
 }
 
@@ -349,8 +387,10 @@ export class StandaloneCollectAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('collect.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingCollectStopResult> {
+    return this.call._execute<CallingCollectStopResult>('collect.stop', {
+      control_id: this.controlId,
+    });
   }
 
   /**
@@ -359,8 +399,10 @@ export class StandaloneCollectAction extends Action {
    * @returns The platform's start_input_timers response.
    * @throws {RelayError} When the command is rejected.
    */
-  async startInputTimers(): Promise<Record<string, unknown>> {
-    return this.call._execute('collect.start_input_timers', { control_id: this.controlId });
+  async startInputTimers(): Promise<CallingCollectStartInputTimersResult> {
+    return this.call._execute<CallingCollectStartInputTimersResult>('collect.start_input_timers', {
+      control_id: this.controlId,
+    });
   }
 }
 
@@ -400,8 +442,8 @@ export class TapAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('tap.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingTapStopResult> {
+    return this.call._execute<CallingTapStopResult>('tap.stop', { control_id: this.controlId });
   }
 }
 
@@ -419,8 +461,10 @@ export class StreamAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('stream.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingStreamStopResult> {
+    return this.call._execute<CallingStreamStopResult>('stream.stop', {
+      control_id: this.controlId,
+    });
   }
 }
 
@@ -438,8 +482,8 @@ export class PayAction extends Action {
    * @returns The platform's stop response.
    * @throws {RelayError} When the stop command is rejected.
    */
-  async stop(): Promise<Record<string, unknown>> {
-    return this.call._execute('pay.stop', { control_id: this.controlId });
+  async stop(): Promise<CallingPayStopResult> {
+    return this.call._execute<CallingPayStopResult>('pay.stop', { control_id: this.controlId });
   }
 }
 

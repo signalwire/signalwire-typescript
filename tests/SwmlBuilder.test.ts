@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,16 +20,18 @@ const CLOSED_SETS_SRC = path.resolve(__dirname, '../src/relay/closedSets.ts');
 function extractUnion(aliasName: string): string {
   const src = readFileSync(CLOSED_SETS_SRC, 'utf-8');
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
-  if (!m) throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1].replace(/\s+/g, ' ').replace(/^\|\s*/, '').trim();
+  if (!m)
+    throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
+  return m[1]
+    .replace(/\s+/g, ' ')
+    .replace(/^\|\s*/, '')
+    .trim();
 }
 
 /** Compile `type TtsGender = ...;` + body; return diagnostics keyed by body line (body line N → file line N+1). */
 function typeCheckSayGender(body: string): Map<number, string> {
   const virtual = path.resolve(__dirname, '__say_gender_probe__.ts');
-  const source =
-    `type TtsGender = ${extractUnion('TtsGender')};\n` +
-    `${body}\n`;
+  const source = `type TtsGender = ${extractUnion('TtsGender')};\n` + `${body}\n`;
   const options: ts.CompilerOptions = {
     strict: true,
     noEmit: true,
@@ -132,7 +134,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
 
     it('label() with string', () => {
-      (builder as Record<string, Function>)['label']('greeting');
+      (builder as unknown as Record<string, (...args: unknown[]) => unknown>)['label']('greeting');
       const doc = builder.getDocument() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ label: 'greeting' });
     });
@@ -222,13 +224,13 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('validation', () => {
     it('rejects missing required properties', () => {
       expect(() => {
-        builder.tap({} as any);
+        builder.tap({} as Parameters<typeof builder.tap>[0]);
       }).toThrow('SWML verb validation failed');
     });
 
     it('rejects missing required properties with detail', () => {
       expect(() => {
-        builder.tap({} as any);
+        builder.tap({} as Parameters<typeof builder.tap>[0]);
       }).toThrow("'uri'");
     });
 
@@ -245,7 +247,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
         const skipBuilder = new SwmlBuilder();
         // Should not throw even though required uri is missing
         expect(() => {
-          skipBuilder.tap({} as any);
+          skipBuilder.tap({} as Parameters<typeof builder.tap>[0]);
         }).not.toThrow();
       } finally {
         if (origEnv === undefined) {
@@ -360,14 +362,14 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       // removed — this is the inverse of what the test asserted before); a
       // non-string is rejected too.
       const errs = typeCheckSayGender(
-        `const ok1: TtsGender = 'female'; void ok1;\n` +  // body line 0 → diag line 1
-        `const ok2: TtsGender = 'male'; void ok2;\n` +    // body line 1 → diag line 2
-        `const off: TtsGender = 'neutral'; void off;\n` + // body line 2 → diag line 3 (now rejected)
-        `const bad: TtsGender = 42; void bad;`,           // body line 3 → diag line 4 (rejected)
+        `const ok1: TtsGender = 'female'; void ok1;\n` + // body line 0 → diag line 1
+          `const ok2: TtsGender = 'male'; void ok2;\n` + // body line 1 → diag line 2
+          `const off: TtsGender = 'neutral'; void off;\n` + // body line 2 → diag line 3 (now rejected)
+          `const bad: TtsGender = 42; void bad;`, // body line 3 → diag line 4 (rejected)
       );
       expect(errs.get(1)).toBeUndefined(); // 'female' clean
       expect(errs.get(2)).toBeUndefined(); // 'male' clean
-      expect(errs.get(3)).toBeDefined();   // 'neutral' now REJECTED (closed)
+      expect(errs.get(3)).toBeDefined(); // 'neutral' now REJECTED (closed)
       expect(errs.get(3)!).toMatch(/not assignable to type 'TtsGender'/);
       const badErr = errs.get(4);
       expect(badErr).toBeDefined();

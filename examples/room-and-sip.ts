@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a meeting coordinator. You can help callers join rooms, ' +
-  'transfer calls via SIP, and manage conferences.',
+    'transfer calls via SIP, and manage conferences.',
 );
 
 // Join a SignalWire room
@@ -29,11 +29,10 @@ agent.defineTool({
   parameters: {
     room_name: { type: 'string', description: 'Name of the meeting room' },
   },
+  required: ['room_name'],
   handler: (args) => {
-    const result = new FunctionResult(
-      `Connecting you to room "${args.room_name}" now.`,
-    );
-    result.joinRoom(args.room_name as string);
+    const result = new FunctionResult(`Connecting you to room "${args.room_name}" now.`);
+    result.joinRoom(args.room_name);
     return result;
   },
 });
@@ -45,11 +44,10 @@ agent.defineTool({
   parameters: {
     sip_uri: { type: 'string', description: 'SIP URI to transfer to (e.g., sip:user@domain.com)' },
   },
+  required: ['sip_uri'],
   handler: (args) => {
-    const result = new FunctionResult(
-      `Transferring your call to ${args.sip_uri}.`,
-    );
-    result.sipRefer(args.sip_uri as string);
+    const result = new FunctionResult(`Transferring your call to ${args.sip_uri}.`);
+    result.sipRefer(args.sip_uri);
     return result;
   },
 });
@@ -62,12 +60,14 @@ agent.defineTool({
     conference_name: { type: 'string', description: 'Conference name to join' },
     muted: { type: 'boolean', description: 'Whether to join muted (default: false)' },
   },
+  required: ['conference_name'],
   handler: (args) => {
+    // args.conference_name: string (required); args.muted: boolean | undefined.
     const muted = args.muted === true;
     const result = new FunctionResult(
       `Joining conference "${args.conference_name}"${muted ? ' (muted)' : ''}.`,
     );
-    result.joinConference(args.conference_name as string, { muted });
+    result.joinConference(args.conference_name, { muted });
     return result;
   },
 });
@@ -79,11 +79,10 @@ agent.defineTool({
   parameters: {
     phone_number: { type: 'string', description: 'Phone number to connect to' },
   },
+  required: ['phone_number'],
   handler: (args) => {
-    const result = new FunctionResult(
-      `Connecting you to ${args.phone_number}. Please hold.`,
-    );
-    result.connect(args.phone_number as string);
+    const result = new FunctionResult(`Connecting you to ${args.phone_number}. Please hold.`);
+    result.connect(args.phone_number);
     return result;
   },
 });

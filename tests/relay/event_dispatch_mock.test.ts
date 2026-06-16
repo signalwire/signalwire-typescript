@@ -8,12 +8,11 @@
  * neatly into per-action / per-call test files.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
+import type { RelayEvent } from '../../src/relay/RelayEvent.js';
 import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
@@ -28,7 +27,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (client) {
-    try { await client.disconnect(); } catch { /* ignore */ }
+    try {
+      await client.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 });
 
@@ -55,7 +58,10 @@ async function answeredCall(callId = 'evt-call-1'): Promise<Call> {
   return call;
 }
 
-function bareEventFrame(eventType: string, params: Record<string, any>): Record<string, any> {
+function bareEventFrame(
+  eventType: string,
+  params: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     jsonrpc: '2.0',
     id: randomUUID(),
@@ -112,10 +118,9 @@ describe('Event dispatch — sub-command journaling', () => {
 
   it('test_play_volume_carries_negative_value', async () => {
     const call = await answeredCall('ec-pvol');
-    const action = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: 'ec-pvol-1' },
-    );
+    const action = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: 'ec-pvol-1',
+    });
     await action.volume(-5.5);
     const vol = await mock.journalRecv('calling.play.volume');
     expect(vol.length).toBeGreaterThan(0);
@@ -131,23 +136,25 @@ describe('Event dispatch — unknown / malformed events', () => {
   it('test_unknown_event_type_does_not_crash', async () => {
     await mock.push(bareEventFrame('nonsense.unknown', { foo: 'bar' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 
   it('test_event_with_bad_call_id_is_dropped', async () => {
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'no-such-call-bogus',
-      control_id: 'stranger',
-      state: 'playing',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'no-such-call-bogus',
+        control_id: 'stranger',
+        state: 'playing',
+      }),
+    );
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 
   it('test_event_with_empty_event_type_is_dropped', async () => {
     await mock.push(bareEventFrame('', { call_id: 'x' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 });
 
@@ -158,29 +165,35 @@ describe('Event dispatch — unknown / malformed events', () => {
 describe('Event dispatch — multi-action concurrency', () => {
   it('test_three_concurrent_actions_resolve_independently', async () => {
     const call = await answeredCall('ec-3acts');
-    const play1 = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: '3a-p1' },
-    );
-    const play2 = await call.play(
-      [{ type: 'silence', params: { duration: 60 } }],
-      { controlId: '3a-p2' },
-    );
+    const play1 = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: '3a-p1',
+    });
+    const play2 = await call.play([{ type: 'silence', params: { duration: 60 } }], {
+      controlId: '3a-p2',
+    });
     const rec = await call.record({ format: 'wav' }, { controlId: '3a-r1' });
 
     // Fire only play1's finished.
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-3acts', control_id: '3a-p1', state: 'finished',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-3acts',
+        control_id: '3a-p1',
+        state: 'finished',
+      }),
+    );
     await play1.wait(2);
     expect(play1.isDone).toBe(true);
     expect(play2.isDone).toBe(false);
     expect(rec.isDone).toBe(false);
 
     // Fire play2's.
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-3acts', control_id: '3a-p2', state: 'finished',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-3acts',
+        control_id: '3a-p2',
+        state: 'finished',
+      }),
+    );
     await play2.wait(2);
     expect(play2.isDone).toBe(true);
     expect(rec.isDone).toBe(false);
@@ -206,10 +219,8 @@ describe('Event dispatch — event ACK', () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const j = await mock.journal();
-    const acks = j.filter((e) =>
-      e.direction === 'recv'
-      && e.frame.id === evtId
-      && 'result' in e.frame,
+    const acks = j.filter(
+      (e) => e.direction === 'recv' && e.frame.id === evtId && 'result' in e.frame,
     );
     expect(acks.length).toBeGreaterThan(0);
   });
@@ -271,10 +282,8 @@ describe('Event dispatch — server ping', () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const j = await mock.journal();
-    const pongs = j.filter((e) =>
-      e.direction === 'recv'
-      && e.frame.id === pingId
-      && 'result' in e.frame,
+    const pongs = j.filter(
+      (e) => e.direction === 'recv' && e.frame.id === pingId && 'result' in e.frame,
     );
     expect(pongs.length).toBeGreaterThan(0);
   });
@@ -286,12 +295,20 @@ describe('Event dispatch — server ping', () => {
 
 describe('Event dispatch — authorization state', () => {
   it('test_authorization_state_event_captured', async () => {
-    await mock.push(bareEventFrame(
-      'signalwire.authorization.state',
-      { authorization_state: 'test-auth-state-blob' },
-    ));
-    await waitFor(() => (client as any)._authorizationState === 'test-auth-state-blob', 2000);
-    expect((client as any)._authorizationState).toBe('test-auth-state-blob');
+    await mock.push(
+      bareEventFrame('signalwire.authorization.state', {
+        authorization_state: 'test-auth-state-blob',
+      }),
+    );
+    await waitFor(
+      () =>
+        (client as unknown as { _authorizationState?: string })._authorizationState ===
+        'test-auth-state-blob',
+      2000,
+    );
+    expect((client as unknown as { _authorizationState?: string })._authorizationState).toBe(
+      'test-auth-state-blob',
+    );
   });
 });
 
@@ -303,7 +320,7 @@ describe('Event dispatch — calling.error', () => {
   it('test_calling_error_event_does_not_crash', async () => {
     await mock.push(bareEventFrame('calling.error', { code: '5001', message: 'synthetic error' }));
     await new Promise((r) => setTimeout(r, 100));
-    expect((client as any)._connected).toBe(true);
+    expect((client as unknown as { _connected: boolean })._connected).toBe(true);
   });
 });
 
@@ -314,25 +331,33 @@ describe('Event dispatch — calling.error', () => {
 describe('Event dispatch — state events', () => {
   it('test_call_state_event_updates_state', async () => {
     const call = await answeredCall('ec-stt');
-    await mock.push(bareEventFrame('calling.call.state', {
-      call_id: 'ec-stt', call_state: 'ending', direction: 'inbound',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.state', {
+        call_id: 'ec-stt',
+        call_state: 'ending',
+        direction: 'inbound',
+      }),
+    );
     await waitFor(() => call.state === 'ending', 2000);
     expect(call.state).toBe('ending');
   });
 
   it('test_call_listener_fires_on_event', async () => {
     const call = await answeredCall('ec-list');
-    const seen: any[] = [];
+    const seen: RelayEvent[] = [];
     const fired = new Promise<void>((resolve) => {
       call.on('calling.call.play', (event) => {
         seen.push(event);
         resolve();
       });
     });
-    await mock.push(bareEventFrame('calling.call.play', {
-      call_id: 'ec-list', control_id: 'x', state: 'playing',
-    }));
+    await mock.push(
+      bareEventFrame('calling.call.play', {
+        call_id: 'ec-list',
+        control_id: 'x',
+        state: 'playing',
+      }),
+    );
     await Promise.race([
       fired,
       new Promise((_, reject) => setTimeout(() => reject(new Error('listener timeout')), 2000)),

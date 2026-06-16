@@ -7,6 +7,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { readFile, stat, readdir } from 'node:fs/promises';
@@ -141,8 +142,16 @@ export class WebService {
 
   /** Default blocked extensions and file names (security-sensitive files). */
   private static readonly DEFAULT_BLOCKED = [
-    '.env', '.git', '.gitignore', '.key', '.pem', '.crt',
-    '.pyc', '__pycache__', '.DS_Store', '.swp',
+    '.env',
+    '.git',
+    '.gitignore',
+    '.key',
+    '.pem',
+    '.crt',
+    '.pyc',
+    '__pycache__',
+    '.DS_Store',
+    '.swp',
   ];
 
   /**
@@ -159,10 +168,9 @@ export class WebService {
     this._basicAuth = options?.basicAuth ?? null;
     this.enableDirectoryBrowsing =
       options?.enableDirectoryBrowsing ?? fileConfig.enableDirectoryBrowsing ?? false;
-    this.allowedExtensions =
-      options?.allowedExtensions ?? fileConfig.allowedExtensions ?? null;
-    this.blockedExtensions =
-      options?.blockedExtensions ?? fileConfig.blockedExtensions ?? [...WebService.DEFAULT_BLOCKED];
+    this.allowedExtensions = options?.allowedExtensions ?? fileConfig.allowedExtensions ?? null;
+    this.blockedExtensions = options?.blockedExtensions ??
+      fileConfig.blockedExtensions ?? [...WebService.DEFAULT_BLOCKED];
     this.maxFileSize = options?.maxFileSize ?? fileConfig.maxFileSize ?? 100 * 1024 * 1024;
     this.enableCors = options?.enableCors ?? fileConfig.enableCors ?? true;
     this._ssl = new SslConfig(options?.ssl);
@@ -247,12 +255,7 @@ export class WebService {
    * @param sslKey - Path to SSL key file (overrides `SslConfig`).
    * @returns Resolves once the server has begun listening.
    */
-  async start(
-    host?: string,
-    port?: number,
-    sslCert?: string,
-    sslKey?: string,
-  ): Promise<void> {
+  async start(host?: string, port?: number, sslCert?: string, sslKey?: string): Promise<void> {
     // When loaded by the CLI tool, skip server startup.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
 
@@ -260,9 +263,10 @@ export class WebService {
     const p = port ?? this.port;
 
     // Determine SSL configuration
-    const effectiveSsl = sslCert && sslKey
-      ? new SslConfig({ enabled: true, certPath: sslCert, keyPath: sslKey })
-      : this._ssl;
+    const effectiveSsl =
+      sslCert && sslKey
+        ? new SslConfig({ enabled: true, certPath: sslCert, keyPath: sslKey })
+        : this._ssl;
 
     const useHttps = effectiveSsl.isConfigured();
     const scheme = useHttps ? 'https' : 'http';
@@ -558,7 +562,7 @@ export class WebService {
 
   // ── File serving ───────────────────────────────────────────────────
 
-  private async _serveFile(c: any, fullPath: string): Promise<Response> {
+  private async _serveFile(c: Context, fullPath: string): Promise<Response> {
     const content = await readFile(fullPath);
     const ext = extname(fullPath).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
@@ -573,7 +577,7 @@ export class WebService {
   // ── Directory listing ──────────────────────────────────────────────
 
   private async _serveDirectoryListing(
-    c: any,
+    c: Context,
     dirPath: string,
     urlPath: string,
   ): Promise<Response> {

@@ -79,7 +79,9 @@ export class SkillManager {
     // Duplicate detection using instance key
     if (this.skills.has(instanceKey)) {
       if (!SkillClass.SUPPORTS_MULTIPLE_INSTANCES) {
-        throw new Error(`Skill '${name}' is already loaded and does not support multiple instances`);
+        throw new Error(
+          `Skill '${name}' is already loaded and does not support multiple instances`,
+        );
       }
       log.warn(`Skill '${name}' with key '${instanceKey}' already loaded, skipping duplicate`);
       return;
@@ -90,7 +92,9 @@ export class SkillManager {
     // contract (skill_manager.py lines 114-118).
     const missingEnvVars = skill.validateEnvVars();
     if (missingEnvVars.length > 0) {
-      throw new Error(`Cannot load skill '${name}': missing environment variables: ${missingEnvVars.join(', ')}`);
+      throw new Error(
+        `Cannot load skill '${name}': missing environment variables: ${missingEnvVars.join(', ')}`,
+      );
     }
 
     // Parameter schema contract — partial port of Python load_skill checks
@@ -101,9 +105,7 @@ export class SkillManager {
     // getParameterSchema is a callable classmethod returning the right shape.
     const schema = SkillClass.getParameterSchema();
     if (!schema || typeof schema !== 'object' || Object.keys(schema).length === 0) {
-      throw new Error(
-        `Skill '${name}'.getParameterSchema() must return a non-empty object`,
-      );
+      throw new Error(`Skill '${name}'.getParameterSchema() must return a non-empty object`);
     }
     log.debug(`Skill '${name}' has ${Object.keys(schema).length} config params`);
 
@@ -331,7 +333,7 @@ export class SkillManager {
    * @returns Array of skill summary objects.
    */
   listSkills(): { name: string; instanceId: string; initialized: boolean }[] {
-    return Array.from(this.skills.values()).map(s => ({
+    return Array.from(this.skills.values()).map((s) => ({
       name: s.skillName,
       instanceId: s.instanceId,
       initialized: s.isInitialized(),
@@ -398,8 +400,12 @@ export class SkillManager {
    * Get metadata for all loaded skills, enabling ephemeral copy re-instantiation.
    * @returns Array of entries containing skill name, class constructor, and config.
    */
-  getLoadedSkillEntries(): Array<{ skillName: string; SkillClass: typeof SkillBase; config: SkillConfig }> {
-    return Array.from(this.skillMeta.values()).map(entry => ({
+  getLoadedSkillEntries(): Array<{
+    skillName: string;
+    SkillClass: typeof SkillBase;
+    config: SkillConfig;
+  }> {
+    return Array.from(this.skillMeta.values()).map((entry) => ({
       skillName: entry.skillName,
       SkillClass: entry.SkillClass,
       config: { ...entry.config },

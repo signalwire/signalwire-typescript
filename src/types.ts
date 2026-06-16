@@ -2,6 +2,8 @@
  * Shared type definitions for SignalWire AI Agents SDK.
  */
 
+import type { PostPromptData, SwmlRequestData } from './PlatformContracts.js';
+
 /** Configuration options for constructing an AgentBase instance. */
 export interface AgentOptions {
   /** Display name of the agent, also used as default basic-auth username when credentials are auto-generated. */
@@ -154,7 +156,7 @@ export interface FunctionInclude {
  */
 export type DynamicConfigCallback<TAgent = import('./AgentBase.js').AgentBase> = (
   queryParams: Record<string, string>,
-  bodyParams: Record<string, unknown>,
+  bodyParams: SwmlRequestData,
   headers: Record<string, string>,
   agent: TAgent,
 ) => void | Promise<void>;
@@ -166,5 +168,5 @@ export type DynamicConfigCallback<TAgent = import('./AgentBase.js').AgentBase> =
  */
 export type SummaryCallback = (
   summary: Record<string, unknown> | null,
-  rawData: Record<string, unknown>,
+  rawData: PostPromptData,
 ) => void | Promise<void>;

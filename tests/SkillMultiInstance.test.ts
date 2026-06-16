@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { SkillBase, type SkillToolDefinition, type ParameterSchemaEntry } from '../src/skills/SkillBase.js';
+import {
+  SkillBase,
+  type SkillToolDefinition,
+  type ParameterSchemaEntry,
+} from '../src/skills/SkillBase.js';
 import { SkillManager } from '../src/skills/SkillManager.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 

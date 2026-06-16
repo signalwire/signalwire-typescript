@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('WebSearchSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -32,7 +34,8 @@ describe('WebSearchSkill', () => {
     const tools = new WebSearchSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('web_search');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (web_search/skill.py:707); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
@@ -70,13 +73,13 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const handler = new WebSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 
   it('should reject empty query', async () => {
     const handler = new WebSearchSkill().getTools()[0].handler;
-    const result = await handler({ query: '' }, {}) as FunctionResult;
+    const result = (await handler({ query: '' }, {})) as FunctionResult;
     expect(result.response).toContain('provide a search query');
   });
 
@@ -94,18 +97,21 @@ describe('WebSearchSkill', () => {
     // Each documented param must be a real entry — type + description
     // both populated. A stub returning `{key: undefined}` would fail.
     const required = [
-      'num_results', 'tool_name', 'no_results_message', 'safe_search',
-      'delay', 'max_content_length', 'oversample_factor', 'min_quality_score',
+      'num_results',
+      'tool_name',
+      'no_results_message',
+      'safe_search',
+      'delay',
+      'max_content_length',
+      'oversample_factor',
+      'min_quality_score',
     ];
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
     // safe_search is enum-typed.
     expect(schema['safe_search'].enum).toContain('off');
@@ -331,9 +337,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     signal?: AbortSignal,
   ): Promise<Response> {
     return new Promise<Response>((resolve, reject) => {
-      const id = Number.isFinite(ms)
-        ? setTimeout(() => resolve(factory()), ms)
-        : undefined;
+      const id = Number.isFinite(ms) ? setTimeout(() => resolve(factory()), ms) : undefined;
       const onAbort = () => {
         if (id !== undefined) clearTimeout(id);
         // Mirror real fetch: aborting rejects with an AbortError.
@@ -421,10 +425,9 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     try {
       const skill = makeSkill({ snippets_only: true });
       const start = Date.now();
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
       expect(scrapeCalls).toBe(0); // no page fetch at all
@@ -448,10 +451,9 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       // test is fast but still meaningfully exercises the deadline.
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: true });
       const start = Date.now();
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
       // CONTRACT: returns within ~deadline + slack despite the hung fetch.
@@ -472,10 +474,9 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     try {
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: false });
       const start = Date.now();
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
       // Sequential: first page hangs until its per_page_timeout (default 2.0s)
@@ -500,10 +501,9 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
         parallel_scrape: true,
       });
       const start = Date.now();
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
       // All page fetches aborted at ~0.3s; we never wait the 5s body delay.
@@ -522,14 +522,13 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     const restore = installStubFetch({ scrapeDelayMs: 50 });
     try {
       const skill = makeSkill({ overall_deadline: 10.0, parallel_scrape: true });
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
 
-      expect(result.response.startsWith(
-        "Quality web search results for 'widgets gizmos':",
-      )).toBe(true);
+      expect(result.response.startsWith("Quality web search results for 'widgets gizmos':")).toBe(
+        true,
+      );
       expect(result.response).toContain('Content:');
       expect(result.response).not.toContain('Snippet-only results');
     } finally {
@@ -544,16 +543,14 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     // snippet fallback) carrying site one's content. Proves the parallel path
     // collects results incrementally rather than discarding the whole batch.
     const restore = installStubFetch({
-      scrapeDelayFor: (url) =>
-        url.includes('slow-one') ? 100 : Number.POSITIVE_INFINITY,
+      scrapeDelayFor: (url) => (url.includes('slow-one') ? 100 : Number.POSITIVE_INFINITY),
     });
     try {
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: true });
       const start = Date.now();
-      const result = (await skill.getTools()[0].handler(
-        { query: 'widgets gizmos' },
-        {},
-      )) as FunctionResult;
+      const result = (await skill
+        .getTools()[0]
+        .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
       // The fast page's content survived the deadline truncation.

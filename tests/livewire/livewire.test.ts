@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   Agent,
   AgentSession,
@@ -15,12 +15,10 @@ import {
   ToolError,
   AgentHandoff,
   NoopTracker,
-  globalNoop,
   plugins,
   inference,
   tips,
   banner,
-  printBanner,
   voice,
   llm,
   cli,
@@ -106,7 +104,7 @@ describe('AgentSession', () => {
 
   it('start() registers tools from agent', async () => {
     const session = new AgentSession();
-    const weatherTool = tool({
+    const weatherTool = tool<{ location: string }>({
       description: 'Get weather',
       parameters: {
         type: 'object',
@@ -114,7 +112,7 @@ describe('AgentSession', () => {
           location: { type: 'string', description: 'City name' },
         },
       },
-      execute: (params: any) => `Weather in ${params.location}: sunny`,
+      execute: (params) => `Weather in ${params.location}: sunny`,
     });
     const agent = new Agent({
       instructions: 'Weather assistant',
@@ -190,7 +188,7 @@ describe('AgentSession', () => {
 
 describe('tool()', () => {
   it('creates a valid tool definition', () => {
-    const t = tool({
+    const t = tool<{ word: string }>({
       description: 'Look up a word',
       parameters: {
         type: 'object',
@@ -198,7 +196,7 @@ describe('tool()', () => {
           word: { type: 'string', description: 'The word to look up' },
         },
       },
-      execute: (params: any) => `Definition of ${params.word}`,
+      execute: (params) => `Definition of ${params.word}`,
     });
     expect(t.description).toBe('Look up a word');
     expect(t.parameters).toBeDefined();
@@ -218,9 +216,9 @@ describe('tool()', () => {
     const session = new AgentSession();
     const ctx = new RunContext(session);
 
-    const t = tool({
+    const t = tool<{ name: string }>({
       description: 'test',
-      execute: (params: any, context: { ctx: RunContext }) => {
+      execute: (params, context: { ctx: RunContext }) => {
         return `${params.name} via ${context.ctx.constructor.name}`;
       },
     });
@@ -772,9 +770,10 @@ describe('ChatContext', () => {
 
   it('chains multiple appends', () => {
     const ctx = new ChatContext();
-    ctx.append({ role: 'system', text: 'You are a bot' })
-       .append({ role: 'user', text: 'Hello' })
-       .append({ role: 'assistant', text: 'Hi there' });
+    ctx
+      .append({ role: 'system', text: 'You are a bot' })
+      .append({ role: 'user', text: 'Hello' })
+      .append({ role: 'assistant', text: 'Hi there' });
     expect(ctx.messages).toHaveLength(3);
     expect(ctx.messages[0].role).toBe('system');
     expect(ctx.messages[1].role).toBe('user');

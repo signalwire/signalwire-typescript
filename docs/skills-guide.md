@@ -112,7 +112,7 @@ These skills work out of the box with no API keys or configuration.
 |---|---|---|---|---|---|
 | `datetime` | `DateTimeSkill` | Current date/time with timezone support | `get_datetime` | None | None |
 | `math` | `MathSkill` | Safe mathematical expression evaluation | `calculate` | None | None |
-| `joke` | `JokeSkill` | Random jokes from built-in collection | `tell_joke` | None | None |
+| `joke` | `JokeSkill` | Random jokes from built-in collection | `get_joke` (`type`: jokes/dadjokes) | None | `tool_name` |
 
 **datetime** -- Provides the current date and time in any IANA timezone via the `get_datetime` tool. Uses the `Intl.DateTimeFormat` API.
 
@@ -128,7 +128,7 @@ import { MathSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new MathSkill());
 ```
 
-**joke** -- Tells random jokes from a curated built-in collection. Categories: `general`, `programming`, `dad`.
+**joke** -- Tells random jokes from a curated built-in collection. Exposes the `get_joke` tool with a required `type` parameter (`jokes` or `dadjokes`), matching the Python skill's interface; the implementation is offline (no API key needed).
 
 ```typescript
 import { JokeSkill } from '@signalwire/sdk/skills/builtin';
@@ -144,7 +144,7 @@ These skills integrate with a single external API or provide focused call-contro
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
 | `weather_api` | `WeatherApiSkill` | Current weather from OpenWeatherMap | `get_weather` | `WEATHER_API_KEY` | `units` |
-| `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background`, `stop_background` | None | `default_file_url`, `allowed_domains` |
+| `play_background_file` | `PlayBackgroundFileSkill` | Background audio playback during calls | `play_background_file` (configurable; `action` enum) | None | `files` (required), `tool_name` |
 | `swml_transfer` | `SwmlTransferSkill` | Call transfer via SWML actions | `transfer_call`, `list_transfer_destinations` | None | `patterns`, `allow_arbitrary`, `default_message` |
 | `api_ninjas_trivia` | `ApiNinjasTriviaSkill` | Trivia questions from API Ninjas | `get_trivia` | `API_NINJAS_KEY` | `default_category`, `reveal_answer` |
 | `info_gatherer` | `InfoGathererSkill` | Sequential question flow that stores answers in `global_data` | `start_questions`, `submit_answer` | None | `questions`, `prefix`, `completion_message` |
@@ -157,13 +157,14 @@ import { WeatherApiSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WeatherApiSkill({ units: 'imperial' }));
 ```
 
-**play_background_file** -- Controls background audio playback during calls (hold music, ambient sounds). Supports domain restrictions for audio file URLs.
+**play_background_file** -- Controls playback of pre-configured background audio files during calls (hold music, ambient sounds). Requires a non-empty `files` list (matching the Python skill); emits one tool whose `action` enum is `start_<key>` for each file plus `stop`.
 
 ```typescript
 import { PlayBackgroundFileSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new PlayBackgroundFileSkill({
-  default_file_url: 'https://example.com/hold-music.mp3',
-  allowed_domains: ['example.com', 'cdn.example.com'],
+  files: [
+    { key: 'hold', url: 'https://example.com/hold-music.mp3', description: 'Hold music' },
+  ],
 }));
 ```
 
@@ -235,7 +236,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 |---|---|---|---|---|---|
 | `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID` | `num_results`, `tool_name`, `no_results_message`, `safe_search`, `delay`, `max_content_length`, `oversample_factor`, `min_quality_score` |
 | `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
-| `google_maps` | `GoogleMapsSkill` | Directions and place search | `get_directions`, `find_place` | `GOOGLE_MAPS_API_KEY` | `default_mode` |
+| `google_maps` | `GoogleMapsSkill` | Address geocoding + coordinate routing | `lookup_address`, `compute_route` | `GOOGLE_MAPS_API_KEY` | `lookup_tool_name`, `route_tool_name` |
 | `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
@@ -261,11 +262,11 @@ import { WikipediaSearchSkill } from '@signalwire/sdk/skills/builtin';
 await agent.addSkill(new WikipediaSearchSkill());
 ```
 
-**google_maps** -- Provides driving/walking/bicycling/transit directions and place search via Google Maps APIs (Directions API and Places Find Place API).
+**google_maps** -- Geocodes an address or business name (`lookup_address`, with optional lat/lng bias) and computes a driving route between two coordinates (`compute_route`) via the Google Geocoding and Routes v2 APIs. The two-tool interface matches the Python reference.
 
 ```typescript
 import { GoogleMapsSkill } from '@signalwire/sdk/skills/builtin';
-await agent.addSkill(new GoogleMapsSkill({ default_mode: 'walking' }));
+await agent.addSkill(new GoogleMapsSkill());
 ```
 
 **datasphere** -- Searches SignalWire DataSphere for knowledge base content using semantic search across uploaded documents. Results are ranked by relevance score.

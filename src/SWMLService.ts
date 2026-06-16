@@ -7,6 +7,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { randomBytes } from 'node:crypto';
@@ -15,8 +16,10 @@ import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
-import { SwaigFunction, type SwaigFunctionOptions } from './SwaigFunction.js';
+import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
+import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
+import type { SwaigRequestData, SwmlRequestData } from './PlatformContracts.js';
 import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
@@ -139,14 +142,14 @@ export class SecurityConfig {
 /** Callback invoked per-request to dynamically build SWML. */
 export type OnRequestCallback = (
   queryParams: Record<string, string>,
-  bodyParams: Record<string, unknown>,
+  bodyParams: SwmlRequestData,
   headers: Record<string, string>,
 ) => SwmlBuilder | Promise<SwmlBuilder>;
 
 // RoutingCallback is owned by AgentBase.ts; SWMLService uses a structurally
 // compatible local alias to avoid an import cycle and stay independent.
 type RoutingCallback = (
-  requestBody: Record<string, unknown>,
+  requestBody: SwmlRequestData,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -284,7 +287,8 @@ export class SWMLService {
 
     // Schema utils — pass through schemaPath so callers can supply a custom schema file.
     // Mirrors Python's SchemaUtils(schema_path, schema_validation=...) call in SWMLService.__init__.
-    const skipValidation = opts?.schemaValidation === false || process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
+    const skipValidation =
+      opts?.schemaValidation === false || process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
     this.schemaUtils = new SchemaUtils({
       skipValidation,
       ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
@@ -354,14 +358,16 @@ export class SWMLService {
     this._app.get('/ready', (c) => c.json({ status: 'ready' }));
 
     // Main SWML endpoint — serves on both GET and POST
-    const handler = async (c: any) => {
+    const handler = async (c: Context) => {
       let doc: Record<string, unknown>;
 
       // Always parse request params so onRequest() hook and onRequestCallback
       // can both receive them (mirrors Python's _handle_request param extraction).
       const url = new URL(c.req.url);
       const queryParams: Record<string, string> = {};
-      url.searchParams.forEach((v, k) => { queryParams[k] = v; });
+      url.searchParams.forEach((v, k) => {
+        queryParams[k] = v;
+      });
 
       let bodyParams: Record<string, unknown> = {};
       if (c.req.method === 'POST') {
@@ -373,7 +379,9 @@ export class SWMLService {
       }
 
       const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => { headers[k] = v; });
+      c.req.raw.headers.forEach((v: string, k: string) => {
+        headers[k] = v;
+      });
 
       // Protected override hook (Service-side SWML builder dispatch).
       // Try buildSwmlForRequest() first; if it returns a SwmlBuilder use
@@ -400,13 +408,13 @@ export class SWMLService {
     // services use the document as-is; AgentBase overrides via render hook),
     // POST validates and dispatches via onFunctionCall. Subclasses may
     // override swaigPreDispatch to add token validation / ephemeral copies.
-    const swaigHandler = async (c: any) => {
+    const swaigHandler = async (c: Context) => {
       if (c.req.method === 'GET') {
         return handler(c);
       }
-      let payload: Record<string, unknown> = {};
+      let payload: SwaigRequestData;
       try {
-        payload = (await c.req.json()) as Record<string, unknown>;
+        payload = (await c.req.json()) as SwaigRequestData;
       } catch {
         return c.json({ error: 'Invalid JSON' }, 400);
       }
@@ -419,8 +427,13 @@ export class SWMLService {
       }
       // Argument extraction: nested {argument:{parsed}} OR flat {arguments}
       let args: Record<string, unknown> = {};
-      const argument = payload['argument'] as Record<string, unknown> | undefined;
-      if (argument && typeof argument === 'object' && Array.isArray(argument['parsed']) && (argument['parsed'] as unknown[]).length > 0) {
+      const argument = payload['argument'] as unknown as Record<string, unknown> | undefined;
+      if (
+        argument &&
+        typeof argument === 'object' &&
+        Array.isArray(argument['parsed']) &&
+        (argument['parsed'] as unknown[]).length > 0
+      ) {
         const first = (argument['parsed'] as unknown[])[0];
         if (first && typeof first === 'object') args = first as Record<string, unknown>;
       } else {
@@ -458,12 +471,43 @@ export class SWMLService {
    * parameter descriptions are LLM-facing prompt engineering — see
    * PORTING_GUIDE for guidance on writing them.
    *
-   * Accepts the full SwaigFunctionOptions surface so AgentBase's richer
-   * call sites (fillers, secure tokens, wait files, extra fields) work
-   * without overriding this method on the subclass.
+   * Generic over the `parameters` schema (`P`) and `required` list (`R`): when
+   * `parameters` is written as a FLAT inline map (`{ name: { type, … } }`), the
+   * `const` type parameters capture its literals and the handler's `args` is
+   * inferred precisely — `args.phone` typed `string`, an `enum` prop narrowed to
+   * its literal union, `required` keys present and the rest optional (see
+   * {@link ToolArgs}/{@link InferArgs}). The WRAPPED JSON-Schema object
+   * (`{ type:'object', properties }`) and a pre-built `Record` are still
+   * accepted and keep the prior open-record `args` behavior. The args type is a
+   * compile-time authoring convenience — at runtime args is the JSON the model
+   * extracted, so the handler is the ordinary {@link SwaigHandler}.
    */
-  defineTool(opts: SwaigFunctionOptions): this {
-    const fn = new SwaigFunction(opts);
+  defineTool<
+    const P extends ToolParameters = ToolParameters,
+    const R extends readonly PropertyKey[] = [],
+  >(
+    opts: Omit<SwaigFunctionOptions, 'parameters' | 'required' | 'handler'> & {
+      parameters?: P;
+      required?: R;
+      handler: (
+        args: ToolArgs<P, R>,
+        rawData: SwaigRequestData,
+      ) =>
+        | FunctionResult
+        | Record<string, unknown>
+        | string
+        | Promise<FunctionResult | Record<string, unknown> | string>;
+    },
+  ): this {
+    const fn = new SwaigFunction({
+      ...opts,
+      parameters: opts.parameters as Record<string, unknown> | undefined,
+      required: opts.required as string[] | undefined,
+      // Single type-erasure boundary: at runtime the handler is the ordinary
+      // (args: Record<string,unknown>, rawData) SwaigHandler; the inferred-args
+      // view is compile-time only.
+      handler: opts.handler as SwaigHandler,
+    });
     this.toolRegistry.set(opts.name, fn);
     return this;
   }
@@ -490,7 +534,7 @@ export class SWMLService {
   onFunctionCall(
     name: string,
     args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ):
     | FunctionResult
     | Record<string, unknown>
@@ -554,7 +598,11 @@ export class SWMLService {
    *
    * @returns Array of tool descriptors.
    */
-  getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[] {
+  getRegisteredTools(): {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  }[] {
     const tools: { name: string; description: string; parameters: Record<string, unknown> }[] = [];
     for (const [name, fn] of this.toolRegistry) {
       if (fn instanceof SwaigFunction) {
@@ -590,7 +638,7 @@ export class SWMLService {
    * override to add session-token validation or ephemeral dynamic-config.
    */
   protected swaigPreDispatch(
-    _requestData: Record<string, unknown>,
+    _requestData: SwaigRequestData,
     _funcName: string,
   ): [SWMLService, unknown] {
     return [this, null];
@@ -739,10 +787,7 @@ export class SWMLService {
    * @param callbackFn - Callback receiving the request body and returning a route or null.
    * @param path - HTTP path for the callback (default '/sip').
    */
-  registerRoutingCallback(
-    callbackFn: RoutingCallback,
-    path: string = '/sip',
-  ): void {
+  registerRoutingCallback(callbackFn: RoutingCallback, path: string = '/sip'): void {
     // Normalize: ensure leading /, strip trailing /
     let normalized = path.replace(/\/+$/, '');
     if (!normalized.startsWith('/')) {
@@ -752,8 +797,8 @@ export class SWMLService {
     this._routingCallbacks.set(normalized, callbackFn);
 
     // Install an endpoint on the Hono app for this callback path
-    const routeHandler = async (c: any) => {
-      let body: Record<string, unknown> = {};
+    const routeHandler = async (c: Context) => {
+      let body: SwmlRequestData = {};
       if (c.req.method === 'POST') {
         try {
           body = await c.req.json();
@@ -763,8 +808,14 @@ export class SWMLService {
       }
 
       const route = callbackFn(body);
+      // Preserve the original `route !== null` runtime guard exactly — a
+      // types-only change must not alter behavior. The callback's declared
+      // return includes undefined|Promise, which the pre-typing `c: any` code
+      // passed to redirect verbatim; the cast keeps that identical rather than
+      // narrowing it away. Any real fix to non-string returns is a separate
+      // behavioral change, not part of the any-burndown.
       if (route !== null) {
-        return c.redirect(route, 307);
+        return c.redirect(route as string, 307);
       }
 
       // No redirect — serve normal SWML
@@ -784,7 +835,7 @@ export class SWMLService {
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
    */
-  static extractSipUsername(requestBody: Record<string, unknown>): string | null {
+  static extractSipUsername(requestBody: SwmlRequestData): string | null {
     try {
       const call = requestBody?.['call'] as Record<string, unknown> | undefined;
       const toField = call?.['to'] as string | undefined;
@@ -792,7 +843,7 @@ export class SWMLService {
 
       // Handle SIP URIs like "sip:username@domain" or "sips:username@domain"
       if (toField.startsWith('sip:') || toField.startsWith('sips:')) {
-        let uri = toField.replace(/^sips?:/, '');
+        const uri = toField.replace(/^sips?:/, '');
         const atIdx = uri.indexOf('@');
         if (atIdx > 0) return uri.substring(0, atIdx);
         return uri;
@@ -861,8 +912,12 @@ export class SWMLService {
    * @returns A tuple of [username, password] or [username, password, source].
    */
   getBasicAuthCredentials(includeSource?: false): [string, string];
-  getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated'];
-  getBasicAuthCredentials(includeSource?: boolean): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  getBasicAuthCredentials(
+    includeSource: true,
+  ): [string, string, 'provided' | 'environment' | 'generated'];
+  getBasicAuthCredentials(
+    includeSource?: boolean,
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;
@@ -927,14 +982,16 @@ export class SWMLService {
    * @returns Resolves once the server has begun listening.
    */
   async run(
-    hostOrOpts?: string | {
-      host?: string;
-      port?: number;
-      sslCert?: string;
-      sslKey?: string;
-      sslEnabled?: boolean;
-      domain?: string;
-    },
+    hostOrOpts?:
+      | string
+      | {
+          host?: string;
+          port?: number;
+          sslCert?: string;
+          sslKey?: string;
+          sslEnabled?: boolean;
+          domain?: string;
+        },
     port?: number,
     opts?: {
       sslCert?: string;

@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { parseFunctionParams, inferSchema, createTypedHandlerWrapper } from '../src/TypeInference.js';
+import {
+  parseFunctionParams,
+  inferSchema,
+  createTypedHandlerWrapper,
+} from '../src/TypeInference.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
 describe('parseFunctionParams', () => {
   it('parses arrow function with defaults', () => {
-    const fn = (city: string, count = 5) => { return city + count; };
+    const fn = (city: string, count = 5) => {
+      return city + count;
+    };
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(2);
     expect(params[0].name).toBe('city');
@@ -14,7 +20,9 @@ describe('parseFunctionParams', () => {
   });
 
   it('parses regular function', () => {
-    function myFunc(city: string, count: number) { return city + count; }
+    function myFunc(city: string, count: number) {
+      return city + count;
+    }
     const params = parseFunctionParams(myFunc.toString());
     expect(params.length).toBe(2);
     expect(params[0].name).toBe('city');
@@ -47,7 +55,9 @@ describe('parseFunctionParams', () => {
 
 describe('inferSchema', () => {
   it('infers schema from arrow function with defaults', () => {
-    const fn = (city: string, count = 5, verbose = true) => {};
+    const fn = (city: string, count = 5, verbose = true) => {
+      void [city, count, verbose];
+    };
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.paramNames).toEqual(['city', 'count', 'verbose']);
@@ -58,19 +68,25 @@ describe('inferSchema', () => {
   });
 
   it('returns null for old-style (args, rawData) handler', () => {
-    const fn = (args: Record<string, unknown>, rawData: Record<string, unknown>) => {};
+    const fn = (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      void [args, rawData];
+    };
     const schema = inferSchema(fn);
     expect(schema).toBeNull();
   });
 
   it('returns null for old-style (args) handler', () => {
-    const fn = (args: Record<string, unknown>) => {};
+    const fn = (args: Record<string, unknown>) => {
+      void args;
+    };
     const schema = inferSchema(fn);
     expect(schema).toBeNull();
   });
 
   it('detects rawData parameter and excludes from schema', () => {
-    const fn = (city: string, count = 5, rawData: Record<string, unknown>) => {};
+    const fn = (city: string, count = 5, rawData: Record<string, unknown>) => {
+      void [city, count, rawData];
+    };
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.hasRawData).toBe(true);
@@ -79,7 +95,9 @@ describe('inferSchema', () => {
   });
 
   it('no rawData when last param is not rawData', () => {
-    const fn = (city: string, count = 5) => {};
+    const fn = (city: string, count = 5) => {
+      void [city, count];
+    };
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.hasRawData).toBe(false);
@@ -110,7 +128,9 @@ describe('inferSchema', () => {
   });
 
   it('params without defaults are required', () => {
-    const fn = (city: string, state: string) => {};
+    const fn = (city: string, state: string) => {
+      void [city, state];
+    };
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.required).toEqual(['city', 'state']);

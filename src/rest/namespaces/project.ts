@@ -2,10 +2,14 @@
  * Project API namespace — API token management.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  CreateTokenRequest,
+  CreateTokenResponse,
+  UpdateTokenRequest,
+  UpdateTokenResponse,
+} from './project.types.generated.js';
 
 /** Project API token management. */
 export class ProjectTokens extends BaseResource {
@@ -21,8 +25,8 @@ export class ProjectTokens extends BaseResource {
    *   (which is typically returned ONCE and not retrievable again).
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(body: CreateTokenRequest): Promise<CreateTokenResponse> {
+    return this._http.post<CreateTokenResponse>(this._basePath, body);
   }
 
   /**
@@ -33,8 +37,8 @@ export class ProjectTokens extends BaseResource {
    * @returns The updated token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(tokenId: string, body: any): Promise<any> {
-    return this._http.patch(this._path(tokenId), body);
+  async update(tokenId: string, body: UpdateTokenRequest): Promise<UpdateTokenResponse> {
+    return this._http.patch<UpdateTokenResponse>(this._path(tokenId), body);
   }
 
   /**
@@ -44,7 +48,7 @@ export class ProjectTokens extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(tokenId: string): Promise<any> {
+  async delete(tokenId: string): Promise<unknown> {
     return this._http.delete(this._path(tokenId));
   }
 }

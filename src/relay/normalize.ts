@@ -14,18 +14,14 @@
  */
 
 /** Normalize a single play item (tts/audio/silence/ringtone). */
-export function normalizePlayItem(
-  item: Record<string, unknown>,
-): Record<string, unknown> {
+export function normalizePlayItem(item: Record<string, unknown>): Record<string, unknown> {
   if ('params' in item) return item;
   const { type, ...rest } = item;
   return { type, params: rest };
 }
 
 /** Normalize an array of play items. */
-export function normalizePlayItems(
-  items: Record<string, unknown>[],
-): Record<string, unknown>[] {
+export function normalizePlayItems(items: Record<string, unknown>[]): Record<string, unknown>[] {
   return items.map(normalizePlayItem);
 }
 
@@ -35,9 +31,7 @@ export function normalizePlayItems(
  * For `phone`, also renames the SDK's short `to`/`from` keys to the wire-format
  * `to_number`/`from_number` that the platform expects.
  */
-export function normalizeDevice(
-  device: Record<string, unknown>,
-): Record<string, unknown> {
+export function normalizeDevice(device: Record<string, unknown>): Record<string, unknown> {
   if ('params' in device) return device;
   const { type, ...rest } = device;
   const params: Record<string, unknown> = { ...rest };

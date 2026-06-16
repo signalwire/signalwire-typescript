@@ -9,6 +9,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -158,11 +159,7 @@ export class ConciergeAgent extends AgentBase {
         `);
 
     // Hints for speech recognition
-    this.addHints([
-      this.venueName,
-      ...this.services,
-      ...Object.keys(this.amenities),
-    ]);
+    this.addHints([this.venueName, ...this.services, ...Object.keys(this.amenities)]);
 
     // AI behavior params
     this.setParams({
@@ -222,10 +219,10 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const service = ((args['service'] as string) ?? '').toLowerCase();
-        const date = (args['date'] as string) ?? '';
-        const time = (args['time'] as string) ?? '';
+      handler: (args) => {
+        const service = (args.service ?? '').toLowerCase();
+        const date = args.date ?? '';
+        const time = args.time ?? '';
 
         // Simple availability simulation — in a real app this would hit a booking system.
         const lowerServices = this.services.map((s) => s.toLowerCase());
@@ -254,8 +251,8 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const location = ((args['location'] as string) ?? '').toLowerCase();
+      handler: (args) => {
+        const location = (args.location ?? '').toLowerCase();
 
         const amenity = this.amenities[location];
         if (amenity && typeof amenity['location'] === 'string') {
@@ -281,14 +278,12 @@ export class ConciergeAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     if (summary) {
       try {
-        // eslint-disable-next-line no-console
         console.log(`Concierge interaction summary: ${JSON.stringify(summary, null, 2)}`);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.log(`Error processing summary: ${String(err)}`);
       }
     }

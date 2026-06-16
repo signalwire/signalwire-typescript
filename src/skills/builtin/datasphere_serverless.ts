@@ -62,8 +62,7 @@ export class DataSphereServerlessSkill extends SkillBase {
       },
       space_name: {
         type: 'string',
-        description:
-          "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
+        description: "SignalWire space name (e.g., 'mycompany' from mycompany.signalwire.com)",
         required: true,
       },
       project_id: {
@@ -93,8 +92,7 @@ export class DataSphereServerlessSkill extends SkillBase {
       },
       distance: {
         type: 'number',
-        description:
-          'Maximum distance threshold for results (lower is more relevant)',
+        description: 'Maximum distance threshold for results (lower is more relevant)',
         default: 3.0,
         min: 0,
         max: 10,
@@ -257,26 +255,18 @@ export class DataSphereServerlessSkill extends SkillBase {
       append: '=== RESULT ===\n${this.text}\n' + '='.repeat(50) + '\n\n',
     });
 
-    dm.output(
-      new FunctionResult(
-        'I found results for "${args.query}":\n\n${formatted_results}',
-      ),
-    );
+    dm.output(new FunctionResult('I found results for "${args.query}":\n\n${formatted_results}'));
 
     dm.errorKeys(['error']);
 
     // Python replaces `{query}` with `${args.query}` at registration time so
     // the platform can substitute the original user query into the fallback.
-    dm.fallbackOutput(
-      new FunctionResult(noResultsMessage.replace('{query}', '${args.query}')),
-    );
+    dm.fallbackOutput(new FunctionResult(noResultsMessage.replace('{query}', '${args.query}')));
 
     // Python skill.py:207 applies swaig_fields via swaig_function.update(self.swaig_fields)
     // after building the DataMap. Match that merge — caller overrides win.
     const fn = dm.toSwaigFunction();
-    return Object.keys(this.swaigFields).length > 0
-      ? { ...fn, ...this.swaigFields }
-      : fn;
+    return Object.keys(this.swaigFields).length > 0 ? { ...fn, ...this.swaigFields } : fn;
   }
 
   /**

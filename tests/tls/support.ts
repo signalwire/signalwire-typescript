@@ -25,8 +25,6 @@
  * shared mocks that the rest of the suite uses are untouched.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -126,7 +124,7 @@ function harnessEnv(pkgDir: string | null, extra: Record<string, string>): NodeJ
 export interface RelayJournalEntry {
   direction: 'recv' | 'send';
   method: string;
-  frame: any;
+  frame: unknown;
 }
 
 /** A running `python -m mock_relay --tls` instance on dedicated ports. */

@@ -250,6 +250,7 @@ signalwire.core.contexts.Step.get_valid_steps: TS ContextBuilder / Context helpe
 
 ## SkillBase port-specific additions
 
+signalwire.core.skill_base.define_skill_tool: TS-idiom module-level helper — the getTools()-level counterpart to SWMLService.defineTool's schema→handler-args inference. Wrapping a tool entry in defineSkillTool({parameters, required, handler}) infers the handler's `args` from the schema (required prop → typed+present, enum → literal union, optional → `| undefined`; a loose Record degrades to open args). No Python equivalent (Python skills hand-write loose Dict[str, Any] tool dicts). Author-side typing only; wire emission byte-identical, drift/emission unchanged.
 signalwire.core.skill_base.SkillBase.get_agent: TS-native SkillBase helper or getter — property / helper method that Python exposes via direct attribute access
 signalwire.core.skill_base.SkillBase.get_config: TS-native SkillBase helper or getter — property / helper method that Python exposes via direct attribute access
 signalwire.core.skill_base.SkillBase.get_data_map_tools: TS-native SkillBase helper or getter — property / helper method that Python exposes via direct attribute access

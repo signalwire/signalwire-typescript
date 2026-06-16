@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('DataSphereSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -42,7 +44,9 @@ describe('DataSphereSkill', () => {
     const tools = new DataSphereSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('search_knowledge');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (datasphere/skill.py:171), so the wire schema
+    // has no `required` key — the TS port matches that.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
@@ -79,7 +83,7 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
     const handler = new DataSphereSkill().getTools()[0].handler;
-    const result = await handler({ query: 'test' }, {}) as FunctionResult;
+    const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 
@@ -100,18 +104,21 @@ describe('DataSphereSkill', () => {
     // A stub returning `{count: undefined, ...}` would still pass a
     // bare nullness check.
     const required = [
-      'count', 'distance', 'tags', 'language',
-      'pos_to_expand', 'max_synonyms', 'no_results_message', 'tool_name',
+      'count',
+      'distance',
+      'tags',
+      'language',
+      'pos_to_expand',
+      'max_synonyms',
+      'no_results_message',
+      'tool_name',
     ];
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
   });
 });

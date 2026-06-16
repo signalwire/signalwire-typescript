@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SchemaUtils } from '../src/SchemaUtils.js';
 
 describe('SchemaUtils — verb extraction and validation', () => {
@@ -70,7 +70,10 @@ describe('SchemaUtils — verb extraction and validation', () => {
     it('returns correct structure for tap', () => {
       const props = schema.getVerbProperties('tap');
       expect(props).toHaveProperty('type', 'object');
-      const innerProps = (props as Record<string, unknown>)['properties'] as Record<string, unknown>;
+      const innerProps = (props as Record<string, unknown>)['properties'] as Record<
+        string,
+        unknown
+      >;
       expect(innerProps).toHaveProperty('uri');
       expect(innerProps).toHaveProperty('direction');
       expect(innerProps).toHaveProperty('codec');

@@ -1,9 +1,9 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { CallingNamespace } from '../../src/rest/namespaces/calling.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 describe('CallingNamespace', () => {
-  function setup(responses: any[] = [{ status: 200, body: { result: 'ok' } }]) {
+  function setup(responses: MockResponse[] = [{ status: 200, body: { result: 'ok' } }]) {
     const { options, getRequests } = mockClientOptions(responses);
     const http = new HttpClient(options);
     const calling = new CallingNamespace(http);

@@ -12,7 +12,7 @@
  *   npx tsx relay/examples/relay-inbound.ts
  */
 
-import { RelayClient, Call, CALL_STATE_ENDED } from '../../src/relay/index.js';
+import { RelayClient, Call } from '../../src/relay/index.js';
 
 const client = new RelayClient({
   contexts: ['office'],
@@ -47,13 +47,13 @@ client.onCall(async (call: Call) => {
     const digitParams = result.params as Record<string, unknown> | undefined;
     console.log(`Collected digits: ${digitParams?.digits ?? 'none'}`);
 
-    await (await call.play([
-      { type: 'tts', text: `You entered ${digitParams?.digits ?? 'nothing'}. Thank you!` },
-    ])).wait();
+    await (
+      await call.play([
+        { type: 'tts', text: `You entered ${digitParams?.digits ?? 'nothing'}. Thank you!` },
+      ])
+    ).wait();
   } else {
-    await (await call.play([
-      { type: 'tts', text: 'No input received. Goodbye!' },
-    ])).wait();
+    await (await call.play([{ type: 'tts', text: 'No input received. Goodbye!' }])).wait();
   }
 
   // Hang up

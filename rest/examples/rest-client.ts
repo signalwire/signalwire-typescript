@@ -10,7 +10,7 @@
  *   npx tsx rest/examples/rest-client.ts
  */
 
-import { RestClient, paginateAll } from '../../src/index.js';
+import { RestClient } from '../../src/index.js';
 
 async function main() {
   // Create client — reads from env vars if not provided explicitly
@@ -59,7 +59,7 @@ async function main() {
   console.log('\nDone.');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });

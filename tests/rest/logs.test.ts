@@ -1,9 +1,9 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { LogsNamespace } from '../../src/rest/namespaces/logs.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 describe('LogsNamespace', () => {
-  function setup(responses: any[] = [{ status: 200, body: { data: [] } }]) {
+  function setup(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
     const { options, getRequests } = mockClientOptions(responses);
     const http = new HttpClient(options);
     const logs = new LogsNamespace(http);

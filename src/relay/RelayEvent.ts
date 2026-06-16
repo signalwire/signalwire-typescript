@@ -5,13 +5,26 @@
  * also accept the raw dict, so these are optional.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { CallState, DialState, MessageState } from './closedSets.js';
+import type { Device } from './types.js';
 
-import type {
-  CallState,
-  DialState,
-  MessageState,
-} from './closedSets.js';
+/**
+ * Raw RELAY wire payload — a `signalwire.event` notification dict. Field
+ * names/types are server-defined; access goes through {@link pick}, which
+ * applies a boundary cast to the expected field type while preserving the
+ * exact `value ?? default` runtime semantics.
+ */
+type EventPayload = Record<string, unknown>;
+
+/**
+ * Boundary accessor for raw wire fields. Compile-time only: identical at
+ * runtime to `value ?? fallback` — no coercion happens, the cast just tells
+ * the type system the field's documented shape. Used to read known fields off
+ * an open {@link EventPayload}.
+ */
+function pick<T>(value: unknown, fallback: T): T {
+  return (value ?? fallback) as T;
+}
 
 // ─── Base Event ──────────────────────────────────────────────────────
 
@@ -27,7 +40,7 @@ export class RelayEvent {
   /** Fully-qualified event type (e.g. `"calling.call.state"`). */
   readonly eventType: string;
   /** Raw params dict from the RELAY notification. */
-  readonly params: Record<string, any>;
+  readonly params: EventPayload;
   /** Call ID associated with the event, or `""` for non-call events. */
   readonly callId: string;
   /** Server timestamp (epoch seconds) at which the event was emitted. */
@@ -39,12 +52,7 @@ export class RelayEvent {
    * @param callId - Call ID (if applicable).
    * @param timestamp - Server-side event timestamp.
    */
-  constructor(
-    eventType: string,
-    params: Record<string, any>,
-    callId = '',
-    timestamp = 0,
-  ) {
+  constructor(eventType: string, params: EventPayload, callId = '', timestamp = 0) {
     this.eventType = eventType;
     this.params = params;
     this.callId = callId;
@@ -57,28 +65,28 @@ export class RelayEvent {
    * implementation returns a minimal `RelayEvent` used as the fallback for
    * unrecognised event types.
    */
-  static fromPayload(payload: Record<string, any>): RelayEvent {
-    const eventType = payload.event_type ?? '';
-    const params = payload.params ?? {};
-    return new RelayEvent(
-      eventType,
-      params,
-      params.call_id ?? '',
-      params.timestamp ?? 0,
-    );
+  static fromPayload(payload: EventPayload): RelayEvent {
+    const eventType = pick(payload.event_type, '');
+    const params = pick<EventPayload>(payload.params, {});
+    return new RelayEvent(eventType, params, pick(params.call_id, ''), pick(params.timestamp, 0));
   }
 }
 
 // ─── Helper ──────────────────────────────────────────────────────────
 
-function baseFields(payload: Record<string, any>) {
-  const eventType = payload.event_type ?? '';
-  const params = payload.params ?? {};
+function baseFields(payload: EventPayload): {
+  eventType: string;
+  params: EventPayload;
+  callId: string;
+  timestamp: number;
+} {
+  const eventType = pick(payload.event_type, '');
+  const params = pick<EventPayload>(payload.params, {});
   return {
     eventType,
     params,
-    callId: (params.call_id ?? '') as string,
-    timestamp: (params.timestamp ?? 0) as number,
+    callId: pick(params.call_id, ''),
+    timestamp: pick(params.timestamp, 0),
   };
 }
 
@@ -95,17 +103,17 @@ export class CallStateEvent extends RelayEvent {
   readonly callState: CallState;
   readonly endReason: string;
   readonly direction: string;
-  readonly device: Record<string, any>;
+  readonly device: Device;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     callState: CallState,
     endReason: string,
     direction: string,
-    device: Record<string, any>,
+    device: Device,
   ) {
     super(eventType, params, callId, timestamp);
     this.callState = callState;
@@ -114,14 +122,17 @@ export class CallStateEvent extends RelayEvent {
     this.device = device;
   }
 
-  static override fromPayload(payload: Record<string, any>): CallStateEvent {
+  static override fromPayload(payload: EventPayload): CallStateEvent {
     const b = baseFields(payload);
     return new CallStateEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.call_state ?? '',
-      b.params.end_reason ?? '',
-      b.params.direction ?? '',
-      b.params.device ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.call_state, '' as CallState),
+      pick(b.params.end_reason, ''),
+      pick(b.params.direction, ''),
+      pick<Device>(b.params.device, {}),
     );
   }
 }
@@ -131,7 +142,7 @@ export class CallReceiveEvent extends RelayEvent {
   /** Initial call state ({@link CallState}; typically `created`). */
   readonly callState: CallState;
   readonly direction: string;
-  readonly device: Record<string, any>;
+  readonly device: Device;
   readonly nodeId: string;
   readonly projectId: string;
   readonly context: string;
@@ -140,12 +151,12 @@ export class CallReceiveEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     callState: CallState,
     direction: string,
-    device: Record<string, any>,
+    device: Device,
     nodeId: string,
     projectId: string,
     context: string,
@@ -163,18 +174,21 @@ export class CallReceiveEvent extends RelayEvent {
     this.tag = tag;
   }
 
-  static override fromPayload(payload: Record<string, any>): CallReceiveEvent {
+  static override fromPayload(payload: EventPayload): CallReceiveEvent {
     const b = baseFields(payload);
     return new CallReceiveEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.call_state ?? '',
-      b.params.direction ?? '',
-      b.params.device ?? {},
-      b.params.node_id ?? '',
-      b.params.project_id ?? '',
-      b.params.context ?? b.params.protocol ?? '',
-      b.params.segment_id ?? '',
-      b.params.tag ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.call_state, '' as CallState),
+      pick(b.params.direction, ''),
+      pick<Device>(b.params.device, {}),
+      pick(b.params.node_id, ''),
+      pick(b.params.project_id, ''),
+      pick(b.params.context, pick(b.params.protocol, '')),
+      pick(b.params.segment_id, ''),
+      pick(b.params.tag, ''),
     );
   }
 }
@@ -186,7 +200,7 @@ export class PlayEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -197,12 +211,15 @@ export class PlayEvent extends RelayEvent {
     this.state = state;
   }
 
-  static override fromPayload(payload: Record<string, any>): PlayEvent {
+  static override fromPayload(payload: EventPayload): PlayEvent {
     const b = baseFields(payload);
     return new PlayEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
     );
   }
 }
@@ -214,11 +231,11 @@ export class RecordEvent extends RelayEvent {
   readonly url: string;
   readonly duration: number;
   readonly size: number;
-  readonly record: Record<string, any>;
+  readonly record: EventPayload;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -226,7 +243,7 @@ export class RecordEvent extends RelayEvent {
     url: string,
     duration: number,
     size: number,
-    record: Record<string, any>,
+    record: EventPayload,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -237,16 +254,19 @@ export class RecordEvent extends RelayEvent {
     this.record = record;
   }
 
-  static override fromPayload(payload: Record<string, any>): RecordEvent {
+  static override fromPayload(payload: EventPayload): RecordEvent {
     const b = baseFields(payload);
-    const rec = b.params.record ?? {};
+    const rec = pick<EventPayload>(b.params.record, {});
     return new RecordEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
-      rec.url ?? b.params.url ?? '',
-      rec.duration ?? b.params.duration ?? 0,
-      rec.size ?? b.params.size ?? 0,
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
+      pick(rec.url, pick(b.params.url, '')),
+      pick(rec.duration, pick(b.params.duration, 0)),
+      pick(rec.size, pick(b.params.size, 0)),
       rec,
     );
   }
@@ -256,17 +276,17 @@ export class RecordEvent extends RelayEvent {
 export class CollectEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
-  readonly result: Record<string, any>;
+  readonly result: EventPayload;
   readonly final: boolean | undefined;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string = '',
     state: string = '',
-    result: Record<string, any> = {},
+    result: EventPayload = {},
     final_: boolean | undefined = undefined,
   ) {
     super(eventType, params, callId, timestamp);
@@ -276,14 +296,17 @@ export class CollectEvent extends RelayEvent {
     this.final = final_;
   }
 
-  static override fromPayload(payload: Record<string, any>): CollectEvent {
+  static override fromPayload(payload: EventPayload): CollectEvent {
     const b = baseFields(payload);
     return new CollectEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
-      b.params.result ?? {},
-      b.params.final,
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
+      pick<EventPayload>(b.params.result, {}),
+      b.params.final as boolean | undefined,
     );
   }
 }
@@ -291,27 +314,30 @@ export class CollectEvent extends RelayEvent {
 /** `calling.call.connect` — state transition when one call connects to another (dialplan/bridge). */
 export class ConnectEvent extends RelayEvent {
   readonly connectState: string;
-  readonly peer: Record<string, any>;
+  readonly peer: EventPayload;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     connectState: string,
-    peer: Record<string, any>,
+    peer: EventPayload,
   ) {
     super(eventType, params, callId, timestamp);
     this.connectState = connectState;
     this.peer = peer;
   }
 
-  static override fromPayload(payload: Record<string, any>): ConnectEvent {
+  static override fromPayload(payload: EventPayload): ConnectEvent {
     const b = baseFields(payload);
     return new ConnectEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.connect_state ?? '',
-      b.params.peer ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.connect_state, ''),
+      pick<EventPayload>(b.params.peer, {}),
     );
   }
 }
@@ -319,27 +345,30 @@ export class ConnectEvent extends RelayEvent {
 /** `calling.call.detect` — answering-machine / fax / DTMF detection result. */
 export class DetectEvent extends RelayEvent {
   readonly controlId: string;
-  readonly detect: Record<string, any>;
+  readonly detect: EventPayload;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
-    detect: Record<string, any>,
+    detect: EventPayload,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
     this.detect = detect;
   }
 
-  static override fromPayload(payload: Record<string, any>): DetectEvent {
+  static override fromPayload(payload: EventPayload): DetectEvent {
     const b = baseFields(payload);
     return new DetectEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.detect ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick<EventPayload>(b.params.detect, {}),
     );
   }
 }
@@ -347,27 +376,30 @@ export class DetectEvent extends RelayEvent {
 /** `calling.call.fax` — fax send/receive progress update. */
 export class FaxEvent extends RelayEvent {
   readonly controlId: string;
-  readonly fax: Record<string, any>;
+  readonly fax: EventPayload;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
-    fax: Record<string, any>,
+    fax: EventPayload,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
     this.fax = fax;
   }
 
-  static override fromPayload(payload: Record<string, any>): FaxEvent {
+  static override fromPayload(payload: EventPayload): FaxEvent {
     const b = baseFields(payload);
     return new FaxEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.fax ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick<EventPayload>(b.params.fax, {}),
     );
   }
 }
@@ -376,18 +408,18 @@ export class FaxEvent extends RelayEvent {
 export class TapEvent extends RelayEvent {
   readonly controlId: string;
   readonly state: string;
-  readonly tap: Record<string, any>;
-  readonly device: Record<string, any>;
+  readonly tap: EventPayload;
+  readonly device: Device;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
     state: string,
-    tap: Record<string, any>,
-    device: Record<string, any>,
+    tap: EventPayload,
+    device: Device,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -396,14 +428,17 @@ export class TapEvent extends RelayEvent {
     this.device = device;
   }
 
-  static override fromPayload(payload: Record<string, any>): TapEvent {
+  static override fromPayload(payload: EventPayload): TapEvent {
     const b = baseFields(payload);
     return new TapEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
-      b.params.tap ?? {},
-      b.params.device ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
+      pick<EventPayload>(b.params.tap, {}),
+      pick<Device>(b.params.device, {}),
     );
   }
 }
@@ -417,7 +452,7 @@ export class StreamEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -432,14 +467,17 @@ export class StreamEvent extends RelayEvent {
     this.name = name;
   }
 
-  static override fromPayload(payload: Record<string, any>): StreamEvent {
+  static override fromPayload(payload: EventPayload): StreamEvent {
     const b = baseFields(payload);
     return new StreamEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
-      b.params.url ?? '',
-      b.params.name ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
+      pick(b.params.url, ''),
+      pick(b.params.name, ''),
     );
   }
 }
@@ -451,7 +489,7 @@ export class SendDigitsEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -462,12 +500,15 @@ export class SendDigitsEvent extends RelayEvent {
     this.state = state;
   }
 
-  static override fromPayload(payload: Record<string, any>): SendDigitsEvent {
+  static override fromPayload(payload: EventPayload): SendDigitsEvent {
     const b = baseFields(payload);
     return new SendDigitsEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
     );
   }
 }
@@ -482,16 +523,16 @@ export class DialEvent extends RelayEvent {
    * Distinct from a {@link CallState}.
    */
   readonly dialState: DialState;
-  readonly call: Record<string, any>;
+  readonly call: EventPayload;
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     tag: string,
     dialState: DialState,
-    call: Record<string, any>,
+    call: EventPayload,
   ) {
     super(eventType, params, callId, timestamp);
     this.tag = tag;
@@ -499,13 +540,16 @@ export class DialEvent extends RelayEvent {
     this.call = call;
   }
 
-  static override fromPayload(payload: Record<string, any>): DialEvent {
+  static override fromPayload(payload: EventPayload): DialEvent {
     const b = baseFields(payload);
     return new DialEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.tag ?? '',
-      b.params.dial_state ?? '',
-      b.params.call ?? {},
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.tag, ''),
+      pick(b.params.dial_state, '' as DialState),
+      pick<EventPayload>(b.params.call, {}),
     );
   }
 }
@@ -519,7 +563,7 @@ export class ReferEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     state: string,
@@ -534,14 +578,17 @@ export class ReferEvent extends RelayEvent {
     this.sipNotifyResponseCode = sipNotifyResponseCode;
   }
 
-  static override fromPayload(payload: Record<string, any>): ReferEvent {
+  static override fromPayload(payload: EventPayload): ReferEvent {
     const b = baseFields(payload);
     return new ReferEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.state ?? '',
-      b.params.sip_refer_to ?? '',
-      b.params.sip_refer_response_code ?? '',
-      b.params.sip_notify_response_code ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.state, ''),
+      pick(b.params.sip_refer_to, ''),
+      pick(b.params.sip_refer_response_code, ''),
+      pick(b.params.sip_notify_response_code, ''),
     );
   }
 }
@@ -552,7 +599,7 @@ export class DenoiseEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     denoised: boolean,
@@ -561,11 +608,14 @@ export class DenoiseEvent extends RelayEvent {
     this.denoised = denoised;
   }
 
-  static override fromPayload(payload: Record<string, any>): DenoiseEvent {
+  static override fromPayload(payload: EventPayload): DenoiseEvent {
     const b = baseFields(payload);
     return new DenoiseEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.denoised ?? false,
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.denoised, false),
     );
   }
 }
@@ -577,7 +627,7 @@ export class PayEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -588,12 +638,15 @@ export class PayEvent extends RelayEvent {
     this.state = state;
   }
 
-  static override fromPayload(payload: Record<string, any>): PayEvent {
+  static override fromPayload(payload: EventPayload): PayEvent {
     const b = baseFields(payload);
     return new PayEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
     );
   }
 }
@@ -609,7 +662,7 @@ export class QueueEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -628,16 +681,19 @@ export class QueueEvent extends RelayEvent {
     this.size = size;
   }
 
-  static override fromPayload(payload: Record<string, any>): QueueEvent {
+  static override fromPayload(payload: EventPayload): QueueEvent {
     const b = baseFields(payload);
     return new QueueEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.status ?? '',
-      b.params.id ?? '',
-      b.params.name ?? '',
-      b.params.position ?? 0,
-      b.params.size ?? 0,
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.status, ''),
+      pick(b.params.id, ''),
+      pick(b.params.name, ''),
+      pick(b.params.position, 0),
+      pick(b.params.size, 0),
     );
   }
 }
@@ -648,7 +704,7 @@ export class EchoEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     state: string,
@@ -657,12 +713,9 @@ export class EchoEvent extends RelayEvent {
     this.state = state;
   }
 
-  static override fromPayload(payload: Record<string, any>): EchoEvent {
+  static override fromPayload(payload: EventPayload): EchoEvent {
     const b = baseFields(payload);
-    return new EchoEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.state ?? '',
-    );
+    return new EchoEvent(b.eventType, b.params, b.callId, b.timestamp, pick(b.params.state, ''));
   }
 }
 
@@ -677,7 +730,7 @@ export class TranscribeEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     controlId: string,
@@ -696,16 +749,19 @@ export class TranscribeEvent extends RelayEvent {
     this.size = size;
   }
 
-  static override fromPayload(payload: Record<string, any>): TranscribeEvent {
+  static override fromPayload(payload: EventPayload): TranscribeEvent {
     const b = baseFields(payload);
     return new TranscribeEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.control_id ?? '',
-      b.params.state ?? '',
-      b.params.url ?? '',
-      b.params.recording_id ?? '',
-      b.params.duration ?? 0,
-      b.params.size ?? 0,
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.control_id, ''),
+      pick(b.params.state, ''),
+      pick(b.params.url, ''),
+      pick(b.params.recording_id, ''),
+      pick(b.params.duration, 0),
+      pick(b.params.size, 0),
     );
   }
 }
@@ -716,7 +772,7 @@ export class HoldEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     state: string,
@@ -725,12 +781,9 @@ export class HoldEvent extends RelayEvent {
     this.state = state;
   }
 
-  static override fromPayload(payload: Record<string, any>): HoldEvent {
+  static override fromPayload(payload: EventPayload): HoldEvent {
     const b = baseFields(payload);
-    return new HoldEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.state ?? '',
-    );
+    return new HoldEvent(b.eventType, b.params, b.callId, b.timestamp, pick(b.params.state, ''));
   }
 }
 
@@ -742,7 +795,7 @@ export class ConferenceEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     conferenceId: string,
@@ -755,13 +808,16 @@ export class ConferenceEvent extends RelayEvent {
     this.status = status;
   }
 
-  static override fromPayload(payload: Record<string, any>): ConferenceEvent {
+  static override fromPayload(payload: EventPayload): ConferenceEvent {
     const b = baseFields(payload);
     return new ConferenceEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.conference_id ?? '',
-      b.params.name ?? '',
-      b.params.status ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.conference_id, ''),
+      pick(b.params.name, ''),
+      pick(b.params.status, ''),
     );
   }
 }
@@ -773,7 +829,7 @@ export class CallingErrorEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     code: string,
@@ -784,12 +840,15 @@ export class CallingErrorEvent extends RelayEvent {
     this.message = message;
   }
 
-  static override fromPayload(payload: Record<string, any>): CallingErrorEvent {
+  static override fromPayload(payload: EventPayload): CallingErrorEvent {
     const b = baseFields(payload);
     return new CallingErrorEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.code ?? '',
-      b.params.message ?? '',
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.code, ''),
+      pick(b.params.message, ''),
     );
   }
 }
@@ -811,7 +870,7 @@ export class MessageReceiveEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     messageId: string,
@@ -838,20 +897,23 @@ export class MessageReceiveEvent extends RelayEvent {
     this.tags = tags;
   }
 
-  static override fromPayload(payload: Record<string, any>): MessageReceiveEvent {
+  static override fromPayload(payload: EventPayload): MessageReceiveEvent {
     const b = baseFields(payload);
     return new MessageReceiveEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.message_id ?? '',
-      b.params.context ?? '',
-      b.params.direction ?? '',
-      b.params.from_number ?? '',
-      b.params.to_number ?? '',
-      b.params.body ?? '',
-      b.params.media ?? [],
-      b.params.segments ?? 0,
-      b.params.message_state ?? '',
-      b.params.tags ?? [],
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.message_id, ''),
+      pick(b.params.context, ''),
+      pick(b.params.direction, ''),
+      pick(b.params.from_number, ''),
+      pick(b.params.to_number, ''),
+      pick(b.params.body, ''),
+      pick<string[]>(b.params.media, []),
+      pick(b.params.segments, 0),
+      pick(b.params.message_state, ''),
+      pick<string[]>(b.params.tags, []),
     );
   }
 }
@@ -880,7 +942,7 @@ export class MessageStateEvent extends RelayEvent {
 
   constructor(
     eventType: string,
-    params: Record<string, any>,
+    params: EventPayload,
     callId: string,
     timestamp: number,
     messageId: string,
@@ -909,21 +971,24 @@ export class MessageStateEvent extends RelayEvent {
     this.tags = tags;
   }
 
-  static override fromPayload(payload: Record<string, any>): MessageStateEvent {
+  static override fromPayload(payload: EventPayload): MessageStateEvent {
     const b = baseFields(payload);
     return new MessageStateEvent(
-      b.eventType, b.params, b.callId, b.timestamp,
-      b.params.message_id ?? '',
-      b.params.context ?? '',
-      b.params.direction ?? '',
-      b.params.from_number ?? '',
-      b.params.to_number ?? '',
-      b.params.body ?? '',
-      b.params.media ?? [],
-      b.params.segments ?? 0,
-      b.params.message_state ?? '',
-      b.params.reason ?? '',
-      b.params.tags ?? [],
+      b.eventType,
+      b.params,
+      b.callId,
+      b.timestamp,
+      pick(b.params.message_id, ''),
+      pick(b.params.context, ''),
+      pick(b.params.direction, ''),
+      pick(b.params.from_number, ''),
+      pick(b.params.to_number, ''),
+      pick(b.params.body, ''),
+      pick<string[]>(b.params.media, []),
+      pick(b.params.segments, 0),
+      pick(b.params.message_state, '' as MessageState),
+      pick(b.params.reason, ''),
+      pick<string[]>(b.params.tags, []),
     );
   }
 }
@@ -931,7 +996,7 @@ export class MessageStateEvent extends RelayEvent {
 // ─── Event Class Map & Parser ────────────────────────────────────────
 
 /** Structural type for an event class that exposes a `fromPayload` factory. */
-export type EventClass = { fromPayload(payload: Record<string, any>): RelayEvent };
+export type EventClass = { fromPayload(payload: EventPayload): RelayEvent };
 
 /**
  * Maps RELAY `event_type` strings to the typed event subclass that builds
@@ -964,8 +1029,8 @@ export const EVENT_CLASS_MAP: Record<string, EventClass> = {
 };
 
 /** Parse a raw signalwire.event params dict into a typed event object. */
-export function parseEvent(payload: Record<string, any>): RelayEvent {
-  const eventType = payload.event_type ?? '';
+export function parseEvent(payload: EventPayload): RelayEvent {
+  const eventType = pick(payload.event_type, '');
   const cls = EVENT_CLASS_MAP[eventType] ?? RelayEvent;
   return cls.fromPayload(payload);
 }

@@ -6,7 +6,7 @@
  * Matches the Python SDK's `num_results` / `no_results_message` parity.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -109,10 +109,7 @@ export class WikipediaSearchSkill extends SkillBase {
     const configured = this.getConfig<number>('num_results', 1);
     this.numResults = Math.max(1, Math.floor(configured));
 
-    const rawMessage = this.getConfig<string | undefined>(
-      'no_results_message',
-      undefined,
-    );
+    const rawMessage = this.getConfig<string | undefined>('no_results_message', undefined);
     this.noResultsMessage =
       rawMessage && rawMessage.length > 0 ? rawMessage : DEFAULT_NO_RESULTS_MESSAGE;
     return true;
@@ -121,35 +118,27 @@ export class WikipediaSearchSkill extends SkillBase {
   /** @returns A `search_wiki` tool that fetches article summaries from Wikipedia. */
   getTools(): SkillToolDefinition[] {
     return [
-      {
+      defineSkillTool({
         name: 'search_wiki',
-        description:
-          'Search Wikipedia for information about a topic and get article summaries',
+        description: 'Search Wikipedia for information about a topic and get article summaries',
         parameters: {
           query: {
             type: 'string',
-            description:
-              'The search term or topic to look up on Wikipedia.',
+            description: 'The search term or topic to look up on Wikipedia.',
           },
         },
-        required: ['query'],
-        handler: async (args: Record<string, unknown>, _rawData: Record<string, unknown>) => {
-          const rawQuery = args['query'];
-
-          if (
-            !rawQuery ||
-            typeof rawQuery !== 'string' ||
-            rawQuery.trim().length === 0
-          ) {
-            return new FunctionResult(
-              'Please provide a search query for Wikipedia.',
-            );
+        // Python passes no `required` (wikipedia_search/skill.py:87), so the
+        // wire schema has no `required` key. args.query is `string | undefined`,
+        // narrowed by the guard below.
+        handler: async (args) => {
+          if (!args.query || args.query.trim().length === 0) {
+            return new FunctionResult('Please provide a search query for Wikipedia.');
           }
 
-          const result = await this.searchWiki(rawQuery.trim());
+          const result = await this.searchWiki(args.query.trim());
           return new FunctionResult(result);
         },
-      },
+      }),
     ];
   }
 
@@ -184,9 +173,7 @@ export class WikipediaSearchSkill extends SkillBase {
         `&srsearch=${encodeURIComponent(trimmedQuery)}` +
         `&srlimit=${this.numResults}`;
 
-      const searchData = await this._fetchJson<WikipediaActionSearchResponse>(
-        searchUrl,
-      );
+      const searchData = await this._fetchJson<WikipediaActionSearchResponse>(searchUrl);
       if (!searchData) {
         return 'Wikipedia search could not be completed. Please try a different search term.';
       }
@@ -204,9 +191,7 @@ export class WikipediaSearchSkill extends SkillBase {
           `${baseUrl}?action=query&prop=extracts&exintro&explaintext&format=json` +
           `&titles=${encodeURIComponent(title)}`;
 
-        const extractData = await this._fetchJson<WikipediaActionExtractsResponse>(
-          extractUrl,
-        );
+        const extractData = await this._fetchJson<WikipediaActionExtractsResponse>(extractUrl);
         const pages = extractData?.query?.pages ?? {};
         const firstPage = Object.values(pages)[0];
         const extract = (firstPage?.extract ?? '').trim();

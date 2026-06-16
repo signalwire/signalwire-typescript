@@ -5,7 +5,7 @@
  * Contains a curated set of jokes across multiple categories.
  */
 
-import { SkillBase } from '../SkillBase.js';
+import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type {
   SkillToolDefinition,
   SkillPromptSection,
@@ -49,24 +49,24 @@ const JOKES: Joke[] = [
   },
   {
     category: 'programming',
-    setup: 'What is a programmer\'s favorite hangout place?',
+    setup: "What is a programmer's favorite hangout place?",
     punchline: 'Foo Bar.',
   },
   {
     category: 'programming',
     setup: 'Why do Java developers wear glasses?',
-    punchline: 'Because they can\'t C#.',
+    punchline: "Because they can't C#.",
   },
   {
     category: 'programming',
     setup: 'How many programmers does it take to change a light bulb?',
-    punchline: 'None. That\'s a hardware problem.',
+    punchline: "None. That's a hardware problem.",
   },
   // Dad jokes
   {
     category: 'dad',
-    setup: 'I\'m reading a book about anti-gravity.',
-    punchline: 'It\'s impossible to put down.',
+    setup: "I'm reading a book about anti-gravity.",
+    punchline: "It's impossible to put down.",
   },
   {
     category: 'dad',
@@ -75,18 +75,28 @@ const JOKES: Joke[] = [
   },
   {
     category: 'dad',
-    setup: 'Why don\'t skeletons fight each other?',
-    punchline: 'They don\'t have the guts.',
+    setup: "Why don't skeletons fight each other?",
+    punchline: "They don't have the guts.",
   },
 ];
 
-const VALID_CATEGORIES = ['general', 'programming', 'dad'];
+/**
+ * The two joke `type` values the tool accepts — the wire interface matches the
+ * Python reference (`joke/skill.py:71`: enum `['jokes', 'dadjokes']`). The TS
+ * implementation is offline (no API), so `dadjokes` maps to the curated `dad`
+ * category and `jokes` to everything else (general + programming).
+ */
+const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
 
 /**
  * Tells random jokes from a curated built-in collection.
  *
- * Tier 1 built-in skill with no external dependencies. Includes general,
- * programming, and dad joke categories.
+ * Tier 1 built-in skill with no external dependencies. The SWAIG tool
+ * *interface* matches the Python reference (`get_joke` tool, required `type`
+ * parameter with enum `jokes` / `dadjokes`); the implementation differs by
+ * design — Python calls the API-Ninjas joke API, the TS port serves from a
+ * built-in offline collection (so it needs no API key). `dadjokes` returns a
+ * dad joke; `jokes` returns a general/programming joke.
  *
  * @example
  * ```ts
@@ -107,7 +117,7 @@ export class JokeSkill extends SkillBase {
       tool_name: {
         type: 'string',
         description: 'Custom name for the joke tool',
-        default: 'tell_joke',
+        default: 'get_joke',
       },
     };
   }
@@ -120,65 +130,56 @@ export class JokeSkill extends SkillBase {
     return { joke_skill_enabled: true };
   }
 
-  /** @returns A single joke tool (configurable name) that returns a random joke with optional category filter. */
+  /**
+   * @returns A single `get_joke` tool (configurable name). The interface
+   *   matches Python (`joke/skill.py:68-77`): a required `type` parameter with
+   *   enum `jokes` / `dadjokes`. Served from the offline collection.
+   */
   getTools(): SkillToolDefinition[] {
-    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
+    const toolName = this.getConfig<string>('tool_name', 'get_joke');
 
     return [
-      {
+      defineSkillTool({
         name: toolName,
-        description:
-          'Tell a random joke. Optionally specify a category to get a joke from that category.',
+        description: 'Get a random joke.',
         parameters: {
-          category: {
+          type: {
             type: 'string',
-            description:
-              'Joke category: "general", "programming", or "dad". If not specified, a random joke from any category is returned.',
+            description: 'Type of joke to get',
+            enum: JOKE_TYPES,
           },
         },
-        handler: (args: Record<string, unknown>) => {
-          const category = args.category as string | undefined;
-
-          let pool = JOKES;
-
-          if (category && typeof category === 'string') {
-            const normalized = category.toLowerCase().trim();
-
-            if (!VALID_CATEGORIES.includes(normalized)) {
-              return new FunctionResult(
-                `Unknown joke category "${category}". Available categories are: ${VALID_CATEGORIES.join(', ')}.`,
-              );
-            }
-
-            pool = JOKES.filter((j) => j.category === normalized);
-          }
+        // Match Python's wire contract: `type` is required (skill.py:71).
+        required: ['type'],
+        handler: (args) => {
+          // args.type is the `'jokes' | 'dadjokes'` union (required + enum).
+          // dadjokes → the curated `dad` category; anything else → the rest.
+          const pool =
+            args.type === 'dadjokes'
+              ? JOKES.filter((j) => j.category === 'dad')
+              : JOKES.filter((j) => j.category !== 'dad');
 
           if (pool.length === 0) {
-            return new FunctionResult(
-              'Sorry, I could not find any jokes for that category.',
-            );
+            return new FunctionResult('Sorry, I could not find a joke right now.');
           }
 
           const joke = pool[Math.floor(Math.random() * pool.length)]!;
 
-          return new FunctionResult(
-            `${joke.setup} ... ${joke.punchline}`,
-          );
+          return new FunctionResult(`${joke.setup} ... ${joke.punchline}`);
         },
-      },
+      }),
     ];
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
-    const toolName = this.getConfig<string>('tool_name', 'tell_joke');
+    const toolName = this.getConfig<string>('tool_name', 'get_joke');
     return [
       {
         title: 'Jokes',
         body: 'You have the ability to tell jokes to lighten the mood.',
         bullets: [
           `Use the ${toolName} tool when a user asks for a joke or when humor is appropriate.`,
-          'Available joke categories: general, programming, and dad jokes.',
-          'If the user asks for a specific type of joke, pass the category parameter.',
+          'Pass type "dadjokes" for a dad joke, or "jokes" for a regular joke.',
           'Deliver the joke naturally: say the setup, pause briefly, then deliver the punchline.',
         ],
       },

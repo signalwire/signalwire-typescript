@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SkillRegistry } from '../src/skills/SkillRegistry.js';
 import { registerBuiltinSkills } from '../src/skills/builtin/index.js';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -50,9 +50,7 @@ describe('SkillRegistry Schema', () => {
     // Allowed JSON-Schema-style types every parameter entry must use.
     // A bare nullness check would pass for `{type: 0, description: false}`;
     // the enum membership + non-empty string check catches that.
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const [skillName, schema] of Object.entries(allSchemas)) {
       for (const [paramName, entry] of Object.entries(schema.parameters)) {
         expect(
@@ -118,17 +116,15 @@ describe('SkillRegistry.addSkillDirectory parity', () => {
   });
 
   it('throws on a non-existent path', () => {
-    expect(() =>
-      registry.addSkillDirectory('/no/such/swts_path_does_not_exist_xyz123'),
-    ).toThrow(/does not exist/);
+    expect(() => registry.addSkillDirectory('/no/such/swts_path_does_not_exist_xyz123')).toThrow(
+      /does not exist/,
+    );
   });
 
   it('throws when the path is not a directory', () => {
     const filePath = join(tmpRoot, 'a_file.txt');
     writeFileSync(filePath, 'hello');
-    expect(() => registry.addSkillDirectory(filePath)).toThrow(
-      /not a directory/,
-    );
+    expect(() => registry.addSkillDirectory(filePath)).toThrow(/not a directory/);
   });
 
   it('deduplicates repeated calls with the same path', () => {
@@ -141,6 +137,10 @@ describe('SkillRegistry.addSkillDirectory parity', () => {
 
   // Cleanup tmpRoot after each test
   afterEach(() => {
-    try { rmSync(tmpRoot, { recursive: true, force: true }); } catch { /* */ }
+    try {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      /* */
+    }
   });
 });

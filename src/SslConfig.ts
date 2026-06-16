@@ -9,6 +9,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
+import type { Context, MiddlewareHandler } from 'hono';
 
 /** Configuration options for SSL/TLS setup. */
 export interface SslOptions {
@@ -46,7 +47,7 @@ export class SslConfig {
    * @param opts - Optional SSL configuration overrides.
    */
   constructor(opts?: SslOptions) {
-    this.enabled = opts?.enabled ?? (process.env['SWML_SSL_ENABLED'] === 'true');
+    this.enabled = opts?.enabled ?? process.env['SWML_SSL_ENABLED'] === 'true';
     this.certPath = opts?.certPath ?? process.env['SWML_SSL_CERT_PATH'] ?? null;
     this.keyPath = opts?.keyPath ?? process.env['SWML_SSL_KEY_PATH'] ?? null;
     this.domain = opts?.domain ?? process.env['SWML_SSL_DOMAIN'] ?? null;
@@ -106,8 +107,8 @@ export class SslConfig {
    * Return a Hono middleware that appends the HSTS header to every response.
    * @returns A Hono-compatible middleware function.
    */
-  hstsMiddleware(): (c: any, next: () => Promise<void>) => Promise<void> {
-    return async (c: any, next: () => Promise<void>) => {
+  hstsMiddleware(): MiddlewareHandler {
+    return async (c: Context, next: () => Promise<void>) => {
       await next();
       const hsts = this.getHstsHeader();
       if (hsts) {

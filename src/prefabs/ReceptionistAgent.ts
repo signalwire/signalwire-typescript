@@ -10,6 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -86,7 +87,9 @@ export class ReceptionistAgent extends AgentBase {
   private readonly departments: ReceptionistDepartment[];
   private readonly companyName: string | undefined;
   private readonly checkInEnabled: boolean;
-  private readonly onVisitorCheckInCallback?: (visitor: Record<string, string>) => void | Promise<void>;
+  private readonly onVisitorCheckInCallback?: (
+    visitor: Record<string, string>,
+  ) => void | Promise<void>;
   private readonly sessions: Map<string, CheckInSession> = new Map();
 
   /**
@@ -124,7 +127,9 @@ export class ReceptionistAgent extends AgentBase {
     this.defineTools();
   }
 
-  private static validateDepartments(departments: unknown): asserts departments is ReceptionistDepartment[] {
+  private static validateDepartments(
+    departments: unknown,
+  ): asserts departments is ReceptionistDepartment[] {
     if (!Array.isArray(departments) || departments.length === 0) {
       throw new Error('At least one department is required');
     }
@@ -169,7 +174,7 @@ export class ReceptionistAgent extends AgentBase {
       'Use the collect_caller_info function when you have their name and reason for calling.',
       'Use the transfer_call function to transfer them to the appropriate department.',
       "Before transferring, always confirm with the caller that they're being transferred to the right department.",
-      'If a caller\'s request does not clearly match a department, ask follow-up questions to clarify.',
+      "If a caller's request does not clearly match a department, ask follow-up questions to clarify.",
     ];
     if (this.checkInEnabled) {
       instructions.push(
@@ -179,9 +184,7 @@ export class ReceptionistAgent extends AgentBase {
     this.promptAddSection('Instructions', { bullets: instructions });
 
     // Departments list as a bulleted section
-    const deptBullets = this.departments.map(
-      (dept) => `${dept.name}: ${dept.description}`,
-    );
+    const deptBullets = this.departments.map((dept) => `${dept.name}: ${dept.description}`);
     this.promptAddSection('Available Departments', { bullets: deptBullets });
 
     // Post-prompt JSON summary template (Python parity)
@@ -214,7 +217,7 @@ export class ReceptionistAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: Record<string, unknown>): CheckInSession {
+  private getSession(rawData: SwaigRequestData): CheckInSession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -249,9 +252,9 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>) => {
-        const name = (args['name'] as string) ?? '';
-        const reason = (args['reason'] as string) ?? '';
+      handler: (args) => {
+        const name = args.name ?? '';
+        const reason = args.reason ?? '';
         const result = new FunctionResult(
           `Thank you, ${name}. I've noted that you're calling about ${reason}.`,
         );
@@ -281,17 +284,15 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const departmentName = ((args['department'] as string) ?? '').trim();
+      handler: (args, rawData: SwaigRequestData) => {
+        const departmentName = (args.department ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
         const name = (callerInfo['name'] as string) ?? 'the caller';
 
         const dept = this.departments.find((d) => d.name === departmentName);
         if (!dept) {
-          return new FunctionResult(
-            `Sorry, I couldn't find the ${departmentName} department.`,
-          );
+          return new FunctionResult(`Sorry, I couldn't find the ${departmentName} department.`);
         }
 
         // Python uses post_process=True and final=True so the AI speaks
@@ -309,7 +310,8 @@ export class ReceptionistAgent extends AgentBase {
     if (this.checkInEnabled) {
       this.defineTool({
         name: 'check_in_visitor',
-        description: 'Check in a visitor by recording their name, purpose of visit, and who they are visiting.',
+        description:
+          'Check in a visitor by recording their name, purpose of visit, and who they are visiting.',
         parameters: {
           type: 'object',
           properties: {
@@ -328,10 +330,10 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-          const visitorName = args['visitor_name'] as string;
-          const purpose = args['purpose'] as string;
-          const visiting = args['visiting'] as string;
+        handler: async (args, rawData: SwaigRequestData) => {
+          const visitorName = args.visitor_name;
+          const purpose = args.purpose;
+          const visiting = args.visiting;
 
           if (!visitorName || !purpose || !visiting) {
             return new FunctionResult(
@@ -375,7 +377,7 @@ export class ReceptionistAgent extends AgentBase {
    */
   override onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: Record<string, unknown>,
+    _rawData: PostPromptData,
   ): void | Promise<void> {
     // Intentional no-op pass-through; subclasses override to handle the summary.
   }

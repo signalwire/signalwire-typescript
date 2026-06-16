@@ -16,14 +16,14 @@ describe('SchemaUtils', () => {
     const validator = new SchemaUtils();
     const result = validator.validate({ sections: { main: [] } });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('version'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('version'))).toBe(true);
   });
 
   it('rejects missing sections', () => {
     const validator = new SchemaUtils();
     const result = validator.validate({ version: '1.0.0' });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('sections'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('sections'))).toBe(true);
   });
 
   it('rejects invalid version', () => {
@@ -33,7 +33,7 @@ describe('SchemaUtils', () => {
       sections: { main: [] },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('Invalid version'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('Invalid version'))).toBe(true);
   });
 
   it('rejects missing main section', () => {
@@ -43,15 +43,17 @@ describe('SchemaUtils', () => {
       sections: { other: [] },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('main'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('main'))).toBe(true);
   });
 
   it('validates SWML from JSON string', () => {
     const validator = new SchemaUtils();
-    const result = validator.validate(JSON.stringify({
-      version: '1.0.0',
-      sections: { main: [{ answer: {} }] },
-    }));
+    const result = validator.validate(
+      JSON.stringify({
+        version: '1.0.0',
+        sections: { main: [{ answer: {} }] },
+      }),
+    );
     expect(result.valid).toBe(true);
   });
 
@@ -78,7 +80,7 @@ describe('SchemaUtils', () => {
       sections: { main: [{ ai: { prompt: {} } }] },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('prompt'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('prompt'))).toBe(true);
   });
 
   it('caches validation results', () => {
@@ -100,7 +102,7 @@ describe('SchemaUtils', () => {
 
   it('skipValidation always returns valid', () => {
     const validator = new SchemaUtils({ skipValidation: true });
-    const result = validator.validate({ invalid: true } as any);
+    const result = validator.validate({ invalid: true });
     expect(result.valid).toBe(true);
   });
 });

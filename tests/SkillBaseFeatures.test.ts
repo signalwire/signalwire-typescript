@@ -8,11 +8,13 @@ class TestSkill extends SkillBase {
   static override SKILL_DESCRIPTION = 'A test skill';
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: 'test_tool',
-      description: 'A test tool',
-      handler: () => new FunctionResult('ok'),
-    }];
+    return [
+      {
+        name: 'test_tool',
+        description: 'A test tool',
+        handler: () => new FunctionResult('ok'),
+      },
+    ];
   }
 
   protected override _getPromptSections() {
@@ -118,13 +120,11 @@ describe('SkillBase Features', () => {
       expect(updated).toBe(result);
       const dict = result.toDict();
       // Should have set_global_data action
-      const actions = dict.action as unknown[];
+      const actions = dict.action as { set_global_data?: Record<string, unknown> }[];
       expect(actions).toBeDefined();
-      const setGlobalAction = actions.find(
-        (a: any) => a.set_global_data !== undefined,
-      ) as any;
+      const setGlobalAction = actions.find((a) => a.set_global_data !== undefined);
       expect(setGlobalAction).toBeDefined();
-      expect(setGlobalAction.set_global_data).toEqual({ 'skill:test_skill': { count: 10 } });
+      expect(setGlobalAction!.set_global_data).toEqual({ 'skill:test_skill': { count: 10 } });
     });
   });
 });

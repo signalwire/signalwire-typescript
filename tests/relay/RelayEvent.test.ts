@@ -178,7 +178,11 @@ describe('DetectEvent', () => {
   it('parses detect event', () => {
     const e = DetectEvent.fromPayload({
       event_type: 'calling.call.detect',
-      params: { call_id: 'c1', control_id: 'ctrl1', detect: { type: 'machine', params: { event: 'HUMAN' } } },
+      params: {
+        call_id: 'c1',
+        control_id: 'ctrl1',
+        detect: { type: 'machine', params: { event: 'HUMAN' } },
+      },
     });
     expect(e).toBeInstanceOf(DetectEvent);
     expect(e.detect.type).toBe('machine');
@@ -200,7 +204,13 @@ describe('TapEvent', () => {
   it('parses tap event', () => {
     const e = TapEvent.fromPayload({
       event_type: 'calling.call.tap',
-      params: { call_id: 'c1', control_id: 'ctrl1', state: 'tapping', tap: {}, device: { type: 'rtp' } },
+      params: {
+        call_id: 'c1',
+        control_id: 'ctrl1',
+        state: 'tapping',
+        tap: {},
+        device: { type: 'rtp' },
+      },
     });
     expect(e).toBeInstanceOf(TapEvent);
     expect(e.state).toBe('tapping');
@@ -212,7 +222,13 @@ describe('StreamEvent', () => {
   it('parses stream event', () => {
     const e = StreamEvent.fromPayload({
       event_type: 'calling.call.stream',
-      params: { call_id: 'c1', control_id: 'ctrl1', state: 'streaming', url: 'wss://stream', name: 'mystream' },
+      params: {
+        call_id: 'c1',
+        control_id: 'ctrl1',
+        state: 'streaming',
+        url: 'wss://stream',
+        name: 'mystream',
+      },
     });
     expect(e).toBeInstanceOf(StreamEvent);
     expect(e.url).toBe('wss://stream');
@@ -287,7 +303,15 @@ describe('QueueEvent', () => {
   it('parses queue event', () => {
     const e = QueueEvent.fromPayload({
       event_type: 'calling.call.queue',
-      params: { call_id: 'c1', control_id: 'ctrl1', status: 'entered', id: 'q1', name: 'support', position: 3, size: 10 },
+      params: {
+        call_id: 'c1',
+        control_id: 'ctrl1',
+        status: 'entered',
+        id: 'q1',
+        name: 'support',
+        position: 3,
+        size: 10,
+      },
     });
     expect(e).toBeInstanceOf(QueueEvent);
     expect(e.queueId).toBe('q1');
@@ -312,7 +336,15 @@ describe('TranscribeEvent', () => {
   it('parses transcribe event', () => {
     const e = TranscribeEvent.fromPayload({
       event_type: 'calling.call.transcribe',
-      params: { call_id: 'c1', control_id: 'ctrl1', state: 'finished', url: 'https://url', recording_id: 'r1', duration: 30.0, size: 500000 },
+      params: {
+        call_id: 'c1',
+        control_id: 'ctrl1',
+        state: 'finished',
+        url: 'https://url',
+        recording_id: 'r1',
+        duration: 30.0,
+        size: 500000,
+      },
     });
     expect(e).toBeInstanceOf(TranscribeEvent);
     expect(e.recordingId).toBe('r1');

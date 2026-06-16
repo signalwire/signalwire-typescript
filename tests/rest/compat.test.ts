@@ -1,11 +1,11 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { CompatNamespace } from '../../src/rest/namespaces/compat.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
 const SID = 'AC-test-sid';
 
 describe('CompatNamespace', () => {
-  function setup(responses: any[] = [{ status: 200, body: {} }]) {
+  function setup(responses: MockResponse[] = [{ status: 200, body: {} }]) {
     const { options, getRequests } = mockClientOptions(responses);
     const http = new HttpClient(options);
     const compat = new CompatNamespace(http, SID);

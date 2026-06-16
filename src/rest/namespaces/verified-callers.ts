@@ -2,19 +2,32 @@
  * Verified Caller IDs namespace — CRUD + verification flow.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  CreateVerifiedCallerIDRequest,
+  UpdateVerifiedCallerIDRequest,
+  VerifiedCallerID,
+  VerifiedCallerIDListResponse,
+  VerifiedCallerIDResponse,
+  VerifyCallerIDRequest,
+} from './relay-rest.types.generated.js';
 
 /**
  * Verified caller ID management with verification flow.
  *
- * Access via `client.verifiedCallers.*`. Extends standard CRUD with
- * `redialVerification()` and `submitVerification()` for the two-step
- * phone-number verification handshake.
+ * Access via `client.verifiedCallers.*`. Extends standard CRUD (typed from the
+ * canonical relay-rest OpenAPI spec) with `redialVerification()` and
+ * `submitVerification()` for the two-step phone-number verification handshake.
+ * Create/update bodies stay `Partial<>` to preserve Python's call-without-args
+ * ergonomics.
  */
-export class VerifiedCallersResource extends CrudResource {
+export class VerifiedCallersResource extends CrudResource<
+  VerifiedCallerIDListResponse,
+  VerifiedCallerID,
+  Partial<CreateVerifiedCallerIDRequest>,
+  Partial<UpdateVerifiedCallerIDRequest>
+> {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
   constructor(http: HttpClient) {
@@ -28,8 +41,8 @@ export class VerifiedCallersResource extends CrudResource {
    * @returns The platform-shaped verification response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async redialVerification(callerId: string): Promise<any> {
-    return this._http.post(this._path(callerId, 'verification'));
+  async redialVerification(callerId: string): Promise<VerifiedCallerIDResponse> {
+    return this._http.post<VerifiedCallerIDResponse>(this._path(callerId, 'verification'));
   }
 
   /**
@@ -40,7 +53,10 @@ export class VerifiedCallersResource extends CrudResource {
    * @returns The completed verification record.
    * @throws {RestError} On any non-2xx HTTP response (including a rejected code).
    */
-  async submitVerification(callerId: string, body: any): Promise<any> {
-    return this._http.put(this._path(callerId, 'verification'), body);
+  async submitVerification(
+    callerId: string,
+    body: VerifyCallerIDRequest,
+  ): Promise<VerifiedCallerIDResponse> {
+    return this._http.put<VerifiedCallerIDResponse>(this._path(callerId, 'verification'), body);
   }
 }

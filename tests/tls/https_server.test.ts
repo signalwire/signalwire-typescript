@@ -16,13 +16,12 @@
  * is genuinely verified.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import https from 'node:https';
 import net from 'node:net';
+import type { TLSSocket } from 'node:tls';
 import { WebService } from '../../src/index.js';
 import { resolveTlsCerts } from './support.js';
 
@@ -48,15 +47,13 @@ function httpsGet(
 ): Promise<{ status: number; body: string; authorized: boolean; peerCN: string | undefined }> {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { ca, rejectUnauthorized: true }, (res) => {
-      const sock: any = res.socket;
+      const sock = res.socket as TLSSocket;
       const authorized = Boolean(sock.authorized);
-      const cert = sock.getPeerCertificate ? sock.getPeerCertificate() : {};
+      const cert = sock.getPeerCertificate ? sock.getPeerCertificate() : undefined;
       const peerCN = cert?.subject?.CN;
       let data = '';
       res.on('data', (c) => (data += c));
-      res.on('end', () =>
-        resolve({ status: res.statusCode ?? 0, body: data, authorized, peerCN }),
-      );
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, body: data, authorized, peerCN }));
     });
     req.on('error', reject);
     req.setTimeout(5_000, () => req.destroy(new Error('timeout')));
@@ -119,8 +116,9 @@ describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
     try {
       // Empty trust store: the SDK server's CA-signed cert cannot be verified.
       await httpsGet(`${baseUrl}/health`, []);
-    } catch (e: any) {
-      code = e?.code ?? e?.message ?? 'ERR';
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      code = err?.code ?? err?.message ?? 'ERR';
     }
     expect(code).not.toBe('UNEXPECTED_OK');
     expect(code).toMatch(/UNABLE_TO_VERIFY|SELF_SIGNED|unable to (verify|get)|leaf/i);

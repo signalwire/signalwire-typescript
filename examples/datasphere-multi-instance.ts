@@ -19,7 +19,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are an assistant with access to multiple knowledge bases. ' +
-  'Use the appropriate search tool depending on the topic.',
+    'Use the appropriate search tool depending on the topic.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
@@ -57,7 +57,10 @@ await agent.addSkill(
   }),
 );
 
-console.log('Loaded skills:', agent.listSkills().map(s => s.name));
+console.log(
+  'Loaded skills:',
+  agent.listSkills().map((s) => s.name),
+);
 console.log('Note: Replace document IDs with your actual DataSphere documents.');
 
 agent.run();

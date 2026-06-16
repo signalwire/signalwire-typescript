@@ -18,6 +18,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import type { SwaigRequestData } from '../../PlatformContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
 import { Agent as UndiciAgent } from 'undici';
@@ -32,12 +33,38 @@ interface McpServiceConfig {
   tools?: string | string[];
 }
 
+/**
+ * A single JSON-Schema property descriptor, as used inside a SWAIG/MCP tool's
+ * `parameters.properties` map. Models the JSON-Schema subset the SDK reads and
+ * emits — every field optional (a property may declare any combination). The
+ * index signature keeps it forward-compatible with JSON-Schema keywords the SDK
+ * passes through verbatim (e.g. `format`, `minimum`).
+ */
+export interface JSONSchemaProperty {
+  /** JSON-Schema type (e.g. `"string"`), or a list of allowed types. */
+  type?: string | string[];
+  /** Human/LLM-facing description of the property. */
+  description?: string;
+  /** Permitted values (closed set). */
+  enum?: unknown[];
+  /** Default value applied when the property is omitted. */
+  default?: unknown;
+  /** Nested property schemas (for `type: "object"`). */
+  properties?: Record<string, JSONSchemaProperty>;
+  /** Item schema (for `type: "array"`). */
+  items?: JSONSchemaProperty;
+  /** Names of required nested properties. */
+  required?: string[];
+  /** Forward-compatible: other JSON-Schema keywords passed through unchanged. */
+  [key: string]: unknown;
+}
+
 /** MCP tool definition returned by the gateway's /services/<name>/tools endpoint. */
 interface McpToolDefinition {
   name: string;
   description?: string;
   inputSchema?: {
-    properties?: Record<string, { type?: string; description?: string; enum?: unknown[]; default?: unknown }>;
+    properties?: Record<string, JSONSchemaProperty>;
     required?: string[];
   };
 }
@@ -78,31 +105,27 @@ export class McpGatewaySkill extends SkillBase {
       },
       auth_token: {
         type: 'string',
-        description:
-          'Bearer token for authentication (alternative to basic auth)',
+        description: 'Bearer token for authentication (alternative to basic auth)',
         required: false,
         hidden: true,
         env_var: 'MCP_GATEWAY_AUTH_TOKEN',
       },
       auth_user: {
         type: 'string',
-        description:
-          'Username for basic authentication (required if auth_token not provided)',
+        description: 'Username for basic authentication (required if auth_token not provided)',
         required: false,
         env_var: 'MCP_GATEWAY_AUTH_USER',
       },
       auth_password: {
         type: 'string',
-        description:
-          'Password for basic authentication (required if auth_token not provided)',
+        description: 'Password for basic authentication (required if auth_token not provided)',
         required: false,
         hidden: true,
         env_var: 'MCP_GATEWAY_AUTH_PASSWORD',
       },
       services: {
         type: 'array',
-        description:
-          'List of MCP services to connect to (empty for all available)',
+        description: 'List of MCP services to connect to (empty for all available)',
         default: [],
         required: false,
         items: {
@@ -111,8 +134,7 @@ export class McpGatewaySkill extends SkillBase {
             name: { type: 'string', description: 'Service name' },
             tools: {
               type: ['string', 'array'],
-              description:
-                "Tools to expose ('*' for all, or list of tool names)",
+              description: "Tools to expose ('*' for all, or list of tool names)",
             },
           },
         },
@@ -208,8 +230,7 @@ export class McpGatewaySkill extends SkillBase {
       return false;
     }
 
-    this.services =
-      this.getConfig<McpServiceConfig[]>('services', []) ?? [];
+    this.services = this.getConfig<McpServiceConfig[]>('services', []) ?? [];
     this.sessionTimeout = this.getConfig<number>('session_timeout', 300);
     this.toolPrefix = this.getConfig<string>('tool_prefix', 'mcp_');
     this.retryAttempts = this.getConfig<number>('retry_attempts', 3);
@@ -324,7 +345,7 @@ export class McpGatewaySkill extends SkillBase {
       name: '_mcp_gateway_hangup',
       description: 'Internal cleanup function for MCP sessions',
       parameters: {},
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) =>
+      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) =>
         this._hangupHandler(args, rawData),
       isHangupHook: true,
     });
@@ -390,9 +411,7 @@ export class McpGatewaySkill extends SkillBase {
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
     } else if (this.authUser && this.authPassword) {
-      const creds = Buffer.from(`${this.authUser}:${this.authPassword}`).toString(
-        'base64',
-      );
+      const creds = Buffer.from(`${this.authUser}:${this.authPassword}`).toString('base64');
       headers['Authorization'] = `Basic ${creds}`;
     }
 
@@ -403,10 +422,7 @@ export class McpGatewaySkill extends SkillBase {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(
-      () => controller.abort(),
-      this.requestTimeout * 1000,
-    );
+    const timer = setTimeout(() => controller.abort(), this.requestTimeout * 1000);
     init.signal = controller.signal;
 
     // Mirror Python `requests.request(..., verify=self.verify_ssl)`. Node's
@@ -430,10 +446,7 @@ export class McpGatewaySkill extends SkillBase {
     // If no services configured, fetch all available
     let services = this.services;
     if (services.length === 0) {
-      const response = await this._makeRequest(
-        'GET',
-        `${this.gatewayUrl}/services`,
-      );
+      const response = await this._makeRequest('GET', `${this.gatewayUrl}/services`);
       if (!response.ok) {
         log.error('mcp_gateway: failed to list services', {
           status: response.status,
@@ -497,15 +510,15 @@ export class McpGatewaySkill extends SkillBase {
     const properties = inputSchema.properties ?? {};
     const required = inputSchema.required ?? [];
 
-    const swaigParams: Record<string, Record<string, unknown>> = {};
+    const swaigParams: Record<string, JSONSchemaProperty> = {};
     for (const [propName, propDef] of Object.entries(properties)) {
-      const paramDef: Record<string, unknown> = {
+      const paramDef: JSONSchemaProperty = {
         type: propDef.type ?? 'string',
         description: propDef.description ?? '',
       };
-      if (propDef.enum !== undefined) paramDef['enum'] = propDef.enum;
+      if (propDef.enum !== undefined) paramDef.enum = propDef.enum;
       if (propDef.default !== undefined && !required.includes(propName)) {
-        paramDef['default'] = propDef.default;
+        paramDef.default = propDef.default;
       }
       swaigParams[propName] = paramDef;
     }
@@ -517,10 +530,8 @@ export class McpGatewaySkill extends SkillBase {
       description: `[${serviceName}] ${toolDef.description ?? toolName}`,
       parameters: swaigParams,
       required,
-      handler: async (
-        args: Record<string, unknown>,
-        rawData: Record<string, unknown>,
-      ) => this._callMcpTool(serviceName, toolName, args, rawData),
+      handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) =>
+        this._callMcpTool(serviceName, toolName, args, rawData),
     };
   }
 
@@ -529,7 +540,7 @@ export class McpGatewaySkill extends SkillBase {
     serviceName: string,
     toolName: string,
     args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     log.debug('mcp_gateway: raw_data keys', { keys: Object.keys(rawData) });
@@ -619,9 +630,7 @@ export class McpGatewaySkill extends SkillBase {
         // Python aborts the retry loop on non-network exceptions; mirror that.
         const isNetwork =
           err instanceof Error &&
-          (err.name === 'AbortError' ||
-            err.name === 'TypeError' ||
-            err.message.includes('fetch'));
+          (err.name === 'AbortError' || err.name === 'TypeError' || err.message.includes('fetch'));
         if (!isNetwork) {
           log.error('mcp_gateway: unexpected error, aborting retry', {
             attempt: attempt + 1,
@@ -644,7 +653,7 @@ export class McpGatewaySkill extends SkillBase {
   /** Handle call hangup — clean up any MCP session on the gateway. */
   private async _hangupHandler(
     _args: Record<string, unknown>,
-    rawData: Record<string, unknown>,
+    rawData: SwaigRequestData,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     const sessionId =

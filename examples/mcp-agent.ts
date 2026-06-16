@@ -47,12 +47,14 @@ agent.addMcpServer('https://mcp.example.com/crm', {
 
 // -- Agent Configuration --
 agent.promptAddSection('Role', {
-  body: 'You are a helpful customer support agent. '
-    + 'You have access to the customer\'s profile via global_data.',
+  body:
+    'You are a helpful customer support agent. ' +
+    "You have access to the customer's profile via global_data.",
 });
 agent.promptAddSection('Customer Context', {
-  body: 'Customer name: ${global_data.customer_name}\n'
-    + 'Account status: ${global_data.account_status}',
+  body:
+    'Customer name: ${global_data.customer_name}\n' +
+    'Account status: ${global_data.account_status}',
 });
 
 agent.setParams({ attention_timeout: 15000 });
@@ -62,8 +64,10 @@ agent.defineTool({
   name: 'get_weather',
   description: 'Get the current weather for a location',
   parameters: { location: { type: 'string', description: 'City name or zip code' } },
-  handler: (args: Record<string, unknown>) => {
-    const location = (args['location'] as string) || 'unknown';
+  required: ['location'],
+  // args.location is inferred `string` from the schema — no annotation, no cast.
+  handler: (args) => {
+    const location = args.location || 'unknown';
     return new FunctionResult(`Currently 72F and sunny in ${location}.`);
   },
 });
@@ -75,8 +79,9 @@ agent.defineTool({
     subject: { type: 'string', description: 'Ticket subject' },
     description: { type: 'string', description: 'Detailed description' },
   },
-  handler: (args: Record<string, unknown>) => {
-    const subject = (args['subject'] as string) || 'No subject';
+  required: ['subject'],
+  handler: (args) => {
+    const subject = args.subject || 'No subject';
     return new FunctionResult(`Ticket created: '${subject}'. Reference: TK-12345.`);
   },
 });

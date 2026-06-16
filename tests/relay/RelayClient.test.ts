@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { Message } from '../../src/relay/Message.js';
-import { RelayError } from '../../src/relay/RelayError.js';
 import { MockWebSocket } from './helpers.js';
 
 function createClient(ws?: MockWebSocket): { client: RelayClient; ws: MockWebSocket } {
@@ -15,7 +14,7 @@ function createClient(ws?: MockWebSocket): { client: RelayClient; ws: MockWebSoc
   });
   client._wsFactory = () => {
     mockWs.autoAuthenticate();
-    return mockWs as any;
+    return mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
   };
   return { client, ws: mockWs };
 }
@@ -45,10 +44,14 @@ describe('RelayClient', () => {
     });
 
     it('validates host', () => {
-      expect(() => new RelayClient({
-        project: 'p', token: 't',
-        host: 'relay.test.com/path',
-      })).toThrow('Invalid host');
+      expect(
+        () =>
+          new RelayClient({
+            project: 'p',
+            token: 't',
+            host: 'relay.test.com/path',
+          }),
+      ).toThrow('Invalid host');
     });
 
     it('allows JWT auth without project/token', () => {
@@ -156,7 +159,9 @@ describe('RelayClient', () => {
       await client.connect();
 
       const receivedCalls: Call[] = [];
-      client.onCall(async (call) => { receivedCalls.push(call); });
+      client.onCall(async (call) => {
+        receivedCalls.push(call);
+      });
 
       // Simulate inbound call event
       ws.receiveMessage({
@@ -193,7 +198,9 @@ describe('RelayClient', () => {
       await client.connect();
 
       const receivedMessages: Message[] = [];
-      client.onMessage(async (msg) => { receivedMessages.push(msg); });
+      client.onMessage(async (msg) => {
+        receivedMessages.push(msg);
+      });
 
       ws.receiveMessage({
         jsonrpc: '2.0',
@@ -287,9 +294,9 @@ describe('RelayClient', () => {
       // The pong must echo the JSON-RPC envelope shape exactly: same id,
       // empty `result` object, no error. A stub that returned `{}` with
       // a different id would break correlation on the server side.
-      const pong = ws.getAllSent().find(
-        (m: Record<string, unknown>) => m['id'] === 'ping-1' && 'result' in m,
-      );
+      const pong = ws
+        .getAllSent()
+        .find((m: Record<string, unknown>) => m['id'] === 'ping-1' && 'result' in m);
       expect(pong).toBeDefined();
       expect((pong as Record<string, unknown>)['jsonrpc']).toBe('2.0');
       expect((pong as Record<string, unknown>)['result']).toEqual({});
@@ -377,8 +384,9 @@ describe('RelayClient', () => {
       const { client } = createClient();
       await client.connect();
 
-      await expect(client.sendMessage({ toNumber: '+222', fromNumber: '+111' }))
-        .rejects.toThrow('At least one of body or media');
+      await expect(client.sendMessage({ toNumber: '+222', fromNumber: '+111' })).rejects.toThrow(
+        'At least one of body or media',
+      );
 
       await client.disconnect();
     });
@@ -392,9 +400,9 @@ describe('RelayClient', () => {
       const promise = client.receive(['office', 'support']);
 
       await new Promise((r) => setTimeout(r, 10));
-      const recvReq = ws.getAllSent().find(
-        (m: Record<string, unknown>) => m['method'] === 'signalwire.receive',
-      );
+      const recvReq = ws
+        .getAllSent()
+        .find((m: Record<string, unknown>) => m['method'] === 'signalwire.receive');
       expect(recvReq).toBeDefined();
       // The wire frame must carry the documented `params.contexts` array
       // verbatim. A stub that emitted `signalwire.receive` with a wrong
@@ -436,10 +444,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'test-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'test-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -481,10 +488,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'fail-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'fail-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -520,10 +526,9 @@ describe('RelayClient', () => {
       const { client, ws } = createClient();
       await client.connect();
 
-      const dialPromise = client.dial(
-        [[{ type: 'phone', to: '+222', from: '+111' }]],
-        { tag: 'leg-tag' },
-      );
+      const dialPromise = client.dial([[{ type: 'phone', to: '+222', from: '+111' }]], {
+        tag: 'leg-tag',
+      });
 
       await new Promise((r) => setTimeout(r, 10));
       const dialReq = ws.getAllSent().find((m) => m.method === 'calling.dial');
@@ -579,15 +584,15 @@ describe('RelayClient', () => {
     it('queues requests when not connected', async () => {
       const mockWs = new MockWebSocket();
       const client = new RelayClient({
-        project: 'p', token: 't',
+        project: 'p',
+        token: 't',
         host: 'relay.test.com',
       });
 
-      // Create deferred response handling
-      let authReqId = '';
       mockWs.autoAuthenticate();
 
-      client._wsFactory = () => mockWs as any;
+      client._wsFactory = () =>
+        mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
 
       // Connect first
       await client.connect();
@@ -685,50 +690,56 @@ describe('RelayClient', () => {
     it('reads RELAY_MAX_ACTIVE_CALLS from env when option omitted', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '42';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(42);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(42);
     });
 
     it('explicit maxActiveCalls option wins over env', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '42';
       const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: 7 });
-      expect((client as any)._maxActiveCalls).toBe(7);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(7);
     });
 
     it('invalid env value falls back to default 1000', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = 'not-a-number';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1000);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1000);
     });
 
     it('non-positive env value clamps to 1', () => {
       process.env.RELAY_MAX_ACTIVE_CALLS = '0';
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1);
     });
 
     it('non-positive explicit option clamps to 1', () => {
       const client = new RelayClient({ project: 'p', token: 't', maxActiveCalls: -5 });
-      expect((client as any)._maxActiveCalls).toBe(1);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1);
     });
 
     it('defaults to 1000 when env and option are absent', () => {
       delete process.env.RELAY_MAX_ACTIVE_CALLS;
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect((client as any)._maxActiveCalls).toBe(1000);
+      expect((client as unknown as { _maxActiveCalls: number })._maxActiveCalls).toBe(1000);
     });
   });
 
   describe('Symbol.asyncDispose', () => {
     it('exposes an asyncDispose method', () => {
       const client = new RelayClient({ project: 'p', token: 't' });
-      expect(typeof (client as any)[Symbol.asyncDispose]).toBe('function');
+      expect(
+        typeof (client as unknown as { [Symbol.asyncDispose]?: () => Promise<void> })[
+          Symbol.asyncDispose
+        ],
+      ).toBe('function');
     });
 
     it('invoking asyncDispose calls disconnect (removes from active set)', async () => {
       const { client } = createClient();
       await client.connect();
       // Explicitly invoke the disposer
-      await (client as any)[Symbol.asyncDispose]();
+      await (client as unknown as { [Symbol.asyncDispose](): Promise<void> })[
+        Symbol.asyncDispose
+      ]();
       // After disposal, a second client should be able to connect without
       // tripping the _MAX_CONNECTIONS guard.
       const { client: other } = createClient();
@@ -775,14 +786,19 @@ describe('RelayClient', () => {
       try {
         const mod = await import('../../src/relay/RelayClient.js');
         const { MockWebSocket: FreshMockWs } = await import('./helpers.js');
-        const freshCreate = (): { client: InstanceType<typeof mod.RelayClient>; ws: any } => {
+        const freshCreate = (): {
+          client: InstanceType<typeof mod.RelayClient>;
+          ws: InstanceType<typeof FreshMockWs>;
+        } => {
           const mockWs = new FreshMockWs();
           const client = new mod.RelayClient({
-            project: 'p', token: 't', host: 'relay.test.com',
+            project: 'p',
+            token: 't',
+            host: 'relay.test.com',
           });
-          (client as any)._wsFactory = () => {
+          client._wsFactory = () => {
             mockWs.autoAuthenticate();
-            return mockWs;
+            return mockWs as unknown as ReturnType<NonNullable<RelayClient['_wsFactory']>>;
           };
           return { client, ws: mockWs };
         };

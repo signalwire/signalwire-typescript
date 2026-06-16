@@ -70,11 +70,7 @@ export function createDeferred<T>(): Deferred<T> {
  * @returns A new promise that resolves with `promise`'s value if it settles
  *   before the timeout, and rejects with a timeout `Error` otherwise.
  */
-export function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  label = 'Operation',
-): Promise<T> {
+export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'Operation'): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`${label} timed out after ${ms}ms`));

@@ -4,6 +4,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { safeAssign } from '../SecurityUtils.js';
+import type { SwaigRequestData } from '../PlatformContracts.js';
 
 /** Options for generating mock call data in CLI testing. */
 export interface MockCallOptions {
@@ -21,10 +22,6 @@ export interface MockCallOptions {
   toExtension?: string;
   /** Additional key-value overrides merged into the post data. */
   overrides?: Record<string, unknown>;
-}
-
-function randomId(): string {
-  return randomBytes(16).toString('hex');
 }
 
 function randomUuid(): string {
@@ -62,9 +59,12 @@ export function generateFakePostData(opts?: MockCallOptions): Record<string, unk
     channel_type: callType === 'sip' ? 'phone' : 'web',
     from: fromNumber,
     to: toExtension,
-    sip_headers: callType === 'sip' ? {
-      'X-SignalWire-Agent': 'swaig-test-cli',
-    } : undefined,
+    sip_headers:
+      callType === 'sip'
+        ? {
+            'X-SignalWire-Agent': 'swaig-test-cli',
+          }
+        : undefined,
     vars: {
       call_type: callType,
       direction: callDirection,
@@ -90,7 +90,7 @@ export function generateMinimalPostData(
   fnName: string,
   args?: Record<string, unknown>,
   opts?: { callId?: string; overrides?: Record<string, unknown> },
-): Record<string, unknown> {
+): SwaigRequestData {
   const data: Record<string, unknown> = {
     function: fnName,
     argument: args ?? {},
@@ -107,5 +107,8 @@ export function generateMinimalPostData(
     safeAssign(data, opts.overrides);
   }
 
-  return data;
+  // CLI test harness: a deliberately-minimal stand-in for the SWAIG webhook
+  // payload (the `argument` field is the flat args object, not the backend's
+  // {parsed,raw,substituted} shape). Cast is compile-time only.
+  return data as unknown as SwaigRequestData;
 }

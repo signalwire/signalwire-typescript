@@ -7,6 +7,7 @@ TypeScript examples demonstrating the SignalWire AI Agents SDK. Each example can
 | File | Description |
 |------|-------------|
 | [simple-agent.ts](simple-agent.ts) | Minimal agent with prompt, hints, language, and a tool |
+| [typed-tools.ts](typed-tools.ts) | Schema-typed tool handlers — `args` inferred from `parameters` (enum→union, required vs optional) |
 | [simple-static.ts](simple-static.ts) | Static agent with voice, params, and structured prompts |
 | [dynamic-config.ts](dynamic-config.ts) | Per-request dynamic configuration callback |
 | [advanced-dynamic-config.ts](advanced-dynamic-config.ts) | Advanced dynamic config with tier selection |
@@ -129,3 +130,33 @@ npx tsx examples/relay-demo.ts
 | `GOOGLE_SEARCH_CX` | Google Search Engine ID | - |
 | `DATASPHERE_DOCUMENT_ID` | DataSphere document ID | - |
 | `MCP_GATEWAY_URL` | MCP gateway service URL | - |
+
+## Conventions these examples follow
+
+These examples are meant to be copied, so they model the SDK's typed, idiomatic
+patterns. When adding or editing an example, follow the same rules — the LINT/FMT
+gates enforce the mechanical ones; the rest are reviewed.
+
+- **Tools: let the schema type the handler.** Write `parameters` as an inline
+  flat map and list `required`; `defineTool<P,R>` infers `args` precisely
+  (`args.phone: string`, an `enum` prop narrows to its literal union, `required`
+  keys are present and the rest optional). Do **not** annotate the handler param
+  (`handler: (args: Record<string, unknown>) => …`) — that opts out of inference
+  — and do **not** cast/bracket-read args (`args['x'] as string`). Use
+  `args.x` directly. See [typed-tools.ts](typed-tools.ts).
+- **Use the typed callback bodies, don't widen them.** The SDK types
+  `setDynamicConfigCallback`'s body as `SwmlRequestData`, `onSummary`'s `rawData`
+  as `PostPromptData`, and SWAIG handler `rawData` as `SwaigRequestData`. Read
+  fields directly (`bodyParams.call?.from`, `rawData.params.call_id`). Never
+  re-type one of these params looser in an override (e.g.
+  `onSummary(_, rawData: Record<string, unknown>)`) — that drops the contract and
+  hides bugs. (Import the contract types from the package root.)
+- **No `any`, no file-level `eslint-disable`.** Open/dynamic values are `unknown`
+  + narrowing; a justified one-off is a line-level `// eslint-disable-next-line`
+  with a reason. (Genuinely dynamic tree-walking by string key uses
+  `Record<string, unknown>` + indexing — that's correct, not a smell.)
+- **Drop dead casts the types made unnecessary.** If a value's static type
+  already has the field, read it directly — no `as`, no `['key']`.
+- **Generic error wrappers.** A `safe(label, fn)` helper must be generic
+  (`safe<T>(label, fn: () => Promise<T>): Promise<T | null>`) so results keep
+  their type at the call site.

@@ -114,13 +114,12 @@ export class SkillRegistry {
     try {
       const schema = SkillClass.getParameterSchema();
       if (!schema || typeof schema !== 'object' || Object.keys(schema).length === 0) {
-        throw new Error(
-          `${SkillClass.name}.getParameterSchema() must return a non-empty object`,
-        );
+        throw new Error(`${SkillClass.name}.getParameterSchema() must return a non-empty object`);
       }
     } catch (err) {
       throw new Error(
         `${SkillClass.name}.getParameterSchema() failed: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
       );
     }
     if (this.registry.has(name)) {
@@ -281,7 +280,9 @@ export class SkillRegistry {
    */
   async discoverFromDirectory(dirPath: string): Promise<string[]> {
     if (process.env['SWML_SKILL_DISCOVERY_ENABLED'] !== 'true') {
-      log.warn('Skill directory discovery is disabled. Set SWML_SKILL_DISCOVERY_ENABLED=true to enable.');
+      log.warn(
+        'Skill directory discovery is disabled. Set SWML_SKILL_DISCOVERY_ENABLED=true to enable.',
+      );
       return [];
     }
     const { readdir } = await import('node:fs/promises');
@@ -294,8 +295,11 @@ export class SkillRegistry {
     try {
       const dirEntries = await readdir(dirPath, { withFileTypes: true });
       entries = dirEntries
-        .filter(e => (e.isFile() && (e.name.endsWith('.ts') || e.name.endsWith('.js'))) || e.isDirectory())
-        .map(e => e.name);
+        .filter(
+          (e) =>
+            (e.isFile() && (e.name.endsWith('.ts') || e.name.endsWith('.js'))) || e.isDirectory(),
+        )
+        .map((e) => e.name);
     } catch {
       log.warn(`Cannot read skill directory: ${dirPath}`);
       return discovered;

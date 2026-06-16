@@ -9,9 +9,9 @@ import { SipProfileResource } from '../../src/rest/namespaces/sip-profile.js';
 import { LookupResource } from '../../src/rest/namespaces/lookup.js';
 import { ShortCodesResource } from '../../src/rest/namespaces/short-codes.js';
 import { ImportedNumbersResource } from '../../src/rest/namespaces/imported-numbers.js';
-import { mockClientOptions } from './helpers.js';
+import { mockClientOptions, type MockResponse } from './helpers.js';
 
-function makeHttp(responses: any[] = [{ status: 200, body: { data: [] } }]) {
+function makeHttp(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
   const { options, getRequests } = mockClientOptions(responses);
   return { http: new HttpClient(options), getRequests };
 }
@@ -163,7 +163,9 @@ describe('NumberGroupsResource', () => {
     const { http, getRequests } = makeHttp();
     const res = new NumberGroupsResource(http);
     await res.listMemberships('ng1');
-    expect(getRequests()[0].url).toContain('/api/relay/rest/number_groups/ng1/number_group_memberships');
+    expect(getRequests()[0].url).toContain(
+      '/api/relay/rest/number_groups/ng1/number_group_memberships',
+    );
   });
 
   it('adds a membership', async () => {

@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('SpiderSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -65,20 +67,27 @@ describe('SpiderSkill', () => {
     // type check; an empty-description placeholder would fail the
     // description check.
     const required = [
-      'delay', 'concurrent_requests', 'timeout', 'max_pages', 'max_depth',
-      'extract_type', 'max_text_length', 'clean_text', 'selectors',
-      'follow_patterns', 'user_agent', 'headers', 'follow_robots_txt',
+      'delay',
+      'concurrent_requests',
+      'timeout',
+      'max_pages',
+      'max_depth',
+      'extract_type',
+      'max_text_length',
+      'clean_text',
+      'selectors',
+      'follow_patterns',
+      'user_agent',
+      'headers',
+      'follow_robots_txt',
       'cache_enabled',
     ];
-    const validTypes = new Set([
-      'string', 'integer', 'number', 'boolean', 'array', 'object',
-    ]);
+    const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
       expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0)
-        .toBe(true);
+      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
     }
   });
 
@@ -99,14 +108,9 @@ describe('SpiderSkill', () => {
   it('should require selectors for extract_structured_data', async () => {
     const skill = new SpiderSkill();
     await skill.setup();
-    const handler = skill
-      .getTools()
-      .find((t) => t.name === 'extract_structured_data')!.handler;
+    const handler = skill.getTools().find((t) => t.name === 'extract_structured_data')!.handler;
     // URL is fine but selectors are empty, so we get an error before any fetch
-    const res = (await handler(
-      { url: 'https://example.com' },
-      {},
-    )) as FunctionResult;
+    const res = (await handler({ url: 'https://example.com' }, {})) as FunctionResult;
     // Either SSRF validation or missing selectors should trigger an error
     expect(typeof res.response).toBe('string');
     expect(res.response.length).toBeGreaterThan(0);

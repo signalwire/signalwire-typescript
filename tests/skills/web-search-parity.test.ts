@@ -48,9 +48,7 @@ describe('WebSearchSkill.extractTextFromHtml — Python BeautifulSoup parity', (
 
     // `sentence_count` replicates the _qualityMetrics sentence branch:
     // split on [.!?]+, keep segments whose stripped length > 30.
-    const sentenceCount = text
-      .split(/[.!?]+/)
-      .filter((s) => s.trim().length > 30).length;
+    const sentenceCount = text.split(/[.!?]+/).filter((s) => s.trim().length > 30).length;
 
     expect(text).toBe(expected.text);
     expect(codepointLength).toBe(expected.text_length);

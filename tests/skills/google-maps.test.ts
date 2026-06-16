@@ -8,7 +8,9 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 
-beforeAll(() => { suppressAllLogs(true); });
+beforeAll(() => {
+  suppressAllLogs(true);
+});
 
 describe('GoogleMapsSkill', () => {
   it('should instantiate via constructor and factory', () => {
@@ -30,10 +32,19 @@ describe('GoogleMapsSkill', () => {
     }
   });
 
-  it('should register tools', () => {
+  it('should register exactly the two Python tools (lookup_address, compute_route)', () => {
     const tools = new GoogleMapsSkill().getTools();
-    expect(tools.length).toBeGreaterThan(0);
+    // Matches the Python reference exactly: only these two tools, no extras
+    // (google_maps/skill.py registers lookup_address + compute_route).
+    expect(tools.map((t) => t.name)).toEqual(['lookup_address', 'compute_route']);
     expect(tools[0].handler).toBeTypeOf('function');
+    // compute_route takes 4 coordinate floats (not address strings).
+    const routeParams = tools[1].parameters as Record<string, { type?: string }>;
+    expect(Object.keys(routeParams)).toEqual(['origin_lat', 'origin_lng', 'dest_lat', 'dest_lng']);
+    expect(routeParams['origin_lat'].type).toBe('number');
+    // Python omits `required` on both tools → no required key on the wire.
+    expect(tools[0].required).toBeUndefined();
+    expect(tools[1].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
@@ -64,14 +75,19 @@ describe('GoogleMapsSkill', () => {
     expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
   });
 
-  it('should return error when origin is missing', async () => {
+  it('lookup_address errors when address is missing', async () => {
     delete process.env['GOOGLE_MAPS_API_KEY'];
-    const handler = new GoogleMapsSkill().getTools()[0].handler;
-    const result = await handler({}, {}) as FunctionResult;
-    // Without an origin the handler must surface a user-facing error
-    // string. We assert real content (the word "origin") so the test
-    // catches a stub returning a generic non-empty placeholder.
-    expect(result.response.toLowerCase()).toContain('origin');
+    const lookup = new GoogleMapsSkill().getTools()[0].handler;
+    const result = (await lookup({}, {})) as FunctionResult;
+    expect(result.response.toLowerCase()).toContain('address');
+  });
+
+  it('compute_route errors when coordinates are missing', async () => {
+    delete process.env['GOOGLE_MAPS_API_KEY'];
+    const route = new GoogleMapsSkill().getTools()[1].handler;
+    const result = (await route({}, {})) as FunctionResult;
+    // Surfaces the four required coordinate names.
+    expect(result.response.toLowerCase()).toContain('origin_lat');
   });
 
   it('should have a parameter schema', () => {

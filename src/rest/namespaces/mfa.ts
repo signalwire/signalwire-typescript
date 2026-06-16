@@ -2,16 +2,21 @@
  * MFA (Multi-Factor Authentication) namespace.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import { BaseResource } from '../base/BaseResource.js';
+import type {
+  MfaRequest,
+  MfaResponse,
+  MfaVerifyRequest,
+  MfaVerifyResponse,
+} from './relay-rest.types.generated.js';
 
 /**
  * Multi-factor authentication via SMS or phone call.
  *
  * Access via `client.mfa.*`. Two-step flow: call `.sms()` or `.call()` to send
- * a code, then `.verify()` to confirm it.
+ * a code, then `.verify()` to confirm it. Request/response shapes are typed
+ * from the canonical relay-rest OpenAPI spec.
  *
  * @example
  * ```ts
@@ -32,8 +37,8 @@ export class MfaResource extends BaseResource {
    * @returns The MFA request record; its `id` is used by {@link verify}.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async sms(body: any): Promise<any> {
-    return this._http.post(this._path('sms'), body);
+  async sms(body: MfaRequest): Promise<MfaResponse> {
+    return this._http.post<MfaResponse>(this._path('sms'), body);
   }
 
   /**
@@ -43,8 +48,8 @@ export class MfaResource extends BaseResource {
    * @returns The MFA request record; its `id` is used by {@link verify}.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async call(body: any): Promise<any> {
-    return this._http.post(this._path('call'), body);
+  async call(body: MfaRequest): Promise<MfaResponse> {
+    return this._http.post<MfaResponse>(this._path('call'), body);
   }
 
   /**
@@ -55,7 +60,7 @@ export class MfaResource extends BaseResource {
    * @returns The verification result — success or failure shape.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async verify(requestId: string, body: any): Promise<any> {
-    return this._http.post(this._path(requestId, 'verify'), body);
+  async verify(requestId: string, body: MfaVerifyRequest): Promise<MfaVerifyResponse> {
+    return this._http.post<MfaVerifyResponse>(this._path(requestId, 'verify'), body);
   }
 }

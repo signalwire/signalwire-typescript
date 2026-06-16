@@ -4,12 +4,81 @@
  * All updates use POST (Twilio-compatible, not REST-idiomatic PATCH/PUT).
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
+import type {
+  Account,
+  AccountListResponse,
+  AccountResponse,
+  ApplicationListResponse,
+  ApplicationResponse,
+  AvailablePhoneNumberListResponse,
+  AvailablePhoneNumberResourcesResponse,
+  CallListResponse,
+  CallRecordingResponse,
+  CallResponse,
+  CallStreamResponse,
+  ConferenceListResponse,
+  ConferenceParticipantListResponse,
+  ConferenceParticipantResponse,
+  ConferenceRecordingListResponse,
+  ConferenceRecordingResponse,
+  ConferenceResponse,
+  ConferenceStreamResponse,
+  CreateApplicationRequest,
+  CreateCallRecordingRequest,
+  CreateCallRequest,
+  CreateCallStreamRequest,
+  CreateConferenceStreamRequest,
+  CreateCxmlScriptRequest,
+  CreateIncomingPhoneNumberRequest,
+  CreateMessageRequest,
+  CreateQueueRequest,
+  CreateSubprojectRequest,
+  CreateTokenRequest,
+  CxmlScriptListResponse,
+  CxmlScriptResponse,
+  FaxListResponse,
+  FaxMediaListResponse,
+  FaxMediaResponse,
+  FaxResponse,
+  ImportPhoneNumberRequest,
+  IncomingPhoneNumber,
+  IncomingPhoneNumberListResponse,
+  IncomingPhoneNumberResponse,
+  MessageListResponse,
+  MessageMediaListResponse,
+  MessageMediaResponse,
+  MessageResponse,
+  QueueListResponse,
+  QueueMemberListResponse,
+  QueueMemberResponse,
+  QueueResponse,
+  RecordingListResponse,
+  RecordingResponse,
+  SendFaxRequest,
+  TokenResponse,
+  TranscriptionListResponse,
+  TranscriptionResponse,
+  UpdateAccountRequest,
+  UpdateApplicationRequest,
+  UpdateCallRecordingRequest,
+  UpdateCallRequest,
+  UpdateCallStreamRequest,
+  UpdateConferenceParticipantRequest,
+  UpdateConferenceRecordingRequest,
+  UpdateConferenceRequest,
+  UpdateConferenceStreamRequest,
+  UpdateCxmlScriptRequest,
+  UpdateFaxRequest,
+  UpdateIncomingPhoneNumberRequest,
+  UpdateMessageRequest,
+  UpdateQueueMemberRequest,
+  UpdateQueueRequest,
+  UpdateTokenRequest,
+} from './compatibility.types.generated.js';
 
 /** Compat account / subproject management (Twilio-compatible LAML). */
 export class CompatAccounts extends BaseResource {
@@ -24,8 +93,8 @@ export class CompatAccounts extends BaseResource {
    * @returns A LAML-shaped paginated account list.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<AccountListResponse> {
+    return this._http.get<AccountListResponse>(this._basePath, params);
   }
 
   /**
@@ -35,8 +104,8 @@ export class CompatAccounts extends BaseResource {
    * @returns The newly-created account record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(body: CreateSubprojectRequest): Promise<Account> {
+    return this._http.post<Account>(this._basePath, body);
   }
 
   /**
@@ -46,8 +115,8 @@ export class CompatAccounts extends BaseResource {
    * @returns The account record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sid: string): Promise<any> {
-    return this._http.get(this._path(sid));
+  async get(sid: string): Promise<AccountResponse> {
+    return this._http.get<AccountResponse>(this._path(sid));
   }
 
   /**
@@ -58,13 +127,18 @@ export class CompatAccounts extends BaseResource {
    * @returns The updated account record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  async update(sid: string, body: Partial<UpdateAccountRequest> = {}): Promise<AccountResponse> {
+    return this._http.post<AccountResponse>(this._path(sid), body);
   }
 }
 
 /** Compat call management with recording and stream sub-resources. */
-export class CompatCalls extends CrudResource {
+export class CompatCalls extends CrudResource<
+  CallListResponse,
+  CallResponse,
+  CreateCallRequest,
+  UpdateCallRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -77,8 +151,8 @@ export class CompatCalls extends CrudResource {
    * @returns The updated call record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(sid: string, body: Partial<UpdateCallRequest> = {}): Promise<CallResponse> {
+    return this._http.post<CallResponse>(this._path(sid), body);
   }
 
   /**
@@ -90,8 +164,11 @@ export class CompatCalls extends CrudResource {
    * @returns The newly-started recording record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async startRecording(callSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(callSid, 'Recordings'), body);
+  async startRecording(
+    callSid: string,
+    body: Partial<CreateCallRecordingRequest> = {},
+  ): Promise<CallRecordingResponse> {
+    return this._http.post<CallRecordingResponse>(this._path(callSid, 'Recordings'), body);
   }
 
   /**
@@ -103,8 +180,15 @@ export class CompatCalls extends CrudResource {
    * @returns The updated recording record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async updateRecording(callSid: string, recordingSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(callSid, 'Recordings', recordingSid), body);
+  async updateRecording(
+    callSid: string,
+    recordingSid: string,
+    body: Partial<UpdateCallRecordingRequest> = {},
+  ): Promise<CallRecordingResponse> {
+    return this._http.post<CallRecordingResponse>(
+      this._path(callSid, 'Recordings', recordingSid),
+      body,
+    );
   }
 
   /**
@@ -115,8 +199,11 @@ export class CompatCalls extends CrudResource {
    * @returns The newly-started stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async startStream(callSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(callSid, 'Streams'), body);
+  async startStream(
+    callSid: string,
+    body: Partial<CreateCallStreamRequest> = {},
+  ): Promise<CallStreamResponse> {
+    return this._http.post<CallStreamResponse>(this._path(callSid, 'Streams'), body);
   }
 
   /**
@@ -128,13 +215,22 @@ export class CompatCalls extends CrudResource {
    * @returns The stopped stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async stopStream(callSid: string, streamSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(callSid, 'Streams', streamSid), body);
+  async stopStream(
+    callSid: string,
+    streamSid: string,
+    body: Partial<UpdateCallStreamRequest> = {},
+  ): Promise<CallStreamResponse> {
+    return this._http.post<CallStreamResponse>(this._path(callSid, 'Streams', streamSid), body);
   }
 }
 
 /** Compat message management with media sub-resources. */
-export class CompatMessages extends CrudResource {
+export class CompatMessages extends CrudResource<
+  MessageListResponse,
+  MessageResponse,
+  CreateMessageRequest,
+  UpdateMessageRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -147,8 +243,11 @@ export class CompatMessages extends CrudResource {
    * @returns The updated message record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(
+    sid: string,
+    body: Partial<UpdateMessageRequest> = {},
+  ): Promise<MessageResponse> {
+    return this._http.post<MessageResponse>(this._path(sid), body);
   }
 
   /**
@@ -159,8 +258,8 @@ export class CompatMessages extends CrudResource {
    * @returns A paginated list of media records.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMedia(messageSid: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(messageSid, 'Media'), params);
+  async listMedia(messageSid: string, params?: QueryParams): Promise<MessageMediaListResponse> {
+    return this._http.get<MessageMediaListResponse>(this._path(messageSid, 'Media'), params);
   }
 
   /**
@@ -171,8 +270,8 @@ export class CompatMessages extends CrudResource {
    * @returns The media record (metadata + URL).
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getMedia(messageSid: string, mediaSid: string): Promise<any> {
-    return this._http.get(this._path(messageSid, 'Media', mediaSid));
+  async getMedia(messageSid: string, mediaSid: string): Promise<MessageMediaResponse> {
+    return this._http.get<MessageMediaResponse>(this._path(messageSid, 'Media', mediaSid));
   }
 
   /**
@@ -183,13 +282,18 @@ export class CompatMessages extends CrudResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteMedia(messageSid: string, mediaSid: string): Promise<any> {
+  async deleteMedia(messageSid: string, mediaSid: string): Promise<unknown> {
     return this._http.delete(this._path(messageSid, 'Media', mediaSid));
   }
 }
 
 /** Compat fax management with media sub-resources. */
-export class CompatFaxes extends CrudResource {
+export class CompatFaxes extends CrudResource<
+  FaxListResponse,
+  FaxResponse,
+  SendFaxRequest,
+  UpdateFaxRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -202,8 +306,8 @@ export class CompatFaxes extends CrudResource {
    * @returns The updated fax record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(sid: string, body: Partial<UpdateFaxRequest> = {}): Promise<FaxResponse> {
+    return this._http.post<FaxResponse>(this._path(sid), body);
   }
 
   /**
@@ -214,8 +318,8 @@ export class CompatFaxes extends CrudResource {
    * @returns A paginated list of media records.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMedia(faxSid: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(faxSid, 'Media'), params);
+  async listMedia(faxSid: string, params?: QueryParams): Promise<FaxMediaListResponse> {
+    return this._http.get<FaxMediaListResponse>(this._path(faxSid, 'Media'), params);
   }
 
   /**
@@ -226,8 +330,8 @@ export class CompatFaxes extends CrudResource {
    * @returns The media record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getMedia(faxSid: string, mediaSid: string): Promise<any> {
-    return this._http.get(this._path(faxSid, 'Media', mediaSid));
+  async getMedia(faxSid: string, mediaSid: string): Promise<FaxMediaResponse> {
+    return this._http.get<FaxMediaResponse>(this._path(faxSid, 'Media', mediaSid));
   }
 
   /**
@@ -238,7 +342,7 @@ export class CompatFaxes extends CrudResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteMedia(faxSid: string, mediaSid: string): Promise<any> {
+  async deleteMedia(faxSid: string, mediaSid: string): Promise<unknown> {
     return this._http.delete(this._path(faxSid, 'Media', mediaSid));
   }
 }
@@ -256,8 +360,8 @@ export class CompatConferences extends BaseResource {
    * @returns A paginated list of conferences.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<ConferenceListResponse> {
+    return this._http.get<ConferenceListResponse>(this._basePath, params);
   }
 
   /**
@@ -267,8 +371,8 @@ export class CompatConferences extends BaseResource {
    * @returns The conference record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sid: string): Promise<any> {
-    return this._http.get(this._path(sid));
+  async get(sid: string): Promise<ConferenceResponse> {
+    return this._http.get<ConferenceResponse>(this._path(sid));
   }
 
   /**
@@ -280,8 +384,11 @@ export class CompatConferences extends BaseResource {
    * @returns The updated conference record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  async update(
+    sid: string,
+    body: Partial<UpdateConferenceRequest> = {},
+  ): Promise<ConferenceResponse> {
+    return this._http.post<ConferenceResponse>(this._path(sid), body);
   }
 
   // Participants
@@ -294,8 +401,14 @@ export class CompatConferences extends BaseResource {
    * @returns A paginated list of participants.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listParticipants(conferenceSid: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(conferenceSid, 'Participants'), params);
+  async listParticipants(
+    conferenceSid: string,
+    params?: QueryParams,
+  ): Promise<ConferenceParticipantListResponse> {
+    return this._http.get<ConferenceParticipantListResponse>(
+      this._path(conferenceSid, 'Participants'),
+      params,
+    );
   }
 
   /**
@@ -306,8 +419,13 @@ export class CompatConferences extends BaseResource {
    * @returns The participant record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getParticipant(conferenceSid: string, callSid: string): Promise<any> {
-    return this._http.get(this._path(conferenceSid, 'Participants', callSid));
+  async getParticipant(
+    conferenceSid: string,
+    callSid: string,
+  ): Promise<ConferenceParticipantResponse> {
+    return this._http.get<ConferenceParticipantResponse>(
+      this._path(conferenceSid, 'Participants', callSid),
+    );
   }
 
   /**
@@ -320,8 +438,15 @@ export class CompatConferences extends BaseResource {
    * @returns The updated participant record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async updateParticipant(conferenceSid: string, callSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(conferenceSid, 'Participants', callSid), body);
+  async updateParticipant(
+    conferenceSid: string,
+    callSid: string,
+    body: Partial<UpdateConferenceParticipantRequest> = {},
+  ): Promise<ConferenceParticipantResponse> {
+    return this._http.post<ConferenceParticipantResponse>(
+      this._path(conferenceSid, 'Participants', callSid),
+      body,
+    );
   }
 
   /**
@@ -332,7 +457,7 @@ export class CompatConferences extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async removeParticipant(conferenceSid: string, callSid: string): Promise<any> {
+  async removeParticipant(conferenceSid: string, callSid: string): Promise<unknown> {
     return this._http.delete(this._path(conferenceSid, 'Participants', callSid));
   }
 
@@ -346,8 +471,14 @@ export class CompatConferences extends BaseResource {
    * @returns A paginated list of recordings.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listRecordings(conferenceSid: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(conferenceSid, 'Recordings'), params);
+  async listRecordings(
+    conferenceSid: string,
+    params?: QueryParams,
+  ): Promise<ConferenceRecordingListResponse> {
+    return this._http.get<ConferenceRecordingListResponse>(
+      this._path(conferenceSid, 'Recordings'),
+      params,
+    );
   }
 
   /**
@@ -358,8 +489,13 @@ export class CompatConferences extends BaseResource {
    * @returns The recording record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getRecording(conferenceSid: string, recordingSid: string): Promise<any> {
-    return this._http.get(this._path(conferenceSid, 'Recordings', recordingSid));
+  async getRecording(
+    conferenceSid: string,
+    recordingSid: string,
+  ): Promise<ConferenceRecordingResponse> {
+    return this._http.get<ConferenceRecordingResponse>(
+      this._path(conferenceSid, 'Recordings', recordingSid),
+    );
   }
 
   /**
@@ -371,8 +507,15 @@ export class CompatConferences extends BaseResource {
    * @returns The updated recording record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async updateRecording(conferenceSid: string, recordingSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(conferenceSid, 'Recordings', recordingSid), body);
+  async updateRecording(
+    conferenceSid: string,
+    recordingSid: string,
+    body: Partial<UpdateConferenceRecordingRequest> = {},
+  ): Promise<ConferenceRecordingResponse> {
+    return this._http.post<ConferenceRecordingResponse>(
+      this._path(conferenceSid, 'Recordings', recordingSid),
+      body,
+    );
   }
 
   /**
@@ -383,7 +526,7 @@ export class CompatConferences extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async deleteRecording(conferenceSid: string, recordingSid: string): Promise<any> {
+  async deleteRecording(conferenceSid: string, recordingSid: string): Promise<unknown> {
     return this._http.delete(this._path(conferenceSid, 'Recordings', recordingSid));
   }
 
@@ -397,8 +540,11 @@ export class CompatConferences extends BaseResource {
    * @returns The newly-started stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async startStream(conferenceSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(conferenceSid, 'Streams'), body);
+  async startStream(
+    conferenceSid: string,
+    body: Partial<CreateConferenceStreamRequest> = {},
+  ): Promise<ConferenceStreamResponse> {
+    return this._http.post<ConferenceStreamResponse>(this._path(conferenceSid, 'Streams'), body);
   }
 
   /**
@@ -410,8 +556,15 @@ export class CompatConferences extends BaseResource {
    * @returns The stopped stream record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async stopStream(conferenceSid: string, streamSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(conferenceSid, 'Streams', streamSid), body);
+  async stopStream(
+    conferenceSid: string,
+    streamSid: string,
+    body: Partial<UpdateConferenceStreamRequest> = {},
+  ): Promise<ConferenceStreamResponse> {
+    return this._http.post<ConferenceStreamResponse>(
+      this._path(conferenceSid, 'Streams', streamSid),
+      body,
+    );
   }
 }
 
@@ -431,8 +584,8 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns A paginated list of owned numbers.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<IncomingPhoneNumberListResponse> {
+    return this._http.get<IncomingPhoneNumberListResponse>(this._basePath, params);
   }
 
   /**
@@ -443,8 +596,8 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns The newly-purchased phone-number record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async purchase(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async purchase(body: CreateIncomingPhoneNumberRequest): Promise<IncomingPhoneNumber> {
+    return this._http.post<IncomingPhoneNumber>(this._basePath, body);
   }
 
   /**
@@ -454,8 +607,8 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns The phone-number record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sid: string): Promise<any> {
-    return this._http.get(this._path(sid));
+  async get(sid: string): Promise<IncomingPhoneNumberResponse> {
+    return this._http.get<IncomingPhoneNumberResponse>(this._path(sid));
   }
 
   /**
@@ -467,8 +620,11 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns The updated phone-number record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  async update(
+    sid: string,
+    body: Partial<UpdateIncomingPhoneNumberRequest> = {},
+  ): Promise<IncomingPhoneNumberResponse> {
+    return this._http.post<IncomingPhoneNumberResponse>(this._path(sid), body);
   }
 
   /**
@@ -478,7 +634,7 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(sid: string): Promise<any> {
+  async delete(sid: string): Promise<unknown> {
     return this._http.delete(this._path(sid));
   }
 
@@ -490,9 +646,9 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns The newly-imported number record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async importNumber(body: any): Promise<any> {
+  async importNumber(body: ImportPhoneNumberRequest): Promise<IncomingPhoneNumber> {
     const path = this._basePath.replace('/IncomingPhoneNumbers', '/ImportedPhoneNumbers');
-    return this._http.post(path, body);
+    return this._http.post<IncomingPhoneNumber>(path, body);
   }
 
   /**
@@ -502,8 +658,10 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns A paginated list of country records with capabilities.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listAvailableCountries(params?: QueryParams): Promise<any> {
-    return this._http.get(this._availableBase, params);
+  async listAvailableCountries(
+    params?: QueryParams,
+  ): Promise<AvailablePhoneNumberResourcesResponse> {
+    return this._http.get<AvailablePhoneNumberResourcesResponse>(this._availableBase, params);
   }
 
   /**
@@ -514,8 +672,14 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns A paginated list of available local numbers.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async searchLocal(country: string, params?: QueryParams): Promise<any> {
-    return this._http.get(`${this._availableBase}/${country}/Local`, params);
+  async searchLocal(
+    country: string,
+    params?: QueryParams,
+  ): Promise<AvailablePhoneNumberListResponse> {
+    return this._http.get<AvailablePhoneNumberListResponse>(
+      `${this._availableBase}/${country}/Local`,
+      params,
+    );
   }
 
   /**
@@ -526,13 +690,24 @@ export class CompatPhoneNumbers extends BaseResource {
    * @returns A paginated list of available toll-free numbers.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async searchTollFree(country: string, params?: QueryParams): Promise<any> {
-    return this._http.get(`${this._availableBase}/${country}/TollFree`, params);
+  async searchTollFree(
+    country: string,
+    params?: QueryParams,
+  ): Promise<AvailablePhoneNumberListResponse> {
+    return this._http.get<AvailablePhoneNumberListResponse>(
+      `${this._availableBase}/${country}/TollFree`,
+      params,
+    );
   }
 }
 
 /** Compat application management (LAML-style `Applications`). */
-export class CompatApplications extends CrudResource {
+export class CompatApplications extends CrudResource<
+  ApplicationListResponse,
+  ApplicationResponse,
+  CreateApplicationRequest,
+  UpdateApplicationRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -545,13 +720,21 @@ export class CompatApplications extends CrudResource {
    * @returns The updated application record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(
+    sid: string,
+    body: Partial<UpdateApplicationRequest> = {},
+  ): Promise<ApplicationResponse> {
+    return this._http.post<ApplicationResponse>(this._path(sid), body);
   }
 }
 
 /** Compat cXML / LaML Bin management. */
-export class CompatLamlBins extends CrudResource {
+export class CompatLamlBins extends CrudResource<
+  CxmlScriptListResponse,
+  CxmlScriptResponse,
+  CreateCxmlScriptRequest,
+  UpdateCxmlScriptRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -565,13 +748,21 @@ export class CompatLamlBins extends CrudResource {
    * @returns The updated LaML Bin record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(
+    sid: string,
+    body: Partial<UpdateCxmlScriptRequest> = {},
+  ): Promise<CxmlScriptResponse> {
+    return this._http.post<CxmlScriptResponse>(this._path(sid), body);
   }
 }
 
 /** Compat queue management with member operations. */
-export class CompatQueues extends CrudResource {
+export class CompatQueues extends CrudResource<
+  QueueListResponse,
+  QueueResponse,
+  CreateQueueRequest,
+  UpdateQueueRequest
+> {
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
   }
@@ -584,8 +775,11 @@ export class CompatQueues extends CrudResource {
    * @returns The updated queue record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  override async update(sid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(sid), body);
+  override async update(
+    sid: string,
+    body: Partial<UpdateQueueRequest> = {},
+  ): Promise<QueueResponse> {
+    return this._http.post<QueueResponse>(this._path(sid), body);
   }
 
   /**
@@ -596,8 +790,8 @@ export class CompatQueues extends CrudResource {
    * @returns A paginated list of queue members.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listMembers(queueSid: string, params?: QueryParams): Promise<any> {
-    return this._http.get(this._path(queueSid, 'Members'), params);
+  async listMembers(queueSid: string, params?: QueryParams): Promise<QueueMemberListResponse> {
+    return this._http.get<QueueMemberListResponse>(this._path(queueSid, 'Members'), params);
   }
 
   /**
@@ -608,8 +802,8 @@ export class CompatQueues extends CrudResource {
    * @returns The queue-member record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async getMember(queueSid: string, callSid: string): Promise<any> {
-    return this._http.get(this._path(queueSid, 'Members', callSid));
+  async getMember(queueSid: string, callSid: string): Promise<QueueMemberResponse> {
+    return this._http.get<QueueMemberResponse>(this._path(queueSid, 'Members', callSid));
   }
 
   /**
@@ -623,8 +817,12 @@ export class CompatQueues extends CrudResource {
    * @returns The updated queue-member record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async dequeueMember(queueSid: string, callSid: string, body: any = {}): Promise<any> {
-    return this._http.post(this._path(queueSid, 'Members', callSid), body);
+  async dequeueMember(
+    queueSid: string,
+    callSid: string,
+    body: Partial<UpdateQueueMemberRequest> = {},
+  ): Promise<QueueMemberResponse> {
+    return this._http.post<QueueMemberResponse>(this._path(queueSid, 'Members', callSid), body);
   }
 }
 
@@ -642,8 +840,8 @@ export class CompatRecordings extends BaseResource {
    * @returns A paginated list of recordings.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<RecordingListResponse> {
+    return this._http.get<RecordingListResponse>(this._basePath, params);
   }
 
   /**
@@ -653,8 +851,8 @@ export class CompatRecordings extends BaseResource {
    * @returns The recording record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sid: string): Promise<any> {
-    return this._http.get(this._path(sid));
+  async get(sid: string): Promise<RecordingResponse> {
+    return this._http.get<RecordingResponse>(this._path(sid));
   }
 
   /**
@@ -664,7 +862,7 @@ export class CompatRecordings extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(sid: string): Promise<any> {
+  async delete(sid: string): Promise<unknown> {
     return this._http.delete(this._path(sid));
   }
 }
@@ -682,8 +880,8 @@ export class CompatTranscriptions extends BaseResource {
    * @returns A paginated list of transcriptions.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<any> {
-    return this._http.get(this._basePath, params);
+  async list(params?: QueryParams): Promise<TranscriptionListResponse> {
+    return this._http.get<TranscriptionListResponse>(this._basePath, params);
   }
 
   /**
@@ -693,8 +891,8 @@ export class CompatTranscriptions extends BaseResource {
    * @returns The transcription record.
    * @throws {RestError} On any non-2xx HTTP response (including `404`).
    */
-  async get(sid: string): Promise<any> {
-    return this._http.get(this._path(sid));
+  async get(sid: string): Promise<TranscriptionResponse> {
+    return this._http.get<TranscriptionResponse>(this._path(sid));
   }
 
   /**
@@ -704,7 +902,7 @@ export class CompatTranscriptions extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(sid: string): Promise<any> {
+  async delete(sid: string): Promise<unknown> {
     return this._http.delete(this._path(sid));
   }
 }
@@ -722,8 +920,8 @@ export class CompatTokens extends BaseResource {
    * @returns The newly-created token record, including the secret value.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: any): Promise<any> {
-    return this._http.post(this._basePath, body);
+  async create(body: CreateTokenRequest): Promise<TokenResponse> {
+    return this._http.post<TokenResponse>(this._basePath, body);
   }
 
   /**
@@ -734,8 +932,8 @@ export class CompatTokens extends BaseResource {
    * @returns The updated token record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(tokenId: string, body: any = {}): Promise<any> {
-    return this._http.patch(this._path(tokenId), body);
+  async update(tokenId: string, body: Partial<UpdateTokenRequest> = {}): Promise<TokenResponse> {
+    return this._http.patch<TokenResponse>(this._path(tokenId), body);
   }
 
   /**
@@ -745,7 +943,7 @@ export class CompatTokens extends BaseResource {
    * @returns The platform's delete response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(tokenId: string): Promise<any> {
+  async delete(tokenId: string): Promise<unknown> {
     return this._http.delete(this._path(tokenId));
   }
 }

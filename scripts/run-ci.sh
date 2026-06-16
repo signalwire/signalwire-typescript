@@ -15,12 +15,23 @@
 #                                            generated_from git-sha; closes the Layer-B-
 #                                            not-gated hole — DRIFT gates Layer A only,
 #                                            so port_surface.json silently rots)
+#  4b. gen-fresh gate                      — generate-rest-types.ts --check
+#                                           (regenerates the committed *.types.generated.ts
+#                                            from the canonical schemas and fails on any
+#                                            mismatch; the ONLY gate that validates the
+#                                            generated types' SHAPE — DRIFT can't, since
+#                                            ~40% of the Python reference is Dict[str,Any]
+#                                            and `any` matches any port type)
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
 #                                           (byte-compares this port's FunctionResult
 #                                            serialisation vs Python's to_dict() over
 #                                            the shared 81-entry corpus; closes the
 #                                            drift-0 hole the surface gates can't see)
+#   7. fmt gate                           — prettier (local: auto-fix; CI: --check)
+#   8. lint gate                          — tsc --noEmit + eslint (.golangci-equiv)
+#   9. doc-audit gate                     — porting-sdk audit_docs.py
+#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
 # Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
 # Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
@@ -65,6 +76,14 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
     echo "       (expected $PORT_ROOT/../porting-sdk or \$PORTING_SDK env var)" >&2
     exit 2
 }
+
+# Export the resolved path under every name the enumerator scripts read, so the
+# tsx subprocesses (enumerate-signatures/surface/doc-surface) find porting-sdk's
+# type_aliases.yaml / python_surface.json instead of falling back to a hardcoded
+# absolute path. PORTING_SDK is read by enumerate-signatures.ts; PORTING_SDK_PATH
+# by enumerate-surface.ts / enumerate-doc-surface.ts. Both pointed here.
+export PORTING_SDK="$PORTING_SDK_DIR"
+export PORTING_SDK_PATH="$PORTING_SDK_DIR"
 
 FAILED_GATES=""
 
@@ -132,6 +151,20 @@ surface_fresh_gate() {
 run_gate "SURFACE-FRESH" "check_surface_freshness vs committed port_surface.json" \
     surface_fresh_gate
 
+# Gate 4b: gen-fresh — the committed src/**/*.types.generated.ts (+ PlatformContracts
+# / relay protocol types) must still match what the canonical schemas produce. This
+# is the ONLY gate that validates the generated types' SHAPE: DRIFT can't, because
+# ~40% of the Python reference is `Dict[str, Any]` and the drift comparator treats
+# `any` as matching any port type — so a generated `Record→named-interface` upgrade
+# (or a hand-edit, or a spec change with stale output) sails through DRIFT unchecked.
+# Regenerating from the schema and requiring byte-equality is what proves the
+# committed types are faithful to their source. Read-only (--check never writes).
+genfresh_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-rest-types.ts --check
+}
+run_gate "GEN-FRESH" "generated types match canonical schema (--check)" genfresh_gate
+
 # Gate 5: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \
     python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
@@ -144,6 +177,102 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "npx tsx scripts/emit-corpus.ts" \
         --port-repo "$PORT_ROOT"
+
+# Gate 6b: skill-contract — compare each built-in skill's SWAIG tool contract
+# (name/parameters/required/enum from getTools()) against the Python reference.
+# The sibling of EMISSION for SKILLS: drift/surface see signatures + symbol
+# names, EMISSION sees FunctionResult.to_dict(), but NONE saw a skill's tool
+# schema — so a wrong `required`, a renamed/retyped param, or an extra/missing
+# tool was drift-0 and invisible. scripts/emit-skills.ts builds the native dump;
+# dynamic skills (mcp_gateway/claude_skills/etc.) are excluded + logged by the
+# corpus. Same prereqs as EMISSION (signalwire-python adjacent; no network).
+run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "npx tsx scripts/emit-skills.ts" \
+        --port-repo "$PORT_ROOT"
+
+# Gate 7: FMT — the language format gate (ts: prettier, governed by .prettierrc.json:
+# printWidth 100, singleQuote, semi — the house style). Source-style only, proven
+# surface/emission-neutral (a reformat leaves port_signatures.json byte-identical).
+#   * LOCAL ($CI unset)  → `prettier --write`: reformats your working tree in place.
+#   * CI ($CI=true)      → `prettier --check`: read-only, FAILS on any unformatted file.
+fmt_gate() {
+    # Cover every source + example tree (scripts + all three example dirs), so a
+    # mis-formatted rest/examples file can't pass FMT locally and fail in CI.
+    local globs=(
+        "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
+        "examples/**/*.ts" "rest/examples/**/*.ts" "relay/examples/**/*.ts"
+    )
+    if [ -n "${CI:-}" ]; then
+        npx prettier --check "${globs[@]}"
+    else
+        npx prettier --write "${globs[@]}" >/dev/null
+        if ! git diff --quiet 2>/dev/null; then
+            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
+        fi
+    fi
+}
+run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
+
+# Gate 8: LINT — the language lint gate (ts: tsc --noEmit type floor + eslint).
+# tsc proves the types compile (strict); eslint (.golangci-equivalent: eslint.config.mjs)
+# enforces the deeper rule set incl. no-explicit-any=error after the burndown to zero.
+# Both blocking. --max-warnings 0 so a warning can't slip through.
+#
+# tsc runs over BOTH tsconfigs: the default (src) AND tsconfig.examples.json — the
+# examples have their own config (the default tsconfig only includes src/**), and
+# without the second pass a type error in examples/ slips past LINT locally and
+# only fails in the separate doc-audit workflow. Folding it in keeps local==CI.
+lint_gate() {
+    npx tsc --noEmit || return 1
+    npx tsc --noEmit --project tsconfig.examples.json || return 1
+    # eslint must cover EVERY example tree (examples/, rest/examples/,
+    # relay/examples/), not just the top-level one — a file-level disable or `any`
+    # in rest/examples slipped past when only `examples` was linted.
+    npx eslint src tests examples rest/examples relay/examples --max-warnings 0 || return 1
+    # Honesty guard: a file-level `eslint-disable .../no-explicit-any` switches the
+    # rule OFF for the whole file, hiding every `any` from the gate (this exact
+    # blind spot once made a "no-explicit-any=0" claim false). Forbid the
+    # file-level form outright; only line-level `eslint-disable-next-line` on a
+    # justified site is allowed. Generated modules already carry zero disables.
+    # Cover EVERY tree eslint lints — not just src; the gap let file-disables hide
+    # in tests/ + examples/ (~50 `any`) undetected.
+    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' \
+        src tests examples rest/examples relay/examples; then
+        echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
+        return 1
+    fi
+    # TS-idiom guards the type system can't enforce: no widened typed-callback
+    # params, no nested open index signatures in generated types, no dead
+    # defensive casts in example demos, generic safe<T> wrappers.
+    npx tsx scripts/check-ts-idioms.ts || return 1
+}
+run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
+
+# Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
+# real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in
+# so local==CI. Regenerates docs_audit_surface.json then audits, restoring it after
+# (side-effect-free whether it passes or fails).
+docaudit_gate() {
+    trap 'git checkout -- docs_audit_surface.json 2>/dev/null' RETURN
+    PORTING_SDK_PATH="$PORTING_SDK_DIR" npx tsx scripts/enumerate-doc-surface.ts || return 1
+    python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
+        --root "$PORT_ROOT" \
+        --surface "$PORT_ROOT/docs_audit_surface.json" \
+        --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
+}
+run_gate "DOC-AUDIT" "audit_docs vs docs_audit_surface.json" docaudit_gate
+
+# Gate 10: SURFACE-DIFF — diff the port surface against the Python reference
+# (omissions/additions in PORT_OMISSIONS.md / PORT_ADDITIONS.md). SURFACE-FRESH only
+# checks the committed surface matches a regen; this checks it MATCHES PYTHON.
+# Mirrors .github/workflows/surface-audit.yml.
+run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+        --reference "$PORTING_SDK_DIR/python_surface.json" \
+        --port-surface "$PORT_ROOT/port_surface.json" \
+        --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"

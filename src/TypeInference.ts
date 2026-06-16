@@ -33,7 +33,11 @@ import type { FunctionResult } from './FunctionResult.js';
  */
 export type TypedToolHandler = (
   ...args: never[]
-) => FunctionResult | Record<string, unknown> | string | Promise<FunctionResult | Record<string, unknown> | string>;
+) =>
+  | FunctionResult
+  | Record<string, unknown>
+  | string
+  | Promise<FunctionResult | Record<string, unknown> | string>;
 
 /**
  * A function the SDK *introspects* (reads `fn.toString()` to recover parameter
@@ -199,9 +203,11 @@ function inferTypeFromDefault(defaultValue?: string): string {
   if (/^-?\d+\.\d+$/.test(trimmed)) return 'number';
 
   // String (quoted)
-  if ((trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith('`') && trimmed.endsWith('`'))) {
+  if (
+    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith('`') && trimmed.endsWith('`'))
+  ) {
     return 'string';
   }
 

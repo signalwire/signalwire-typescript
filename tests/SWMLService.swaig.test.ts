@@ -148,7 +148,9 @@ describe('SWMLService SWAIG hosting', () => {
         direction: ['remote-caller', 'local-caller'],
       });
       const rendered = svc.renderSwml();
-      const main = (rendered['sections'] as Record<string, unknown[]>)['main'] as Array<Record<string, unknown>>;
+      const main = (rendered['sections'] as Record<string, unknown[]>)['main'] as Array<
+        Record<string, unknown>
+      >;
       const verbs = main.map((v) => Object.keys(v)[0]);
       expect(verbs).toContain('answer');
       expect(verbs).toContain('ai_sidecar');

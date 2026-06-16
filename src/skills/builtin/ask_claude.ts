@@ -55,17 +55,6 @@ interface AnthropicResponse {
   };
 }
 
-/** Error response shape from the Anthropic API. */
-interface AnthropicErrorResponse {
-  /** Always "error" for error responses. */
-  type: 'error';
-  /** Error details. */
-  error: {
-    type: string;
-    message: string;
-  };
-}
-
 /**
  * Provides access to Anthropic's Claude AI for sub-queries and complex reasoning.
  *
@@ -117,7 +106,7 @@ export class AskClaudeSkill extends SkillBase {
       {
         name: 'ask_claude',
         description:
-          'Send a prompt to Claude AI for complex reasoning, analysis, summarization, or any task that benefits from dedicated AI processing. Returns Claude\'s response.',
+          "Send a prompt to Claude AI for complex reasoning, analysis, summarization, or any task that benefits from dedicated AI processing. Returns Claude's response.",
         parameters: {
           prompt: {
             type: 'string',
@@ -125,8 +114,7 @@ export class AskClaudeSkill extends SkillBase {
           },
           system_prompt: {
             type: 'string',
-            description:
-              'Optional system prompt to set context or instructions for Claude.',
+            description: 'Optional system prompt to set context or instructions for Claude.',
           },
         },
         required: ['prompt'],
@@ -146,9 +134,7 @@ export class AskClaudeSkill extends SkillBase {
           }
 
           try {
-            const messages: AnthropicMessage[] = [
-              { role: 'user', content: prompt.trim() },
-            ];
+            const messages: AnthropicMessage[] = [{ role: 'user', content: prompt.trim() }];
 
             const requestBody: Record<string, unknown> = {
               model,
@@ -156,7 +142,11 @@ export class AskClaudeSkill extends SkillBase {
               messages,
             };
 
-            if (systemPrompt && typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) {
+            if (
+              systemPrompt &&
+              typeof systemPrompt === 'string' &&
+              systemPrompt.trim().length > 0
+            ) {
               requestBody['system'] = systemPrompt.trim();
             }
 
@@ -208,10 +198,10 @@ export class AskClaudeSkill extends SkillBase {
             const responseText = textParts.join('\n\n');
             return new FunctionResult(responseText);
           } catch (err) {
-            log.error('ask_claude_failed', { error: err instanceof Error ? err.message : String(err) });
-            return new FunctionResult(
-              'The request could not be completed. Please try again.',
-            );
+            log.error('ask_claude_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return new FunctionResult('The request could not be completed. Please try again.');
           }
         },
       },
@@ -229,7 +219,7 @@ export class AskClaudeSkill extends SkillBase {
           'You can provide an optional system prompt to set specific instructions or context.',
           'This is useful for tasks like: detailed explanations, code analysis, text summarization, creative writing, or multi-step reasoning.',
           'Do not use this tool for simple factual questions you already know the answer to.',
-          'Summarize or relay Claude\'s response naturally to the user.',
+          "Summarize or relay Claude's response naturally to the user.",
         ],
       },
     ];

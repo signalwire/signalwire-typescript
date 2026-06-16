@@ -80,9 +80,9 @@ describe('normalize helpers', () => {
   });
 
   it('normalizes 2D dial plan', () => {
-    expect(
-      normalizeDevicePlan([[{ type: 'phone', to: '+1', from: '+2' }]]),
-    ).toEqual([[{ type: 'phone', params: { to_number: '+1', from_number: '+2' } }]]);
+    expect(normalizeDevicePlan([[{ type: 'phone', to: '+1', from: '+2' }]])).toEqual([
+      [{ type: 'phone', params: { to_number: '+1', from_number: '+2' } }],
+    ]);
   });
 
   it('normalizePlayItems maps across an array', () => {
@@ -109,10 +109,7 @@ describe('Call methods emit nested wire shape', () => {
 
   it('playAndCollect() nests play items', async () => {
     const { client, last } = captureClient();
-    await makeCall(client).playAndCollect(
-      [{ type: 'tts', text: 'PIN?' }],
-      { digits: { max: 4 } },
-    );
+    await makeCall(client).playAndCollect([{ type: 'tts', text: 'PIN?' }], { digits: { max: 4 } });
     const sent = last()!;
     expect(sent.method).toBe('calling.play_and_collect');
     expect(sent.params.play).toEqual([{ type: 'tts', params: { text: 'PIN?' } }]);
@@ -120,18 +117,15 @@ describe('Call methods emit nested wire shape', () => {
 
   it('connect() normalizes devices and ringback', async () => {
     const { client, last } = captureClient();
-    await makeCall(client).connect(
-      [[{ type: 'phone', to: '+1', from: '+2' }]],
-      { ringback: [{ type: 'ringtone', name: 'us' }] },
-    );
+    await makeCall(client).connect([[{ type: 'phone', to: '+1', from: '+2' }]], {
+      ringback: [{ type: 'ringtone', name: 'us' }],
+    });
     const sent = last()!;
     expect(sent.method).toBe('calling.connect');
     expect(sent.params.devices).toEqual([
       [{ type: 'phone', params: { to_number: '+1', from_number: '+2' } }],
     ]);
-    expect(sent.params.ringback).toEqual([
-      { type: 'ringtone', params: { name: 'us' } },
-    ]);
+    expect(sent.params.ringback).toEqual([{ type: 'ringtone', params: { name: 'us' } }]);
   });
 
   it('refer() normalizes the device', async () => {

@@ -20,7 +20,9 @@ function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     console.error(`Error: Required environment variable ${name} is not set.`);
-    console.error('Required: SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, DATASPHERE_DOCUMENT_ID');
+    console.error(
+      'Required: SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, DATASPHERE_DOCUMENT_ID',
+    );
     process.exit(1);
   }
   return value;
@@ -29,7 +31,10 @@ function requireEnv(name: string): string {
 const documentId = requireEnv('DATASPHERE_DOCUMENT_ID');
 const count = parseInt(process.env['DATASPHERE_COUNT'] ?? '3', 10);
 const distance = parseFloat(process.env['DATASPHERE_DISTANCE'] ?? '4.0');
-const tags = process.env['DATASPHERE_TAGS']?.split(',').map(t => t.trim()).filter(Boolean);
+const tags = process.env['DATASPHERE_TAGS']
+  ?.split(',')
+  .map((t) => t.trim())
+  .filter(Boolean);
 
 export const agent = new AgentBase({
   name: 'datasphere-env',
@@ -42,7 +47,7 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a knowledge assistant with access to a document library. ' +
-  'Search the knowledge base to answer user questions. Always cite the source.',
+    'Search the knowledge base to answer user questions. Always cite the source.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });

@@ -8,8 +8,14 @@ const TEST_DIR = join(process.cwd(), '__ssl_test_tmp__');
 describe('SslConfig', () => {
   beforeAll(() => {
     mkdirSync(TEST_DIR, { recursive: true });
-    writeFileSync(join(TEST_DIR, 'cert.pem'), '-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----');
-    writeFileSync(join(TEST_DIR, 'key.pem'), '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----');
+    writeFileSync(
+      join(TEST_DIR, 'cert.pem'),
+      '-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----',
+    );
+    writeFileSync(
+      join(TEST_DIR, 'key.pem'),
+      '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----',
+    );
   });
 
   afterAll(() => {

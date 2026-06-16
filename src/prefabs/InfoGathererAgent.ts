@@ -10,6 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
+import type { SwaigRequestData, SwmlRequestData } from '../PlatformContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ export interface InfoGathererQuestion {
  */
 export type InfoGathererQuestionCallback = (
   queryParams: Record<string, string>,
-  bodyParams: Record<string, unknown>,
+  bodyParams: SwmlRequestData,
   headers: Record<string, string>,
 ) => InfoGathererQuestion[] | Promise<InfoGathererQuestion[]>;
 
@@ -161,7 +162,9 @@ export class InfoGathererAgent extends AgentBase {
     return this;
   }
 
-  private static validateQuestions(questions: unknown): asserts questions is InfoGathererQuestion[] {
+  private static validateQuestions(
+    questions: unknown,
+  ): asserts questions is InfoGathererQuestion[] {
     if (!Array.isArray(questions) || questions.length === 0) {
       throw new Error('At least one question is required');
     }
@@ -220,9 +223,7 @@ export class InfoGathererAgent extends AgentBase {
    * per-request global_data payload which AgentBase merges into the SWML
    * response. Mirrors Python's `on_swml_request` return-dict contract.
    */
-  override async onSwmlRequest(
-    rawData: Record<string, unknown>,
-  ): Promise<Record<string, unknown> | void> {
+  override async onSwmlRequest(rawData: SwmlRequestData): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
 
@@ -288,7 +289,7 @@ export class InfoGathererAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: Record<string, unknown>) => {
+      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
         const questionIndex = (globalData['question_index'] as number) ?? 0;
@@ -323,8 +324,9 @@ export class InfoGathererAgent extends AgentBase {
           },
         },
       },
-      handler: (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
-        const answer = (args['answer'] as string) ?? '';
+      handler: (args, rawData) => {
+        // args.answer is inferred `string` from the wrapped schema's properties.
+        const answer = args.answer ?? '';
 
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];

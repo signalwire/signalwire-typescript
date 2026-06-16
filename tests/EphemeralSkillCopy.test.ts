@@ -9,11 +9,13 @@ class EphemeralTestSkill extends SkillBase {
   static override SKILL_DESCRIPTION = 'Ephemeral test';
 
   getTools(): SkillToolDefinition[] {
-    return [{
-      name: 'ephemeral_tool',
-      description: 'A tool from ephemeral test skill',
-      handler: () => new FunctionResult('ephemeral result'),
-    }];
+    return [
+      {
+        name: 'ephemeral_tool',
+        description: 'A tool from ephemeral test skill',
+        handler: () => new FunctionResult('ephemeral result'),
+      },
+    ];
   }
   protected override _getPromptSections() {
     return [{ title: 'Ephemeral Section', body: 'ephemeral body' }];
@@ -33,12 +35,12 @@ describe('Ephemeral Skill Copy', () => {
 
     // Verify original has the tool
     const tools = agent.getRegisteredTools();
-    expect(tools.some(t => t.name === 'ephemeral_tool')).toBe(true);
+    expect(tools.some((t) => t.name === 'ephemeral_tool')).toBe(true);
 
     // Render SWML with dynamic config callback to test ephemeral copy
     let ephemeralToolNames: string[] = [];
     agent.setDynamicConfigCallback((_qp, _body, _headers, copy) => {
-      ephemeralToolNames = copy.getRegisteredTools().map(t => t.name);
+      ephemeralToolNames = copy.getRegisteredTools().map((t) => t.name);
     });
 
     // Trigger SWML rendering via getApp()
@@ -47,7 +49,7 @@ describe('Ephemeral Skill Copy', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from('user:pass').toString('base64'),
+        Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64'),
       },
       body: JSON.stringify({}),
     });
@@ -75,17 +77,21 @@ describe('Ephemeral Skill Copy', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from('user:pass').toString('base64'),
+        Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64'),
       },
       body: JSON.stringify({}),
     });
 
     expect(ephemeralSwml).toBeTruthy();
-    const parsed = JSON.parse(ephemeralSwml);
-    const aiBlock = parsed.sections.main.find((v: any) => v.ai);
+    const parsed = JSON.parse(ephemeralSwml) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const aiBlock = parsed.sections.main.find((v) => v.ai) as {
+      ai: { SWAIG?: { functions?: { function: string }[] } };
+    };
     expect(aiBlock).toBeDefined();
     const funcs = aiBlock.ai.SWAIG?.functions ?? [];
-    expect(funcs.some((f: any) => f.function === 'ephemeral_tool')).toBe(true);
+    expect(funcs.some((f) => f.function === 'ephemeral_tool')).toBe(true);
   });
 
   it('swaigFields are merged into tool definitions', async () => {
@@ -97,11 +103,15 @@ describe('Ephemeral Skill Copy', () => {
     agent.setPromptText('Test');
     await agent.addSkill(new EphemeralTestSkill({ swaig_fields: { wait_file: 'hold.mp3' } }));
 
-    const swml = JSON.parse(agent.renderSwml());
-    const aiBlock = swml.sections.main.find((v: any) => v.ai);
+    const swml = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const aiBlock = swml.sections.main.find((v) => v.ai) as {
+      ai: { SWAIG: { functions: { function: string; wait_file?: string }[] } };
+    };
     const funcs = aiBlock.ai.SWAIG.functions;
-    const ephTool = funcs.find((f: any) => f.function === 'ephemeral_tool');
+    const ephTool = funcs.find((f) => f.function === 'ephemeral_tool');
     expect(ephTool).toBeDefined();
-    expect(ephTool.wait_file).toBe('hold.mp3');
+    expect(ephTool!.wait_file).toBe('hold.mp3');
   });
 });

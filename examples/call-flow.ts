@@ -15,7 +15,7 @@ export const agent = new AgentBase({
     process.env['SWML_BASIC_AUTH_USER'] ?? 'user',
     process.env['SWML_BASIC_AUTH_PASSWORD'] ?? 'pass',
   ],
-  recordCall: true,       // Record the call (Phase 3)
+  recordCall: true, // Record the call (Phase 3)
   recordFormat: 'mp4',
   recordStereo: true,
 });
@@ -42,7 +42,9 @@ agent.addPronunciation({ replace: 'Acme', with: 'Ak-mee' });
 agent.setParam('temperature', 0.7);
 
 // Post-prompt for call summary
-agent.setPostPrompt('Provide a JSON summary with: caller_name, appointment_date, appointment_reason');
+agent.setPostPrompt(
+  'Provide a JSON summary with: caller_name, appointment_date, appointment_reason',
+);
 
 // Tool for scheduling
 agent.defineTool({

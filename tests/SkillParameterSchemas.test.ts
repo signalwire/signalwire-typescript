@@ -60,9 +60,7 @@ describe('Skill Parameter Schemas', () => {
         // Allowed JSON-Schema-style types every parameter entry must use.
         // A bare nullness check would pass for `{type: 0, description: false}`;
         // the enum membership + non-empty string check catches that.
-        const validTypes = new Set([
-          'string', 'integer', 'number', 'boolean', 'array', 'object',
-        ]);
+        const validTypes = new Set(['string', 'integer', 'number', 'boolean', 'array', 'object']);
         for (const [paramName, entry] of Object.entries(schema)) {
           expect(
             validTypes.has(entry.type),
@@ -137,10 +135,13 @@ describe('Skill Parameter Schemas', () => {
       expect(schema.patterns.type).toBe('array');
     });
 
-    it('GoogleMapsSkill has default_mode with enum', () => {
+    it('GoogleMapsSkill exposes api_key + the two tool-name configs', () => {
       const schema = GoogleMapsSkill.getParameterSchema();
-      expect(schema.default_mode).toBeDefined();
-      expect(schema.default_mode.enum).toEqual(['driving', 'walking', 'bicycling', 'transit']);
+      expect(schema.api_key).toBeDefined();
+      expect(schema.api_key.env_var).toBe('GOOGLE_MAPS_API_KEY');
+      // Two tools (lookup_address, compute_route) → two configurable names.
+      expect(schema.lookup_tool_name).toBeDefined();
+      expect(schema.route_tool_name).toBeDefined();
     });
   });
 });

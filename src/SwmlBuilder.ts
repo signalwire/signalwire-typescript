@@ -144,22 +144,22 @@ export class SwmlBuilder {
 
       // Special handling for sleep — accepts number directly or config object
       if (verbName === 'sleep') {
-        const self = this;
-        (this as Record<string, unknown>)['sleep'] = function sleep(
+        (this as Record<string, unknown>)['sleep'] = (
           durationOrConfig: number | Record<string, unknown>,
-        ): SwmlBuilder {
+        ): SwmlBuilder => {
           if (typeof durationOrConfig === 'number') {
-            self.addVerb('sleep', durationOrConfig);
+            this.addVerb('sleep', durationOrConfig);
           } else {
-            self.addVerb('sleep', durationOrConfig);
+            this.addVerb('sleep', durationOrConfig);
           }
-          return self;
+          return this;
         };
         continue;
       }
 
       // Closure factory to capture verbName
-      const makeMethod = (name: string) =>
+      const makeMethod =
+        (name: string) =>
         (config?: Record<string, unknown>): SwmlBuilder => {
           this.addVerb(name, config ?? {});
           return this;

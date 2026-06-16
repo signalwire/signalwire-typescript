@@ -7,7 +7,7 @@
  */
 
 import { AgentBase, FunctionResult } from '../src/index.js';
-import type { AgentOptions } from '../src/index.js';
+import type { AgentOptions, PostPromptData } from '../src/index.js';
 
 class OrderAgent extends AgentBase {
   static override PROMPT_SECTIONS = [
@@ -37,11 +37,13 @@ class OrderAgent extends AgentBase {
       parameters: {
         order_number: { type: 'string', description: 'The order number (e.g., ORD-12345)' },
       },
+      required: ['order_number'],
       handler: (args, rawData) => {
-        // Store the order number in global data for the post-prompt summary
+        // args.order_number: string (required); rawData is the SWAIG webhook body
+        // (SwaigRequestData) — call_id is a typed top-level field.
         this.updateGlobalData({
           last_order_number: args.order_number,
-          call_id: rawData['call_id'],
+          call_id: rawData.call_id,
         });
         return new FunctionResult(
           `Order ${args.order_number}: Status: Shipped, ETA: 2 business days, Carrier: FedEx`,
@@ -52,10 +54,12 @@ class OrderAgent extends AgentBase {
 
   override async onSummary(
     summary: Record<string, unknown> | null,
-    rawData: Record<string, unknown>,
+    rawData: PostPromptData,
   ): Promise<void> {
     console.log('=== Call Summary ===');
-    console.log('Call ID:', rawData['call_id']);
+    // call_id lives under params on the post-prompt body (PostPromptData),
+    // not at the top level.
+    console.log('Call ID:', rawData.params.call_id);
     console.log('Summary:', JSON.stringify(summary, null, 2));
     console.log('===================');
   }

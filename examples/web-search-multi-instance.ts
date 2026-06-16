@@ -27,8 +27,8 @@ export const agent = new AgentBase({
 
 agent.setPromptText(
   'You are a research assistant with access to multiple search tools. ' +
-  'Use the most appropriate search tool for each query: ' +
-  'general web search, news search, quick search, or Wikipedia.',
+    'Use the most appropriate search tool for each query: ' +
+    'general web search, news search, quick search, or Wikipedia.',
 );
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
@@ -66,7 +66,10 @@ await agent.addSkill(
   }),
 );
 
-console.log('Loaded skills:', agent.listSkills().map(s => s.name));
+console.log(
+  'Loaded skills:',
+  agent.listSkills().map((s) => s.name),
+);
 console.log('Search tools: web_search (general), search_news, quick_search, search_wiki');
 
 agent.run();
