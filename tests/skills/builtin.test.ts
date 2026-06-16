@@ -571,7 +571,8 @@ describe('WebSearchSkill', () => {
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('web_search');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (web_search/skill.py:707); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {
@@ -621,7 +622,8 @@ describe('WikipediaSearchSkill', () => {
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('search_wiki');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (wikipedia_search/skill.py:87); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {

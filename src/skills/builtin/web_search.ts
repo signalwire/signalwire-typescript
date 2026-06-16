@@ -453,10 +453,10 @@ export class WebSearchSkill extends SkillBase {
             description: 'The search query - what you want to find information about',
           },
         },
-        required: ['query'],
+        // Python passes no `required` (web_search/skill.py:707), so the wire
+        // schema has no `required` key. args.query is `string | undefined`,
+        // narrowed by the guard below.
         handler: async (args) => {
-          // args.query is `string` (required); the model can still emit an
-          // empty/whitespace value, so the runtime guard stays.
           if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult(
               'Please provide a search query. What would you like me to search for?',

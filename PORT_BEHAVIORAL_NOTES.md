@@ -1,17 +1,29 @@
 # PORT_BEHAVIORAL_NOTES.md
 
-Behavioral divergences between the TypeScript port and the Python reference
-that the audit gates **cannot** see, and the verdict reached for each.
+Behavioral divergences between the TypeScript port and the Python reference,
+and the verdict reached for each.
 
 ## Why this file exists
 
 The cross-port gates police the *surface* (public signatures via DRIFT, the
 exported symbol set via SURFACE, generated wire types via GEN-FRESH) and one
-slice of *emission* (`FunctionResult.to_dict()` via EMISSION). They do **not**
-cover a skill's SWAIG **tool contract** — the `parameters` / `required` / `enum`
-each skill puts on the wire from `getTools()`, nor a skill's config-validation
-behavior, nor which backend a handler calls. Two ports can pass every gate and
-still hand the model different tools.
+slice of *emission* (`FunctionResult.to_dict()` via EMISSION). Historically they
+did **not** cover a skill's SWAIG **tool contract** — the `parameters` /
+`required` / `enum` each skill registers from `getTools()` — so two ports could
+pass every gate and still hand the model different tools. Every divergence below
+was found by hand because of that hole.
+
+**That hole is now closed by the SKILL-CONTRACT gate**
+(`run-ci.sh` → `porting-sdk/scripts/diff_skill_contracts.py`, dump
+`scripts/emit-skills.ts`): it compares each covered skill's tool contract
+against the Python reference and fails on any name/param/required/enum
+divergence. Dynamic skills (mcp_gateway, claude_skills, datasphere_serverless,
+native_vector_search) are excluded + logged (their contract depends on live
+state). Tool/param DESCRIPTIONS and the *implementation* (offline vs API,
+DataMap vs handler) are deliberately NOT compared — only the wire contract. The
+gate found two divergences this session's manual audit had missed (web_search,
+wikipedia_search). What it does NOT cover — config-validation timing, which
+backend a handler calls — is still recorded here as KEEP notes.
 
 This file is the human-readable ledger for those behavioral findings: each row
 is verified against source on both sides (file:line cited), with a verdict of

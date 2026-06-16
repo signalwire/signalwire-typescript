@@ -29,7 +29,8 @@ describe('WikipediaSearchSkill', () => {
     const tools = new WikipediaSearchSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('search_wiki');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (wikipedia_search/skill.py:87); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {

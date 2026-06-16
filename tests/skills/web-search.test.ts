@@ -34,7 +34,8 @@ describe('WebSearchSkill', () => {
     const tools = new WebSearchSkill().getTools();
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('web_search');
-    expect(tools[0].required).toContain('query');
+    // Python passes no `required` (web_search/skill.py:707); TS matches.
+    expect(tools[0].required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {

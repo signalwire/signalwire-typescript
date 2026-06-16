@@ -127,10 +127,10 @@ export class WikipediaSearchSkill extends SkillBase {
             description: 'The search term or topic to look up on Wikipedia.',
           },
         },
-        required: ['query'],
+        // Python passes no `required` (wikipedia_search/skill.py:87), so the
+        // wire schema has no `required` key. args.query is `string | undefined`,
+        // narrowed by the guard below.
         handler: async (args) => {
-          // args.query is `string` (required). The model can still emit an
-          // empty/whitespace value, so the runtime guard stays.
           if (!args.query || args.query.trim().length === 0) {
             return new FunctionResult('Please provide a search query for Wikipedia.');
           }

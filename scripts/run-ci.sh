@@ -178,6 +178,19 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
         --dump-cmd "npx tsx scripts/emit-corpus.ts" \
         --port-repo "$PORT_ROOT"
 
+# Gate 6b: skill-contract — compare each built-in skill's SWAIG tool contract
+# (name/parameters/required/enum from getTools()) against the Python reference.
+# The sibling of EMISSION for SKILLS: drift/surface see signatures + symbol
+# names, EMISSION sees FunctionResult.to_dict(), but NONE saw a skill's tool
+# schema — so a wrong `required`, a renamed/retyped param, or an extra/missing
+# tool was drift-0 and invisible. scripts/emit-skills.ts builds the native dump;
+# dynamic skills (mcp_gateway/claude_skills/etc.) are excluded + logged by the
+# corpus. Same prereqs as EMISSION (signalwire-python adjacent; no network).
+run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "npx tsx scripts/emit-skills.ts" \
+        --port-repo "$PORT_ROOT"
+
 # Gate 7: FMT — the language format gate (ts: prettier, governed by .prettierrc.json:
 # printWidth 100, singleQuote, semi — the house style). Source-style only, proven
 # surface/emission-neutral (a reformat leaves port_signatures.json byte-identical).
