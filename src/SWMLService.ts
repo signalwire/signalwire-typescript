@@ -743,16 +743,15 @@ export class SWMLService {
     _callId?: string,
     _modifications?: Record<string, unknown>,
   ): Record<string, unknown> | string {
-    return this.swmlBuilder.getDocument();
+    return this.swmlBuilder.build();
   }
 
   /**
-   * Get the SWML document as a dictionary.
-   * Alias for `renderSwml()` that matches Python's `get_document()` name.
+   * Get the SWML document as a dictionary. Matches Python's `get_document()`.
    * @returns The SWML document.
    */
   getDocument(): Record<string, unknown> {
-    return this.swmlBuilder.getDocument();
+    return this.swmlBuilder.build();
   }
 
   /**
@@ -761,7 +760,7 @@ export class SWMLService {
    * @returns JSON-encoded SWML document.
    */
   renderDocument(): string {
-    return this.swmlBuilder.renderDocument();
+    return this.swmlBuilder.render();
   }
 
   // ── Verb handler registration ────────────────────────────────────────
@@ -967,12 +966,17 @@ export class SWMLService {
   /**
    * Start the HTTP server.
    *
+   * @deprecated Use {@link SWMLService.serve} instead. `serve()` is the
+   * canonical entrypoint (matching Python's `SWMLService.serve()`, which has no
+   * `run()`); `run()` is a TS-only alias retained for back-compat and forwards
+   * here unchanged.
+   *
    * Matches Python's `serve()` parameters including SSL options. When
    * `SWAIG_CLI_MODE=true` is set in the environment (e.g. while running the
    * `swaig-test` CLI) the call is a no-op.
    *
-   * @param host - Hostname. Defaults to `this.host` (constructor value) or
-   *   `'0.0.0.0'`.
+   * @param hostOrOpts - Hostname, or an options object. Defaults to `this.host`
+   *   (constructor value) or `'0.0.0.0'`.
    * @param port - Port. Defaults to `this.port` (constructor value) or `3000`.
    * @param opts - Optional SSL/TLS configuration overrides.
    * @param opts.sslCert - Path to the PEM certificate file.
@@ -1048,9 +1052,9 @@ export class SWMLService {
   }
 
   /**
-   * Start the HTTP server. Alias for {@link run} provided for cross-SDK
-   * consistency with Python's `serve()` method — callers porting from
-   * Python can use this name without changes.
+   * Start the HTTP server. This is the canonical entrypoint, matching Python's
+   * `SWMLService.serve()`. Accepts the same arguments as {@link run} (the
+   * deprecated TS-only alias it forwards to).
    *
    * @param args - Forwarded unchanged to {@link run}.
    * @returns Resolves once the server has begun listening.

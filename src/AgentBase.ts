@@ -2237,7 +2237,7 @@ export class AgentBase extends SWMLService {
       this.swmlBuilder.addVerb(verb, config);
     }
 
-    return this.swmlBuilder.renderDocument();
+    return this.swmlBuilder.render();
   }
 
   // ── Ephemeral copy for dynamic config ───────────────────────────────
@@ -2813,7 +2813,14 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Alias for {@link serve}. Starts the HTTP server.
+   * Starts the HTTP server.
+   *
+   * @deprecated Prefer {@link serve} for running a server, or
+   * {@link runServerless} for a single serverless invocation. Python's
+   * polymorphic `run()` (which auto-detects server vs. serverless) is split in
+   * the TS port into those two explicit methods; this `run()` is a thin
+   * back-compat alias that forwards to {@link serve}.
+   *
    * @param opts - Optional host and port overrides.
    * @returns A promise that resolves once the server is running.
    */

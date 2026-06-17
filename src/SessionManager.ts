@@ -82,7 +82,9 @@ export class SessionManager {
   }
 
   /**
-   * Alias for {@link generateToken}.
+   * Generate a signed token. Equivalent to {@link generateToken} (same
+   * parameter order); both exist for Python parity (`SessionManager`
+   * exposes `generate_token` and `create_tool_token`).
    * @param functionName - The SWAIG function name to bind.
    * @param callId - The call ID to bind.
    * @returns A base64url-encoded token string.
@@ -143,7 +145,14 @@ export class SessionManager {
   }
 
   /**
-   * Alias for {@link validateToken} with reordered parameters.
+   * Validate a token. Equivalent to {@link validateToken}, but **note the
+   * different parameter order** — `validateToolToken(functionName, token,
+   * callId)` vs `validateToken(callId, functionName, token)`. Both exist for
+   * Python parity (`SessionManager.validate_token` / `validate_tool_token`,
+   * which use these exact orders). The forwarding maps the arguments to the
+   * correct positions, so both produce identical validation for the same
+   * logical token; just be careful not to pass arguments in the wrong order
+   * when switching between the two names.
    * @param functionName - The expected function name.
    * @param token - The base64url-encoded token to validate.
    * @param callId - The expected call ID.

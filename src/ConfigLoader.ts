@@ -247,34 +247,46 @@ export class ConfigLoader {
 
   /**
    * Return a shallow copy of the entire configuration object.
+   *
+   * @deprecated Use {@link getConfig} instead — `getConfig()` is the canonical
+   * name (matching Python's `ConfigLoader.get_config()`). `getAll()` is a
+   * TS-only alias retained for back-compat.
+   *
    * @returns A copy of the top-level config data.
    */
   getAll(): Record<string, unknown> {
+    return this.getConfig();
+  }
+
+  /**
+   * Return a shallow copy of the entire configuration object. Canonical name,
+   * matching Python's `ConfigLoader.get_config()`.
+   * @returns A copy of the top-level config data.
+   */
+  getConfig(): Record<string, unknown> {
     return { ...this.data };
   }
 
   /**
-   * Alias for {@link getAll} — matches the Python SDK's `get_config()` method name.
-   * @returns A copy of the top-level config data.
-   */
-  getConfig(): Record<string, unknown> {
-    return this.getAll();
-  }
-
-  /**
    * Return the absolute path of the loaded config file, if any.
+   *
+   * @deprecated Use {@link getConfigFile} instead — `getConfigFile()` is the
+   * canonical name (matching Python's `ConfigLoader.get_config_file()`).
+   * `getFilePath()` is a TS-only alias retained for back-compat.
+   *
    * @returns The file path, or null if config was loaded from an object.
    */
   getFilePath(): string | null {
-    return this.filePath;
+    return this.getConfigFile();
   }
 
   /**
-   * Alias for {@link getFilePath} — matches the Python SDK's `get_config_file()` method name.
+   * Return the absolute path of the loaded config file, if any. Canonical name,
+   * matching Python's `ConfigLoader.get_config_file()`.
    * @returns The file path, or null if config was loaded from an object.
    */
   getConfigFile(): string | null {
-    return this.getFilePath();
+    return this.filePath;
   }
 
   /**

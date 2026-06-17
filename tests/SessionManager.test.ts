@@ -75,6 +75,28 @@ describe('SessionManager', () => {
     expect(sm.validateToolToken(fn, token, callId)).toBe(true);
   });
 
+  it('createToolToken and generateToken produce equivalent, cross-validatable tokens', () => {
+    const sm = new SessionManager();
+    const callId = 'call-xyz';
+    const fn = 'get_weather';
+
+    // Tokens contain a random nonce, so they are not byte-equal; instead assert
+    // that a token from EITHER name validates via EITHER validator name, with
+    // each validator's own (different) parameter order. This pins the trap:
+    // validateToken(callId, fn, token) vs validateToolToken(fn, token, callId).
+    const tokenA = sm.generateToken(fn, callId);
+    const tokenB = sm.createToolToken(fn, callId);
+
+    expect(sm.validateToken(callId, fn, tokenA)).toBe(true);
+    expect(sm.validateToolToken(fn, tokenA, callId)).toBe(true);
+    expect(sm.validateToken(callId, fn, tokenB)).toBe(true);
+    expect(sm.validateToolToken(fn, tokenB, callId)).toBe(true);
+
+    // Wrong argument order must NOT validate (proves the alias really reorders,
+    // not that validation is order-insensitive).
+    expect(sm.validateToolToken(callId, tokenA, fn)).toBe(false);
+  });
+
   it('rejects token when callId is empty', () => {
     const sm = new SessionManager();
     const token = sm.generateToken('fn', 'call-1');
