@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4214e48ccf4fdfffb15618db31fa269880bcbb89",
+  "generated_from": "signalwire-typescript @ a5df0e6ba2e492ef00a2940a66264be1f4fb24b1",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -115,6 +115,7 @@
           "register_sip_username",
           "remove_skill_by_name",
           "render_swml",
+          "replace_global_data",
           "run_serverless",
           "set_post_prompt_url",
           "set_web_hook_url",

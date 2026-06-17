@@ -884,17 +884,23 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Merge data into the global_data object passed into the AI configuration.
+   * **MERGES** `data` into the global_data object passed into the AI
+   * configuration. **Despite the name, this does NOT replace** the existing
+   * object — existing keys are preserved and incoming keys overwrite only on
+   * collision (it calls `.update()`-style merge, matching Python
+   * `set_global_data`). This is intentional: skills and other callers each
+   * contribute keys via {@link updateGlobalData}, and a replacing
+   * `setGlobalData` would silently clobber their contributions.
    *
-   * Matches Python `set_global_data` which calls `.update()` on the internal dict —
-   * existing keys are preserved; incoming keys overwrite on collision. Skills and
-   * other callers can each contribute keys without clobbering one another.
-   *
-   * If you need to replace the entire object, assign a new agent instance or use
-   * `Object.assign(agent.globalData, {})` to clear first.
+   * - To **add/override** keys while keeping the rest: this method or the
+   *   identical {@link updateGlobalData}.
+   * - To **fully replace** global_data (clearing every prior key, including
+   *   skill-contributed ones): use {@link replaceGlobalData}.
    *
    * @param data - Key-value pairs to merge into global data.
    * @returns This agent instance for chaining.
+   * @see updateGlobalData - explicit merge alias.
+   * @see replaceGlobalData - true replace semantics.
    */
   setGlobalData(data: Record<string, unknown>): this {
     safeAssign(this.globalData, data);
@@ -902,12 +908,40 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Merge additional entries into the existing global_data object.
+   * Merge additional entries into the existing global_data object. Identical in
+   * behavior to {@link setGlobalData} (both merge); use this name when the
+   * intent is explicitly "add to" rather than "set". Skills register their
+   * global data through this path.
+   *
    * @param data - Key-value pairs to merge into global data.
    * @returns This agent instance for chaining.
+   * @see replaceGlobalData - to clear prior keys instead of merging.
    */
   updateGlobalData(data: Record<string, unknown>): this {
     safeAssign(this.globalData, data);
+    return this;
+  }
+
+  /**
+   * **REPLACES** the entire global_data object: every previously-set key
+   * (including skill-contributed keys) is cleared, and `data` becomes the new
+   * global_data. Use this when you genuinely want a fresh object — the
+   * unambiguous counterpart to the merging {@link setGlobalData} /
+   * {@link updateGlobalData}.
+   *
+   * A shallow copy of `data` is stored, so later mutations of the caller's
+   * object do not leak into the agent.
+   *
+   * TS-native addition: Python's reference SDK has no replace path (its
+   * `set_global_data` only merges), so this has no Python counterpart — see
+   * `PORT_ADDITIONS.md`.
+   *
+   * @param data - The new global_data object (replaces all prior keys).
+   * @returns This agent instance for chaining.
+   * @see setGlobalData - the merging counterpart (does NOT clear prior keys).
+   */
+  replaceGlobalData(data: Record<string, unknown>): this {
+    this.globalData = { ...data };
     return this;
   }
 

@@ -119,6 +119,44 @@ describe('AgentBase', () => {
     expect(ai.global_data.name).toBe('John');
   });
 
+  it('setGlobalData MERGES (does not clear prior keys)', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1, b: 2 });
+    agent.setGlobalData({ b: 3, c: 4 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ a: 1, b: 3, c: 4 });
+  });
+
+  it('updateGlobalData MERGES like setGlobalData', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1 });
+    agent.updateGlobalData({ b: 2 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ a: 1, b: 2 });
+  });
+
+  it('replaceGlobalData REPLACES (clears prior keys, incl. skill-contributed)', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1, b: 2 });
+    agent.replaceGlobalData({ c: 3 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ c: 3 });
+    expect(ai.global_data.a).toBeUndefined();
+  });
+
+  it('replaceGlobalData stores a copy (no aliasing of caller object)', () => {
+    const agent = createAgent();
+    const data: Record<string, unknown> = { x: 1 };
+    agent.replaceGlobalData(data);
+    data.x = 999; // mutate after the call
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data.x).toBe(1);
+  });
+
   it('setPromptLlmParams merges into prompt', () => {
     const agent = createAgent();
     agent.setPromptText('hello');

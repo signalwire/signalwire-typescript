@@ -1238,6 +1238,20 @@
               ],
               "returns": "string"
             },
+            "replace_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "run_serverless": {
               "params": [
                 {
