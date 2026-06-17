@@ -97,6 +97,14 @@ export class PomSection {
   }
 
   /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link PomSection.toDict}. No Python counterpart.
+   */
+  toJSON(): PomSectionData {
+    return this.toDict();
+  }
+
+  /**
    * Renders this section and its subsections as a Markdown string.
    * @param level - The heading level to start at (default 2 for ##).
    * @param sectionNumber - Hierarchical numbering prefix for numbered sections.
@@ -400,6 +408,15 @@ export class PomBuilder {
    */
   toJson(): string {
     return JSON.stringify(this.toDict());
+  }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify(builder)` emits the wire
+   * shape via {@link PomBuilder.toDict}. Distinct from {@link PomBuilder.toJson}
+   * (which returns a string). No Python counterpart.
+   */
+  toJSON(): PomSectionData[] {
+    return this.toDict();
   }
 
   /**

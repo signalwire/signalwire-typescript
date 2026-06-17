@@ -2159,6 +2159,15 @@
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextDict"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.ContextDict"
             }
           }
         },
@@ -2216,6 +2225,15 @@
               "returns": "any"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",
@@ -2292,6 +2310,15 @@
                 }
               ],
               "returns": "class:signalwire.core.contexts.GatherInfoDict"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.GatherInfoDict"
             }
           }
         },
@@ -2312,6 +2339,15 @@
               "returns": "void"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",
@@ -2610,6 +2646,15 @@
               "returns": "any"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.contexts.StepDict"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",
@@ -3688,6 +3733,15 @@
               "returns": "any"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.SwaigResultDict"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",
@@ -5178,6 +5232,15 @@
               "returns": "list<class:signalwire.core.pom_builder.PomSection>"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.core.pom_builder.PomSectionData"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",
@@ -8467,6 +8530,15 @@
               "returns": "list<class:signalwire.pom.pom.Section>"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.pom.pom.SectionData"
+            },
+            "to_json": {
               "params": [
                 {
                   "name": "self",

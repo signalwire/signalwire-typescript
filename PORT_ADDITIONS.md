@@ -244,12 +244,17 @@ signalwire.core.contexts.Context.get_initial_step: TS ContextBuilder / Context h
 signalwire.core.contexts.Context.get_step_order: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Context.get_steps: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Context.get_valid_contexts: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.Context.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.ContextBuilder.attach_agent: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.ContextBuilder.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.GatherInfo.get_completion_action: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.GatherInfo.get_questions: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.GatherInfo.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+signalwire.core.contexts.GatherQuestion.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.Step.get_gather_info: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_step_valid_contexts: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_valid_steps: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.Step.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 
 ## SkillBase port-specific additions
 
@@ -288,6 +293,12 @@ signalwire.core.pom_builder.PomSection.add_subsection: TS POM helper on PomBuild
 signalwire.core.pom_builder.PomSection.render_markdown: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
 signalwire.core.pom_builder.PomSection.render_xml: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
 signalwire.core.pom_builder.PomSection.to_dict: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
+signalwire.core.pom_builder.PomSection.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+signalwire.pom.pom.Section.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+
+## FunctionResult port-specific
+
+signalwire.core.function_result.FunctionResult.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 
 ## Relay port-specific
 

@@ -139,6 +139,14 @@ export class Section {
   }
 
   /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link Section.toDict}. No Python counterpart.
+   */
+  toJSON(): SectionData {
+    return this.toDict();
+  }
+
+  /**
    * Render this section and all its subsections as markdown.
    *
    * @param level The heading level to start with (default 2 = `##`).
@@ -324,6 +332,15 @@ export class PromptObjectModel {
   /** Convert the entire model to a JSON string (pretty-printed with 2-space indent). */
   toJson(): string {
     return JSON.stringify(this.toDict(), null, 2);
+  }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify(model)` emits the wire
+   * shape via {@link PromptObjectModel.toDict}. Distinct from
+   * {@link PromptObjectModel.toJson} (which returns a string). No Python counterpart.
+   */
+  toJSON(): SectionData[] {
+    return this.toDict();
   }
 
   /** Convert the entire model to a YAML string. */

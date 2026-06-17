@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ a5df0e6ba2e492ef00a2940a66264be1f4fb24b1",
+  "generated_from": "signalwire-typescript @ d85ce0f8781af66d5e9de10228216d7ceb1c26ac",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -171,14 +171,16 @@
       "classes": {
         "GatherQuestion": [
           "__init__",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "GatherInfo": [
           "__init__",
           "add_question",
           "get_completion_action",
           "get_questions",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "Step": [
           "__init__",
@@ -202,7 +204,8 @@
           "set_text",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "Context": [
           "__init__",
@@ -232,7 +235,8 @@
           "set_user_prompt",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "ContextBuilder": [
           "__init__",
@@ -241,6 +245,7 @@
           "get_context",
           "reset",
           "to_dict",
+          "to_json",
           "validate"
         ]
       },
@@ -327,6 +332,7 @@
           "swml_user_event",
           "tap",
           "to_dict",
+          "to_json",
           "toggle_functions",
           "update_global_data",
           "update_settings",
@@ -483,7 +489,8 @@
           "add_subsection",
           "render_markdown",
           "render_xml",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "PomBuilder": [
           "__init__",
@@ -844,7 +851,8 @@
           "add_subsection",
           "render_markdown",
           "render_xml",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "PromptObjectModel": [
           "__init__",
