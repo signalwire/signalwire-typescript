@@ -16,7 +16,7 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import { SwaigFunction, type SwaigHandler } from './SwaigFunction.js';
+import { SwaigFunction, type SwaigHandler, type SwaigErrorHandler } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
@@ -398,6 +398,25 @@ export class AgentBase extends SWMLService {
     if (this._toolsDefined) return;
     this._toolsDefined = true;
     this.defineTools();
+  }
+
+  /** Agent-level SWAIG error hook; see {@link onError}. */
+  private _onError?: SwaigErrorHandler;
+
+  /**
+   * Register an agent-level error hook invoked when any SWAIG tool handler
+   * throws. It runs after a tool's own `onError` (if any) and lets you report
+   * failures (Sentry/Datadog/logging) and optionally control the user-facing
+   * response — return a {@link FunctionResult} to override it, or nothing to
+   * fall back to the default message. The error is always contained, so a
+   * thrown handler never breaks the live call.
+   *
+   * @param handler - The error hook, or `undefined` to clear it.
+   * @returns `this`, for chaining.
+   */
+  onError(handler: SwaigErrorHandler | undefined): this {
+    this._onError = handler;
+    return this;
   }
 
   /**
@@ -1314,7 +1333,7 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequestData;
-        const resultDict = await fn.execute(args, rawData);
+        const resultDict = await fn.execute(args, rawData, this._onError);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
           jsonrpc: '2.0',
@@ -2536,7 +2555,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn.execute(args, body);
+        const result = await fn.execute(args, body, this._onError);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);

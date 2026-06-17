@@ -26,6 +26,42 @@ export type SwaigHandler = (
   | string
   | Promise<FunctionResult | Record<string, unknown> | string>;
 
+/**
+ * Context passed to an {@link SwaigErrorHandler} when a tool handler throws.
+ */
+export interface SwaigErrorContext {
+  /** Name of the tool whose handler threw. */
+  functionName: string;
+  /** The parsed arguments the handler was invoked with. */
+  args: Record<string, unknown>;
+  /** The full raw request payload (if available). */
+  rawData?: SwaigRequestData;
+}
+
+/**
+ * Hook invoked when a SWAIG tool handler throws. Lets authors observe the
+ * failure (report to Sentry/Datadog, log with full context) and optionally
+ * decide the user-facing response.
+ *
+ * - Return a {@link FunctionResult} to control exactly what the AI receives.
+ * - Return `void`/`undefined` to fall back to the default error response.
+ *
+ * The error is always contained — a thrown handler never propagates to the
+ * HTTP layer (that would break the live call). This hook makes the containment
+ * *observable and configurable* instead of opaque.
+ */
+export type SwaigErrorHandler = (
+  error: unknown,
+  context: SwaigErrorContext,
+) => FunctionResult | void | Promise<FunctionResult | void>;
+
+/**
+ * Default user-facing message returned when a tool handler throws and no
+ * {@link SwaigErrorHandler} supplies its own response.
+ */
+export const DEFAULT_SWAIG_ERROR_MESSAGE =
+  "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.";
+
 /** Configuration options for creating a SwaigFunction. */
 export interface SwaigFunctionOptions {
   /** Unique name used to register and invoke this tool. */
@@ -69,6 +105,17 @@ export interface SwaigFunctionOptions {
   extraFields?: Record<string, unknown>;
   /** Whether this tool uses a typed handler with named parameters. */
   isTypedHandler?: boolean;
+  /**
+   * Per-tool error hook. Invoked when this tool's handler throws, before the
+   * default error response is produced. See {@link SwaigErrorHandler}.
+   */
+  onError?: SwaigErrorHandler;
+  /**
+   * Per-tool override for the user-facing message returned when the handler
+   * throws and no {@link onError} hook supplies a response. Defaults to
+   * {@link DEFAULT_SWAIG_ERROR_MESSAGE}.
+   */
+  errorMessage?: string;
 }
 
 /**
@@ -129,6 +176,10 @@ export class SwaigFunction {
   isTypedHandler: boolean;
   /** Whether this tool is externally hosted (has a webhookUrl). */
   isExternal: boolean;
+  /** Per-tool error hook; see {@link SwaigErrorHandler}. */
+  onError?: SwaigErrorHandler;
+  /** Per-tool user-facing error message override. */
+  errorMessage?: string;
 
   /**
    * Create a new SwaigFunction.
@@ -154,6 +205,8 @@ export class SwaigFunction {
     this.extraFields = opts.extraFields ?? {};
     this.isTypedHandler = opts.isTypedHandler ?? false;
     this.isExternal = opts.webhookUrl !== undefined;
+    this.onError = opts.onError;
+    this.errorMessage = opts.errorMessage;
   }
 
   private ensureParameterStructure(): Record<string, unknown> {
@@ -218,6 +271,7 @@ export class SwaigFunction {
   async execute(
     args: Record<string, unknown>,
     rawData?: SwaigRequestData,
+    agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
@@ -250,10 +304,30 @@ export class SwaigFunction {
       );
       return new FunctionResult(String(result)).toDict();
     } catch (err) {
-      log.error(`Error executing SWAIG function ${this.name}: ${err}`);
-      return new FunctionResult(
-        "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.",
-      ).toDict();
+      // Preserve the stack for Error instances (plain `${err}` discards it).
+      const detail =
+        err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err);
+      log.error(`Error executing SWAIG function ${this.name}: ${detail}`);
+
+      // Give authors a programmatic surface: per-tool hook first, then the
+      // agent-level hook. Either may return a FunctionResult to control what
+      // the AI sees; if a hook itself throws, that's logged and we continue to
+      // the next fallback (the error is always contained — a thrown handler
+      // must never break the live call).
+      const ctx: SwaigErrorContext = { functionName: this.name, args, rawData };
+      for (const hook of [this.onError, agentOnError]) {
+        if (!hook) continue;
+        try {
+          const handled = await hook(err, ctx);
+          if (handled instanceof FunctionResult) {
+            return handled.toDict();
+          }
+        } catch (hookErr) {
+          log.error(`onError hook for SWAIG function ${this.name} threw: ${hookErr}`);
+        }
+      }
+
+      return new FunctionResult(this.errorMessage ?? DEFAULT_SWAIG_ERROR_MESSAGE).toDict();
     }
   }
 

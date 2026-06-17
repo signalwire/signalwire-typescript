@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ d6e0ffb6157a231037311bf8bbe35795e1d4bdb3",
+  "generated_from": "signalwire-typescript @ 4214e48ccf4fdfffb15618db31fa269880bcbb89",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -97,6 +97,7 @@
           "create_tool_token",
           "define_typed_tool",
           "enable_sip_routing",
+          "ensure_tools_defined",
           "extract_sip_username",
           "get_full_url",
           "get_mcp_servers",
@@ -107,6 +108,7 @@
           "is_mcp_server_enabled",
           "native_functions",
           "on_debug_event",
+          "on_error",
           "on_summary",
           "pom",
           "prompt_manager",

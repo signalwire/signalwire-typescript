@@ -162,6 +162,7 @@ signalwire.core.agent_base.AgentBase.get_prompt_pom: TS-native AgentBase accesso
 signalwire.core.agent_base.AgentBase.get_registered_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_tool: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
+signalwire.core.agent_base.AgentBase.on_error: TS-native agent-level SWAIG error hook (#19371) — Python has no programmatic error surface on tool dispatch; registers a callback invoked when a tool handler throws, for reporting + optional response control
 signalwire.core.agent_base.AgentBase.handle_mcp_request: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.is_mcp_server_enabled: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.native_functions: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python

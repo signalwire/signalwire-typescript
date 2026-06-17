@@ -980,6 +980,15 @@
               ],
               "returns": "any"
             },
+            "ensure_tools_defined": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
             "extract_sip_username": {
               "params": [
                 {
@@ -1104,6 +1113,20 @@
                 }
               ],
               "returns": "union<void,void>"
+            },
+            "on_error": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "handler",
+                  "type": "callable<list<any,class:signalwire.core.swaig_function.SwaigErrorContext>,union<void,class:signalwire.core.function_result.FunctionResult,union<void,class:signalwire.core.function_result.FunctionResult>>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
             },
             "on_summary": {
               "params": [
@@ -6077,6 +6100,12 @@
                 {
                   "name": "raw_data",
                   "type": "class:signalwire.platform_contracts.generated.SwaigRequestData",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "agent_on_error",
+                  "type": "callable<list<any,class:signalwire.core.swaig_function.SwaigErrorContext>,union<void,class:signalwire.core.function_result.FunctionResult,union<void,class:signalwire.core.function_result.FunctionResult>>>",
                   "required": false,
                   "default": null
                 }
