@@ -16,7 +16,12 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import { SwaigFunction, type SwaigHandler, type SwaigErrorHandler } from './SwaigFunction.js';
+import {
+  SwaigFunction,
+  normalizeParameters,
+  type SwaigHandler,
+  type SwaigErrorHandler,
+} from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
@@ -1289,19 +1294,7 @@ export class AgentBase extends SWMLService {
           name,
           description: fn.description || name,
         };
-        if (fn.parameters && Object.keys(fn.parameters).length) {
-          if ('type' in fn.parameters && 'properties' in fn.parameters) {
-            tool['inputSchema'] = fn.parameters;
-          } else {
-            tool['inputSchema'] = {
-              type: 'object',
-              properties: fn.parameters,
-              ...(fn.required.length ? { required: fn.required } : {}),
-            };
-          }
-        } else {
-          tool['inputSchema'] = { type: 'object', properties: {} };
-        }
+        tool['inputSchema'] = normalizeParameters(fn.parameters, fn.required);
         tools.push(tool);
       }
     }
@@ -2098,16 +2091,7 @@ export class AgentBase extends SWMLService {
         const entry: Record<string, unknown> = {
           function: name,
           description: fn.description,
-          parameters:
-            fn.parameters && Object.keys(fn.parameters).length
-              ? 'type' in fn.parameters && 'properties' in fn.parameters
-                ? fn.parameters
-                : {
-                    type: 'object',
-                    properties: fn.parameters,
-                    ...(fn.required.length ? { required: fn.required } : {}),
-                  }
-              : { type: 'object', properties: {} },
+          parameters: normalizeParameters(fn.parameters, fn.required),
         };
         if (fn.fillers && Object.keys(fn.fillers).length) entry['fillers'] = fn.fillers;
         if (fn.waitFile) entry['wait_file'] = fn.waitFile;

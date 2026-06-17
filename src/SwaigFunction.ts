@@ -12,6 +12,66 @@ const ajv = new Ajv({ allErrors: true });
 const log = getLogger('SwaigFunction');
 
 /**
+ * Decide whether a `parameters` value is already a full JSON Schema object
+ * (`{ type: 'object', properties: {...} }`) versus a bare map of property
+ * definitions that must be wrapped.
+ *
+ * Robust discriminator: a value is a full schema ONLY when its `type` is the
+ * string `'object'` AND its `properties` is itself an object. The old check
+ * (`'type' in p && 'properties' in p`) misclassified a tool whose parameters
+ * are literally NAMED `type` and `properties`: for such a bare map the value of
+ * `type` is a property-definition object (not the string `'object'`), so this
+ * check correctly treats it as a bare properties map.
+ *
+ * @param parameters - The raw `parameters` value to inspect.
+ * @returns `true` if it is already a full JSON Schema object.
+ */
+export function isFullParameterSchema(parameters: Record<string, unknown>): boolean {
+  const props = (parameters as { properties?: unknown }).properties;
+  return (
+    (parameters as { type?: unknown }).type === 'object' &&
+    typeof props === 'object' &&
+    props !== null
+  );
+}
+
+/**
+ * Normalize a tool's `parameters` into a full JSON Schema object suitable for
+ * SWAIG / MCP output.
+ *
+ * - An empty/absent map becomes `{ type: 'object', properties: {} }`.
+ * - An already-full schema (see {@link isFullParameterSchema}) is returned
+ *   unchanged.
+ * - A bare properties map is wrapped as
+ *   `{ type: 'object', properties: <map>, required?: <required> }`.
+ *
+ * This is the single source of truth for the `parameters` shape sniff that used
+ * to be reimplemented in SwaigFunction, AgentBase MCP tool listing, and the
+ * AgentBase SWAIG function table.
+ *
+ * @param parameters - The raw `parameters` value (bare properties map or full schema).
+ * @param required - Required-parameter names, applied only when wrapping a bare map.
+ * @returns A full JSON Schema object.
+ */
+export function normalizeParameters(
+  parameters: Record<string, unknown> | undefined,
+  required: string[] = [],
+): Record<string, unknown> {
+  if (!parameters || Object.keys(parameters).length === 0) {
+    return { type: 'object', properties: {} };
+  }
+  if (isFullParameterSchema(parameters)) {
+    return parameters;
+  }
+  const result: Record<string, unknown> = {
+    type: 'object',
+    properties: parameters,
+  };
+  if (required.length) result['required'] = required;
+  return result;
+}
+
+/**
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
@@ -210,18 +270,7 @@ export class SwaigFunction {
   }
 
   private ensureParameterStructure(): Record<string, unknown> {
-    if (!this.parameters || Object.keys(this.parameters).length === 0) {
-      return { type: 'object', properties: {} };
-    }
-    if ('type' in this.parameters && 'properties' in this.parameters) {
-      return this.parameters;
-    }
-    const result: Record<string, unknown> = {
-      type: 'object',
-      properties: this.parameters,
-    };
-    if (this.required.length) result['required'] = this.required;
-    return result;
+    return normalizeParameters(this.parameters, this.required);
   }
 
   /**

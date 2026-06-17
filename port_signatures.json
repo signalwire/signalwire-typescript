@@ -8,15 +8,15 @@
           "params": [
             {
               "name": "args",
-              "type": "list<string>",
-              "required": false,
-              "default": null
+              "kind": "positional",
+              "type": "list<any>",
+              "required": false
             },
             {
               "name": "kwargs",
+              "kind": "positional",
               "type": "dict<string,any>",
-              "required": false,
-              "default": null
+              "required": false
             }
           ],
           "returns": "class:signalwire.rest.client.RestClient"
@@ -6230,6 +6230,34 @@
               "returns": "tuple<bool,list<string>>"
             }
           }
+        }
+      },
+      "functions": {
+        "is_full_parameter_schema": {
+          "params": [
+            {
+              "name": "parameters",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "normalize_parameters": {
+          "params": [
+            {
+              "name": "parameters",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "required",
+              "type": "list<string>",
+              "required": false,
+              "default": []
+            }
+          ],
+          "returns": "dict<string,any>"
         }
       }
     },

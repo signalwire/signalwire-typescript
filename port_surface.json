@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ d85ce0f8781af66d5e9de10228216d7ceb1c26ac",
+  "generated_from": "signalwire-typescript @ 4c086898364b047899cb394afe08dce3f842beb9",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -630,7 +630,10 @@
           "validate_args"
         ]
       },
-      "functions": []
+      "functions": [
+        "is_full_parameter_schema",
+        "normalize_parameters"
+      ]
     },
     "signalwire.core.swml_builder": {
       "classes": {

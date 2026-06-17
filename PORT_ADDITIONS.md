@@ -96,6 +96,8 @@ signalwire.core.mixins.serverless_mixin.ServerlessAdapter.detect_platform: TS po
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.generate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.get_platform: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.handle_request: TS port-only helper — functionality has no direct Python equivalent
+signalwire.core.swaig_function.is_full_parameter_schema: TS port-only helper — discriminates a full JSON Schema from a bare properties map; Python inlines the sniff and has no exported helper
+signalwire.core.swaig_function.normalize_parameters: TS port-only helper — unifies the parameters-shape normalization (full schema vs bare map) that was reimplemented in 3 places; no Python counterpart
 signalwire.prefabs.concierge.ConciergeAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.concierge.create_concierge_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.faq_bot.FAQBotAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent
