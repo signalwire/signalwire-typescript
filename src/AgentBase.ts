@@ -366,13 +366,38 @@ export class AgentBase extends SWMLService {
     numbered?: boolean;
   }[];
 
+  /** Guards {@link ensureToolsDefined} so `defineTools()` runs at most once. */
+  private _toolsDefined = false;
+
   /**
-   * Lifecycle method to register tools. Subclasses should call this at the
-   * end of their own constructor (after all fields are initialized).
-   * Not called automatically — call `this.defineTools()` explicitly.
+   * Lifecycle hook for subclasses to register their SWAIG tools. Override it
+   * and call `this.defineTool(...)` inside.
+   *
+   * You do **not** need to call this yourself — the base class invokes it
+   * automatically (exactly once) the first time tools are needed: on
+   * {@link renderSwml}, {@link getTools}, {@link serve}/{@link run}, or SWAIG
+   * dispatch. It runs lazily rather than from the base constructor because in
+   * JS/TS `super()` runs *before* a subclass's field initializers, so a
+   * base-constructor call would see `undefined` fields. Deferring to first use
+   * guarantees all subclass fields are initialized.
+   *
+   * Calling `this.defineTools()` manually (the old convention) still works and
+   * is safe — the call is idempotent, so it will not double-register tools.
    */
   protected defineTools(): void {
     // Default no-op — subclasses override
+  }
+
+  /**
+   * Run {@link defineTools} exactly once. Idempotent: safe to call from any
+   * tool-consumption entry point and from a subclass constructor. This is how
+   * `defineTools()` gets auto-invoked without falling into the JS field-init
+   * ordering trap (see {@link defineTools}).
+   */
+  protected ensureToolsDefined(): void {
+    if (this._toolsDefined) return;
+    this._toolsDefined = true;
+    this.defineTools();
   }
 
   /**
@@ -384,6 +409,7 @@ export class AgentBase extends SWMLService {
    * @returns Array of all registered SwaigFunction instances.
    */
   getTools(): SwaigFunction[] {
+    this.ensureToolsDefined();
     const tools: SwaigFunction[] = [];
     for (const [, fn] of this.toolRegistry) {
       if (fn instanceof SwaigFunction) tools.push(fn);
@@ -1989,6 +2015,7 @@ export class AgentBase extends SWMLService {
    * @returns The rendered SWML document as a JSON string.
    */
   renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
+    this.ensureToolsDefined();
     this.swmlBuilder.reset();
 
     const prompt = this.getPrompt();
@@ -2252,6 +2279,9 @@ export class AgentBase extends SWMLService {
    * @returns The configured Hono application instance.
    */
   getApp(): Hono {
+    // Make sure subclass tools are registered before any route can dispatch
+    // a SWAIG call (idempotent — see ensureToolsDefined).
+    this.ensureToolsDefined();
     // Service's constructor eagerly initialised _app; AgentBase rebuilds it
     // here with its own middleware stack and route handlers on first call.
     if (this._appBuiltByAgent) return this._app;

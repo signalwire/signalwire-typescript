@@ -1346,4 +1346,73 @@ describe('AgentBase', () => {
       expect(agent.setLanguageParams('en-US', { a: 1 })).toBe(agent);
     });
   });
+
+  describe('defineTools() auto-invocation (#19370)', () => {
+    // A subclass that overrides defineTools() but, crucially, does NOT call it
+    // from its constructor — the historical footgun. The base class must invoke
+    // it automatically before tools are consumed.
+    class NoManualCallAgent extends AgentBase {
+      public defineToolsRunCount = 0;
+      constructor() {
+        super({ name: 'no-manual', route: '/nm' });
+      }
+      protected override defineTools(): void {
+        this.defineToolsRunCount++;
+        this.defineTool({
+          name: 'echo',
+          description: 'Echo a value',
+          parameters: {},
+          handler: () => new FunctionResult('ok'),
+        });
+      }
+    }
+
+    it('registers tools on getTools() without a manual defineTools() call', () => {
+      const agent = new NoManualCallAgent();
+      expect(agent.getTools().map((t) => t.name)).toContain('echo');
+      expect(agent.defineToolsRunCount).toBe(1);
+    });
+
+    it('registers tools on renderSwml() without a manual defineTools() call', () => {
+      const agent = new NoManualCallAgent();
+      const swml = JSON.parse(agent.renderSwml());
+      const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+      const fnNames = (ai.SWAIG.functions as { function: string }[]).map((f) => f.function);
+      expect(fnNames).toContain('echo');
+    });
+
+    it('runs defineTools() exactly once across multiple consumption points', () => {
+      const agent = new NoManualCallAgent();
+      agent.getTools();
+      agent.renderSwml();
+      agent.getTools();
+      expect(agent.defineToolsRunCount).toBe(1);
+    });
+
+    it('does not double-register when a subclass calls ensureToolsDefined() manually', () => {
+      class ManualCallAgent extends AgentBase {
+        public runCount = 0;
+        constructor() {
+          super({ name: 'manual', route: '/m' });
+          // Old convention (now routed through the idempotent guard).
+          (this as unknown as { ensureToolsDefined(): void }).ensureToolsDefined();
+        }
+        protected override defineTools(): void {
+          this.runCount++;
+          this.defineTool({
+            name: 'once',
+            description: 'Tool',
+            parameters: {},
+            handler: () => new FunctionResult('ok'),
+          });
+        }
+      }
+      const agent = new ManualCallAgent();
+      // Consuming again must not re-run defineTools().
+      agent.getTools();
+      agent.renderSwml();
+      expect(agent.runCount).toBe(1);
+      expect(agent.getTools().filter((t) => t.name === 'once')).toHaveLength(1);
+    });
+  });
 });

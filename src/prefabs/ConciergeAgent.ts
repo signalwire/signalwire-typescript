@@ -98,7 +98,7 @@ export class ConciergeAgent extends AgentBase {
     this.setupConciergeAgent(config.welcomeMessage);
 
     // Register tools after all fields are initialized
-    this.defineTools();
+    this.ensureToolsDefined();
   }
 
   /** Configure the concierge agent's prompt, hints, params, and global data. */

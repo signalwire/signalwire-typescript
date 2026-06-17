@@ -120,7 +120,7 @@ export class FAQBotAgent extends AgentBase {
     this.configureAgentSettings();
 
     // Register tools after all fields are initialized
-    this.defineTools();
+    this.ensureToolsDefined();
   }
 
   // ── Prompt construction (mirrors Python _build_faq_bot_prompt) ────────

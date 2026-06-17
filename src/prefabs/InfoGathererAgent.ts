@@ -148,7 +148,7 @@ export class InfoGathererAgent extends AgentBase {
     });
 
     // Register tools after all fields are initialized
-    this.defineTools();
+    this.ensureToolsDefined();
   }
 
   /**

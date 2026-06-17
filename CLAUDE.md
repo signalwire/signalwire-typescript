@@ -14,6 +14,7 @@ npm run dev            # TypeScript watch + rebuild
 ```
 
 CLI tool for testing agents without a running server:
+
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --dump-swml
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --list-tools
@@ -48,6 +49,7 @@ This differs from the Python SDK which uses 8 mixins. The TS SDK composes everyt
 ### SWML 5-Phase Rendering
 
 `renderSwml()` builds the call-flow document in phases:
+
 1. **Pre-answer** — verbs before picking up (e.g., play ringing)
 2. **Answer** — auto-answer verb (if enabled)
 3. **Post-answer** — verbs after answer, before AI (e.g., welcome message)
@@ -56,13 +58,13 @@ This differs from the Python SDK which uses 8 mixins. The TS SDK composes everyt
 
 ### Key Classes
 
-| Class | Purpose | Size |
-|-------|---------|------|
-| `AgentBase` | HTTP server, SWML rendering, tool dispatch, dynamic config | ~1100 lines |
-| `FunctionResult` | Fluent response builder with 40+ call-control actions | ~900 lines |
-| `ContextBuilder` | Multi-step workflows: Context → Step → GatherInfo | ~800 lines |
-| `DataMap` | Server-side tools (webhooks + expressions, no server roundtrip) | ~400 lines |
-| `SwaigFunction` | Wraps a tool handler with metadata for SWAIG serialization | ~100 lines |
+| Class            | Purpose                                                         | Size        |
+| ---------------- | --------------------------------------------------------------- | ----------- |
+| `AgentBase`      | HTTP server, SWML rendering, tool dispatch, dynamic config      | ~1100 lines |
+| `FunctionResult` | Fluent response builder with 40+ call-control actions           | ~900 lines  |
+| `ContextBuilder` | Multi-step workflows: Context → Step → GatherInfo               | ~800 lines  |
+| `DataMap`        | Server-side tools (webhooks + expressions, no server roundtrip) | ~400 lines  |
+| `SwaigFunction`  | Wraps a tool handler with metadata for SWAIG serialization      | ~100 lines  |
 
 ### Subclassing Pattern
 
@@ -70,13 +72,19 @@ Prefab agents and user agents extend `AgentBase` using three key hooks:
 
 ```typescript
 class MyAgent extends AgentBase {
-  static override PROMPT_SECTIONS = [/* declarative prompt sections */];
-  protected override defineTools(): void { /* register tools */ }
-  async onSummary(summary, rawData) { /* process call summary */ }
+  static override PROMPT_SECTIONS = [
+    /* declarative prompt sections */
+  ];
+  protected override defineTools(): void {
+    /* register tools */
+  }
+  async onSummary(summary, rawData) {
+    /* process call summary */
+  }
 }
 ```
 
-`defineTools()` is called at the end of the `AgentBase` constructor. Subclasses override it to register their tools after all fields are initialized.
+`defineTools()` is a lifecycle hook subclasses override to register their tools. The base class invokes it automatically (exactly once, via the idempotent `ensureToolsDefined()`) the first time tools are needed — on `renderSwml()`, `getTools()`, `getApp()`/`serve()`, or SWAIG dispatch. It runs lazily rather than from the base constructor because in JS/TS `super()` runs before a subclass's field initializers, so a base-constructor call would see `undefined` fields. Calling `this.defineTools()` (or `this.ensureToolsDefined()`) manually from a subclass constructor still works and is safe — registration is idempotent.
 
 ### Builder Pattern
 
@@ -93,13 +101,13 @@ class MyAgent extends AgentBase {
 
 ## Key Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
-| `PORT` | HTTP server port (default 3000) |
-| `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD` | Auth credentials |
-| `SWML_PROXY_URL_BASE` | Proxy/tunnel base URL for webhook URLs |
-| `SIGNALWIRE_LOG_LEVEL` | debug, info, warn, error |
-| `SIGNALWIRE_LOG_MODE` | Set to "off" to suppress all logging |
+| Variable                                            | Purpose                                |
+| --------------------------------------------------- | -------------------------------------- |
+| `PORT`                                              | HTTP server port (default 3000)        |
+| `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD` | Auth credentials                       |
+| `SWML_PROXY_URL_BASE`                               | Proxy/tunnel base URL for webhook URLs |
+| `SIGNALWIRE_LOG_LEVEL`                              | debug, info, warn, error               |
+| `SIGNALWIRE_LOG_MODE`                               | Set to "off" to suppress all logging   |
 
 ## Project Layout
 
