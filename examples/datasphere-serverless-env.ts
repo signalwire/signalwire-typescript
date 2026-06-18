@@ -70,4 +70,4 @@ console.log(`  Max results: ${count}`);
 console.log(`  Distance threshold: ${distance}`);
 if (tags) console.log(`  Tags: ${tags.join(', ')}`);
 
-agent.run();
+agent.serve();

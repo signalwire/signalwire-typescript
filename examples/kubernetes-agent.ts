@@ -42,4 +42,4 @@ agent.defineTool({
 // K8s liveness probe:  GET /health -> {"status":"ok"}
 // K8s readiness probe: GET /ready  -> {"status":"ready"}
 
-agent.run();
+agent.serve();

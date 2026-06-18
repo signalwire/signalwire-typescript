@@ -92,50 +92,50 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('verb method invocation', () => {
     it('answer() adds answer verb to document', () => {
       builder.answer();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(1);
       expect(doc.sections.main[0]).toEqual({ answer: {} });
     });
 
     it('answer() with config adds config', () => {
       builder.answer({ max_duration: 3600 });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ answer: { max_duration: 3600 } });
     });
 
     it('hangup() with reason', () => {
       builder.hangup({ reason: 'busy' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'busy' } });
     });
 
     it('hangup() without args adds empty config', () => {
       builder.hangup();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: {} });
     });
 
     it('play() with config', () => {
       builder.play({ url: 'https://example.com/audio.mp3' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ play: { url: 'https://example.com/audio.mp3' } });
     });
 
     it('tap() with required uri', () => {
       builder.tap({ uri: 'wss://example.com/tap' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ tap: { uri: 'wss://example.com/tap' } });
     });
 
     it('goto() with required label', () => {
       builder.goto({ label: 'start' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ goto: { label: 'start' } });
     });
 
     it('label() with string', () => {
       (builder as unknown as Record<string, (...args: unknown[]) => unknown>)['label']('greeting');
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ label: 'greeting' });
     });
   });
@@ -143,13 +143,13 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('sleep special handling', () => {
     it('sleep() with number adds integer directly', () => {
       builder.sleep(5000);
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ sleep: 5000 });
     });
 
     it('sleep() with config object', () => {
       builder.sleep({ duration: 3000 });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ sleep: { duration: 3000 } });
     });
   });
@@ -162,7 +162,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('chains multiple verb calls', () => {
       builder.answer().hangup();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(2);
       expect(doc.sections.main[0]).toEqual({ answer: {} });
       expect(doc.sections.main[1]).toEqual({ hangup: {} });
@@ -174,7 +174,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
         .play({ url: 'https://example.com/greeting.mp3' })
         .hangup({ reason: 'hangup' });
 
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(3);
       expect(doc.sections.main[0]).toEqual({ answer: { max_duration: 3600 } });
       expect(doc.sections.main[1]).toEqual({ play: { url: 'https://example.com/greeting.mp3' } });
@@ -192,7 +192,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       builder.answer();
       builder.addVerb('denoise', {});
       builder.hangup();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(3);
       expect(doc.sections.main[0]).toEqual({ answer: {} });
       expect(doc.sections.main[1]).toEqual({ denoise: {} });
@@ -204,7 +204,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     it('clears verb-method-added content', () => {
       builder.answer().hangup();
       builder.reset();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(0);
     });
 
@@ -215,7 +215,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('chains reset with further verbs', () => {
       builder.answer().hangup().reset().answer();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(1);
       expect(doc.sections.main[0]).toEqual({ answer: {} });
     });
@@ -262,7 +262,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('addVerbToSection()', () => {
     it('still works with custom sections', () => {
       builder.addVerbToSection('greet', 'play', { url: 'https://example.com/hi.mp3' });
-      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      const doc = builder.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections['greet']).toHaveLength(1);
       expect(doc.sections['greet'][0]).toEqual({ play: { url: 'https://example.com/hi.mp3' } });
     });
@@ -271,14 +271,14 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('say() — text-to-speech convenience', () => {
     it('adds a play verb with say: prefix', () => {
       builder.say('Hello world');
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(1);
       expect(doc.sections.main[0]).toEqual({ play: { url: 'say:Hello world' } });
     });
 
     it('passes voice option as say_voice', () => {
       builder.say('Hello', { voice: 'en-US-Neural2-F' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({
         play: { url: 'say:Hello', say_voice: 'en-US-Neural2-F' },
       });
@@ -286,7 +286,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('passes all TTS options', () => {
       builder.say('Test', { voice: 'v', language: 'en', gender: 'female', volume: 10 });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({
         play: {
           url: 'say:Test',
@@ -305,7 +305,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('chains say with other verbs', () => {
       builder.answer().say('Welcome').hangup();
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(3);
       expect(doc.sections.main[1]).toEqual({ play: { url: 'say:Welcome' } });
     });
@@ -325,11 +325,11 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
       const a = new SwmlBuilder();
       a.say('hi', { gender: typed });
-      const docTyped = a.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      const docTyped = a.build() as { sections: { main: Array<Record<string, unknown>> } };
 
       const b = new SwmlBuilder();
       b.say('hi', { gender: 'female' }); // bare string literal
-      const docStr = b.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      const docStr = b.build() as { sections: { main: Array<Record<string, unknown>> } };
 
       expect((docTyped.sections.main[0].play as Record<string, unknown>).say_gender).toBe('female');
       // Byte-for-byte identical play verb whether the value was the typed union
@@ -340,7 +340,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     it("accepts 'male' (the literal never present in the schema's examples)", () => {
       const gender: TtsGender = 'male';
       builder.say('hi', { gender });
-      const doc = builder.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      const doc = builder.build() as { sections: { main: Array<Record<string, unknown>> } };
       expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('male');
     });
 
@@ -352,7 +352,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       // the type changes what the compiler accepts, not a single wire byte.
       // @ts-expect-error — 'neutral' is not a TtsGender; the open arm was removed.
       builder.say('hi', { gender: 'neutral' });
-      const doc = builder.getDocument() as { sections: { main: Array<Record<string, unknown>> } };
+      const doc = builder.build() as { sections: { main: Array<Record<string, unknown>> } };
       expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('neutral');
     });
 
@@ -380,14 +380,14 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('addSection() — create empty section', () => {
     it('creates an empty named section', () => {
       builder.addSection('greetings');
-      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      const doc = builder.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections['greetings']).toEqual([]);
     });
 
     it('is a no-op if section already exists', () => {
       builder.addVerbToSection('greetings', 'play', { url: 'https://example.com/hi.mp3' });
       builder.addSection('greetings');
-      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      const doc = builder.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections['greetings']).toHaveLength(1);
     });
 
@@ -398,7 +398,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('chains with addVerbToSection', () => {
       builder.addSection('custom').addVerbToSection('custom', 'play', { url: 'say:hi' });
-      const doc = builder.getDocument() as { sections: Record<string, unknown[]> };
+      const doc = builder.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections['custom']).toHaveLength(1);
     });
   });
@@ -406,7 +406,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('build() — alias for getDocument()', () => {
     it('returns the same result as getDocument', () => {
       builder.answer();
-      expect(builder.build()).toBe(builder.getDocument());
+      expect(builder.build()).toBe(builder.build());
     });
 
     it('returns document with version and sections', () => {
@@ -420,7 +420,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('render() — alias for renderDocument()', () => {
     it('returns the same result as renderDocument', () => {
       builder.answer();
-      expect(builder.render()).toBe(builder.renderDocument());
+      expect(builder.render()).toBe(builder.render());
     });
 
     it('produces valid JSON', () => {
@@ -439,25 +439,25 @@ describe('SwmlBuilder — verb auto-vivification', () => {
         sections: { main: [{ answer: {} }] },
       };
       const b = new SwmlBuilder({ initialDocument: initial });
-      const doc = b.getDocument() as { sections: { main: unknown[] } };
+      const doc = b.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main).toHaveLength(1);
       expect(doc.sections.main[0]).toEqual({ answer: {} });
     });
 
     it('defaults version to 1.0.0 when omitted', () => {
       const b = new SwmlBuilder({ initialDocument: { sections: { main: [] } } });
-      expect(b.getDocument()).toHaveProperty('version', '1.0.0');
+      expect(b.build()).toHaveProperty('version', '1.0.0');
     });
 
     it('defaults sections when omitted', () => {
       const b = new SwmlBuilder({ initialDocument: {} });
-      const doc = b.getDocument() as { sections: Record<string, unknown[]> };
+      const doc = b.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections).toHaveProperty('main');
     });
 
     it('still works with no options', () => {
       const b = new SwmlBuilder();
-      const doc = b.getDocument() as { sections: { main: unknown[] } };
+      const doc = b.build() as { sections: { main: unknown[] } };
       expect(doc).toHaveProperty('version', '1.0.0');
       expect(doc.sections.main).toHaveLength(0);
     });
@@ -472,14 +472,14 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
 
     it('returns the same reference as getDocument', () => {
-      expect(builder.document).toBe(builder.getDocument());
+      expect(builder.document).toBe(builder.build());
     });
   });
 
   describe('hangup reason type widened to string', () => {
     it('accepts arbitrary string reasons', () => {
       builder.hangup({ reason: 'custom_reason' });
-      const doc = builder.getDocument() as { sections: { main: unknown[] } };
+      const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
     });
   });
@@ -487,7 +487,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   describe('getDocument() and renderDocument()', () => {
     it('getDocument returns correct structure', () => {
       builder.answer();
-      const doc = builder.getDocument();
+      const doc = builder.build();
       expect(doc).toHaveProperty('version', '1.0.0');
       expect(doc).toHaveProperty('sections');
       const sections = doc['sections'] as Record<string, unknown[]>;
@@ -497,7 +497,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
 
     it('renderDocument produces valid JSON', () => {
       builder.answer().sleep(1000).hangup();
-      const json = builder.renderDocument();
+      const json = builder.render();
       const parsed = JSON.parse(json);
       expect(parsed.version).toBe('1.0.0');
       expect(parsed.sections.main).toHaveLength(3);

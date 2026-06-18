@@ -185,7 +185,7 @@ The static `ConfigLoader.search()` method looks for a config file in three stand
 // Searches CWD, ./config/, and ~/.signalwire/ for "agent.json"
 const config = ConfigLoader.search('agent.json');
 if (config) {
-  console.log('Loaded from:', config.getFilePath());
+  console.log('Loaded from:', config.getConfigFile());
 }
 ```
 
@@ -209,7 +209,7 @@ if (config.has('auth.password')) {
 config.set('agent.temperature', 0.7);
 
 // Get entire config as a plain object
-const all = config.getAll();
+const all = config.getConfig();
 ```
 
 ### Loading from Objects

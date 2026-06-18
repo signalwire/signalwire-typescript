@@ -35,4 +35,4 @@ agent.addVerb('hangup', {});
 // Print the generated SWML
 console.log('SWML Document:', JSON.stringify(agent.renderSwml(), null, 2));
 
-agent.run();
+agent.serve();

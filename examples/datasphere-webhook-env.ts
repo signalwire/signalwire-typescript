@@ -63,4 +63,4 @@ console.log('WEBHOOK vs SERVERLESS:');
 console.log('  Webhook: Full control over request/response, custom error handling');
 console.log('  Serverless: No webhook infrastructure, lower latency, executes on SignalWire');
 
-agent.run();
+agent.serve();

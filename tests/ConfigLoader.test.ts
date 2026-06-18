@@ -67,7 +67,7 @@ describe('ConfigLoader', () => {
 
   it('getAll() returns all config data', () => {
     const config = new ConfigLoader(join(TEST_DIR, 'test.json'));
-    const all = config.getAll();
+    const all = config.getConfig();
     expect(all.name).toBe('test-agent');
     expect(all.server).toBeDefined();
   });
@@ -99,12 +99,12 @@ describe('ConfigLoader', () => {
     config.loadFromObject({ key: 'value', nested: { a: 1 } });
     expect(config.get('key')).toBe('value');
     expect(config.get('nested.a')).toBe(1);
-    expect(config.getFilePath()).toBeNull();
+    expect(config.getConfigFile()).toBeNull();
   });
 
   it('getFilePath returns the loaded file path', () => {
     const config = new ConfigLoader(join(TEST_DIR, 'test.json'));
-    expect(config.getFilePath()).toContain('test.json');
+    expect(config.getConfigFile()).toContain('test.json');
   });
 
   it('load returns this for chaining', () => {

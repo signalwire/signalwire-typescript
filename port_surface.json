@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4c086898364b047899cb394afe08dce3f842beb9",
+  "generated_from": "signalwire-typescript @ 69971cafc7e99909c2082bbda4cbb333d1fe8adc",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -149,10 +149,8 @@
           "config_paths",
           "find_config_file",
           "get",
-          "get_all",
           "get_config",
           "get_config_file",
-          "get_file_path",
           "get_section",
           "has",
           "has_config",
@@ -644,10 +642,8 @@
           "add_verb_to_section",
           "build",
           "document",
-          "get_document",
           "get_schema_utils",
           "render",
-          "render_document",
           "reset",
           "say",
           "set_validation"
@@ -709,7 +705,6 @@
           "render_document",
           "render_swml",
           "reset_document",
-          "run",
           "serve",
           "set_on_request_callback",
           "stop",

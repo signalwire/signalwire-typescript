@@ -51,4 +51,4 @@ agent.setDynamicConfigCallback(async (queryParams, bodyParams, headers, agentCop
   }
 });
 
-agent.run();
+agent.serve();

@@ -87,7 +87,7 @@ describe('SWMLService', () => {
     it('builder matches renderSwml output', () => {
       const svc = new SWMLService();
       svc.addVerb('answer', {});
-      expect(svc.getBuilder().getDocument()).toEqual(svc.renderSwml());
+      expect(svc.getBuilder().build()).toEqual(svc.renderSwml());
     });
   });
 
@@ -265,7 +265,7 @@ describe('SWMLService', () => {
         //   (2) no server is listening — the protected `_server` field
         //       stays null because nothing called `app.listen`.
         const winner = await Promise.race([
-          svc.run().then(() => 'returned'),
+          svc.serve().then(() => 'returned'),
           new Promise<string>((r) => setTimeout(() => r('timeout'), 5000)),
         ]);
         expect(winner).toBe('returned');

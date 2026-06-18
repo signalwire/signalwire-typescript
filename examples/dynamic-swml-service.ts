@@ -64,4 +64,4 @@ agent.setOnRequestCallback((queryParams, _bodyParams, _headers) => {
   return builder;
 });
 
-agent.run();
+agent.serve();

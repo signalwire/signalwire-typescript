@@ -390,12 +390,12 @@ export class SWMLService {
       // on_request → on_swml_request delegation chain).
       const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
       if (hookResult !== null) {
-        doc = hookResult.getDocument();
+        doc = hookResult.build();
       } else if (this.onRequestCallback) {
         const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
-        doc = builder.getDocument();
+        doc = builder.build();
       } else {
-        doc = this.swmlBuilder.getDocument();
+        doc = this.swmlBuilder.build();
       }
 
       return c.json(doc);
@@ -699,7 +699,7 @@ export class SWMLService {
    * @returns This service for chaining.
    */
   addSection(sectionName: string): this {
-    const doc = this.swmlBuilder.getDocument() as { sections: Record<string, unknown[]> };
+    const doc = this.swmlBuilder.build() as { sections: Record<string, unknown[]> };
     if (!(sectionName in doc.sections)) {
       doc.sections[sectionName] = [];
     }
@@ -818,7 +818,7 @@ export class SWMLService {
       }
 
       // No redirect — serve normal SWML
-      const doc = this.swmlBuilder.getDocument();
+      const doc = this.swmlBuilder.build();
       return c.json(doc);
     };
 
@@ -964,12 +964,8 @@ export class SWMLService {
   }
 
   /**
-   * Start the HTTP server.
-   *
-   * @deprecated Use {@link SWMLService.serve} instead. `serve()` is the
-   * canonical entrypoint (matching Python's `SWMLService.serve()`, which has no
-   * `run()`); `run()` is a TS-only alias retained for back-compat and forwards
-   * here unchanged.
+   * Start the HTTP server. Canonical entrypoint, matching Python's
+   * `SWMLService.serve()`.
    *
    * Matches Python's `serve()` parameters including SSL options. When
    * `SWAIG_CLI_MODE=true` is set in the environment (e.g. while running the
@@ -985,7 +981,7 @@ export class SWMLService {
    * @param opts.domain - Domain used for HSTS header configuration.
    * @returns Resolves once the server has begun listening.
    */
-  async run(
+  async serve(
     hostOrOpts?:
       | string
       | {
@@ -1049,18 +1045,6 @@ export class SWMLService {
       this.log.info(`${this.name} starting on http://${h}:${p}${this.route}`);
       this._server = serve({ fetch: this._app.fetch, port: p, hostname: h }) as unknown as Server;
     }
-  }
-
-  /**
-   * Start the HTTP server. This is the canonical entrypoint, matching Python's
-   * `SWMLService.serve()`. Accepts the same arguments as {@link run} (the
-   * deprecated TS-only alias it forwards to).
-   *
-   * @param args - Forwarded unchanged to {@link run}.
-   * @returns Resolves once the server has begun listening.
-   */
-  async serve(...args: Parameters<SWMLService['run']>): Promise<void> {
-    return this.run(...args);
   }
 
   /**

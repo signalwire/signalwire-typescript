@@ -55,4 +55,4 @@ export const agent = new FAQBotAgent({
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 
-agent.run();
+agent.serve();

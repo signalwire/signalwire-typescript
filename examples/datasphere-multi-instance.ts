@@ -63,4 +63,4 @@ console.log(
 );
 console.log('Note: Replace document IDs with your actual DataSphere documents.');
 
-agent.run();
+agent.serve();

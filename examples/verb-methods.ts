@@ -40,6 +40,6 @@ ivr.addVerb('play', { url: 'say:Hello from the SWML builder!' });
 ivr.addVerb('sleep', 2);
 ivr.addVerb('hangup', {});
 
-console.log('Standalone SWML:', JSON.stringify(ivr.getDocument(), null, 2));
+console.log('Standalone SWML:', JSON.stringify(ivr.build(), null, 2));
 
-agent.run();
+agent.serve();

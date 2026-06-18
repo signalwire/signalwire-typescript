@@ -65,7 +65,7 @@ async function importModule(agentPath: string): Promise<Record<string, unknown>>
   }
   const fileUrl = pathToFileURL(absPath).href;
 
-  // Suppress server startup: agent files call .run() at module scope,
+  // Suppress server startup: agent files call .serve() at module scope,
   // but the CLI only needs the configured agent instance, not a running server.
   process.env['SWAIG_CLI_MODE'] = 'true';
   try {

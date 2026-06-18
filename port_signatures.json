@@ -1553,15 +1553,6 @@
               ],
               "returns": "any"
             },
-            "get_all": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "dict<string,any>"
-            },
             "get_config": {
               "params": [
                 {
@@ -1572,15 +1563,6 @@
               "returns": "dict<string,any>"
             },
             "get_config_file": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "string"
-            },
-            "get_file_path": {
               "params": [
                 {
                   "name": "self",
@@ -4871,7 +4853,7 @@
                   "default": null
                 }
               ],
-              "returns": "void"
+              "returns": "union<void,class:signalwire.core.mixins.serverless_mixin.ServerlessResponse>"
             },
             "serve": {
               "params": [
@@ -6355,29 +6337,11 @@
               ],
               "returns": "class:signalwire.core.swml_builder.__type"
             },
-            "get_document": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "dict<string,any>"
-            },
             "get_schema_utils": {
               "params": [],
               "returns": "class:signalwire.utils.schema_utils.SchemaUtils"
             },
             "render": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "string"
-            },
-            "render_document": {
               "params": [
                 {
                   "name": "self",
@@ -7010,33 +6974,6 @@
               ],
               "returns": "any"
             },
-            "run": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "host_or_opts",
-                  "type": "union<string,class:signalwire.core.swml_service.__type>",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "port",
-                  "type": "float",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "opts",
-                  "type": "class:signalwire.core.swml_service.__type",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
             "schema_utils": {
               "params": [
                 {
@@ -7062,10 +6999,22 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
-                  "type": "tuple<union<string,class:signalwire.core.swml_service.__type>,float,class:signalwire.core.swml_service.__type>",
-                  "kind": "var_positional",
-                  "required": true
+                  "name": "host_or_opts",
+                  "type": "union<string,class:signalwire.core.swml_service.__type>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "float",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.swml_service.__type",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"

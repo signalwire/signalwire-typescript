@@ -2797,18 +2797,41 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Starts the HTTP server.
+   * Smart entry point matching Python's `WebMixin.run()`: auto-detects the
+   * execution environment and dispatches accordingly. When a serverless event
+   * is supplied, or a serverless platform is detected from the environment
+   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `K_SERVICE`/`FUNCTION_TARGET`,
+   * `FUNCTIONS_WORKER_RUNTIME`, `GATEWAY_INTERFACE`), it dispatches to
+   * {@link runServerless}; otherwise it starts the HTTP server via {@link serve}.
    *
-   * @deprecated Prefer {@link serve} for running a server, or
-   * {@link runServerless} for a single serverless invocation. Python's
-   * polymorphic `run()` (which auto-detects server vs. serverless) is split in
-   * the TS port into those two explicit methods; this `run()` is a thin
-   * back-compat alias that forwards to {@link serve}.
+   * For deterministic behavior, call {@link serve} (server) or
+   * {@link runServerless} (serverless) directly.
    *
-   * @param opts - Optional host and port overrides.
-   * @returns A promise that resolves once the server is running.
+   * @param opts - Either server host/port overrides, or a serverless
+   *   `{ event, context, platform }` payload.
+   * @returns `void` for server mode, or the serverless response object.
    */
-  async run(opts?: { host?: string; port?: number }): Promise<void> {
+  async run(opts?: {
+    host?: string;
+    port?: number;
+    event?: ServerlessEvent;
+    context?: unknown;
+    platform?: 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto';
+  }): Promise<void | ServerlessResponse> {
+    const serverlessEnv =
+      !!process.env['AWS_LAMBDA_FUNCTION_NAME'] ||
+      !!process.env['_HANDLER'] ||
+      !!process.env['K_SERVICE'] ||
+      !!process.env['FUNCTION_TARGET'] ||
+      !!process.env['FUNCTIONS_WORKER_RUNTIME'] ||
+      !!process.env['GATEWAY_INTERFACE'];
+    if (opts?.event !== undefined || serverlessEnv) {
+      return this.runServerless(
+        opts?.event ?? ({} as ServerlessEvent),
+        opts?.context,
+        opts?.platform,
+      );
+    }
     return this.serve(opts);
   }
 
@@ -2817,8 +2840,8 @@ export class AgentBase extends SWMLService {
    *
    * Matches Python `run(event, context)` when executed in a serverless environment. Python's
    * `run()` auto-detects the platform via `get_execution_mode()` and dispatches accordingly;
-   * in TypeScript the serverless path is an **explicit** method so that `run()` keeps its
-   * HTTP-server semantics and callers opt in to serverless dispatch deliberately.
+   * `runServerless` is the **explicit** serverless path so callers can opt in deliberately
+   * (the polymorphic {@link run} dispatches here when a serverless env/event is detected).
    *
    * Platform detection follows the same environment-variable heuristics as Python's
    * `ServerlessMixin`: `AWS_LAMBDA_FUNCTION_NAME` → Lambda, `K_SERVICE` → GCF,

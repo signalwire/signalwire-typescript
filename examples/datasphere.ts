@@ -34,4 +34,4 @@ await agent.addSkill(
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['DataSphere', 'knowledge base', 'documentation']);
 
-agent.run();
+agent.serve();

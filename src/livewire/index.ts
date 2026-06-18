@@ -946,7 +946,7 @@ export function runApp(
         // After entry completes, the session should have bound a swAgent to ctx
         // If someone stored it on ctx, start it
         if (ctx._swAgent) {
-          ctx._swAgent.run().catch((err: Error) => {
+          ctx._swAgent.serve().catch((err: Error) => {
             process.stderr.write(`[LiveWire] agent error: ${err.message}\n`);
           });
         }

@@ -72,4 +72,4 @@ console.log(
 );
 console.log('Search tools: web_search (general), search_news, quick_search, search_wiki');
 
-agent.run();
+agent.serve();

@@ -275,8 +275,6 @@ signalwire.core.skill_base.SkillBase.set_agent: TS-native SkillBase helper or ge
 ## ConfigLoader port-specific
 
 signalwire.core.config_loader.ConfigLoader.config_paths: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
-signalwire.core.config_loader.ConfigLoader.get_all: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
-signalwire.core.config_loader.ConfigLoader.get_file_path: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.has: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.interpolate_env_vars: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.load: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
@@ -349,9 +347,7 @@ signalwire.core.security_config.SslConfig.is_configured: TS splits SSL configura
 signalwire.core.swml_builder.SWMLBuilder.add_verb: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.add_verb_to_section: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
-signalwire.core.swml_builder.SWMLBuilder.get_document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.get_schema_utils: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
-signalwire.core.swml_builder.SWMLBuilder.render_document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.set_validation: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 
 ## AuthHandler port-specific
@@ -377,7 +373,6 @@ signalwire.utils.schema_utils.SchemaUtils.validate: TS SchemaUtils helper built 
 signalwire.core.swml_service.SWMLService.get_app: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.get_builder: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.render_swml: TS SWMLService exposes richer handler-registration / config getters
-signalwire.core.swml_service.SWMLService.run: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.set_on_request_callback: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.define_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.get_registered_tools: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin

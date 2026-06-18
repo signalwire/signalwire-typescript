@@ -38,4 +38,4 @@ console.log('MathSkill parameters:', MathSkill.getParameterSchema());
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 
-agent.run();
+agent.serve();
