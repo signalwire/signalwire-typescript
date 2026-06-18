@@ -71,6 +71,23 @@ describe('top-level index helpers', () => {
         process.env = env;
       }
     });
+
+    it('still accepts the legacy positional [], { ...opts } call form at runtime', () => {
+      // The DECLARED signature is the clean restClient(opts) form, but the old
+      // restClient([], { project, token, host }) shape must keep working. Cast
+      // through unknown because the legacy form is no longer in the type.
+      const legacy = restClient as unknown as (
+        args: string[],
+        kwargs: { project: string; token: string; host: string },
+      ) => RestClient;
+      const client = legacy([], {
+        project: 'p-legacy',
+        token: 't-legacy',
+        host: 'legacy.signalwire.com',
+      });
+      expect(client).toBeInstanceOf(RestClient);
+      expect(client.compat).toBeDefined();
+    });
   });
 
   describe('addSkillDirectory', () => {

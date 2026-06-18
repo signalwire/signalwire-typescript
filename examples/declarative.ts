@@ -97,4 +97,4 @@ agent.setPostPrompt(
   'Summarize this support call as JSON: { issue_type, resolution, escalated, follow_up_needed }',
 );
 
-agent.run();
+agent.serve();

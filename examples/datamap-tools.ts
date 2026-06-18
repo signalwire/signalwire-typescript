@@ -43,4 +43,4 @@ const jokeTool = createSimpleApiTool({
 
 agent.registerSwaigFunction(jokeTool.toSwaigFunction());
 
-agent.run();
+agent.serve();

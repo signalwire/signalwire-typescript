@@ -90,4 +90,4 @@ agent.defineTool({
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['SIP', 'conference', 'meeting room', 'transfer']);
 
-agent.run();
+agent.serve();

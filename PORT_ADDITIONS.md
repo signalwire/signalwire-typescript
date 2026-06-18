@@ -96,6 +96,8 @@ signalwire.core.mixins.serverless_mixin.ServerlessAdapter.detect_platform: TS po
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.generate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.get_platform: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.handle_request: TS port-only helper — functionality has no direct Python equivalent
+signalwire.core.swaig_function.is_full_parameter_schema: TS port-only helper — discriminates a full JSON Schema from a bare properties map; Python inlines the sniff and has no exported helper
+signalwire.core.swaig_function.normalize_parameters: TS port-only helper — unifies the parameters-shape normalization (full schema vs bare map) that was reimplemented in 3 places; no Python counterpart
 signalwire.prefabs.concierge.ConciergeAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.concierge.create_concierge_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.faq_bot.FAQBotAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent
@@ -162,6 +164,9 @@ signalwire.core.agent_base.AgentBase.get_prompt_pom: TS-native AgentBase accesso
 signalwire.core.agent_base.AgentBase.get_registered_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_tool: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
+signalwire.core.agent_base.AgentBase.on_error: TS-native agent-level SWAIG error hook (#19371) — Python has no programmatic error surface on tool dispatch; registers a callback invoked when a tool handler throws, for reporting + optional response control
+signalwire.core.agent_base.AgentBase.ensure_tools_defined: TS-native idempotent guard (#19370) — auto-invokes defineTools() once so a forgotten explicit call no longer yields a tool-less agent; Python has no separate define-tools lifecycle hook
+signalwire.core.agent_base.AgentBase.replace_global_data: TS-native true-replace path (#19376) — Python's set_global_data only merges (.update()); this clears all prior keys (incl. skill-contributed) and sets a fresh global_data, the unambiguous counterpart to the merging setGlobalData/updateGlobalData
 signalwire.core.agent_base.AgentBase.handle_mcp_request: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.is_mcp_server_enabled: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.native_functions: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
@@ -241,12 +246,17 @@ signalwire.core.contexts.Context.get_initial_step: TS ContextBuilder / Context h
 signalwire.core.contexts.Context.get_step_order: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Context.get_steps: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Context.get_valid_contexts: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.Context.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.ContextBuilder.attach_agent: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.ContextBuilder.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.GatherInfo.get_completion_action: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.GatherInfo.get_questions: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.GatherInfo.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+signalwire.core.contexts.GatherQuestion.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.Step.get_gather_info: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_step_valid_contexts: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_valid_steps: TS ContextBuilder / Context helper with additional navigation / builder methods
+signalwire.core.contexts.Step.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 
 ## SkillBase port-specific additions
 
@@ -265,8 +275,6 @@ signalwire.core.skill_base.SkillBase.set_agent: TS-native SkillBase helper or ge
 ## ConfigLoader port-specific
 
 signalwire.core.config_loader.ConfigLoader.config_paths: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
-signalwire.core.config_loader.ConfigLoader.get_all: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
-signalwire.core.config_loader.ConfigLoader.get_file_path: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.has: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.interpolate_env_vars: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.load: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
@@ -285,6 +293,12 @@ signalwire.core.pom_builder.PomSection.add_subsection: TS POM helper on PomBuild
 signalwire.core.pom_builder.PomSection.render_markdown: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
 signalwire.core.pom_builder.PomSection.render_xml: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
 signalwire.core.pom_builder.PomSection.to_dict: TS POM helper on PomBuilder / PomSection — richer accessors and navigation helpers than the Python equivalent
+signalwire.core.pom_builder.PomSection.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+signalwire.pom.pom.Section.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+
+## FunctionResult port-specific
+
+signalwire.core.function_result.FunctionResult.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 
 ## Relay port-specific
 
@@ -333,9 +347,7 @@ signalwire.core.security_config.SslConfig.is_configured: TS splits SSL configura
 signalwire.core.swml_builder.SWMLBuilder.add_verb: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.add_verb_to_section: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
-signalwire.core.swml_builder.SWMLBuilder.get_document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.get_schema_utils: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
-signalwire.core.swml_builder.SWMLBuilder.render_document: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 signalwire.core.swml_builder.SWMLBuilder.set_validation: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
 
 ## AuthHandler port-specific
@@ -361,7 +373,6 @@ signalwire.utils.schema_utils.SchemaUtils.validate: TS SchemaUtils helper built 
 signalwire.core.swml_service.SWMLService.get_app: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.get_builder: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.render_swml: TS SWMLService exposes richer handler-registration / config getters
-signalwire.core.swml_service.SWMLService.run: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.set_on_request_callback: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.define_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.get_registered_tools: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin

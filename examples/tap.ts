@@ -64,4 +64,4 @@ agent.defineTool({
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['tap', 'stream', 'RTP', 'audio']);
 
-agent.run();
+agent.serve();

@@ -62,4 +62,4 @@ quiz
   .setFunctions(['get_score'])
   .setEnd(true);
 
-agent.run();
+agent.serve();

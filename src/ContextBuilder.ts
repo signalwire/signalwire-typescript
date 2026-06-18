@@ -160,6 +160,14 @@ export class GatherQuestion {
     if (this.functions) d['functions'] = this.functions;
     return d;
   }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link GatherQuestion.toDict}. No Python counterpart.
+   */
+  toJSON(): Record<string, unknown> {
+    return this.toDict();
+  }
 }
 
 // ── GatherInfo ──────────────────────────────────────────────────────
@@ -225,6 +233,14 @@ export class GatherInfo {
     if (this.outputKey) d.output_key = this.outputKey;
     if (this.completionAction) d.completion_action = this.completionAction;
     return d;
+  }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link GatherInfo.toDict}. No Python counterpart.
+   */
+  toJSON(): GatherInfoDict {
+    return this.toDict();
   }
 }
 
@@ -577,6 +593,14 @@ export class Step {
 
     if (this.gatherInfo) d.gather_info = this.gatherInfo.toDict();
     return d;
+  }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link Step.toDict}. No Python counterpart.
+   */
+  toJSON(): StepDict {
+    return this.toDict();
   }
 }
 
@@ -971,6 +995,14 @@ export class Context {
     if (this._exitFillers) d.exit_fillers = this._exitFillers;
     return d;
   }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link Context.toDict}. No Python counterpart.
+   */
+  toJSON(): ContextDict {
+    return this.toDict();
+  }
 }
 
 // ── ContextBuilder ──────────────────────────────────────────────────
@@ -1268,6 +1300,14 @@ export class ContextBuilder {
       result[name] = this.contexts.get(name)!.toDict();
     }
     return result;
+  }
+
+  /**
+   * TS-native serialization hook so `JSON.stringify` emits the wire shape via
+   * {@link ContextBuilder.toDict}. No Python counterpart.
+   */
+  toJSON(): Record<string, ContextDict> {
+    return this.toDict();
   }
 }
 

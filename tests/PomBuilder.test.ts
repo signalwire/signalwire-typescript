@@ -218,7 +218,7 @@ describe('addPomAsSubsection', () => {
 describe('SwmlBuilder', () => {
   it('creates empty document', () => {
     const b = new SwmlBuilder();
-    const doc = b.getDocument();
+    const doc = b.build();
     expect(doc['version']).toBe('1.0.0');
     expect((doc['sections'] as Record<string, unknown[]>)['main']).toEqual([]);
   });
@@ -227,7 +227,7 @@ describe('SwmlBuilder', () => {
     const b = new SwmlBuilder();
     b.addVerb('answer', {});
     b.addVerb('ai', { prompt: { text: 'hello' } });
-    const main = (b.getDocument()['sections'] as Record<string, unknown[]>)['main'];
+    const main = (b.build()['sections'] as Record<string, unknown[]>)['main'];
     expect(main.length).toBe(2);
     expect(main[0]).toEqual({ answer: {} });
   });
@@ -235,7 +235,7 @@ describe('SwmlBuilder', () => {
   it('addVerbToSection creates section', () => {
     const b = new SwmlBuilder();
     b.addVerbToSection('custom', 'play', { url: 'test.mp3' });
-    const sections = b.getDocument()['sections'] as Record<string, unknown[]>;
+    const sections = b.build()['sections'] as Record<string, unknown[]>;
     expect(sections['custom']).toBeDefined();
     expect(sections['custom'][0]).toEqual({ play: { url: 'test.mp3' } });
   });
@@ -244,14 +244,14 @@ describe('SwmlBuilder', () => {
     const b = new SwmlBuilder();
     b.addVerb('answer', {});
     b.reset();
-    const main = (b.getDocument()['sections'] as Record<string, unknown[]>)['main'];
+    const main = (b.build()['sections'] as Record<string, unknown[]>)['main'];
     expect(main).toEqual([]);
   });
 
-  it('renderDocument returns JSON', () => {
+  it('render returns JSON', () => {
     const b = new SwmlBuilder();
     b.addVerb('answer', {});
-    const json = b.renderDocument();
+    const json = b.render();
     const parsed = JSON.parse(json);
     expect(parsed.version).toBe('1.0.0');
   });

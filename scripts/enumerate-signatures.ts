@@ -262,6 +262,27 @@ const FREE_FN_NAME_OVERRIDES: Record<string, string> = {
   rest_client: 'RestClient',
 };
 
+// Per-symbol free-function PARAM-shape overrides (teach-the-checker, scoped to a
+// single symbol — does NOT relax the comparison globally).
+//
+// ``restClient`` (TS) is intentionally idiomatic: it declares a single, fully
+// typed ``opts?: ClientOptions`` parameter (real compile-time safety on the
+// credentials), while still accepting the legacy ``restClient([], {...})`` shape
+// at runtime for back-compat. The Python reference factory is the untyped
+// ``RestClient(*args, **kwargs)``. The drift comparator already treats Python's
+// ``*args`` ≡ a port positional ``list<*>`` and ``**kwargs`` ≡ a port positional
+// ``dict<string,*>`` (see diff_port_signatures.compare_param). We therefore emit
+// THIS one symbol's audited signature in that Python-compatible variadic shape,
+// keeping the public TS signature clean while the audit sees the equivalence.
+// The actual exported function's runtime contract still accepts both forms.
+const FREE_FN_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
+  // projected (Python-canonical) name -> audited param list
+  RestClient: [
+    { name: 'args', kind: 'positional', type: 'list<any>', required: false },
+    { name: 'kwargs', kind: 'positional', type: 'dict<string,any>', required: false },
+  ],
+};
+
 function camelToSnake(name: string): string {
   return name
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
@@ -847,6 +868,11 @@ function main(): number {
             );
             // Strip `self` from free functions
             sig.params = sig.params.filter((p) => p.kind !== 'self');
+            // Per-symbol param-shape override (teach-the-checker; see
+            // FREE_FN_PARAM_OVERRIDES). Scoped to individual symbols so the
+            // global comparison stays strict.
+            const paramOverride = FREE_FN_PARAM_OVERRIDES[projected];
+            if (paramOverride) sig.params = paramOverride;
             if (!doc.modules[mod]) doc.modules[mod] = {};
             if (!doc.modules[mod].functions) doc.modules[mod].functions = {};
             doc.modules[mod].functions![projected] = sig;

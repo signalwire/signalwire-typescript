@@ -12,6 +12,66 @@ const ajv = new Ajv({ allErrors: true });
 const log = getLogger('SwaigFunction');
 
 /**
+ * Decide whether a `parameters` value is already a full JSON Schema object
+ * (`{ type: 'object', properties: {...} }`) versus a bare map of property
+ * definitions that must be wrapped.
+ *
+ * Robust discriminator: a value is a full schema ONLY when its `type` is the
+ * string `'object'` AND its `properties` is itself an object. The old check
+ * (`'type' in p && 'properties' in p`) misclassified a tool whose parameters
+ * are literally NAMED `type` and `properties`: for such a bare map the value of
+ * `type` is a property-definition object (not the string `'object'`), so this
+ * check correctly treats it as a bare properties map.
+ *
+ * @param parameters - The raw `parameters` value to inspect.
+ * @returns `true` if it is already a full JSON Schema object.
+ */
+export function isFullParameterSchema(parameters: Record<string, unknown>): boolean {
+  const props = (parameters as { properties?: unknown }).properties;
+  return (
+    (parameters as { type?: unknown }).type === 'object' &&
+    typeof props === 'object' &&
+    props !== null
+  );
+}
+
+/**
+ * Normalize a tool's `parameters` into a full JSON Schema object suitable for
+ * SWAIG / MCP output.
+ *
+ * - An empty/absent map becomes `{ type: 'object', properties: {} }`.
+ * - An already-full schema (see {@link isFullParameterSchema}) is returned
+ *   unchanged.
+ * - A bare properties map is wrapped as
+ *   `{ type: 'object', properties: <map>, required?: <required> }`.
+ *
+ * This is the single source of truth for the `parameters` shape sniff that used
+ * to be reimplemented in SwaigFunction, AgentBase MCP tool listing, and the
+ * AgentBase SWAIG function table.
+ *
+ * @param parameters - The raw `parameters` value (bare properties map or full schema).
+ * @param required - Required-parameter names, applied only when wrapping a bare map.
+ * @returns A full JSON Schema object.
+ */
+export function normalizeParameters(
+  parameters: Record<string, unknown> | undefined,
+  required: string[] = [],
+): Record<string, unknown> {
+  if (!parameters || Object.keys(parameters).length === 0) {
+    return { type: 'object', properties: {} };
+  }
+  if (isFullParameterSchema(parameters)) {
+    return parameters;
+  }
+  const result: Record<string, unknown> = {
+    type: 'object',
+    properties: parameters,
+  };
+  if (required.length) result['required'] = required;
+  return result;
+}
+
+/**
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
@@ -25,6 +85,42 @@ export type SwaigHandler = (
   | Record<string, unknown>
   | string
   | Promise<FunctionResult | Record<string, unknown> | string>;
+
+/**
+ * Context passed to an {@link SwaigErrorHandler} when a tool handler throws.
+ */
+export interface SwaigErrorContext {
+  /** Name of the tool whose handler threw. */
+  functionName: string;
+  /** The parsed arguments the handler was invoked with. */
+  args: Record<string, unknown>;
+  /** The full raw request payload (if available). */
+  rawData?: SwaigRequestData;
+}
+
+/**
+ * Hook invoked when a SWAIG tool handler throws. Lets authors observe the
+ * failure (report to Sentry/Datadog, log with full context) and optionally
+ * decide the user-facing response.
+ *
+ * - Return a {@link FunctionResult} to control exactly what the AI receives.
+ * - Return `void`/`undefined` to fall back to the default error response.
+ *
+ * The error is always contained — a thrown handler never propagates to the
+ * HTTP layer (that would break the live call). This hook makes the containment
+ * *observable and configurable* instead of opaque.
+ */
+export type SwaigErrorHandler = (
+  error: unknown,
+  context: SwaigErrorContext,
+) => FunctionResult | void | Promise<FunctionResult | void>;
+
+/**
+ * Default user-facing message returned when a tool handler throws and no
+ * {@link SwaigErrorHandler} supplies its own response.
+ */
+export const DEFAULT_SWAIG_ERROR_MESSAGE =
+  "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.";
 
 /** Configuration options for creating a SwaigFunction. */
 export interface SwaigFunctionOptions {
@@ -69,6 +165,17 @@ export interface SwaigFunctionOptions {
   extraFields?: Record<string, unknown>;
   /** Whether this tool uses a typed handler with named parameters. */
   isTypedHandler?: boolean;
+  /**
+   * Per-tool error hook. Invoked when this tool's handler throws, before the
+   * default error response is produced. See {@link SwaigErrorHandler}.
+   */
+  onError?: SwaigErrorHandler;
+  /**
+   * Per-tool override for the user-facing message returned when the handler
+   * throws and no {@link onError} hook supplies a response. Defaults to
+   * {@link DEFAULT_SWAIG_ERROR_MESSAGE}.
+   */
+  errorMessage?: string;
 }
 
 /**
@@ -129,6 +236,10 @@ export class SwaigFunction {
   isTypedHandler: boolean;
   /** Whether this tool is externally hosted (has a webhookUrl). */
   isExternal: boolean;
+  /** Per-tool error hook; see {@link SwaigErrorHandler}. */
+  onError?: SwaigErrorHandler;
+  /** Per-tool user-facing error message override. */
+  errorMessage?: string;
 
   /**
    * Create a new SwaigFunction.
@@ -154,21 +265,12 @@ export class SwaigFunction {
     this.extraFields = opts.extraFields ?? {};
     this.isTypedHandler = opts.isTypedHandler ?? false;
     this.isExternal = opts.webhookUrl !== undefined;
+    this.onError = opts.onError;
+    this.errorMessage = opts.errorMessage;
   }
 
   private ensureParameterStructure(): Record<string, unknown> {
-    if (!this.parameters || Object.keys(this.parameters).length === 0) {
-      return { type: 'object', properties: {} };
-    }
-    if ('type' in this.parameters && 'properties' in this.parameters) {
-      return this.parameters;
-    }
-    const result: Record<string, unknown> = {
-      type: 'object',
-      properties: this.parameters,
-    };
-    if (this.required.length) result['required'] = this.required;
-    return result;
+    return normalizeParameters(this.parameters, this.required);
   }
 
   /**
@@ -218,6 +320,7 @@ export class SwaigFunction {
   async execute(
     args: Record<string, unknown>,
     rawData?: SwaigRequestData,
+    agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
@@ -250,10 +353,30 @@ export class SwaigFunction {
       );
       return new FunctionResult(String(result)).toDict();
     } catch (err) {
-      log.error(`Error executing SWAIG function ${this.name}: ${err}`);
-      return new FunctionResult(
-        "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.",
-      ).toDict();
+      // Preserve the stack for Error instances (plain `${err}` discards it).
+      const detail =
+        err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err);
+      log.error(`Error executing SWAIG function ${this.name}: ${detail}`);
+
+      // Give authors a programmatic surface: per-tool hook first, then the
+      // agent-level hook. Either may return a FunctionResult to control what
+      // the AI sees; if a hook itself throws, that's logged and we continue to
+      // the next fallback (the error is always contained — a thrown handler
+      // must never break the live call).
+      const ctx: SwaigErrorContext = { functionName: this.name, args, rawData };
+      for (const hook of [this.onError, agentOnError]) {
+        if (!hook) continue;
+        try {
+          const handled = await hook(err, ctx);
+          if (handled instanceof FunctionResult) {
+            return handled.toDict();
+          }
+        } catch (hookErr) {
+          log.error(`onError hook for SWAIG function ${this.name} threw: ${hookErr}`);
+        }
+      }
+
+      return new FunctionResult(this.errorMessage ?? DEFAULT_SWAIG_ERROR_MESSAGE).toDict();
     }
   }
 

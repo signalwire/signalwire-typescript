@@ -42,4 +42,4 @@ if (process.env['SWML_PROXY_URL_BASE']) {
   agent.manualSetProxyUrl(process.env['SWML_PROXY_URL_BASE']);
 }
 
-agent.run();
+agent.serve();

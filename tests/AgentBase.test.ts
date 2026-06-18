@@ -119,6 +119,44 @@ describe('AgentBase', () => {
     expect(ai.global_data.name).toBe('John');
   });
 
+  it('setGlobalData MERGES (does not clear prior keys)', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1, b: 2 });
+    agent.setGlobalData({ b: 3, c: 4 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ a: 1, b: 3, c: 4 });
+  });
+
+  it('updateGlobalData MERGES like setGlobalData', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1 });
+    agent.updateGlobalData({ b: 2 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ a: 1, b: 2 });
+  });
+
+  it('replaceGlobalData REPLACES (clears prior keys, incl. skill-contributed)', () => {
+    const agent = createAgent();
+    agent.setGlobalData({ a: 1, b: 2 });
+    agent.replaceGlobalData({ c: 3 });
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data).toEqual({ c: 3 });
+    expect(ai.global_data.a).toBeUndefined();
+  });
+
+  it('replaceGlobalData stores a copy (no aliasing of caller object)', () => {
+    const agent = createAgent();
+    const data: Record<string, unknown> = { x: 1 };
+    agent.replaceGlobalData(data);
+    data.x = 999; // mutate after the call
+    agent.setPromptText('hello');
+    const ai = JSON.parse(agent.renderSwml()).sections.main[1].ai;
+    expect(ai.global_data.x).toBe(1);
+  });
+
   it('setPromptLlmParams merges into prompt', () => {
     const agent = createAgent();
     agent.setPromptText('hello');
@@ -1344,6 +1382,75 @@ describe('AgentBase', () => {
       const agent = makeAgent();
       agent.addLanguage({ name: 'English', code: 'en-US', voice: 'v' });
       expect(agent.setLanguageParams('en-US', { a: 1 })).toBe(agent);
+    });
+  });
+
+  describe('defineTools() auto-invocation (#19370)', () => {
+    // A subclass that overrides defineTools() but, crucially, does NOT call it
+    // from its constructor — the historical footgun. The base class must invoke
+    // it automatically before tools are consumed.
+    class NoManualCallAgent extends AgentBase {
+      public defineToolsRunCount = 0;
+      constructor() {
+        super({ name: 'no-manual', route: '/nm' });
+      }
+      protected override defineTools(): void {
+        this.defineToolsRunCount++;
+        this.defineTool({
+          name: 'echo',
+          description: 'Echo a value',
+          parameters: {},
+          handler: () => new FunctionResult('ok'),
+        });
+      }
+    }
+
+    it('registers tools on getTools() without a manual defineTools() call', () => {
+      const agent = new NoManualCallAgent();
+      expect(agent.getTools().map((t) => t.name)).toContain('echo');
+      expect(agent.defineToolsRunCount).toBe(1);
+    });
+
+    it('registers tools on renderSwml() without a manual defineTools() call', () => {
+      const agent = new NoManualCallAgent();
+      const swml = JSON.parse(agent.renderSwml());
+      const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+      const fnNames = (ai.SWAIG.functions as { function: string }[]).map((f) => f.function);
+      expect(fnNames).toContain('echo');
+    });
+
+    it('runs defineTools() exactly once across multiple consumption points', () => {
+      const agent = new NoManualCallAgent();
+      agent.getTools();
+      agent.renderSwml();
+      agent.getTools();
+      expect(agent.defineToolsRunCount).toBe(1);
+    });
+
+    it('does not double-register when a subclass calls ensureToolsDefined() manually', () => {
+      class ManualCallAgent extends AgentBase {
+        public runCount = 0;
+        constructor() {
+          super({ name: 'manual', route: '/m' });
+          // Old convention (now routed through the idempotent guard).
+          (this as unknown as { ensureToolsDefined(): void }).ensureToolsDefined();
+        }
+        protected override defineTools(): void {
+          this.runCount++;
+          this.defineTool({
+            name: 'once',
+            description: 'Tool',
+            parameters: {},
+            handler: () => new FunctionResult('ok'),
+          });
+        }
+      }
+      const agent = new ManualCallAgent();
+      // Consuming again must not re-run defineTools().
+      agent.getTools();
+      agent.renderSwml();
+      expect(agent.runCount).toBe(1);
+      expect(agent.getTools().filter((t) => t.name === 'once')).toHaveLength(1);
     });
   });
 });

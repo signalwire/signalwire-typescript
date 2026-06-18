@@ -67,4 +67,4 @@ agent.setDynamicConfigCallback(async (queryParams, bodyParams, _headers, agentCo
   }
 });
 
-agent.run();
+agent.serve();

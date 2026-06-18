@@ -246,35 +246,21 @@ export class ConfigLoader {
   }
 
   /**
-   * Return a shallow copy of the entire configuration object.
+   * Return a shallow copy of the entire configuration object. Canonical name,
+   * matching Python's `ConfigLoader.get_config()`.
    * @returns A copy of the top-level config data.
    */
-  getAll(): Record<string, unknown> {
+  getConfig(): Record<string, unknown> {
     return { ...this.data };
   }
 
   /**
-   * Alias for {@link getAll} — matches the Python SDK's `get_config()` method name.
-   * @returns A copy of the top-level config data.
-   */
-  getConfig(): Record<string, unknown> {
-    return this.getAll();
-  }
-
-  /**
-   * Return the absolute path of the loaded config file, if any.
-   * @returns The file path, or null if config was loaded from an object.
-   */
-  getFilePath(): string | null {
-    return this.filePath;
-  }
-
-  /**
-   * Alias for {@link getFilePath} — matches the Python SDK's `get_config_file()` method name.
+   * Return the absolute path of the loaded config file, if any. Canonical name,
+   * matching Python's `ConfigLoader.get_config_file()`.
    * @returns The file path, or null if config was loaded from an object.
    */
   getConfigFile(): string | null {
-    return this.getFilePath();
+    return this.filePath;
   }
 
   /**
@@ -287,7 +273,7 @@ export class ConfigLoader {
    * with no Python equivalent. Treating object-loaded data as "configured" is
    * the correct semantic for the TS API surface.
    *
-   * If you need file-load-only detection, check `this.getFilePath() !== null`.
+   * If you need file-load-only detection, check `this.getConfigFile() !== null`.
    *
    * @returns True if configuration data exists (from file or object).
    */

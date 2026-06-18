@@ -30,4 +30,4 @@ export const agent = new InfoGathererAgent({
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 
-agent.run();
+agent.serve();

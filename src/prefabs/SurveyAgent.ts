@@ -163,7 +163,7 @@ export class SurveyAgent extends AgentBase {
     this.setupSurveyAgent();
 
     // Register tools after all fields are initialized
-    this.defineTools();
+    this.ensureToolsDefined();
   }
 
   // ── Question validation (mirrors Python _validate_questions) ──────────

@@ -313,14 +313,13 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * surface entry from `signalwire.rest_client` to `signalwire.RestClient`
  * via the FREE_FN_NAME_OVERRIDES table in enumerate-signatures.ts.
  *
- * The signature accepts a positional `args` rest parameter and a trailing
- * `kwargs` record. This mirrors Python's `(*args, **kwargs)` shape so the
- * cross-language signature audit recognizes them as compatible. In
- * practice callers pass either the `kwargs` object alone or nothing.
+ * The declared signature is the idiomatic TS form: a single, fully-typed
+ * options object. This gives real compile-time safety on the credential
+ * fields, unlike Python's untyped `(*args, **kwargs)`. For back-compat,
+ * the legacy `restClient([], { project, token, host })` call form (a leading
+ * positional array followed by the options) is still accepted at runtime.
  *
- * @param args - Positional credentials (compat shim for ports that pass
- *   project/token/host positionally). Usually empty in TS.
- * @param kwargs - Keyword-style credentials. When omitted, reads
+ * @param opts - Credentials/configuration. When omitted, reads
  *   `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, and
  *   `SIGNALWIRE_SPACE` from the environment.
  * @returns A new {@link _RestClient} instance bound to the supplied (or
@@ -330,26 +329,23 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * ```ts
  * import { restClient } from '@signalwire/sdk';
  *
- * const client = restClient([], { project: 'p', token: 't', host: 'h.signalwire.com' });
+ * const client = restClient({ project: 'p', token: 't', host: 'h.signalwire.com' });
  * await client.compat.calls.list();
  *
- * // Or using just the options form:
+ * // Or using env vars:
  * const env = restClient();  // reads env vars
  * ```
  */
 
-export function restClient(args?: string[], kwargs?: Record<string, unknown>): _RestClient {
-  // `args` is a positional placeholder for cross-language parity (mirrors
-  // Python's ``*args``). `kwargs` carries the actual credentials object —
-  // this preserves ``**kwargs`` shape for the audit while still letting
-  // TS callers use the natural ``restClient([], { project, token, host })``
-  // form. When the first arg is an object (legacy callers passing options
-  // directly), we treat it as the kwargs.
-  let opts: _ClientOptions | undefined;
-  if (args !== undefined && !Array.isArray(args) && typeof args === 'object') {
-    opts = args as _ClientOptions;
-  } else if (kwargs !== undefined) {
-    opts = kwargs as _ClientOptions;
+export function restClient(opts?: _ClientOptions): _RestClient {
+  // Runtime back-compat: tolerate the legacy ``restClient([], { ...opts })``
+  // shape (a leading positional array, with the real options as the second
+  // argument). The DECLARED signature is the clean single-options form above;
+  // this just keeps old call sites working.
+  if (Array.isArray(opts)) {
+    // eslint-disable-next-line prefer-rest-params
+    const legacyKwargs = arguments[1] as _ClientOptions | undefined;
+    return new _RestClient(legacyKwargs);
   }
   return new _RestClient(opts);
 }

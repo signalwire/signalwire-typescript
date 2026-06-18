@@ -35,4 +35,4 @@ await agent.addSkill(
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['search', 'look up', 'find out', 'Google']);
 
-agent.run();
+agent.serve();

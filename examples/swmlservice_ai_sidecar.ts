@@ -101,4 +101,4 @@ class SalesSidecar extends SWMLService {
 
 // See the standalone example for why we instantiate at module top level.
 export const agent = new SalesSidecar();
-agent.run();
+agent.serve();

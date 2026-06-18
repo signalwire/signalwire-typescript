@@ -31,4 +31,4 @@ await agent.addSkill(new DateTimeSkill());
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['joke', 'funny', 'comedy', 'laugh', 'punchline']);
 
-agent.run();
+agent.serve();

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ d6e0ffb6157a231037311bf8bbe35795e1d4bdb3",
+  "generated_from": "signalwire-typescript @ 69971cafc7e99909c2082bbda4cbb333d1fe8adc",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -97,6 +97,7 @@
           "create_tool_token",
           "define_typed_tool",
           "enable_sip_routing",
+          "ensure_tools_defined",
           "extract_sip_username",
           "get_full_url",
           "get_mcp_servers",
@@ -107,12 +108,14 @@
           "is_mcp_server_enabled",
           "native_functions",
           "on_debug_event",
+          "on_error",
           "on_summary",
           "pom",
           "prompt_manager",
           "register_sip_username",
           "remove_skill_by_name",
           "render_swml",
+          "replace_global_data",
           "run_serverless",
           "set_post_prompt_url",
           "set_web_hook_url",
@@ -146,10 +149,8 @@
           "config_paths",
           "find_config_file",
           "get",
-          "get_all",
           "get_config",
           "get_config_file",
-          "get_file_path",
           "get_section",
           "has",
           "has_config",
@@ -168,14 +169,16 @@
       "classes": {
         "GatherQuestion": [
           "__init__",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "GatherInfo": [
           "__init__",
           "add_question",
           "get_completion_action",
           "get_questions",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "Step": [
           "__init__",
@@ -199,7 +202,8 @@
           "set_text",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "Context": [
           "__init__",
@@ -229,7 +233,8 @@
           "set_user_prompt",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "ContextBuilder": [
           "__init__",
@@ -238,6 +243,7 @@
           "get_context",
           "reset",
           "to_dict",
+          "to_json",
           "validate"
         ]
       },
@@ -324,6 +330,7 @@
           "swml_user_event",
           "tap",
           "to_dict",
+          "to_json",
           "toggle_functions",
           "update_global_data",
           "update_settings",
@@ -480,7 +487,8 @@
           "add_subsection",
           "render_markdown",
           "render_xml",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "PomBuilder": [
           "__init__",
@@ -620,7 +628,10 @@
           "validate_args"
         ]
       },
-      "functions": []
+      "functions": [
+        "is_full_parameter_schema",
+        "normalize_parameters"
+      ]
     },
     "signalwire.core.swml_builder": {
       "classes": {
@@ -631,10 +642,8 @@
           "add_verb_to_section",
           "build",
           "document",
-          "get_document",
           "get_schema_utils",
           "render",
-          "render_document",
           "reset",
           "say",
           "set_validation"
@@ -696,7 +705,6 @@
           "render_document",
           "render_swml",
           "reset_document",
-          "run",
           "serve",
           "set_on_request_callback",
           "stop",
@@ -841,7 +849,8 @@
           "add_subsection",
           "render_markdown",
           "render_xml",
-          "to_dict"
+          "to_dict",
+          "to_json"
         ],
         "PromptObjectModel": [
           "__init__",

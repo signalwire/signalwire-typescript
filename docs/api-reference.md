@@ -1986,8 +1986,8 @@ Optionally loads a JSON file immediately on construction.
 | `get` | `<T>(path: string, defaultValue?: T)` | `T` | Dot-notation access (e.g., `'server.port'`) |
 | `set` | `(path: string, value: unknown)` | `this` | Set a value at a dot-notation path |
 | `has` | `(path: string)` | `boolean` | Check if a path exists |
-| `getAll` | `()` | `Record<string, unknown>` | Shallow copy of all config |
-| `getFilePath` | `()` | `string \| null` | Path of loaded config file |
+| `getConfig` | `()` | `Record<string, unknown>` | Shallow copy of all config |
+| `getConfigFile` | `()` | `string \| null` | Path of loaded config file |
 
 ### Logger
 

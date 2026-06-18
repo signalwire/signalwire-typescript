@@ -32,4 +32,4 @@ agent.defineTool({
 export const handler = ServerlessAdapter.createLambdaHandler(agent.getApp());
 
 // For local development, run the agent normally
-agent.run();
+agent.serve();

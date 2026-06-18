@@ -124,7 +124,7 @@ export class ReceptionistAgent extends AgentBase {
     this.configureAgentSettings(config.voice ?? 'rime.spore');
 
     // Register tools after all fields are initialized
-    this.defineTools();
+    this.ensureToolsDefined();
   }
 
   private static validateDepartments(

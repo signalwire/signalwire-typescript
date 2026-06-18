@@ -252,38 +252,22 @@ export class SwmlBuilder {
   }
 
   /**
-   * Returns the raw SWML document object.
-   * @returns The document with version and sections.
-   */
-  getDocument(): Record<string, unknown> {
-    return this._document;
-  }
-
-  /**
-   * Alias for {@link getDocument}. Matches the Python SDK's `build()` method.
-   * Build and return the SWML document as a dictionary/object.
+   * Build and return the SWML document as a dictionary/object. Canonical name,
+   * matching Python's `SWMLBuilder.build()`.
    *
    * @returns The document with version and sections.
    */
   build(): Record<string, unknown> {
-    return this.getDocument();
+    return this._document;
   }
 
   /**
-   * Serializes the SWML document to a JSON string.
-   * @returns The JSON-encoded SWML document.
-   */
-  renderDocument(): string {
-    return JSON.stringify(this._document);
-  }
-
-  /**
-   * Alias for {@link renderDocument}. Matches the Python SDK's `render()` method.
-   * Build and render the SWML document as a JSON string.
+   * Build and render the SWML document as a JSON string. Canonical name,
+   * matching Python's `SWMLBuilder.render()`.
    *
    * @returns The JSON-encoded SWML document.
    */
   render(): string {
-    return this.renderDocument();
+    return JSON.stringify(this._document);
   }
 }

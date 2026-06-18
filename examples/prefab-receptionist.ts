@@ -33,4 +33,4 @@ export const agent = new ReceptionistAgent({
   },
 });
 
-agent.run();
+agent.serve();

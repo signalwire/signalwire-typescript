@@ -92,4 +92,4 @@ transfer.getBuilder().hangup();
 const service =
   process.argv[2] === 'ivr' ? ivr : process.argv[2] === 'transfer' ? transfer : voicemail;
 console.log(`Starting ${service.name} service...`);
-service.run();
+service.serve();

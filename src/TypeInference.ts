@@ -8,6 +8,9 @@
 
 import type { SwaigHandler } from './SwaigFunction.js';
 import type { FunctionResult } from './FunctionResult.js';
+import { getLogger } from './Logger.js';
+
+const log = getLogger('TypeInference');
 
 /**
  * A typed SWAIG tool handler: a function the SDK introspects and wraps so it
@@ -56,6 +59,109 @@ export interface ParsedParam {
   defaultValue?: string;
 }
 
+/**
+ * Strip line (`//`) and block (`/* *\/`) comments from function source so the
+ * parameter extractor never mistakes commented-out text for real syntax.
+ * String and template literals are preserved verbatim (a `//` inside a string
+ * is data, not a comment).
+ */
+function stripComments(src: string): string {
+  let out = '';
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i];
+    // String / template literals — copy through untouched.
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const quote = ch;
+      out += ch;
+      i++;
+      while (i < n) {
+        const c = src[i];
+        out += c;
+        if (c === '\\') {
+          // Copy the escaped char too.
+          i++;
+          if (i < n) out += src[i];
+          i++;
+          continue;
+        }
+        if (c === quote) {
+          i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+    // Line comment.
+    if (ch === '/' && src[i + 1] === '/') {
+      i += 2;
+      while (i < n && src[i] !== '\n') i++;
+      continue;
+    }
+    // Block comment.
+    if (ch === '/' && src[i + 1] === '*') {
+      i += 2;
+      while (i < n && !(src[i] === '*' && src[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Extract the source text of the parameter list — the content between the
+ * function's opening `(` and its matching close `)` — tracking bracket nesting
+ * depth and skipping over string/template-literal content so a `)` inside a
+ * default value (e.g. `= makeGreeting()` or `= "(x)"`) does not prematurely
+ * terminate the list.
+ *
+ * @param source - Comment-stripped function source.
+ * @returns The raw parameter-list text (without the enclosing parens), or
+ *   `null` when no balanced parameter list can be found (unbalanced/garbled).
+ */
+function extractParamList(source: string): string | null {
+  const open = source.indexOf('(');
+  if (open === -1) return null;
+
+  let depth = 0;
+  let i = open;
+  const n = source.length;
+  for (; i < n; i++) {
+    const ch = source[i];
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const quote = ch;
+      i++;
+      while (i < n) {
+        const c = source[i];
+        if (c === '\\') {
+          i += 2;
+          continue;
+        }
+        if (c === quote) break;
+        i++;
+      }
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      depth--;
+      if (depth === 0 && ch === ')') {
+        return source.slice(open + 1, i);
+      }
+      // A close-bracket that drops us below the param-list paren means the
+      // input is unbalanced/unextractable.
+      if (depth < 0) return null;
+    }
+  }
+  // Reached EOF without closing the parameter list.
+  return null;
+}
+
 /** Result of schema inference from a function. */
 export interface InferredSchema {
   /** JSON Schema properties keyed by parameter name. */
@@ -78,40 +184,66 @@ export interface InferredSchema {
  *   Returns an empty array if no parameter list is present.
  */
 export function parseFunctionParams(source: string): ParsedParam[] {
-  // Extract the parameter list between the first set of parens
-  // Handle: function f(a, b) {}, (a, b) => {}, async (a, b) => {}
-  const match = source.match(/^[^(]*\(([^)]*)\)/);
-  if (!match) return [];
+  const clean = stripComments(source);
+  const paramListText = extractParamList(clean);
+  if (paramListText === null) return [];
 
-  const paramStr = match[1].trim();
+  const paramStr = paramListText.trim();
   if (!paramStr) return [];
 
-  const params: ParsedParam[] = [];
-  // Split on commas, but respect nested structures (not needed for simple params)
+  return splitParamList(paramStr).map((raw) => parseOneParam(raw.trim()));
+}
+
+/**
+ * Split a parameter-list string on top-level commas, respecting nested
+ * brackets and skipping over string/template-literal content (so a comma inside
+ * a default like `= { a: 1, b: 2 }` or `= "a,b"` does not split a param).
+ */
+function splitParamList(paramStr: string): string[] {
+  const parts: string[] = [];
   let depth = 0;
   let current = '';
   for (let i = 0; i < paramStr.length; i++) {
     const ch = paramStr[i];
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const quote = ch;
+      current += ch;
+      i++;
+      while (i < paramStr.length) {
+        const c = paramStr[i];
+        current += c;
+        if (c === '\\') {
+          i++;
+          if (i < paramStr.length) current += paramStr[i];
+          i++;
+          continue;
+        }
+        if (c === quote) {
+          i++;
+          break;
+        }
+        i++;
+      }
+      i--; // outer loop will re-increment
+      continue;
+    }
     if (ch === '(' || ch === '[' || ch === '{') depth++;
     else if (ch === ')' || ch === ']' || ch === '}') depth--;
     else if (ch === ',' && depth === 0) {
-      params.push(parseOneParam(current.trim()));
+      parts.push(current);
       current = '';
       continue;
     }
     current += ch;
   }
-  if (current.trim()) {
-    params.push(parseOneParam(current.trim()));
-  }
-
-  return params;
+  if (current.trim()) parts.push(current);
+  return parts;
 }
 
 function parseOneParam(param: string): ParsedParam {
   // Strip TypeScript type annotations: `name: type = default` or `name: type`
-  // We need to handle `name = default` and `name: Type = default`
-  const eqIdx = param.indexOf('=');
+  // We need to handle `name = default` and `name: Type = default`.
+  const eqIdx = findAssignmentEquals(param);
   if (eqIdx !== -1) {
     const beforeEq = param.slice(0, eqIdx).trim();
     const defaultValue = param.slice(eqIdx + 1).trim();
@@ -122,6 +254,43 @@ function parseOneParam(param: string): ParsedParam {
   // No default — might have type annotation
   const name = extractParamName(param);
   return { name };
+}
+
+/**
+ * Find the index of the default-value assignment `=`, ignoring `==`, `===`,
+ * `=>`, `>=`, `<=`, `!=` and any `=` inside string/template literals or nested
+ * brackets. Returns -1 if there is no top-level assignment.
+ */
+function findAssignmentEquals(param: string): number {
+  let depth = 0;
+  for (let i = 0; i < param.length; i++) {
+    const ch = param[i];
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const quote = ch;
+      i++;
+      while (i < param.length) {
+        const c = param[i];
+        if (c === '\\') {
+          i += 2;
+          continue;
+        }
+        if (c === quote) break;
+        i++;
+      }
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
+    else if (ch === '=' && depth === 0) {
+      const prev = param[i - 1];
+      const next = param[i + 1];
+      // Skip ==, ===, =>, >=, <=, !=
+      if (next === '=' || next === '>') continue;
+      if (prev === '=' || prev === '>' || prev === '<' || prev === '!') continue;
+      return i;
+    }
+  }
+  return -1;
 }
 
 function extractParamName(expr: string): string {
@@ -154,10 +323,66 @@ function extractParamName(expr: string): string {
  */
 export function inferSchema(fn: IntrospectableFn): InferredSchema | null {
   const source = fn.toString();
+
+  // Refuse native / bound functions outright: their source is
+  // `function () { [native code] }` (or similar) — there is no real parameter
+  // list to recover, so any inferred schema would be a fabrication.
+  if (/\{\s*\[native code\]\s*\}/.test(source)) {
+    log.warn(
+      'Cannot infer a SWAIG parameter schema from a native or bound function ' +
+        '(its source is opaque). Register this tool with defineTypedTool and an ' +
+        'explicit `parameters` JSON Schema instead.',
+    );
+    return null;
+  }
+
+  const clean = stripComments(source);
+  const paramListText = extractParamList(clean);
+  if (paramListText === null) {
+    log.warn(
+      'Could not extract a balanced parameter list from the handler source — ' +
+        'the inferred schema would be unreliable. Register this tool with ' +
+        'defineTypedTool and an explicit `parameters` JSON Schema instead.',
+    );
+    return null;
+  }
+
   const parsed = parseFunctionParams(source);
 
   if (parsed.length === 0) {
     return { parameters: {}, required: [], paramNames: [], hasRawData: false };
+  }
+
+  // Detect-and-refuse parameter shapes we cannot faithfully turn into a JSON
+  // Schema. Emitting a wrong-but-plausible schema would silently advertise
+  // garbage parameters to the AI, so we bail and require an explicit schema.
+  for (const p of parsed) {
+    const name = p.name;
+    if (name.startsWith('...')) {
+      log.warn(
+        `Cannot infer a SWAIG parameter schema: the handler uses a rest ` +
+          `parameter ('${name}'), which has no fixed shape. Register this tool ` +
+          `with defineTypedTool and an explicit \`parameters\` JSON Schema instead.`,
+      );
+      return null;
+    }
+    if (name.startsWith('{') || name.startsWith('[')) {
+      log.warn(
+        'Cannot infer a SWAIG parameter schema: the handler uses a ' +
+          'destructuring parameter pattern, whose property names/types cannot ' +
+          'be recovered reliably from source. Register this tool with ' +
+          'defineTypedTool and an explicit `parameters` JSON Schema instead.',
+      );
+      return null;
+    }
+    if (name === '' || !/^[A-Za-z_$][\w$]*$/.test(name)) {
+      log.warn(
+        `Cannot infer a SWAIG parameter schema: a parameter name ('${name}') ` +
+          `is not a plain identifier and could not be parsed. Register this tool ` +
+          `with defineTypedTool and an explicit \`parameters\` JSON Schema instead.`,
+      );
+      return null;
+    }
   }
 
   // Detection heuristic: if the function looks like an old-style handler
@@ -173,6 +398,20 @@ export function inferSchema(fn: IntrospectableFn): InferredSchema | null {
   // Check if last param is rawData
   const hasRawData = parsed.length > 0 && parsed[parsed.length - 1].name === 'rawData';
   const schemaParams = hasRawData ? parsed.slice(0, -1) : parsed;
+
+  // Minification heuristic: a build step that mangles handler names produces
+  // multiple single-character parameters. The recovered names ('e', 't', …)
+  // would NOT match the AI's argument keys, so the schema is unreliable.
+  const singleChar = schemaParams.filter((p) => p.name.length === 1);
+  if (singleChar.length >= 2) {
+    log.warn(
+      'The handler has multiple single-character parameter names ' +
+        `(${singleChar.map((p) => `'${p.name}'`).join(', ')}), which usually means ` +
+        'the build minified it. The inferred schema is unreliable — register this ' +
+        'tool with defineTypedTool and an explicit `parameters` JSON Schema instead.',
+    );
+    return null;
+  }
 
   const parameters: Record<string, { type: string; description?: string }> = {};
   const required: string[] = [];

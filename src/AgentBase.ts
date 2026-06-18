@@ -16,7 +16,12 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import { SwaigFunction, type SwaigHandler } from './SwaigFunction.js';
+import {
+  SwaigFunction,
+  normalizeParameters,
+  type SwaigHandler,
+  type SwaigErrorHandler,
+} from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
@@ -366,13 +371,57 @@ export class AgentBase extends SWMLService {
     numbered?: boolean;
   }[];
 
+  /** Guards {@link ensureToolsDefined} so `defineTools()` runs at most once. */
+  private _toolsDefined = false;
+
   /**
-   * Lifecycle method to register tools. Subclasses should call this at the
-   * end of their own constructor (after all fields are initialized).
-   * Not called automatically — call `this.defineTools()` explicitly.
+   * Lifecycle hook for subclasses to register their SWAIG tools. Override it
+   * and call `this.defineTool(...)` inside.
+   *
+   * You do **not** need to call this yourself — the base class invokes it
+   * automatically (exactly once) the first time tools are needed: on
+   * {@link renderSwml}, {@link getTools}, {@link serve}/{@link run}, or SWAIG
+   * dispatch. It runs lazily rather than from the base constructor because in
+   * JS/TS `super()` runs *before* a subclass's field initializers, so a
+   * base-constructor call would see `undefined` fields. Deferring to first use
+   * guarantees all subclass fields are initialized.
+   *
+   * Calling `this.defineTools()` manually (the old convention) still works and
+   * is safe — the call is idempotent, so it will not double-register tools.
    */
   protected defineTools(): void {
     // Default no-op — subclasses override
+  }
+
+  /**
+   * Run {@link defineTools} exactly once. Idempotent: safe to call from any
+   * tool-consumption entry point and from a subclass constructor. This is how
+   * `defineTools()` gets auto-invoked without falling into the JS field-init
+   * ordering trap (see {@link defineTools}).
+   */
+  protected ensureToolsDefined(): void {
+    if (this._toolsDefined) return;
+    this._toolsDefined = true;
+    this.defineTools();
+  }
+
+  /** Agent-level SWAIG error hook; see {@link onError}. */
+  private _onError?: SwaigErrorHandler;
+
+  /**
+   * Register an agent-level error hook invoked when any SWAIG tool handler
+   * throws. It runs after a tool's own `onError` (if any) and lets you report
+   * failures (Sentry/Datadog/logging) and optionally control the user-facing
+   * response — return a {@link FunctionResult} to override it, or nothing to
+   * fall back to the default message. The error is always contained, so a
+   * thrown handler never breaks the live call.
+   *
+   * @param handler - The error hook, or `undefined` to clear it.
+   * @returns `this`, for chaining.
+   */
+  onError(handler: SwaigErrorHandler | undefined): this {
+    this._onError = handler;
+    return this;
   }
 
   /**
@@ -384,6 +433,7 @@ export class AgentBase extends SWMLService {
    * @returns Array of all registered SwaigFunction instances.
    */
   getTools(): SwaigFunction[] {
+    this.ensureToolsDefined();
     const tools: SwaigFunction[] = [];
     for (const [, fn] of this.toolRegistry) {
       if (fn instanceof SwaigFunction) tools.push(fn);
@@ -839,17 +889,23 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Merge data into the global_data object passed into the AI configuration.
+   * **MERGES** `data` into the global_data object passed into the AI
+   * configuration. **Despite the name, this does NOT replace** the existing
+   * object — existing keys are preserved and incoming keys overwrite only on
+   * collision (it calls `.update()`-style merge, matching Python
+   * `set_global_data`). This is intentional: skills and other callers each
+   * contribute keys via {@link updateGlobalData}, and a replacing
+   * `setGlobalData` would silently clobber their contributions.
    *
-   * Matches Python `set_global_data` which calls `.update()` on the internal dict —
-   * existing keys are preserved; incoming keys overwrite on collision. Skills and
-   * other callers can each contribute keys without clobbering one another.
-   *
-   * If you need to replace the entire object, assign a new agent instance or use
-   * `Object.assign(agent.globalData, {})` to clear first.
+   * - To **add/override** keys while keeping the rest: this method or the
+   *   identical {@link updateGlobalData}.
+   * - To **fully replace** global_data (clearing every prior key, including
+   *   skill-contributed ones): use {@link replaceGlobalData}.
    *
    * @param data - Key-value pairs to merge into global data.
    * @returns This agent instance for chaining.
+   * @see updateGlobalData - explicit merge alias.
+   * @see replaceGlobalData - true replace semantics.
    */
   setGlobalData(data: Record<string, unknown>): this {
     safeAssign(this.globalData, data);
@@ -857,12 +913,40 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Merge additional entries into the existing global_data object.
+   * Merge additional entries into the existing global_data object. Identical in
+   * behavior to {@link setGlobalData} (both merge); use this name when the
+   * intent is explicitly "add to" rather than "set". Skills register their
+   * global data through this path.
+   *
    * @param data - Key-value pairs to merge into global data.
    * @returns This agent instance for chaining.
+   * @see replaceGlobalData - to clear prior keys instead of merging.
    */
   updateGlobalData(data: Record<string, unknown>): this {
     safeAssign(this.globalData, data);
+    return this;
+  }
+
+  /**
+   * **REPLACES** the entire global_data object: every previously-set key
+   * (including skill-contributed keys) is cleared, and `data` becomes the new
+   * global_data. Use this when you genuinely want a fresh object — the
+   * unambiguous counterpart to the merging {@link setGlobalData} /
+   * {@link updateGlobalData}.
+   *
+   * A shallow copy of `data` is stored, so later mutations of the caller's
+   * object do not leak into the agent.
+   *
+   * TS-native addition: Python's reference SDK has no replace path (its
+   * `set_global_data` only merges), so this has no Python counterpart — see
+   * `PORT_ADDITIONS.md`.
+   *
+   * @param data - The new global_data object (replaces all prior keys).
+   * @returns This agent instance for chaining.
+   * @see setGlobalData - the merging counterpart (does NOT clear prior keys).
+   */
+  replaceGlobalData(data: Record<string, unknown>): this {
+    this.globalData = { ...data };
     return this;
   }
 
@@ -1210,19 +1294,7 @@ export class AgentBase extends SWMLService {
           name,
           description: fn.description || name,
         };
-        if (fn.parameters && Object.keys(fn.parameters).length) {
-          if ('type' in fn.parameters && 'properties' in fn.parameters) {
-            tool['inputSchema'] = fn.parameters;
-          } else {
-            tool['inputSchema'] = {
-              type: 'object',
-              properties: fn.parameters,
-              ...(fn.required.length ? { required: fn.required } : {}),
-            };
-          }
-        } else {
-          tool['inputSchema'] = { type: 'object', properties: {} };
-        }
+        tool['inputSchema'] = normalizeParameters(fn.parameters, fn.required);
         tools.push(tool);
       }
     }
@@ -1288,7 +1360,7 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequestData;
-        const resultDict = await fn.execute(args, rawData);
+        const resultDict = await fn.execute(args, rawData, this._onError);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
           jsonrpc: '2.0',
@@ -1989,6 +2061,7 @@ export class AgentBase extends SWMLService {
    * @returns The rendered SWML document as a JSON string.
    */
   renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
+    this.ensureToolsDefined();
     this.swmlBuilder.reset();
 
     const prompt = this.getPrompt();
@@ -2018,16 +2091,7 @@ export class AgentBase extends SWMLService {
         const entry: Record<string, unknown> = {
           function: name,
           description: fn.description,
-          parameters:
-            fn.parameters && Object.keys(fn.parameters).length
-              ? 'type' in fn.parameters && 'properties' in fn.parameters
-                ? fn.parameters
-                : {
-                    type: 'object',
-                    properties: fn.parameters,
-                    ...(fn.required.length ? { required: fn.required } : {}),
-                  }
-              : { type: 'object', properties: {} },
+          parameters: normalizeParameters(fn.parameters, fn.required),
         };
         if (fn.fillers && Object.keys(fn.fillers).length) entry['fillers'] = fn.fillers;
         if (fn.waitFile) entry['wait_file'] = fn.waitFile;
@@ -2157,7 +2221,7 @@ export class AgentBase extends SWMLService {
       this.swmlBuilder.addVerb(verb, config);
     }
 
-    return this.swmlBuilder.renderDocument();
+    return this.swmlBuilder.render();
   }
 
   // ── Ephemeral copy for dynamic config ───────────────────────────────
@@ -2252,6 +2316,9 @@ export class AgentBase extends SWMLService {
    * @returns The configured Hono application instance.
    */
   getApp(): Hono {
+    // Make sure subclass tools are registered before any route can dispatch
+    // a SWAIG call (idempotent — see ensureToolsDefined).
+    this.ensureToolsDefined();
     // Service's constructor eagerly initialised _app; AgentBase rebuilds it
     // here with its own middleware stack and route handlers on first call.
     if (this._appBuiltByAgent) return this._app;
@@ -2506,7 +2573,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn.execute(args, body);
+        const result = await fn.execute(args, body, this._onError);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
@@ -2730,11 +2797,41 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Alias for {@link serve}. Starts the HTTP server.
-   * @param opts - Optional host and port overrides.
-   * @returns A promise that resolves once the server is running.
+   * Smart entry point matching Python's `WebMixin.run()`: auto-detects the
+   * execution environment and dispatches accordingly. When a serverless event
+   * is supplied, or a serverless platform is detected from the environment
+   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `K_SERVICE`/`FUNCTION_TARGET`,
+   * `FUNCTIONS_WORKER_RUNTIME`, `GATEWAY_INTERFACE`), it dispatches to
+   * {@link runServerless}; otherwise it starts the HTTP server via {@link serve}.
+   *
+   * For deterministic behavior, call {@link serve} (server) or
+   * {@link runServerless} (serverless) directly.
+   *
+   * @param opts - Either server host/port overrides, or a serverless
+   *   `{ event, context, platform }` payload.
+   * @returns `void` for server mode, or the serverless response object.
    */
-  async run(opts?: { host?: string; port?: number }): Promise<void> {
+  async run(opts?: {
+    host?: string;
+    port?: number;
+    event?: ServerlessEvent;
+    context?: unknown;
+    platform?: 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto';
+  }): Promise<void | ServerlessResponse> {
+    const serverlessEnv =
+      !!process.env['AWS_LAMBDA_FUNCTION_NAME'] ||
+      !!process.env['_HANDLER'] ||
+      !!process.env['K_SERVICE'] ||
+      !!process.env['FUNCTION_TARGET'] ||
+      !!process.env['FUNCTIONS_WORKER_RUNTIME'] ||
+      !!process.env['GATEWAY_INTERFACE'];
+    if (opts?.event !== undefined || serverlessEnv) {
+      return this.runServerless(
+        opts?.event ?? ({} as ServerlessEvent),
+        opts?.context,
+        opts?.platform,
+      );
+    }
     return this.serve(opts);
   }
 
@@ -2743,8 +2840,8 @@ export class AgentBase extends SWMLService {
    *
    * Matches Python `run(event, context)` when executed in a serverless environment. Python's
    * `run()` auto-detects the platform via `get_execution_mode()` and dispatches accordingly;
-   * in TypeScript the serverless path is an **explicit** method so that `run()` keeps its
-   * HTTP-server semantics and callers opt in to serverless dispatch deliberately.
+   * `runServerless` is the **explicit** serverless path so callers can opt in deliberately
+   * (the polymorphic {@link run} dispatches here when a serverless env/event is detected).
    *
    * Platform detection follows the same environment-variable heuristics as Python's
    * `ServerlessMixin`: `AWS_LAMBDA_FUNCTION_NAME` → Lambda, `K_SERVICE` → GCF,

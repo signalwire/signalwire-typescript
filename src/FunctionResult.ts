@@ -975,4 +975,13 @@ export class FunctionResult {
     }
     return result;
   }
+
+  /**
+   * TS-native serialization hook. `JSON.stringify(result)` emits the wire
+   * shape (delegates to {@link FunctionResult.toDict}) instead of the
+   * internal field layout. No Python counterpart.
+   */
+  toJSON(): SwaigResultDict {
+    return this.toDict();
+  }
 }

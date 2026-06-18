@@ -390,12 +390,12 @@ export class SWMLService {
       // on_request → on_swml_request delegation chain).
       const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
       if (hookResult !== null) {
-        doc = hookResult.getDocument();
+        doc = hookResult.build();
       } else if (this.onRequestCallback) {
         const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
-        doc = builder.getDocument();
+        doc = builder.build();
       } else {
-        doc = this.swmlBuilder.getDocument();
+        doc = this.swmlBuilder.build();
       }
 
       return c.json(doc);
@@ -699,7 +699,7 @@ export class SWMLService {
    * @returns This service for chaining.
    */
   addSection(sectionName: string): this {
-    const doc = this.swmlBuilder.getDocument() as { sections: Record<string, unknown[]> };
+    const doc = this.swmlBuilder.build() as { sections: Record<string, unknown[]> };
     if (!(sectionName in doc.sections)) {
       doc.sections[sectionName] = [];
     }
@@ -743,16 +743,15 @@ export class SWMLService {
     _callId?: string,
     _modifications?: Record<string, unknown>,
   ): Record<string, unknown> | string {
-    return this.swmlBuilder.getDocument();
+    return this.swmlBuilder.build();
   }
 
   /**
-   * Get the SWML document as a dictionary.
-   * Alias for `renderSwml()` that matches Python's `get_document()` name.
+   * Get the SWML document as a dictionary. Matches Python's `get_document()`.
    * @returns The SWML document.
    */
   getDocument(): Record<string, unknown> {
-    return this.swmlBuilder.getDocument();
+    return this.swmlBuilder.build();
   }
 
   /**
@@ -761,7 +760,7 @@ export class SWMLService {
    * @returns JSON-encoded SWML document.
    */
   renderDocument(): string {
-    return this.swmlBuilder.renderDocument();
+    return this.swmlBuilder.render();
   }
 
   // ── Verb handler registration ────────────────────────────────────────
@@ -819,7 +818,7 @@ export class SWMLService {
       }
 
       // No redirect — serve normal SWML
-      const doc = this.swmlBuilder.getDocument();
+      const doc = this.swmlBuilder.build();
       return c.json(doc);
     };
 
@@ -965,14 +964,15 @@ export class SWMLService {
   }
 
   /**
-   * Start the HTTP server.
+   * Start the HTTP server. Canonical entrypoint, matching Python's
+   * `SWMLService.serve()`.
    *
    * Matches Python's `serve()` parameters including SSL options. When
    * `SWAIG_CLI_MODE=true` is set in the environment (e.g. while running the
    * `swaig-test` CLI) the call is a no-op.
    *
-   * @param host - Hostname. Defaults to `this.host` (constructor value) or
-   *   `'0.0.0.0'`.
+   * @param hostOrOpts - Hostname, or an options object. Defaults to `this.host`
+   *   (constructor value) or `'0.0.0.0'`.
    * @param port - Port. Defaults to `this.port` (constructor value) or `3000`.
    * @param opts - Optional SSL/TLS configuration overrides.
    * @param opts.sslCert - Path to the PEM certificate file.
@@ -981,7 +981,7 @@ export class SWMLService {
    * @param opts.domain - Domain used for HSTS header configuration.
    * @returns Resolves once the server has begun listening.
    */
-  async run(
+  async serve(
     hostOrOpts?:
       | string
       | {
@@ -1045,18 +1045,6 @@ export class SWMLService {
       this.log.info(`${this.name} starting on http://${h}:${p}${this.route}`);
       this._server = serve({ fetch: this._app.fetch, port: p, hostname: h }) as unknown as Server;
     }
-  }
-
-  /**
-   * Start the HTTP server. Alias for {@link run} provided for cross-SDK
-   * consistency with Python's `serve()` method — callers porting from
-   * Python can use this name without changes.
-   *
-   * @param args - Forwarded unchanged to {@link run}.
-   * @returns Resolves once the server has begun listening.
-   */
-  async serve(...args: Parameters<SWMLService['run']>): Promise<void> {
-    return this.run(...args);
   }
 
   /**

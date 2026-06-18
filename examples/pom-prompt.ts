@@ -67,4 +67,4 @@ agent.defineTool({
 
 agent.setPostPrompt('Summarize the support interaction including the issue and resolution.');
 
-agent.run();
+agent.serve();

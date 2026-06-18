@@ -73,7 +73,7 @@ class StandaloneSwaig extends SWMLService {
 }
 
 // Instantiate at module top-level so the swaig-test CLI can locate us via
-// the exported `agent` symbol. `.run()` is a no-op when SWAIG_CLI_MODE=true,
+// the exported `agent` symbol. `.serve()` is a no-op when SWAIG_CLI_MODE=true,
 // so the same file works for both `npx tsx ...` (server mode) and CLI mode.
 export const agent = new StandaloneSwaig();
-agent.run();
+agent.serve();
