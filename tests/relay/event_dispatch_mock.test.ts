@@ -13,16 +13,15 @@ import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { RelayEvent } from '../../src/relay/RelayEvent.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
 
 beforeEach(async () => {
-  mock = await getMockRelay();
-  await mock.reset();
   process.env.RELAY_MAX_CONNECTIONS = '16';
-  ({ client } = await newRelayClient());
+  ({ client, mock } = await newRelayClient());
+  await mock.resetScenarios();
 });
 
 afterEach(async () => {
@@ -242,6 +241,9 @@ describe('Event dispatch — tag-based dial routing', () => {
       contexts: ['default'],
     });
     await client.connect();
+    // This test builds its own client (new session); re-scope the journal view
+    // to it so the dial-event read sees this session's frames.
+    mock.sessionId = sessionIdOf(client);
 
     await mock.armDial({
       tag: 'ec-tag-route',

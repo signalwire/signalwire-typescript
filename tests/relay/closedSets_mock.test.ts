@@ -32,12 +32,7 @@ import * as ts from 'typescript';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { TtsGender, FaxTone } from '../../src/relay/closedSets.js';
-import {
-  getMockRelay,
-  newRelayClient,
-  type MockRelayHarness,
-  type RelayFrame,
-} from './mocktest.js';
+import { newRelayClient, type MockRelayHarness, type RelayFrame } from './mocktest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLOSED_SETS_SRC = path.resolve(__dirname, '../../src/relay/closedSets.ts');
@@ -111,10 +106,9 @@ let client: RelayClient;
 let mock: MockRelayHarness;
 
 beforeEach(async () => {
-  mock = await getMockRelay();
-  await mock.reset();
   process.env.RELAY_MAX_CONNECTIONS = '16';
-  ({ client } = await newRelayClient());
+  ({ client, mock } = await newRelayClient());
+  await mock.resetScenarios();
 });
 
 afterEach(async () => {

@@ -180,6 +180,7 @@ export class RelayClient {
   private _reconnectDelay = RECONNECT_MIN_DELAY;
   private _relayProtocol = '';
   private _identity = '';
+  private _sessionId = '';
   private _authorizationState = '';
   private _pingInterval: ReturnType<typeof setInterval> | null = null;
   private _pingFailures = 0;
@@ -481,6 +482,7 @@ export class RelayClient {
 
     this._relayProtocol = (result.protocol as string) ?? this._relayProtocol;
     this._identity = (result.identity as string) ?? this._identity;
+    this._sessionId = (result.sessionid as string) ?? this._sessionId;
     logger.debug(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`);
   }
 
@@ -1010,6 +1012,7 @@ export class RelayClient {
       }
       if (restart) {
         this._relayProtocol = '';
+        this._sessionId = '';
         this._authorizationState = '';
       }
     }

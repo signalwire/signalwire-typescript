@@ -21,14 +21,16 @@ import {
   METHOD_SIGNALWIRE_CONNECT,
   PROTOCOL_VERSION,
 } from '../../src/relay/constants.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { getMockRelay, newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient | null = null;
 let mock: MockRelayHarness;
 
 beforeEach(async () => {
+  // Unscoped handle, used only for its URLs (relayHost/wsUrl) when a test
+  // builds a RelayClient by hand. Per-session journal scoping comes from the
+  // `mock` returned by each newRelayClient() call (use r.mock for journal reads).
   mock = await getMockRelay();
-  await mock.reset();
   // Ensure a high enough connection cap for tests that build multiple clients.
   process.env.RELAY_MAX_CONNECTIONS = '16';
 });
@@ -58,14 +60,14 @@ describe('RelayClient.connect — happy path', () => {
   it('test_connect_journal_records_signalwire_connect', async () => {
     const r = await newRelayClient();
     client = r.client;
-    const j = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
+    const j = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     expect(j.length).toBe(1);
   });
 
   it('test_connect_journal_carries_project_and_token', async () => {
     const r = await newRelayClient();
     client = r.client;
-    const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
+    const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     const auth = entry!.frame.params.authentication;
     expect(auth.project).toBe('test_proj');
     expect(auth.token).toBe('test_tok');
@@ -74,14 +76,14 @@ describe('RelayClient.connect — happy path', () => {
   it('test_connect_journal_carries_contexts', async () => {
     const r = await newRelayClient();
     client = r.client;
-    const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
+    const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     expect(entry!.frame.params.contexts).toEqual(['default']);
   });
 
   it('test_connect_journal_carries_agent_and_version', async () => {
     const r = await newRelayClient();
     client = r.client;
-    const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
+    const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     const p = entry!.frame.params;
     expect(p.agent).toBe(AGENT_STRING);
     // PROTOCOL_VERSION is an object {major, minor, revision} in TS;
@@ -92,7 +94,7 @@ describe('RelayClient.connect — happy path', () => {
   it('test_connect_journal_event_acks_true', async () => {
     const r = await newRelayClient();
     client = r.client;
-    const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
+    const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     expect(entry!.frame.params.event_acks).toBe(true);
   });
 });
@@ -239,6 +241,9 @@ describe('RelayClient.connect — JWT', () => {
       scheme: 'ws',
     });
     await c.connect();
+    // Scope the journal read to THIS client's session (set before disconnect
+    // clears it) so a parallel test's connect frame can't be read here.
+    mock.sessionId = sessionIdOf(c);
     await c.disconnect();
 
     const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);

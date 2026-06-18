@@ -16,6 +16,15 @@ export default defineConfig({
     // mock_signalwire HTTP journal. Per-file overhead is small
     // (~3s for 80 tests) and the existing pure-unit tests are
     // sequential within each file regardless.
+    //
+    // NOTE: the relay mock-backed tests (tests/relay/*_mock.test.ts) ARE
+    // parallel-safe — the mock_relay journal AND scenario store are session-
+    // scoped (keyed by the RELAY handshake `sessionid`), so each test only
+    // sees/consumes its own frames and scenarios (verified green under
+    // `--fileParallelism`). The flag stays off only because REST has no
+    // natural per-request session key yet; session-scoping mock_signalwire
+    // (an X-Mock-Session header threaded through the REST client) is the
+    // remaining follow-up before this can flip to `true`.
     fileParallelism: false,
   },
 });
