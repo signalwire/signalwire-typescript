@@ -35,7 +35,7 @@ describe('CompatRecordings.list', () => {
     await client.compat.recordings.list();
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Recordings');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Recordings`);
   });
 });
 
@@ -52,7 +52,7 @@ describe('CompatRecordings.get', () => {
     await client.compat.recordings.get('RE_GET');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Recordings/RE_GET');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Recordings/RE_GET`);
   });
 });
 
@@ -67,7 +67,7 @@ describe('CompatRecordings.delete', () => {
     await client.compat.recordings.delete('RE_DEL');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Recordings/RE_DEL');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Recordings/RE_DEL`);
   });
 });
 
@@ -86,7 +86,7 @@ describe('CompatTranscriptions.list', () => {
     await client.compat.transcriptions.list();
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Transcriptions');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Transcriptions`);
   });
 });
 
@@ -103,7 +103,7 @@ describe('CompatTranscriptions.get', () => {
     await client.compat.transcriptions.get('TR_GET');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Transcriptions/TR_GET');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Transcriptions/TR_GET`);
   });
 });
 
@@ -118,6 +118,6 @@ describe('CompatTranscriptions.delete', () => {
     await client.compat.transcriptions.delete('TR_DEL');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Transcriptions/TR_DEL');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Transcriptions/TR_DEL`);
   });
 });

@@ -12,7 +12,7 @@ import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { MockHarness } from './mocktest.js';
 
-const BASE = '/api/laml/2010-04-01/Accounts/test_proj/Conferences';
+const base = (m: MockHarness): string => `/api/laml/2010-04-01/Accounts/${m.project}/Conferences`;
 
 let client: RestClient;
 let mock: MockHarness;
@@ -37,7 +37,7 @@ describe('CompatConferences.list', () => {
     await client.compat.conferences.list();
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(BASE);
+    expect(j.path).toBe(base(mock));
     expect(j.matched_route).not.toBeNull();
   });
 });
@@ -54,7 +54,7 @@ describe('CompatConferences.get', () => {
     await client.compat.conferences.get('CF_GETSID');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/CF_GETSID`);
+    expect(j.path).toBe(`${base(mock)}/CF_GETSID`);
   });
 });
 
@@ -73,7 +73,7 @@ describe('CompatConferences.update', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/CF_UPD`);
+    expect(j.path).toBe(`${base(mock)}/CF_UPD`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('completed');
@@ -95,7 +95,7 @@ describe('CompatConferences.getParticipant', () => {
     await client.compat.conferences.getParticipant('CF_GP', 'CA_GP');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/CF_GP/Participants/CA_GP`);
+    expect(j.path).toBe(`${base(mock)}/CF_GP/Participants/CA_GP`);
   });
 });
 
@@ -116,7 +116,7 @@ describe('CompatConferences.updateParticipant', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/CF_M/Participants/CA_M`);
+    expect(j.path).toBe(`${base(mock)}/CF_M/Participants/CA_M`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Muted).toBe(true);
@@ -135,7 +135,7 @@ describe('CompatConferences.removeParticipant', () => {
     await client.compat.conferences.removeParticipant('CF_RM', 'CA_RM');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe(`${BASE}/CF_RM/Participants/CA_RM`);
+    expect(j.path).toBe(`${base(mock)}/CF_RM/Participants/CA_RM`);
   });
 });
 
@@ -154,7 +154,7 @@ describe('CompatConferences.listRecordings', () => {
     await client.compat.conferences.listRecordings('CF_LRX');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/CF_LRX/Recordings`);
+    expect(j.path).toBe(`${base(mock)}/CF_LRX/Recordings`);
   });
 });
 
@@ -170,7 +170,7 @@ describe('CompatConferences.getRecording', () => {
     await client.compat.conferences.getRecording('CF_GRX', 'RE_GRX');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/CF_GRX/Recordings/RE_GRX`);
+    expect(j.path).toBe(`${base(mock)}/CF_GRX/Recordings/RE_GRX`);
   });
 });
 
@@ -190,7 +190,7 @@ describe('CompatConferences.updateRecording', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/CF_UR/Recordings/RE_UR`);
+    expect(j.path).toBe(`${base(mock)}/CF_UR/Recordings/RE_UR`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('paused');
@@ -208,7 +208,7 @@ describe('CompatConferences.deleteRecording', () => {
     await client.compat.conferences.deleteRecording('CF_DRX', 'RE_DRX');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe(`${BASE}/CF_DRX/Recordings/RE_DRX`);
+    expect(j.path).toBe(`${base(mock)}/CF_DRX/Recordings/RE_DRX`);
   });
 });
 
@@ -229,7 +229,7 @@ describe('CompatConferences.startStream', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/CF_SSX/Streams`);
+    expect(j.path).toBe(`${base(mock)}/CF_SSX/Streams`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Url).toBe('wss://a.b/s');
@@ -252,7 +252,7 @@ describe('CompatConferences.stopStream', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/CF_TSX/Streams/ST_TSX`);
+    expect(j.path).toBe(`${base(mock)}/CF_TSX/Streams/ST_TSX`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('stopped');

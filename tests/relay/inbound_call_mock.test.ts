@@ -347,7 +347,9 @@ describe('Inbound call — handler patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Inbound call — scenario_play', () => {
-  it('test_scenario_play_full_inbound_flow', async () => {
+  // The timeline's own expect_recv window is 5000ms; give the vitest test a
+  // larger budget so it never races its own inner timeout under parallel load.
+  it('test_scenario_play_full_inbound_flow', { timeout: 10000 }, async () => {
     const captured: { call?: Call } = {};
     let handlerStarted = false;
     client.onCall(async (call) => {

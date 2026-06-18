@@ -34,7 +34,7 @@ describe('CompatMessages.update', () => {
     await client.compat.messages.update('MM_U1', { Body: 'x', Status: 'canceled' });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Messages/MM_U1`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Body).toBe('x');
@@ -55,7 +55,7 @@ describe('CompatMessages.getMedia', () => {
     await client.compat.messages.getMedia('MM_X', 'ME_X');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_X/Media/ME_X');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Messages/MM_X/Media/ME_X`);
   });
 });
 
@@ -72,7 +72,7 @@ describe('CompatMessages.deleteMedia', () => {
     await client.compat.messages.deleteMedia('MM_D', 'ME_D');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_D/Media/ME_D');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Messages/MM_D/Media/ME_D`);
   });
 });
 
@@ -91,7 +91,7 @@ describe('CompatFaxes.update', () => {
     await client.compat.faxes.update('FX_U2', { Status: 'canceled' });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_U2');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Faxes/FX_U2`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('canceled');
@@ -111,7 +111,7 @@ describe('CompatFaxes.listMedia', () => {
     await client.compat.faxes.listMedia('FX_LM_X');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_LM_X/Media');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Faxes/FX_LM_X/Media`);
   });
 });
 
@@ -128,7 +128,7 @@ describe('CompatFaxes.getMedia', () => {
     await client.compat.faxes.getMedia('FX_G', 'ME_G');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_G/Media/ME_G');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Faxes/FX_G/Media/ME_G`);
   });
 });
 
@@ -143,6 +143,6 @@ describe('CompatFaxes.deleteMedia', () => {
     await client.compat.faxes.deleteMedia('FX_D', 'ME_D');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_D/Media/ME_D');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Faxes/FX_D/Media/ME_D`);
   });
 });

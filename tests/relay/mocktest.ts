@@ -278,17 +278,35 @@ export class MockRelayHarness {
     return (await resp.json()) as RelayFrame;
   }
 
-  /** Run a scripted timeline of pushes/sleeps/expect_recv on the server. */
+  /** Run a scripted timeline of pushes/sleeps/expect_recv on the server.
+   * When this harness is session-scoped, each `push`/`expect_recv` op is
+   * stamped with this session id (unless it already carries one), so the
+   * timeline targets only this test's client and `expect_recv` matches only
+   * this session's frames — making it parallel-safe. */
   async scenarioPlay(ops: Array<Record<string, unknown>>): Promise<RelayFrame> {
+    const scoped = this.sessionId ? ops.map((op) => this.scopeOp(op)) : ops;
     const resp = await fetch(`${this.httpUrl}/__mock__/scenario_play`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ops),
+      body: JSON.stringify(scoped),
     });
     if (!resp.ok) {
       throw new Error(`mocktest: scenarioPlay failed: ${resp.status}`);
     }
     return (await resp.json()) as RelayFrame;
+  }
+
+  /** Inject this.sessionId into a timeline op's push/expect_recv spec when the
+   * op doesn't already specify a session_id. Leaves sleep ops untouched. */
+  private scopeOp(op: Record<string, unknown>): Record<string, unknown> {
+    const out = { ...op };
+    for (const key of ['push', 'expect_recv'] as const) {
+      const spec = out[key];
+      if (spec && typeof spec === 'object' && !('session_id' in spec)) {
+        out[key] = { ...(spec as Record<string, unknown>), session_id: this.sessionId };
+      }
+    }
+    return out;
   }
 
   /** List active WebSocket sessions on the mock. */

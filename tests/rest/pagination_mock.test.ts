@@ -31,9 +31,12 @@ let http: HttpClient;
 beforeEach(async () => {
   const { mock: m } = await newMockClient();
   mock = m;
+  // Use the harness's per-test random project so this hand-built HttpClient's
+  // requests carry the same Authorization header the harness filters the
+  // journal by (keeps the test isolated under file parallelism).
   http = new HttpClient({
     baseUrl: m.url,
-    project: 'test_proj',
+    project: m.project,
     token: 'test_tok',
   });
 });

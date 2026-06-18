@@ -38,7 +38,7 @@ describe('CompatCalls.startStream -> POST /Calls/{sid}/Streams', () => {
     const j = await mock.last();
     expect(j.method).toBe('POST');
     // The path is /api/laml/.../Calls/{sid}/Streams (no specific stream sid).
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_JX1/Streams');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Calls/CA_JX1/Streams`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Url).toBe('wss://a.b/s');
@@ -59,7 +59,7 @@ describe('CompatCalls.stopStream(callSid, streamSid, body) -> POST .../Streams/{
     await client.compat.calls.stopStream('CA_S1', 'ST_S1', { Status: 'stopped' });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_S1/Streams/ST_S1');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Calls/CA_S1/Streams/ST_S1`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('stopped');
@@ -81,7 +81,9 @@ describe('CompatCalls.updateRecording(callSid, recSid, body)', () => {
     await client.compat.calls.updateRecording('CA_R1', 'RE_R1', { Status: 'paused' });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_R1/Recordings/RE_R1');
+    expect(j.path).toBe(
+      `/api/laml/2010-04-01/Accounts/${mock.project}/Calls/CA_R1/Recordings/RE_R1`,
+    );
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Status).toBe('paused');

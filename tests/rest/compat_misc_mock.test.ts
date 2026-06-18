@@ -36,7 +36,7 @@ describe('CompatApplications.update', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/Applications/AP_UU');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/Applications/AP_UU`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.FriendlyName).toBe('renamed');
@@ -61,7 +61,7 @@ describe('CompatLamlBins.update', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/LamlBins/LB_UU');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/LamlBins/LB_UU`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.FriendlyName).toBe('renamed');
