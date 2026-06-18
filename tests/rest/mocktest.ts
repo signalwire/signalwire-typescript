@@ -16,6 +16,7 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -80,15 +81,33 @@ export class MockHarness {
   readonly url: string;
   readonly port: number;
 
+  /**
+   * The unique random project this harness's client authenticates with
+   * (`test_proj_<hex>`). Tests that assert on the AccountSid embedded in a
+   * LAML path read it from here instead of hard-coding `test_proj`. Empty on
+   * an unscoped/raw harness.
+   */
+  project = '';
+
+  /**
+   * When set, `journal()`/`last()` return only the requests THIS test's client
+   * made — identified by its `Authorization` header (Basic `project:token`,
+   * with a per-test random project; see {@link newMockClient}). REST is pure
+   * request/response, so the mock needs no session handshake: each request is
+   * self-identifying via its auth header, and filtering the shared global
+   * journal by that header makes the suite safe under file parallelism without
+   * any change to the SDK or the mock server. Empty => unscoped (legacy view,
+   * returns every entry — only correct under serial execution).
+   */
+  authHeader = '';
+
   constructor(url: string, port: number) {
     this.url = url;
     this.port = port;
   }
 
-  /**
-   * Return every entry recorded since the last reset, in arrival order.
-   */
-  async journal(): Promise<JournalEntry[]> {
+  /** Fetch the raw global journal (all clients' requests, arrival order). */
+  private async rawJournal(): Promise<JournalEntry[]> {
     const resp = await fetch(`${this.url}/__mock__/journal`);
     if (!resp.ok) {
       throw new Error(`mocktest: GET /__mock__/journal failed: ${resp.status}`);
@@ -97,9 +116,20 @@ export class MockHarness {
   }
 
   /**
-   * Return the most recent journal entry. Throws if the journal is empty —
-   * every test that calls a mock-backed SDK method should produce at least
-   * one entry.
+   * Return this client's recorded requests in arrival order. Scoped to this
+   * harness's `authHeader` when set (so a parallel test never sees another
+   * test's requests); unscoped harnesses see the whole journal.
+   */
+  async journal(): Promise<JournalEntry[]> {
+    const entries = await this.rawJournal();
+    if (!this.authHeader) return entries;
+    return entries.filter((e) => e.headers.authorization === this.authHeader);
+  }
+
+  /**
+   * Return the most recent journal entry for THIS client. Throws if this
+   * client made no request yet — every test that calls a mock-backed SDK
+   * method should produce at least one entry.
    */
   async last(): Promise<JournalEntry> {
     const entries = await this.journal();
@@ -110,10 +140,13 @@ export class MockHarness {
   }
 
   /**
-   * Clear journal + scenarios on the mock server. Tests usually invoke this
-   * from beforeEach to avoid cross-test bleed.
+   * Clear journal + scenarios on the mock server. A scoped harness leaves the
+   * shared journal alone (it only ever reads its own entries, identified by
+   * auth header, so there is nothing to clear and a global wipe would race a
+   * concurrent test). Unscoped harnesses do the legacy global reset.
    */
   async reset(): Promise<void> {
+    if (this.authHeader) return;
     await fetch(`${this.url}/__mock__/journal/reset`, { method: 'POST' });
     await fetch(`${this.url}/__mock__/scenarios/reset`, { method: 'POST' });
   }
@@ -127,7 +160,11 @@ export class MockHarness {
    * see /__mock__/scenarios for the active list.
    */
   async pushScenario(endpointId: string, status: number, body: unknown): Promise<void> {
-    const resp = await fetch(`${this.url}/__mock__/scenarios/${endpointId}`, {
+    // Scope the override to THIS client's auth header so a concurrent test
+    // can't consume it (and a stale one can't bleed across tests). REST's
+    // session key is the Authorization header. Unscoped harness => shared.
+    const q = this.authHeader ? `?session_id=${encodeURIComponent(this.authHeader)}` : '';
+    const resp = await fetch(`${this.url}/__mock__/scenarios/${endpointId}${q}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, response: body }),
@@ -285,26 +322,48 @@ async function ensureServer(): Promise<MockHarness> {
 
 /**
  * newMockClient builds a real RestClient pointed at the local mock plus a
- * harness exposing journal / scenario helpers. The mock's journal is reset
- * before this call returns, so the test sees a clean slate.
+ * per-call harness view scoped to THIS client's requests, so the test reads
+ * only its own journal entries — making the shared mock safe under file
+ * parallelism with no SDK change and no mock-server change.
  *
- * The credentials are intentionally throwaway (`test_proj` / `test_tok`) —
- * the mock accepts any non-empty Basic Auth header — and the AccountSid in
- * the LAML paths becomes `test_proj`, matching the Python conftest
- * fixture's RestClient(project="test_proj", ...).
+ * Isolation key: each client gets a unique random project
+ * (`test_proj_<12 hex>`), so its `Authorization: Basic base64(project:token)`
+ * header is unique. The random suffix (not a counter) keeps it collision-free
+ * across vitest workers AND separate processes/machines hitting one shared
+ * mock. The harness filters the global journal by that header.
+ *
+ * Tests that assert on the AccountSid in a LAML path must read it from
+ * `mock.project` rather than hard-coding `test_proj`.
  */
-export async function newMockClient(): Promise<{ client: RestClient; mock: MockHarness }> {
-  const harness = await ensureServer();
-  await harness.reset();
+const REST_TOKEN = 'test_tok';
+
+export async function newMockClient(): Promise<{
+  client: RestClient;
+  mock: MockHarness;
+  project: string;
+}> {
+  const shared = await ensureServer();
+
+  // Unique per-test project => unique Basic-Auth header => journal filterable
+  // per client. Random (not a counter) so concurrent workers/processes can't
+  // collide on the same project name.
+  const project = `test_proj_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  const authHeader = 'Basic ' + Buffer.from(`${project}:${REST_TOKEN}`).toString('base64');
 
   // Pass `host` with the http:// prefix preserved — RestClient's `host` field
   // accepts a fully-qualified URL when the value starts with "http", which is
   // how we hop the constructor's default https:// normalization.
   const client = new RestClient({
-    project: 'test_proj',
-    token: 'test_tok',
-    host: harness.url,
+    project,
+    token: REST_TOKEN,
+    host: shared.url,
   });
 
-  return { client, mock: harness };
+  // Per-call harness view scoped to this client's auth header. No reset is
+  // needed: this client starts with zero entries in the (auth-filtered) view.
+  const mock = new MockHarness(shared.url, shared.port);
+  mock.authHeader = authHeader;
+  mock.project = project;
+
+  return { client, mock, project };
 }

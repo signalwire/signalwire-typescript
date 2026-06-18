@@ -20,21 +20,15 @@ import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { PlayAction, DetectAction, CollectAction } from '../../src/relay/Action.js';
 import { RelayEvent } from '../../src/relay/RelayEvent.js';
-import {
-  getMockRelay,
-  newRelayClient,
-  type MockRelayHarness,
-  type RelayFrame,
-} from './mocktest.js';
+import { newRelayClient, type MockRelayHarness, type RelayFrame } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
 
 beforeEach(async () => {
-  mock = await getMockRelay();
-  await mock.reset();
   process.env.RELAY_MAX_CONNECTIONS = '16';
-  ({ client } = await newRelayClient());
+  ({ client, mock } = await newRelayClient());
+  await mock.resetScenarios();
 });
 
 afterEach(async () => {

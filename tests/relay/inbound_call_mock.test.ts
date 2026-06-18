@@ -15,16 +15,15 @@ import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { Device } from '../../src/relay/types.js';
-import { getMockRelay, newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
 
 beforeEach(async () => {
-  mock = await getMockRelay();
-  await mock.reset();
   process.env.RELAY_MAX_CONNECTIONS = '16';
-  ({ client } = await newRelayClient());
+  ({ client, mock } = await newRelayClient());
+  await mock.resetScenarios();
 });
 
 afterEach(async () => {
@@ -348,7 +347,9 @@ describe('Inbound call — handler patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Inbound call — scenario_play', () => {
-  it('test_scenario_play_full_inbound_flow', async () => {
+  // The timeline's own expect_recv window is 5000ms; give the vitest test a
+  // larger budget so it never races its own inner timeout under parallel load.
+  it('test_scenario_play_full_inbound_flow', { timeout: 10000 }, async () => {
     const captured: { call?: Call } = {};
     let handlerStarted = false;
     client.onCall(async (call) => {
@@ -437,6 +438,9 @@ describe('Inbound call — no handler', () => {
       contexts: ['default'],
     });
     await fresh.connect();
+    // Re-scope the journal/push view to the fresh client's session (the
+    // beforeEach session was just disconnected).
+    mock.sessionId = sessionIdOf(fresh);
     try {
       await mock.inboundCall({ call_id: 'c-nohandler' });
       await new Promise((r) => setTimeout(r, 200));

@@ -11,7 +11,7 @@ import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { MockHarness } from './mocktest.js';
 
-const BASE = '/api/laml/2010-04-01/Accounts/test_proj/tokens';
+const base = (m: MockHarness): string => `/api/laml/2010-04-01/Accounts/${m.project}/tokens`;
 
 let client: RestClient;
 let mock: MockHarness;
@@ -34,7 +34,7 @@ describe('CompatTokens.create', () => {
     await client.compat.tokens.create({ Ttl: 3600, Name: 'api-key' });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(BASE);
+    expect(j.path).toBe(base(mock));
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Ttl).toBe(3600);
@@ -57,7 +57,7 @@ describe('CompatTokens.update', () => {
     const j = await mock.last();
     // CompatTokens.update uses PATCH (BaseResource — not LAML POST).
     expect(j.method).toBe('PATCH');
-    expect(j.path).toBe(`${BASE}/TK_UU`);
+    expect(j.path).toBe(`${base(mock)}/TK_UU`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Ttl).toBe(7200);
@@ -77,6 +77,6 @@ describe('CompatTokens.delete', () => {
     await client.compat.tokens.delete('TK_DEL');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe(`${BASE}/TK_DEL`);
+    expect(j.path).toBe(`${base(mock)}/TK_DEL`);
   });
 });

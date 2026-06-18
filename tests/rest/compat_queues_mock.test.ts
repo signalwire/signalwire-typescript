@@ -10,7 +10,7 @@ import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { MockHarness } from './mocktest.js';
 
-const BASE = '/api/laml/2010-04-01/Accounts/test_proj/Queues';
+const base = (m: MockHarness): string => `/api/laml/2010-04-01/Accounts/${m.project}/Queues`;
 
 let client: RestClient;
 let mock: MockHarness;
@@ -36,7 +36,7 @@ describe('CompatQueues.update', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/QU_UU`);
+    expect(j.path).toBe(`${base(mock)}/QU_UU`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.FriendlyName).toBe('renamed');
@@ -59,7 +59,7 @@ describe('CompatQueues.listMembers', () => {
     await client.compat.queues.listMembers('QU_LMX');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/QU_LMX/Members`);
+    expect(j.path).toBe(`${base(mock)}/QU_LMX/Members`);
   });
 });
 
@@ -77,7 +77,7 @@ describe('CompatQueues.getMember', () => {
     await client.compat.queues.getMember('QU_GMX', 'CA_GMX');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe(`${BASE}/QU_GMX/Members/CA_GMX`);
+    expect(j.path).toBe(`${base(mock)}/QU_GMX/Members/CA_GMX`);
   });
 });
 
@@ -100,7 +100,7 @@ describe('CompatQueues.dequeueMember', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe(`${BASE}/QU_DMX/Members/CA_DMX`);
+    expect(j.path).toBe(`${base(mock)}/QU_DMX/Members/CA_DMX`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.Url).toBe('https://a.b/url');

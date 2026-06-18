@@ -33,7 +33,7 @@ describe('CompatPhoneNumbers.list', () => {
     await client.compat.phoneNumbers.list();
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/IncomingPhoneNumbers`);
   });
 });
 
@@ -50,7 +50,9 @@ describe('CompatPhoneNumbers.get', () => {
     await client.compat.phoneNumbers.get('PN_GET');
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_GET');
+    expect(j.path).toBe(
+      `/api/laml/2010-04-01/Accounts/${mock.project}/IncomingPhoneNumbers/PN_GET`,
+    );
   });
 });
 
@@ -69,7 +71,7 @@ describe('CompatPhoneNumbers.update', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_UU');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/IncomingPhoneNumbers/PN_UU`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.FriendlyName).toBe('updated');
@@ -88,7 +90,9 @@ describe('CompatPhoneNumbers.delete', () => {
     await client.compat.phoneNumbers.delete('PN_DEL');
     const j = await mock.last();
     expect(j.method).toBe('DELETE');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers/PN_DEL');
+    expect(j.path).toBe(
+      `/api/laml/2010-04-01/Accounts/${mock.project}/IncomingPhoneNumbers/PN_DEL`,
+    );
   });
 });
 
@@ -108,7 +112,7 @@ describe('CompatPhoneNumbers.purchase = POST /IncomingPhoneNumbers', () => {
     });
     const j = await mock.last();
     expect(j.method).toBe('POST');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/IncomingPhoneNumbers');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/IncomingPhoneNumbers`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.PhoneNumber).toBe('+15555550100');
@@ -133,7 +137,7 @@ describe('CompatPhoneNumbers.importNumber = POST /ImportedPhoneNumbers', () => {
     const j = await mock.last();
     expect(j.method).toBe('POST');
     // Note the path is ImportedPhoneNumbers, not IncomingPhoneNumbers.
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/ImportedPhoneNumbers');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/ImportedPhoneNumbers`);
     expect(typeof j.body).toBe('object');
     expect(j.body).not.toBeNull();
     expect(j.body.PhoneNumber).toBe('+15555550111');
@@ -154,7 +158,7 @@ describe('CompatPhoneNumbers.listAvailableCountries = GET /AvailablePhoneNumbers
     await client.compat.phoneNumbers.listAvailableCountries();
     const j = await mock.last();
     expect(j.method).toBe('GET');
-    expect(j.path).toBe('/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers');
+    expect(j.path).toBe(`/api/laml/2010-04-01/Accounts/${mock.project}/AvailablePhoneNumbers`);
   });
 });
 
@@ -172,7 +176,7 @@ describe('CompatPhoneNumbers.searchTollFree(country, params) = GET /AvailablePho
     const j = await mock.last();
     expect(j.method).toBe('GET');
     expect(j.path).toBe(
-      '/api/laml/2010-04-01/Accounts/test_proj/AvailablePhoneNumbers/US/TollFree',
+      `/api/laml/2010-04-01/Accounts/${mock.project}/AvailablePhoneNumbers/US/TollFree`,
     );
     // The AreaCode should be on the query string, not body.
     expect(j.query_params['AreaCode']).toEqual(['888']);

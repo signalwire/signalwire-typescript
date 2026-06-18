@@ -99,17 +99,32 @@ export class MockRelayHarness {
   /** `host:port` (no scheme) — feed straight into `RelayClient`'s `host`. */
   readonly relayHost: string;
 
+  /**
+   * When set, journal reads and `reset()` are scoped to this session id (the
+   * server-assigned `sessionid` from the connect handshake), so a test only
+   * ever sees its own frames and never disturbs another test's.
+   * `newRelayClient()` sets this automatically. Left empty => global (legacy,
+   * single-threaded).
+   */
+  sessionId = '';
+
   constructor(httpUrl: string, wsUrl: string, relayHost: string) {
     this.httpUrl = httpUrl;
     this.wsUrl = wsUrl;
     this.relayHost = relayHost;
   }
 
+  /** `?session_id=<id>` suffix for control-plane calls when scoped, else ''. */
+  private sessionQuery(): string {
+    return this.sessionId ? `?session_id=${encodeURIComponent(this.sessionId)}` : '';
+  }
+
   // ─── Journal ─────────────────────────────────────────────────────
 
-  /** Return every journaled WS frame in arrival order. */
+  /** Return journaled WS frames in arrival order (scoped to this session when
+   * `sessionId` is set). */
   async journal(): Promise<RelayJournalEntry[]> {
-    const resp = await fetch(`${this.httpUrl}/__mock__/journal`);
+    const resp = await fetch(`${this.httpUrl}/__mock__/journal${this.sessionQuery()}`);
     if (!resp.ok) {
       throw new Error(`mocktest: GET /__mock__/journal failed: ${resp.status}`);
     }
@@ -148,10 +163,25 @@ export class MockRelayHarness {
     return entries[entries.length - 1]!;
   }
 
-  /** Clear journal + scenarios. Tests typically call this from beforeEach. */
+  /** Clear journal + scenarios for this session (both scoped when `sessionId`
+   * is set, global otherwise). Tests typically call this from beforeEach. */
   async reset(): Promise<void> {
-    await fetch(`${this.httpUrl}/__mock__/journal/reset`, { method: 'POST' });
-    await fetch(`${this.httpUrl}/__mock__/scenarios/reset`, { method: 'POST' });
+    await fetch(`${this.httpUrl}/__mock__/journal/reset${this.sessionQuery()}`, { method: 'POST' });
+    await fetch(`${this.httpUrl}/__mock__/scenarios/reset${this.sessionQuery()}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Reset this session's armed scenario queues (or all of them when unscoped).
+   * Scenarios are session-scoped on the server, so a scoped harness clears only
+   * its own queue — safe under parallel execution. Tests that arm scenarios
+   * call this in setup so a prior run of the same test can't leak a scenario.
+   */
+  async resetScenarios(): Promise<void> {
+    await fetch(`${this.httpUrl}/__mock__/scenarios/reset${this.sessionQuery()}`, {
+      method: 'POST',
+    });
   }
 
   // ─── Scenarios — fire AFTER a matching SDK execute ────────────────
@@ -161,7 +191,7 @@ export class MockRelayHarness {
    * Each event is `{emit: {...}, delay_ms: N, event_type?: "..."}`.
    */
   async armMethod(method: string, events: Array<Record<string, unknown>>): Promise<void> {
-    const resp = await fetch(`${this.httpUrl}/__mock__/scenarios/${method}`, {
+    const resp = await fetch(`${this.httpUrl}/__mock__/scenarios/${method}${this.sessionQuery()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(events),
@@ -181,7 +211,7 @@ export class MockRelayHarness {
     losers?: Array<{ call_id: string; states: string[] }>;
     delay_ms?: number;
   }): Promise<void> {
-    const resp = await fetch(`${this.httpUrl}/__mock__/scenarios/dial`, {
+    const resp = await fetch(`${this.httpUrl}/__mock__/scenarios/dial${this.sessionQuery()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(opts),
@@ -193,10 +223,14 @@ export class MockRelayHarness {
 
   // ─── Server-initiated pushes ──────────────────────────────────────
 
-  /** Push a single signalwire.event (or any frame) to the SDK. */
+  /** Push a single signalwire.event (or any frame) to the SDK. Targets this
+   * harness's session when scoped (so a parallel test's client never receives
+   * it); an explicit `sessionId` arg overrides, and an unscoped harness with no
+   * arg broadcasts (legacy single-threaded behavior). */
   async push(frame: Record<string, unknown>, sessionId?: string): Promise<RelayFrame> {
+    const target = sessionId ?? this.sessionId;
     let url = `${this.httpUrl}/__mock__/push`;
-    if (sessionId) url = `${url}?session_id=${encodeURIComponent(sessionId)}`;
+    if (target) url = `${url}?session_id=${encodeURIComponent(target)}`;
     const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -228,7 +262,11 @@ export class MockRelayHarness {
       delay_ms: opts.delay_ms ?? 50,
     };
     if (opts.call_id != null) body.call_id = opts.call_id;
-    if (opts.session_id != null) body.session_id = opts.session_id;
+    // Target this harness's session by default so the inbound-call sequence is
+    // delivered only to this test's client (an unscoped harness broadcasts, as
+    // before). An explicit opts.session_id overrides.
+    const sid = opts.session_id ?? this.sessionId;
+    if (sid) body.session_id = sid;
     const resp = await fetch(`${this.httpUrl}/__mock__/inbound_call`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -240,17 +278,35 @@ export class MockRelayHarness {
     return (await resp.json()) as RelayFrame;
   }
 
-  /** Run a scripted timeline of pushes/sleeps/expect_recv on the server. */
+  /** Run a scripted timeline of pushes/sleeps/expect_recv on the server.
+   * When this harness is session-scoped, each `push`/`expect_recv` op is
+   * stamped with this session id (unless it already carries one), so the
+   * timeline targets only this test's client and `expect_recv` matches only
+   * this session's frames — making it parallel-safe. */
   async scenarioPlay(ops: Array<Record<string, unknown>>): Promise<RelayFrame> {
+    const scoped = this.sessionId ? ops.map((op) => this.scopeOp(op)) : ops;
     const resp = await fetch(`${this.httpUrl}/__mock__/scenario_play`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ops),
+      body: JSON.stringify(scoped),
     });
     if (!resp.ok) {
       throw new Error(`mocktest: scenarioPlay failed: ${resp.status}`);
     }
     return (await resp.json()) as RelayFrame;
+  }
+
+  /** Inject this.sessionId into a timeline op's push/expect_recv spec when the
+   * op doesn't already specify a session_id. Leaves sleep ops untouched. */
+  private scopeOp(op: Record<string, unknown>): Record<string, unknown> {
+    const out = { ...op };
+    for (const key of ['push', 'expect_recv'] as const) {
+      const spec = out[key];
+      if (spec && typeof spec === 'object' && !('session_id' in spec)) {
+        out[key] = { ...(spec as Record<string, unknown>), session_id: this.sessionId };
+      }
+    }
+    return out;
   }
 
   /** List active WebSocket sessions on the mock. */
@@ -438,18 +494,35 @@ export async function getMockRelay(): Promise<MockRelayHarness> {
 export async function newRelayClient(
   options: Partial<RelayClientOptions> = {},
 ): Promise<{ client: RelayClient; mock: MockRelayHarness }> {
-  const mock = await ensureServer();
-  await mock.reset();
+  const shared = await ensureServer();
 
   const client = new RelayClient({
     project: 'test_proj',
     token: 'test_tok',
-    host: mock.relayHost,
+    host: shared.relayHost,
     scheme: 'ws',
     contexts: ['default'],
     ...options,
   });
   await client.connect();
 
+  // Return a per-call harness view scoped to THIS client's session, so the
+  // test's journal reads/resets see only its own frames — making the shared
+  // mock safe under concurrent (parallel) test execution. No global reset is
+  // needed: a brand-new session starts with an empty (scoped) journal.
+  const mock = new MockRelayHarness(shared.httpUrl, shared.wsUrl, shared.relayHost);
+  mock.sessionId = sessionIdOf(client);
+
   return { client, mock };
+}
+
+/**
+ * Read the server-assigned session id a connected `RelayClient` captured from
+ * the connect handshake. The SDK keeps this internal (Python's `RelayClient`
+ * doesn't expose it either — keeping the public surface identical), so tests
+ * reach the private `_sessionId` field through a narrow cast. Use this to
+ * re-scope a `MockRelayHarness` to a client a test built by hand.
+ */
+export function sessionIdOf(client: RelayClient): string {
+  return (client as unknown as { _sessionId: string })._sessionId;
 }
