@@ -108,7 +108,14 @@ export class SessionManager {
         this.log.warn('token_invalid', { function: functionName });
         return false;
       }
-      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
+      // length === 5 checked above, so all five components are present.
+      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
 
       if (!callId) {
         this.log.warn('token_rejected_no_call_id', { function: functionName });
@@ -185,7 +192,14 @@ export class SessionManager {
           token_length: token ? token.length : 0,
         };
       }
-      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
+      // length === 5 checked above, so all five components are present.
+      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
 
       const currentTime = Math.floor(Date.now() / 1000);
       let expiry: number | null = null;
