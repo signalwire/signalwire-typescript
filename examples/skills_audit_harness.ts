@@ -157,7 +157,7 @@ async function executeDataMap(
   if (!dataMap) return null;
   const webhooks = (dataMap['webhooks'] ?? []) as Record<string, unknown>[];
   if (webhooks.length === 0) return null;
-  const webhook = webhooks[0];
+  const webhook = webhooks[0]!; // length === 0 returns above
   const urlTemplate = String(webhook['url'] ?? '');
   const method = String(webhook['method'] ?? 'GET').toUpperCase();
   const headers = (webhook['headers'] ?? {}) as Record<string, string>;

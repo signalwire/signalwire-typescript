@@ -50,7 +50,7 @@ async function main() {
     console.log(`  - ${b.id}: ${b.name ?? 'unnamed'}`);
   }
   if (!brandId && brands.data?.length) {
-    brandId = brands.data[0].id;
+    brandId = brands.data[0]!.id; // length checked truthy above
   }
 
   // 3. Get brand details

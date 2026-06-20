@@ -81,7 +81,7 @@ agent.setDynamicConfigCallback((queryParams, bodyParams, headers, ephemeral) => 
     },
   };
 
-  const prompt = industryPrompts[industry] ?? industryPrompts.general;
+  const prompt = industryPrompts[industry] ?? industryPrompts.general!; // 'general' is a defined literal key
   ephemeral.promptAddSection(prompt.title, { body: prompt.body, bullets: prompt.bullets });
 
   // Tier-specific features

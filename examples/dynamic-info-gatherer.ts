@@ -47,7 +47,7 @@ export const agent = new InfoGathererAgent({
   questionCallback: (queryParams) => {
     const set = queryParams['set'] ?? 'default';
     console.log(`Dynamic question set: ${set}`);
-    return questionSets[set] ?? questionSets['default'];
+    return questionSets[set] ?? questionSets['default']!; // 'default' is a defined literal key
   },
   agentOptions: {
     route: '/',
