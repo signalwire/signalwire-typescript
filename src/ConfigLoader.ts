@@ -215,14 +215,14 @@ export class ConfigLoader {
     let current: Record<string, unknown> = this.data;
 
     for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
+      const part = parts[i]!; // i < length-1, in-bounds
       if (!(part in current) || typeof current[part] !== 'object' || current[part] === null) {
         current[part] = {};
       }
       current = current[part] as Record<string, unknown>;
     }
 
-    current[parts[parts.length - 1]] = value;
+    current[parts[parts.length - 1]!] = value; // parts is non-empty (split always yields >=1)
     return this;
   }
 
@@ -405,13 +405,13 @@ export class ConfigLoader {
     const keys = keyPath.split('_');
     let current: Record<string, unknown> = data;
     for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
+      const key = keys[i]!; // i < length-1, in-bounds
       if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
         current[key] = {};
       }
       current = current[key] as Record<string, unknown>;
     }
-    current[keys[keys.length - 1]] = value;
+    current[keys[keys.length - 1]!] = value; // keys is non-empty (split always yields >=1)
   }
 
   /**
