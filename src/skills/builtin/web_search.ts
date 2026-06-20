@@ -638,7 +638,7 @@ export class WebSearchSkill extends SkillBase {
                 // Python skill.py:505-513.
                 for (let idx = 0; idx < data.items.length; idx++) {
                   if (Date.now() >= deadlineAt) break;
-                  const cand = await scrapeOne(data.items[idx]);
+                  const cand = await scrapeOne(data.items[idx]!); // idx < length
                   if (cand !== null) allCandidates.push(cand);
                   // Python skill.py:512-513 sleeps `delay` seconds between
                   // iterations. Skip on the last iteration (nothing left).
@@ -711,7 +711,7 @@ export class WebSearchSkill extends SkillBase {
               `Showing top ${scored.length} from diverse sources:\n`,
             ];
             for (let i = 0; i < scored.length; i++) {
-              const cand = scored[i];
+              const cand = scored[i]!; // i < length
               let block = `=== RESULT ${i + 1} (Quality: ${cand.score.toFixed(2)}) ===\n`;
               block += `Title: ${cand.item.title}\n`;
               block += `URL: ${cand.item.link}\n`;
@@ -787,7 +787,7 @@ export class WebSearchSkill extends SkillBase {
     const top = items.slice(0, Math.max(numResults, 1));
     const lines: string[] = [`Snippet-only results for '${query}' (page content not scraped):`, ''];
     for (let i = 0; i < top.length; i++) {
-      const it = top[i];
+      const it = top[i]!; // i < length
       lines.push(`=== RESULT ${i + 1} ===`);
       lines.push(`Title: ${it.title}`);
       lines.push(`URL: ${it.link}`);
