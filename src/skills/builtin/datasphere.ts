@@ -393,7 +393,7 @@ export class DataSphereSkill extends SkillBase {
     const separator = '='.repeat(50);
 
     for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
+      const chunk = chunks[i]!; // i < length
       let content = `=== RESULT ${i + 1} ===\n`;
 
       if (typeof chunk.text === 'string') {
