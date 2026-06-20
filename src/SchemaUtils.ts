@@ -107,7 +107,7 @@ export class SchemaUtils {
       const propNames = Object.keys(verbDef['properties'] as Record<string, unknown>);
       if (propNames.length === 0) continue;
 
-      const verbName = propNames[0];
+      const verbName = propNames[0]!; // length === 0 continues above
       verbs.set(verbName, {
         name: verbName,
         schemaName,
@@ -326,7 +326,7 @@ export class SchemaUtils {
       }
       if (Array.isArray(swaig['functions'])) {
         for (let i = 0; i < (swaig['functions'] as unknown[]).length; i++) {
-          const fn = (swaig['functions'] as Record<string, unknown>[])[i];
+          const fn = (swaig['functions'] as Record<string, unknown>[])[i]!; // i < length
           if (!fn['function']) {
             errors.push(`SWAIG function at index ${i} missing "function" name`);
           }

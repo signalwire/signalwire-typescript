@@ -194,7 +194,9 @@ export class SwmlBuilder {
         }
       }
     }
-    this._document.sections['main'].push({ [verbName]: config });
+    // The default document factory always seeds a `main` section; preserve the
+    // existing assumption that it is present (assertion is type-only).
+    this._document.sections['main']!.push({ [verbName]: config });
   }
 
   /**

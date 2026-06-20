@@ -388,7 +388,7 @@ export function inferSchema(fn: IntrospectableFn): InferredSchema | null {
   // Detection heuristic: if the function looks like an old-style handler
   // with (args, rawData) or (args) pattern, return null
   if (parsed.length <= 2) {
-    const firstName = parsed[0].name;
+    const firstName = parsed[0]?.name;
     if (firstName === 'args' || firstName === 'arguments') {
       // This is likely old-style (args, rawData) — skip inference
       return null;
@@ -396,7 +396,7 @@ export function inferSchema(fn: IntrospectableFn): InferredSchema | null {
   }
 
   // Check if last param is rawData
-  const hasRawData = parsed.length > 0 && parsed[parsed.length - 1].name === 'rawData';
+  const hasRawData = parsed.length > 0 && parsed[parsed.length - 1]!.name === 'rawData';
   const schemaParams = hasRawData ? parsed.slice(0, -1) : parsed;
 
   // Minification heuristic: a build step that mangles handler names produces

@@ -845,7 +845,7 @@ export class NativeVectorSearchSkill extends SkillBase {
     // Mirrors Python search_engine.py line 449: None → 0.3.
     const weight = this.keywordWeight ?? 0.3;
     const scored = this._documents.map((doc, i) => {
-      const tfidf = scoreTfIdf(queryTokens, this._docTfs[i], this._idf);
+      const tfidf = scoreTfIdf(queryTokens, this._docTfs[i]!, this._idf); // _docTfs is parallel to _documents
       let score: number;
       if (weight > 0) {
         // Keyword-overlap component: fraction of unique query terms present in doc.
