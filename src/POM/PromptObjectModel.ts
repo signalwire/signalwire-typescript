@@ -173,7 +173,7 @@ export class Section {
     const anySubsectionNumbered = this.subsections.some((s) => s.numbered);
 
     for (let i = 0; i < this.subsections.length; i++) {
-      const sub = this.subsections[i];
+      const sub = this.subsections[i]!; // i < length
       let newSectionNumber: number[];
       let nextLevel: number;
       if (this.title !== null || sectionNumber.length) {
@@ -232,7 +232,7 @@ export class Section {
       xml.push(`${indentStr}  <subsections>`);
       const anySubsectionNumbered = this.subsections.some((s) => s.numbered);
       for (let i = 0; i < this.subsections.length; i++) {
-        const sub = this.subsections[i];
+        const sub = this.subsections[i]!; // i < length
         let newSectionNumber: number[];
         if (this.title !== null || sectionNumber.length) {
           if (anySubsectionNumbered && sub.numbered !== false) {
@@ -364,7 +364,7 @@ export class PromptObjectModel {
     const md: string[] = [];
     let sectionCounter = 0;
     for (let i = 0; i < this.sections.length; i++) {
-      const section = this.sections[i];
+      const section = this.sections[i]!; // i < length
       let sectionNumber: number[];
       if (section.title !== null) {
         sectionCounter += 1;
