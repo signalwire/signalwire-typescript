@@ -1836,7 +1836,8 @@ export class AgentBase extends SWMLService {
     if (forwarded) {
       const hostMatch = forwarded.match(/host=([^;,\s]+)/i);
       const protoMatch = forwarded.match(/proto=([^;,\s]+)/i);
-      if (hostMatch && isValidHostname(hostMatch[1])) {
+      if (hostMatch && isValidHostname(hostMatch[1]!)) {
+        // capture group 1 is present on any successful match
         const proto = protoMatch ? protoMatch[1] : 'https';
         const url = `${proto}://${hostMatch[1]}`;
         if (this._proxyDebug) this.log.debug(`Proxy detected from Forwarded header: ${url}`);
@@ -2352,7 +2353,7 @@ export class AgentBase extends SWMLService {
     if (allowedHosts) {
       const hostSet = new Set(allowedHosts.split(',').map((h) => h.trim().toLowerCase()));
       app.use('*', async (c, next) => {
-        const host = (c.req.header('host') ?? '').split(':')[0].toLowerCase();
+        const host = (c.req.header('host') ?? '').split(':')[0]!.toLowerCase(); // split yields >=1 element
         if (!hostSet.has(host)) {
           return c.json({ error: 'Forbidden: host not allowed' }, 403);
         }
@@ -2368,7 +2369,7 @@ export class AgentBase extends SWMLService {
         const hits = new Map<string, { count: number; resetAt: number }>();
         app.use('*', async (c, next) => {
           const ip = this._trustProxyHeaders
-            ? (c.req.header('x-forwarded-for')?.split(',')[0].trim() ??
+            ? (c.req.header('x-forwarded-for')?.split(',')[0]!.trim() ??
               c.req.header('x-real-ip') ??
               'unknown')
             : 'unknown';

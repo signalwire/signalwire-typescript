@@ -280,7 +280,7 @@ function generate(): void {
     const propNames = Object.keys(verbDef.properties);
     if (propNames.length === 0) continue;
 
-    const verbName = propNames[0];
+    const verbName = propNames[0]!; // length === 0 continues above
     const innerSchema = verbDef.properties[verbName] as SchemaProperty;
 
     // Get description
@@ -302,8 +302,9 @@ function generate(): void {
     }
 
     // Use custom typed interface if defined for this verb (e.g. ai, play)
-    if (CUSTOM_VERB_TYPES[verbName]) {
-      const { interfaceName, isOptional } = CUSTOM_VERB_TYPES[verbName];
+    const customVerbType = CUSTOM_VERB_TYPES[verbName];
+    if (customVerbType) {
+      const { interfaceName, isOptional } = customVerbType;
       const paramSig = isOptional ? `config?: ${interfaceName}` : `config: ${interfaceName}`;
       methods.push(`    /** ${cleanDesc} */`);
       methods.push(`    ${verbName}(${paramSig}): this;`);
