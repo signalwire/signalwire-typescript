@@ -120,13 +120,14 @@ function parseArgs(argv: string[]): CliOptions {
   let i = 0;
 
   // First positional arg is the agent path
-  if (!args[0].startsWith('--')) {
-    opts.agentPath = args[0];
+  if (!args[0]!.startsWith('--')) {
+    // args.length === 0 returns above, so args[0] is present.
+    opts.agentPath = args[0]!;
     i = 1;
   }
 
   for (; i < args.length; i++) {
-    const arg = args[i];
+    const arg = args[i]!; // i < length
     switch (arg) {
       case '--list-tools':
         opts.action = 'list-tools';
@@ -161,7 +162,9 @@ function parseArgs(argv: string[]): CliOptions {
         opts.callDirection = args[++i] as 'inbound' | 'outbound';
         break;
       case '--call-state':
-        opts.callState = args[++i];
+        // Matches the other flag handlers: consume the next token verbatim.
+        // The `!` is type-only and does not change the runtime assignment.
+        opts.callState = args[++i]!;
         break;
       case '--call-id':
         opts.callId = args[++i];

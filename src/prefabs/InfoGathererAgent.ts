@@ -298,7 +298,7 @@ export class InfoGathererAgent extends AgentBase {
           return new FunctionResult("I don't have any questions to ask.");
         }
 
-        const current = questions[questionIndex];
+        const current = questions[questionIndex]!; // questionIndex < length checked above
         const instruction = this.generateQuestionInstruction(
           current.question_text ?? '',
           current.confirm === true,
@@ -338,13 +338,13 @@ export class InfoGathererAgent extends AgentBase {
           return new FunctionResult('All questions have already been answered.');
         }
 
-        const current = questions[questionIndex];
+        const current = questions[questionIndex]!; // questionIndex < length checked above
         const keyName = current.key_name ?? '';
         const newAnswers = [...priorAnswers, { key_name: keyName, answer }];
         const newIndex = questionIndex + 1;
 
         if (newIndex < questions.length) {
-          const next = questions[newIndex];
+          const next = questions[newIndex]!; // newIndex < length checked above
           const instruction = this.generateQuestionInstruction(
             next.question_text ?? '',
             next.confirm === true,

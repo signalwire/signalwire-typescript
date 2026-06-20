@@ -195,7 +195,7 @@ export class GoogleMapsSkill extends SkillBase {
               );
             }
 
-            const result = data.results[0];
+            const result = data.results[0]!; // length === 0 returns above
             const { lat, lng } = result.geometry.location;
             const parts: string[] = [
               `Address: ${result.formatted_address}`,
@@ -301,7 +301,7 @@ export class GoogleMapsSkill extends SkillBase {
               );
             }
 
-            const route = data.routes[0];
+            const route = data.routes[0]!; // length === 0 returns above
             const distanceMeters = route.distanceMeters ?? 0;
             const durationSeconds = route.duration
               ? parseInt(route.duration.replace(/s$/, ''), 10)
