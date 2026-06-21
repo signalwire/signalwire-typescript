@@ -1227,7 +1227,7 @@ export class ContextBuilder {
       const stepOrder = ctx.getStepOrder();
       const steps = ctx.getSteps();
       for (let i = 0; i < stepOrder.length; i++) {
-        const stepName = stepOrder[i];
+        const stepName = stepOrder[i]!; // i < length
         const step = steps.get(stepName)!;
         const gi = step.getGatherInfo();
         if (!gi) continue;

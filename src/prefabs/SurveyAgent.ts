@@ -172,7 +172,7 @@ export class SurveyAgent extends AgentBase {
     const validTypes = new Set(['rating', 'multiple_choice', 'yes_no', 'open_ended']);
 
     for (let i = 0; i < this.questions.length; i++) {
-      const q = this.questions[i];
+      const q = this.questions[i]!; // i < length, so always in-bounds
       if (!q.id) q.id = `question_${i + 1}`;
       if (!q.text) throw new Error(`Question ${i + 1} is missing the 'text' field`);
       if (!q.type || !validTypes.has(q.type)) {
@@ -310,7 +310,7 @@ export class SurveyAgent extends AgentBase {
     if (!question.nextQuestion) {
       const idx = this.questions.findIndex((q) => q.id === question.id);
       if (idx >= 0 && idx < this.questions.length - 1) {
-        return this.questions[idx + 1].id;
+        return this.questions[idx + 1]!.id; // idx+1 < length, in-bounds
       }
       return null;
     }
@@ -332,7 +332,7 @@ export class SurveyAgent extends AgentBase {
 
     const idx = this.questions.findIndex((q) => q.id === question.id);
     if (idx >= 0 && idx < this.questions.length - 1) {
-      return this.questions[idx + 1].id;
+      return this.questions[idx + 1]!.id; // idx+1 < length, in-bounds
     }
     return null;
   }

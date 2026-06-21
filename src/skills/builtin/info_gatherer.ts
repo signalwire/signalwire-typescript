@@ -237,7 +237,7 @@ export class InfoGathererSkill extends SkillBase {
       return new FunctionResult("I don't have any questions to ask.");
     }
 
-    const current = questions[questionIndex];
+    const current = questions[questionIndex]!; // questionIndex < length checked above
     const instruction = InfoGathererSkill._generateQuestionInstruction(
       current.question_text ?? '',
       current.confirm ?? false,
@@ -273,7 +273,7 @@ export class InfoGathererSkill extends SkillBase {
       return new FunctionResult('All questions have already been answered.');
     }
 
-    const current = questions[questionIndex];
+    const current = questions[questionIndex]!; // questionIndex < length checked above
     const keyName = current.key_name ?? '';
 
     // Enforce confirmation: reject the submission if the question requires
@@ -292,7 +292,7 @@ export class InfoGathererSkill extends SkillBase {
     let result: FunctionResult;
 
     if (newIndex < questions.length) {
-      const nextQ = questions[newIndex];
+      const nextQ = questions[newIndex]!; // newIndex < length checked above
       const instruction = InfoGathererSkill._generateQuestionInstruction(
         nextQ.question_text ?? '',
         nextQ.confirm ?? false,

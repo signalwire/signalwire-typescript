@@ -44,6 +44,14 @@ const _UNSUPPORTED_FIELDS: Record<string, string> = {
 // Regex for shell injection patterns: !`command`
 const _SHELL_INJECTION_RE = /!`([^`]+)`/g;
 
+/** File inventory discovered for a skill, grouped by top-level directory. */
+interface DiscoveredFiles {
+  scripts: string[];
+  assets: string[];
+  other: string[];
+  [key: string]: string[];
+}
+
 /** Internal representation of a parsed Claude skill. */
 interface ParsedSkill {
   name: string;
@@ -365,8 +373,8 @@ export class ClaudeSkillsSkill extends SkillBase {
     }
   }
 
-  private _discoverAllFiles(skillDir: string): Record<string, string[]> {
-    const files: Record<string, string[]> = {
+  private _discoverAllFiles(skillDir: string): DiscoveredFiles {
+    const files: DiscoveredFiles = {
       scripts: [],
       assets: [],
       other: [],
@@ -385,7 +393,7 @@ export class ClaudeSkillsSkill extends SkillBase {
   private _discoverAllFilesRecursive(
     baseDir: string,
     currentDir: string,
-    files: Record<string, string[]>,
+    files: DiscoveredFiles,
   ): void {
     let entries: string[];
     try {
@@ -461,8 +469,8 @@ export class ClaudeSkillsSkill extends SkillBase {
       return this._buildParsedSkill(null, null, content.trim());
     }
 
-    const frontmatterStr = parts[1].trim();
-    const body = parts[2].trim();
+    const frontmatterStr = parts[1]!.trim(); // length >= 3 guaranteed above
+    const body = parts[2]!.trim();
 
     // Parse YAML frontmatter
     let frontmatter: Record<string, unknown> = {};
@@ -562,8 +570,9 @@ export class ClaudeSkillsSkill extends SkillBase {
 
     for (const [parsedKey, frontmatterKey] of fieldMapping) {
       const value = parsed[parsedKey];
-      if (value !== null && value !== undefined) {
-        const msg = _UNSUPPORTED_FIELDS[frontmatterKey].replace('{name}', name);
+      const template = _UNSUPPORTED_FIELDS[frontmatterKey];
+      if (value !== null && value !== undefined && template !== undefined) {
+        const msg = template.replace('{name}', name);
         log.warn(`claude_skills: ${msg}`);
       }
     }
@@ -700,13 +709,13 @@ export class ClaudeSkillsSkill extends SkillBase {
     // Replace $ARGUMENTS[N] with positional args
     let result = body.replace(/\$ARGUMENTS\[(\d+)\]/g, (_m: string, indexStr: string) => {
       const index = parseInt(indexStr, 10);
-      return index < positional.length ? positional[index] : '';
+      return index < positional.length ? positional[index]! : ''; // guarded in-bounds
     });
 
     // Replace $N shorthand (must do after $ARGUMENTS to avoid conflicts)
     result = result.replace(/\$(\d+)(?!\d)/g, (_m: string, indexStr: string) => {
       const index = parseInt(indexStr, 10);
-      return index < positional.length ? positional[index] : '';
+      return index < positional.length ? positional[index]! : ''; // guarded in-bounds
     });
 
     // Replace $ARGUMENTS with full string

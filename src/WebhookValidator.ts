@@ -158,9 +158,11 @@ function splitUrl(url: string): SplitUrl {
       authority: '',
     };
   }
-  const scheme = m[1];
-  const netloc = m[2];
-  const path = m[3];
+  // Groups 1-3 are non-optional in the regex, so they are always present on a
+  // match; `?? ''` only satisfies the type checker (empty string is unreachable).
+  const scheme = m[1] ?? '';
+  const netloc = m[2] ?? '';
+  const path = m[3] ?? '';
   const query = m[4] ? m[4].slice(1) : '';
   const fragment = m[5] ? m[5].slice(1) : '';
 

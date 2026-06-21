@@ -281,7 +281,7 @@ export class DataMap {
   webhookExpressions(expressions: Record<string, unknown>[]): this {
     if (!this._webhooks.length)
       throw new Error('Must add webhook before setting webhook expressions');
-    this._webhooks[this._webhooks.length - 1]['expressions'] = expressions;
+    this._webhooks[this._webhooks.length - 1]!['expressions'] = expressions; // non-empty checked above
     return this;
   }
 
@@ -292,7 +292,7 @@ export class DataMap {
    */
   body(data: Record<string, unknown>): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting body');
-    this._webhooks[this._webhooks.length - 1]['body'] = data;
+    this._webhooks[this._webhooks.length - 1]!['body'] = data; // non-empty checked above
     return this;
   }
 
@@ -303,7 +303,7 @@ export class DataMap {
    */
   params(data: Record<string, unknown>): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting params');
-    this._webhooks[this._webhooks.length - 1]['params'] = data;
+    this._webhooks[this._webhooks.length - 1]!['params'] = data; // non-empty checked above
     return this;
   }
 
@@ -314,7 +314,7 @@ export class DataMap {
    */
   foreach(config: { input_key: string; output_key: string; append: string; max?: number }): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting foreach');
-    this._webhooks[this._webhooks.length - 1]['foreach'] = config;
+    this._webhooks[this._webhooks.length - 1]!['foreach'] = config; // non-empty checked above
     return this;
   }
 
@@ -325,7 +325,7 @@ export class DataMap {
    */
   output(result: FunctionResult): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting output');
-    this._webhooks[this._webhooks.length - 1]['output'] = result.toDict();
+    this._webhooks[this._webhooks.length - 1]!['output'] = result.toDict(); // non-empty checked above
     return this;
   }
 
@@ -346,7 +346,7 @@ export class DataMap {
    */
   errorKeys(keys: string[]): this {
     if (this._webhooks.length) {
-      this._webhooks[this._webhooks.length - 1]['error_keys'] = keys;
+      this._webhooks[this._webhooks.length - 1]!['error_keys'] = keys; // non-empty checked above
     } else {
       this._errorKeys = keys;
     }

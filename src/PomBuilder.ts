@@ -133,7 +133,7 @@ export class PomSection {
 
     const anyNumbered = this.subsections.some((s) => s.numbered);
     for (let i = 0; i < this.subsections.length; i++) {
-      const sub = this.subsections[i];
+      const sub = this.subsections[i]!; // i < length
       let newNumber: number[];
       let nextLevel: number;
       if (this.title !== null || sectionNumber.length) {
@@ -190,7 +190,7 @@ export class PomSection {
       lines.push(`${pad}  <subsections>`);
       const anyNumbered = this.subsections.some((s) => s.numbered);
       for (let i = 0; i < this.subsections.length; i++) {
-        const sub = this.subsections[i];
+        const sub = this.subsections[i]!; // i < length
         let newNumber: number[];
         if (this.title !== null || sectionNumber.length) {
           if (anyNumbered && sub.numbered !== false) {

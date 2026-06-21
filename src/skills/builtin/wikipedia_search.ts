@@ -216,7 +216,7 @@ export class WikipediaSearchSkill extends SkillBase {
       }
 
       if (articles.length === 1) {
-        return articles[0];
+        return articles[0]!; // length === 1
       }
       const separator = '\n\n' + '='.repeat(50) + '\n\n';
       return articles.join(separator);

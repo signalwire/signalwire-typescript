@@ -275,6 +275,21 @@ const FUNCTION_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.livewire': { tool: 'function_tool' },
 };
 
+/** Per-symbol module overrides for free functions. ``src/SecurityUtils.ts`` is a
+ *  single TS file whose exports map to TWO canonical Python modules: the three
+ *  credential-hygiene helpers were extracted into Python's
+ *  ``signalwire.core.security.security_utils`` (modeled on TS's SecurityUtils),
+ *  while the rest (safeAssign, isPrivateIp, validateUrl, …) stay TS port-only
+ *  helpers under ``signalwire.utils`` (see PORT_ADDITIONS.md). A file-level
+ *  TS_MODULE_ALIASES entry can't split one file across two modules, so route the
+ *  three by canonical (snake_case) name here. Keyed by the projected free-fn name.
+ *  Kept in sync with enumerate-signatures.ts FREE_FN_MODULE_OVERRIDES. */
+const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
+  filter_sensitive_headers: 'signalwire.core.security.security_utils',
+  redact_url: 'signalwire.core.security.security_utils',
+  is_valid_hostname: 'signalwire.core.security.security_utils',
+};
+
 /** Skills (builtin): `src/skills/builtin/<name>.ts` maps to
  *  `signalwire.skills.<name>.skill` per the Python layout. */
 function builtinSkillModule(fileRel: string): string | null {
@@ -785,12 +800,17 @@ function main(): void {
 
   // Emit functions.
   for (const f of rawFunctions) {
-    const mod = pickModuleForFunction(f.fileRel);
-    const aliases = FUNCTION_NAME_ALIASES[mod] ?? {};
-    const entry = ensureModule(mod);
-    const existing = new Set(entry.functions);
-    for (const fn of f.fns) existing.add(aliases[fn] ?? fn);
-    entry.functions = Array.from(existing).sort();
+    const fileMod = pickModuleForFunction(f.fileRel);
+    for (const fn of f.fns) {
+      // A per-symbol override can route a single file's function to a
+      // different canonical module than its file-level home.
+      const mod = FREE_FN_MODULE_OVERRIDES[fn] ?? fileMod;
+      const aliases = FUNCTION_NAME_ALIASES[mod] ?? {};
+      const entry = ensureModule(mod);
+      const existing = new Set(entry.functions);
+      existing.add(aliases[fn] ?? fn);
+      entry.functions = Array.from(existing).sort();
+    }
   }
 
   // Post-process: Python enumerator only emits `__init__` when the class

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 69971cafc7e99909c2082bbda4cbb333d1fe8adc",
+  "generated_from": "signalwire-typescript @ 674217a40b0c49d9836fa41dbab9f23a81aeb72d",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -509,6 +509,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.security.security_utils": {
+      "classes": {},
+      "functions": [
+        "filter_sensitive_headers",
+        "is_valid_hostname",
+        "redact_url"
+      ]
     },
     "signalwire.core.security.session_manager": {
       "classes": {
@@ -1999,11 +2007,8 @@
     "signalwire.utils": {
       "classes": {},
       "functions": [
-        "filter_sensitive_headers",
         "is_private_ip",
         "is_serverless_mode",
-        "is_valid_hostname",
-        "redact_url",
         "resolve_and_validate_url",
         "safe_assign",
         "validate_url"

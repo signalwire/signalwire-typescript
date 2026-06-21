@@ -262,6 +262,20 @@ const FREE_FN_NAME_OVERRIDES: Record<string, string> = {
   rest_client: 'RestClient',
 };
 
+// Per-symbol module overrides for free functions. ``src/SecurityUtils.ts`` is a
+// single TS file whose exports map to TWO canonical Python modules: the three
+// credential-hygiene helpers were extracted into Python's
+// ``signalwire.core.security.security_utils`` (modeled on TS's SecurityUtils),
+// while the rest (safeAssign, isPrivateIp, validateUrl, …) remain TS port-only
+// helpers parked under ``signalwire.utils`` (see PORT_ADDITIONS.md). A file-level
+// TS_MODULE_ALIASES entry can't split one file across two modules, so route the
+// three by canonical (snake_case) name here. Keyed by the projected free-fn name.
+const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
+  filter_sensitive_headers: 'signalwire.core.security.security_utils',
+  redact_url: 'signalwire.core.security.security_utils',
+  is_valid_hostname: 'signalwire.core.security.security_utils',
+};
+
 // Per-symbol free-function PARAM-shape overrides (teach-the-checker, scoped to a
 // single symbol — does NOT relax the comparison globally).
 //
@@ -856,7 +870,10 @@ function main(): number {
           if (native.startsWith('_')) return;
           const snake = camelToSnake(native);
           const projected = FREE_FN_NAME_OVERRIDES[snake] ?? snake;
-          const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
+          const mod =
+            FREE_FN_MODULE_OVERRIDES[projected] ??
+            TS_MODULE_ALIASES[rel] ??
+            fallbackModuleName(rel);
           try {
             const sig = signatureFromMethod(
               node,
