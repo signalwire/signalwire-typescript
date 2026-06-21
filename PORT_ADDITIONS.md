@@ -110,10 +110,7 @@ signalwire.prefabs.survey.SurveyAgent.define_tools: TS port-only helper — func
 signalwire.prefabs.survey.create_survey_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate_all: TS port-only helper — functionality has no direct Python equivalent
-signalwire.utils.filter_sensitive_headers: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.is_private_ip: TS port-only helper — functionality has no direct Python equivalent
-signalwire.utils.is_valid_hostname: TS port-only helper — functionality has no direct Python equivalent
-signalwire.utils.redact_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.resolve_and_validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.safe_assign: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.validate_url: TS port-only helper — functionality has no direct Python equivalent

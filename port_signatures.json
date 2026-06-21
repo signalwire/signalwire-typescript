@@ -5235,6 +5235,40 @@
         }
       }
     },
+    "signalwire.core.security.security_utils": {
+      "functions": {
+        "filter_sensitive_headers": {
+          "params": [
+            {
+              "name": "headers",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "is_valid_hostname": {
+          "params": [
+            {
+              "name": "host",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "redact_url": {
+          "params": [
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        }
+      }
+    },
     "signalwire.core.security.session_manager": {
       "classes": {
         "SessionManager": {
@@ -19583,16 +19617,6 @@
     },
     "signalwire.utils": {
       "functions": {
-        "filter_sensitive_headers": {
-          "params": [
-            {
-              "name": "headers",
-              "type": "dict<string,any>",
-              "required": true
-            }
-          ],
-          "returns": "dict<string,any>"
-        },
         "is_private_ip": {
           "params": [
             {
@@ -19606,26 +19630,6 @@
         "is_serverless_mode": {
           "params": [],
           "returns": "bool"
-        },
-        "is_valid_hostname": {
-          "params": [
-            {
-              "name": "host",
-              "type": "string",
-              "required": true
-            }
-          ],
-          "returns": "bool"
-        },
-        "redact_url": {
-          "params": [
-            {
-              "name": "url",
-              "type": "string",
-              "required": true
-            }
-          ],
-          "returns": "string"
         },
         "resolve_and_validate_url": {
           "params": [

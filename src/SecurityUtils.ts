@@ -64,7 +64,7 @@ export function filterSensitiveHeaders(headers: Record<string, string>): Record<
  * @returns The URL with the password portion replaced by `****`.
  */
 export function redactUrl(url: string): string {
-  return url.replace(/:\/\/([^:@]+):([^@]+)@/, '://$1:****@');
+  return url.replace(/:\/\/([^:@/]+):([^@/]+)@/, '://$1:****@');
 }
 
 /**

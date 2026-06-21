@@ -165,6 +165,13 @@ describe('SecurityUtils', () => {
         'http://admin:****@localhost:3000',
       );
     });
+
+    it('does not redact a colon/at-sign that appears only in the path (no userinfo)', () => {
+      // Userinfo can't span a path separator: the credential char classes
+      // stop at `/`, matching Python's `://([^:@/]+):([^@/]+)@`. A `:..@` that
+      // lives after the first `/` is path data, not credentials.
+      expect(redactUrl('https://host.com/a:b@c')).toBe('https://host.com/a:b@c');
+    });
   });
 
   // ── isValidHostname ─────────────────────────────────────────────────
