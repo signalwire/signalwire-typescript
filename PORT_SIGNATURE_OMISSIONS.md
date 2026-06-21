@@ -455,6 +455,7 @@ signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params r
 ## POM SectionData vs dict<string,any>
 
 signalwire.pom.pom.PromptObjectModel.to_dict: TS returns `list<class:signalwire.pom.pom.SectionData>` where SectionData is a typed shape; Python returns the equivalent `list<dict<string,any>>`. Same JSON-serializable structure with stronger TS typing.
+signalwire.pom.pom.Section.to_dict: TS returns `class:signalwire.pom.pom.SectionData` (the typed shape of one serialized section); Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing. (Python's return type was firmed up from bare `any` to `dict<string,any>` during the mypy pass; TS already modeled the precise SectionData shape.)
 
 ## Typed payload/serializer shapes vs dict<string,any> (idiomatic TS, same wire)
 
