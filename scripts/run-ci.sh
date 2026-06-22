@@ -179,8 +179,15 @@ run_gate "NO-CHEAT" "audit_no_cheat_tests" \
 # fails the gate. Self-contained: spins its own mock, runs the rest suite serially
 # against it (MOCK_SIGNALWIRE_PORT so all traffic lands in one journal), then
 # checks that journal. Same shape as python's/java's gate.
+# Pick a free TCP port on 127.0.0.1 (bind :0, read the OS-assigned port,
+# release). Never reuse a hardcoded port — a leftover or concurrent mock
+# squatting a fixed port otherwise makes the gate hang on its health poll.
+pick_free_port() {
+    python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
+}
 rest_coverage_gate() {
-    local port=8769
+    local port
+    port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
     python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
@@ -188,13 +195,24 @@ rest_coverage_gate() {
     local mock_pid=$!
     # shellcheck disable=SC2064
     trap "kill $mock_pid 2>/dev/null" RETURN
-    local i
+    # Fail LOUD if the mock dies mid-startup or never becomes healthy — never hang.
+    local i ready=0
     for i in $(seq 1 60); do
+        if ! kill -0 "$mock_pid" 2>/dev/null; then
+            echo "mock_signalwire died on port $port — log:" >&2
+            cat "/tmp/rest_cov_mock.$$.log" >&2
+            return 1
+        fi
         if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
+            ready=1
             break
         fi
         sleep 0.5
     done
+    if [ "$ready" -ne 1 ]; then
+        echo "mock_signalwire on port $port not healthy within 30s" >&2
+        return 1
+    fi
     python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
     MOCK_SIGNALWIRE_PORT="$port" npx vitest run tests/rest --no-file-parallelism || return 1
     python3 -m mock_signalwire.rest_coverage \

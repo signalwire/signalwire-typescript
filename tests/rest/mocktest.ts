@@ -179,7 +179,6 @@ export class MockHarness {
 // Server lifecycle (singleton across the test process)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_PORT = 8766;
 const STARTUP_TIMEOUT_MS = 30_000;
 const PROBE_TIMEOUT_MS = 2_000;
 
@@ -197,13 +196,30 @@ const state: ServerState = {
   starting: null,
 };
 
-function resolvePort(): number {
+// Ask the OS for a free loopback TCP port (listen on :0, read it, close).
+async function pickFreePort(): Promise<number> {
+  const { createServer } = await import('node:net');
+  return new Promise<number>((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = addr && typeof addr === 'object' ? addr.port : 0;
+      srv.close(() => (port > 0 ? resolve(port) : reject(new Error('failed to pick a free port'))));
+    });
+  });
+}
+
+// MOCK_SIGNALWIRE_PORT (set by the CI gate, which pre-spawns the mock) wins;
+// otherwise pick a FREE port rather than a hardcoded default that would collide
+// with a stale/concurrent mock and hang the suite.
+async function resolvePort(): Promise<number> {
   const raw = process.env['MOCK_SIGNALWIRE_PORT'];
   if (raw) {
     const p = parseInt(raw, 10);
     if (!isNaN(p) && p > 0) return p;
   }
-  return DEFAULT_PORT;
+  return pickFreePort();
 }
 
 async function probeHealth(baseUrl: string): Promise<boolean> {
@@ -230,7 +246,7 @@ async function ensureServer(): Promise<MockHarness> {
   }
 
   state.starting = (async () => {
-    const port = resolvePort();
+    const port = await resolvePort();
     const url = `http://127.0.0.1:${port}`;
 
     // Probe — if a server is already running we reuse it.
