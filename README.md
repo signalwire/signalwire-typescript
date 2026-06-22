@@ -162,6 +162,39 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 
 ---
 
+## Webhook Verification
+
+Verify that an inbound webhook (status callback, messaging callback, SWML/SWAIG
+request) genuinely came from SignalWire using your Signing Key. This is the
+spiritual successor to the Compatibility API's `RestClient.validateRequest()` /
+`validateRequestWithBody()` — and it ships **built into `@signalwire/sdk`** as a
+top-level export, so you do not need the separate `@signalwire/compatibility-api`
+package.
+
+```typescript
+import { validateRequest } from '@signalwire/sdk';
+
+// Parsed form params (classic cXML/Compat webhooks) —
+// the equivalent of RestClient.validateRequest():
+const ok = validateRequest(signingKey, signatureHeader, fullUrl, requestParams);
+
+// Raw request body (JSON/SWML, or cXML form bodies that carry bodySHA256) —
+// the equivalent of RestClient.validateRequestWithBody():
+const ok = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
+```
+
+`validateRequest` folds both Compatibility API methods into one call: pass a
+**parsed params object / `Map` / array of tuples** for form-encoded webhooks, or
+the **raw body string** to additionally verify the `bodySHA256` the platform
+includes for JSON/SWML payloads. It returns `true` on a match, `false`
+otherwise, and throws if the Signing Key is missing.
+
+If you want the lower-level primitive (compute/compare a single signature over a
+raw body), `validateWebhookSignature(signingKey, signature, url, rawBody)` is
+also exported.
+
+---
+
 ## Installation
 
 ```bash
