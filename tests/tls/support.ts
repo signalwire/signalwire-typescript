@@ -33,12 +33,30 @@ import { fileURLToPath } from 'node:url';
 const STARTUP_TIMEOUT_MS = 40_000; // mock_signalwire cold-loads 13 specs (~15s)
 const PROBE_TIMEOUT_MS = 2_000;
 
-// Dedicated ports for the --tls mocks, distinct from the plain-HTTP shared
-// mocks (mock_relay ws=8776/http=9776, mock_signalwire 8766) so both can run
-// in the same suite without colliding.
-const TLS_RELAY_WS_PORT = 8778;
-const TLS_RELAY_HTTP_PORT = 9778;
-const TLS_SIGNALWIRE_PORT = 8768;
+// The --tls mocks pick FREE ports (bind :0) rather than hardcoded ones, so a
+// stale/concurrent listener never collides. Each start function picks its own
+// (relay: WS + HTTP independently); env overrides win when set.
+async function pickFreePort(): Promise<number> {
+  const { createServer } = await import('node:net');
+  return new Promise<number>((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = addr && typeof addr === 'object' ? addr.port : 0;
+      srv.close(() => (port > 0 ? resolve(port) : reject(new Error('failed to pick a free port'))));
+    });
+  });
+}
+
+async function resolveTlsPort(envVar: string): Promise<number> {
+  const raw = process.env[envVar];
+  if (raw) {
+    const p = parseInt(raw, 10);
+    if (!isNaN(p) && p > 0) return p;
+  }
+  return pickFreePort();
+}
 
 /**
  * Resolve the porting-sdk root: $PORTING_SDK / $PSDK (the env vars run-ci.sh
@@ -168,8 +186,10 @@ export async function startTlsMockRelay(): Promise<TlsMockRelay | null> {
   // null pkgDir is fine — the mock also resolves from the system Python.
   const pkgDir = discoverPortingSdkPackage('mock_relay');
 
-  const httpUrl = `http://127.0.0.1:${TLS_RELAY_HTTP_PORT}`;
-  const relayHost = `127.0.0.1:${TLS_RELAY_WS_PORT}`;
+  const tlsWsPort = await resolveTlsPort('MOCK_RELAY_TLS_WS_PORT');
+  const tlsHttpPort = await resolveTlsPort('MOCK_RELAY_TLS_HTTP_PORT');
+  const httpUrl = `http://127.0.0.1:${tlsHttpPort}`;
+  const relayHost = `127.0.0.1:${tlsWsPort}`;
 
   // Reuse an already-running --tls instance if one answers (probe-then-spawn).
   if (await probeHealth(httpUrl, 'schemas_loaded')) {
@@ -184,9 +204,9 @@ export async function startTlsMockRelay(): Promise<TlsMockRelay | null> {
       '--host',
       '127.0.0.1',
       '--ws-port',
-      String(TLS_RELAY_WS_PORT),
+      String(tlsWsPort),
       '--http-port',
-      String(TLS_RELAY_HTTP_PORT),
+      String(tlsHttpPort),
       '--tls',
       '--log-level',
       'error',
@@ -261,7 +281,8 @@ export async function startTlsMockSignalwire(): Promise<TlsMockSignalwire | null
   // null pkgDir is fine — the mock also resolves from the system Python.
   const pkgDir = discoverPortingSdkPackage('mock_signalwire');
 
-  const baseUrl = `https://127.0.0.1:${TLS_SIGNALWIRE_PORT}`;
+  const tlsPort = await resolveTlsPort('MOCK_SIGNALWIRE_TLS_PORT');
+  const baseUrl = `https://127.0.0.1:${tlsPort}`;
 
   if (await probeHealth(baseUrl, 'specs_loaded')) {
     return new TlsMockSignalwire(spawn('true'), baseUrl);
@@ -275,7 +296,7 @@ export async function startTlsMockSignalwire(): Promise<TlsMockSignalwire | null
       '--host',
       '127.0.0.1',
       '--port',
-      String(TLS_SIGNALWIRE_PORT),
+      String(tlsPort),
       '--tls',
       '--log-level',
       'error',

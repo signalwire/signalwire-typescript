@@ -324,7 +324,6 @@ export class MockRelayHarness {
 // Server lifecycle (singleton across the test process)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_WS_PORT = 8776;
 const STARTUP_TIMEOUT_MS = 30_000;
 const PROBE_TIMEOUT_MS = 2_000;
 
@@ -342,23 +341,40 @@ const state: ServerState = {
   starting: null,
 };
 
-function resolveWsPort(): number {
+// Ask the OS for a free loopback TCP port (listen on :0, read it, close).
+async function pickFreePort(): Promise<number> {
+  const { createServer } = await import('node:net');
+  return new Promise<number>((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = addr && typeof addr === 'object' ? addr.port : 0;
+      srv.close(() => (port > 0 ? resolve(port) : reject(new Error('failed to pick a free port'))));
+    });
+  });
+}
+
+// Env override wins; otherwise pick a FREE port rather than a hardcoded default
+// that would collide with a stale/concurrent mock and hang the suite.
+async function resolveWsPort(): Promise<number> {
   const raw = process.env['MOCK_RELAY_WS_PORT'];
   if (raw) {
     const p = parseInt(raw, 10);
     if (!isNaN(p) && p > 0) return p;
   }
-  return DEFAULT_WS_PORT;
+  return pickFreePort();
 }
 
-function resolveHttpPort(wsPort: number): number {
+// HTTP control plane: an independent free port (env override wins). Picked
+// separately rather than ws+1000 so a dynamic WS port never derives a busy one.
+async function resolveHttpPort(): Promise<number> {
   const raw = process.env['MOCK_RELAY_HTTP_PORT'];
   if (raw) {
     const p = parseInt(raw, 10);
     if (!isNaN(p) && p > 0) return p;
   }
-  // Default behavior of mock-relay: HTTP = WS + 1000.
-  return wsPort + 1000;
+  return pickFreePort();
 }
 
 async function probeHealth(httpUrl: string): Promise<boolean> {
@@ -385,8 +401,8 @@ async function ensureServer(): Promise<MockRelayHarness> {
   }
 
   state.starting = (async () => {
-    const wsPort = resolveWsPort();
-    const httpPort = resolveHttpPort(wsPort);
+    const wsPort = await resolveWsPort();
+    const httpPort = await resolveHttpPort();
     const httpUrl = `http://127.0.0.1:${httpPort}`;
     const wsUrl = `ws://127.0.0.1:${wsPort}`;
     const relayHost = `127.0.0.1:${wsPort}`;
