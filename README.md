@@ -28,7 +28,7 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 |-----------|-------------|------------|
 | **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
 | **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
-| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 17+ API namespaces | [REST docs](rest/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 21 API namespaces | [REST docs](rest/README.md) |
 
 ```bash
 npm install @signalwire/sdk
@@ -64,16 +64,16 @@ agent.run(); // Starts HTTP server on port 3000
 Test locally without running a server:
 
 ```bash
-swaig-test examples/simple-agent.ts --list-tools
-swaig-test examples/simple-agent.ts --dump-swml
-swaig-test examples/simple-agent.ts --exec get_time
+npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --list-tools
+npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --dump-swml
+npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --exec get_time
 ```
 
 ### Agent Features
 
 - **Prompt Object Model (POM)** -- structured prompt composition via `promptAddSection()`
 - **SWAIG tools** -- define functions with `defineTool()` that the AI calls mid-conversation, with native access to the call's media stack
-- **Skills system** -- add capabilities with one-liners: `agent.addSkill('datetime')`
+- **Skills system** -- add capabilities with one-liners: `await agent.addSkill(new DateTimeSkill())`
 - **Contexts and steps** -- structured multi-step workflows with navigation control
 - **DataMap tools** -- tools that execute on SignalWire's servers, calling REST APIs without your own webhook
 - **Dynamic configuration** -- per-request agent customization for multi-tenant deployments
@@ -100,6 +100,8 @@ The [`examples/`](examples/) directory contains 35+ working examples:
 | [multi-agent.ts](examples/multi-agent.ts) | Multiple agents on one server |
 | [serverless-lambda.ts](examples/serverless-lambda.ts) | AWS Lambda deployment |
 | [dynamic-config.ts](examples/dynamic-config.ts) | Per-request dynamic configuration, multi-tenant routing |
+
+See [examples/README.md](examples/README.md) for the full list organized by category.
 
 ---
 
@@ -150,12 +152,12 @@ const client = new RestClient({
 
 await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
 await client.calling.play(callId, { play: [{ type: 'tts', text: 'Hello!' }] });
-await client.phoneNumbers.search({ area_code: '512' });
+await client.phoneNumbers.search({ areaCode: '512' });
 await client.datasphere.documents.search({ query_string: 'billing policy' });
 ```
 
-- 17 namespaced API surfaces: Fabric (17 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
-- Zero dependencies -- uses built-in `fetch` (Node 18+)
+- 21 namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Uses Node's built-in `fetch` -- no HTTP client dependency
 - Dict returns -- raw JSON, no wrapper objects
 
 See the **[REST documentation](rest/README.md)** for the full guide, API reference, and examples.
@@ -202,7 +204,7 @@ also exported.
 npm install @signalwire/sdk
 ```
 
-Requires Node.js >= 18.
+Requires Node.js >= 22.
 
 ## Documentation
 
