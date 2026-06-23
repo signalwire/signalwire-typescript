@@ -358,6 +358,23 @@ run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
         --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
         --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
+# Gate 11: SWAIG-CLI — the lightweight shared swaig-test mini-contract (NOT
+# python parity; python's in-process simulator surface is reference-only). Black-
+# box: invokes this port's swaig-test --help + a couple golden invocations and
+# asserts (1) the shared verbs are documented, (2) an unknown --simulate-serverless
+# platform errors instead of silently falling back, (3) no-action errors instead
+# of a silent default. TS accepts --simulate-serverless (lambda/gcf/azure/cgi), so
+# the unknown-platform clause applies.
+run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
+        --port typescript \
+        --cmd "npx tsx $PORT_ROOT/src/cli/swaig-test.ts" \
+        --default-action-argv 'AGENT_FILE_PLACEHOLDER' \
+        --has-serverless \
+        --serverless-argv 'AGENT_FILE_PLACEHOLDER|--simulate-serverless|bogus-platform-xyz' \
+        --agent-file-suffix '.ts' \
+        --agent-file-content "import { AgentBase } from '$PORT_ROOT/src/AgentBase.ts'; const a = new AgentBase({ name: 'probe', route: '/' }); a.setPromptText('hi'); export default a;"
+
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"
     exit 0

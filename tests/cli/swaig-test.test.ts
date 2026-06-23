@@ -1,6 +1,94 @@
 import { describe, it, expect } from 'vitest';
+import { execFile } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AgentBase } from '../../src/AgentBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
+
+const CLI = fileURLToPath(new URL('../../src/cli/swaig-test.ts', import.meta.url));
+
+/** Run the swaig-test CLI via tsx as a subprocess; resolves with code+output. */
+function runCli(args: string[]): Promise<{ code: number; out: string }> {
+  return new Promise((resolve) => {
+    execFile(
+      'npx',
+      ['tsx', CLI, ...args],
+      { timeout: 60_000, env: { ...process.env, SIGNALWIRE_LOG_MODE: 'off' } },
+      (err, stdout, stderr) => {
+        const code =
+          err && typeof (err as NodeJS.ErrnoException & { code?: number }).code === 'number'
+            ? ((err as unknown as { code: number }).code ?? 1)
+            : err
+              ? 1
+              : 0;
+        resolve({ code, out: `${stdout}\n${stderr}` });
+      },
+    );
+  });
+}
+
+/** Write a throwaway agent .ts file exporting a default AgentBase. */
+function writeAgentFile(): { path: string; cleanup: () => void } {
+  const dir = mkdtempSync(join(tmpdir(), 'swaig-cli-'));
+  const path = join(dir, 'agent.ts');
+  writeFileSync(
+    path,
+    [
+      "import { AgentBase } from '" +
+        fileURLToPath(new URL('../../src/AgentBase.ts', import.meta.url)) +
+        "';",
+      "const agent = new AgentBase({ name: 'probe', route: '/' });",
+      "agent.setPromptText('hi');",
+      'export default agent;',
+    ].join('\n'),
+  );
+  return { path, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+describe('swaig-test CLI contract (subprocess)', () => {
+  it('rejects an unknown --simulate-serverless platform with a descriptive error', async () => {
+    const { path, cleanup } = writeAgentFile();
+    try {
+      const { code, out } = await runCli([path, '--simulate-serverless', 'bogus-platform-xyz']);
+      expect(code).not.toBe(0);
+      expect(out).toContain('bogus-platform-xyz');
+      expect(out.toLowerCase()).toContain('unknown platform');
+      // Must NOT silently fall through to a serverless simulation render.
+      expect(out).not.toContain('Serverless Simulation');
+    } finally {
+      cleanup();
+    }
+  }, 70_000);
+
+  it('accepts a real platform (gcf) — proves the validator is not over-strict', async () => {
+    const { path, cleanup } = writeAgentFile();
+    try {
+      const { code, out } = await runCli([path, '--simulate-serverless', 'gcf', '--raw']);
+      // gcf is implemented; it must NOT be rejected as unknown.
+      expect(out).not.toContain('unknown platform');
+      expect(code).toBe(0);
+    } finally {
+      cleanup();
+    }
+  }, 70_000);
+
+  it('errors when a target is given but no action flag (no silent dump-swml)', async () => {
+    const { path, cleanup } = writeAgentFile();
+    try {
+      const { code, out } = await runCli([path]);
+      expect(code).not.toBe(0);
+      expect(out).toContain('--dump-swml');
+      expect(out).toContain('--list-tools');
+      expect(out).toContain('--exec');
+      // The old behavior dumped a SWML document; ensure it no longer does.
+      expect(out).not.toContain('SWML Document');
+    } finally {
+      cleanup();
+    }
+  }, 70_000);
+});
 
 describe('agent introspection', () => {
   function createAgent() {

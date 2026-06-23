@@ -40,9 +40,58 @@ import { suppressAllLogs, setGlobalLogLevel } from '../Logger.js';
 import { ServerlessAdapter } from '../ServerlessAdapter.js';
 import type { ServerlessPlatform } from '../ServerlessAdapter.js';
 
+/**
+ * Concrete serverless platforms the {@link ServerlessAdapter} actually implements
+ * end-to-end (normalize event → route through Hono → normalize response, plus a
+ * platform-specific handler factory and URL generator). `'auto'` is intentionally
+ * NOT here: it is environment-based detection for production wiring and is
+ * meaningless as an explicit `--simulate-serverless` target.
+ *
+ * This is the canonical "supported set" the CLI validates `--simulate-serverless`
+ * against — mirroring the Go port's `supportedSimulatePlatforms` in
+ * `cmd/swaig-test/simulate.go`. Adding an entry here without a real adapter path
+ * would be a lie that silently passes a bogus `--simulate-serverless <x>`.
+ */
+const SUPPORTED_SIMULATE_PLATFORMS: readonly Exclude<ServerlessPlatform, 'auto'>[] = [
+  'lambda',
+  'gcf',
+  'azure',
+  'cgi',
+];
+
+/**
+ * Validate a user-supplied `--simulate-serverless` platform against what this
+ * port actually implements. Returns the narrowed platform on success; throws a
+ * descriptive Error (naming the supported set) otherwise — never a silent
+ * fallback. Matches the Go port's `validateSimulatePlatform` error shape so the
+ * cross-port SWAIG-CLI contract gate sees a consistent reject-don't-fallback.
+ */
+function validateSimulatePlatform(platform: string): ServerlessPlatform {
+  if (!platform) {
+    throw new Error('--simulate-serverless requires a platform name (e.g. "lambda")');
+  }
+  if ((SUPPORTED_SIMULATE_PLATFORMS as readonly string[]).includes(platform)) {
+    return platform as ServerlessPlatform;
+  }
+  throw new Error(
+    `--simulate-serverless ${platform}: unknown platform. ` +
+      `This TypeScript port supports: ${SUPPORTED_SIMULATE_PLATFORMS.join(', ')}. ` +
+      `(No silent fallback to the server path.)`,
+  );
+}
+
 interface CliOptions {
   agentPath: string;
   action: 'list-tools' | 'list-agents' | 'dump-swml' | 'exec';
+  /**
+   * Whether an explicit action flag (--list-tools / --list-agents / --dump-swml
+   * / --exec) was passed. When false AND not in --simulate-serverless mode the
+   * CLI errors instead of silently defaulting — matching the cross-port
+   * majority (go/java/ruby/php/perl/rust/cpp all error on no action) and the
+   * SWAIG-CLI mini-contract gate. `action` still carries a default value so the
+   * downstream switch stays exhaustive.
+   */
+  actionExplicit: boolean;
   execName?: string;
   raw: boolean;
   verbose: boolean;
@@ -106,6 +155,7 @@ function parseArgs(argv: string[]): CliOptions {
   const opts: CliOptions = {
     agentPath: '',
     action: 'dump-swml',
+    actionExplicit: false,
     raw: false,
     verbose: false,
     formatJson: false,
@@ -131,15 +181,19 @@ function parseArgs(argv: string[]): CliOptions {
     switch (arg) {
       case '--list-tools':
         opts.action = 'list-tools';
+        opts.actionExplicit = true;
         break;
       case '--list-agents':
         opts.action = 'list-agents';
+        opts.actionExplicit = true;
         break;
       case '--dump-swml':
         opts.action = 'dump-swml';
+        opts.actionExplicit = true;
         break;
       case '--exec':
         opts.action = 'exec';
+        opts.actionExplicit = true;
         opts.execName = args[++i];
         if (!opts.execName) {
           console.error('Error: --exec requires a function name');
@@ -331,9 +385,18 @@ async function main(): Promise<void> {
     agent.route = opts.route;
   }
 
+  // Consistent default action: when a target is given but no action flag, error
+  // rather than silently dumping SWML. --simulate-serverless without a sub-action
+  // is still allowed (it runs the simulation render, mirroring the Go/Ruby
+  // "render and exit" default). Matches the cross-port SWAIG-CLI mini-contract.
+  if (!opts.actionExplicit && !opts.simulateServerless) {
+    console.error('Error: one of --dump-swml, --list-tools, or --exec is required');
+    process.exit(1);
+  }
+
   // Handle --simulate-serverless
   if (opts.simulateServerless) {
-    const platform = opts.simulateServerless as ServerlessPlatform;
+    const platform = validateSimulatePlatform(opts.simulateServerless);
     const adapter = new ServerlessAdapter(platform);
     const app = agent.getApp();
     const postData = generateFakePostData({
