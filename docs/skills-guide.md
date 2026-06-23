@@ -8,7 +8,7 @@ Complete guide to the Skills system in the SignalWire AI Agents TypeScript SDK -
 
 1. [Overview](#overview)
 2. [Using Skills](#using-skills)
-3. [Built-in Skills (19)](#built-in-skills-18)
+3. [Built-in Skills (19)](#built-in-skills-19)
 4. [Skill Configuration](#skill-configuration)
 5. [Skill Registry](#skill-registry)
 6. [Creating Custom Skills](#creating-custom-skills)
@@ -47,7 +47,7 @@ The primary way to add a skill to an agent. This is an async operation because s
 
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
-import { DateTimeSkill, WebSearchSkill } from '@signalwire/sdk/skills/builtin';
+import { DateTimeSkill, WebSearchSkill } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent' });
 
@@ -102,7 +102,7 @@ if (agent.hasSkill('web_search')) {
 
 ## Built-in Skills (19)
 
-The SDK ships with 18 built-in skills organized into three tiers based on complexity and dependency requirements.
+The SDK ships with 19 built-in skills organized into three tiers based on complexity and dependency requirements.
 
 ### Tier 1: Simple (No External Dependencies)
 
@@ -117,21 +117,21 @@ These skills work out of the box with no API keys or configuration.
 **datetime** -- Provides the current date and time in any IANA timezone via the `get_datetime` tool. Uses the `Intl.DateTimeFormat` API.
 
 ```typescript
-import { DateTimeSkill } from '@signalwire/sdk/skills/builtin';
+import { DateTimeSkill } from '@signalwire/sdk';
 await agent.addSkill(new DateTimeSkill());
 ```
 
 **math** -- Evaluates mathematical expressions safely using a sandboxed parser. Supports `+`, `-`, `*`, `/`, `^`, `%`, and parentheses. Only allows digits, operators, parentheses, decimal points, and spaces.
 
 ```typescript
-import { MathSkill } from '@signalwire/sdk/skills/builtin';
+import { MathSkill } from '@signalwire/sdk';
 await agent.addSkill(new MathSkill());
 ```
 
 **joke** -- Tells random jokes from a curated built-in collection. Exposes the `get_joke` tool with a required `type` parameter (`jokes` or `dadjokes`), matching the Python skill's interface; the implementation is offline (no API key needed).
 
 ```typescript
-import { JokeSkill } from '@signalwire/sdk/skills/builtin';
+import { JokeSkill } from '@signalwire/sdk';
 await agent.addSkill(new JokeSkill());
 ```
 
@@ -153,14 +153,14 @@ These skills integrate with a single external API or provide focused call-contro
 **weather_api** -- Fetches current weather data from OpenWeatherMap. Supports metric, imperial, and standard units.
 
 ```typescript
-import { WeatherApiSkill } from '@signalwire/sdk/skills/builtin';
+import { WeatherApiSkill } from '@signalwire/sdk';
 await agent.addSkill(new WeatherApiSkill({ units: 'imperial' }));
 ```
 
 **play_background_file** -- Controls playback of pre-configured background audio files during calls (hold music, ambient sounds). Requires a non-empty `files` list (matching the Python skill); emits one tool whose `action` enum is `start_<key>` for each file plus `stop`.
 
 ```typescript
-import { PlayBackgroundFileSkill } from '@signalwire/sdk/skills/builtin';
+import { PlayBackgroundFileSkill } from '@signalwire/sdk';
 await agent.addSkill(new PlayBackgroundFileSkill({
   files: [
     { key: 'hold', url: 'https://example.com/hold-music.mp3', description: 'Hold music' },
@@ -171,7 +171,7 @@ await agent.addSkill(new PlayBackgroundFileSkill({
 **swml_transfer** -- Transfers calls using SWML transfer actions. Supports named destination patterns and arbitrary transfers.
 
 ```typescript
-import { SwmlTransferSkill } from '@signalwire/sdk/skills/builtin';
+import { SwmlTransferSkill } from '@signalwire/sdk';
 await agent.addSkill(new SwmlTransferSkill({
   patterns: [
     { name: 'billing', destination: '+15551234567', description: 'Billing department' },
@@ -185,7 +185,7 @@ await agent.addSkill(new SwmlTransferSkill({
 **api_ninjas_trivia** -- Fetches trivia questions with optional category filtering. Categories include `general`, `sciencenature`, `entertainment`, `historyholidays`, `geography`, `music`, `mathematics`, and more.
 
 ```typescript
-import { ApiNinjasTriviaSkill } from '@signalwire/sdk/skills/builtin';
+import { ApiNinjasTriviaSkill } from '@signalwire/sdk';
 await agent.addSkill(new ApiNinjasTriviaSkill({
   default_category: 'sciencenature',
   reveal_answer: false, // AI quizzes the user
@@ -195,7 +195,7 @@ await agent.addSkill(new ApiNinjasTriviaSkill({
 **info_gatherer** -- Guides the agent through a sequence of questions, collecting answers one at a time and storing them under a namespaced key in SWAIG `global_data`. Questions may require the agent to read the answer back to the user for confirmation before proceeding. Matches Python's `InfoGathererSkill` exactly; configure a `prefix` to run multiple instances side by side.
 
 ```typescript
-import { InfoGathererSkill } from '@signalwire/sdk/skills/builtin';
+import { InfoGathererSkill } from '@signalwire/sdk';
 await agent.addSkill(new InfoGathererSkill({
   questions: [
     { key_name: 'full_name', question_text: 'What is your full name?' },
@@ -209,7 +209,7 @@ await agent.addSkill(new InfoGathererSkill({
 **custom_skills** -- A meta-skill that registers user-defined tools from configuration without writing skill classes. Handler code is compiled via the `Function` constructor at instantiation time.
 
 ```typescript
-import { CustomSkillsSkill } from '@signalwire/sdk/skills/builtin';
+import { CustomSkillsSkill } from '@signalwire/sdk';
 await agent.addSkill(new CustomSkillsSkill({
   prompt_title: 'Greeting Tools',
   tools: [
@@ -248,7 +248,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 **web_search** -- Searches the web using Google Custom Search JSON API. Returns formatted results with titles, links, and snippets.
 
 ```typescript
-import { WebSearchSkill } from '@signalwire/sdk/skills/builtin';
+import { WebSearchSkill } from '@signalwire/sdk';
 await agent.addSkill(new WebSearchSkill({
   num_results: 5,
   safe_search: 'medium', // 'off' | 'medium' | 'high'
@@ -258,21 +258,21 @@ await agent.addSkill(new WebSearchSkill({
 **wikipedia_search** -- Searches Wikipedia for article summaries and extracts. Uses the Wikipedia REST API with no API key required. Falls back to the search API if direct page lookup fails.
 
 ```typescript
-import { WikipediaSearchSkill } from '@signalwire/sdk/skills/builtin';
+import { WikipediaSearchSkill } from '@signalwire/sdk';
 await agent.addSkill(new WikipediaSearchSkill());
 ```
 
 **google_maps** -- Geocodes an address or business name (`lookup_address`, with optional lat/lng bias) and computes a driving route between two coordinates (`compute_route`) via the Google Geocoding and Routes v2 APIs. The two-tool interface matches the Python reference.
 
 ```typescript
-import { GoogleMapsSkill } from '@signalwire/sdk/skills/builtin';
+import { GoogleMapsSkill } from '@signalwire/sdk';
 await agent.addSkill(new GoogleMapsSkill());
 ```
 
 **datasphere** -- Searches SignalWire DataSphere for knowledge base content using semantic search across uploaded documents. Results are ranked by relevance score.
 
 ```typescript
-import { DataSphereSkill } from '@signalwire/sdk/skills/builtin';
+import { DataSphereSkill } from '@signalwire/sdk';
 await agent.addSkill(new DataSphereSkill({
   document_id: 'my-doc-id',
   count: 5,
@@ -283,7 +283,7 @@ await agent.addSkill(new DataSphereSkill({
 **datasphere_serverless** -- Like `datasphere`, but uses a server-side DataMap instead of a webhook handler. The search executes entirely on the SignalWire platform, making it ideal for serverless or edge deployments where no webhook endpoint is available.
 
 ```typescript
-import { DataSphereServerlessSkill } from '@signalwire/sdk/skills/builtin';
+import { DataSphereServerlessSkill } from '@signalwire/sdk';
 await agent.addSkill(new DataSphereServerlessSkill({
   document_id: 'specific-doc-id',
   count: 5,
@@ -294,7 +294,7 @@ await agent.addSkill(new DataSphereServerlessSkill({
 **native_vector_search** -- In-memory document search using TF-IDF-like word overlap scoring. Documents are provided via configuration and indexed at construction time. No external dependencies or API keys required. Suitable for small to medium document collections.
 
 ```typescript
-import { NativeVectorSearchSkill } from '@signalwire/sdk/skills/builtin';
+import { NativeVectorSearchSkill } from '@signalwire/sdk';
 await agent.addSkill(new NativeVectorSearchSkill({
   documents: [
     { id: 'faq-1', text: 'To reset your password, go to Settings > Security > Change Password.' },
@@ -307,7 +307,7 @@ await agent.addSkill(new NativeVectorSearchSkill({
 **spider** -- Scrapes webpage content using the Spider API. Extracts text, markdown, or HTML from any public URL with optional CSS selector filtering.
 
 ```typescript
-import { SpiderSkill } from '@signalwire/sdk/skills/builtin';
+import { SpiderSkill } from '@signalwire/sdk';
 await agent.addSkill(new SpiderSkill({
   max_content_length: 5000,
 }));
@@ -316,7 +316,7 @@ await agent.addSkill(new SpiderSkill({
 **claude_skills** -- Loads Claude Code SKILL.md files from a directory and converts them into SWAIG tools. Each skill directory contains a `SKILL.md` with YAML frontmatter (name, description) and markdown instructions. Supports argument substitution, variable replacement, optional shell injection, and invocation control.
 
 ```typescript
-import { ClaudeSkillsSkill } from '@signalwire/sdk/skills/builtin';
+import { ClaudeSkillsSkill } from '@signalwire/sdk';
 await agent.addSkill(new ClaudeSkillsSkill({
   skills_path: '/path/to/skills',
   include: ['*'],
@@ -328,7 +328,7 @@ await agent.addSkill(new ClaudeSkillsSkill({
 **ask_claude** -- Provides access to Anthropic's Claude AI for sub-queries, complex reasoning, analysis, or summarization. The agent can delegate tasks to Claude when deeper processing is needed.
 
 ```typescript
-import { AskClaudeSkill } from '@signalwire/sdk/skills/builtin';
+import { AskClaudeSkill } from '@signalwire/sdk';
 await agent.addSkill(new AskClaudeSkill({
   model: 'claude-sonnet-4-5-20250929',
   max_tokens: 1024,
@@ -338,7 +338,7 @@ await agent.addSkill(new AskClaudeSkill({
 **mcp_gateway** -- Placeholder skill for future Model Context Protocol (MCP) server integration. Currently provides a non-functional `mcp_invoke` tool. Version 0.1.0 (stub).
 
 ```typescript
-import { McpGatewaySkill } from '@signalwire/sdk/skills/builtin';
+import { McpGatewaySkill } from '@signalwire/sdk';
 await agent.addSkill(new McpGatewaySkill());
 ```
 
@@ -405,17 +405,17 @@ The `SkillRegistry` is a global singleton that maps skill names to factory funct
 ### Getting the Registry
 
 ```typescript
-import { SkillRegistry } from '@signalwire/sdk/skills';
+import { SkillRegistry } from '@signalwire/sdk';
 
 const registry = SkillRegistry.getInstance();
 ```
 
 ### Registering Built-in Skills
 
-All 18 built-in skills can be registered at once:
+All 19 built-in skills can be registered at once:
 
 ```typescript
-import { registerBuiltinSkills } from '@signalwire/sdk/skills/builtin';
+import { registerBuiltinSkills } from '@signalwire/sdk';
 
 registerBuiltinSkills();
 // Now all built-in skills are available via registry.create('datetime'), etc.
@@ -425,20 +425,12 @@ This function skips registration for any skill name already present, so it is sa
 
 ### Manual Registration
 
-Register a custom skill factory:
+Register a custom skill class. `register()` takes the `SkillBase` subclass itself
+(keyed by its static `SKILL_NAME`); it validates that the class defines `SKILL_NAME`
+and a working `getParameterSchema()`:
 
 ```typescript
-registry.register('my_custom_skill', (config) => new MyCustomSkill(config));
-```
-
-Register with a manifest for introspection:
-
-```typescript
-registry.register('my_custom_skill', (config) => new MyCustomSkill(config), {
-  name: 'my_custom_skill',
-  description: 'Does custom things.',
-  version: '1.0.0',
-});
+registry.register(MyCustomSkill);
 ```
 
 ### Creating Instances by Name
@@ -465,9 +457,9 @@ registry.has('datetime'); // true
 const names = registry.listRegistered();
 // ['datetime', 'math', 'joke', ...]
 
-// List all registered skills with schema info (includes description, configSchema, etc.)
+// List all registered skills with schema info (includes description, version, parameters)
 const withSchemas = registry.listSkills();
-// [{ name: 'datetime', description: '...', configSchema: { ... } }, ...]
+// [{ name: 'datetime', description: '...', version: '1.0.0', parameters: { ... } }, ...]
 
 // Get schema for a specific skill
 const schema = registry.getSkillSchema('web_search');

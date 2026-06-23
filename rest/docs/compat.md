@@ -1,19 +1,21 @@
 # Compatibility API
 
-The Compatibility API provides a Twilio-compatible LAML surface at `/api/laml/2010-04-01`. All paths are scoped under `/Accounts/{AccountSid}`, where AccountSid is your project ID.
+The Compatibility API provides a Twilio-compatible LAML surface at `/api/laml/2010-04-01`. All paths are scoped under `/Accounts/{AccountSid}`, where AccountSid is your project ID. All methods are async — `await` them.
+
+Body field names follow the Twilio-compatible (PascalCase) convention — `To`, `From`, `Url`, `FriendlyName`, etc. — because that is the wire format the LAML API expects.
 
 ## Sub-Resources
 
-| Attribute | Description |
+| Property | Description |
 |-----------|-------------|
 | `compat.accounts` | Account/subproject management |
 | `compat.calls` | Call management + recordings + streams |
 | `compat.messages` | SMS/MMS management + media |
 | `compat.faxes` | Fax management + media |
 | `compat.conferences` | Conference management + participants + recordings + streams |
-| `compat.phone_numbers` | Incoming + available phone numbers |
+| `compat.phoneNumbers` | Incoming + available phone numbers |
 | `compat.applications` | Application management |
-| `compat.laml_bins` | cXML/LaML script management |
+| `compat.lamlBins` | cXML/LaML script management |
 | `compat.queues` | Queue management + members |
 | `compat.recordings` | Recording management |
 | `compat.transcriptions` | Transcription management |
@@ -21,184 +23,194 @@ The Compatibility API provides a Twilio-compatible LAML surface at `/api/laml/20
 
 ## Accounts
 
-```python
-# List accounts/subprojects
-accounts = client.compat.accounts.list()
+```typescript
+// List accounts/subprojects
+const accounts = await client.compat.accounts.list();
 
-# Create a subproject
-sub = client.compat.accounts.create(FriendlyName="My Subproject")
+// Create a subproject
+const sub = await client.compat.accounts.create({ FriendlyName: 'My Subproject' });
 
-# Get/update an account
-account = client.compat.accounts.get("AC-sid")
-client.compat.accounts.update("AC-sid", FriendlyName="Updated")
+// Get/update an account
+const account = await client.compat.accounts.get('AC-sid');
+await client.compat.accounts.update('AC-sid', { FriendlyName: 'Updated' });
 ```
 
 ## Calls
 
-```python
-# List calls
-calls = client.compat.calls.list(From="+15551234567")
+```typescript
+// List calls
+const calls = await client.compat.calls.list({ From: '+15551234567' });
 
-# Create a call
-call = client.compat.calls.create(
-    To="+15552222222",
-    From="+15551111111",
-    Url="https://example.com/twiml",
-)
+// Create a call
+const call = await client.compat.calls.create({
+  To: '+15552222222',
+  From: '+15551111111',
+  Url: 'https://example.com/twiml',
+});
 
-# Get / update / delete
-call = client.compat.calls.get("CA-sid")
-client.compat.calls.update("CA-sid", Status="completed")
-client.compat.calls.delete("CA-sid")
+// Get / update / delete
+const found = await client.compat.calls.get('CA-sid');
+await client.compat.calls.update('CA-sid', { Status: 'completed' });
+await client.compat.calls.delete('CA-sid');
 
-# Start/update recording on a call
-client.compat.calls.start_recording("CA-sid", channels="dual")
-client.compat.calls.update_recording("CA-sid", "RE-sid", Status="paused")
+// Start/update recording on a call
+await client.compat.calls.startRecording('CA-sid', { channels: 'dual' });
+await client.compat.calls.updateRecording('CA-sid', 'RE-sid', { Status: 'paused' });
 
-# Start/stop stream on a call
-client.compat.calls.start_stream("CA-sid", Url="wss://example.com/stream")
-client.compat.calls.stop_stream("CA-sid", "ST-sid")
+// Start/stop stream on a call
+await client.compat.calls.startStream('CA-sid', { Url: 'wss://example.com/stream' });
+await client.compat.calls.stopStream('CA-sid', 'ST-sid');
 ```
 
 ## Messages
 
-```python
-# Send an SMS
-msg = client.compat.messages.create(
-    To="+15552222222",
-    From="+15551111111",
-    Body="Hello from SignalWire!",
-)
+```typescript
+// Send an SMS
+const msg = await client.compat.messages.create({
+  To: '+15552222222',
+  From: '+15551111111',
+  Body: 'Hello from SignalWire!',
+});
 
-# List / get / update / delete
-messages = client.compat.messages.list()
-msg = client.compat.messages.get("SM-sid")
-client.compat.messages.update("SM-sid", Body="")  # redact
-client.compat.messages.delete("SM-sid")
+// List / get / update / delete
+const messages = await client.compat.messages.list();
+const found = await client.compat.messages.get('SM-sid');
+await client.compat.messages.update('SM-sid', { Body: '' }); // redact
+await client.compat.messages.delete('SM-sid');
 
-# Media sub-resources
-media = client.compat.messages.list_media("SM-sid")
-item = client.compat.messages.get_media("SM-sid", "ME-sid")
-client.compat.messages.delete_media("SM-sid", "ME-sid")
+// Media sub-resources
+const media = await client.compat.messages.listMedia('SM-sid');
+const item = await client.compat.messages.getMedia('SM-sid', 'ME-sid');
+await client.compat.messages.deleteMedia('SM-sid', 'ME-sid');
 ```
 
 ## Faxes
 
-```python
-# Send a fax
-fax = client.compat.faxes.create(MediaUrl="https://example.com/doc.pdf", To="+15552222222", From="+15551111111")
+```typescript
+// Send a fax
+const fax = await client.compat.faxes.create({
+  MediaUrl: 'https://example.com/doc.pdf',
+  To: '+15552222222',
+  From: '+15551111111',
+});
 
-# List / get / cancel / delete
-faxes = client.compat.faxes.list()
-fax = client.compat.faxes.get("FX-sid")
-client.compat.faxes.update("FX-sid", Status="canceled")
-client.compat.faxes.delete("FX-sid")
+// List / get / cancel / delete
+const faxes = await client.compat.faxes.list();
+const found = await client.compat.faxes.get('FX-sid');
+await client.compat.faxes.update('FX-sid', { Status: 'canceled' });
+await client.compat.faxes.delete('FX-sid');
 
-# Media sub-resources
-media = client.compat.faxes.list_media("FX-sid")
-item = client.compat.faxes.get_media("FX-sid", "ME-sid")
-client.compat.faxes.delete_media("FX-sid", "ME-sid")
+// Media sub-resources
+const media = await client.compat.faxes.listMedia('FX-sid');
+const item = await client.compat.faxes.getMedia('FX-sid', 'ME-sid');
+await client.compat.faxes.deleteMedia('FX-sid', 'ME-sid');
 ```
 
 ## Conferences
 
-```python
-# List / get / update
-conferences = client.compat.conferences.list()
-conf = client.compat.conferences.get("CF-sid")
-client.compat.conferences.update("CF-sid", Status="completed")
+```typescript
+// List / get / update
+const conferences = await client.compat.conferences.list();
+const conf = await client.compat.conferences.get('CF-sid');
+await client.compat.conferences.update('CF-sid', { Status: 'completed' });
 
-# Participants
-participants = client.compat.conferences.list_participants("CF-sid")
-p = client.compat.conferences.get_participant("CF-sid", "CA-sid")
-client.compat.conferences.update_participant("CF-sid", "CA-sid", Muted=True)
-client.compat.conferences.remove_participant("CF-sid", "CA-sid")
+// Participants
+const participants = await client.compat.conferences.listParticipants('CF-sid');
+const p = await client.compat.conferences.getParticipant('CF-sid', 'CA-sid');
+await client.compat.conferences.updateParticipant('CF-sid', 'CA-sid', { Muted: true });
+await client.compat.conferences.removeParticipant('CF-sid', 'CA-sid');
 
-# Conference recordings
-recs = client.compat.conferences.list_recordings("CF-sid")
-rec = client.compat.conferences.get_recording("CF-sid", "RE-sid")
-client.compat.conferences.update_recording("CF-sid", "RE-sid", Status="stopped")
-client.compat.conferences.delete_recording("CF-sid", "RE-sid")
+// Conference recordings
+const recs = await client.compat.conferences.listRecordings('CF-sid');
+const rec = await client.compat.conferences.getRecording('CF-sid', 'RE-sid');
+await client.compat.conferences.updateRecording('CF-sid', 'RE-sid', { Status: 'stopped' });
+await client.compat.conferences.deleteRecording('CF-sid', 'RE-sid');
 
-# Conference streams
-client.compat.conferences.start_stream("CF-sid", Url="wss://example.com/stream")
-client.compat.conferences.stop_stream("CF-sid", "ST-sid")
+// Conference streams
+await client.compat.conferences.startStream('CF-sid', { Url: 'wss://example.com/stream' });
+await client.compat.conferences.stopStream('CF-sid', 'ST-sid');
 ```
 
 ## Phone Numbers
 
-```python
-# List purchased numbers
-numbers = client.compat.phone_numbers.list()
+```typescript
+// List purchased numbers
+const numbers = await client.compat.phoneNumbers.list();
 
-# Search available numbers
-local = client.compat.phone_numbers.search_local("US", AreaCode="512")
-toll_free = client.compat.phone_numbers.search_toll_free("US")
-countries = client.compat.phone_numbers.list_available_countries()
+// Search available numbers
+const local = await client.compat.phoneNumbers.searchLocal('US', { AreaCode: '512' });
+const tollFree = await client.compat.phoneNumbers.searchTollFree('US');
+const countries = await client.compat.phoneNumbers.listAvailableCountries();
 
-# Purchase / get / update / release
-num = client.compat.phone_numbers.purchase(PhoneNumber="+15551234567")
-num = client.compat.phone_numbers.get("PN-sid")
-client.compat.phone_numbers.update("PN-sid", VoiceUrl="https://example.com/voice")
-client.compat.phone_numbers.delete("PN-sid")
+// Purchase / get / update / release
+const num = await client.compat.phoneNumbers.purchase({ PhoneNumber: '+15551234567' });
+const found = await client.compat.phoneNumbers.get('PN-sid');
+await client.compat.phoneNumbers.update('PN-sid', { VoiceUrl: 'https://example.com/voice' });
+await client.compat.phoneNumbers.delete('PN-sid');
 
-# Import external number
-client.compat.phone_numbers.import_number(PhoneNumber="+15559999999")
+// Import external number
+await client.compat.phoneNumbers.importNumber({ PhoneNumber: '+15559999999' });
 ```
 
 ## Applications
 
-```python
-apps = client.compat.applications.list()
-app = client.compat.applications.create(FriendlyName="My App", VoiceUrl="https://example.com/voice")
-app = client.compat.applications.get("AP-sid")
-client.compat.applications.update("AP-sid", VoiceUrl="https://example.com/new-voice")
-client.compat.applications.delete("AP-sid")
+```typescript
+const apps = await client.compat.applications.list();
+const app = await client.compat.applications.create({
+  FriendlyName: 'My App',
+  VoiceUrl: 'https://example.com/voice',
+});
+const found = await client.compat.applications.get('AP-sid');
+await client.compat.applications.update('AP-sid', { VoiceUrl: 'https://example.com/new-voice' });
+await client.compat.applications.delete('AP-sid');
 ```
 
 ## LaML Bins (cXML Scripts)
 
-```python
-bins = client.compat.laml_bins.list()
-b = client.compat.laml_bins.create(Name="Greeting", Contents="<Response><Say>Hello</Say></Response>")
-b = client.compat.laml_bins.get("LB-sid")
-client.compat.laml_bins.update("LB-sid", Contents="<Response><Say>Updated</Say></Response>")
-client.compat.laml_bins.delete("LB-sid")
+```typescript
+const bins = await client.compat.lamlBins.list();
+const b = await client.compat.lamlBins.create({
+  Name: 'Greeting',
+  Contents: '<Response><Say>Hello</Say></Response>',
+});
+const found = await client.compat.lamlBins.get('LB-sid');
+await client.compat.lamlBins.update('LB-sid', { Contents: '<Response><Say>Updated</Say></Response>' });
+await client.compat.lamlBins.delete('LB-sid');
 ```
 
 ## Queues
 
-```python
-queues = client.compat.queues.list()
-q = client.compat.queues.create(FriendlyName="Support", MaxSize=100)
-q = client.compat.queues.get("QU-sid")
-client.compat.queues.update("QU-sid", MaxSize=200)
-client.compat.queues.delete("QU-sid")
+```typescript
+const queues = await client.compat.queues.list();
+const q = await client.compat.queues.create({ FriendlyName: 'Support', MaxSize: 100 });
+const found = await client.compat.queues.get('QU-sid');
+await client.compat.queues.update('QU-sid', { MaxSize: 200 });
+await client.compat.queues.delete('QU-sid');
 
-# Members
-members = client.compat.queues.list_members("QU-sid")
-member = client.compat.queues.get_member("QU-sid", "CA-sid")
-client.compat.queues.dequeue_member("QU-sid", "CA-sid", Url="https://example.com/dequeue")
+// Members
+const members = await client.compat.queues.listMembers('QU-sid');
+const member = await client.compat.queues.getMember('QU-sid', 'CA-sid');
+await client.compat.queues.dequeueMember('QU-sid', 'CA-sid', { Url: 'https://example.com/dequeue' });
 ```
 
 ## Recordings & Transcriptions
 
-```python
-# Recordings
-recs = client.compat.recordings.list()
-rec = client.compat.recordings.get("RE-sid")
-client.compat.recordings.delete("RE-sid")
+```typescript
+// Recordings
+const recs = await client.compat.recordings.list();
+const rec = await client.compat.recordings.get('RE-sid');
+await client.compat.recordings.delete('RE-sid');
 
-# Transcriptions
-txns = client.compat.transcriptions.list()
-txn = client.compat.transcriptions.get("TR-sid")
-client.compat.transcriptions.delete("TR-sid")
+// Transcriptions
+const txns = await client.compat.transcriptions.list();
+const txn = await client.compat.transcriptions.get('TR-sid');
+await client.compat.transcriptions.delete('TR-sid');
 ```
 
 ## Tokens
 
-```python
-token = client.compat.tokens.create(name="my-token", permissions=["calling", "messaging"])
-client.compat.tokens.update("token-id", name="renamed")
-client.compat.tokens.delete("token-id")
+```typescript
+const token = await client.compat.tokens.create({ name: 'my-token', permissions: ['calling', 'messaging'] });
+await client.compat.tokens.update('token-id', { name: 'renamed' });
+await client.compat.tokens.delete('token-id');
 ```

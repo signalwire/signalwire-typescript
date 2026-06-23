@@ -35,9 +35,9 @@ const result = new SwaigFunctionResult('Done');
 
 // After
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
-import { RestClient } from '@signalwire/sdk/rest';
+import { RestClient } from '@signalwire/sdk';
 
-const client = new RestClient(projectId, token, spaceUrl);
+const client = new RestClient({ project: projectId, token, host: spaceUrl });
 const result = new FunctionResult('Done');
 ```
 

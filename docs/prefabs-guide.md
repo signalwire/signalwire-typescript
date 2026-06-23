@@ -350,7 +350,7 @@ const agent = new SurveyAgent({
   },
 });
 
-agent.start();
+agent.run();
 ```
 
 ---
@@ -463,7 +463,7 @@ const agent = new FAQBotAgent({
   },
 });
 
-agent.start();
+agent.run();
 ```
 
 ---
@@ -656,7 +656,7 @@ const agent = new ReceptionistAgent({
   },
 });
 
-agent.start();
+agent.run();
 ```
 
 ---
@@ -676,9 +676,10 @@ Each prefab provides a factory function that creates and returns a new instance.
 Factory functions accept the same config type as their corresponding class constructors.
 
 ```typescript
-import { createSurveyAgent } from '@signalwire/sdk';
+import { SurveyAgent } from '@signalwire/sdk';
 
-const agent = createSurveyAgent({
+const agent = new SurveyAgent({
+  surveyName: 'Quick Survey',
   questions: [
     { id: 'q1', text: 'How was your experience?', type: 'rating' },
   ],
@@ -687,18 +688,14 @@ const agent = createSurveyAgent({
   },
 });
 
-agent.start();
+agent.run();
 ```
 
-Factory functions and class constructors are exported both from the individual prefab modules and from the main SDK entry point:
-
-```typescript
-// From the SDK entry point
-import { createFAQBotAgent, FAQBotAgent } from '@signalwire/sdk';
-
-// From the prefab module directly
-import { createFAQBotAgent } from '@signalwire/sdk/prefabs';
-```
+The prefab **classes** (`InfoGathererAgent`, `SurveyAgent`, `FAQBotAgent`,
+`ConciergeAgent`, `ReceptionistAgent`) and their config types are exported from the
+main SDK entry point `@signalwire/sdk`. The `create*Agent()` factory helpers are
+defined alongside each prefab class in `src/prefabs/`; the class constructor shown
+above is the recommended public entry point.
 
 ---
 

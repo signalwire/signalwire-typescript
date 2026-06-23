@@ -2,69 +2,73 @@
 
 ## Constructor
 
-```python
-RestClient(
-    project: str = None,   # SIGNALWIRE_PROJECT_ID
-    token: str = None,     # SIGNALWIRE_API_TOKEN
-    host: str = None,      # SIGNALWIRE_SPACE
-)
+```typescript
+import { RestClient } from '@signalwire/sdk';
+
+const client = new RestClient({
+  project: 'your-project-id', // SIGNALWIRE_PROJECT_ID
+  token: 'your-api-token',    // SIGNALWIRE_API_TOKEN
+  host: 'example.signalwire.com', // SIGNALWIRE_SPACE
+});
 ```
 
-All parameters fall back to their corresponding environment variables. A `ValueError` is raised if any are missing.
+All options fall back to their corresponding environment variables. An `Error` is thrown if any are missing.
 
 Authentication uses HTTP Basic Auth (`project:token`).
 
 ## Namespaces
 
-Every API surface is available as a namespace attribute on the client:
+Every API surface is available as a namespace property on the client. There are 21 top-level namespaces.
 
 ### Fabric API
 
-| Attribute | Description |
+`client.fabric` has 16 sub-resources:
+
+| Property | Description |
 |-----------|-------------|
-| `client.fabric.swml_scripts` | SWML script resources (CRUD + addresses) |
-| `client.fabric.swml_webhooks` | SWML webhook resources |
-| `client.fabric.ai_agents` | AI agent resources |
-| `client.fabric.relay_applications` | Relay application resources |
-| `client.fabric.call_flows` | Call flow resources (+ versions) |
-| `client.fabric.conference_rooms` | Conference room resources |
-| `client.fabric.freeswitch_connectors` | FreeSWITCH connector resources |
+| `client.fabric.swmlScripts` | SWML script resources (CRUD + addresses) |
+| `client.fabric.swmlWebhooks` | SWML webhook resources |
+| `client.fabric.aiAgents` | AI agent resources |
+| `client.fabric.relayApplications` | Relay application resources |
+| `client.fabric.callFlows` | Call flow resources (+ versions) |
+| `client.fabric.conferenceRooms` | Conference room resources |
+| `client.fabric.freeswitchConnectors` | FreeSWITCH connector resources |
 | `client.fabric.subscribers` | Subscriber resources (+ SIP endpoints) |
-| `client.fabric.sip_endpoints` | SIP endpoint resources |
-| `client.fabric.sip_gateways` | SIP gateway resources |
-| `client.fabric.cxml_scripts` | cXML script resources |
-| `client.fabric.cxml_webhooks` | cXML webhook resources |
-| `client.fabric.cxml_applications` | cXML application resources (no create) |
+| `client.fabric.sipEndpoints` | SIP endpoint resources |
+| `client.fabric.sipGateways` | SIP gateway resources |
+| `client.fabric.cxmlScripts` | cXML script resources |
+| `client.fabric.cxmlWebhooks` | cXML webhook resources |
+| `client.fabric.cxmlApplications` | cXML application resources (no create) |
 | `client.fabric.resources` | Generic resource operations |
 | `client.fabric.addresses` | Fabric addresses (list/get only) |
 | `client.fabric.tokens` | Subscriber/guest/invite/embed token creation |
 
 ### Calling API
 
-| Attribute | Description |
+| Property | Description |
 |-----------|-------------|
 | `client.calling` | REST call control -- 37 commands via POST |
 
 ### Relay REST Resources
 
-| Attribute | Description |
+| Property | Description |
 |-----------|-------------|
-| `client.phone_numbers` | Phone number management (+ search) |
+| `client.phoneNumbers` | Phone number management (+ search) |
 | `client.addresses` | Address management |
 | `client.queues` | Queue management (+ members) |
 | `client.recordings` | Recording management |
-| `client.number_groups` | Number group management (+ memberships) |
-| `client.verified_callers` | Verified caller ID management (+ verification flow) |
-| `client.sip_profile` | Project SIP profile (get/update) |
+| `client.numberGroups` | Number group management (+ memberships) |
+| `client.verifiedCallers` | Verified caller ID management (+ verification flow) |
+| `client.sipProfile` | Project SIP profile (get/update) |
 | `client.lookup` | Phone number lookup |
-| `client.short_codes` | Short code management |
-| `client.imported_numbers` | Import external phone numbers |
+| `client.shortCodes` | Short code management |
+| `client.importedNumbers` | Import external phone numbers |
 | `client.mfa` | Multi-factor authentication (SMS/call/verify) |
 | `client.registry` | 10DLC brand/campaign registry |
 
 ### Other APIs
 
-| Attribute | Description |
+| Property | Description |
 |-----------|-------------|
 | `client.datasphere` | Datasphere document management and semantic search |
 | `client.video` | Video rooms, sessions, recordings, conferences |
@@ -74,34 +78,39 @@ Every API surface is available as a namespace attribute on the client:
 | `client.chat` | Chat token creation |
 | `client.compat` | Twilio-compatible LAML API |
 
+> Namespaces are properties, not methods — access them as `client.fabric`, never `client.fabric()`.
+
 ## Error Handling
 
-```python
-from signalwire_agents.rest import SignalWireRestError
+```typescript
+import { SignalWireRestError } from '@signalwire/sdk';
 
-try:
-    client.fabric.ai_agents.get("bad-id")
-except SignalWireRestError as e:
-    print(e.status_code)  # 404
-    print(e.body)         # {"error": "not found"}
-    print(e.url)          # "/api/fabric/resources/ai_agents/bad-id"
-    print(e.method)       # "GET"
+try {
+  await client.fabric.aiAgents.get('bad-id');
+} catch (err) {
+  if (err instanceof SignalWireRestError) {
+    console.log(err.statusCode); // 404
+    console.log(err.body);       // {"error":"not found"}
+    console.log(err.url);        // "/api/fabric/resources/ai_agents/bad-id"
+    console.log(err.method);     // "GET"
+  }
+}
 ```
 
-`SignalWireRestError` is raised on any non-2xx HTTP response.
+`SignalWireRestError` is thrown on any non-2xx HTTP response. (It is also exported as `RestError`; the two names refer to the same class.)
 
-### Error Attributes
+### Error Properties
 
-| Attribute | Type | Description |
+| Property | Type | Description |
 |-----------|------|-------------|
-| `status_code` | `int` | HTTP status code |
-| `body` | `dict` or `str` | Response body (parsed JSON or raw text) |
-| `url` | `str` | Request path |
-| `method` | `str` | HTTP method |
+| `statusCode` | `number` | HTTP status code |
+| `body` | `object` or `string` | Response body (parsed JSON or raw text) |
+| `url` | `string` | Request path |
+| `method` | `string` | HTTP method |
 
-## Session Behavior
+## Client Behavior
 
-- A single `requests.Session` is shared across all namespaces for connection pooling.
-- Content-Type is always `application/json`.
-- User-Agent is `@signalwire/sdk-python-rest/1.0`.
-- DELETE requests returning 204 return an empty dict.
+- A single `HttpClient` (using the global `fetch`) is shared across all namespaces.
+- Content-Type is `application/json` for JSON request bodies.
+- A custom `fetch` implementation can be injected via the `fetchImpl` option for testing.
+- The `host` is normalized to an `https://` base URL automatically.

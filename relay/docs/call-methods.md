@@ -1,474 +1,513 @@
 # Call Methods Reference
 
-A `Call` object represents a live phone call. You get one from `@client.on_call` (inbound) or `client.dial()` (outbound).
+A `Call` object represents a live phone call. You get one from `client.onCall(...)` (inbound) or `client.dial()` (outbound).
 
 ## Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `call_id` | `str` | Unique call identifier |
-| `node_id` | `str` | Server node handling the call |
-| `state` | `str` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
-| `direction` | `str` | `inbound` or `outbound` |
-| `tag` | `str` | Correlation tag |
-| `device` | `dict` | Device info (type, params) |
-| `segment_id` | `str` | Segment identifier |
+| `callId` | `string` | Unique call identifier |
+| `nodeId` | `string` | Server node handling the call |
+| `state` | `string` | Current state: `created`, `ringing`, `answered`, `ending`, `ended` |
+| `direction` | `string` | `inbound` or `outbound` |
+| `tag` | `string` | Correlation tag |
+| `device` | `Device` | Device info (type, params) |
+| `segmentId` | `string` | Segment identifier |
+| `isTerminal` | `boolean` | `true` once the call has reached the `ended` state |
 
 ## Actions: Blocking vs Fire-and-Forget
 
-Methods like `play()`, `record()`, `detect()`, etc. return **Action** objects. The `await call.play(...)` itself only waits for the server to accept the command — the actual operation runs asynchronously on the server. You choose how to handle completion:
+Methods like `play()`, `record()`, `detect()`, etc. return **Action** objects. `await call.play(...)` itself only waits for the server to accept the command — the actual operation runs asynchronously on the server. You choose how to handle completion:
 
 ### Wait inline (blocking)
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-await action.wait()  # blocks until playback finishes
-# execution continues only after play is done
+```typescript
+const action = await call.play([{ type: 'tts', params: { text: 'Hello' } }]);
+await action.wait(); // blocks until playback finishes
+// execution continues only after play is done
 ```
 
 ### Fire and forget (background)
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-# don't call action.wait() — continue immediately while audio plays
-await call.send_digits("1234")
+```typescript
+const action = await call.play([{ type: 'tts', params: { text: 'Hello' } }]);
+// don't await action.wait() — continue immediately while audio plays
+await call.sendDigits('1234');
 
-# check later if needed
-if action.is_done:
-    print(f"Play result: {action.result}")
+// check later if needed
+if (action.isDone) {
+  console.log(`Play result: ${action.result}`);
+}
 ```
 
 ### Fire with callback
 
-```python
-# Sync callback
-action = await call.play(
-    [{"type": "tts", "params": {"text": "Hello"}}],
-    on_completed=lambda event: print(f"Done: {event.params}"),
-)
-# continues immediately; callback fires when playback finishes
+```typescript
+// Sync callback
+const action = await call.play(
+  [{ type: 'tts', params: { text: 'Hello' } }],
+  { onCompleted: (event) => console.log(`Done: ${JSON.stringify(event.params)}`) },
+);
+// continues immediately; callback fires when playback finishes
 
-# Async callback
-async def on_recording_done(event):
-    print(f"Recording URL: {event.params.get('url')}")
-    await call.hangup()
-
-action = await call.record(on_completed=on_recording_done)
+// Async callback
+const rec = await call.record(
+  { format: 'wav' },
+  {
+    onCompleted: async (event) => {
+      console.log(`Recording URL: ${event.params.url}`);
+      await call.hangup();
+    },
+  },
+);
 ```
 
-The `on_completed` callback is available on all action-based methods: `play`, `record`, `play_and_collect`, `collect`, `detect`, `pay`, `send_fax`, `receive_fax`, `tap`, `stream`, `transcribe`, and `ai`. It accepts both sync and async functions. Errors in callbacks are caught and logged, never crash the event loop. The callback also fires when the call is gone (404/410).
+The `onCompleted` callback is available on all action-based methods: `play`, `record`, `playAndCollect`, `collect`, `detect`, `pay`, `sendFax`, `receiveFax`, `tap`, `stream`, `transcribe`, and `ai`. It accepts both sync and async functions. Errors in callbacks are caught and logged, never crashing the client. The callback also fires when the call is gone (404/410).
 
-### Action methods summary
+### Action members summary
 
-| Method | Returns |
-|--------|---------|
-| `action.wait(timeout=None)` | Blocks until the action completes, returns the terminal `RelayEvent` |
-| `action.is_done` | `True` if the action has completed |
-| `action.result` | The terminal `RelayEvent` (or `None` if not done) |
-| `action.completed` | `True` if the action reached a terminal state |
-| `action.stop()` | Stop the operation on the server |
+| Member | Description |
+|--------|-------------|
+| `await action.wait(timeout?)` | Blocks until the action completes (timeout in **seconds**), returns the terminal `RelayEvent` |
+| `action.isDone` | `true` if the action has completed |
+| `action.result` | The terminal `RelayEvent` (or `null` if not done) |
+| `action.completed` | `true` if the action reached a terminal state |
+| `await action.stop()` | Stop the operation on the server |
 
 Some actions also have `pause()`, `resume()`, and `volume()`.
 
 ## Lifecycle
 
-### `answer(**kwargs) -> dict`
+### `answer(extra?)`
 
 Answer an inbound call.
 
-```python
-await call.answer()
+```typescript
+await call.answer();
 ```
 
-### `hangup(reason="hangup") -> dict`
+### `hangup(reason?)`
 
-End the call.
+End the call. Reason defaults to `'hangup'`.
 
-```python
-await call.hangup()
-await call.hangup(reason="busy")
+```typescript
+await call.hangup();
+await call.hangup('busy');
 ```
 
-### `pass_() -> dict`
+### `pass()`
 
 Decline control, returning the call to routing.
 
-```python
-await call.pass_()
+```typescript
+await call.pass();
 ```
 
 ## Audio Playback
 
-### `play(media, *, volume=None, direction=None, loop=None, control_id=None) -> PlayAction`
+### `play(media, options?)`
 
 Play audio. Returns a `PlayAction` with `stop()`, `pause()`, `resume()`, `volume()`, and `wait()`.
 
-```python
-# TTS
-action = await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-await action.wait()
+```typescript
+// TTS
+const action = await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
+await action.wait();
 
-# Audio file
-action = await call.play([{"type": "audio", "params": {"url": "https://example.com/sound.mp3"}}])
+// Audio file
+await call.play([{ type: 'audio', params: { url: 'https://example.com/sound.mp3' } }]);
 
-# Silence
-action = await call.play([{"type": "silence", "params": {"duration": 2}}])
+// Silence
+await call.play([{ type: 'silence', params: { duration: 2 } }]);
 
-# Ringtone
-action = await call.play([{"type": "ringtone", "params": {"name": "us"}}])
+// Ringtone
+await call.play([{ type: 'ringtone', params: { name: 'us' } }]);
 
-# Control playback
-await action.pause()
-await action.resume()
-await action.volume(-3.0)
-await action.stop()
+// Control playback
+await action.pause();
+await action.resume();
+await action.volume(-3.0);
+await action.stop();
+```
+
+### Typed convenience helpers
+
+For common cases, typed helpers wrap `play()` so you don't have to hand-assemble the media array: `playTTS(text, options?)`, `playAudio(url, options?)`, `playSilence(duration, options?)`, and `playRingtone(name, options?)`. Each returns a `PlayAction` just like `play()`.
+
+```typescript
+const action = await call.play([{ type: 'tts', params: { text: 'Hello!', language: 'en-US' } }]);
+await action.wait();
 ```
 
 ## Recording
 
-### `record(audio=None, *, control_id=None) -> RecordAction`
+### `record(audio?, options?)`
 
 Record the call. Returns a `RecordAction` with `stop()`, `pause()`, `resume()`, and `wait()`.
 
-```python
-action = await call.record(audio={"format": "wav", "stereo": True, "direction": "both"})
-# ... later ...
-await action.stop()
-event = await action.wait()
-print(f"Recording URL: {event.params.get('url')}")
+```typescript
+const action = await call.record({ format: 'wav', stereo: true, direction: 'both' });
+// ... later ...
+await action.stop();
+const event = await action.wait();
+console.log(`Recording URL: ${event.params.url}`);
 ```
 
 ## Input Collection
 
-### `play_and_collect(media, collect, *, volume=None, control_id=None) -> CollectAction`
+### `playAndCollect(media, collect, options?)`
 
 Play audio and collect DTMF or speech input. Returns a `CollectAction`.
 
-```python
-action = await call.play_and_collect(
-    [{"type": "tts", "params": {"text": "Press 1 for sales, 2 for support."}}],
-    {"digits": {"max": 1, "digit_timeout": 5.0}},
-)
-event = await action.wait()
-digit = event.params.get("result", {}).get("params", {}).get("digits", "")
+```typescript
+const action = await call.playAndCollect(
+  [{ type: 'tts', params: { text: 'Press 1 for sales, 2 for support.' } }],
+  { digits: { max: 1, digit_timeout: 5.0 } },
+);
+const event = await action.wait();
 ```
 
-### `collect(*, digits=None, speech=None, ..., control_id=None) -> StandaloneCollectAction`
+The typed helpers `promptTTS(text, collect, options?)` and `promptAudio(url, collect, options?)` wrap `playAndCollect()` for the common TTS / audio-prompt cases — each returns a `CollectAction`:
 
-Collect input without playing audio.
+```typescript
+const action = await call.playAndCollect(
+  [{ type: 'tts', params: { text: 'Enter your PIN:' } }],
+  { digits: { max: 4, terminators: '#' } },
+);
+const event = await action.wait();
+```
 
-```python
-action = await call.collect(
-    digits={"max": 4, "terminators": "#"},
-    speech={"language": "en-US"},
-    partial_results=True,
-)
-event = await action.wait()
+### `collect(options?)`
+
+Collect input without playing audio. Returns a `StandaloneCollectAction`.
+
+```typescript
+const action = await call.collect({
+  digits: { max: 4, terminators: '#' },
+  speech: { language: 'en-US' },
+  partialResults: true,
+});
+const event = await action.wait();
 ```
 
 ## Bridging
 
-### `connect(devices, *, ringback=None, tag=None, max_duration=None, max_price_per_minute=None, status_url=None) -> dict`
+### `connect(devices, options?)`
 
 Bridge the call to another destination.
 
-```python
+```typescript
 await call.connect(
-    [[{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]],
-    ringback=[{"type": "ringtone", "params": {"name": "us"}}],
-)
+  [[{ type: 'phone', to: '+15551234567', from: '+15559876543' }]],
+  { ringback: [{ type: 'ringtone', params: { name: 'us' } }] },
+);
 ```
 
-### `disconnect() -> dict`
+### `disconnect()`
 
 Unbridge a connected call.
 
-```python
-await call.disconnect()
+```typescript
+await call.disconnect();
 ```
 
 ## DTMF
 
-### `send_digits(digits, *, control_id=None) -> dict`
+### `sendDigits(digits, controlId?)`
 
 Send DTMF tones.
 
-```python
-await call.send_digits("1234#")
+```typescript
+await call.sendDigits('1234#');
 ```
 
 ## Detection
 
-### `detect(detect, *, timeout=None, control_id=None) -> DetectAction`
+### `detect(detect, options?)`
 
-Detect machine, fax, or digits.
+Detect machine, fax, or digits. Returns a `DetectAction`.
 
-```python
-action = await call.detect({"type": "machine"}, timeout=30.0)
-event = await action.wait()
+```typescript
+const action = await call.detect({ type: 'machine' }, { timeout: 30 });
+const event = await action.wait();
+```
+
+Typed helpers wrap `detect()` for each detection type: `detectAnsweringMachine(options?)`, `detectDigit(options?)`, and `detectFax(options?)` — each returns a `DetectAction`.
+
+```typescript
+const action = await call.detect(
+  { type: 'machine', params: { initial_timeout: 5 } },
+  { timeout: 30 },
+);
+const event = await action.wait();
 ```
 
 ## SIP Refer
 
-### `refer(device, *, status_url=None) -> dict`
+### `refer(device, options?)`
 
 Transfer via SIP REFER.
 
-```python
-await call.refer({"type": "sip", "params": {"to": "sip:user@example.com"}})
+```typescript
+await call.refer({ type: 'sip', to: 'sip:user@example.com' });
 ```
 
 ## Transfer
 
-### `transfer(dest) -> dict`
+### `transfer(dest, extra?)`
 
 Transfer call control to another RELAY app or SWML script.
 
-```python
-await call.transfer("https://example.com/swml-endpoint")
+```typescript
+await call.transfer('https://example.com/swml-endpoint');
 ```
 
 ## Fax
 
-### `send_fax(document, *, identity=None, header_info=None, control_id=None) -> FaxAction`
+### `sendFax(document, options?)`
 
-```python
-action = await call.send_fax("https://example.com/document.pdf", identity="+15551234567")
-event = await action.wait()
+```typescript
+const action = await call.sendFax('https://example.com/document.pdf', { identity: '+15551234567' });
+const event = await action.wait();
 ```
 
-### `receive_fax(*, control_id=None) -> FaxAction`
+### `receiveFax(options?)`
 
-```python
-action = await call.receive_fax()
-event = await action.wait()
+```typescript
+const action = await call.receiveFax();
+const event = await action.wait();
 ```
 
 ## Tap (Media Interception)
 
-### `tap(tap, device, *, control_id=None) -> TapAction`
+### `tap(tap, device, options?)`
 
-Intercept call media and stream to an RTP endpoint.
+Intercept call media and stream it to an external endpoint.
 
-```python
-action = await call.tap(
-    {"type": "audio", "params": {"direction": "both"}},
-    {"type": "rtp", "params": {"addr": "192.168.1.100", "port": 5000}},
-)
+```typescript
+const action = await call.tap(
+  { type: 'audio', params: { direction: 'both' } },
+  { type: 'rtp', params: { addr: '192.168.1.100', port: 5000 } },
+);
 ```
 
 ## Streaming
 
-### `stream(url, *, name=None, codec=None, track=None, control_id=None, ...) -> StreamAction`
+### `stream(url, options?)`
 
 Stream call audio to a WebSocket endpoint.
 
-```python
-action = await call.stream(
-    "wss://example.com/audio",
-    name="my_stream",
-    codec="PCMU",
-    track="inbound_track",
-)
-# Stop streaming
-await action.stop()
+```typescript
+const action = await call.stream('wss://example.com/audio', {
+  name: 'my_stream',
+  codec: 'PCMU',
+  track: 'inbound_track',
+});
+// Stop streaming
+await action.stop();
 ```
 
 ## Payment
 
-### `pay(payment_connector_url, *, control_id=None, charge_amount=None, currency=None, ...) -> PayAction`
+### `pay(paymentConnectorUrl, options?)`
 
-Collect a payment via DTMF.
+Collect a payment via DTMF. Returns a `PayAction`.
 
-```python
-action = await call.pay(
-    "https://pay.example.com",
-    charge_amount="25.99",
-    currency="usd",
-    input_method="dtmf",
-)
-event = await action.wait()
+```typescript
+const action = await call.pay('https://pay.example.com', {
+  chargeAmount: '25.99',
+  currency: 'usd',
+  inputMethod: 'dtmf',
+});
+const event = await action.wait();
 ```
 
 ## Conference
 
-### `join_conference(name, *, muted=None, beep=None, max_participants=None, record=None, ...) -> dict`
+### `joinConference(name, options?)`
 
-```python
-await call.join_conference("my_conference", muted=False, beep="onEnter")
+```typescript
+await call.joinConference('my_conference', { muted: false, beep: 'onEnter' });
 ```
 
-### `leave_conference(conference_id) -> dict`
+### `leaveConference(conferenceId, extra?)`
 
-```python
-await call.leave_conference("conf-123")
+```typescript
+await call.leaveConference('conf-123');
 ```
 
 ## Hold
 
-### `hold() -> dict` / `unhold() -> dict`
+### `hold()` / `unhold()`
 
-```python
-await call.hold()
-# ... later ...
-await call.unhold()
+```typescript
+await call.hold();
+// ... later ...
+await call.unhold();
 ```
 
 ## Denoise
 
-### `denoise() -> dict` / `denoise_stop() -> dict`
+### `denoise()` / `denoiseStop()`
 
-```python
-await call.denoise()
-# ... later ...
-await call.denoise_stop()
+```typescript
+await call.denoise();
+// ... later ...
+await call.denoiseStop();
 ```
 
 ## Transcription
 
-### `transcribe(*, control_id=None, status_url=None) -> TranscribeAction`
+### `transcribe(options?)`
 
-```python
-action = await call.transcribe(status_url="https://example.com/transcription")
-# ... later ...
-await action.stop()
+Returns a `TranscribeAction`.
+
+```typescript
+const action = await call.transcribe({ statusUrl: 'https://example.com/transcription' });
+// ... later ...
+await action.stop();
 ```
 
 ## Live Transcribe / Translate
 
-### `live_transcribe(action_obj) -> dict`
+### `liveTranscribe(action, extra?)`
 
-```python
-await call.live_transcribe({"start": {"language": "en-US"}})
+```typescript
+await call.liveTranscribe({ start: { language: 'en-US' } });
 ```
 
-### `live_translate(action_obj, *, status_url=None) -> dict`
+### `liveTranslate(action, options?)`
 
-```python
-await call.live_translate({"start": {"source": "en-US", "target": "es"}})
+```typescript
+await call.liveTranslate({ start: { source: 'en-US', target: 'es' } });
 ```
 
 ## Echo
 
-### `echo(*, timeout=None, status_url=None) -> dict`
+### `echo(options?)`
 
 Echo audio back to the caller (useful for testing).
 
-```python
-await call.echo(timeout=30.0)
+```typescript
+await call.echo({ timeout: 30 });
 ```
 
 ## AI Agent
 
-### `ai(*, control_id=None, prompt=None, SWAIG=None, ai_params=None, ...) -> AIAction`
+### `ai(options?)`
 
-Start an AI agent session on the call.
+Start an AI agent session on the call. Returns an `AIAction`.
 
-```python
-action = await call.ai(
-    prompt={"text": "You are a helpful support agent."},
-    SWAIG={"functions": [...]},
-    ai_params={"end_of_speech_timeout": 3000},
-)
-event = await action.wait()
+```typescript
+const action = await call.ai({
+  prompt: { text: 'You are a helpful support agent.' },
+  SWAIG: { functions: [] },
+  aiParams: { end_of_speech_timeout: 3000 },
+});
+const event = await action.wait();
 ```
 
-### `amazon_bedrock(*, prompt=None, SWAIG=None, ...) -> dict`
+### `amazonBedrock(options?)`
 
 Connect to an Amazon Bedrock AI agent.
 
-### `ai_message(*, message_text=None, role=None, ...) -> dict`
+### `aiMessage(options?)`
 
 Send a message to an active AI session.
 
-### `ai_hold(*, timeout=None, prompt=None) -> dict` / `ai_unhold(*, prompt=None) -> dict`
+### `aiHold(options?)` / `aiUnhold(options?)`
 
 Put an AI session on/off hold.
 
 ## Rooms
 
-### `join_room(name, *, status_url=None) -> dict`
+### `joinRoom(name, options?)`
 
-```python
-await call.join_room("my_room")
+```typescript
+await call.joinRoom('my_room');
 ```
 
-### `leave_room() -> dict`
+### `leaveRoom(extra?)`
 
-```python
-await call.leave_room()
+```typescript
+await call.leaveRoom();
 ```
 
 ## Queue
 
-### `queue_enter(queue_name, *, control_id=None, status_url=None) -> dict`
+### `queueEnter(queueName, options?)`
 
-```python
-await call.queue_enter("support")
+```typescript
+await call.queueEnter('support');
 ```
 
-### `queue_leave(queue_name, *, control_id=None, queue_id=None, status_url=None) -> dict`
+### `queueLeave(queueName, options?)`
 
-```python
-await call.queue_leave("support", queue_id="q-123")
+```typescript
+await call.queueLeave('support', { queueId: 'q-123' });
 ```
 
 ## Digit Bindings
 
-### `bind_digit(digits, bind_method, *, bind_params=None, realm=None, max_triggers=None) -> dict`
+### `bindDigit(digits, bindMethod, options?)`
 
 Bind a DTMF sequence to trigger a RELAY method.
 
-```python
-await call.bind_digit(
-    "*1",
-    "calling.play",
-    bind_params={"play": [{"type": "tts", "params": {"text": "You pressed star-1"}}]},
-)
+```typescript
+await call.bindDigit('*1', 'calling.play', {
+  bindParams: { play: [{ type: 'tts', params: { text: 'You pressed star-1' } }] },
+});
 ```
 
-### `clear_digit_bindings(*, realm=None) -> dict`
+### `clearDigitBindings(realm?)`
 
-```python
-await call.clear_digit_bindings()
+```typescript
+await call.clearDigitBindings();
 ```
 
 ## User Events
 
-### `user_event(*, event=None, **kwargs) -> dict`
+### `userEvent(options?)`
 
-Send a custom event.
+Send a custom event. Set `options.event` for the event name and include any additional fields your webhook expects.
 
-```python
-await call.user_event(event="order_placed", order_id="12345")
+```typescript
+await call.userEvent({ event: 'order_placed', order_id: '12345' });
 ```
 
 ## Event Handling
 
-### `on(event_type, handler)`
+### `on(eventType, handler)`
 
 Register an event listener on this call.
 
-```python
-def on_play(event):
-    print(f"Play state: {event.params.get('state')}")
-
-call.on("calling.call.play", on_play)
+```typescript
+call.on('calling.call.play', (event) => {
+  console.log(`Play state: ${event.params.state}`);
+});
 ```
 
-### `wait_for(event_type, predicate=None, timeout=None) -> RelayEvent`
+### `waitFor(eventType, predicate?, timeout?)`
 
-Wait for a specific event.
+Wait for a specific event. Timeout is in **milliseconds**.
 
-```python
-event = await call.wait_for("calling.call.play", timeout=30.0)
+```typescript
+const event = await call.waitFor('calling.call.play', undefined, 30_000);
 ```
 
-### `wait_for_ended(timeout=None) -> RelayEvent`
+### `waitForEnded(timeout?)`
 
-Wait for the call to end.
+Wait for the call to end. Timeout is in **milliseconds**.
 
-```python
-event = await call.wait_for_ended()
-print(f"End reason: {event.params.get('end_reason')}")
+```typescript
+const event = await call.waitForEnded();
+console.log(`End reason: ${event.params.end_reason}`);
 ```
+
+`waitForAnswered(timeout?)`, `waitForRinging(timeout?)`, and `waitForEnding(timeout?)` wait for the corresponding lifecycle state.
+
+## Next Steps
+
+- [Events](events.md) -- typed event classes and event-type constants
+- [Client Reference](client-reference.md) -- RelayClient configuration and methods
+- [Getting Started](getting-started.md) -- connecting and your first call

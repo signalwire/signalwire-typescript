@@ -775,7 +775,7 @@ goodbye.addGatherQuestion({
 goodbye.setEnd(true);
 
 // Start the server
-agent.start();
+agent.serve();
 ```
 
 ### How This Flow Works

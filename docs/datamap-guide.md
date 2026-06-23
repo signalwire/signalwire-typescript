@@ -79,7 +79,7 @@ No traffic flows to your server for DataMap tool invocations. Your server only s
 The `DataMap` constructor takes a single argument: the function name.
 
 ```typescript
-import { DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { DataMap, FunctionResult } from '@signalwire/sdk';
 
 const tool = new DataMap('get_weather');
 ```
@@ -688,7 +688,7 @@ registerWithAgent(agent: {
 **Returns:** `this` for chaining.
 
 ```typescript
-import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
@@ -769,7 +769,7 @@ agent.registerSwaigFunction(tool.toSwaigFunction());
 Create a DataMap tool that calls a single API endpoint and formats the response. This is a convenience function for the most common DataMap pattern: one GET/POST request with a response template.
 
 ```typescript
-import { createSimpleApiTool } from '@anthropic/@signalwire/sdk';
+import { createSimpleApiTool } from '@signalwire/sdk';
 
 createSimpleApiTool(opts: {
   name: string;
@@ -801,7 +801,7 @@ createSimpleApiTool(opts: {
 **Returns:** A configured `DataMap` instance ready for registration.
 
 ```typescript
-import { createSimpleApiTool } from '@anthropic/@signalwire/sdk';
+import { createSimpleApiTool } from '@signalwire/sdk';
 
 // Minimal: a single GET endpoint
 const jokeTool = createSimpleApiTool({
@@ -842,7 +842,7 @@ agent.registerSwaigFunction(searchTool.toSwaigFunction());
 Create a DataMap tool that evaluates expressions against patterns without making any HTTP calls. Useful for validation, classification, and simple lookups.
 
 ```typescript
-import { createExpressionTool } from '@anthropic/@signalwire/sdk';
+import { createExpressionTool } from '@signalwire/sdk';
 
 createExpressionTool(opts: {
   name: string;
@@ -864,7 +864,7 @@ createExpressionTool(opts: {
 The `patterns` object maps test values (template strings) to tuples of `[regexPattern, result]`:
 
 ```typescript
-import { createExpressionTool, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { createExpressionTool, FunctionResult } from '@signalwire/sdk';
 
 const validator = createExpressionTool({
   name: 'validate_phone',
@@ -938,7 +938,7 @@ The `${lc:...}` and `${uc:...}` prefixes can be applied to argument variables to
 ### Example 1: Weather lookup with DataMap builder
 
 ```typescript
-import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'weather-agent',
@@ -969,7 +969,7 @@ agent.run();
 ### Example 2: Expression-only tool (no HTTP)
 
 ```typescript
-import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'validator-agent',
@@ -996,7 +996,7 @@ agent.run();
 ### Example 3: API tool with POST body and error handling
 
 ```typescript
-import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'ticket-agent',
@@ -1044,7 +1044,7 @@ agent.run();
 ### Example 4: Iteration over array responses
 
 ```typescript
-import { AgentBase, DataMap, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'store-agent',
@@ -1078,7 +1078,7 @@ agent.run();
 ### Example 5: Quick setup with createSimpleApiTool
 
 ```typescript
-import { AgentBase, createSimpleApiTool } from '@anthropic/@signalwire/sdk';
+import { AgentBase, createSimpleApiTool } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'fun-agent',
@@ -1113,7 +1113,7 @@ import {
   AgentBase,
   createExpressionTool,
   FunctionResult,
-} from '@anthropic/@signalwire/sdk';
+} from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'validator-agent',
