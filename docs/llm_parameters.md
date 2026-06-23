@@ -4,44 +4,49 @@ This guide explains how to customize Language Model (LLM) parameters in SignalWi
 
 ## Overview
 
-SignalWire AI Agents SDK provides methods to customize LLM parameters for both the main prompt and post-prompt, allowing precise control over the AI's response characteristics.
+The SignalWire AI Agents TypeScript SDK provides methods to customize LLM parameters for both the main prompt and the post-prompt, giving precise control over the AI's response characteristics.
 
-**Important:** The SDK passes parameters through to the SignalWire server without validation. Model-specific parameters are validated and handled by the server based on the target model's capabilities and requirements. Invalid parameters for the selected model will be handled or ignored by the server.
+**Important:** The SDK passes parameters through to the SignalWire server without validation. Model-specific parameters are validated and handled by the server based on the target model's capabilities. Parameters that are invalid for the selected model are handled or ignored by the server.
 
 ## Available Methods
 
-### set_prompt_llm_params(**params)
+### `setPromptLlmParams(params)`
 
-Sets LLM parameters for the main agent prompt. Accepts any parameters that will be passed to the server.
+Merges LLM parameters into the main agent prompt. Accepts an object of parameters passed
+through to the server.
 
-```python
-agent.set_prompt_llm_params(
-    temperature=0.7,
-    top_p=0.9,
-    barge_confidence=0.6,
-    presence_penalty=0.0,
-    frequency_penalty=0.0
-)
+```typescript
+agent.setPromptLlmParams({
+  temperature: 0.7,
+  top_p: 0.9,
+  barge_confidence: 0.6,
+  presence_penalty: 0.0,
+  frequency_penalty: 0.0,
+});
 ```
 
-### set_post_prompt_llm_params(**params)
+### `setPostPromptLlmParams(params)`
 
-Sets LLM parameters for the post-prompt (conversation summary). Accepts any parameters that will be passed to the server.
+Merges LLM parameters into the post-prompt (conversation summary).
 
-```python
-agent.set_post_prompt_llm_params(
-    temperature=0.3,
-    top_p=0.95,
-    presence_penalty=0.0,
-    frequency_penalty=0.0
-)
+```typescript
+agent.setPostPromptLlmParams({
+  temperature: 0.3,
+  top_p: 0.95,
+  presence_penalty: 0.0,
+  frequency_penalty: 0.0,
+});
 ```
 
-Note: barge_confidence is not applicable to post-prompt as interruption doesn't apply to summaries.
+Note: `barge_confidence` does not apply to the post-prompt, since interruption doesn't apply
+to summaries.
+
+Both methods merge into the existing parameters, so you can call them more than once to
+build up the configuration incrementally.
 
 ## Common Parameter Descriptions
 
-These are commonly used parameters, but any parameter accepted by your model can be used. The actual ranges and defaults are model-specific and handled by the server.
+These are commonly used parameters, but any parameter accepted by your model can be used. The actual ranges and defaults are model-specific and handled by the server. SWML output keys are `snake_case` (the platform format).
 
 ### temperature
 Controls the randomness of the AI's responses.
@@ -73,92 +78,104 @@ Repetition control. Penalizes tokens based on their frequency in the conversatio
 - **Zero**: No penalty
 - **Positive values**: Discourages word repetition, encourages vocabulary variety
 
-**Note:** No default values are sent unless explicitly set using the methods above. The server will apply model-appropriate defaults if parameters are not specified.
+**Note:** No default values are sent unless explicitly set using the methods above. The server applies model-appropriate defaults if parameters are not specified.
 
 ## Use Case Examples
 
 ### Customer Service Agent
-```python
-class CustomerServiceAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="customer-service", route="/support")
-        
-        self.prompt_add_section("Role", "You are a professional customer service representative.")
-        
-        # Consistent, helpful responses
-        self.set_prompt_llm_params(
-            temperature=0.3,        # Low randomness for consistency
-            top_p=0.9,             # Focused token selection
-            barge_confidence=0.6,  # Moderate interruption threshold (default 0.0 is too easy)
-            presence_penalty=0.1,  # Slight penalty to avoid repetition
-            frequency_penalty=0.1  # Encourage varied language
-        )
+```typescript
+import { AgentBase } from '@signalwire/sdk';
+
+class CustomerServiceAgent extends AgentBase {
+  constructor() {
+    super({ name: 'customer-service', route: '/support' });
+
+    this.promptAddSection('Role', {
+      body: 'You are a professional customer service representative.',
+    });
+
+    // Consistent, helpful responses
+    this.setPromptLlmParams({
+      temperature: 0.3, // Low randomness for consistency
+      top_p: 0.9, // Focused token selection
+      barge_confidence: 0.6, // Moderate interruption threshold
+      presence_penalty: 0.1, // Slight penalty to avoid repetition
+      frequency_penalty: 0.1, // Encourage varied language
+    });
+  }
+}
 ```
 
 ### Creative Writing Assistant
-```python
-class CreativeWritingAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="creative-writer", route="/writer")
-        
-        self.prompt_add_section("Role", "You are a creative writing assistant.")
-        
-        # Creative, diverse responses
-        self.set_prompt_llm_params(
-            temperature=0.8,        # High randomness for creativity
-            top_p=0.95,            # Wide token selection
-            barge_confidence=0.3,  # Easy to interrupt for collaboration (but not default 0.0)
-            presence_penalty=-0.1, # Allow topic revisiting
-            frequency_penalty=0.3  # Encourage vocabulary diversity
-        )
+```typescript
+class CreativeWritingAgent extends AgentBase {
+  constructor() {
+    super({ name: 'creative-writer', route: '/writer' });
+
+    this.promptAddSection('Role', { body: 'You are a creative writing assistant.' });
+
+    // Creative, diverse responses
+    this.setPromptLlmParams({
+      temperature: 0.8, // High randomness for creativity
+      top_p: 0.95, // Wide token selection
+      barge_confidence: 0.3, // Easy to interrupt for collaboration
+      presence_penalty: -0.1, // Allow topic revisiting
+      frequency_penalty: 0.3, // Encourage vocabulary diversity
+    });
+  }
+}
 ```
 
 ### Technical Documentation Bot
-```python
-class TechnicalDocsAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="tech-docs", route="/docs")
-        
-        self.prompt_add_section("Role", "You are a technical documentation assistant.")
-        
-        # Precise, accurate responses
-        self.set_prompt_llm_params(
-            temperature=0.2,        # Very low randomness
-            top_p=0.8,             # More focused token selection
-            barge_confidence=0.8,  # Hard to interrupt - let it finish
-            presence_penalty=0.0,  # Neutral on repetition
-            frequency_penalty=0.2  # Some vocabulary variety
-        )
-        
-        # Even more focused for summaries
-        self.set_post_prompt_llm_params(
-            temperature=0.1       # Extremely consistent
-        )
+```typescript
+class TechnicalDocsAgent extends AgentBase {
+  constructor() {
+    super({ name: 'tech-docs', route: '/docs' });
+
+    this.promptAddSection('Role', { body: 'You are a technical documentation assistant.' });
+
+    // Precise, accurate responses
+    this.setPromptLlmParams({
+      temperature: 0.2, // Very low randomness
+      top_p: 0.8, // More focused token selection
+      barge_confidence: 0.8, // Hard to interrupt - let it finish
+      presence_penalty: 0.0, // Neutral on repetition
+      frequency_penalty: 0.2, // Some vocabulary variety
+    });
+
+    // Even more focused for summaries
+    this.setPostPromptLlmParams({ temperature: 0.1 });
+  }
+}
 ```
 
 ### Legal Advisor Bot
-```python
-class LegalAdvisorAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="legal-advisor", route="/legal")
-        
-        self.prompt_add_section("Role", "You are a legal information assistant.")
-        self.prompt_add_section("Disclaimer", "Always remind users to consult a real attorney.")
-        
-        # Cautious, precise responses
-        self.set_prompt_llm_params(
-            temperature=0.2,        # Very consistent
-            top_p=0.85,            # Focused selection
-            barge_confidence=0.9,  # Very hard to interrupt - legal accuracy important
-            presence_penalty=0.0,  # Allow legal term repetition
-            frequency_penalty=0.0  # Legal language often repeats
-        )
+```typescript
+class LegalAdvisorAgent extends AgentBase {
+  constructor() {
+    super({ name: 'legal-advisor', route: '/legal' });
+
+    this.promptAddSection('Role', { body: 'You are a legal information assistant.' });
+    this.promptAddSection('Disclaimer', {
+      body: 'Always remind users to consult a real attorney.',
+    });
+
+    // Cautious, precise responses
+    this.setPromptLlmParams({
+      temperature: 0.2, // Very consistent
+      top_p: 0.85, // Focused selection
+      barge_confidence: 0.9, // Very hard to interrupt - legal accuracy important
+      presence_penalty: 0.0, // Allow legal term repetition
+      frequency_penalty: 0.0, // Legal language often repeats
+    });
+  }
+}
 ```
 
 ## Best Practices
 
 ### 1. Start with Defaults
-Begin with the default values and adjust based on observed behavior.
+Begin with the server defaults (set nothing) and adjust based on observed behavior.
 
 ### 2. Test Incrementally
 Make small adjustments and test thoroughly to understand the impact.
@@ -170,7 +187,7 @@ Make small adjustments and test thoroughly to understand the impact.
 - **General Assistant**: Medium temperature (0.5-0.7), medium barge_confidence (0.6-0.7)
 
 ### 4. Match Post-Prompt Parameters
-Post-prompt parameters should typically be lower temperature than main prompt for consistent summaries.
+Post-prompt parameters should typically be a lower temperature than the main prompt for consistent summaries.
 
 ### 5. Monitor Barge Confidence Levels
 - Too high: Users have difficulty interrupting the AI
@@ -205,35 +222,29 @@ Presence and frequency penalties can be used together:
 ### AI gets interrupted too easily
 - Increase `barge_confidence` threshold
 - Check for background noise in the environment
-- Consider the user's speaking clarity
 
 ### Users can't interrupt the AI
 - Decrease `barge_confidence` threshold
-- Train users to speak more clearly when interrupting
 - Consider the use case (e.g., legal/medical may need higher thresholds)
 
 ## Parameter Behavior
 
-**No Default Values:** The SDK does not send any LLM parameters unless explicitly set using `set_prompt_llm_params()` or `set_post_prompt_llm_params()`. When parameters are not specified, the SignalWire server will apply appropriate defaults based on the model being used.
+**No Default Values:** The SDK does not send any LLM parameters unless explicitly set via `setPromptLlmParams()` or `setPostPromptLlmParams()`. When parameters are not specified, the SignalWire server applies appropriate defaults based on the model.
 
-**Server-Side Validation:** All parameter validation is handled by the SignalWire server. The SDK accepts any parameters and passes them through without modification. This allows:
+**Server-Side Validation:** All parameter validation is handled by the SignalWire server. The SDK accepts any parameters and passes them through unchanged. This allows:
 - Use of model-specific parameters without SDK updates
 - Forward compatibility with new models and parameters
 - Server-side optimization based on model capabilities
 
-**Partial Configuration:** You can set only the parameters you want to customize. For example:
-```python
-# Only set temperature, let server handle other parameters
-agent.set_prompt_llm_params(temperature=0.7)
+**Partial Configuration:** You can set only the parameters you want to customize:
+```typescript
+// Only set temperature, let the server handle the rest
+agent.setPromptLlmParams({ temperature: 0.7 });
 
-# Or set multiple specific parameters
-agent.set_prompt_llm_params(
-    temperature=0.5,
-    barge_confidence=0.6
-)
+// Or set multiple specific parameters
+agent.setPromptLlmParams({ temperature: 0.5, barge_confidence: 0.6 });
 ```
 
-## Examples
+## Related
 
-- `examples/llm_params_demo.py` - Three agent personas (customer service, creative, technical) demonstrating different LLM parameter configurations
-- `examples/simple_agent.py` - Basic LLM parameter tuning with `set_prompt_llm_params()`
+- [Agent Guide](agent-guide.md) — full `AgentBase` configuration reference, including `setParams()` for non-LLM AI parameters.

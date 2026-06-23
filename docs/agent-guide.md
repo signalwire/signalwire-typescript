@@ -45,13 +45,13 @@ Caller --> SignalWire Platform --> GET/POST your-agent/ --> SWML document
 ### Installation
 
 ```bash
-npm install signalwire-ai-agents
+npm install @signalwire/sdk
 ```
 
 ### Quick Start
 
 ```typescript
-import { AgentBase, FunctionResult } from 'signalwire-ai-agents';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent' });
 
@@ -348,7 +348,7 @@ When `secure: true` is set, the SWML document includes a `__token` query paramet
 `FunctionResult` is a fluent builder for tool responses. It carries response text and an ordered list of actions:
 
 ```typescript
-import { FunctionResult } from 'signalwire-ai-agents';
+import { FunctionResult } from '@signalwire/sdk';
 
 // Simple text response
 const result = new FunctionResult('The order has been placed.');
@@ -395,7 +395,7 @@ Serialization fallback: if both `response` and `action` are empty, `toDict()` re
 DataMap tools execute entirely on the SignalWire platform without requiring a webhook. They are useful for simple API calls and pattern-matching:
 
 ```typescript
-import { DataMap, FunctionResult } from 'signalwire-ai-agents';
+import { DataMap, FunctionResult } from '@signalwire/sdk';
 
 const weatherTool = new DataMap('get_weather')
   .purpose('Look up weather for a city')
@@ -412,7 +412,7 @@ weatherTool.registerWithAgent(agent);
 Convenience helpers:
 
 ```typescript
-import { createSimpleApiTool, createExpressionTool } from 'signalwire-ai-agents';
+import { createSimpleApiTool, createExpressionTool } from '@signalwire/sdk';
 
 const tool = createSimpleApiTool({
   name: 'joke',
@@ -712,7 +712,7 @@ agent.setPostPromptLlmParams({
 `AgentServer` hosts multiple `AgentBase` instances on a single HTTP server, each mounted at its own route prefix:
 
 ```typescript
-import { AgentBase, AgentServer } from 'signalwire-ai-agents';
+import { AgentBase, AgentServer } from '@signalwire/sdk';
 
 const salesAgent = new AgentBase({ name: 'sales', route: '/sales' });
 salesAgent.setPromptText('You are a sales representative.');
@@ -752,7 +752,7 @@ await server.run();
 For reusable, self-contained agents, extend `AgentBase`:
 
 ```typescript
-import { AgentBase, FunctionResult } from 'signalwire-ai-agents';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 class RestaurantBot extends AgentBase {
   // Declarative prompt sections

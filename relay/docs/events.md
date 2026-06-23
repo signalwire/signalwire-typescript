@@ -6,32 +6,33 @@ RELAY events are server-pushed notifications about call state changes and operat
 
 ### On a Call
 
-```python
-@client.on_call
-async def handle(call):
-    # Register a listener
-    call.on("calling.call.play", lambda event: print(f"Play: {event.params}"))
+```typescript
+client.onCall(async (call) => {
+  // Register a listener
+  call.on('calling.call.play', (event) => console.log(`Play: ${JSON.stringify(event.params)}`));
 
-    # Or wait for a specific event
-    event = await call.wait_for("calling.call.state",
-        predicate=lambda e: e.params.get("call_state") == "ended",
-        timeout=60.0,
-    )
+  // Or wait for a specific event (timeout in milliseconds)
+  const event = await call.waitFor(
+    'calling.call.state',
+    (e) => e.params.call_state === 'ended',
+    60_000,
+  );
+});
 ```
 
 ### Via Actions
 
 Actions returned by `play()`, `record()`, etc. have a `wait()` method that resolves when the operation completes:
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-event = await action.wait(timeout=30.0)
-# event is a RelayEvent with the terminal state
+```typescript
+const action = await call.play([{ type: 'tts', params: { text: 'Hello' } }]);
+const event = await action.wait(30); // timeout in seconds
+// event is a RelayEvent with the terminal state
 ```
 
 ## Event Types
 
-All event type constants are importable from `signalwire_agents.relay`:
+All event-type constants are importable from `@signalwire/sdk`:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
@@ -53,6 +54,7 @@ All event type constants are importable from `signalwire_agents.relay`:
 | `EVENT_CALL_QUEUE` | `calling.call.queue` | Queue state changes |
 | `EVENT_CALL_ECHO` | `calling.call.echo` | Echo state changes |
 | `EVENT_CALL_TRANSCRIBE` | `calling.call.transcribe` | Transcription state changes |
+| `EVENT_CALL_HOLD` | `calling.call.hold` | Hold/unhold state changes |
 | `EVENT_CONFERENCE` | `calling.conference` | Conference state changes |
 | `EVENT_CALLING_ERROR` | `calling.error` | Error events |
 | `EVENT_MESSAGING_RECEIVE` | `messaging.receive` | Inbound message received |
@@ -60,48 +62,51 @@ All event type constants are importable from `signalwire_agents.relay`:
 
 ## Typed Event Classes
 
-Raw events are always `RelayEvent` with a `params` dict. For convenience, typed event classes provide named properties:
+Raw events are always a `RelayEvent` with a `params` object. For convenience, typed event classes provide named (camelCase) properties:
 
-```python
-from signalwire_agents.relay import CallStateEvent, PlayEvent, RecordEvent, parse_event
+```typescript
+import { CallStateEvent, PlayEvent, RecordEvent, parseEvent } from '@signalwire/sdk';
 
-# Automatic parsing
-event = parse_event(raw_payload)
+// Automatic parsing
+const event = parseEvent(rawPayload);
 
-# Or construct directly
-if event.event_type == "calling.call.state":
-    state_event = CallStateEvent.from_payload(raw_payload)
-    print(state_event.call_state)   # "answered"
-    print(state_event.end_reason)   # "hangup" (only on ended)
+// Or construct directly
+if (event.eventType === 'calling.call.state') {
+  const stateEvent = CallStateEvent.fromPayload(rawPayload);
+  console.log(stateEvent.callState);  // "answered"
+  console.log(stateEvent.endReason);  // "hangup" (only on ended)
+}
 ```
 
 ### Available Typed Events
 
 | Class | Key Properties |
 |-------|---------------|
-| `CallStateEvent` | `call_state`, `end_reason`, `direction`, `device` |
-| `CallReceiveEvent` | `call_state`, `direction`, `device`, `node_id`, `context`, `tag` |
-| `PlayEvent` | `control_id`, `state` |
-| `RecordEvent` | `control_id`, `state`, `url`, `duration`, `size` |
-| `CollectEvent` | `control_id`, `state`, `result`, `final` |
-| `ConnectEvent` | `connect_state`, `peer` |
-| `DetectEvent` | `control_id`, `detect` |
-| `FaxEvent` | `control_id`, `fax` |
-| `TapEvent` | `control_id`, `state`, `tap`, `device` |
-| `StreamEvent` | `control_id`, `state`, `url`, `name` |
-| `SendDigitsEvent` | `control_id`, `state` |
-| `DialEvent` | `tag`, `dial_state`, `call` |
-| `ReferEvent` | `state`, `sip_refer_to`, `sip_refer_response_code` |
+| `CallStateEvent` | `callState`, `endReason`, `direction`, `device` |
+| `CallReceiveEvent` | `callState`, `direction`, `device`, `nodeId`, `projectId`, `context`, `segmentId`, `tag` |
+| `PlayEvent` | `controlId`, `state` |
+| `RecordEvent` | `controlId`, `state`, `url`, `duration`, `size`, `record` |
+| `CollectEvent` | `controlId`, `state`, `result`, `final` |
+| `ConnectEvent` | `connectState`, `peer` |
+| `DetectEvent` | `controlId`, `detect` |
+| `FaxEvent` | `controlId`, `fax` |
+| `TapEvent` | `controlId`, `state`, `tap`, `device` |
+| `StreamEvent` | `controlId`, `state`, `url`, `name` |
+| `SendDigitsEvent` | `controlId`, `state` |
+| `DialEvent` | `tag`, `dialState`, `call` |
+| `ReferEvent` | `state`, `sipReferTo`, `sipReferResponseCode`, `sipNotifyResponseCode` |
 | `DenoiseEvent` | `denoised` |
-| `PayEvent` | `control_id`, `state` |
-| `QueueEvent` | `control_id`, `status`, `queue_id`, `queue_name`, `position`, `size` |
+| `PayEvent` | `controlId`, `state` |
+| `QueueEvent` | `controlId`, `status`, `queueId`, `queueName`, `position`, `size` |
 | `EchoEvent` | `state` |
-| `TranscribeEvent` | `control_id`, `state`, `url`, `duration`, `size` |
+| `TranscribeEvent` | `controlId`, `state`, `url`, `recordingId`, `duration`, `size` |
 | `HoldEvent` | `state` |
-| `ConferenceEvent` | `conference_id`, `name`, `status` |
+| `ConferenceEvent` | `conferenceId`, `name`, `status` |
 | `CallingErrorEvent` | `code`, `message` |
-| `MessageReceiveEvent` | `message_id`, `context`, `direction`, `from_number`, `to_number`, `body`, `media`, `segments`, `message_state`, `tags` |
-| `MessageStateEvent` | `message_id`, `context`, `direction`, `from_number`, `to_number`, `body`, `media`, `segments`, `message_state`, `reason`, `tags` |
+| `MessageReceiveEvent` | `messageId`, `context`, `direction`, `fromNumber`, `toNumber`, `body`, `media`, `segments`, `messageState`, `tags` |
+| `MessageStateEvent` | `messageId`, `context`, `direction`, `fromNumber`, `toNumber`, `body`, `media`, `segments`, `messageState`, `reason`, `tags` |
+
+Every typed event also carries the base `RelayEvent` fields: `eventType`, `params` (the raw dict), `callId`, and `timestamp`. The `params` dict always uses the platform's raw `snake_case` field names.
 
 ## Call States
 
@@ -113,7 +118,7 @@ Constants: `CALL_STATE_CREATED`, `CALL_STATE_RINGING`, `CALL_STATE_ANSWERED`, `C
 
 ## End Reasons
 
-When a call reaches the `ended` state, the `end_reason` field indicates why:
+When a call reaches the `ended` state, the `endReason` field indicates why:
 
 | Reason | Description |
 |--------|-------------|
@@ -129,6 +134,12 @@ When a call reaches the `ended` state, the `end_reason` field indicates why:
 
 ## Message States
 
-Outbound messages progress through: `queued` → `initiated` → `sent` → `delivered` (or `undelivered`/`failed`).
+Outbound messages progress through: `queued` -> `initiated` -> `sent` -> `delivered` (or `undelivered`/`failed`).
 
 Constants: `MESSAGE_STATE_QUEUED`, `MESSAGE_STATE_INITIATED`, `MESSAGE_STATE_SENT`, `MESSAGE_STATE_DELIVERED`, `MESSAGE_STATE_UNDELIVERED`, `MESSAGE_STATE_FAILED`, `MESSAGE_STATE_RECEIVED`
+
+## Next Steps
+
+- [Call Methods Reference](call-methods.md) -- all methods available on a Call object
+- [Client Reference](client-reference.md) -- RelayClient configuration and methods
+- [Messaging](messaging.md) -- sending and receiving SMS/MMS

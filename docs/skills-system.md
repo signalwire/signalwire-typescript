@@ -110,7 +110,7 @@ Each `AgentBase` has an internal `SkillManager`. When you call `agent.addSkill()
 
 1. Validates required environment variables from the skill manifest.
 2. Calls `skill.setup()` for async initialization.
-3. Registers all tools from `skill.registerTools()` with the agent.
+3. Registers all tools from `skill.getTools()` with the agent.
 4. Merges hints from `skill.getHints()` into the agent's hint list.
 5. Adds prompt sections from `skill.getPromptSections()` to the POM.
 6. Merges global data from `skill.getGlobalData()`.
@@ -129,12 +129,14 @@ The global registry allows skills to be discovered by name:
 ```typescript
 import { SkillRegistry } from '@signalwire/sdk';
 
-// List all registered skills
-const available = SkillRegistry.listSkills();
-// => [{ name: 'datetime', description: '...', version: '1.0.0' }, ...]
+const registry = SkillRegistry.getInstance();
 
-// Get a skill's parameter schema
-const schema = SkillRegistry.getParameterSchema('web_search');
+// List all registered skills
+const available = registry.listSkills();
+// => [{ name: 'datetime', description: '...', parameters: { ... } }, ...]
+
+// Get a skill's schema (name, description, parameters)
+const schema = registry.getSkillSchema('web_search');
 ```
 
 Built-in skills are registered automatically by `registerBuiltinSkills()`. Custom skill classes must call `SkillRegistry.getInstance().register(cls)`:

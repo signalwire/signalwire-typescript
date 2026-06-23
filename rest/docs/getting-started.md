@@ -1,16 +1,16 @@
 # Getting Started with the REST Client
 
-The REST client provides synchronous access to all SignalWire APIs using standard HTTP requests. No WebSocket connection required.
+The REST client provides access to all SignalWire APIs using standard HTTP requests. No WebSocket connection required.
 
 ## Installation
 
 The REST client is included in the `@signalwire/sdk` package:
 
 ```bash
-pip install @signalwire/sdk
+npm install @signalwire/sdk
 ```
 
-The only additional dependency is `requests`, which is installed automatically.
+Node.js >= 22 is required. The client uses the global `fetch` API, so no extra HTTP dependency is needed.
 
 ## Configuration
 
@@ -24,21 +24,21 @@ You need three things to connect:
 
 ## Minimal Example
 
-```python
-from signalwire_agents.rest import RestClient
+```typescript
+import { RestClient } from '@signalwire/sdk';
 
-client = RestClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-)
+const client = new RestClient({
+  project: 'your-project-id',
+  token: 'your-api-token',
+  host: 'example.signalwire.com',
+});
 
-# List your AI agents
-agents = client.fabric.ai_agents.list()
-print(agents)
+// List your AI agents
+const agents = await client.fabric.aiAgents.list();
+console.log(agents);
 ```
 
-Or use environment variables and skip the constructor args:
+Or use environment variables and skip the constructor options:
 
 ```bash
 export SIGNALWIRE_PROJECT_ID=your-project-id
@@ -46,52 +46,60 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
-```python
-from signalwire_agents.rest import RestClient
+```typescript
+import { RestClient } from '@signalwire/sdk';
 
-client = RestClient()
-agents = client.fabric.ai_agents.list()
+const client = new RestClient();
+const agents = await client.fabric.aiAgents.list();
 ```
 
 ## CRUD Pattern
 
 Most resources follow the same CRUD pattern:
 
-```python
-# List
-items = client.fabric.ai_agents.list()
+```typescript
+// List
+const items = await client.fabric.aiAgents.list();
 
-# Create
-agent = client.fabric.ai_agents.create(name="Support", prompt={"text": "Be helpful"})
+// Create
+const agent = await client.fabric.aiAgents.create({
+  name: 'Support',
+  prompt: { text: 'Be helpful' },
+});
 
-# Get by ID
-agent = client.fabric.ai_agents.get("agent-uuid")
+// Get by ID
+const found = await client.fabric.aiAgents.get('agent-uuid');
 
-# Update
-client.fabric.ai_agents.update("agent-uuid", name="Updated Name")
+// Update
+await client.fabric.aiAgents.update('agent-uuid', { name: 'Updated Name' });
 
-# Delete
-client.fabric.ai_agents.delete("agent-uuid")
+// Delete
+await client.fabric.aiAgents.delete('agent-uuid');
 ```
 
 Fabric resources also support listing addresses:
 
-```python
-addresses = client.fabric.ai_agents.list_addresses("agent-uuid")
+```typescript
+const addresses = await client.fabric.aiAgents.listAddresses('agent-uuid');
 ```
 
 ## Error Handling
 
-```python
-from signalwire_agents.rest import RestClient, SignalWireRestError
+All non-2xx HTTP responses throw `SignalWireRestError`:
 
-client = RestClient()
+```typescript
+import { RestClient, SignalWireRestError } from '@signalwire/sdk';
 
-try:
-    agent = client.fabric.ai_agents.get("nonexistent-id")
-except SignalWireRestError as e:
-    print(f"HTTP {e.status_code}: {e.body}")
-    # HTTP 404: {'error': 'not found'}
+const client = new RestClient();
+
+try {
+  const agent = await client.fabric.aiAgents.get('nonexistent-id');
+} catch (err) {
+  if (err instanceof SignalWireRestError) {
+    console.error(`HTTP ${err.statusCode}: ${JSON.stringify(err.body)}`);
+    // HTTP 404: {"error":"not found"}
+  }
+}
 ```
 
 ## Debug Logging

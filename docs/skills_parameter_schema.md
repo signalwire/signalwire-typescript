@@ -1,180 +1,173 @@
 # Skills Parameter Schema System
 
-This guide explains the parameter schema system for SignalWire AI Agents SDK skills, which enables GUI configuration tools and programmatic skill discovery.
+This guide explains the parameter schema system for SignalWire AI Agents TypeScript SDK skills, which enables GUI configuration tools and programmatic skill discovery.
 
 ## Overview
 
-The parameter schema system allows skills to declare their configurable parameters with metadata including types, descriptions, default values, and security hints. This enables:
+The parameter schema system lets skills declare their configurable parameters with metadata including types, descriptions, default values, and security hints. This enables:
 
 - **GUI Configuration Tools** - Automatically generate configuration forms
 - **API Documentation** - Document all available parameters
-- **Validation** - Type checking and constraint validation
+- **Validation** - Type checking and constraint hints
 - **Security** - Mark sensitive parameters as hidden
-- **Environment Variables** - Indicate which parameters can be sourced from environment
+- **Environment Variables** - Indicate which parameters can be sourced from the environment
 
 ## Using the Schema System
 
 ### Getting All Skills Schema
 
-Use the `list_skills_with_params()` function to get a complete schema of all available skills:
+Use the `listSkillsWithParams()` function to get a complete schema of all registered skills,
+keyed by skill name:
 
-```python
-from signalwire_agents import list_skills_with_params
+```typescript
+import { listSkillsWithParams } from '@signalwire/sdk';
 
-# Get complete schema for all skills
-schema = list_skills_with_params()
+// Get complete schema for all skills
+const schema = listSkillsWithParams();
 
-# Example output structure:
-{
-    "web_search": {
-        "name": "web_search",
-        "description": "Search the web for information using Google Custom Search API",
-        "version": "1.0.0",
-        "supports_multiple_instances": True,
-        "required_packages": ["bs4", "requests"],
-        "required_env_vars": [],
-        "parameters": {
-            "api_key": {
-                "type": "string",
-                "description": "Google Custom Search API key",
-                "required": True,
-                "hidden": True,
-                "env_var": "GOOGLE_SEARCH_API_KEY"
-            },
-            "search_engine_id": {
-                "type": "string",
-                "description": "Google Custom Search Engine ID",
-                "required": True,
-                "hidden": True,
-                "env_var": "GOOGLE_SEARCH_ENGINE_ID"
-            },
-            "num_results": {
-                "type": "integer",
-                "description": "Default number of search results to return",
-                "default": 1,
-                "required": False,
-                "min": 1,
-                "max": 10
-            },
-            ...
-        }
-    },
-    "datetime": {
-        "name": "datetime",
-        "description": "Get current date, time, and timezone information",
-        "version": "1.0.0",
-        "supports_multiple_instances": False,
-        "required_packages": ["pytz"],
-        "required_env_vars": [],
-        "parameters": {
-            "swaig_fields": {
-                "type": "object",
-                "description": "Additional SWAIG function metadata to merge into tool definitions",
-                "default": {},
-                "required": False
-            }
-        }
-    },
-    ...
-}
+// Example output structure:
+// {
+//   web_search: {
+//     name: 'web_search',
+//     description: 'Search the web using Google Custom Search',
+//     version: '1.0.0',
+//     configSchema: {
+//       api_key: {
+//         type: 'string',
+//         description: 'Google Custom Search API key',
+//         required: true,
+//         hidden: true,
+//         env_var: 'GOOGLE_SEARCH_API_KEY',
+//       },
+//       search_engine_id: {
+//         type: 'string',
+//         description: 'Google Custom Search Engine ID',
+//         required: true,
+//         hidden: true,
+//         env_var: 'GOOGLE_SEARCH_ENGINE_ID',
+//       },
+//       num_results: {
+//         type: 'integer',
+//         description: 'Default number of search results to return',
+//         default: 1,
+//         required: false,
+//         min: 1,
+//         max: 10,
+//       },
+//     },
+//   },
+//   datetime: {
+//     name: 'datetime',
+//     description: 'Get current date, time, and timezone information',
+//     version: '1.0.0',
+//     configSchema: {
+//       swaig_fields: {
+//         type: 'object',
+//         description: 'Additional SWAIG function metadata to merge into tool definitions',
+//         default: {},
+//         required: false,
+//       },
+//     },
+//   },
+// }
 ```
 
 ### Using Schema for GUI Configuration
 
-Here's an example of how to use the schema to generate a configuration form:
+Here's an example of using the schema to generate a configuration form:
 
-```python
-import json
-from signalwire_agents import list_skills_with_params, AgentBase
+```typescript
+import { listSkillsWithParams } from '@signalwire/sdk';
 
-# Get skills schema
-schema = list_skills_with_params()
+const schema = listSkillsWithParams();
+const webSearchSchema = schema['web_search'];
 
-# Example: Generate HTML form for web_search skill
-web_search_schema = schema['web_search']
+function generateFormField(paramName: string, paramInfo: Record<string, unknown>): string {
+  let html = `<div class="form-group">\n`;
+  html += `  <label for="${paramName}">${paramInfo['description']}</label>\n`;
 
-def generate_form_field(param_name, param_info):
-    """Generate HTML form field based on parameter schema"""
-    field_html = f'<div class="form-group">\n'
-    field_html += f'  <label for="{param_name}">{param_info["description"]}</label>\n'
-    
-    # Mark required fields
-    required = "required" if param_info.get("required", False) else ""
-    
-    # Hide sensitive fields
-    input_type = "password" if param_info.get("hidden", False) else "text"
-    
-    # Handle different types
-    if param_info["type"] == "string":
-        default = param_info.get("default", "")
-        field_html += f'  <input type="{input_type}" id="{param_name}" name="{param_name}" '
-        field_html += f'value="{default}" {required}>\n'
-    
-    elif param_info["type"] == "integer":
-        default = param_info.get("default", 0)
-        min_val = f'min="{param_info["min"]}"' if "min" in param_info else ""
-        max_val = f'max="{param_info["max"]}"' if "max" in param_info else ""
-        field_html += f'  <input type="number" id="{param_name}" name="{param_name}" '
-        field_html += f'value="{default}" {min_val} {max_val} {required}>\n'
-    
-    elif param_info["type"] == "boolean":
-        default = param_info.get("default", False)
-        checked = "checked" if default else ""
-        field_html += f'  <input type="checkbox" id="{param_name}" name="{param_name}" {checked}>\n'
-    
-    # Show environment variable hint
-    if "env_var" in param_info:
-        field_html += f'  <small>Can also be set via {param_info["env_var"]} environment variable</small>\n'
-    
-    field_html += '</div>\n'
-    return field_html
+  const required = paramInfo['required'] ? 'required' : '';
+  // Hide sensitive fields
+  const inputType = paramInfo['hidden'] ? 'password' : 'text';
 
-# Generate form fields for web_search skill
-print("<form>")
-for param_name, param_info in web_search_schema["parameters"].items():
-    print(generate_form_field(param_name, param_info))
-print("</form>")
+  switch (paramInfo['type']) {
+    case 'string': {
+      const value = paramInfo['default'] ?? '';
+      html += `  <input type="${inputType}" id="${paramName}" name="${paramName}" value="${value}" ${required}>\n`;
+      break;
+    }
+    case 'integer':
+    case 'number': {
+      const value = paramInfo['default'] ?? 0;
+      const min = 'min' in paramInfo ? `min="${paramInfo['min']}"` : '';
+      const max = 'max' in paramInfo ? `max="${paramInfo['max']}"` : '';
+      html += `  <input type="number" id="${paramName}" name="${paramName}" value="${value}" ${min} ${max} ${required}>\n`;
+      break;
+    }
+    case 'boolean': {
+      const checked = paramInfo['default'] ? 'checked' : '';
+      html += `  <input type="checkbox" id="${paramName}" name="${paramName}" ${checked}>\n`;
+      break;
+    }
+  }
+
+  if ('env_var' in paramInfo) {
+    html += `  <small>Can also be set via the ${paramInfo['env_var']} environment variable</small>\n`;
+  }
+
+  html += '</div>\n';
+  return html;
+}
+
+let form = '<form>\n';
+for (const [name, info] of Object.entries(webSearchSchema.configSchema)) {
+  form += generateFormField(name, info as Record<string, unknown>);
+}
+form += '</form>';
 ```
 
 ### Programmatic Skill Configuration
 
-Use the schema to validate and configure skills programmatically:
+Use the schema to validate configuration before adding a skill:
 
-```python
-from signalwire_agents import AgentBase, list_skills_with_params
+```typescript
+import { AgentBase, listSkillsWithParams } from '@signalwire/sdk';
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="my-agent")
-        
-        # Get schema to validate configuration
-        schema = list_skills_with_params()
-        
-        # Configure web_search skill with validation
-        web_search_params = {
-            "api_key": "your-api-key",
-            "search_engine_id": "your-engine-id",
-            "num_results": 3,
-            "max_content_length": 3000
-        }
-        
-        # Validate required parameters
-        web_search_schema = schema["web_search"]["parameters"]
-        for param, info in web_search_schema.items():
-            if info.get("required", False) and param not in web_search_params:
-                raise ValueError(f"Missing required parameter: {param}")
-        
-        # Add skill with validated parameters
-        self.add_skill("web_search", web_search_params)
+class MyAgent extends AgentBase {
+  static async create(): Promise<MyAgent> {
+    const agent = new MyAgent({ name: 'my-agent' });
+
+    const schema = listSkillsWithParams();
+
+    const webSearchParams: Record<string, unknown> = {
+      api_key: 'your-api-key',
+      search_engine_id: 'your-engine-id',
+      num_results: 3,
+      max_content_length: 3000,
+    };
+
+    // Validate required parameters against the declared schema
+    const webSearchSchema = schema['web_search'].configSchema;
+    for (const [param, info] of Object.entries(webSearchSchema)) {
+      if ((info as { required?: boolean }).required && !(param in webSearchParams)) {
+        throw new Error(`Missing required parameter: ${param}`);
+      }
+    }
+
+    // Add the skill with validated parameters
+    await agent.addSkillByName('web_search', webSearchParams);
+    return agent;
+  }
+}
 ```
 
 ## Parameter Schema Reference
 
-Each parameter in the schema can have the following properties:
+Each parameter in the schema (`ParameterSchemaEntry`) can have the following properties:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | string | Parameter type: "string", "integer", "number", "boolean", "object", "array" |
+| `type` | string | Parameter type: `"string"`, `"integer"`, `"number"`, `"boolean"`, `"object"`, `"array"` |
 | `description` | string | Human-readable description of the parameter |
 | `default` | any | Default value if not provided |
 | `required` | boolean | Whether the parameter is required (default: false) |
@@ -186,81 +179,82 @@ Each parameter in the schema can have the following properties:
 
 ## Implementing Parameter Schema in Skills
 
-To add parameter schema support to a skill, override the `get_parameter_schema()` class method:
+To add parameter-schema support to a skill, override the static `getParameterSchema()`
+method and spread the base schema from `super`:
 
-```python
-from signalwire_agents.core.skill_base import SkillBase
-from typing import Dict, Any
+```typescript
+import { SkillBase, type ParameterSchemaEntry, type SkillToolDefinition } from '@signalwire/sdk';
 
-class MyCustomSkill(SkillBase):
-    SKILL_NAME = "my_custom_skill"
-    SKILL_DESCRIPTION = "My custom skill"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = []
-    REQUIRED_ENV_VARS = []
-    
-    @classmethod
-    def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-        """Get parameter schema for this skill"""
-        # Get base schema from parent (includes common parameters)
-        schema = super().get_parameter_schema()
-        
-        # Add skill-specific parameters
-        schema.update({
-            "api_endpoint": {
-                "type": "string",
-                "description": "API endpoint URL",
-                "required": True,
-                "default": "https://api.example.com"
-            },
-            "api_key": {
-                "type": "string",
-                "description": "API authentication key",
-                "required": True,
-                "hidden": True,  # Mark as sensitive
-                "env_var": "MY_API_KEY"  # Can be set via environment
-            },
-            "timeout": {
-                "type": "integer",
-                "description": "Request timeout in seconds",
-                "default": 30,
-                "required": False,
-                "min": 1,
-                "max": 300
-            },
-            "retry_count": {
-                "type": "integer",
-                "description": "Number of retries on failure",
-                "default": 3,
-                "required": False,
-                "min": 0,
-                "max": 10
-            },
-            "output_format": {
-                "type": "string",
-                "description": "Output format for results",
-                "default": "json",
-                "required": False,
-                "enum": ["json", "xml", "text"]  # Allowed values
-            },
-            "enable_cache": {
-                "type": "boolean",
-                "description": "Enable response caching",
-                "default": True,
-                "required": False
-            }
-        })
-        
-        return schema
-    
-    def setup(self) -> bool:
-        """Setup the skill using parameters"""
-        # Access parameters via self.params
-        self.api_endpoint = self.params.get('api_endpoint')
-        self.api_key = self.params.get('api_key')
-        self.timeout = self.params.get('timeout', 30)
-        # ... etc
-        return True
+class MyCustomSkill extends SkillBase {
+  static override SKILL_NAME = 'my_custom_skill';
+  static override SKILL_DESCRIPTION = 'My custom skill';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS = [] as const;
+
+  private apiEndpoint?: string;
+  private apiKey?: string;
+  private timeout = 30;
+
+  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    return {
+      // Base schema includes common parameters (e.g. swaig_fields)
+      ...super.getParameterSchema(),
+      api_endpoint: {
+        type: 'string',
+        description: 'API endpoint URL',
+        required: true,
+        default: 'https://api.example.com',
+      },
+      api_key: {
+        type: 'string',
+        description: 'API authentication key',
+        required: true,
+        hidden: true, // Mark as sensitive
+        env_var: 'MY_API_KEY', // Can be set via environment
+      },
+      timeout: {
+        type: 'integer',
+        description: 'Request timeout in seconds',
+        default: 30,
+        required: false,
+        min: 1,
+        max: 300,
+      },
+      retry_count: {
+        type: 'integer',
+        description: 'Number of retries on failure',
+        default: 3,
+        required: false,
+        min: 0,
+        max: 10,
+      },
+      output_format: {
+        type: 'string',
+        description: 'Output format for results',
+        default: 'json',
+        required: false,
+        enum: ['json', 'xml', 'text'],
+      },
+      enable_cache: {
+        type: 'boolean',
+        description: 'Enable response caching',
+        default: true,
+        required: false,
+      },
+    };
+  }
+
+  override async setup(): Promise<void> {
+    // Access parameters via getConfig()
+    this.apiEndpoint = this.getConfig<string>('api_endpoint', 'https://api.example.com');
+    this.apiKey = this.getConfig<string>('api_key', '') || process.env['MY_API_KEY'];
+    this.timeout = this.getConfig<number>('timeout', 30);
+  }
+
+  override getTools(): SkillToolDefinition[] {
+    return [];
+  }
+}
 ```
 
 ## Common Parameter Patterns
@@ -269,28 +263,28 @@ class MyCustomSkill(SkillBase):
 
 Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
-```python
-"api_key": {
-    "type": "string",
-    "description": "API key for authentication",
-    "required": True,
-    "hidden": True,
-    "env_var": "SERVICE_API_KEY"
+```typescript
+api_key: {
+  type: 'string',
+  description: 'API key for authentication',
+  required: true,
+  hidden: true,
+  env_var: 'SERVICE_API_KEY',
 }
 ```
 
 ### Numeric Parameters with Constraints
 
-Use `min` and `max` to enforce valid ranges:
+Use `min` and `max` to document valid ranges:
 
-```python
-"port": {
-    "type": "integer",
-    "description": "Server port number",
-    "default": 8080,
-    "required": False,
-    "min": 1,
-    "max": 65535
+```typescript
+port: {
+  type: 'integer',
+  description: 'Server port number',
+  default: 8080,
+  required: false,
+  min: 1,
+  max: 65535,
 }
 ```
 
@@ -298,13 +292,13 @@ Use `min` and `max` to enforce valid ranges:
 
 Use `enum` to restrict to specific values:
 
-```python
-"log_level": {
-    "type": "string",
-    "description": "Logging level",
-    "default": "info",
-    "required": False,
-    "enum": ["debug", "info", "warning", "error"]
+```typescript
+log_level: {
+  type: 'string',
+  description: 'Logging level',
+  default: 'info',
+  required: false,
+  enum: ['debug', 'info', 'warn', 'error'],
 }
 ```
 
@@ -312,81 +306,58 @@ Use `enum` to restrict to specific values:
 
 Use boolean parameters for optional features:
 
-```python
-"enable_analytics": {
-    "type": "boolean",
-    "description": "Enable analytics tracking",
-    "default": False,
-    "required": False
+```typescript
+enable_analytics: {
+  type: 'boolean',
+  description: 'Enable analytics tracking',
+  default: false,
+  required: false,
 }
 ```
 
 ## Base Parameters
 
-All skills automatically inherit these base parameters from `SkillBase`:
+All skills inherit base parameters from `SkillBase` via `super.getParameterSchema()`:
 
-- **`swaig_fields`** (object) - Additional SWAIG function metadata to merge into tool definitions
-- **`tool_name`** (string) - Custom name for skill instances (only for skills with `SUPPORTS_MULTIPLE_INSTANCES = True`)
+- **`swaig_fields`** (object) - Additional SWAIG function metadata merged into tool definitions.
 
 ## Examples
 
 ### Simple Skill (No Parameters)
 
-Skills like `datetime` and `math` that don't need configuration:
+Skills like `datetime` and `math` that don't need configuration just return the base schema:
 
-```python
-@classmethod
-def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-    # Just return base schema
-    return super().get_parameter_schema()
+```typescript
+static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+  return super.getParameterSchema();
+}
 ```
 
 ### Complex Skill (Many Parameters)
 
-Skills like `web_search` with multiple configuration options:
+Skills like `web_search` with multiple configuration options spread the base schema and add
+their own:
 
-```python
-@classmethod
-def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-    schema = super().get_parameter_schema()
-    
-    schema.update({
-        # API credentials (hidden)
-        "api_key": {...},
-        "api_secret": {...},
-        
-        # Configuration options
-        "timeout": {...},
-        "retry_count": {...},
-        
-        # Feature flags
-        "enable_cache": {...},
-        "debug_mode": {...},
-        
-        # Customization
-        "response_template": {...},
-        "error_messages": {...}
-    })
-    
-    return schema
+```typescript
+static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+  return {
+    ...super.getParameterSchema(),
+    // API credentials (hidden)
+    api_key: { type: 'string', required: true, hidden: true, env_var: 'GOOGLE_SEARCH_API_KEY' },
+    search_engine_id: { type: 'string', required: true, hidden: true, env_var: 'GOOGLE_SEARCH_ENGINE_ID' },
+    // Configuration options
+    num_results: { type: 'integer', default: 1, required: false, min: 1, max: 10 },
+    safe_search: { type: 'string', default: 'medium', enum: ['off', 'medium', 'high'] },
+  };
+}
 ```
 
 ## Best Practices
 
-1. **Always provide descriptions** - Make parameters self-documenting
-2. **Set sensible defaults** - Allow skills to work with minimal configuration
-3. **Mark secrets as hidden** - Protect sensitive information in UIs
-4. **Use appropriate types** - Enable proper validation and UI controls
-5. **Document environment variables** - Show alternative configuration methods
-6. **Validate in setup()** - Ensure all required parameters are present
-7. **Support backward compatibility** - Handle deprecated parameters gracefully
-
-## Future Enhancements
-
-The parameter schema system is designed to be extensible. Future enhancements may include:
-
-- **Conditional parameters** - Show/hide based on other parameter values
-- **Complex validation** - Cross-parameter validation rules
-- **Nested schemas** - Support for complex object parameters
-- **Internationalization** - Localized descriptions and error messages
-- **Runtime parameter updates** - Modify configuration without restart
+1. **Always provide descriptions** - Make parameters self-documenting.
+2. **Set sensible defaults** - Allow skills to work with minimal configuration.
+3. **Mark secrets as hidden** - Protect sensitive information in UIs.
+4. **Use appropriate types** - Enable proper validation and UI controls.
+5. **Document environment variables** - Show alternative configuration methods.
+6. **Validate in `setup()`** - Ensure all required parameters are present.
+7. **Spread the base schema** - Always include `...super.getParameterSchema()`.

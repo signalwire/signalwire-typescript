@@ -1,433 +1,320 @@
 # Third-Party Skills Integration Guide
 
-This guide explains how to create and integrate third-party skills with the SignalWire AI Agents SDK. The SDK supports multiple methods for loading external skills, making it easy to extend agent capabilities without modifying the core SDK.
+This guide explains how to create and integrate third-party skills with the SignalWire AI Agents TypeScript SDK. The SDK supports multiple ways to load external skills, making it easy to extend agent capabilities without modifying the core SDK.
+
+For the full skills reference (built-in skills, lifecycle, registry API), see the
+[Skills System Guide](skills-guide.md).
 
 ## Overview
 
-Third-party skills can be integrated using four different methods:
+Third-party skills can be integrated using three approaches:
 
-1. **Direct Registration** - Register skill classes programmatically
-2. **Directory Registration** - Add directories containing skill collections
-3. **Python Entry Points** - Install skills as Python packages
-4. **Environment Variables** - Configure skill paths via environment
+1. **Direct Registration** - Register skill classes programmatically with `registerSkill()`.
+2. **Directory Discovery** - Point the registry at directories containing skill modules.
+3. **Environment Variables** - Configure skill search paths via `SIGNALWIRE_SKILL_PATHS`.
 
-All third-party skills are discovered and indexed the same way as built-in skills, appearing in `list_skills_with_params()` output with their parameter schemas.
+All third-party skills are discovered and indexed the same way as built-in skills, appearing in `listSkillsWithParams()` output with their parameter schemas.
 
 ## Creating a Third-Party Skill
 
-Third-party skills follow the same structure as built-in skills. Here's a minimal example:
+Third-party skills extend `SkillBase`, exactly like the built-in skills. A skill declares
+its metadata as static fields, implements `getTools()`, and optionally implements
+`setup()`, `getPromptSections()`, `getHints()`, and `getGlobalData()`. Export a
+`createSkill` factory so the registry can discover it from disk.
 
-```python
-# my_weather_skill/skill.py
-from signalwire_agents.core.skill_base import SkillBase
-from signalwire_agents.core.function_result import FunctionResult
-from typing import Dict, Any, List
+```typescript
+// my-weather-skill/skill.ts
+import {
+  SkillBase,
+  FunctionResult,
+  type SkillToolDefinition,
+  type SkillConfig,
+  type ParameterSchemaEntry,
+} from '@signalwire/sdk';
 
-class WeatherSkill(SkillBase):
-    """Custom weather information skill"""
-    
-    SKILL_NAME = "weather"
-    SKILL_DESCRIPTION = "Get weather information for any location"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = ["requests"]
-    REQUIRED_ENV_VARS = []
-    
-    @classmethod
-    def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-        """Define configuration parameters"""
-        schema = super().get_parameter_schema()
-        
-        schema.update({
-            "api_key": {
-                "type": "string",
-                "description": "Weather API key",
-                "required": True,
-                "hidden": True,
-                "env_var": "WEATHER_API_KEY"
-            },
-            "units": {
-                "type": "string",
-                "description": "Temperature units",
-                "default": "celsius",
-                "required": False,
-                "enum": ["celsius", "fahrenheit", "kelvin"]
-            },
-            "cache_timeout": {
-                "type": "integer",
-                "description": "Cache timeout in seconds",
-                "default": 300,
-                "required": False,
-                "min": 0,
-                "max": 3600
-            }
-        })
-        
-        return schema
-    
-    def setup(self) -> bool:
-        """Initialize the skill"""
-        if not self.validate_packages():
-            return False
-            
-        self.api_key = self.params.get('api_key')
-        if not self.api_key:
-            self.logger.error("Weather API key is required")
-            return False
-            
-        self.units = self.params.get('units', 'celsius')
-        self.cache_timeout = self.params.get('cache_timeout', 300)
-        
-        return True
-    
-    def register_tools(self) -> None:
-        """Register weather tools with the agent"""
-        self.define_tool(
-            name="get_weather",
-            description="Get current weather for a location",
-            parameters={
-                "location": {
-                    "type": "string",
-                    "description": "City name or coordinates"
-                }
-            },
-            handler=self._get_weather_handler
-        )
-    
-    def _get_weather_handler(self, args, raw_data):
-        """Handle weather requests"""
-        location = args.get('location', '').strip()
-        
-        if not location:
-            return FunctionResult("Please provide a location")
-        
-        # Implementation would call weather API here
-        # This is just an example
-        return FunctionResult(
-            f"The weather in {location} is sunny and 22°{self.units[0].upper()}"
-        )
+export class WeatherSkill extends SkillBase {
+  static override SKILL_NAME = 'weather';
+  static override SKILL_DESCRIPTION = 'Get weather information for any location';
+  static override SKILL_VERSION = '1.0.0';
+  static override REQUIRED_ENV_VARS = ['WEATHER_API_KEY'] as const;
+
+  private apiKey?: string;
+  private units = 'celsius';
+
+  static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    return {
+      ...super.getParameterSchema(),
+      api_key: {
+        type: 'string',
+        description: 'Weather API key',
+        required: true,
+        hidden: true,
+        env_var: 'WEATHER_API_KEY',
+      },
+      units: {
+        type: 'string',
+        description: 'Temperature units',
+        default: 'celsius',
+        required: false,
+        enum: ['celsius', 'fahrenheit', 'kelvin'],
+      },
+      cache_timeout: {
+        type: 'integer',
+        description: 'Cache timeout in seconds',
+        default: 300,
+        required: false,
+        min: 0,
+        max: 3600,
+      },
+    };
+  }
+
+  // Async initialization called when the skill is added to an agent
+  override async setup(): Promise<void> {
+    this.apiKey = this.getConfig<string>('api_key', '') || process.env['WEATHER_API_KEY'];
+    this.units = this.getConfig<string>('units', 'celsius');
+    if (!this.apiKey) {
+      this.log?.warn('Weather API key is required');
+    }
+  }
+
+  override getTools(): SkillToolDefinition[] {
+    return [
+      {
+        name: 'get_weather',
+        description: 'Get current weather for a location.',
+        parameters: {
+          location: { type: 'string', description: 'City name or coordinates' },
+        },
+        required: ['location'],
+        handler: (args) => {
+          const location = String(args.location ?? '').trim();
+          if (!location) {
+            return new FunctionResult('Please provide a location.');
+          }
+          // Implementation would call the weather API here.
+          const unit = this.units[0].toUpperCase();
+          return new FunctionResult(`The weather in ${location} is sunny and 22°${unit}.`);
+        },
+      },
+    ];
+  }
+}
+
+// Factory function (required for directory-based discovery)
+export function createSkill(config?: SkillConfig): WeatherSkill {
+  return new WeatherSkill(config);
+}
 ```
 
 ## Integration Methods
 
 ### Method 1: Direct Registration
 
-Register individual skill classes programmatically:
+Register the skill class with the global registry, then add it to any agent by name:
 
-```python
-from signalwire_agents import AgentBase, register_skill
-from my_weather_skill import WeatherSkill
+```typescript
+import { AgentBase, registerSkill } from '@signalwire/sdk';
+import { WeatherSkill } from './my-weather-skill/skill.js';
 
-# Register the skill globally
-register_skill(WeatherSkill)
+// Register the skill globally
+registerSkill(WeatherSkill);
 
-# Now use it in any agent
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="my-agent")
-        
-        # Add the registered skill
-        self.add_skill("weather", {
-            "api_key": "your-api-key",
-            "units": "fahrenheit"
-        })
+// Add it to an agent by name (async)
+const agent = new AgentBase({ name: 'my-agent' });
+await agent.addSkillByName('weather', { api_key: 'your-api-key', units: 'fahrenheit' });
 ```
 
-### Method 2: Directory Registration
+You can also skip the registry and add an instance directly:
 
-Register directories containing multiple skills:
-
-```python
-from signalwire_agents import add_skill_directory
-
-# Add a directory of custom skills
-add_skill_directory('/opt/custom_skills')
-
-# Directory structure should be:
-# /opt/custom_skills/
-#   weather/
-#     skill.py      # Contains WeatherSkill class
-#   stock_market/
-#     skill.py      # Contains StockMarketSkill class
-#   translation/
-#     skill.py      # Contains TranslationSkill class
-
-# Now use any skill from the directory
-agent.add_skill("weather", {"api_key": "..."})
-agent.add_skill("stock_market", {"api_key": "..."})
+```typescript
+await agent.addSkill(new WeatherSkill({ api_key: 'your-api-key', units: 'fahrenheit' }));
 ```
 
-### Method 3: Python Entry Points
+### Method 2: Directory Discovery
 
-Create installable skill packages using setuptools entry points:
+Register one or more directories of skill modules, then discover them:
 
-```python
-# setup.py for your skill package
-from setuptools import setup, find_packages
+```typescript
+import { SkillRegistry, addSkillDirectory } from '@signalwire/sdk';
 
-setup(
-    name="my-signalwire-skills",
-    version="1.0.0",
-    packages=find_packages(),
-    install_requires=[
-        "@signalwire/sdk",
-        "requests",
-    ],
-    entry_points={
-        'signalwire_agents.skills': [
-            'weather = my_skills.weather:WeatherSkill',
-            'stock = my_skills.stock:StockMarketSkill',
-            'translate = my_skills.translate:TranslationSkill',
-        ]
-    }
-)
+// Add a directory of custom skills to the search paths
+addSkillDirectory('/opt/custom-skills');
+
+// Directory layout (each module exports `createSkill` or a default SkillBase subclass):
+// /opt/custom-skills/
+//   weather.js        // exports createSkill -> WeatherSkill
+//   stock-market.js   // exports createSkill -> StockMarketSkill
+//   translation.js    // exports createSkill -> TranslationSkill
+
+// Discover and register skills from the configured search paths
+const registry = SkillRegistry.getInstance();
+const discovered = await registry.discoverFromDirectory('/opt/custom-skills');
+// discovered: ['weather', 'stock_market', 'translation']
+
+// Now add them to an agent by name
+await agent.addSkillByName('weather', { api_key: '...' });
+await agent.addSkillByName('stock_market', { api_key: '...' });
 ```
 
-After installation, skills are automatically available:
+Discovery looks for modules that export either:
+- A `createSkill` factory function, or
+- A default export that is a `SkillBase` subclass.
 
-```bash
-pip install my-signalwire-skills
-```
+### Method 3: Environment Variable
 
-```python
-# Skills are automatically discovered
-agent.add_skill("weather", {"api_key": "..."})
-```
-
-### Method 4: Environment Variable
-
-Set the `SIGNALWIRE_SKILL_PATHS` environment variable:
+Set `SIGNALWIRE_SKILL_PATHS` (colon-separated) to add search paths automatically:
 
 ```bash
 # Single directory
-export SIGNALWIRE_SKILL_PATHS=/opt/my_skills
+export SIGNALWIRE_SKILL_PATHS=/opt/my-skills
 
 # Multiple directories (colon-separated)
-export SIGNALWIRE_SKILL_PATHS=/opt/my_skills:/home/user/custom_skills
+export SIGNALWIRE_SKILL_PATHS=/opt/my-skills:/home/user/custom-skills
 ```
 
-Skills in these directories are automatically discovered:
+```typescript
+import { SkillRegistry } from '@signalwire/sdk';
 
-```python
-# No registration needed - skills are found automatically
-agent.add_skill("weather", {"api_key": "..."})
-```
+// discoverAll() scans every configured search path, including those from
+// SIGNALWIRE_SKILL_PATHS
+const registry = SkillRegistry.getInstance();
+await registry.discoverAll();
 
-## Directory Structure
-
-Skills loaded from directories must follow this structure:
-
-```
-my_skills_directory/
-├── weather/                 # Skill directory (matches SKILL_NAME)
-│   ├── skill.py            # Required: Contains skill class
-│   ├── __init__.py         # Optional: Makes it a package
-│   └── README.md           # Optional: Documentation
-├── translation/
-│   ├── skill.py
-│   └── resources/          # Optional: Additional files
-│       └── languages.json
-└── stock_market/
-    └── skill.py
+await agent.addSkillByName('weather', { api_key: '...' });
 ```
 
 ## Skill Discovery and Schema
 
-Third-party skills are fully integrated with the SDK's discovery system:
+Third-party skills are fully integrated with the SDK's discovery system. Use the top-level
+helpers to enumerate registered skills:
 
-```python
-from signalwire_agents import list_skills_with_params
+```typescript
+import { listSkills, listSkillsWithParams } from '@signalwire/sdk';
 
-# Get all skills including third-party ones
-all_skills = list_skills_with_params()
+// Lightweight metadata for all registered skills
+const skills = listSkills();
 
-# Third-party skills include source information
-print(all_skills['weather'])
-# Output:
-{
-    "name": "weather",
-    "description": "Get weather information for any location",
-    "version": "1.0.0",
-    "supports_multiple_instances": False,
-    "required_packages": ["requests"],
-    "required_env_vars": [],
-    "parameters": {
-        "api_key": {
-            "type": "string",
-            "description": "Weather API key",
-            "required": True,
-            "hidden": True,
-            "env_var": "WEATHER_API_KEY"
-        },
-        "units": {
-            "type": "string",
-            "description": "Temperature units",
-            "default": "celsius",
-            "required": False,
-            "enum": ["celsius", "fahrenheit", "kelvin"]
-        }
-    },
-    "source": "external"  # Shows it's a third-party skill
-}
+// Full schema for all skills, keyed by name
+const allSkills = listSkillsWithParams();
+console.log(allSkills['weather']);
+// {
+//   name: 'weather',
+//   description: 'Get weather information for any location',
+//   version: '1.0.0',
+//   configSchema: {
+//     api_key:  { type: 'string', required: true, hidden: true, env_var: 'WEATHER_API_KEY' },
+//     units:    { type: 'string', default: 'celsius', enum: ['celsius', 'fahrenheit', 'kelvin'] },
+//     ...
+//   },
+// }
 ```
 
 ## Best Practices
 
 ### 1. Skill Naming
 
-- Use lowercase, underscore-separated names
-- Choose unique names to avoid conflicts with built-in skills
-- Match directory name to `SKILL_NAME` for directory-based loading
+- Use lowercase, underscore-separated names (e.g. `stock_market`).
+- Choose unique names to avoid conflicts with built-in skills.
+- Match the module file name to `SKILL_NAME` for directory-based discovery.
 
 ### 2. Parameter Design
 
-- Always implement `get_parameter_schema()` for GUI compatibility
-- Mark sensitive parameters as `hidden`
-- Provide sensible defaults
-- Use `env_var` for parameters that can come from environment
+- Always implement `getParameterSchema()` for GUI compatibility.
+- Mark sensitive parameters as `hidden`.
+- Provide sensible defaults.
+- Use `env_var` for parameters that can come from the environment.
 
 ### 3. Error Handling
 
-```python
-def setup(self) -> bool:
-    """Proper setup with error handling"""
-    # Validate packages
-    if not self.validate_packages():
-        return False
-    
-    # Validate required parameters
-    if not self.params.get('api_key'):
-        self.logger.error("API key is required")
-        return False
-    
-    # Test connectivity
-    try:
-        self._test_api_connection()
-    except Exception as e:
-        self.logger.error(f"Failed to connect to API: {e}")
-        return False
-    
-    return True
+Validate configuration in `setup()` and return user-friendly errors at call time:
+
+```typescript
+override async setup(): Promise<void> {
+  this.apiKey = this.getConfig<string>('api_key', '') || process.env['MY_API_KEY'];
+  if (!this.apiKey) {
+    this.log?.warn('API key is required; the tool will return a configuration error at call time');
+  }
+}
 ```
 
-### 4. Documentation
-
-Include a README.md in your skill directory:
-
-```markdown
-# Weather Skill
-
-Provides weather information for any location.
-
-## Configuration
-
-- `api_key` (required): Your weather API key
-- `units` (optional): Temperature units (celsius, fahrenheit, kelvin)
-- `cache_timeout` (optional): Cache timeout in seconds
-
-## Usage
-
-```python
-agent.add_skill("weather", {
-    "api_key": "your-api-key",
-    "units": "fahrenheit"
-})
-```
+```typescript
+// Inside a tool handler
+handler: (args) => {
+  if (!this.apiKey) {
+    return new FunctionResult('This skill is not configured. Set MY_API_KEY.');
+  }
+  // ...
+}
 ```
 
 ## Advanced Features
 
-### Multiple Instances
-
-Support multiple instances of your skill:
-
-```python
-class WeatherSkill(SkillBase):
-    SKILL_NAME = "weather"
-    SUPPORTS_MULTIPLE_INSTANCES = True  # Enable multiple instances
-    
-    def get_instance_key(self) -> str:
-        """Create unique key for this instance"""
-        service = self.params.get('service', 'default')
-        return f"{self.SKILL_NAME}_{service}"
-```
-
-Usage:
-
-```python
-# Add multiple weather services
-agent.add_skill("weather", {
-    "tool_name": "openweather",
-    "service": "openweathermap",
-    "api_key": "key1"
-})
-
-agent.add_skill("weather", {
-    "tool_name": "weatherapi", 
-    "service": "weatherapi",
-    "api_key": "key2"
-})
-```
-
 ### Dynamic Tool Names
 
-Customize tool names for better agent prompts:
+Customize tool names from config for clearer agent prompts:
 
-```python
-def register_tools(self) -> None:
-    tool_name = self.params.get('tool_name', 'get_weather')
-    
-    self.define_tool(
-        name=tool_name,
-        description=f"Get weather using {self.params.get('service', 'default')}",
-        parameters={...},
-        handler=self._weather_handler
-    )
+```typescript
+override getTools(): SkillToolDefinition[] {
+  const toolName = this.getConfig<string>('tool_name', 'get_weather');
+  const service = this.getConfig<string>('service', 'default');
+  return [
+    {
+      name: toolName,
+      description: `Get weather using ${service}`,
+      parameters: {
+        location: { type: 'string', description: 'City name or coordinates' },
+      },
+      required: ['location'],
+      handler: (args) => this.handleWeather(args),
+    },
+  ];
+}
 ```
 
 ### Skill Dependencies
 
-Load skills that depend on other skills:
+Check whether a required skill is present before completing setup:
 
-```python
-def setup(self) -> bool:
-    # Check if required skill is available
-    if not self.agent.skill_manager.has_skill("translation"):
-        self.logger.error("This skill requires the translation skill")
-        return False
-    
-    return True
+```typescript
+override async setup(): Promise<void> {
+  if (this.agent && !this.agent.hasSkill('translation')) {
+    this.log?.error('This skill requires the translation skill');
+    return;
+  }
+}
 ```
 
 ## Testing Third-Party Skills
 
-Test your skills before distribution:
+Test your skills with [Vitest](https://vitest.dev/) before distribution:
 
-```python
-# test_my_skill.py
-import unittest
-from signalwire_agents import AgentBase
-from my_weather_skill import WeatherSkill
+```typescript
+// tests/weather-skill.test.ts
+import { AgentBase, registerSkill } from '@signalwire/sdk';
+import { WeatherSkill } from '../my-weather-skill/skill.js';
 
-class TestWeatherSkill(unittest.TestCase):
-    def setUp(self):
-        self.agent = AgentBase(name="test-agent")
-        
-    def test_skill_registration(self):
-        # Test direct registration
-        from signalwire_agents import register_skill
-        register_skill(WeatherSkill)
-        
-        # Test adding skill
-        success, error = self.agent.add_skill("weather", {
-            "api_key": "test-key"
-        })
-        self.assertTrue(success)
-        
-    def test_parameter_schema(self):
-        schema = WeatherSkill.get_parameter_schema()
-        self.assertIn("api_key", schema)
-        self.assertTrue(schema["api_key"]["required"])
-        self.assertTrue(schema["api_key"]["hidden"])
+describe('WeatherSkill', () => {
+  it('registers and adds to an agent', async () => {
+    registerSkill(WeatherSkill);
+    const agent = new AgentBase({ name: 'test-agent' });
+    await agent.addSkillByName('weather', { api_key: 'test-key' });
+    expect(agent.hasSkill('weather')).toBe(true);
+  });
+
+  it('declares a parameter schema', () => {
+    const schema = WeatherSkill.getParameterSchema();
+    expect(schema.api_key.required).toBe(true);
+    expect(schema.api_key.hidden).toBe(true);
+  });
+});
+```
+
+You can also exercise a skill's tools without a server using the `swaig-test` CLI:
+
+```bash
+npx tsx src/cli/swaig-test.ts examples/my-agent.ts --list-tools
+npx tsx src/cli/swaig-test.ts examples/my-agent.ts --exec get_weather --location "San Francisco"
 ```
 
 ## Troubleshooting
@@ -436,98 +323,31 @@ class TestWeatherSkill(unittest.TestCase):
 
 If your skill isn't being discovered:
 
-1. Check the skill directory structure
-2. Verify `SKILL_NAME` matches the directory name
-3. Ensure `skill.py` exists and contains a valid skill class
-4. Check logs for loading errors
-
-### Import Errors
-
-For skills with relative imports:
-
-```python
-# Use absolute imports in skill.py
-from my_skills.weather.utils import parse_temperature
-
-# Or handle import errors gracefully
-try:
-    from .utils import parse_temperature
-except ImportError:
-    from utils import parse_temperature
-```
+1. Check the directory layout and that the file exports `createSkill` (or a default `SkillBase` subclass).
+2. Verify `SKILL_NAME` is unique and matches the name you pass to `addSkillByName()`.
+3. Ensure you called `discoverFromDirectory()` / `discoverAll()` (or `registerSkill()`).
+4. Check the logs for loading errors.
 
 ### Environment Variables
 
-Debug environment variable loading:
+Verify the search paths the registry is using:
 
-```python
-import os
-print(f"Skill paths: {os.environ.get('SIGNALWIRE_SKILL_PATHS', 'Not set')}")
-
-from signalwire_agents.skills.registry import skill_registry
-sources = skill_registry.list_all_skill_sources()
-print(f"External skills: {sources['external_paths']}")
+```typescript
+console.log('Skill paths:', process.env['SIGNALWIRE_SKILL_PATHS'] ?? 'Not set');
 ```
 
-## Example: Complete Third-Party Skill Package
+## Distributing a Skill Package
 
-Here's a complete example of a distributable skill package:
+Publish your skill as an npm package that exports the skill class and `createSkill`
+factory. Consumers register it directly:
 
-```
-my-signalwire-skills/
-├── setup.py
-├── README.md
-├── requirements.txt
-├── my_signalwire_skills/
-│   ├── __init__.py
-│   ├── weather/
-│   │   ├── __init__.py
-│   │   ├── skill.py
-│   │   └── utils.py
-│   └── translation/
-│       ├── __init__.py
-│       └── skill.py
-└── tests/
-    ├── __init__.py
-    ├── test_weather.py
-    └── test_translation.py
-```
+```typescript
+import { AgentBase, registerSkill } from '@signalwire/sdk';
+import { WeatherSkill } from 'my-signalwire-skills';
 
-```python
-# setup.py
-from setuptools import setup, find_packages
+registerSkill(WeatherSkill);
 
-setup(
-    name="my-signalwire-skills",
-    version="1.0.0",
-    author="Your Name",
-    description="Custom skills for SignalWire AI Agents",
-    packages=find_packages(),
-    install_requires=[
-        "@signalwire/sdk>=1.0.12",
-        "requests>=2.25.0",
-    ],
-    entry_points={
-        'signalwire_agents.skills': [
-            'weather = my_signalwire_skills.weather.skill:WeatherSkill',
-            'translate = my_signalwire_skills.translation.skill:TranslationSkill',
-        ]
-    },
-    python_requires='>=3.7',
-)
-```
-
-Install and use:
-
-```bash
-pip install git+https://github.com/yourname/my-signalwire-skills.git
-```
-
-```python
-from signalwire_agents import AgentBase
-
-agent = AgentBase(name="my-agent")
-agent.add_skill("weather", {"api_key": "..."})
-agent.add_skill("translate", {"api_key": "..."})
-agent.run()
+const agent = new AgentBase({ name: 'my-agent' });
+await agent.addSkillByName('weather', { api_key: '...' });
+await agent.run();
 ```

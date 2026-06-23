@@ -34,7 +34,7 @@ Supported platforms:
 ### Constructor
 
 ```typescript
-import { ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { ServerlessAdapter } from '@signalwire/sdk';
 
 // Auto-detect platform from environment variables
 const adapter = new ServerlessAdapter();
@@ -108,7 +108,7 @@ Use `ServerlessAdapter.createLambdaHandler()` to create a Lambda-compatible hand
 
 ```typescript
 // handler.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'lambda-agent',
@@ -127,7 +127,7 @@ agent.defineTool({
     },
   },
   handler: async (args) => {
-    const { FunctionResult } = await import('@anthropic/@signalwire/sdk');
+    const { FunctionResult } = await import('@signalwire/sdk');
     const result = new FunctionResult();
     result.setResponse(`System ${args.system} is operational.`);
     return result;
@@ -183,7 +183,7 @@ Use `ServerlessAdapter.createGcfHandler()` to create a GCF-compatible handler.
 
 ```typescript
 // index.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'gcf-agent',
@@ -238,7 +238,7 @@ Use `ServerlessAdapter.createAzureHandler()` to create an Azure Functions-compat
 
 ```typescript
 // index.ts
-import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'azure-agent',
@@ -308,7 +308,7 @@ func azure functionapp publish my-agent-app \
 For traditional CGI environments, use the `ServerlessAdapter` with `platform: 'cgi'`:
 
 ```typescript
-import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'cgi-agent' });
 agent.setPromptText('You are a CGI-deployed assistant.');
@@ -450,13 +450,13 @@ You can test serverless deployments locally using the `swaig-test` CLI tool. Whi
 
 ```bash
 # List all registered tools
-npx swaig-test --file handler.ts --list-tools
+npx tsx src/cli/swaig-test.ts handler.ts --list-tools
 
 # Dump the SWML document the agent generates
-npx swaig-test --file handler.ts --dump-swml
+npx tsx src/cli/swaig-test.ts handler.ts --dump-swml
 
-# Execute a specific tool with arguments
-npx swaig-test --file handler.ts --exec get_status --args '{"system": "production"}'
+# Execute a specific tool with arguments (--arg key=value, repeatable)
+npx tsx src/cli/swaig-test.ts handler.ts --exec get_status --arg system=production
 ```
 
 ### Local Development Pattern
@@ -465,7 +465,7 @@ For local development and testing before deploying to a serverless platform, run
 
 ```typescript
 // local-dev.ts
-import { AgentBase } from '@anthropic/@signalwire/sdk';
+import { AgentBase } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'my-agent',
@@ -488,7 +488,7 @@ export const app = agent.getApp();
 You can manually test the `ServerlessAdapter` with constructed events:
 
 ```typescript
-import { AgentBase, ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'test-agent', basicAuth: ['admin', 'test'] });
 agent.setPromptText('Hello!');

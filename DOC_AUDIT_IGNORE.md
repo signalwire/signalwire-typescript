@@ -209,3 +209,12 @@ update_sip_endpoint: Python snake_case form of updateSipEndpoint — referenced 
 validate_packages: Python snake_case form of validatePackages — referenced in python-syntax doc block
 wait_for: Python snake_case form of waitFor — referenced in python-syntax doc block
 wait_for_ended: Python snake_case form of waitForEnded — referenced in python-syntax doc block
+
+## README/sub-doc audit (example-local user code, not SDK surface)
+
+buildDocument: example-local method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API
+buildVoicemailDocument: example-local helper defined within the swml_service_guide voicemail sample, not SDK API
+registerCustomerRoute: example-local helper in the swml_service_guide routing sample, not SDK API
+registerProductRoute: example-local helper in the swml_service_guide routing sample, not SDK API
+handleWeather: example-local handler function in the third_party_skills sample, not SDK API
+http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol

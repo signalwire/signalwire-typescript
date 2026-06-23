@@ -97,7 +97,7 @@ Complete reference for every exported class, interface, type, and function in th
 ## AgentBase
 
 ```ts
-import { AgentBase } from '@anthropic/@signalwire/sdk';
+import { AgentBase } from '@signalwire/sdk';
 ```
 
 Core agent class that composes an HTTP server, prompt management, session handling, SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
@@ -711,7 +711,7 @@ Pre-execution hook called before each SWAIG function.
 ## AgentServer
 
 ```ts
-import { AgentServer } from '@anthropic/@signalwire/sdk';
+import { AgentServer } from '@signalwire/sdk';
 ```
 
 Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes.
@@ -790,7 +790,7 @@ await server.run();
 ## FunctionResult
 
 ```ts
-import { FunctionResult } from '@anthropic/@signalwire/sdk';
+import { FunctionResult } from '@signalwire/sdk';
 ```
 
 Builder for SWAIG function responses. Carries response text and an ordered list of structured actions. Every mutating method returns `this` for fluent chaining.
@@ -961,7 +961,7 @@ Serialize to a plain object for the SWAIG response. Returns `{ response, action,
 ## SwaigFunction
 
 ```ts
-import { SwaigFunction } from '@anthropic/@signalwire/sdk';
+import { SwaigFunction } from '@signalwire/sdk';
 ```
 
 Wraps a tool handler function with metadata for SWAIG registration.
@@ -1014,7 +1014,7 @@ Serialize to the SWAIG wire format for inclusion in SWML. Returns an object with
 ## DataMap
 
 ```ts
-import { DataMap, createSimpleApiTool, createExpressionTool } from '@anthropic/@signalwire/sdk';
+import { DataMap, createSimpleApiTool, createExpressionTool } from '@signalwire/sdk';
 ```
 
 Fluent builder for SWAIG `data_map` configurations. Creates server-side tool definitions that execute on SignalWire without requiring webhook endpoints.
@@ -1207,7 +1207,7 @@ Create a DataMap tool that evaluates expressions against patterns without making
 ## ContextBuilder
 
 ```ts
-import { ContextBuilder, Context, Step, GatherInfo, GatherQuestion, createSimpleContext } from '@anthropic/@signalwire/sdk';
+import { ContextBuilder, Context, Step, GatherInfo, GatherQuestion, createSimpleContext } from '@signalwire/sdk';
 ```
 
 Contexts and Steps workflow system. Contexts contain ordered Steps, each with prompt content, completion criteria, function restrictions, and navigation rules.
@@ -1439,7 +1439,7 @@ Create a standalone Context without a ContextBuilder. Name defaults to `'default
 ## PomBuilder
 
 ```ts
-import { PomBuilder, PomSection } from '@anthropic/@signalwire/sdk';
+import { PomBuilder, PomSection } from '@signalwire/sdk';
 ```
 
 Prompt Object Model for structured prompt sections. Sections have a title, body, bullets (optionally numbered), and nested subsections.
@@ -1501,7 +1501,7 @@ Builds a structured prompt by composing named POM sections.
 ## SwmlBuilder
 
 ```ts
-import { SwmlBuilder } from '@anthropic/@signalwire/sdk';
+import { SwmlBuilder } from '@signalwire/sdk';
 ```
 
 Builds SWML (SignalWire Markup Language) documents: `{ version: "1.0.0", sections: { main: [...verbs] } }`.
@@ -1521,7 +1521,7 @@ Builds SWML (SignalWire Markup Language) documents: `{ version: "1.0.0", section
 ## PromptManager
 
 ```ts
-import { PromptManager } from '@anthropic/@signalwire/sdk';
+import { PromptManager } from '@signalwire/sdk';
 ```
 
 Manages agent prompt text, supporting both raw text and structured POM-based prompts.
@@ -1555,7 +1555,7 @@ constructor(usePom?: boolean)
 ## SessionManager
 
 ```ts
-import { SessionManager } from '@anthropic/@signalwire/sdk';
+import { SessionManager } from '@signalwire/sdk';
 ```
 
 Stateless HMAC-SHA256 token manager for SWAIG function call authentication and per-session metadata storage. Tokens encode `callId.functionName.expiry.nonce.hmacSignature` in base64url format.
@@ -1641,7 +1641,7 @@ Decode token components for debugging without validating the signature. Returns 
 ## Skills
 
 ```ts
-import { SkillBase, SkillManager, SkillRegistry } from '@anthropic/@signalwire/sdk';
+import { SkillBase, SkillManager, SkillRegistry } from '@signalwire/sdk';
 ```
 
 ### SkillBase
@@ -1765,7 +1765,7 @@ Pre-built agent templates with declarative configuration, built-in tools, and pr
 ### InfoGathererAgent
 
 ```ts
-import { InfoGathererAgent, createInfoGathererAgent } from '@anthropic/@signalwire/sdk';
+import { InfoGathererAgent } from '@signalwire/sdk';
 ```
 
 Asks the caller a sequence of questions one at a time. Supports static mode (questions provided at construction) and dynamic mode (questions resolved per request via a callback).
@@ -1797,7 +1797,7 @@ Asks the caller a sequence of questions one at a time. Supports static mode (que
 ### SurveyAgent
 
 ```ts
-import { SurveyAgent, createSurveyAgent } from '@anthropic/@signalwire/sdk';
+import { SurveyAgent } from '@signalwire/sdk';
 ```
 
 Conducts surveys with branching logic, answer scoring, and conditional question flow.
@@ -1837,7 +1837,7 @@ Conducts surveys with branching logic, answer scoring, and conditional question 
 ### FAQBotAgent
 
 ```ts
-import { FAQBotAgent, createFAQBotAgent } from '@anthropic/@signalwire/sdk';
+import { FAQBotAgent } from '@signalwire/sdk';
 ```
 
 Answers frequently asked questions using keyword/word-overlap matching with optional escalation.
@@ -1868,7 +1868,7 @@ Answers frequently asked questions using keyword/word-overlap matching with opti
 ### ConciergeAgent
 
 ```ts
-import { ConciergeAgent, createConciergeAgent } from '@anthropic/@signalwire/sdk';
+import { ConciergeAgent } from '@signalwire/sdk';
 ```
 
 Virtual concierge for a venue or business. Provides information about services, amenities, hours of operation, and answers availability and directions questions.
@@ -1894,7 +1894,7 @@ Virtual concierge for a venue or business. Provides information about services, 
 ### ReceptionistAgent
 
 ```ts
-import { ReceptionistAgent, createReceptionistAgent } from '@anthropic/@signalwire/sdk';
+import { ReceptionistAgent } from '@signalwire/sdk';
 ```
 
 Front-desk agent that greets callers, collects basic info, and transfers them to the appropriate department.
@@ -1932,7 +1932,7 @@ Front-desk agent that greets callers, collects basic info, and transfers them to
 ### AuthHandler
 
 ```ts
-import { AuthHandler } from '@anthropic/@signalwire/sdk';
+import { AuthHandler } from '@signalwire/sdk';
 ```
 
 Multi-method authentication handler with timing-safe credential comparison. Supports Bearer token, API key, Basic auth, and custom validators.
@@ -1958,7 +1958,7 @@ See [AuthConfig](#authconfig).
 ### ConfigLoader
 
 ```ts
-import { ConfigLoader } from '@anthropic/@signalwire/sdk';
+import { ConfigLoader } from '@signalwire/sdk';
 ```
 
 JSON configuration file loader with `${VAR|default}` environment variable interpolation and dot-notation access.
@@ -1992,7 +1992,7 @@ Optionally loads a JSON file immediately on construction.
 ### Logger
 
 ```ts
-import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, resetLoggingConfiguration } from '@anthropic/@signalwire/sdk';
+import { Logger, getLogger, setGlobalLogLevel, suppressAllLogs, setGlobalLogFormat, setGlobalLogColor, resetLoggingConfiguration } from '@signalwire/sdk';
 ```
 
 Structured logger configurable via environment variables.
@@ -2036,7 +2036,7 @@ constructor(name: string, context?: Record<string, unknown>)
 ### SslConfig
 
 ```ts
-import { SslConfig } from '@anthropic/@signalwire/sdk';
+import { SslConfig } from '@signalwire/sdk';
 ```
 
 SSL/TLS configuration sourced from explicit options or environment variables.
@@ -2083,7 +2083,7 @@ See [SslOptions](#ssloptions).
 ### SchemaUtils
 
 ```ts
-import { SchemaUtils } from '@anthropic/@signalwire/sdk';
+import { SchemaUtils } from '@signalwire/sdk';
 ```
 
 Validates SWML documents against structural rules with an LRU-style result cache.
@@ -2110,7 +2110,7 @@ constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number })
 ### ServerlessAdapter
 
 ```ts
-import { ServerlessAdapter } from '@anthropic/@signalwire/sdk';
+import { ServerlessAdapter } from '@signalwire/sdk';
 ```
 
 Adapts a Hono application for deployment on serverless platforms. Auto-detects platform from environment variables.

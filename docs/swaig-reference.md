@@ -85,7 +85,7 @@ When a tool handler runs, it constructs a `FunctionResult`, optionally adds acti
 ### Basic usage
 
 ```typescript
-import { AgentBase, FunctionResult } from '@anthropic/@signalwire/sdk';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
