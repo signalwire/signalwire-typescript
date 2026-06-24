@@ -13046,7 +13046,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_message": {
               "params": [
@@ -13066,7 +13066,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_stop": {
               "params": [
@@ -13086,7 +13086,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_unhold": {
               "params": [
@@ -13106,7 +13106,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect": {
               "params": [
@@ -13126,7 +13126,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect_start_input_timers": {
               "params": [
@@ -13146,7 +13146,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect_stop": {
               "params": [
@@ -13166,7 +13166,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "denoise": {
               "params": [
@@ -13186,7 +13186,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "denoise_stop": {
               "params": [
@@ -13206,7 +13206,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "detect": {
               "params": [
@@ -13226,7 +13226,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "detect_stop": {
               "params": [
@@ -13246,7 +13246,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "dial": {
               "params": [
@@ -13261,7 +13261,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "disconnect": {
               "params": [
@@ -13281,7 +13281,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "end": {
               "params": [
@@ -13301,7 +13301,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "live_transcribe": {
               "params": [
@@ -13321,7 +13321,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "live_translate": {
               "params": [
@@ -13341,7 +13341,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play": {
               "params": [
@@ -13361,7 +13361,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_pause": {
               "params": [
@@ -13381,7 +13381,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_resume": {
               "params": [
@@ -13401,7 +13401,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_stop": {
               "params": [
@@ -13421,7 +13421,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_volume": {
               "params": [
@@ -13441,7 +13441,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "receive_fax_stop": {
               "params": [
@@ -13461,7 +13461,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record": {
               "params": [
@@ -13481,7 +13481,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_pause": {
               "params": [
@@ -13501,7 +13501,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_resume": {
               "params": [
@@ -13521,7 +13521,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_stop": {
               "params": [
@@ -13541,7 +13541,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "refer": {
               "params": [
@@ -13561,7 +13561,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "send_fax_stop": {
               "params": [
@@ -13581,7 +13581,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "stream": {
               "params": [
@@ -13601,7 +13601,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "stream_stop": {
               "params": [
@@ -13621,7 +13621,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "tap": {
               "params": [
@@ -13641,7 +13641,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "tap_stop": {
               "params": [
@@ -13661,7 +13661,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transcribe": {
               "params": [
@@ -13681,7 +13681,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transcribe_stop": {
               "params": [
@@ -13701,7 +13701,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transfer": {
               "params": [
@@ -13721,7 +13721,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "update": {
               "params": [
@@ -13736,7 +13736,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "user_event": {
               "params": [
@@ -13756,7 +13756,7 @@
                   "default": {}
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.calling.types.generated.CallLeg,class:signalwire.rest.namespaces.calling.types.generated.FabricDeviceLeg>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             }
           }
         }
@@ -15954,7 +15954,7 @@
                   "required": true
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseAI,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCallFlow,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLWebhook,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLScript,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseCXMLApplication,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseDialogFlowAgent,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseFSConnector,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseRelayApp,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSipEndpoint,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSipGateway,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSubscriber,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSWMLWebhook,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseSWMLScript,class:signalwire.rest.namespaces.fabric.types.generated.ResourceResponseConferenceRoom>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.types.generated.ResourceResponse"
             },
             "list": {
               "params": [
@@ -16387,7 +16387,7 @@
                   "required": true
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.voice.types.generated.RelayVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.VideoRoomVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.DialogflowVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.FabricVoiceLog,class:signalwire.rest.namespaces.voice.types.generated.DiscardedVoiceLog>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.voice.types.generated.VoiceLog"
             },
             "list": {
               "params": [
@@ -17108,7 +17108,7 @@
                   "required": true
                 }
               ],
-              "returns": "union<class:signalwire.rest.namespaces.relay_rest.types.generated.PstnRecording,class:signalwire.rest.namespaces.relay_rest.types.generated.SipRecording,class:signalwire.rest.namespaces.relay_rest.types.generated.WebRtcRecording>"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.types.generated.Recording"
             },
             "list": {
               "params": [

@@ -359,6 +359,33 @@ function translateType(
   // Direct alias hit (covers string/number/boolean/Date/etc.)
   if (aliases[typeStr] !== undefined) return aliases[typeStr];
 
+  // Spec-generated type aliases: record by NAME, do not expand. A generated
+  // alias like `CallResponse = CallLeg | FabricDeviceLeg` (in a *.types.generated
+  // file) is the same contract the Python reference records as the alias name
+  // `class:...CallResponse` — Python's griffe enumerator keeps the alias name
+  // rather than inlining it. typeToString() would otherwise expand this alias to
+  // its union, producing `union<...CallLeg,...FabricDeviceLeg>` and a spurious
+  // drift vs Python's `class:...CallResponse`. Emit `class:<AliasName>` so both
+  // ports record the same leaf token. (The diff checker normalizes both
+  // ports' generated-type refs by leaf name.)
+  const aliasSym = type.aliasSymbol;
+  if (aliasSym) {
+    const decl = aliasSym.declarations?.[0];
+    const srcFile = decl?.getSourceFile().fileName ?? '';
+    if (srcFile.includes('.types.generated') || srcFile.includes('.generated.')) {
+      // Emit the FULLY-QUALIFIED generated-module path (mirrors how a $ref-backed
+      // generated type is recorded, e.g.
+      // `class:signalwire.rest.namespaces.relay_rest.types.generated.AddressResponse`)
+      // so the diff checker's generated-type leaf-name normalization matches it
+      // against Python's `class:...<gen-module>.<AliasName>`. A bare
+      // `class:CallResponse` would lack the gen-module marker and not normalize.
+      // Derive the dotted module path from the source file under src/.
+      const m = srcFile.match(/\/src\/(.+?)\.ts$/);
+      const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+      return `class:signalwire.${modPath}.${aliasSym.getName()}`;
+    }
+  }
+
   // Stripped flags
   if (type.flags & ts.TypeFlags.String) return 'string';
   if (type.flags & ts.TypeFlags.Number) return 'float';
