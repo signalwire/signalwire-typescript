@@ -9,6 +9,7 @@ import type {
   Document,
   DocumentListResponse,
   DocumentCreateRequest,
+  DocumentUpdateRequest,
   DocumentSearchRequest,
   SearchResponse,
   ChunkListResponse,
@@ -20,7 +21,9 @@ export class DatasphereDocuments extends CrudResource<
   DocumentListResponse,
   Document,
   DocumentCreateRequest,
-  Partial<DocumentCreateRequest>
+  // Update binds the dedicated DocumentUpdateRequest (the spec defines it),
+  // matching the Python reference — not Partial<DocumentCreateRequest>.
+  DocumentUpdateRequest
 > {
   constructor(http: HttpClient) {
     super(http, '/api/datasphere/documents');

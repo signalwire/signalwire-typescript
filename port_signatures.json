@@ -13922,6 +13922,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.ApplicationResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:ApplicationListResponse",
+              "class:ApplicationResponse",
+              "class:CreateApplicationRequest",
+              "class:UpdateApplicationRequest"
+            ]
           }
         },
         "CompatCalls": {
@@ -14055,6 +14064,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CallRecordingResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:CallListResponse",
+              "class:CallResponse",
+              "class:CreateCallRequest",
+              "class:UpdateCallRequest"
+            ]
           }
         },
         "CompatConferences": {
@@ -14439,6 +14457,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.FaxResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:FaxListResponse",
+              "class:FaxResponse",
+              "class:SendFaxRequest",
+              "class:UpdateFaxRequest"
+            ]
           }
         },
         "CompatLamlBins": {
@@ -14482,6 +14509,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.CxmlScriptResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:CxmlScriptListResponse",
+              "class:CxmlScriptResponse",
+              "class:CreateCxmlScriptRequest",
+              "class:UpdateCxmlScriptRequest"
+            ]
           }
         },
         "CompatMessages": {
@@ -14583,6 +14619,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.MessageResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:MessageListResponse",
+              "class:MessageResponse",
+              "class:CreateMessageRequest",
+              "class:UpdateMessageRequest"
+            ]
           }
         },
         "CompatNamespace": {
@@ -14990,6 +15035,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.compatibility.types.generated.QueueResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:QueueListResponse",
+              "class:QueueResponse",
+              "class:CreateQueueRequest",
+              "class:UpdateQueueRequest"
+            ]
           }
         },
         "CompatRecordings": {
@@ -15287,6 +15341,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.datasphere.types.generated.SearchResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:DocumentListResponse",
+              "class:Document",
+              "class:DocumentCreateRequest",
+              "class:DocumentUpdateRequest"
+            ]
           }
         },
         "DatasphereNamespace": {
@@ -15439,6 +15502,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowVersionListResponse"
             }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:CallFlowListResponse",
+              "class:CallFlowResponse",
+              "class:CallFlowCreateRequest",
+              "class:CallFlowUpdateRequest"
+            ]
           }
         },
         "ConferenceRoomsResource": {
@@ -15482,6 +15554,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomAddressListResponse"
             }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:ConferenceRoomListResponse",
+              "class:ConferenceRoomResponse",
+              "class:ConferenceRoomCreateRequest",
+              "class:ConferenceRoomUpdateRequest"
+            ]
           }
         },
         "CxmlApplicationsResource": {
@@ -15514,6 +15595,15 @@
               ],
               "returns": "any"
             }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:CxmlApplicationListResponse",
+              "class:CxmlApplicationResponse",
+              "any",
+              "class:CxmlApplicationUpdateRequest"
+            ]
           }
         },
         "FabricAddresses": {
@@ -16115,6 +16205,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberSIPEndpoint"
             }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:SubscriberListResponse",
+              "class:SubscriberResponse",
+              "class:SubscriberRequest",
+              "class:SubscriberRequest"
+            ]
           }
         }
       }
@@ -16624,6 +16723,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.NumberGroupMembershipListResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:NumberGroupListResponse",
+              "class:NumberGroup",
+              "class:CreateNumberGroupRequest",
+              "class:UpdateNumberGroupRequest"
+            ]
           }
         }
       }
@@ -16853,6 +16961,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.PhoneNumber"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:PhoneNumberListResponse",
+              "class:PhoneNumber",
+              "class:PurchasePhoneNumberRequest",
+              "class:UpdatePhoneNumberRequest"
+            ]
           }
         }
       }
@@ -17060,6 +17177,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.QueueMemberListResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:QueueListResponse",
+              "class:Queue",
+              "class:CreateQueueRequest",
+              "class:UpdateQueueRequest"
+            ]
           }
         }
       }
@@ -17653,6 +17779,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.relay_rest.types.generated.VerifiedCallerIDResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:VerifiedCallerIDListResponse",
+              "class:VerifiedCallerID",
+              "class:CreateVerifiedCallerIDRequest",
+              "class:UpdateVerifiedCallerIDRequest"
+            ]
           }
         }
       }
@@ -17790,6 +17925,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.video.types.generated.ListStreamsResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:ListConferencesResponse",
+              "class:Conference",
+              "class:CreateConferenceRequest",
+              "class:UpdateConferenceRequest"
+            ]
           }
         },
         "VideoNamespace": {
@@ -18168,6 +18312,15 @@
               ],
               "returns": "class:signalwire.rest.namespaces.video.types.generated.ListStreamsResponse"
             }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:ListRoomsResponse",
+              "class:RoomResponse",
+              "class:CreateRoomRequest",
+              "class:UpdateRoomRequest"
+            ]
           }
         },
         "VideoStreams": {

@@ -604,7 +604,7 @@ interface CanonicalSignature {
 }
 
 interface ModuleEntry {
-  classes?: Record<string, { methods: Record<string, CanonicalSignature> }>;
+  classes?: Record<string, { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } }>;
   functions?: Record<string, CanonicalSignature>;
 }
 
@@ -726,9 +726,77 @@ function collectClass(
   if (Object.keys(methods).length === 0) return;
   if (!doc.modules[mod]) doc.modules[mod] = {};
   if (!doc.modules[mod].classes) doc.modules[mod].classes = {};
-  doc.modules[mod].classes![canonClass] = {
+  const entry: { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } } = {
     methods: Object.fromEntries(Object.entries(methods).sort()),
   };
+  // PREFERRED representation: the structural CRUD binding. If this class extends a
+  // generic CRUD base (`extends CrudResource<TList, TItem, TCreate, TUpdate>` /
+  // CrudWithAddresses / a FabricResource* alias of them), emit the binding so the
+  // oracle can match it against the Python reference's crud_base. The resolved
+  // per-method `methods` above remain as the effective equivalent.
+  const cb = extractCrudBase(cls, checker, aliases, `${mod}.${canonClass}`);
+  if (cb) entry.crud_base = cb;
+  doc.modules[mod].classes![canonClass] = entry;
+}
+
+const CRUD_BASE_NAMES = new Set([
+  'CrudResource',
+  'CrudWithAddresses',
+  'FabricResource',
+  'FabricResourcePUT',
+  'AutoMaterializedWebhook',
+]);
+
+function extractCrudBase(
+  cls: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  context: string,
+): { base: string; bind: string[] } | null {
+  for (const h of cls.heritageClauses ?? []) {
+    if (h.token !== ts.SyntaxKind.ExtendsKeyword) continue;
+    for (const t of h.types) {
+      const baseName = t.expression && ts.isIdentifier(t.expression) ? t.expression.text : '';
+      if (!CRUD_BASE_NAMES.has(baseName)) continue;
+      const typeArgs = t.typeArguments;
+      if (!typeArgs || typeArgs.length === 0) return null; // unparameterized base (intermediate) — skip
+      // Record each bound type by its WRITTEN name (the generated-type identifier
+      // as spelled in source), unwrapping Partial<X> -> X. We deliberately do NOT
+      // resolve via typeToString here: the Python reference records the alias NAME
+      // (e.g. DocumentCreateRequest), whereas typeToString would collapse a
+      // oneOf-alias to its base (DocumentCreateRequestBase) and spuriously diverge.
+      // The diff checker matches these by leaf name across ports.
+      const bind = typeArgs.map((ta) => {
+        let node: ts.TypeNode = ta;
+        if (ts.isTypeReferenceNode(ta) && ts.isIdentifier(ta.typeName) && ta.typeName.text === 'Partial' && ta.typeArguments?.[0]) {
+          node = ta.typeArguments[0];
+        }
+        if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+          // Written generated-type name -> fully-qualified class ref so the
+          // checker's generated-type leaf normalization applies.
+          const sym = checker.getSymbolAtLocation(node.typeName);
+          const decl = sym?.declarations?.[0];
+          const src = decl?.getSourceFile().fileName ?? '';
+          if (src.includes('.types.generated') || src.includes('.generated.')) {
+            const m = src.match(/\/src\/(.+?)\.ts$/);
+            const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+            return `class:signalwire.${modPath}.${node.typeName.text}`;
+          }
+          return `class:${node.typeName.text}`;
+        }
+        try {
+          return translateType(checker.getTypeFromTypeNode(node), checker, aliases, `${context}[crud-bind]`);
+        } catch {
+          return 'any';
+        }
+      });
+      // A binding whose args are still the class's own TypeVars is a pass-through
+      // intermediate (not a concrete resource) — skip.
+      if (bind.every((b) => /^class:[A-Z]$|class:T(List|Item|Create|Update)$/.test(b))) return null;
+      return { base: baseName, bind };
+    }
+  }
+  return null;
 }
 
 function signatureFromProperty(
