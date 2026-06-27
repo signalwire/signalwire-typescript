@@ -15383,44 +15383,6 @@
     },
     "signalwire.rest.namespaces.fabric": {
       "classes": {
-        "AutoMaterializedWebhookResource": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": "{} as Partial<TCreate>"
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        },
         "CallFlowsResource": {
           "methods": {
             "__init__": {
@@ -15690,7 +15652,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.AiAgentsResource"
             },
             "call_flows": {
               "params": [
@@ -15726,7 +15688,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.CxmlScriptsResource"
             },
             "cxml_webhooks": {
               "params": [
@@ -15735,7 +15697,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.CxmlWebhooksResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.CxmlWebhooksResource"
             },
             "freeswitch_connectors": {
               "params": [
@@ -15744,7 +15706,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.FreeswitchConnectorsResource"
             },
             "relay_applications": {
               "params": [
@@ -15753,7 +15715,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.RelayApplicationsResource"
             },
             "resources": {
               "params": [
@@ -15771,7 +15733,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.SipEndpointsResource"
             },
             "sip_gateways": {
               "params": [
@@ -15780,7 +15742,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.SipGatewaysResource"
             },
             "subscribers": {
               "params": [
@@ -15798,7 +15760,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.FabricResourcePUT"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.SwmlScriptsResource"
             },
             "swml_webhooks": {
               "params": [
@@ -15807,7 +15769,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric.SwmlWebhooksResource"
+              "returns": "class:signalwire.rest.namespaces.fabric.resources.generated.SwmlWebhooksResource"
             },
             "tokens": {
               "params": [
@@ -15817,52 +15779,6 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.fabric.FabricTokens"
-            }
-          }
-        },
-        "FabricResource": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            }
-          }
-        },
-        "FabricResourcePUT": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
             }
           }
         },
@@ -16213,6 +16129,706 @@
               "class:SubscriberResponse",
               "class:SubscriberRequest",
               "class:SubscriberRequest"
+            ]
+          }
+        }
+      }
+    },
+    "signalwire.rest.namespaces.fabric.resources.generated": {
+      "classes": {
+        "AiAgentsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.AIAgentCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.AIAgentResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.AIAgentUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.AIAgentResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResource",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentUpdateRequest"
+            ]
+          }
+        },
+        "CallFlowsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CallFlowResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowUpdateRequest"
+            ]
+          }
+        },
+        "ConferenceRoomsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.ConferenceRoomResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomUpdateRequest"
+            ]
+          }
+        },
+        "CxmlScriptsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLScriptCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLScriptResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLScriptUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLScriptResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptUpdateRequest"
+            ]
+          }
+        },
+        "CxmlWebhooksResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLWebhookCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLWebhookResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLWebhookUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.CXMLWebhookResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResource",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookUpdateRequest"
+            ]
+          }
+        },
+        "FreeswitchConnectorsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.FreeswitchConnectorCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.FreeswitchConnectorResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.FreeswitchConnectorUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.FreeswitchConnectorResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorUpdateRequest"
+            ]
+          }
+        },
+        "RelayApplicationsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.RelayApplicationCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.RelayApplicationResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.RelayApplicationUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.RelayApplicationResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationUpdateRequest"
+            ]
+          }
+        },
+        "SipEndpointsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SipEndpointCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SipEndpointResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SipEndpointUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SipEndpointResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointUpdateRequest"
+            ]
+          }
+        },
+        "SipGatewaysResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SipGatewayRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SipGatewayResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SipGatewayRequestUpdate",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SipGatewayResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResource",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayRequestUpdate"
+            ]
+          }
+        },
+        "SubscribersResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SubscriberResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberRequest"
+            ]
+          }
+        },
+        "SwmlScriptsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SwmlScriptCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SwmlScriptResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SwmlScriptUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SwmlScriptResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResourcePUT",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptUpdateRequest"
+            ]
+          }
+        },
+        "SwmlWebhooksResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SWMLWebhookCreateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SWMLWebhookResponse"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.rest.namespaces.fabric.types.generated.SWMLWebhookUpdateRequest",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.fabric.types.generated.SWMLWebhookResponse"
+            }
+          },
+          "crud_base": {
+            "base": "FabricResource",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookUpdateRequest"
             ]
           }
         }

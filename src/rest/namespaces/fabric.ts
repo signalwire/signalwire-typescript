@@ -5,12 +5,19 @@
 import type { HttpClient } from '../HttpClient.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
-import { CrudWithAddresses } from '../base/CrudWithAddresses.js';
+import { FabricResource, FabricResourcePUT } from '../base/FabricResource.js';
+import {
+  AiAgentsResource,
+  CxmlScriptsResource,
+  CxmlWebhooksResource,
+  FreeswitchConnectorsResource,
+  RelayApplicationsResource,
+  SipEndpointsResource,
+  SipGatewaysResource,
+  SwmlScriptsResource,
+  SwmlWebhooksResource,
+} from './fabric.resources.generated.js';
 import type {
-  AIAgentCreateRequest,
-  AIAgentListResponse,
-  AIAgentResponse,
-  AIAgentUpdateRequest,
   CallFlowAddressListResponse,
   CallFlowCreateRequest,
   CallFlowListResponse,
@@ -24,14 +31,6 @@ import type {
   ConferenceRoomListResponse,
   ConferenceRoomResponse,
   ConferenceRoomUpdateRequest,
-  CXMLScriptCreateRequest,
-  CXMLScriptListResponse,
-  CXMLScriptResponse,
-  CXMLScriptUpdateRequest,
-  CXMLWebhookCreateRequest,
-  CXMLWebhookListResponse,
-  CXMLWebhookResponse,
-  CXMLWebhookUpdateRequest,
   CxmlApplicationListResponse,
   CxmlApplicationResponse,
   CxmlApplicationUpdateRequest,
@@ -41,27 +40,11 @@ import type {
   EmbedsTokensResponse,
   FabricAddress,
   FabricAddressesResponse,
-  FreeswitchConnectorCreateRequest,
-  FreeswitchConnectorListResponse,
-  FreeswitchConnectorResponse,
-  FreeswitchConnectorUpdateRequest,
   PhoneRouteAssignRequest,
   PhoneRouteResponse,
-  RelayApplicationCreateRequest,
-  RelayApplicationListResponse,
-  RelayApplicationResponse,
-  RelayApplicationUpdateRequest,
   ResourceAddressListResponse,
   ResourceListResponse,
   ResourceResponse,
-  SipEndpointCreateRequest,
-  SipEndpointListResponse,
-  SipEndpointResponse,
-  SipEndpointUpdateRequest,
-  SipGatewayListResponse,
-  SipGatewayRequest,
-  SipGatewayRequestUpdate,
-  SipGatewayResponse,
   SubscriberGuestTokenCreateRequest,
   SubscriberGuestTokenCreateResponse,
   SubscriberInviteTokenCreateRequest,
@@ -77,48 +60,13 @@ import type {
   SubscriberSipEndpointRequestUpdate,
   SubscriberTokenRequest,
   SubscriberTokenResponse,
-  SWMLWebhookCreateRequest,
-  SWMLWebhookListResponse,
-  SWMLWebhookResponse,
-  SWMLWebhookUpdateRequest,
-  SwmlScriptCreateRequest,
-  SwmlScriptListResponse,
-  SwmlScriptResponse,
-  SwmlScriptUpdateRequest,
 } from './fabric.types.generated.js';
 
-/**
- * Standard fabric resource with CRUD + addresses (PATCH updates).
- *
- * Generic over the per-resource list / item / create / update shapes from the
- * canonical Fabric OpenAPI spec. Create and update bodies are wrapped in
- * `Partial<>` at the call site to preserve Python's call-without-args
- * (`**kwargs`) ergonomics — the platform validates required fields server-side.
- */
-export class FabricResource<
-  TList = unknown,
-  TItem = unknown,
-  TCreate = unknown,
-  TUpdate = unknown,
-> extends CrudWithAddresses<TList, TItem, TCreate, TUpdate> {
-  constructor(http: HttpClient, basePath: string) {
-    super(http, basePath);
-  }
-}
-
-/** Fabric resource that uses PUT for updates. */
-export class FabricResourcePUT<
-  TList = unknown,
-  TItem = unknown,
-  TCreate = unknown,
-  TUpdate = unknown,
-> extends CrudWithAddresses<TList, TItem, TCreate, TUpdate> {
-  protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
-
-  constructor(http: HttpClient, basePath: string) {
-    super(http, basePath);
-  }
-}
+// `FabricResource` / `FabricResourcePUT` are defined in `../base/FabricResource.js`
+// (imported above) so the generated `fabric.resources.generated` subclasses can extend
+// them without an import cycle. Re-exported here for callers that import them from this
+// module.
+export { FabricResource, FabricResourcePUT };
 
 /** Call flows with version management. Uses singular `call_flow` for sub-resource paths. */
 export class CallFlowsResource extends FabricResourcePUT<
@@ -319,60 +267,12 @@ export class CxmlApplicationsResource extends FabricResourcePUT<
  *
  * See the porting-sdk's `phone-binding.md` for the full model.
  */
-export class AutoMaterializedWebhookResource<
-  TList = unknown,
-  TItem = unknown,
-  TCreate = unknown,
-  TUpdate = unknown,
-> extends FabricResource<TList, TItem, Partial<TCreate>, Partial<TUpdate>> {
-  /** Label used in the deprecation warning (subclasses override). */
-  protected _autoHelperName: string = 'phoneNumbers.set*Webhook';
-  private static _warned = new WeakSet<object>();
-
-  constructor(http: HttpClient, basePath: string) {
-    super(http, basePath);
-  }
-
-  /**
-   * @deprecated Creating a webhook Fabric resource directly produces an
-   *   orphan that is not bound to any phone number. Use the
-   *   `phoneNumbers.setSwmlWebhook` / `setCxmlWebhook` helper instead — it
-   *   updates the phone number and the server auto-materializes the
-   *   resource. Kept for backwards compatibility.
-   */
-  override async create(body: Partial<TCreate> = {} as Partial<TCreate>): Promise<TItem> {
-    if (!AutoMaterializedWebhookResource._warned.has(this)) {
-      AutoMaterializedWebhookResource._warned.add(this);
-      console.warn(
-        `[signalwire] Creating a webhook Fabric resource directly produces ` +
-          `an orphan not bound to any phone number. Use ${this._autoHelperName} ` +
-          `instead; it updates the phone number and the server auto-materializes ` +
-          `the resource. See porting-sdk's phone-binding.md.`,
-      );
-    }
-    return super.create(body);
-  }
-}
-
-/** Auto-materialized SWML webhook — normally created via `phoneNumbers.setSwmlWebhook`. */
-export class SwmlWebhooksResource extends AutoMaterializedWebhookResource<
-  SWMLWebhookListResponse,
-  SWMLWebhookResponse,
-  SWMLWebhookCreateRequest,
-  SWMLWebhookUpdateRequest
-> {
-  protected override _autoHelperName = 'phoneNumbers.setSwmlWebhook(sid, url)';
-}
-
-/** Auto-materialized cXML webhook — normally created via `phoneNumbers.setCxmlWebhook`. */
-export class CxmlWebhooksResource extends AutoMaterializedWebhookResource<
-  CXMLWebhookListResponse,
-  CXMLWebhookResponse,
-  CXMLWebhookCreateRequest,
-  CXMLWebhookUpdateRequest
-> {
-  protected override _autoHelperName = 'phoneNumbers.setCxmlWebhook(sid, { url })';
-}
+// `SwmlWebhooksResource` / `CxmlWebhooksResource` are now plain generated typed CRUD
+// resources (see `fabric.resources.generated`, imported above). The former
+// `AutoMaterializedWebhookResource` deprecation wrapper was removed — these SDKs are
+// pre-release, so there is no back-compat to deprecate. The phone-number binding model
+// (`phoneNumbers.setSwmlWebhook` / `setCxmlWebhook`) remains the documented way to
+// auto-materialize a webhook; direct create is just a normal operation.
 
 /** Generic resource operations across all fabric resource types. */
 export class GenericResources extends BaseResource {
@@ -597,75 +497,33 @@ export class FabricTokens extends BaseResource {
 export class FabricNamespace {
   // PUT-update resources
   /** SWML script CRUD (full-replacement `PUT` update). */
-  readonly swmlScripts: FabricResourcePUT<
-    SwmlScriptListResponse,
-    SwmlScriptResponse,
-    Partial<SwmlScriptCreateRequest>,
-    Partial<SwmlScriptUpdateRequest>
-  >;
+  readonly swmlScripts: SwmlScriptsResource;
   /** Relay Application CRUD (full-replacement `PUT` update). */
-  readonly relayApplications: FabricResourcePUT<
-    RelayApplicationListResponse,
-    RelayApplicationResponse,
-    Partial<RelayApplicationCreateRequest>,
-    Partial<RelayApplicationUpdateRequest>
-  >;
+  readonly relayApplications: RelayApplicationsResource;
   /** Call Flow CRUD with version listing and publishing. */
   readonly callFlows: CallFlowsResource;
   /** Conference Room CRUD with address listing. */
   readonly conferenceRooms: ConferenceRoomsResource;
   /** FreeSWITCH Connector CRUD. */
-  readonly freeswitchConnectors: FabricResourcePUT<
-    FreeswitchConnectorListResponse,
-    FreeswitchConnectorResponse,
-    Partial<FreeswitchConnectorCreateRequest>,
-    Partial<FreeswitchConnectorUpdateRequest>
-  >;
+  readonly freeswitchConnectors: FreeswitchConnectorsResource;
   /** Subscriber CRUD plus nested SIP endpoint management. */
   readonly subscribers: SubscribersResource;
   /** Top-level SIP endpoint CRUD. */
-  readonly sipEndpoints: FabricResourcePUT<
-    SipEndpointListResponse,
-    SipEndpointResponse,
-    Partial<SipEndpointCreateRequest>,
-    Partial<SipEndpointUpdateRequest>
-  >;
+  readonly sipEndpoints: SipEndpointsResource;
   /** cXML (LaML) script CRUD. */
-  readonly cxmlScripts: FabricResourcePUT<
-    CXMLScriptListResponse,
-    CXMLScriptResponse,
-    Partial<CXMLScriptCreateRequest>,
-    Partial<CXMLScriptUpdateRequest>
-  >;
+  readonly cxmlScripts: CxmlScriptsResource;
   /** cXML application read / update / delete (no create). */
   readonly cxmlApplications: CxmlApplicationsResource;
 
-  // PATCH-update resources
-  /**
-   * SWML webhook CRUD. **Auto-materialized** as a side-effect of
-   * {@link PhoneNumbersResource.setSwmlWebhook}; direct `create` produces
-   * an orphan resource and emits a deprecation warning.
-   */
+  // PATCH-update resources. `swmlWebhooks` / `cxmlWebhooks` are normally
+  // auto-materialized via `phoneNumbers.setSwmlWebhook` / `setCxmlWebhook`;
+  // direct create is a normal operation.
   readonly swmlWebhooks: SwmlWebhooksResource;
   /** AI Agent CRUD — the platform-managed agent registration resource. */
-  readonly aiAgents: FabricResource<
-    AIAgentListResponse,
-    AIAgentResponse,
-    Partial<AIAgentCreateRequest>,
-    Partial<AIAgentUpdateRequest>
-  >;
+  readonly aiAgents: AiAgentsResource;
   /** SIP Gateway CRUD. */
-  readonly sipGateways: FabricResource<
-    SipGatewayListResponse,
-    SipGatewayResponse,
-    Partial<SipGatewayRequest>,
-    Partial<SipGatewayRequestUpdate>
-  >;
-  /**
-   * cXML webhook CRUD. **Auto-materialized** as a side-effect of
-   * {@link PhoneNumbersResource.setCxmlWebhook}; direct `create` produces
-   * an orphan resource and emits a deprecation warning.
-   */
+  readonly sipGateways: SipGatewaysResource;
+  /** cXML webhook CRUD. */
   readonly cxmlWebhooks: CxmlWebhooksResource;
 
   // Special resources
@@ -679,59 +537,25 @@ export class FabricNamespace {
   constructor(http: HttpClient) {
     const base = '/api/fabric/resources';
 
-    // PUT-update resources
-    this.swmlScripts = new FabricResourcePUT<
-      SwmlScriptListResponse,
-      SwmlScriptResponse,
-      Partial<SwmlScriptCreateRequest>,
-      Partial<SwmlScriptUpdateRequest>
-    >(http, `${base}/swml_scripts`);
-    this.relayApplications = new FabricResourcePUT<
-      RelayApplicationListResponse,
-      RelayApplicationResponse,
-      Partial<RelayApplicationCreateRequest>,
-      Partial<RelayApplicationUpdateRequest>
-    >(http, `${base}/relay_applications`);
+    // Generated typed CRUD resources (named-subclass shape, closed body + extras).
+    this.swmlScripts = new SwmlScriptsResource(http, `${base}/swml_scripts`);
+    this.relayApplications = new RelayApplicationsResource(http, `${base}/relay_applications`);
     this.callFlows = new CallFlowsResource(http, `${base}/call_flows`);
     this.conferenceRooms = new ConferenceRoomsResource(http, `${base}/conference_rooms`);
-    this.freeswitchConnectors = new FabricResourcePUT<
-      FreeswitchConnectorListResponse,
-      FreeswitchConnectorResponse,
-      Partial<FreeswitchConnectorCreateRequest>,
-      Partial<FreeswitchConnectorUpdateRequest>
-    >(http, `${base}/freeswitch_connectors`);
+    this.freeswitchConnectors = new FreeswitchConnectorsResource(
+      http,
+      `${base}/freeswitch_connectors`,
+    );
     this.subscribers = new SubscribersResource(http, `${base}/subscribers`);
-    this.sipEndpoints = new FabricResourcePUT<
-      SipEndpointListResponse,
-      SipEndpointResponse,
-      Partial<SipEndpointCreateRequest>,
-      Partial<SipEndpointUpdateRequest>
-    >(http, `${base}/sip_endpoints`);
-    this.cxmlScripts = new FabricResourcePUT<
-      CXMLScriptListResponse,
-      CXMLScriptResponse,
-      Partial<CXMLScriptCreateRequest>,
-      Partial<CXMLScriptUpdateRequest>
-    >(http, `${base}/cxml_scripts`);
+    this.sipEndpoints = new SipEndpointsResource(http, `${base}/sip_endpoints`);
+    this.cxmlScripts = new CxmlScriptsResource(http, `${base}/cxml_scripts`);
     this.cxmlApplications = new CxmlApplicationsResource(http, `${base}/cxml_applications`);
 
-    // PATCH-update resources
-    // swmlWebhooks and cxmlWebhooks are normally auto-materialized by
-    // phoneNumbers.setSwmlWebhook / setCxmlWebhook. Direct create still
-    // works for backcompat but emits a deprecation warning.
+    // swmlWebhooks / cxmlWebhooks are normally auto-materialized via
+    // phoneNumbers.setSwmlWebhook / setCxmlWebhook; direct create is a normal operation.
     this.swmlWebhooks = new SwmlWebhooksResource(http, `${base}/swml_webhooks`);
-    this.aiAgents = new FabricResource<
-      AIAgentListResponse,
-      AIAgentResponse,
-      Partial<AIAgentCreateRequest>,
-      Partial<AIAgentUpdateRequest>
-    >(http, `${base}/ai_agents`);
-    this.sipGateways = new FabricResource<
-      SipGatewayListResponse,
-      SipGatewayResponse,
-      Partial<SipGatewayRequest>,
-      Partial<SipGatewayRequestUpdate>
-    >(http, `${base}/sip_gateways`);
+    this.aiAgents = new AiAgentsResource(http, `${base}/ai_agents`);
+    this.sipGateways = new SipGatewaysResource(http, `${base}/sip_gateways`);
     this.cxmlWebhooks = new CxmlWebhooksResource(http, `${base}/cxml_webhooks`);
 
     // Special resources

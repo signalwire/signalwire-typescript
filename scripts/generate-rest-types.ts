@@ -296,6 +296,123 @@ function resolvePortingSdk(): string | null {
   return null;
 }
 
+// ---- per-resource typed CRUD subclass emission --------------------------------
+//
+// Mirrors the Python generator (porting-sdk/scripts/generate_python_rest_types.py).
+// Emits one named subclass per full-CRUD resource so the enumerator records a
+// crud_base{bind:[4]} matching the reference — the named-subclass shape the ports
+// adopt. Group-A resources (no hand-written class) construct these directly; the
+// binding stays as the resource's 4 spec types.
+
+const NS_BASE: Record<string, { PATCH: string; PUT: string }> = {
+  fabric: { PATCH: 'FabricResource', PUT: 'FabricResourcePUT' },
+};
+
+interface ResourceRole {
+  verb: string;
+  reqRef: string;
+  resRef: string;
+}
+
+function groupResources(doc: OpenApiDoc): Record<string, Record<string, ResourceRole>> {
+  const resources: Record<string, Record<string, ResourceRole>> = {};
+  for (const [p, ops] of Object.entries(doc.paths ?? {})) {
+    const isItem = /\/\{[^}]+\}$/.test(p);
+    const collection = p.replace(/\/\{[^}]+\}$/, '');
+    for (const [method, op] of Object.entries(ops)) {
+      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
+      const reqRef = (op.requestBody?.content?.['application/json']?.schema as Schema)?.$ref ?? '';
+      const ok = op.responses?.['200'] ?? op.responses?.['201'] ?? op.responses?.['2XX'];
+      const resSchema = (ok?.content?.['application/json']?.schema ?? {}) as Schema;
+      let resRef = resSchema.$ref ?? '';
+      if (!resRef && resSchema.type === 'array') resRef = (resSchema.items as Schema)?.$ref ?? '';
+      const role =
+        method === 'get' ? (isItem ? 'get' : 'list') : method === 'post' ? 'create' : method === 'put' || method === 'patch' ? 'update' : 'delete';
+      (resources[collection] ??= {})[role] = { verb: method.toUpperCase(), reqRef, resRef };
+    }
+  }
+  return resources;
+}
+
+function resolveRef(doc: OpenApiDoc, ref: string): Schema {
+  let node: unknown = doc;
+  for (const part of ref.replace('#/', '').split('/')) {
+    node = (node as Record<string, unknown>)?.[part];
+  }
+  return (node ?? {}) as Schema;
+}
+
+function identityField(doc: OpenApiDoc, resRef: string): string {
+  if (!resRef) return 'id';
+  const flat = flattenSchema(doc, { $ref: resRef });
+  for (const k of Object.keys(flat)) {
+    if (k.toLowerCase() === 'id' || k.toLowerCase() === 'sid') return k;
+  }
+  return 'id';
+}
+
+function flattenSchema(doc: OpenApiDoc, schema: Schema | undefined): Record<string, Schema> {
+  if (!schema) return {};
+  let s = schema;
+  if (s.$ref) s = resolveRef(doc, s.$ref);
+  const props: Record<string, Schema> = {};
+  for (const sub of s.allOf ?? []) Object.assign(props, flattenSchema(doc, sub));
+  Object.assign(props, s.properties ?? {});
+  return props;
+}
+
+function emitResourcesModule(doc: OpenApiDoc, ns: string): string | null {
+  const baseMap = NS_BASE[ns];
+  if (!baseMap) return null;
+  const resources = groupResources(doc);
+  const leaf = (ref: string): string => (ref ? tsName(ref.split('/').pop() as string) : '');
+  const classes: string[] = [];
+  const usedTypes = new Set<string>();
+  const basesUsed = new Set<string>();
+  for (const collection of Object.keys(resources).sort()) {
+    const roles = resources[collection];
+    if (!('create' in roles && 'update' in roles && 'get' in roles)) continue;
+    if (/\/\{[^}]+\}\/[^/]+$/.test(collection)) continue; // parent-scoped sub-collection
+    const listT = leaf(roles.list?.resRef ?? '');
+    const itemT = leaf(roles.get.resRef);
+    const createT = leaf(roles.create.reqRef);
+    const updateT = leaf(roles.update.reqRef);
+    if (!(itemT && createT && updateT)) continue;
+    const verb = roles.update.verb;
+    const base = verb === 'PUT' ? baseMap.PUT : baseMap.PATCH;
+    basesUsed.add(base);
+    const nameSegs = collection.split('/').filter((s) => s && !s.startsWith('{') && s !== 'resources');
+    const className = nameSegs.map(pascal).join('') + 'Resource';
+    for (const t of [listT || itemT, itemT, createT, updateT]) usedTypes.add(t);
+    const httpVerb = verb === 'PUT' ? 'put' : verb === 'PATCH' ? 'patch' : 'post';
+    classes.push(
+      `export class ${className} extends ${base}<\n` +
+        `  ${listT || itemT},\n  ${itemT},\n  ${createT},\n  ${updateT}\n` +
+        `> {\n` +
+        `  /** Create — typed request body plus an \`extras\` escape hatch for fields not yet typed. */\n` +
+        `  override async create(body: ${createT}, extras?: Record<string, unknown>): Promise<${itemT}> {\n` +
+        `    return this._http.post<${itemT}>(this._basePath, { ...body, ...extras });\n` +
+        `  }\n\n` +
+        `  /** Update — typed request body plus an \`extras\` escape hatch. */\n` +
+        `  override async update(${identityField(doc, roles.get.resRef)}: string, body: ${updateT}, extras?: Record<string, unknown>): Promise<${itemT}> {\n` +
+        `    return this._http.${httpVerb}<${itemT}>(this._path(${identityField(doc, roles.get.resRef)}), { ...body, ...extras });\n` +
+        `  }\n` +
+        `}`,
+    );
+  }
+  if (classes.length === 0) return null;
+  const baseImport = [...basesUsed].sort().join(', ');
+  const typeImport = [...usedTypes].sort().join(',\n  ');
+  const header =
+    `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.yaml — DO NOT EDIT.\n` +
+    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// One typed CRUD subclass per full-CRUD resource (closed body + extras door),\n` +
+    `// bound to the resource's spec types so the oracle resolves the crud_base.\n\n` +
+    `import { ${baseImport} } from '../base/FabricResource.js';\n` +
+    `import type {\n  ${typeImport},\n} from './${ns}.types.generated.js';\n\n`;
+  return header + classes.join('\n\n') + '\n';
+}
+
 async function generateForSpec(specPath: string, outPath: string, ns: string): Promise<number> {
   // Fail with a clear, actionable message rather than a raw ENOENT stack trace
   // when a spec is absent — the usual cause is porting-sdk checked out at a
@@ -420,6 +537,19 @@ async function main(): Promise<void> {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
     const n = await generateForSpec(specPath, outPath, specDir);
     console.log(`${verb} ${outPath} (${n} types)`);
+
+    // Typed CRUD resource subclasses (named-subclass shape, closed body + extras).
+    // Emitted only for namespaces with a base mapping (NS_BASE); the namespace file
+    // imports + constructs these. Mirrors the Python resources_generated module.
+    const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
+    const resSrc = emitResourcesModule(doc, specDir);
+    if (resSrc !== null) {
+      const resOut = `src/rest/namespaces/${specDir}.resources.generated.ts`;
+      const config = (await prettier.resolveConfig(resOut)) ?? {};
+      const formatted = await prettier.format(resSrc, { ...config, parser: 'typescript' });
+      emitFile(resOut, formatted);
+      console.log(`${verb} ${resOut} (resources)`);
+    }
   }
 
   // RELAY WS protocol params (separate source tree + format from the REST specs).

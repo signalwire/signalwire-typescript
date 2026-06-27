@@ -118,39 +118,38 @@ describe('FabricNamespace', () => {
     });
   });
 
-  describe('Auto-materialized webhook resources', () => {
-    it('swmlWebhooks.create emits deprecation warning but still posts', async () => {
+  describe('Webhook resources', () => {
+    // Webhooks are plain CRUD resources. The phone-number binding model
+    // (phoneNumbers.setSwmlWebhook / setCxmlWebhook) is the documented way to
+    // auto-materialize them, but direct create is a normal operation with no
+    // deprecation warning (these SDKs are pre-release — nothing to deprecate).
+    it('swmlWebhooks.create posts without warning', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh1' } }]);
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         await fabric.swmlWebhooks.create({
-          name: 'oops',
+          name: 'wh',
           primary_request_url: 'https://example.com',
         });
         expect(getRequests()[0].method).toBe('POST');
         expect(getRequests()[0].url).toContain('/api/fabric/resources/swml_webhooks');
-        expect(warnSpy).toHaveBeenCalledTimes(1);
-        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
-        expect(warnMsg).toContain('setSwmlWebhook');
-        expect(warnMsg).toContain('phone-binding.md');
+        expect(warnSpy).not.toHaveBeenCalled();
       } finally {
         warnSpy.mockRestore();
       }
     });
 
-    it('cxmlWebhooks.create emits deprecation warning but still posts', async () => {
+    it('cxmlWebhooks.create posts without warning', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'wh2' } }]);
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         await fabric.cxmlWebhooks.create({
-          name: 'oops',
+          name: 'wh',
           primary_request_url: 'https://example.com',
         });
         expect(getRequests()[0].method).toBe('POST');
         expect(getRequests()[0].url).toContain('/api/fabric/resources/cxml_webhooks');
-        expect(warnSpy).toHaveBeenCalledTimes(1);
-        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
-        expect(warnMsg).toContain('setCxmlWebhook');
+        expect(warnSpy).not.toHaveBeenCalled();
       } finally {
         warnSpy.mockRestore();
       }

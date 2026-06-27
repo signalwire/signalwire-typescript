@@ -224,13 +224,21 @@ export {
   ConferenceRoomsResource,
   SubscribersResource,
   CxmlApplicationsResource,
-  AutoMaterializedWebhookResource,
-  SwmlWebhooksResource,
-  CxmlWebhooksResource,
   GenericResources,
   FabricAddresses,
   FabricTokens,
 } from './namespaces/fabric.js';
+export {
+  AiAgentsResource,
+  CxmlScriptsResource,
+  CxmlWebhooksResource,
+  FreeswitchConnectorsResource,
+  RelayApplicationsResource,
+  SipEndpointsResource,
+  SipGatewaysResource,
+  SwmlScriptsResource,
+  SwmlWebhooksResource,
+} from './namespaces/fabric.resources.generated.js';
 export { CallingNamespace } from './namespaces/calling.js';
 export { DatasphereNamespace, DatasphereDocuments } from './namespaces/datasphere.js';
 export { PhoneNumbersResource } from './namespaces/phone-numbers.js';
