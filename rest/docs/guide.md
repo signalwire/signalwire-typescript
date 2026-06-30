@@ -155,33 +155,6 @@ await client.video.conferences.list();
 await client.video.conferences.listConferenceTokens('conf-id');
 ```
 
-### Compatibility API (`client.compat.*`)
-
-Twilio-compatible LAML API — scoped to your project ID as AccountSid. All updates use POST (not PATCH/PUT).
-
-```typescript
-// Calls
-await client.compat.calls.list();
-await client.compat.calls.create({ To: '+15551234567', From: '+15559876543', Url: '...' });
-await client.compat.calls.update('CA...', { Status: 'completed' });
-await client.compat.calls.startRecording('CA...');
-
-// Messages
-await client.compat.messages.create({ To: '+15551234567', Body: 'Hello' });
-await client.compat.messages.listMedia('MM...');
-
-// Phone Numbers
-await client.compat.phoneNumbers.list();
-await client.compat.phoneNumbers.searchLocal('US', { AreaCode: '512' });
-await client.compat.phoneNumbers.searchTollFree('US');
-await client.compat.phoneNumbers.purchase({ PhoneNumber: '+15551234567' });
-
-// Conferences
-await client.compat.conferences.list();
-await client.compat.conferences.listParticipants('CF...');
-await client.compat.conferences.updateParticipant('CF...', 'CA...', { Muted: true });
-```
-
 ### Other Namespaces
 
 ```typescript

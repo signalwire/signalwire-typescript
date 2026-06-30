@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 98fdc88450e262c40c02a419719525b3ae9cf630",
+  "generated_from": "signalwire-typescript @ 7c875abbcc1aed7958fbf0fe43fabbb8d7719e8b",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1323,104 +1323,6 @@
         "Chat": [
           "__init__",
           "create_token"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat": {
-      "classes": {
-        "CompatAccounts": [
-          "__init__",
-          "create",
-          "get",
-          "list",
-          "update"
-        ],
-        "CompatCalls": [
-          "__init__",
-          "start_recording",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_recording"
-        ],
-        "CompatMessages": [
-          "__init__",
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ],
-        "CompatFaxes": [
-          "__init__",
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ],
-        "CompatConferences": [
-          "__init__",
-          "delete_recording",
-          "get",
-          "get_participant",
-          "get_recording",
-          "list",
-          "list_participants",
-          "list_recordings",
-          "remove_participant",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_participant",
-          "update_recording"
-        ],
-        "CompatPhoneNumbers": [
-          "__init__",
-          "delete",
-          "get",
-          "import_number",
-          "list",
-          "list_available_countries",
-          "purchase",
-          "search_local",
-          "search_toll_free",
-          "update"
-        ],
-        "CompatApplications": [
-          "__init__",
-          "update"
-        ],
-        "CompatLamlBins": [
-          "__init__",
-          "update"
-        ],
-        "CompatQueues": [
-          "__init__",
-          "dequeue_member",
-          "get_member",
-          "list_members",
-          "update"
-        ],
-        "CompatRecordings": [
-          "__init__",
-          "delete",
-          "get",
-          "list"
-        ],
-        "CompatTranscriptions": [
-          "__init__",
-          "delete",
-          "get",
-          "list"
-        ],
-        "CompatTokens": [
-          "__init__",
-          "create",
-          "delete",
-          "update"
-        ],
-        "CompatNamespace": [
-          "__init__"
         ]
       },
       "functions": []

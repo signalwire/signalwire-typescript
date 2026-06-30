@@ -28,7 +28,7 @@
  * 1 on any error (with a diagnostic on stderr).
  */
 
-import { RestClient, HttpClient } from '../src/rest/index.js';
+import { RestClient } from '../src/rest/index.js';
 
 function die(msg: string): never {
   process.stderr.write(`rest_audit_harness: ${msg}\n`);
@@ -45,13 +45,6 @@ function asStringMap(args: unknown): Record<string, string> {
   }
   return out;
 }
-
-/**
- * member. The audit needs to issue a raw GET/POST against an exact path
- * reach the shared transport directly. This local view types that
- * otherwise-protected access without resorting to `any`.
- */
-type WithHttp = { readonly _http: HttpClient };
 
 async function dispatch(
   client: RestClient,

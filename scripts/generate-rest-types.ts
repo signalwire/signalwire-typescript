@@ -1449,7 +1449,9 @@ async function generateSwmlVerbs(
   outPath: string,
   handWritten: ReadonlySet<string>,
 ): Promise<number> {
-  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as { $defs?: Record<string, Schema> };
+  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as {
+    $defs?: Record<string, Schema>;
+  };
   const defs = schema.$defs ?? {};
   // The shared resolveRef/flattenSchema/flattenUnion walk a pointer string against
   // the doc root generically, so `#/$defs/<Name>` resolves the same way `#/components
