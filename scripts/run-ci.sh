@@ -125,7 +125,8 @@ run_gate "DRIFT" "diff_port_signatures vs python reference" \
         --port-signatures "$PORT_ROOT/port_signatures.json" \
         --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
         --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
-        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
+        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md" \
+        --numeric-monotype  # TS has one numeric type (number); int ≡ float
 
 # Gate 4: surface-fresh — DRIFT only gates Layer A (signatures), so the committed
 # port_surface.json can silently rot. Save the committed copy, regenerate in place
