@@ -201,6 +201,7 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_subsection: BACKLOG /
 signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_pom: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.mixins.skill_mixin.SkillMixin.add_skill: BACKLOG / missing-port/ in reference, not in port
+signalwire.core.mixins.skill_mixin.SkillMixin.list_skills: TS `listSkills()` returns richer status objects (`{ name, instanceId, initialized }[]` → `list<dict<string,any>>`); Python returns `list[str]` of skill names. Same set of skills, TS surfaces per-instance status. (Pre-existing hand-method divergence, surfaced once inline-object fields stopped mis-recording as `class:__type`.)
 signalwire.core.mixins.skill_mixin.SkillMixin.remove_skill: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: BACKLOG / missing-port/ in reference, not in port
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: BACKLOG / missing-port/ in reference, not in port

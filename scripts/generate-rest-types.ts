@@ -57,6 +57,13 @@ interface Schema {
   nullable?: boolean;
   description?: string;
   format?: string;
+  // SWML schema (schema.json) field-markup overrides, mirrored from the Python
+  // generator's py_type: `x-sdk-enum-literal` forces a closed literal union the
+  // schema itself doesn't carry; `x-sdk-widen` does the opposite (a schema
+  // enum/const is only a hint → widen to the base scalar). REST specs never carry
+  // these keys, so honoring them in tsType is inert for the OpenAPI path.
+  'x-sdk-enum-literal'?: unknown[];
+  'x-sdk-widen'?: boolean;
 }
 
 interface Operation {
@@ -106,7 +113,10 @@ function tsName(rawName: string): string {
 }
 
 function refName(ref: string): string {
-  return tsName(ref.replace('#/components/schemas/', ''));
+  // Take the last pointer segment for both OpenAPI (#/components/schemas/<Name>)
+  // and JSON-Schema ($defs) refs (#/$defs/<Name>) — the leaf name is the type
+  // identifier in either form. (Mirrors the Python generator's ref_name.)
+  return tsName(ref.slice(ref.lastIndexOf('/') + 1));
 }
 
 // ---- schema → TS type expression ------------------------------------------
@@ -114,7 +124,26 @@ function refName(ref: string): string {
 function tsType(schema: Schema | undefined, indent = 0): string {
   if (!schema) return 'unknown';
 
-  if (schema.$ref) return refName(schema.$ref);
+  // Field-markup overrides (the SWML schema's formulaic-enrichment vocabulary,
+  // mirrored from the Python generator's py_type). REST specs never set these.
+  const lit = schema['x-sdk-enum-literal'];
+  if (lit && lit.length) {
+    return lit.map((v) => (v === null ? 'null' : JSON.stringify(v))).join(' | ');
+  }
+  if (schema['x-sdk-widen']) {
+    const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    return t === 'integer' || t === 'number' ? 'number' : t === 'boolean' ? 'boolean' : 'string';
+  }
+
+  if (schema.$ref) {
+    // An external/file ref (e.g. "SWMLObject.json") points outside this document —
+    // the type isn't emitted here, so treat the value as an opaque record (the TS
+    // analog of Python's dict[str, Any]).
+    if (!schema.$ref.startsWith('#/') && schema.$ref.endsWith('.json')) {
+      return 'Record<string, unknown>';
+    }
+    return refName(schema.$ref);
+  }
 
   // const → literal
   if (schema.const !== undefined) return JSON.stringify(schema.const);
@@ -1368,6 +1397,113 @@ async function generateSwaigContracts(
   return decls.length;
 }
 
+// ---- SWML verb config types (schema.json $defs) ----------------------------
+
+/**
+ * Open-shaped declaration for a SWML $defs schema: like the read-side SWAIG
+ * payloads, every field is optional (drop `required`) and every named object type
+ * carries a top-level `[key: string]: unknown` tail so unmodeled server keys
+ * round-trip (mirrors the Python TypedDict `total=False` + open-shape contract).
+ * Optionality is invisible to the cross-port oracle — the enumerator records a
+ * field's WRITTEN type node, so `params?: AIParams` still reads as `class:AIParams`
+ * exactly like Python's `total=False` `params: AIParams`.
+ */
+function swmlDeclaration(name: string, schema: Schema): string {
+  const doc = schema.description ? `/** ${schema.description.split('\n')[0]} */\n` : '';
+  const isObject =
+    (schema.type === 'object' || (!schema.type && schema.properties)) &&
+    !schema.oneOf &&
+    !schema.anyOf &&
+    !schema.allOf;
+  if (isObject && schema.properties) {
+    const open: Schema = { ...schema, required: [], additionalProperties: true };
+    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true)}\n`;
+  }
+  return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
+}
+
+/**
+ * Typed SWML verb CONFIG surface from porting-sdk/schema.json ($defs). Mirrors the
+ * Python generator's `generate_swml_verbs`: emit one declaration per $defs schema
+ * (object-with-props → interface; everything else → a type alias) so every $ref
+ * resolves, plus the flattened `<Verb>Config` interfaces produced by walking
+ * `$defs.SWMLMethod.anyOf` (each wrapper's single property is the verb, whose inner
+ * oneOf/object schema flattens into a `<Verb>Config`). The `$ref`/`oneOf` follows
+ * and the x-sdk markup is honored by tsType — no hardcoded per-verb tables.
+ *
+ * This is the CONFIG TYPE surface (the `<Config>` payload shapes); the verb METHOD
+ * surface (the chainable `builder.ai(...)` methods) is the complementary, already-
+ * committed src/SwmlVerbMethods.generated.ts module augmentation. Python co-locates
+ * both in swml_verbs_generated.py with a `_SwmlVerbs` method class; here the method
+ * surface lives in its own module, so this file carries only the config decls (the
+ * `_SwmlVerbs` class is `_`-prefixed and never part of the cross-port oracle). Held
+ * to the same lint bar as hand-written source.
+ *
+ * `handWritten` names the verbs THIS port hand-writes with richer ergonomics; they
+ * are excluded from the verb walk so their `<Verb>Config` is not flattened (matching
+ * the Python reference, which excludes the same set). This only affects which Config
+ * decls are emitted — every $defs schema is still emitted unconditionally.
+ */
+async function generateSwmlVerbs(
+  schemaPath: string,
+  outPath: string,
+  handWritten: ReadonlySet<string>,
+): Promise<number> {
+  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as { $defs?: Record<string, Schema> };
+  const defs = schema.$defs ?? {};
+  // The shared resolveRef/flattenSchema/flattenUnion walk a pointer string against
+  // the doc root generically, so `#/$defs/<Name>` resolves the same way `#/components
+  // /schemas/<Name>` does — the `{ $defs }` root just needs to carry that key. The
+  // OpenApiDoc cast is only to satisfy those helpers' parameter type.
+  const doc = { $defs: defs } as unknown as OpenApiDoc;
+
+  const decls: string[] = [];
+  // 1. One declaration per $defs schema (so every $ref resolves).
+  for (const [name, sch] of Object.entries(defs)) {
+    if (sch && typeof sch === 'object') decls.push(swmlDeclaration(name, sch));
+  }
+
+  // 2. Walk SWMLMethod.anyOf → flatten each non-hand-written verb's inner schema
+  //    into a <Verb>Config interface (only when the inner is a oneOf/object-with-
+  //    props and has no direct $ref; a $ref inner already names a declared type).
+  const swmlMethod = defs.SWMLMethod ?? {};
+  for (const ref of swmlMethod.anyOf ?? []) {
+    const wrapperName = (ref.$ref ?? '').split('/').pop() ?? '';
+    const wdef = defs[wrapperName] ?? {};
+    const propNames = Object.keys(wdef.properties ?? {});
+    if (propNames.length === 0) continue;
+    const verb = propNames[0];
+    if (handWritten.has(verb)) continue;
+    const inner = wdef.properties![verb];
+    if (inner.type === 'string' || inner.$ref) continue;
+    const hasInlineProps = inner.type === 'object' && inner.properties;
+    if (!inner.oneOf && !hasInlineProps) continue;
+    const { props } = flattenUnion(doc, inner);
+    if (Object.keys(props).length === 0) continue;
+    const cfgName = pascal(verb) + 'Config';
+    const desc = (inner.description ?? `Add the ${verb} verb.`).split('\n')[0].trim();
+    decls.push(swmlDeclaration(cfgName, { type: 'object', properties: props, description: desc }));
+  }
+
+  const header =
+    `// AUTO-GENERATED from porting-sdk/schema.json ($defs) — DO NOT EDIT.\n` +
+    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// The typed SWML verb CONFIG surface: one interface per schema.json $defs entry\n` +
+    `// (object → interface; non-object → type alias) + the flattened <Verb>Config\n` +
+    `// payload shapes. These are the config payloads the SwmlBuilder verb methods\n` +
+    `// accept; the chainable verb METHODS live in SwmlVerbMethods.generated.ts. Open-\n` +
+    `// shaped: every field optional and every named type carries a [key: string]:\n` +
+    `// unknown tail so unmodeled server keys round-trip. Held to the same lint bar as\n` +
+    `// hand-written source (no rule suppressions, no loose types).\n\n`;
+  const config = (await prettier.resolveConfig(outPath)) ?? {};
+  const formatted = await prettier.format(header + decls.join('\n'), {
+    ...config,
+    parser: 'typescript',
+  });
+  emitFile(outPath, formatted);
+  return decls.length;
+}
+
 /**
  * RELAY WS protocol types. Unlike the REST namespaces (one OpenAPI doc with
  * components/schemas), the relay contracts are one standalone JSON-Schema file
@@ -1523,6 +1659,26 @@ async function main(): Promise<void> {
     console.log(
       `skipped SWAIG contracts (no swaig-specs at ${path.join(psdk, 'swaig-specs')}; ` +
         `using committed src/SwaigContracts.generated.ts).`,
+    );
+  }
+
+  // Typed SWML verb CONFIG types from schema.json ($defs). Separate source file
+  // from the rest-apis/ specs; skipped cleanly if schema.json isn't present in the
+  // resolved porting-sdk (mirrors the per-spec fail-soft above). The verb METHOD
+  // surface stays in the committed src/SwmlVerbMethods.generated.ts.
+  const swmlSchema = path.join(psdk, 'schema.json');
+  if (fs.existsSync(swmlSchema)) {
+    const swmlOut = 'src/swml_verbs_generated.ts';
+    // Verbs this port hand-writes with richer ergonomics — excluded from the verb
+    // walk so their <Verb>Config isn't flattened (matches the Python reference's
+    // hand_written set; only affects which Config decls are emitted).
+    const handWritten = new Set(['answer', 'hangup', 'ai', 'play', 'say']);
+    const n = await generateSwmlVerbs(swmlSchema, swmlOut, handWritten);
+    console.log(`${verb} ${swmlOut} (${n} types)`);
+  } else {
+    console.log(
+      `skipped SWML verb contracts (no schema.json at ${swmlSchema}; ` +
+        `using committed src/swml_verbs_generated.ts).`,
     );
   }
 

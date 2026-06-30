@@ -385,7 +385,19 @@ function translateType(
   if (aliasSym) {
     const decl = aliasSym.declarations?.[0];
     const srcFile = decl?.getSourceFile().fileName ?? '';
-    if (srcFile.includes('.types.generated') || srcFile.includes('.generated.')) {
+    // A generated-payload alias (e.g. `SWMLVar = string`, `AIPostPrompt =
+    // AIPostPromptPom | AIPostPromptText`, `CondParams = …` in
+    // swml_verbs_generated.ts) is, like the *.types.generated aliases, the same
+    // contract the Python (griffe) reference records BY NAME (`class:…SWMLVar`)
+    // rather than inlining to its primitive/union. The gen-payload filenames carry
+    // no `.generated.` infix (`swml_verbs_generated.ts`), so match them explicitly
+    // so their alias names survive (the diff folds the module to gen-payload and
+    // compares by leaf name).
+    if (
+      srcFile.includes('.types.generated') ||
+      srcFile.includes('.generated.') ||
+      GEN_PAYLOAD_FILE_MARKERS.some((mk) => srcFile.includes(mk))
+    ) {
       // Emit the FULLY-QUALIFIED generated-module path (mirrors how a $ref-backed
       // generated type is recorded, e.g.
       // `class:signalwire.rest.namespaces.relay_rest.types.generated.AddressResponse`)
@@ -537,8 +549,14 @@ function translateType(
 
   // Object literal type / anonymous object: treat as dict<string,any>
   if (type.flags & ts.TypeFlags.Object) {
-    // If it's a class/interface from the SDK, emit class:<canonical>
-    const decls = symbol?.getDeclarations() ?? [];
+    // If it's a NAMED class/interface from the SDK, emit class:<canonical>. An
+    // anonymous inline object literal (`{ a: 1 }`) has the synthetic symbol name
+    // `__type`; it is declared in an src/ file (the TypeLiteralNode lives there)
+    // but is NOT a named SDK type — recording it as `class:…__type` is wrong and
+    // diverges from the Python reference, which collapses an inline object to
+    // `dict[str, Any]`. Skip the class branch for `__type` so it falls through to
+    // the `dict<string,any>` mapping below (matching py_type).
+    const decls = symbolName === '__type' ? [] : (symbol?.getDeclarations() ?? []);
     for (const d of decls) {
       const sf = d.getSourceFile();
       const rel = path.relative(REPO_ROOT, sf.fileName);
@@ -813,9 +831,34 @@ function collectInterface(
     if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
     const native = m.name.text;
     if (native.startsWith('_')) continue;
-    const snake = camelToSnake(native);
-    if (methods[snake] !== undefined) continue;
+    // Mirror the Python enumerator (enumerate_python_signatures.py): it skips any
+    // member whose name is ALL-CAPS (`mname.isupper() or
+    // mname.replace("_","").isupper()`) — the Python convention treats all-caps as a
+    // constant, not an API attribute. So the reference drops fields like `SWAIG`
+    // (`AIObject.SWAIG`, `AmazonBedrockObject.SWAIG`); the port must drop them too.
+    const letters = native.replace(/[^A-Za-z]/g, '');
+    if (letters.length > 0 && letters === letters.toUpperCase()) continue;
+    // Key the field by its VERBATIM wire name, NOT camelToSnake(native). A generated-
+    // payload interface field IS the schema property name (`allOf`, `numberedBullets`,
+    // `post_prompt`); the Python (griffe) reference records the TypedDict key verbatim,
+    // so snake-casing here would spuriously rename `allOf` → `all_of` and diverge.
+    // Already-snake keys (`post_prompt`) are unchanged.
+    const key = native;
+    if (methods[key] !== undefined) continue;
     try {
+      // First resolve the field's WRITTEN type node: a generated-payload field can
+      // reference named aliases (`SWMLVar`, `AIPostPrompt`, …) whose names the
+      // Python (griffe) reference keeps but the TS type checker would inline —
+      // `boolean | SWMLVar` resolves to `boolean | string`, dropping the class arm.
+      // generatedAliasFromNode walks the source node so the names survive; it
+      // returns a ref only when every member resolves to a generated alias, so a
+      // genuinely primitive field still falls through to the type-checker path
+      // (which correctly returns null for it).
+      const written = generatedAliasFromNode(m.type, checker);
+      if (written !== null && isSdkClassRef(written)) {
+        methods[key] = { params: [{ name: 'self', kind: 'self' }], returns: written };
+        continue;
+      }
       // A PropertySignature is structurally a PropertyDeclaration for the field
       // we need (`.name`, `.type`); signatureFromProperty applies the same
       // SDK-class-typed-only filter (returns null for primitives) as Python.
@@ -824,9 +867,9 @@ function collectInterface(
         checker,
         aliases,
         false,
-        `${mod}.${canonClass}.${snake}`,
+        `${mod}.${canonClass}.${key}`,
       );
-      if (sig !== null) methods[snake] = sig;
+      if (sig !== null) methods[key] = sig;
     } catch (e) {
       if (e instanceof TypeTranslationError) failures.push(e);
       else throw e;
@@ -912,6 +955,23 @@ function extractCrudBase(
   return null;
 }
 
+/**
+ * A canonical type ref is an SDK-class-typed field (the only fields the Python
+ * `_is_sdk_class_type` rule records): a direct `class:`, an `optional<class:…>`, a
+ * single-level `list<class:…>`, or a `union<…>` that contains a class arm.
+ * Deliberately does NOT accept deeper nestings like `list<list<class:…>>` — the
+ * Python reference doesn't record those either (e.g. `serial_parallel`), so a port
+ * that did would over-record vs the oracle.
+ */
+function isSdkClassRef(canon: string): boolean {
+  return (
+    canon.startsWith('class:') ||
+    canon.startsWith('optional<class:') ||
+    canon.startsWith('list<class:') ||
+    (canon.startsWith('union<') && canon.includes('class:'))
+  );
+}
+
 function signatureFromProperty(
   m: ts.PropertyDeclaration,
   checker: ts.TypeChecker,
@@ -928,12 +988,7 @@ function signatureFromProperty(
   const canon = translateType(propType, checker, aliases, ctx);
   // Only project SDK class references; primitive-typed state fields
   // are excluded (matches Python adapter's _is_sdk_class_type rule).
-  const isSdkClass =
-    canon.startsWith('class:') ||
-    canon.startsWith('optional<class:') ||
-    canon.startsWith('list<class:') ||
-    (canon.startsWith('union<') && canon.includes('class:'));
-  if (!isSdkClass) return null;
+  if (!isSdkClassRef(canon)) return null;
   const params: CanonicalParam[] = [];
   if (!isStatic) params.push({ name: 'self', kind: 'self' });
   return { params, returns: canon };
@@ -1048,13 +1103,42 @@ function generatedAliasFromNode(
       parts.push(p);
     }
     if (parts.length === 0) return null;
-    const u = parts.length === 1 ? parts[0] : `union<${parts.join(',')}>`;
-    return members.length < node.types.length ? `optional<${u}>` : u;
+    const hadNull = members.length < node.types.length;
+    // A single non-null member with a dropped null → `optional<X>` (matches the
+    // Python reference's `X | None`). With 2+ non-null members, KEEP the head as a
+    // flat `union<…>` rather than lifting to `optional<union<…>>`: the Python
+    // reference keeps such a field as `union<optional<int>,SWMLVar>` (head=union,
+    // the null grouped with one arm), and TS's union is flat so we can't know which
+    // arm the null pairs with — a flat `union<…>` is the recordable form the diff's
+    // union compatibility accepts (and it keeps the generated-class arms, where an
+    // `optional<union<…>>` head would fail the SDK-class-ref test).
+    if (parts.length === 1) return hadNull ? `optional<${parts[0]}>` : parts[0];
+    return `union<${parts.join(',')}>`;
   }
   // Primitive keyword members (for union reconstruction above).
   if (node.kind === ts.SyntaxKind.StringKeyword) return 'string';
   if (node.kind === ts.SyntaxKind.NumberKeyword) return 'float';
   if (node.kind === ts.SyntaxKind.BooleanKeyword) return 'bool';
+  // Literal-type members (e.g. `0`, `'mandatory'`, `true` in a written union such as
+  // `AttentionTimeout | 0 | SWMLVar`). The Python reference collapses a literal to
+  // its base scalar (a numeric literal → int/float, a string literal → string, a
+  // bool literal → bool); collapse the same way so the union keeps its generated-
+  // alias arms intact instead of bailing out of the written-node path.
+  if (ts.isLiteralTypeNode(node)) {
+    const lit = node.literal;
+    if (ts.isStringLiteral(lit)) return 'string';
+    if (ts.isNumericLiteral(lit)) return 'float';
+    if (lit.kind === ts.SyntaxKind.TrueKeyword || lit.kind === ts.SyntaxKind.FalseKeyword) {
+      return 'bool';
+    }
+    return null;
+  }
+  // Inline object literal member (e.g. the `{ timeout?: … }` arm of
+  // `number | SWMLVar | { … }`) → `dict<string,any>`, matching the Python reference
+  // (py_type collapses an inline object to `dict[str, Any]`). Without this the
+  // written-node walk would bail on the object arm and the field's generated-class
+  // arms (SWMLVar, …) would be lost to the type checker's inlining.
+  if (ts.isTypeLiteralNode(node)) return 'dict<string,any>';
   // `uuid[]` / `string[]` → list<…>
   if (ts.isArrayTypeNode(node)) {
     const inner = generatedAliasFromNode(node.elementType, checker);
@@ -1068,14 +1152,26 @@ function generatedAliasFromNode(
     if (sym && sym.flags & ts.SymbolFlags.Alias) sym = checker.getAliasedSymbol(sym);
     const decl = sym?.declarations?.[0];
     const src = decl?.getSourceFile().fileName ?? '';
-    // Only generated TYPE aliases get the by-name treatment, and they are recorded
-    // under the `*_types_generated` module so the diff's generated-type
+    // Only generated TYPE aliases / interfaces get the by-name treatment, and they
+    // are recorded under the `*_types_generated` module so the diff's generated-type
     // normalization (which keys off `.types.generated.` / `_types_generated.`)
     // folds them to `gen:<Name>` and matches the Python reference.
     const m = src.match(/\/src\/(.+?)\.ts$/);
     if (m && /\.types\.generated$/.test(m[1])) {
       const modPath = m[1].replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
       return `class:signalwire.${modPath}.${node.typeName.text}`;
+    }
+    // Generated-payload aliases/interfaces (swml_verbs_generated.ts,
+    // SwaigContracts.generated.ts): the Python reference records these BY NAME too
+    // (`class:…SWMLVar`, `class:…AIPostPrompt`), and the union/array reconstruction
+    // above needs each member's NAME to survive the type checker's alias inlining
+    // (`boolean | SWMLVar` would otherwise resolve to `boolean | string`). The diff
+    // folds the gen-payload module + compares by leaf name.
+    if (m && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
+      // The diff compares generated `class:` refs by LEAF name (the module folds to
+      // gen-payload), so the qualifier only needs to be a stable gen-payload module
+      // path — fallbackModuleName produces exactly the one collectInterface records.
+      return `class:${fallbackModuleName(`src/${m[1]}.ts`)}.${node.typeName.text}`;
     }
   }
   return null;

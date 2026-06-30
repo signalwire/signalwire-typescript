@@ -1,0 +1,5 @@
+# Presence of this file makes porting-sdk/scripts/drift.sh pass --numeric-monotype.
+# TypeScript has a single numeric type (`number`), so the enumerator records every
+# integer field as `float`; the drift gate treats int≡float (wire-neutral — JSON has
+# no int/float distinction). See SESSION_CHANGESET_FOR_PORTS.md §G. run-ci.sh passes
+# the flag independently; this marker is for the standalone drift.sh fast loop.

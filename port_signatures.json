@@ -63,7 +63,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.agent_server.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -307,7 +307,7 @@
             },
             {
               "name": "opts",
-              "type": "class:signalwire.cli.mock_data.__type",
+              "type": "optional<dict<string,any>>",
               "required": false,
               "default": null
             }
@@ -348,7 +348,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent.prompt.manager.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -373,7 +373,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent.prompt.manager.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -393,7 +393,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent.prompt.manager.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -515,7 +515,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -540,7 +540,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -560,7 +560,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -944,7 +944,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -1136,12 +1136,12 @@
                 },
                 {
                   "name": "_summary",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPromptData",
+                  "type": "optional<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptData>",
                   "required": true
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -1164,10 +1164,6 @@
                 }
               ],
               "returns": "class:signalwire.core.agent.prompt.manager.PromptManager"
-            },
-            "prompt_sections": {
-              "params": [],
-              "returns": "list<class:signalwire.core.agent_base.__type>"
             },
             "register_routing_callback": {
               "params": [
@@ -1271,7 +1267,7 @@
                 },
                 {
                   "name": "platform",
-                  "type": "union<string,string,string,string,string>",
+                  "type": "optional<union<string,string,string,string,string>>",
                   "required": false,
                   "default": null
                 }
@@ -1310,7 +1306,7 @@
               "params": [
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -1379,7 +1375,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.auth_handler.__type"
+              "returns": "dict<string,any>"
             },
             "has_api_key_auth": {
               "params": [
@@ -1837,7 +1833,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2245,7 +2241,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2260,7 +2256,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -2314,7 +2310,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -2383,7 +2379,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -2480,7 +2476,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.contexts.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2789,7 +2785,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "class:signalwire.core.data_map.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -2846,7 +2842,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.data_map.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2889,7 +2885,7 @@
                 },
                 {
                   "name": "agent",
-                  "type": "class:signalwire.core.data_map.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -2936,7 +2932,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.data_map.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2965,7 +2961,7 @@
           "params": [
             {
               "name": "opts",
-              "type": "class:signalwire.core.data_map.__type",
+              "type": "dict<string,any>",
               "required": true
             }
           ],
@@ -2975,7 +2971,7 @@
           "params": [
             {
               "name": "opts",
-              "type": "class:signalwire.core.data_map.__type",
+              "type": "dict<string,any>",
               "required": true
             }
           ],
@@ -3063,7 +3059,7 @@
                 },
                 {
                   "name": "hints",
-                  "type": "list<union<string,class:signalwire.core.function_result.__type>>",
+                  "type": "list<union<string,dict<string,any>>>",
                   "required": true
                 }
               ],
@@ -3199,7 +3195,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -3213,7 +3209,7 @@
                 },
                 {
                   "name": "swml_content",
-                  "type": "union<string,dict<string,any>,class:signalwire.core.function_result.__type>",
+                  "type": "union<string,dict<string,any>,dict<string,any>>",
                   "required": true
                 },
                 {
@@ -3262,7 +3258,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -3291,7 +3287,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -3325,7 +3321,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -3466,7 +3462,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -3626,7 +3622,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -3708,7 +3704,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -3740,7 +3736,7 @@
                 },
                 {
                   "name": "toggles",
-                  "type": "list<class:signalwire.core.function_result.__type>",
+                  "type": "list<dict<string,any>>",
                   "required": true
                 }
               ],
@@ -3782,7 +3778,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.function_result.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4099,7 +4095,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -4361,7 +4357,7 @@
                 },
                 {
                   "name": "include_source",
-                  "type": "bool",
+                  "type": "optional<bool>",
                   "required": false,
                   "default": null
                 }
@@ -4389,7 +4385,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4450,7 +4446,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4475,7 +4471,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4495,7 +4491,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4580,7 +4576,7 @@
               "params": [
                 {
                   "name": "app",
-                  "type": "class:signalwire.core.mixins.serverless_mixin.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -4590,7 +4586,7 @@
               "params": [
                 {
                   "name": "app",
-                  "type": "class:signalwire.core.mixins.serverless_mixin.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -4600,7 +4596,7 @@
               "params": [
                 {
                   "name": "app",
-                  "type": "class:signalwire.core.mixins.serverless_mixin.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -4623,7 +4619,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.mixins.serverless_mixin.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4647,7 +4643,7 @@
                 },
                 {
                   "name": "app",
-                  "type": "class:signalwire.core.mixins.serverless_mixin.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 },
                 {
@@ -4701,7 +4697,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.core.agent_base.__type>"
+              "returns": "list<dict<string,any>>"
             },
             "remove_skill": {
               "params": [
@@ -4848,7 +4844,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4863,7 +4859,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.agent_base.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4971,7 +4967,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.pom_builder.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -4996,7 +4992,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.pom_builder.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -5016,7 +5012,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.pom_builder.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -5141,7 +5137,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.pom_builder.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -5156,7 +5152,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.pom_builder.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -5624,7 +5620,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.security_config.__type"
+              "returns": "dict<string,any>"
             },
             "hsts_middleware": {
               "params": [
@@ -5794,7 +5790,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 }
               ],
@@ -6000,7 +5996,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.core.skill_manager.__type>"
+              "returns": "list<dict<string,any>>"
             },
             "get_merged_global_data": {
               "params": [
@@ -6069,7 +6065,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.core.skill_manager.__type>"
+              "returns": "list<dict<string,any>>"
             },
             "load_skill": {
               "params": [
@@ -6192,7 +6188,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
+                  "type": "optional<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigRequest>",
                   "required": false,
                   "default": null
                 },
@@ -6369,7 +6365,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.swml_builder.__type"
+              "returns": "dict<string,any>"
             },
             "get_schema_utils": {
               "params": [],
@@ -6406,7 +6402,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.swml_builder.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -6747,7 +6743,7 @@
                 },
                 {
                   "name": "include_source",
-                  "type": "bool",
+                  "type": "optional<bool>",
                   "required": false,
                   "default": null
                 }
@@ -6793,7 +6789,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.core.swml_service.__type>"
+              "returns": "list<dict<string,any>>"
             },
             "get_tool": {
               "params": [
@@ -6887,7 +6883,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 }
               ],
@@ -7034,7 +7030,7 @@
                 },
                 {
                   "name": "host_or_opts",
-                  "type": "union<string,class:signalwire.core.swml_service.__type>",
+                  "type": "optional<union<string,dict<string,any>>>",
                   "required": false,
                   "default": null
                 },
@@ -7046,7 +7042,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.swml_service.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7084,7 +7080,7 @@
                 },
                 {
                   "name": "_request_data",
-                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 },
                 {
@@ -7144,7 +7140,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.core.swml_service.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7231,7 +7227,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7423,13 +7419,13 @@
                 },
                 {
                   "name": "fn_or_opts",
-                  "type": "union<callable<list<class:signalwire.livewire.JobContext>,void>,class:signalwire.livewire.__type>",
+                  "type": "union<callable<list<class:signalwire.livewire.JobContext>,void>,dict<string,any>>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7448,7 +7444,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7463,7 +7459,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7519,7 +7515,7 @@
                 },
                 {
                   "name": "params",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -7579,7 +7575,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -7671,12 +7667,12 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
               ],
-              "returns": "class:signalwire.livewire.__type"
+              "returns": "dict<string,any>"
             }
           }
         },
@@ -7740,7 +7736,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.livewire.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -7931,7 +7927,7 @@
           "params": [
             {
               "name": "options",
-              "type": "class:signalwire.livewire.__type",
+              "type": "dict<string,any>",
               "required": true
             }
           ],
@@ -7941,7 +7937,7 @@
           "params": [
             {
               "name": "options",
-              "type": "union<class:signalwire.livewire.AgentDefinition,class:signalwire.livewire.AgentServer,callable<list<class:signalwire.livewire.JobContext>,any>,class:signalwire.livewire.__type>",
+              "type": "union<class:signalwire.livewire.AgentDefinition,class:signalwire.livewire.AgentServer,callable<list<class:signalwire.livewire.JobContext>,any>,dict<string,any>>",
               "required": true
             }
           ],
@@ -7951,7 +7947,7 @@
           "params": [
             {
               "name": "options",
-              "type": "class:signalwire.livewire.__type",
+              "type": "dict<string,any>",
               "required": true
             }
           ],
@@ -8321,7 +8317,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.pom.pom.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -8434,7 +8430,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.pom.pom.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -8482,7 +8478,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.pom.pom.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -8602,7 +8598,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8673,7 +8669,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8808,7 +8804,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8870,7 +8866,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
+                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -9045,7 +9041,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9060,7 +9056,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9075,7 +9071,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9090,7 +9086,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9105,7 +9101,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9120,7 +9116,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9160,7 +9156,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9190,7 +9186,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9210,7 +9206,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9243,12 +9239,12 @@
                 },
                 {
                   "name": "detect",
-                  "type": "class:signalwire.rest.namespaces.calling_types_generated.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9263,7 +9259,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9278,7 +9274,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9293,7 +9289,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9326,7 +9322,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9379,7 +9375,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9399,7 +9395,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9474,7 +9470,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9522,7 +9518,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9537,12 +9533,12 @@
                 },
                 {
                   "name": "media",
-                  "type": "list<union<class:signalwire.relay.protocol_types_generated.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type>>",
+                  "type": "list<union<dict<string,any>,dict<string,any>,dict<string,any>,dict<string,any>,dict<string,any>>>",
                   "required": true
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9557,7 +9553,7 @@
                 },
                 {
                   "name": "media",
-                  "type": "list<union<class:signalwire.relay.protocol_types_generated.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type,class:signalwire.relay.types.__type>>",
+                  "type": "list<union<dict<string,any>,dict<string,any>,dict<string,any>,dict<string,any>,dict<string,any>>>",
                   "required": true
                 },
                 {
@@ -9567,7 +9563,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9587,7 +9583,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9607,7 +9603,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9627,7 +9623,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9647,7 +9643,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9672,7 +9668,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9697,7 +9693,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9717,7 +9713,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9737,7 +9733,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9752,7 +9748,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9767,13 +9763,13 @@
                 },
                 {
                   "name": "audio",
-                  "type": "class:signalwire.rest.namespaces.calling_types_generated.__type",
+                  "type": "dict<string,any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9793,7 +9789,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9833,7 +9829,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9853,7 +9849,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9868,7 +9864,7 @@
                 },
                 {
                   "name": "tap",
-                  "type": "class:signalwire.rest.namespaces.calling_types_generated.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 },
                 {
@@ -9878,7 +9874,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -9893,7 +9889,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.call.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -10488,7 +10484,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.client.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -10624,7 +10620,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.client.__type",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -12277,7 +12273,7 @@
                 },
                 {
                   "name": "options",
-                  "type": "class:signalwire.relay.message.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": {}
                 }
@@ -13275,7 +13271,7 @@
                 },
                 {
                   "name": "role",
-                  "type": "union<string,string,string>",
+                  "type": "optional<union<string,string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -13925,7 +13921,7 @@
                 },
                 {
                   "name": "direction",
-                  "type": "union<string,string,string>",
+                  "type": "optional<union<string,string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -14396,7 +14392,7 @@
                 },
                 {
                   "name": "track",
-                  "type": "union<string,string,string>",
+                  "type": "optional<union<string,string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -14678,7 +14674,7 @@
                 },
                 {
                   "name": "status",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15550,7 +15546,7 @@
                 },
                 {
                   "name": "voice_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15564,7 +15560,7 @@
                 },
                 {
                   "name": "voice_fallback_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15578,7 +15574,7 @@
                 },
                 {
                   "name": "status_callback_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15592,7 +15588,7 @@
                 },
                 {
                   "name": "sms_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15606,7 +15602,7 @@
                 },
                 {
                   "name": "sms_fallback_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -15620,7 +15616,7 @@
                 },
                 {
                   "name": "sms_status_callback_method",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -18128,7 +18124,7 @@
                 },
                 {
                   "name": "version",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null
                 },
@@ -19123,7 +19119,7 @@
                 },
                 {
                   "name": "default_encryption",
-                  "type": "union<string,string>",
+                  "type": "optional<union<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21521,7 +21517,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.signalwire-typescript.src.SwaigContracts.generated.PostPromptCallLogEntry>"
+              "returns": "list<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptCallLogEntry>"
             },
             "post_prompt_data": {
               "params": [
@@ -21530,7 +21526,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.PostPromptData"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptData"
             },
             "raw_call_log": {
               "params": [
@@ -21539,7 +21535,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.signalwire-typescript.src.SwaigContracts.generated.PostPromptCallLogEntry>"
+              "returns": "list<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptCallLogEntry>"
             },
             "swaig_log": {
               "params": [
@@ -21548,7 +21544,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.swaig_contracts.generated.PostPromptSwaigLogEntry>"
+              "returns": "list<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptSwaigLogEntry>"
             },
             "times": {
               "params": [
@@ -21557,7 +21553,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<class:signalwire.swaig_contracts.generated.PostPromptTimesEntry>"
+              "returns": "list<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptTimesEntry>"
             }
           }
         },
@@ -21570,7 +21566,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.PostPromptStampsUs"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptStampsUs"
             }
           }
         },
@@ -21583,7 +21579,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.SwaigRequest"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigRequest"
             }
           }
         },
@@ -21596,7 +21592,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.PostPromptEntity"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptEntity"
             },
             "eot": {
               "params": [
@@ -21605,7 +21601,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.PostPromptEot"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptEot"
             },
             "timing": {
               "params": [
@@ -21614,7 +21610,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.PostPromptTiming"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPromptTiming"
             }
           }
         },
@@ -21627,7 +21623,3643 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.swaig_contracts.generated.SwaigArgument"
+              "returns": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.SwaigArgument"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.swml_verbs_generated": {
+      "classes": {
+        "AI": {
+          "methods": {
+            "ai": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.AIObject"
+            }
+          }
+        },
+        "AIObject": {
+          "methods": {
+            "languages": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Languages>"
+            },
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.AIParams"
+            },
+            "post_prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.AIPostPrompt"
+            },
+            "prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.AIPrompt"
+            },
+            "pronounce": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Pronounce>"
+            }
+          }
+        },
+        "AIParams": {
+          "methods": {
+            "acknowledge_interruptions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "ai_volume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "asr_diarize": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "asr_smart_format": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "asr_speaker_affinity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "attention_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.AttentionTimeout,float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "audible_debug": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "audible_latency": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "background_file_loops": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "background_file_volume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "barge_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "barge_min_words": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "cache_mode": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "conversation_sliding_window": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "convo": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConversationMessage>"
+            },
+            "debug": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "debug_webhook_level": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "digit_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Direction,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "eleven_labs_similarity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "eleven_labs_stability": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_accounting": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_barge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_inner_dialog": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_pause": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_thinking": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_turn_detection": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enable_vision": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "end_of_speech_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "energy_level": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "first_word_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "function_wait_for_talking": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "functions_on_no_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "hard_stop_time": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "hold_on_process": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "inactivity_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "initial_sleep_ms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "inner_dialog_synced": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "input_poll_freq": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "interrupt_on_noise": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "languages_enabled": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "llm_diarize_aware": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_emotion": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_response_tokens": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "outbound_attention_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "persist_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "save_conversation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "speak_when_spoken_to": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "speech_event_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "speech_gen_quick_stops": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "speech_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "start_paused": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "static_greeting_no_barge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "summary_mode": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "swaig_allow_settings": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "swaig_allow_swml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "swaig_post_conversation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "swaig_post_swml_vars": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,list<string>,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "swaig_set_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transparent_barge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transparent_barge_max_time": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "turn_detection_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "verbose_logs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_for_user": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "AIPostPromptPom": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "AIPostPromptText": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "AIPromptPom": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.Contexts"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "AIPromptText": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.Contexts"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "AllOfProperty": {
+          "methods": {
+            "allOf": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SchemaType>"
+            }
+          }
+        },
+        "AmazonBedrock": {
+          "methods": {
+            "amazon_bedrock": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.AmazonBedrockObject"
+            }
+          }
+        },
+        "AmazonBedrockObject": {
+          "methods": {
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.BedrockParams"
+            },
+            "post_prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.BedrockPostPrompt"
+            },
+            "prompt": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.BedrockPrompt"
+            }
+          }
+        },
+        "AnyOfProperty": {
+          "methods": {
+            "anyOf": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SchemaType>"
+            }
+          }
+        },
+        "ArrayProperty": {
+          "methods": {
+            "items": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.SchemaType"
+            },
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "BedrockParams": {
+          "methods": {
+            "attention_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.AttentionTimeout,float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "hard_stop_time": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "inactivity_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "BedrockSWAIG": {
+          "methods": {
+            "defaults": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGDefaults"
+            },
+            "functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.BedrockSWAIGFunction>"
+            },
+            "includes": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGIncludes>"
+            },
+            "native_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGNativeFunction>"
+            }
+          }
+        },
+        "BooleanProperty": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "Cond": {
+          "methods": {
+            "cond": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>"
+            }
+          }
+        },
+        "CondElse": {
+          "methods": {
+            "else": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "CondReg": {
+          "methods": {
+            "else": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            },
+            "then": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "Connect": {
+          "methods": {
+            "connect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle,class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSerial,class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceParallel,class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSerialParallel>"
+            }
+          }
+        },
+        "ConnectConfig": {
+          "methods": {
+            "answer_on_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "call_state_events": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CallStatus>"
+            },
+            "confirm": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ValidConfirmMethods>>"
+            },
+            "confirm_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectHeaders>"
+            },
+            "max_duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "parallel": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "serial": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>"
+            },
+            "session_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "webrtc_media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ConnectDeviceParallel": {
+          "methods": {
+            "answer_on_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "call_state_events": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CallStatus>"
+            },
+            "confirm": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ValidConfirmMethods>>"
+            },
+            "confirm_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectHeaders>"
+            },
+            "max_duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "parallel": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "session_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "webrtc_media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ConnectDeviceSerial": {
+          "methods": {
+            "answer_on_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "call_state_events": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CallStatus>"
+            },
+            "confirm": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ValidConfirmMethods>>"
+            },
+            "confirm_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectHeaders>"
+            },
+            "max_duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "serial": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>"
+            },
+            "session_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "webrtc_media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ConnectDeviceSerialParallel": {
+          "methods": {
+            "answer_on_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "call_state_events": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CallStatus>"
+            },
+            "confirm": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ValidConfirmMethods>>"
+            },
+            "confirm_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectHeaders>"
+            },
+            "max_duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "session_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "webrtc_media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ConnectDeviceSingle": {
+          "methods": {
+            "answer_on_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "call_state_events": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CallStatus>"
+            },
+            "confirm": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ValidConfirmMethods>>"
+            },
+            "confirm_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectHeaders>"
+            },
+            "max_duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "session_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "webrtc_media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ConnectSwitch": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "ContextPOMSteps": {
+          "methods": {
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "skip_user_turn": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ContextTextSteps": {
+          "methods": {
+            "skip_user_turn": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "Contexts": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.ContextsObject"
+            }
+          }
+        },
+        "ContextsPOMObject": {
+          "methods": {
+            "enter_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers>"
+            },
+            "exit_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers>"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "steps": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ContextSteps>"
+            }
+          }
+        },
+        "ContextsTextObject": {
+          "methods": {
+            "enter_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers>"
+            },
+            "exit_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers>"
+            },
+            "steps": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ContextSteps>"
+            }
+          }
+        },
+        "ConversationMessage": {
+          "methods": {
+            "role": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConversationRole"
+            }
+          }
+        },
+        "DataMap": {
+          "methods": {
+            "expressions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Expression>"
+            },
+            "output": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.Output"
+            },
+            "webhooks": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Webhook>"
+            }
+          }
+        },
+        "DetectMachineConfig": {
+          "methods": {
+            "detect_message_end": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "end_silence_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "initial_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "machine_ready_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "machine_voice_threshold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "machine_words_threshold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "EnterQueue": {
+          "methods": {
+            "enter_queue": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.EnterQueueObject"
+            }
+          }
+        },
+        "EnterQueueObject": {
+          "methods": {
+            "transfer_after_bridge": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_time": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ExecuteConfig": {
+          "methods": {
+            "on_return": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ExecuteSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            }
+          }
+        },
+        "ExecuteSwitch": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "Expression": {
+          "methods": {
+            "output": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.Output"
+            }
+          }
+        },
+        "GotoConfig": {
+          "methods": {
+            "max": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "HangUpHookSWAIGFunction": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "argument": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "skip_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_for_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "HangupAction": {
+          "methods": {
+            "hangup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "Hint": {
+          "methods": {
+            "ignore_case": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "HoldAction": {
+          "methods": {
+            "hold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar,dict<string,any>>"
+            }
+          }
+        },
+        "IntegerProperty": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "JoinConference": {
+          "methods": {
+            "join_conference": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.JoinConferenceObject"
+            }
+          }
+        },
+        "JoinConferenceObject": {
+          "methods": {
+            "end_on_exit": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_participants": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "muted": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<dict<string,any>,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "start_on_enter": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "LanguageParams": {
+          "methods": {
+            "similarity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "stability": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "LanguagesWithFillers": {
+          "methods": {
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.LanguageParams"
+            }
+          }
+        },
+        "LanguagesWithSoloFillers": {
+          "methods": {
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.LanguageParams"
+            }
+          }
+        },
+        "LiveTranscribeConfig": {
+          "methods": {
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.TranscribeAction"
+            }
+          }
+        },
+        "LiveTranslateConfig": {
+          "methods": {
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.TranslateAction"
+            }
+          }
+        },
+        "NumberProperty": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "enum": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<list<float>,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>>"
+            },
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "ObjectProperty": {
+          "methods": {
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "OmitPropertiesBedrockPromptPomOmittedPromptProps": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "OmitPropertiesBedrockPromptTextOmittedPromptProps": {
+          "methods": {
+            "confidence": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "frequency_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "presence_penalty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "top_p": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "OneOfProperty": {
+          "methods": {
+            "oneOf": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SchemaType>"
+            }
+          }
+        },
+        "Output": {
+          "methods": {
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Action>"
+            }
+          }
+        },
+        "PayConfig": {
+          "methods": {
+            "max_attempts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "min_postal_code_length": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.PayParameters>"
+            },
+            "prompts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.PayPrompts>"
+            },
+            "security_code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "PayPrompts": {
+          "methods": {
+            "actions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.PayPromptAction>"
+            }
+          }
+        },
+        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            }
+          }
+        },
+        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            }
+          }
+        },
+        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            }
+          }
+        },
+        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            }
+          }
+        },
+        "Play": {
+          "methods": {
+            "play": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.PlayWithURL,class:signalwire.signalwire_typescript.src.swml_verbs_generated.PlayWithURLS>"
+            }
+          }
+        },
+        "PlayWithURL": {
+          "methods": {
+            "auto_answer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.play_url,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "volume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "PlayWithURLS": {
+          "methods": {
+            "auto_answer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "urls": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.play_url>,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>>"
+            },
+            "volume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "PomSectionBodyContent": {
+          "methods": {
+            "numbered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "numberedBullets": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "subsections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            }
+          }
+        },
+        "PomSectionBulletsContent": {
+          "methods": {
+            "numbered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "numberedBullets": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "subsections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.POM>"
+            }
+          }
+        },
+        "PromptConfig": {
+          "methods": {
+            "digit_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "initial_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_digits": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "play": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.play_url,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.play_url>,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>>"
+            },
+            "speech_end_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "speech_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<list<string>,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>>"
+            },
+            "speech_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "Pronounce": {
+          "methods": {
+            "ignore_case": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "RecordCallConfig": {
+          "methods": {
+            "beep": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "end_silence_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "initial_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "input_sensitivity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_length": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "stereo": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "RecordConfig": {
+          "methods": {
+            "beep": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "end_silence_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "initial_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "input_sensitivity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "max_length": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "stereo": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "RequestConfig": {
+          "methods": {
+            "connect_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "save_variables": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "SWAIG": {
+          "methods": {
+            "defaults": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGDefaults"
+            },
+            "functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGFunction>"
+            },
+            "includes": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGIncludes>"
+            },
+            "internal_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGInternalFiller"
+            },
+            "native_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIGNativeFunction>"
+            }
+          }
+        },
+        "SWAIGInternalFiller": {
+          "methods": {
+            "adjust_response_latency": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "change_context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "check_time": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "get_ideal_strategy": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "get_visual_input": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "hangup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "next_step": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "wait_for_user": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "wait_seconds": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            }
+          }
+        },
+        "Section": {
+          "methods": {
+            "main": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "SendSMS": {
+          "methods": {
+            "send_sms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SMSWithBody,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SMSWithMedia>"
+            }
+          }
+        },
+        "Sleep": {
+          "methods": {
+            "sleep": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<dict<string,any>,float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "StartUpHookSWAIGFunction": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "argument": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "skip_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_for_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "StopAction": {
+          "methods": {
+            "stop": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "StopPlaybackBGAction": {
+          "methods": {
+            "stop_playback_bg": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "StringProperty": {
+          "methods": {
+            "format": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.StringFormat"
+            },
+            "nullable": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "SummarizeConversationSWAIGFunction": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "argument": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "skip_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_for_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "SwitchConfig": {
+          "methods": {
+            "default": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLMethod>"
+            }
+          }
+        },
+        "TapConfig": {
+          "methods": {
+            "rtp_ptime": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "UserSWAIGFunction": {
+          "methods": {
+            "active": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "argument": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "data_map": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.DataMap"
+            },
+            "fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionFillers"
+            },
+            "parameters": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.FunctionParameters"
+            },
+            "skip_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "wait_for_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            }
+          }
+        },
+        "Webhook": {
+          "methods": {
+            "expressions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.Expression>"
+            },
+            "input_args_as_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
+            },
+            "output": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.Output"
             }
           }
         }
@@ -21710,7 +25342,7 @@
                 },
                 {
                   "name": "opts",
-                  "type": "class:signalwire.utils.schema_utils.__type",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
