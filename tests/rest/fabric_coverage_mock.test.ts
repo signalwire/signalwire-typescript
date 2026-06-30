@@ -562,11 +562,12 @@ describe('Conference Rooms', () => {
 // ---- cXML Applications (no create — overridden to throw) ----------------
 
 describe('cXML Applications', () => {
-  it('create throws (not a route)', async () => {
-    await expect(
-      // @ts-expect-error - create on this resource is overridden to throw
-      client.fabric.cxmlApplications.create({ name: 'never' }),
-    ).rejects.toThrow(/cXML applications cannot/);
+  it('create is not a route (method absent)', async () => {
+    // cXML applications have no create route; the generated surface omits the
+    // method entirely rather than exposing one that throws.
+    expect(
+      (client.fabric.cxmlApplications as unknown as { create?: unknown }).create,
+    ).toBeUndefined();
     const journal = await mock.journal();
     expect(journal.length).toBe(0);
   });

@@ -72,9 +72,7 @@ async function main() {
   if (groupId && numId) {
     console.log('\nAdding number to group...');
     try {
-      const membership = await client.numberGroups.addMembership(groupId, {
-        phone_number_id: numId,
-      });
+      const membership = await client.numberGroups.addMembership(groupId, numId);
       const memId = membership.id;
       console.log(`  Membership: ${memId}`);
 
@@ -107,9 +105,7 @@ async function main() {
     const caller = await client.verifiedCallers.create({ number: '+15125559999' });
     callerId = caller.id;
     console.log(`  Created verified caller: ${callerId}`);
-    await client.verifiedCallers.submitVerification(callerId as string, {
-      verification_code: '123456',
-    });
+    await client.verifiedCallers.submitVerification(callerId as string, '123456');
     console.log('  Verification code submitted');
   } catch (err) {
     if (err instanceof RestError) {
@@ -122,7 +118,7 @@ async function main() {
   try {
     const profile = await client.sipProfile.get();
     console.log(`  SIP profile: ${JSON.stringify(profile)}`);
-    await client.sipProfile.update({ default_codecs: ['PCMU', 'PCMA'] });
+    await client.sipProfile.update(undefined, ['PCMU', 'PCMA']);
     console.log('  Updated SIP codecs');
   } catch (err) {
     if (err instanceof RestError) {
@@ -147,17 +143,17 @@ async function main() {
   console.log('\nCreating address...');
   let addrId: string | null = null;
   try {
-    const addr = await client.addresses.create({
-      label: 'HQ Address',
-      country: 'US',
-      first_name: 'Acme',
-      last_name: 'Corp',
-      street_number: '123',
-      street_name: 'Main St',
-      city: 'Austin',
-      state: 'TX',
-      postal_code: '78701',
-    });
+    const addr = await client.addresses.create(
+      'HQ Address',
+      'US',
+      'Acme',
+      'Corp',
+      '123',
+      'Main St',
+      'Austin',
+      'TX',
+      '78701',
+    );
     addrId = addr.id;
     console.log(`  Created address: ${addrId}`);
   } catch (err) {

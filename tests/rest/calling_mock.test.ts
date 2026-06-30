@@ -32,7 +32,15 @@ beforeEach(async () => {
 
 describe('Calling lifecycle', () => {
   it('test_update', async () => {
-    const body = await client.calling.update({ id: 'call-1', state: 'hold' });
+    const body = await client.calling.update(
+      'call-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { state: 'hold' },
+    );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -47,7 +55,7 @@ describe('Calling lifecycle', () => {
   });
 
   it('test_transfer', async () => {
-    const body = await client.calling.transfer('call-123', {
+    const body = await client.calling.transfer('call-123', '+15551234567', {
       destination: '+15551234567',
       from_number: '+15559876543',
     });
@@ -83,7 +91,7 @@ describe('Calling lifecycle', () => {
 
 describe('Calling play', () => {
   it('test_play_pause', async () => {
-    const body = await client.calling.playPause('call-1', { control_id: 'ctrl-1' });
+    const body = await client.calling.playPause('call-1', 'ctrl-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -95,7 +103,7 @@ describe('Calling play', () => {
   });
 
   it('test_play_resume', async () => {
-    const body = await client.calling.playResume('call-1', { control_id: 'ctrl-1' });
+    const body = await client.calling.playResume('call-1', 'ctrl-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -107,7 +115,7 @@ describe('Calling play', () => {
   });
 
   it('test_play_stop', async () => {
-    const body = await client.calling.playStop('call-1', { control_id: 'ctrl-1' });
+    const body = await client.calling.playStop('call-1', 'ctrl-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -119,7 +127,7 @@ describe('Calling play', () => {
   });
 
   it('test_play_volume', async () => {
-    const body = await client.calling.playVolume('call-1', { control_id: 'ctrl-1', volume: 2.5 });
+    const body = await client.calling.playVolume('call-1', 'ctrl-1', 2.5);
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -137,7 +145,9 @@ describe('Calling play', () => {
 
 describe('Calling record', () => {
   it('test_record', async () => {
-    const body = await client.calling.record('call-1', { record: { format: 'mp3' } });
+    const body = await client.calling.record('call-1', undefined, undefined, undefined, {
+      record: { format: 'mp3' },
+    });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -149,7 +159,7 @@ describe('Calling record', () => {
   });
 
   it('test_record_pause', async () => {
-    const body = await client.calling.recordPause('call-1', { control_id: 'rec-1' });
+    const body = await client.calling.recordPause('call-1', 'rec-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -161,7 +171,7 @@ describe('Calling record', () => {
   });
 
   it('test_record_resume', async () => {
-    const body = await client.calling.recordResume('call-1', { control_id: 'rec-1' });
+    const body = await client.calling.recordResume('call-1', 'rec-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -179,7 +189,7 @@ describe('Calling record', () => {
 
 describe('Calling collect', () => {
   it('test_collect', async () => {
-    const body = await client.calling.collect('call-1', { initial_timeout: 5, digits: { max: 4 } });
+    const body = await client.calling.collect('call-1', undefined, 5, { max: 4 });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -191,7 +201,7 @@ describe('Calling collect', () => {
   });
 
   it('test_collect_stop', async () => {
-    const body = await client.calling.collectStop('call-1', { control_id: 'col-1' });
+    const body = await client.calling.collectStop('call-1', 'col-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -203,7 +213,7 @@ describe('Calling collect', () => {
   });
 
   it('test_collect_start_input_timers', async () => {
-    const body = await client.calling.collectStartInputTimers('call-1', { control_id: 'col-1' });
+    const body = await client.calling.collectStartInputTimers('call-1', 'col-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -221,7 +231,7 @@ describe('Calling collect', () => {
 
 describe('Calling detect', () => {
   it('test_detect', async () => {
-    const body = await client.calling.detect('call-1', { detect: { type: 'machine', params: {} } });
+    const body = await client.calling.detect('call-1', { type: 'machine', params: {} });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -233,7 +243,7 @@ describe('Calling detect', () => {
   });
 
   it('test_detect_stop', async () => {
-    const body = await client.calling.detectStop('call-1', { control_id: 'det-1' });
+    const body = await client.calling.detectStop('call-1', 'det-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -247,10 +257,7 @@ describe('Calling detect', () => {
 
 describe('Calling tap', () => {
   it('test_tap', async () => {
-    const body = await client.calling.tap('call-1', {
-      tap: { type: 'audio' },
-      device: { type: 'rtp' },
-    });
+    const body = await client.calling.tap('call-1', { type: 'audio' }, { type: 'rtp' });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -262,7 +269,7 @@ describe('Calling tap', () => {
   });
 
   it('test_tap_stop', async () => {
-    const body = await client.calling.tapStop('call-1', { control_id: 'tap-1' });
+    const body = await client.calling.tapStop('call-1', 'tap-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -276,7 +283,7 @@ describe('Calling tap', () => {
 
 describe('Calling stream', () => {
   it('test_stream', async () => {
-    const body = await client.calling.stream('call-1', { url: 'wss://example.com/audio' });
+    const body = await client.calling.stream('call-1', 'wss://example.com/audio');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -288,7 +295,7 @@ describe('Calling stream', () => {
   });
 
   it('test_stream_stop', async () => {
-    const body = await client.calling.streamStop('call-1', { control_id: 'stream-1' });
+    const body = await client.calling.streamStop('call-1', 'stream-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -326,7 +333,7 @@ describe('Calling denoise', () => {
 
 describe('Calling transcribe', () => {
   it('test_transcribe', async () => {
-    const body = await client.calling.transcribe('call-1', {
+    const body = await client.calling.transcribe('call-1', undefined, undefined, {
       language: 'en-US',
       transcribe: { engine: 'google' },
     });
@@ -341,7 +348,7 @@ describe('Calling transcribe', () => {
   });
 
   it('test_transcribe_stop', async () => {
-    const body = await client.calling.transcribeStop('call-1', { control_id: 'tr-1' });
+    const body = await client.calling.transcribeStop('call-1', 'tr-1');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -381,7 +388,7 @@ describe('Calling AI', () => {
   });
 
   it('test_ai_stop', async () => {
-    const body = await client.calling.aiStop('call-1');
+    const body = await client.calling.aiStop('call-1', '');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -398,7 +405,11 @@ describe('Calling AI', () => {
 
 describe('Calling live transcribe / translate', () => {
   it('test_live_transcribe', async () => {
-    const body = await client.calling.liveTranscribe('call-1', { language: 'en-US' });
+    const body = await client.calling.liveTranscribe(
+      'call-1',
+      { start: { lang: 'en-US', direction: ['remote-caller'] } },
+      { language: 'en-US' },
+    );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -410,10 +421,12 @@ describe('Calling live transcribe / translate', () => {
   });
 
   it('test_live_translate', async () => {
-    const body = await client.calling.liveTranslate('call-1', {
-      source_language: 'en',
-      target_language: 'es',
-    });
+    const body = await client.calling.liveTranslate(
+      'call-1',
+      { start: { from_lang: 'en', to_lang: 'es', direction: ['remote-caller'] } },
+      undefined,
+      { source_language: 'en', target_language: 'es' },
+    );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -432,7 +445,7 @@ describe('Calling live transcribe / translate', () => {
 
 describe('Calling fax', () => {
   it('test_send_fax_stop', async () => {
-    const body = await client.calling.sendFaxStop('call-1');
+    const body = await client.calling.sendFaxStop('call-1', '');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -443,7 +456,7 @@ describe('Calling fax', () => {
   });
 
   it('test_receive_fax_stop', async () => {
-    const body = await client.calling.receiveFaxStop('call-1');
+    const body = await client.calling.receiveFaxStop('call-1', '');
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -460,7 +473,9 @@ describe('Calling fax', () => {
 
 describe('Calling misc (refer / user_event)', () => {
   it('test_refer', async () => {
-    const body = await client.calling.refer('call-1', { to: 'sip:other@example.com' });
+    const body = await client.calling.refer('call-1', {}, undefined, {
+      to: 'sip:other@example.com',
+    });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -472,10 +487,14 @@ describe('Calling misc (refer / user_event)', () => {
   });
 
   it('test_user_event', async () => {
-    const body = await client.calling.userEvent('call-1', {
-      event_name: 'my-event',
-      payload: { foo: 'bar' },
-    });
+    const body = await client.calling.userEvent(
+      'call-1',
+      {},
+      {
+        event_name: 'my-event',
+        payload: { foo: 'bar' },
+      },
+    );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();

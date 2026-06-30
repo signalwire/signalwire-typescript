@@ -87,7 +87,7 @@ describe('FabricNamespace', () => {
 
     it('creates a SIP endpoint', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'ep1' } }]);
-      await fabric.subscribers.createSipEndpoint('sub1', { username: 'test' });
+      await fabric.subscribers.createSipEndpoint('sub1', 'test');
       expect(getRequests()[0].method).toBe('POST');
       expect(getRequests()[0].body).toEqual({ username: 'test' });
     });
@@ -100,8 +100,9 @@ describe('FabricNamespace', () => {
 
     it('updates a SIP endpoint with PATCH', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.subscribers.updateSipEndpoint('sub1', 'ep1', { password: 'new' });
+      await fabric.subscribers.updateSipEndpoint('sub1', 'ep1', undefined, 'new');
       expect(getRequests()[0].method).toBe('PATCH');
+      expect(getRequests()[0].body).toEqual({ password: 'new' });
     });
 
     it('deletes a SIP endpoint', async () => {
@@ -112,9 +113,12 @@ describe('FabricNamespace', () => {
   });
 
   describe('CXML Applications', () => {
-    it('throws on create', async () => {
+    it('exposes no create (cXML applications cannot be created via this route)', () => {
       const { fabric } = setup();
-      await expect(fabric.cxmlApplications.create()).rejects.toThrow('cannot be created');
+      // The generated, oracle-faithful surface omits `create` entirely for
+      // cXML applications — there is no create route. The method is absent
+      // rather than present-and-throwing.
+      expect((fabric.cxmlApplications as unknown as { create?: unknown }).create).toBeUndefined();
     });
   });
 
@@ -183,31 +187,15 @@ describe('FabricNamespace', () => {
       expect(getRequests()[0].url).not.toContain('/api/fabric/resources/');
     });
 
-    it('assigns phone route (deprecated) and emits one-time warning', async () => {
-      const { fabric, getRequests } = setup([
-        { status: 200, body: {} },
-        { status: 200, body: {} },
-      ]);
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      try {
-        await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });
-        expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/phone_routes');
-        expect(getRequests()[0].method).toBe('POST');
-
-        // Deprecation warning fires on first call and steers users to the
-        // phoneNumbers helpers documented in phone-binding.md.
-        expect(warnSpy).toHaveBeenCalledTimes(1);
-        const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
-        expect(warnMsg).toContain('phoneNumbers.setSwmlWebhook');
-        expect(warnMsg).toContain('phone-binding.md');
-
-        // Warning is one-time per instance: second call posts but does not warn.
-        warnSpy.mockClear();
-        await fabric.resources.assignPhoneRoute('r1', { number: '+15551234567' });
-        expect(warnSpy).not.toHaveBeenCalled();
-      } finally {
-        warnSpy.mockRestore();
-      }
+    it('assigns phone route (posts to phone_routes with typed body)', async () => {
+      const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
+      // The oracle-faithful generated surface takes exploded spec params
+      // (phone_route_id, handler) and posts them as the request body. It no
+      // longer emits a deprecation warning — that was a hand-class artifact.
+      await fabric.resources.assignPhoneRoute('r1', 'pr-1', 'calling');
+      expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/phone_routes');
+      expect(getRequests()[0].method).toBe('POST');
+      expect(getRequests()[0].body).toEqual({ phone_route_id: 'pr-1', handler: 'calling' });
     });
 
     it('assigns domain application', async () => {

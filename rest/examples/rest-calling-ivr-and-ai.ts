@@ -36,60 +36,57 @@ async function main() {
   // 1. Collect DTMF input
   console.log('Collecting DTMF input...');
   await safe('Collect', () =>
-    client.calling.collect(CALL_ID, {
-      initial_timeout: 10,
-      digits: { max: 4, terminators: '#' },
-    }),
+    client.calling.collect(CALL_ID, 'collect-1', 10, { max: 4, terminators: '#' }),
   );
-  await safe('Start input timers', () => client.calling.collectStartInputTimers(CALL_ID));
-  await safe('Stop collect', () => client.calling.collectStop(CALL_ID));
+  await safe('Start input timers', () =>
+    client.calling.collectStartInputTimers(CALL_ID, 'collect-1'),
+  );
+  await safe('Stop collect', () => client.calling.collectStop(CALL_ID, 'collect-1'));
 
   // 2. Answering machine detection
   console.log('\nDetecting answering machine...');
-  await safe('Detect', () => client.calling.detect(CALL_ID, { detect: { type: 'machine' } }));
-  await safe('Stop detect', () => client.calling.detectStop(CALL_ID));
+  await safe('Detect', () => client.calling.detect(CALL_ID, { type: 'machine' }, 'detect-1'));
+  await safe('Stop detect', () => client.calling.detectStop(CALL_ID, 'detect-1'));
 
   // 3. AI operations
   console.log('\nAI agent operations...');
   await safe('AI message', () =>
-    client.calling.aiMessage(CALL_ID, {
-      role: 'system',
-      message_text: 'The customer wants to check their balance.',
-    }),
+    client.calling.aiMessage(CALL_ID, 'system', 'The customer wants to check their balance.'),
   );
   await safe('AI hold', () => client.calling.aiHold(CALL_ID));
   await safe('AI unhold', () => client.calling.aiUnhold(CALL_ID));
-  await safe('AI stop', () => client.calling.aiStop(CALL_ID));
+  await safe('AI stop', () => client.calling.aiStop(CALL_ID, 'ai-1'));
 
   // 4. Live transcription and translation
   console.log('\nLive transcription and translation...');
   await safe('Live transcribe', () =>
     client.calling.liveTranscribe(CALL_ID, {
-      action: { start: { lang: 'en-US', direction: ['remote-caller'] } },
+      start: { lang: 'en-US', direction: ['remote-caller'] },
     }),
   );
   await safe('Live translate', () =>
     client.calling.liveTranslate(CALL_ID, {
-      action: { start: { from_lang: 'en-US', to_lang: 'es-ES', direction: ['remote-caller'] } },
+      start: { from_lang: 'en-US', to_lang: 'es-ES', direction: ['remote-caller'] },
     }),
   );
 
   // 5. Tap (media fork)
   console.log('\nTap (media fork)...');
   await safe('Tap start', () =>
-    client.calling.tap(CALL_ID, {
-      tap: { type: 'audio', params: { direction: 'both' } },
-      device: { type: 'rtp', params: { addr: '192.168.1.100', port: 9000 } },
-    }),
+    client.calling.tap(
+      CALL_ID,
+      { type: 'audio', params: { direction: 'both' } },
+      { type: 'rtp', params: { addr: '192.168.1.100', port: 9000 } },
+    ),
   );
-  await safe('Tap stop', () => client.calling.tapStop(CALL_ID));
+  await safe('Tap stop', () => client.calling.tapStop(CALL_ID, 'tap-1'));
 
   // 6. Stream (WebSocket)
   console.log('\nStream (WebSocket)...');
   await safe('Stream start', () =>
-    client.calling.stream(CALL_ID, { url: 'wss://example.com/audio-stream' }),
+    client.calling.stream(CALL_ID, 'wss://example.com/audio-stream'),
   );
-  await safe('Stream stop', () => client.calling.streamStop(CALL_ID));
+  await safe('Stream stop', () => client.calling.streamStop(CALL_ID, 'stream-1'));
 
   // 7. User event
   console.log('\nSending user event...');
@@ -109,17 +106,20 @@ async function main() {
 
   // 9. Fax stop commands
   console.log('\nFax stop commands...');
-  await safe('Send fax stop', () => client.calling.sendFaxStop(CALL_ID));
-  await safe('Receive fax stop', () => client.calling.receiveFaxStop(CALL_ID));
+  await safe('Send fax stop', () => client.calling.sendFaxStop(CALL_ID, 'fax-1'));
+  await safe('Receive fax stop', () => client.calling.receiveFaxStop(CALL_ID, 'fax-1'));
 
   // 10. Transfer and disconnect
   console.log('\nTransfer and disconnect...');
-  await safe('Transfer', () => client.calling.transfer(CALL_ID, { dest: '+15559999999' }));
+  await safe('Transfer', () => client.calling.transfer(CALL_ID, '+15559999999'));
   await safe('Update call', () =>
-    client.calling.update({
-      url: 'https://example.com/swml/next-step',
-      status_url: 'https://example.com/status',
-    }),
+    client.calling.update(
+      CALL_ID,
+      undefined,
+      undefined,
+      'https://example.com/status',
+      'https://example.com/swml/next-step',
+    ),
   );
   await safe('Disconnect', () => client.calling.disconnect(CALL_ID));
 }

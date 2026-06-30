@@ -656,7 +656,8 @@ function emitOperationMethod(
   const flat = flattenSchema(doc, reqRef ? { $ref: reqRef } : undefined);
 
   const hasBody = Boolean(reqRef) || unionRefs.length > 0;
-  const singleBody = unionRefs.length > 0 || (Boolean(reqRef) && Object.keys(flat.props).length === 0);
+  const singleBody =
+    unionRefs.length > 0 || (Boolean(reqRef) && Object.keys(flat.props).length === 0);
 
   let sig: string;
   let bodyExpr = '';
@@ -986,7 +987,13 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
       usedTypes.add(itemT);
       usedTypes.add(createT);
       usedTypes.add(updateT);
-      const cm = emitCrudMethod(true, x.update_method ?? 'PATCH', roles.create?.reqRef ?? '', itemT, idName);
+      const cm = emitCrudMethod(
+        true,
+        x.update_method ?? 'PATCH',
+        roles.create?.reqRef ?? '',
+        itemT,
+        idName,
+      );
       const um = emitCrudMethod(false, x.update_method ?? 'PATCH', updateReqRef, itemT, idName);
       if (cm) {
         crudSrcs.push(cm.src);
@@ -1071,6 +1078,173 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
     typeImport +
     '\n';
   return header + classes.join('\n\n') + '\n';
+}
+
+// ===========================================================================
+// Client object tree (RULES §8): placement resolution + assembly.
+//
+// Mirrors the Python reference's `_resolve_placement` / `emit_client_assembly`
+// (porting-sdk/scripts/generate_python_rest_types.py). Every x-sdk-resource
+// resolves to FLAT (`client.<accessor>`) or CONTAINERED
+// (`client.<container>.<accessor>`); a whole-spec container is declared once via
+// the spec-level `x-sdk-namespace.attr`, a cross-spec/subset container per
+// resource via `x-sdk-resource.namespace` (+ `attr`). The generator emits one
+// `<Pascal>Namespace` container class per group plus a `_GeneratedResourceTree`
+// base the hand `RestClient` extends (wiring the flat resources + containers).
+//
+// TS idiom: accessor names are camelCase (Python's snake_case `conference_tokens`
+// → `conferenceTokens`); the container classes + the wiring live in
+// `_client_tree_generated.ts` (the `_`-prefixed file mirrors Python's private
+// module name `signalwire.rest.namespaces._client_tree_generated`).
+// ===========================================================================
+
+// The accessor-name override table (the irregular handful), keyed by class name.
+// Mirrors the Python reference's `_ATTR_OVERRIDE`; values are the snake_case
+// accessor (camelCased on emit). Most accessors derive mechanically and need no
+// entry — only the cross-spec log family + the fabric/datasphere/pubsub/project
+// singletons whose accessor isn't the class name's snake form.
+const ATTR_OVERRIDE: Record<string, string> = {
+  GenericResources: 'resources',
+  FabricAddresses: 'addresses',
+  FabricTokens: 'tokens',
+  DatasphereDocuments: 'documents',
+  ProjectTokens: 'tokens',
+  PubSub: 'pubsub',
+  MessageLogs: 'messages',
+  VoiceLogs: 'voice',
+  FaxLogs: 'fax',
+  ConferenceLogs: 'conferences',
+};
+
+/** `foo_bar` / `FooBar` → `fooBar` (the camelCase accessor idiom). */
+function camelCaseAccessor(s: string): string {
+  return s
+    .replace(/[-\s]/g, '_')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .replace(/_+([a-z0-9])/g, (_m, c: string) => c.toUpperCase());
+}
+
+/**
+ * The SDK accessor name for a resource: an explicit `attr` override, else the
+ * snake-cased class name with the container-name prefix stripped (VideoRooms
+ * under `video` → `rooms`). Mirrors Python's `_accessor_attr`; returns the
+ * snake_case form (camelCased by the caller).
+ */
+function accessorAttr(cls: string, container: string | null): string {
+  if (cls in ATTR_OVERRIDE) return ATTR_OVERRIDE[cls];
+  let s = snakeCase(cls);
+  if (container && s.startsWith(container + '_')) s = s.slice(container.length + 1);
+  return s;
+}
+
+interface PlacedResource {
+  cls: string;
+  module: string; // the generated resources module leaf (e.g. `video.resources.generated`)
+  accessor: string; // camelCase accessor
+}
+
+/**
+ * Resolve every resource's SDK placement across all specs. Returns
+ * `{ flat: PlacedResource[], containers: { <container>: PlacedResource[] } }`.
+ * A whole-spec container is the spec-level `x-sdk-namespace.attr`; a per-resource
+ * `x-sdk-resource.namespace` wins over it (cross-spec groups like logs/registry).
+ */
+function resolvePlacement(docs: Record<string, OpenApiDoc>): {
+  flat: PlacedResource[];
+  containers: Record<string, PlacedResource[]>;
+} {
+  const flat: PlacedResource[] = [];
+  const containers: Record<string, PlacedResource[]> = {};
+  for (const [ns, doc] of Object.entries(docs)) {
+    const module = `${ns}.resources.generated`;
+    const specContainer =
+      (doc as { 'x-sdk-namespace'?: { attr?: string } })['x-sdk-namespace']?.attr ?? null;
+    for (const { x } of xSdkResources(doc)) {
+      const cls = pascal(x.name);
+      const container = x.namespace ?? specContainer; // per-resource wins
+      const accessor = camelCaseAccessor(x.attr ?? accessorAttr(cls, container));
+      const placed: PlacedResource = { cls, module, accessor };
+      if (container) (containers[container] ??= []).push(placed);
+      else flat.push(placed);
+    }
+  }
+  return { flat, containers };
+}
+
+/**
+ * Emit `_client_tree_generated.ts`: one `<Pascal>Namespace` container class per
+ * group plus the `_GeneratedResourceTree` base the hand `RestClient` extends.
+ * Flat resources sit directly on the client; containered ones under their
+ * container instance. All placement is read from the specs (RULES §8).
+ */
+function emitClientTree(docs: Record<string, OpenApiDoc>): string {
+  const { flat, containers } = resolvePlacement(docs);
+  const containerNames = Object.keys(containers).sort();
+
+  // Imports: every (class, module) used, grouped by module.
+  const importsByModule: Record<string, Set<string>> = {};
+  const allPlaced = [...flat, ...Object.values(containers).flat()];
+  for (const p of allPlaced) (importsByModule[p.module] ??= new Set()).add(p.cls);
+  const importLines = Object.keys(importsByModule)
+    .sort()
+    .map((mod) => {
+      const classes = [...importsByModule[mod]].sort();
+      return `import {\n${classes.map((c) => `  ${c},`).join('\n')}\n} from './${mod}.js';`;
+    })
+    .join('\n');
+
+  // One container class per group.
+  const containerClasses = containerNames.map((container) => {
+    const members = [...containers[container]].sort((a, b) => a.accessor.localeCompare(b.accessor));
+    const clsName = pascal(container) + 'Namespace';
+    const fields = members.map((m) => `  readonly ${m.accessor}: ${m.cls};`).join('\n');
+    const ctorBody = members.map((m) => `    this.${m.accessor} = new ${m.cls}(http);`).join('\n');
+    return (
+      `/** Generated \`client.${container}\` namespace container. */\n` +
+      `export class ${clsName} {\n${fields}\n\n` +
+      `  constructor(http: HttpClient) {\n${ctorBody}\n  }\n}`
+    );
+  });
+
+  // The wiring base the hand RestClient extends. Flat resources + container
+  // instances are assigned in `_wireResources(http)` (called from the RestClient
+  // constructor after it builds the HTTP layer). The `_`-prefixed CLASS name keeps
+  // it out of the enumerated surface (the accessors are TS-idiom static typing of
+  // the dynamically-wired Python tree). Fields use a definite-assignment `!` and
+  // are NOT `readonly` (a readonly field can only be set in the constructor, but
+  // these are set in `_wireResources`).
+  const flatSorted = [...flat].sort((a, b) => a.accessor.localeCompare(b.accessor));
+  const treeFields = [
+    ...flatSorted.map((m) => `  ${m.accessor}!: ${m.cls};`),
+    ...containerNames.map((c) => `  ${camelCaseAccessor(c)}!: ${pascal(c)}Namespace;`),
+  ].join('\n');
+  const treeAssign = [
+    ...flatSorted.map((m) => `    this.${m.accessor} = new ${m.cls}(http);`),
+    ...containerNames.map(
+      (c) => `    this.${camelCaseAccessor(c)} = new ${pascal(c)}Namespace(http);`,
+    ),
+  ].join('\n');
+  const treeClass =
+    `/**\n` +
+    ` * Generated resource wiring for \`RestClient\` (flat resources + namespace\n` +
+    ` * containers). The hand \`RestClient\` extends this and calls \`_wireResources\`\n` +
+    ` * after constructing the HTTP layer; it keeps only the non-spec-derivable bits\n` +
+    ` * (auth, HTTP construction).\n` +
+    ` */\n` +
+    `export class _GeneratedResourceTree {\n${treeFields}\n\n` +
+    `  protected _wireResources(http: HttpClient): void {\n${treeAssign}\n  }\n}`;
+
+  const header =
+    `// AUTO-GENERATED from porting-sdk/rest-apis/*/openapi.yaml — DO NOT EDIT.\n` +
+    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// The SDK client object tree: one namespace container class per\n` +
+    `// x-sdk-namespace group plus the flat resources, wired from each resource's\n` +
+    `// spec placement (RULES §8). The hand RestClient composes _GeneratedResourceTree.\n\n` +
+    `import type { HttpClient } from '../HttpClient.js';\n` +
+    importLines +
+    '\n\n';
+  return header + [...containerClasses, treeClass].join('\n\n') + '\n';
 }
 
 async function generateForSpec(specPath: string, outPath: string, ns: string): Promise<number> {
@@ -1193,6 +1367,9 @@ async function main(): Promise<void> {
     voice: 'src/rest/namespaces/voice.types.generated.ts',
   };
   const verb = CHECK ? 'checked' : 'generated';
+  // Accumulate the resource-bearing docs so the client tree (RULES §8) can resolve
+  // placement across ALL specs after the per-spec pass.
+  const resourceDocs: Record<string, OpenApiDoc> = {};
   for (const [specDir, outPath] of Object.entries(map)) {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
     // Spec-dir discovery is dynamic (mirrors the Python generator's
@@ -1213,12 +1390,24 @@ async function main(): Promise<void> {
     const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
     const resSrc = emitResourcesModule(doc, specDir, psdk);
     if (resSrc !== null) {
+      resourceDocs[specDir] = doc;
       const resOut = `src/rest/namespaces/${specDir}.resources.generated.ts`;
       const config = (await prettier.resolveConfig(resOut)) ?? {};
       const formatted = await prettier.format(resSrc, { ...config, parser: 'typescript' });
       emitFile(resOut, formatted);
       console.log(`${verb} ${resOut} (resources)`);
     }
+  }
+
+  // The client object tree (RULES §8): container classes + the RestClient wiring
+  // base, from the placement markup resolved across all resource-bearing specs.
+  if (Object.keys(resourceDocs).length) {
+    const treeOut = 'src/rest/namespaces/_client_tree_generated.ts';
+    const treeSrc = emitClientTree(resourceDocs);
+    const config = (await prettier.resolveConfig(treeOut)) ?? {};
+    const formatted = await prettier.format(treeSrc, { ...config, parser: 'typescript' });
+    emitFile(treeOut, formatted);
+    console.log(`${verb} ${treeOut} (client tree)`);
   }
 
   // RELAY WS protocol params (separate source tree + format from the REST specs).

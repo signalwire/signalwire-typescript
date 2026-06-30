@@ -27,10 +27,11 @@ async function main() {
 
   // 2. Add a SIP endpoint to the subscriber
   console.log('\nCreating SIP endpoint on subscriber...');
-  const endpoint = await client.fabric.subscribers.createSipEndpoint(subId, {
-    username: 'alice_sip',
-    password: 'SecurePass123!',
-  });
+  const endpoint = await client.fabric.subscribers.createSipEndpoint(
+    subId,
+    'alice_sip',
+    'SecurePass123!',
+  );
   const epId = endpoint.id;
   console.log(`  Created SIP endpoint: ${epId}`);
 
@@ -81,9 +82,7 @@ async function main() {
   // 8. Generate a subscriber token
   console.log('\nGenerating subscriber token...');
   try {
-    const token = await client.fabric.tokens.createSubscriberToken({
-      reference: innerSubId,
-    });
+    const token = await client.fabric.tokens.createSubscriberToken(innerSubId);
     console.log(`  Token: ${String(token.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {

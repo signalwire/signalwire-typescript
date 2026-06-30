@@ -87,6 +87,10 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/rest/base/BaseResource.ts': 'signalwire.rest._base',
   'src/rest/base/CrudResource.ts': 'signalwire.rest._base',
   'src/rest/base/CrudWithAddresses.ts': 'signalwire.rest._base',
+  'src/rest/base/ReadResource.ts': 'signalwire.rest._base',
+  // FabricResource / FabricResourcePUT are TS-intermediary CrudWithAddresses
+  // subclasses (empty bodies → not enumerated); map alongside the other bases.
+  'src/rest/base/FabricResource.ts': 'signalwire.rest._base',
   'src/skills/SkillBase.ts': 'signalwire.core.skill_base',
   'src/skills/SkillManager.ts': 'signalwire.core.skill_manager',
   'src/skills/SkillRegistry.ts': 'signalwire.skills.registry',
@@ -613,7 +617,10 @@ interface CanonicalSignature {
 }
 
 interface ModuleEntry {
-  classes?: Record<string, { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } }>;
+  classes?: Record<
+    string,
+    { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } }
+  >;
   functions?: Record<string, CanonicalSignature>;
 }
 
@@ -654,6 +661,12 @@ function collectClass(
 ): void {
   if (!cls.name) return;
   const className = cls.name.text;
+  // Private classes (leading `_`) mirror Python's griffe convention of skipping
+  // underscore-prefixed members: the generated `_GeneratedResourceTree` wiring
+  // base (the RestClient extends it) is an implementation detail whose accessors
+  // are the TS-idiom static typing of Python's dynamically-wired tree — Python's
+  // `_GeneratedResourceTree` is likewise absent from the oracle.
+  if (className.startsWith('_')) return;
   const canonClass = CLASS_NAME_ALIASES[className] ?? className;
   const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
 
@@ -750,7 +763,10 @@ function collectClass(
   // a crud_base class are excused structurally, so re-classifying them is harmless.
   if (!doc.modules[mod]) doc.modules[mod] = {};
   if (!doc.modules[mod].classes) doc.modules[mod].classes = {};
-  const entry: { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } } = {
+  const entry: {
+    methods: Record<string, CanonicalSignature>;
+    crud_base?: { base: string; bind: string[] };
+  } = {
     methods: Object.fromEntries(Object.entries(methods).sort()),
   };
   // PREFERRED representation: the structural CRUD binding. If this class extends a
@@ -793,7 +809,12 @@ function extractCrudBase(
       // The diff checker matches these by leaf name across ports.
       const bind = typeArgs.map((ta) => {
         let node: ts.TypeNode = ta;
-        if (ts.isTypeReferenceNode(ta) && ts.isIdentifier(ta.typeName) && ta.typeName.text === 'Partial' && ta.typeArguments?.[0]) {
+        if (
+          ts.isTypeReferenceNode(ta) &&
+          ts.isIdentifier(ta.typeName) &&
+          ta.typeName.text === 'Partial' &&
+          ta.typeArguments?.[0]
+        ) {
           node = ta.typeArguments[0];
         }
         if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
@@ -810,7 +831,12 @@ function extractCrudBase(
           return `class:${node.typeName.text}`;
         }
         try {
-          return translateType(checker.getTypeFromTypeNode(node), checker, aliases, `${context}[crud-bind]`);
+          return translateType(
+            checker.getTypeFromTypeNode(node),
+            checker,
+            aliases,
+            `${context}[crud-bind]`,
+          );
         } catch {
           return 'any';
         }
@@ -940,7 +966,34 @@ function generatedAliasFromNode(
   checker: ts.TypeChecker,
 ): string | null {
   if (!node) return null;
-  // `uuid[]` → list<…>
+  // Union written in source, e.g.
+  // `LiveTranscribeStartAction | LiveTranscribeSummarizeAction | LiveTranscribeStopAction`
+  // or `string[] | string`. Translate each member from its WRITTEN node so the
+  // member NAMES and ORDER track the spec (the Python reference keeps them). The
+  // resolved type would inline a string-literal alias (`type Stop = 'stop'`) to a
+  // bare `'stop'` (losing the name → drift) and may reorder anyOf members. Only
+  // take this path when every member resolves syntactically; else fall back.
+  if (ts.isUnionTypeNode(node)) {
+    const nullish = (t: ts.TypeNode): boolean =>
+      t.kind === ts.SyntaxKind.NullKeyword ||
+      t.kind === ts.SyntaxKind.UndefinedKeyword ||
+      (ts.isLiteralTypeNode(t) && t.literal.kind === ts.SyntaxKind.NullKeyword);
+    const members = node.types.filter((t) => !nullish(t));
+    const parts: string[] = [];
+    for (const t of members) {
+      const p = generatedAliasFromNode(t, checker);
+      if (p === null) return null; // a member we can't resolve syntactically → bail
+      parts.push(p);
+    }
+    if (parts.length === 0) return null;
+    const u = parts.length === 1 ? parts[0] : `union<${parts.join(',')}>`;
+    return members.length < node.types.length ? `optional<${u}>` : u;
+  }
+  // Primitive keyword members (for union reconstruction above).
+  if (node.kind === ts.SyntaxKind.StringKeyword) return 'string';
+  if (node.kind === ts.SyntaxKind.NumberKeyword) return 'float';
+  if (node.kind === ts.SyntaxKind.BooleanKeyword) return 'bool';
+  // `uuid[]` / `string[]` → list<…>
   if (ts.isArrayTypeNode(node)) {
     const inner = generatedAliasFromNode(node.elementType, checker);
     return inner ? `list<${inner}>` : null;
@@ -997,9 +1050,20 @@ function signatureFromMethod(
     // alias (e.g. `uuid` / `jwt` / `docid`). The Python reference records these by
     // alias NAME (`gen:uuid`); `getTypeAtLocation` would resolve a trivial
     // `type uuid = string` alias down to `string` (losing aliasSymbol) and drift.
-    const canon =
-      generatedAliasFromNode(p.type, checker) ??
-      translateType(checker.getTypeAtLocation(p), checker, aliases, `${ctx}[${snake}]`);
+    let canon = generatedAliasFromNode(p.type, checker);
+    if (canon !== null) {
+      // The syntactic path reads the WRITTEN type node, which does not carry the
+      // `| undefined` an optional param's RESOLVED type would (the `?` is on the
+      // parameter, not in the type node). The Python reference wraps an optional
+      // param's type in `optional<...>`, so mirror that here when the param is
+      // optional and not already optional-wrapped. (The `translateType` fallback
+      // already produces `optional<...>` for these, via the resolved `| undefined`.)
+      if ((p.questionToken || p.initializer) && !canon.startsWith('optional<')) {
+        canon = `optional<${canon}>`;
+      }
+    } else {
+      canon = translateType(checker.getTypeAtLocation(p), checker, aliases, `${ctx}[${snake}]`);
+    }
     const param: CanonicalParam = { name: snake, type: canon };
     if (p.dotDotDotToken) param.kind = 'var_positional';
     if (p.questionToken || p.initializer) {

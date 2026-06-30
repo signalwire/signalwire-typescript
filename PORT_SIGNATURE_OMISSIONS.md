@@ -475,3 +475,19 @@ signalwire.core.skill_base.SkillBase.get_skill_data: TS types the raw_data param
 ## Webhook validator: optional<union<...>> vs union<...,void>
 
 signalwire.core.security.webhook_validator.validate_request: Python's source uses `Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`, which the canonical translator emits as `union<...,void>`; TypeScript's `string | Record<string, unknown> | Array<[string, unknown]> | null | undefined` is emitted as `optional<union<...>>` because the TS translator collapses null/undefined into the `optional<...>` wrapper rather than keeping `void` as a sibling union member. Same call-site contract; both forms accept the same set of values at runtime.
+
+## Command-dispatch `action` union: griffe right-nests, TS emits a flat union
+
+These two generated `calling` command-dispatch methods take an `action` param whose
+spec type is an `anyOf` of named action variants. Both ports type it identically (the
+exact same set of generated action types); the divergence is purely how each language's
+enumerator RENDERS the union: Python's griffe emits a right-nested `A | (B | C)` shape
+(`union<Stop,union<Start,Summarize>>`), while the TS TypeChecker / enumerator emits a
+flat `union<Start,Summarize,Stop>`. The diff's `normalize_type` sorts union members but
+does not flatten a nested union, so the flat-vs-nested spelling reads as a mismatch. A
+union is associative + commutative, so both spellings accept the identical set of values
+and POST the identical wire `params.action`. (Pre-existing since the foundation's
+command-dispatch emitter; not introduced by the client-tree roll.)
+
+signalwire.rest.namespaces.calling_resources_generated.Calling.live_transcribe: `action` param — flat `union<LiveTranscribeStartAction,LiveTranscribeSummarizeAction,LiveTranscribeStopAction>` vs the reference's right-nested griffe rendering of the same three-variant `anyOf`. Identical wire contract.
+signalwire.rest.namespaces.calling_resources_generated.Calling.live_translate: `action` param — flat union of the four LiveTranslate*Action variants vs the reference's right-nested griffe rendering of the same `anyOf`. Identical wire contract.

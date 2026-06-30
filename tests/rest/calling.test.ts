@@ -12,7 +12,7 @@ describe('CallingNamespace', () => {
 
   it('dial sends command without call_id', async () => {
     const { calling, getRequests } = setup();
-    await calling.dial({ to: '+15551234567', from: '+15559876543' });
+    await calling.dial('+15559876543', '+15551234567');
     const req = getRequests()[0];
     expect(req.method).toBe('POST');
     expect(req.url).toContain('/api/calling/calls');
@@ -25,29 +25,41 @@ describe('CallingNamespace', () => {
 
   it('dial forwards codecs as array', async () => {
     const { calling, getRequests } = setup();
-    await calling.dial({
-      url: 'https://example.com/swml',
-      to: '+15551234567',
-      codecs: ['OPUS', 'G729', 'VP8', 'PCMA'],
-    });
+    await calling.dial(
+      '',
+      '+15551234567',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'https://example.com/swml',
+      ['OPUS', 'G729', 'VP8', 'PCMA'],
+    );
     const req = getRequests()[0];
     expect(req.body.params.codecs).toEqual(['OPUS', 'G729', 'VP8', 'PCMA']);
   });
 
   it('dial forwards codecs as comma-separated string', async () => {
     const { calling, getRequests } = setup();
-    await calling.dial({
-      url: 'https://example.com/swml',
-      to: '+15551234567',
-      codecs: 'OPUS,G729,VP8,PCMA',
-    });
+    await calling.dial(
+      '',
+      '+15551234567',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'https://example.com/swml',
+      'OPUS,G729,VP8,PCMA',
+    );
     const req = getRequests()[0];
     expect(req.body.params.codecs).toBe('OPUS,G729,VP8,PCMA');
   });
 
   it('end sends command with call_id', async () => {
     const { calling, getRequests } = setup();
-    await calling.end('call-123', { reason: 'hangup' });
+    await calling.end('call-123', 'hangup');
     const req = getRequests()[0];
     expect(req.body).toEqual({
       command: 'calling.end',
@@ -58,44 +70,44 @@ describe('CallingNamespace', () => {
 
   it('play sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.play('call-123', { url: 'http://example.com/audio.mp3' });
+    await calling.play('call-123', [{ url: 'http://example.com/audio.mp3' }]);
     expect(getRequests()[0].body.command).toBe('calling.play');
   });
 
   it('playPause sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.playPause('call-123');
+    await calling.playPause('call-123', '');
     expect(getRequests()[0].body.command).toBe('calling.play.pause');
   });
 
   it('record sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.record('call-123', { beep: true });
+    await calling.record('call-123', undefined, undefined, undefined, { beep: true });
     expect(getRequests()[0].body.command).toBe('calling.record');
     expect(getRequests()[0].body.params).toEqual({ beep: true });
   });
 
   it('collect sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.collect('call-123', { digits: { max: 4 } });
+    await calling.collect('call-123', undefined, undefined, { max: 4 });
     expect(getRequests()[0].body.command).toBe('calling.collect');
   });
 
   it('detect sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.detect('call-123');
+    await calling.detect('call-123', {});
     expect(getRequests()[0].body.command).toBe('calling.detect');
   });
 
   it('tap sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.tap('call-123');
+    await calling.tap('call-123', {}, {});
     expect(getRequests()[0].body.command).toBe('calling.tap');
   });
 
   it('stream sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.stream('call-123');
+    await calling.stream('call-123', 'wss://example.com/audio');
     expect(getRequests()[0].body.command).toBe('calling.stream');
   });
 
@@ -113,19 +125,23 @@ describe('CallingNamespace', () => {
 
   it('aiMessage sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.aiMessage('call-123', { message: 'hello' });
+    await calling.aiMessage('call-123', undefined, undefined, undefined, undefined, {
+      message: 'hello',
+    });
     expect(getRequests()[0].body.command).toBe('calling.ai_message');
   });
 
   it('aiStop sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.aiStop('call-123');
+    await calling.aiStop('call-123', '');
     expect(getRequests()[0].body.command).toBe('calling.ai.stop');
   });
 
   it('liveTranscribe sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.liveTranscribe('call-123');
+    await calling.liveTranscribe('call-123', {
+      start: { lang: 'en-US', direction: ['remote-caller'] },
+    });
     expect(getRequests()[0].body.command).toBe('calling.live_transcribe');
   });
 
@@ -137,7 +153,7 @@ describe('CallingNamespace', () => {
 
   it('userEvent sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.userEvent('call-123', { event_name: 'custom' });
+    await calling.userEvent('call-123', { custom: { foo: 'bar' } });
     expect(getRequests()[0].body.command).toBe('calling.user_event');
   });
 
@@ -154,15 +170,15 @@ describe('CallingNamespace', () => {
       { status: 200, body: {} },
     ]);
 
-    await calling.playStop('c1');
-    await calling.recordStop('c1');
-    await calling.collectStop('c1');
-    await calling.detectStop('c1');
-    await calling.tapStop('c1');
-    await calling.streamStop('c1');
+    await calling.playStop('c1', '');
+    await calling.recordStop('c1', '');
+    await calling.collectStop('c1', '');
+    await calling.detectStop('c1', '');
+    await calling.tapStop('c1', '');
+    await calling.streamStop('c1', '');
     await calling.denoiseStop('c1');
-    await calling.transcribeStop('c1');
-    await calling.sendFaxStop('c1');
+    await calling.transcribeStop('c1', '');
+    await calling.sendFaxStop('c1', '');
 
     const reqs = getRequests();
     expect(reqs[0].body.command).toBe('calling.play.stop');

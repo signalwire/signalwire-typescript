@@ -44,10 +44,12 @@ describe('DatasphereNamespace', () => {
 
   it('searches documents', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { results: [] } }]);
-    await ds.documents.search({ query: 'test query', count: 5 });
+    // Generated `search` takes exploded spec-field params: query_string (required),
+    // then optional tags, document_id, distance, count, … (matches the Python oracle).
+    await ds.documents.search('test query', undefined, undefined, undefined, 5);
     expect(getRequests()[0].url).toContain('/api/datasphere/documents/search');
     expect(getRequests()[0].method).toBe('POST');
-    expect(getRequests()[0].body).toEqual({ query: 'test query', count: 5 });
+    expect(getRequests()[0].body).toEqual({ query_string: 'test query', count: 5 });
   });
 
   it('lists chunks for a document', async () => {

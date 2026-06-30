@@ -57,6 +57,14 @@ function camelToSnake(name: string): string {
 function fallbackModuleName(fileRelPath: string): string {
   // Drop the leading "src/" segment and the ".ts" suffix.
   let rel = fileRelPath.replace(/^src\//, '').replace(/\.ts$/, '');
+  // Generated REST modules follow the Python file-naming idiom in the oracle:
+  // ``video.resources.generated`` ≡ ``video_resources_generated`` and
+  // ``video.types.generated`` ≡ ``video_types_generated`` (dotted TS filename →
+  // underscored Python module). Fold the trailing ``.resources.generated`` /
+  // ``.types.generated`` to one underscored segment so the class module path
+  // lines up with the reference oracle (mirrors enumerate-signatures.ts).
+  rel = rel.replace(/\.resources\.generated$/, '_resources_generated');
+  rel = rel.replace(/\.types\.generated$/, '_types_generated');
   // Break into parts, snake_case each.
   const parts = rel.split('/').map((p) => camelToSnake(p).replace(/-/g, '_'));
   return ['signalwire', ...parts].join('.');
@@ -200,6 +208,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/rest/base/BaseResource.ts': 'signalwire.rest._base',
   'src/rest/base/CrudResource.ts': 'signalwire.rest._base',
   'src/rest/base/CrudWithAddresses.ts': 'signalwire.rest._base',
+  'src/rest/base/ReadResource.ts': 'signalwire.rest._base',
+  'src/rest/base/FabricResource.ts': 'signalwire.rest._base',
   // Skills
   'src/skills/SkillBase.ts': 'signalwire.core.skill_base',
   'src/skills/SkillManager.ts': 'signalwire.core.skill_manager',
@@ -339,6 +349,11 @@ function enumerateFile(file: string): FileSurface {
   function collectClass(node: ts.ClassDeclaration, nameOverride?: string): void {
     if (!node.name) return;
     const rawName = nameOverride ?? node.name.text;
+    // Private classes (leading `_`) mirror Python's griffe convention of skipping
+    // underscore-prefixed members: the generated `_GeneratedResourceTree` wiring
+    // base is an implementation detail (Python's `_GeneratedResourceTree` is
+    // likewise absent from the reference surface).
+    if (rawName.startsWith('_')) return;
     const methods = new Set<string>();
     for (const member of node.members) {
       // Skip private/protected? No — filter only on leading underscore, per

@@ -467,6 +467,8 @@ signalwire.prefabs.survey.SurveyAgent.questions: TS public `questions` field exp
 signalwire.relay.call.Action.call: TS readonly accessor exposing the parent Call instance from an Action; Python keeps the back-reference as a private attribute that callers don't need
 signalwire.rest._base.CrudResource.__init__: TS-port explicit constructor for the abstract CrudResource; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
 signalwire.rest._base.CrudWithAddresses.__init__: TS-port explicit constructor for the abstract CrudWithAddresses; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
+signalwire.rest._base.ReadResource.__init__: TS-port explicit constructor for the abstract ReadResource (list/get base); Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
+signalwire.rest.client.RestClient.compat: Twilio-compatible LAML namespace, hand-written in the TS port (no OpenAPI spec in this porting-sdk checkout, so it is NOT part of the generated client tree); the Python reference here has no compat namespace. The generated flat resources + namespace containers are wired by the `_GeneratedResourceTree` base (skipped by the enumerator, mirroring Python's private `_GeneratedResourceTree`), so `compat` is the only resource accessor RestClient itself declares.
 
 ## AgentBase / SWMLService / SkillRegistry surface additions
 

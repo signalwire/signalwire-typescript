@@ -38,12 +38,18 @@ describe('Addresses', () => {
   });
 
   it('create', async () => {
-    const body = await client.addresses.create({
-      address_type: 'commercial',
-      first_name: 'Ada',
-      last_name: 'Lovelace',
-      country: 'US',
-    });
+    const body = await client.addresses.create(
+      'home', // label
+      'US', // country
+      'Ada', // first_name
+      'Lovelace', // last_name
+      '1', // street_number
+      'Analytical Ave', // street_name
+      'London', // city
+      'CA', // state
+      '94105', // postal_code
+      'commercial', // address_type
+    );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -147,7 +153,7 @@ describe('ShortCodes', () => {
   });
 
   it('update', async () => {
-    const body = await client.shortCodes.update('sc-1', { name: 'Marketing SMS' });
+    const body = await client.shortCodes.update('sc-1', 'Marketing SMS', 'relay_context');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -158,6 +164,7 @@ describe('ShortCodes', () => {
     expect(last.path).toBe('/api/relay/rest/short_codes/sc-1');
     const sent = last.body || {};
     expect(sent.name).toBe('Marketing SMS');
+    expect(sent.message_handler).toBe('relay_context');
   });
 });
 
@@ -165,8 +172,7 @@ describe('ShortCodes', () => {
 
 describe('ImportedNumbers', () => {
   it('create', async () => {
-    const body = await client.importedNumbers.create({
-      number: '+15551234567',
+    const body = await client.importedNumbers.create('+15551234567', 'longcode', ['sms', 'voice'], {
       sip_username: 'alice',
       sip_password: 'secret',
       sip_proxy: 'sip.example.com',
@@ -180,6 +186,8 @@ describe('ImportedNumbers', () => {
     expect(last.path).toBe('/api/relay/rest/imported_phone_numbers');
     const sent = last.body || {};
     expect(sent.number).toBe('+15551234567');
+    expect(sent.number_type).toBe('longcode');
+    expect(sent.capabilities).toEqual(['sms', 'voice']);
     expect(sent.sip_username).toBe('alice');
     expect(sent.sip_proxy).toBe('sip.example.com');
   });
@@ -189,13 +197,9 @@ describe('ImportedNumbers', () => {
 
 describe('Mfa', () => {
   it('call', async () => {
-    // Pass `from_` to match the Python wire form (Python `from_` kwarg
-    // becomes a body key with the trailing underscore).
-    const body = await client.mfa.call({
-      to: '+15551234567',
-      from_: '+15559876543',
-      message: 'Your code is {code}',
-    });
+    // Generated signature: call(to, from?, message?, ...). The wire body
+    // key is `from` (the spec field name).
+    const body = await client.mfa.call('+15551234567', '+15559876543', 'Your code is {code}');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -205,7 +209,7 @@ describe('Mfa', () => {
     expect(last.path).toBe('/api/relay/rest/mfa/call');
     const sent = last.body || {};
     expect(sent.to).toBe('+15551234567');
-    expect(sent['from_']).toBe('+15559876543');
+    expect(sent['from']).toBe('+15559876543');
     expect(sent.message).toBe('Your code is {code}');
   });
 });
@@ -214,10 +218,7 @@ describe('Mfa', () => {
 
 describe('SipProfile', () => {
   it('update', async () => {
-    const body = await client.sipProfile.update({
-      domain: 'myco.sip.signalwire.com',
-      default_codecs: ['PCMU', 'PCMA'],
-    });
+    const body = await client.sipProfile.update('myco.sip.signalwire.com', ['PCMU', 'PCMA']);
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('domain' in body || 'default_codecs' in body).toBe(true);
@@ -226,7 +227,8 @@ describe('SipProfile', () => {
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/sip_profile');
     const sent = last.body || {};
-    expect(sent.domain).toBe('myco.sip.signalwire.com');
+    // Generated update uses spec field `domain_identifier`.
+    expect(sent.domain_identifier).toBe('myco.sip.signalwire.com');
     expect(sent.default_codecs).toEqual(['PCMU', 'PCMA']);
   });
 });
@@ -263,7 +265,7 @@ describe('NumberGroups', () => {
 
 describe('ProjectTokens', () => {
   it('update', async () => {
-    const body = await client.project.tokens.update('tok-1', { name: 'renamed-token' });
+    const body = await client.project.tokens.update('tok-1', 'renamed-token');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);

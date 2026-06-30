@@ -184,14 +184,11 @@ async function main() {
   // 12. Project token management
   console.log('\nProject tokens...');
   const projToken = await safe('Create project token', () =>
-    client.project.tokens.create({
-      name: 'CI Token',
-      permissions: ['calling', 'messaging', 'video'],
-    }),
+    client.project.tokens.create('CI Token', ['calling', 'messaging', 'video']),
   );
   if (projToken?.id) {
     await safe('Update project token', () =>
-      client.project.tokens.update(projToken.id, { name: 'CI Token (updated)' }),
+      client.project.tokens.update(projToken.id, 'CI Token (updated)'),
     );
     await safe('Delete project token', () => client.project.tokens.delete(projToken.id));
   }
@@ -201,17 +198,10 @@ async function main() {
   // 13. PubSub and Chat tokens
   console.log('\nPubSub and Chat tokens...');
   await safe('PubSub token', () =>
-    client.pubsub.createToken({
-      channels: { notifications: { read: true, write: true } },
-      ttl: 3600,
-    }),
+    client.pubsub.createToken(3600, { notifications: { read: true, write: true } }),
   );
   await safe('Chat token', () =>
-    client.chat.createToken({
-      member_id: 'user-alice',
-      channels: { general: { read: true, write: true } },
-      ttl: 3600,
-    }),
+    client.chat.createToken(3600, { general: { read: true, write: true } }, 'user-alice'),
   );
 
   // --- Logs ---
