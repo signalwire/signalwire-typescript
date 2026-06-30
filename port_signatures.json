@@ -21510,6 +21510,129 @@
         }
       }
     },
+    "signalwire.swaig_contracts.generated": {
+      "classes": {
+        "PostPrompt": {
+          "methods": {
+            "call_log": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire-typescript.src.SwaigContracts.generated.PostPromptCallLogEntry>"
+            },
+            "post_prompt_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.PostPromptData"
+            },
+            "raw_call_log": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.signalwire-typescript.src.SwaigContracts.generated.PostPromptCallLogEntry>"
+            },
+            "swaig_log": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.swaig_contracts.generated.PostPromptSwaigLogEntry>"
+            },
+            "times": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.swaig_contracts.generated.PostPromptTimesEntry>"
+            }
+          }
+        },
+        "PostPromptAssistantEntry": {
+          "methods": {
+            "stamps_us": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.PostPromptStampsUs"
+            }
+          }
+        },
+        "PostPromptSwaigLogEntry": {
+          "methods": {
+            "post_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.SwaigRequest"
+            }
+          }
+        },
+        "PostPromptUserEntry": {
+          "methods": {
+            "entity": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.PostPromptEntity"
+            },
+            "eot": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.PostPromptEot"
+            },
+            "timing": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.PostPromptTiming"
+            }
+          }
+        },
+        "SwaigRequest": {
+          "methods": {
+            "argument": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_contracts.generated.SwaigArgument"
+            }
+          }
+        }
+      }
+    },
     "signalwire.utils": {
       "functions": {
         "is_private_ip": {

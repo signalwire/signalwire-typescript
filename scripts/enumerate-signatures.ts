@@ -779,6 +779,68 @@ function collectClass(
   doc.modules[mod].classes![canonClass] = entry;
 }
 
+// Generated read-side payload modules (SWAIG request / post-prompt; later SWML
+// verbs) declare their typed payloads as `interface`s, not classes. The Python
+// reference enumerates each such TypedDict's CLASS-typed fields as zero-arg
+// members (``PostPrompt.call_log`` → ``list<class:…PostPromptCallLogEntry>``),
+// skipping primitive-typed fields (``project_id: str``). Mirror that here: walk
+// only the generated-payload modules' interfaces and project the same
+// class-typed-fields-only surface, so the (class, field) shapes compare against
+// the reference after the diff tool's gen-payload module fold. A path test (not a
+// blanket interface walk) keeps every other interface in the codebase out of the
+// oracle — only these generated payloads are part of the cross-port contract.
+const GEN_PAYLOAD_FILE_MARKERS = ['SwaigContracts.generated.', 'swml_verbs_generated.'];
+
+function isGenPayloadFile(rel: string): boolean {
+  return GEN_PAYLOAD_FILE_MARKERS.some((m) => rel.includes(m));
+}
+
+function collectInterface(
+  iface: ts.InterfaceDeclaration,
+  rel: string,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  doc: SigDoc,
+  failures: TypeTranslationError[],
+): void {
+  const ifaceName = iface.name.text;
+  if (ifaceName.startsWith('_')) return;
+  const canonClass = CLASS_NAME_ALIASES[ifaceName] ?? ifaceName;
+  const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
+
+  const methods: Record<string, CanonicalSignature> = {};
+  for (const m of iface.members) {
+    if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
+    const native = m.name.text;
+    if (native.startsWith('_')) continue;
+    const snake = camelToSnake(native);
+    if (methods[snake] !== undefined) continue;
+    try {
+      // A PropertySignature is structurally a PropertyDeclaration for the field
+      // we need (`.name`, `.type`); signatureFromProperty applies the same
+      // SDK-class-typed-only filter (returns null for primitives) as Python.
+      const sig = signatureFromProperty(
+        m as unknown as ts.PropertyDeclaration,
+        checker,
+        aliases,
+        false,
+        `${mod}.${canonClass}.${snake}`,
+      );
+      if (sig !== null) methods[snake] = sig;
+    } catch (e) {
+      if (e instanceof TypeTranslationError) failures.push(e);
+      else throw e;
+    }
+  }
+
+  if (Object.keys(methods).length === 0) return;
+  if (!doc.modules[mod]) doc.modules[mod] = {};
+  if (!doc.modules[mod].classes) doc.modules[mod].classes = {};
+  doc.modules[mod].classes![canonClass] = {
+    methods: Object.fromEntries(Object.entries(methods).sort()),
+  };
+}
+
 const CRUD_BASE_NAMES = new Set([
   'CrudResource',
   'CrudWithAddresses',
@@ -1177,6 +1239,15 @@ function main(): number {
         if (mods & ts.ModifierFlags.Export) {
           collectClass(node, rel, checker, aliases, doc, failures);
         }
+      } else if (
+        ts.isInterfaceDeclaration(node) &&
+        isGenPayloadFile(rel) &&
+        ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export
+      ) {
+        // Generated-payload interfaces (SwaigContracts.generated, swml_verbs_generated):
+        // enumerate their class-typed fields as members to match Python's TypedDict
+        // field surface. Restricted to those files so no other interface leaks in.
+        collectInterface(node, rel, checker, aliases, doc, failures);
       } else if (ts.isFunctionDeclaration(node) && node.name) {
         const mods = ts.getCombinedModifierFlags(node);
         if (mods & ts.ModifierFlags.Export) {
