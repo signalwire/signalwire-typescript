@@ -312,7 +312,7 @@
               "default": null
             }
           ],
-          "returns": "class:signalwire.platform_contracts.generated.SwaigRequestData"
+          "returns": "class:signalwire.swaig_contracts.generated.SwaigRequest"
         }
       }
     },
@@ -706,7 +706,7 @@
               "required": true
             }
           ],
-          "returns": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwaigRequestData>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
+          "returns": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
         },
         "infer_schema": {
           "params": [
@@ -1136,12 +1136,12 @@
                 },
                 {
                   "name": "_summary",
-                  "type": "dict<string,any>",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPromptData",
                   "required": true
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -5794,7 +5794,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwaigRequestData",
+                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 }
               ],
@@ -6192,7 +6192,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwaigRequestData",
+                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
                   "required": false,
                   "default": null
                 },
@@ -6887,7 +6887,7 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwaigRequestData",
+                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 }
               ],
@@ -7084,7 +7084,7 @@
                 },
                 {
                   "name": "_request_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwaigRequestData",
+                  "type": "class:signalwire.swaig_contracts.generated.SwaigRequest",
                   "required": true
                 },
                 {
@@ -8602,7 +8602,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8673,7 +8673,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8808,7 +8808,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],
@@ -8870,7 +8870,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.PostPromptData",
+                  "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
               ],

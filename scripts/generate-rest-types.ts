@@ -1276,6 +1276,99 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
 }
 
 /**
+ * The typed SWAIG wire payloads (SWAIG_PIPELINE §4), from the vendored
+ * porting-sdk/swaig-specs/*.yaml — the AUTHORITATIVE mod_openai engine specs (not
+ * the non-authoritative swml-webhooks derivative). Mirrors the Python reference
+ * (`generate_swaig_request` + `generate_post_prompt` in
+ * generate_python_rest_types.py): `swaig-request.yaml` → the `SwaigRequest` the
+ * function handler RECEIVES, `post-prompt.yaml` → the full `PostPrompt` payload
+ * tree the post-prompt/onSummary callback RECEIVES.
+ *
+ * Both are READ-side payloads, so they are OPEN-SHAPED: every field is optional
+ * (the engine sends conditionals only when their precondition holds — the spec's
+ * `required:` list is intentionally ignored, exactly as the Python emitter drops
+ * it under TypedDict `total=False`) and every named type carries a top-level
+ * `[key: string]: unknown` index signature so unmodeled server keys round-trip.
+ * There is NO `extras` write door — these are received, never built.
+ *
+ * Both specs emit into ONE module so the cross-spec `SwaigRequest` ref (used by
+ * `PostPromptSwaigLogEntry.post_data`) resolves locally (Python re-imports it
+ * across modules; TS co-locates).
+ */
+function swaigDeclaration(name: string, schema: Schema): string {
+  // Open-shaped READ payload: drop `required` (all fields optional) and force the
+  // top-level open index signature. `objectBody(topLevel=true)` emits the index
+  // signature only on `additionalProperties: true`, so set it for object schemas.
+  const doc = schema.description ? `/** ${schema.description.split('\n')[0]} */\n` : '';
+  const isObject =
+    (schema.type === 'object' || (!schema.type && schema.properties)) &&
+    !schema.oneOf &&
+    !schema.anyOf &&
+    !schema.allOf;
+  if (isObject && schema.properties) {
+    const open: Schema = { ...schema, required: [], additionalProperties: true };
+    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true)}\n`;
+  }
+  // oneOf/anyOf union (PostPromptCallLogEntry) / non-object → a type alias.
+  return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
+}
+
+async function generateSwaigContracts(
+  requestSpecPath: string,
+  postPromptSpecPath: string,
+  outPath: string,
+): Promise<number> {
+  const reqDoc = yaml.load(fs.readFileSync(requestSpecPath, 'utf-8')) as OpenApiDoc;
+  const ppDoc = yaml.load(fs.readFileSync(postPromptSpecPath, 'utf-8')) as OpenApiDoc;
+  const decls: string[] = [];
+
+  // --- swaig-request.yaml → SwaigRequest (+ the inline `argument` lifted to a
+  // named SwaigArgument), mirroring generate_swaig_request. ---
+  const reqSchema = reqDoc.components?.schemas?.SwaigRequest;
+  if (!reqSchema) throw new Error('swaig-request.yaml: missing components.schemas.SwaigRequest');
+  const reqProps = reqSchema.properties ?? {};
+  const outProps: Record<string, Schema> = {};
+  for (const [pname, pschema] of Object.entries(reqProps)) {
+    if (pname === 'argument' && pschema.properties) {
+      decls.push(
+        swaigDeclaration('SwaigArgument', { type: 'object', properties: pschema.properties }),
+      );
+      outProps[pname] = { $ref: '#/components/schemas/SwaigArgument' };
+    } else {
+      outProps[pname] = pschema;
+    }
+  }
+  decls.push(swaigDeclaration('SwaigRequest', { type: 'object', properties: outProps }));
+
+  // --- post-prompt.yaml → the PostPrompt tree (one decl per component schema),
+  // mirroring generate_post_prompt. SwaigRequest is already declared above, so
+  // its in-tree ref (PostPromptSwaigLogEntry.post_data) resolves locally. ---
+  const ppSchemas = ppDoc.components?.schemas ?? {};
+  for (const [pname, pschema] of Object.entries(ppSchemas)) {
+    if (pname === 'SwaigRequest') continue; // declared from the request spec above
+    decls.push(swaigDeclaration(pname, pschema));
+  }
+
+  const header =
+    `// AUTO-GENERATED from porting-sdk/swaig-specs/{swaig-request,post-prompt}.yaml — DO NOT EDIT.\n` +
+    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE\n` +
+    `// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler\n` +
+    `// RECEIVES; the PostPrompt tree is the call-end summary payload the\n` +
+    `// post-prompt / onSummary callback RECEIVES. Open-shaped READ payloads — every\n` +
+    `// field optional, every named type carries a [key: string]: unknown tail so\n` +
+    `// unmodeled server keys round-trip. Held to the same lint bar as hand-written\n` +
+    `// source (no rule suppressions, no loose types).\n\n`;
+  const config = (await prettier.resolveConfig(outPath)) ?? {};
+  const formatted = await prettier.format(header + decls.join('\n'), {
+    ...config,
+    parser: 'typescript',
+  });
+  emitFile(outPath, formatted);
+  return decls.length;
+}
+
+/**
  * RELAY WS protocol types. Unlike the REST namespaces (one OpenAPI doc with
  * components/schemas), the relay contracts are one standalone JSON-Schema file
  * per method+phase under porting-sdk/relay-protocol/ (extracted from the C#
@@ -1414,6 +1507,23 @@ async function main(): Promise<void> {
     const relayOut = 'src/relay/protocol.types.generated.ts';
     const n = await generateRelayProtocol(relayDir, relayOut);
     console.log(`${verb} ${relayOut} (${n} types)`);
+  }
+
+  // Typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the vendored swaig-specs/
+  // (the authoritative mod_openai engine specs). Separate source dir from the REST
+  // rest-apis/ specs; skipped cleanly if the swaig-specs aren't present in the
+  // resolved porting-sdk (mirrors the per-spec fail-soft above).
+  const swaigReqSpec = path.join(psdk, 'swaig-specs', 'swaig-request.yaml');
+  const postPromptSpec = path.join(psdk, 'swaig-specs', 'post-prompt.yaml');
+  if (fs.existsSync(swaigReqSpec) && fs.existsSync(postPromptSpec)) {
+    const swaigOut = 'src/SwaigContracts.generated.ts';
+    const n = await generateSwaigContracts(swaigReqSpec, postPromptSpec, swaigOut);
+    console.log(`${verb} ${swaigOut} (${n} types)`);
+  } else {
+    console.log(
+      `skipped SWAIG contracts (no swaig-specs at ${path.join(psdk, 'swaig-specs')}; ` +
+        `using committed src/SwaigContracts.generated.ts).`,
+    );
   }
 
   if (CHECK && staleFiles.length) {

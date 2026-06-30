@@ -18,7 +18,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
-import type { SwaigRequestData } from '../../PlatformContracts.js';
+import type { SwaigRequest } from '../../SwaigContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
 import { Agent as UndiciAgent } from 'undici';
@@ -345,7 +345,7 @@ export class McpGatewaySkill extends SkillBase {
       name: '_mcp_gateway_hangup',
       description: 'Internal cleanup function for MCP sessions',
       parameters: {},
-      handler: (args: Record<string, unknown>, rawData: SwaigRequestData) =>
+      handler: (args: Record<string, unknown>, rawData: SwaigRequest) =>
         this._hangupHandler(args, rawData),
       isHangupHook: true,
     });
@@ -530,7 +530,7 @@ export class McpGatewaySkill extends SkillBase {
       description: `[${serviceName}] ${toolDef.description ?? toolName}`,
       parameters: swaigParams,
       required,
-      handler: async (args: Record<string, unknown>, rawData: SwaigRequestData) =>
+      handler: async (args: Record<string, unknown>, rawData: SwaigRequest) =>
         this._callMcpTool(serviceName, toolName, args, rawData),
     };
   }
@@ -540,7 +540,7 @@ export class McpGatewaySkill extends SkillBase {
     serviceName: string,
     toolName: string,
     args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     log.debug('mcp_gateway: raw_data keys', { keys: Object.keys(rawData) });
@@ -653,7 +653,7 @@ export class McpGatewaySkill extends SkillBase {
   /** Handle call hangup — clean up any MCP session on the gateway. */
   private async _hangupHandler(
     _args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ): Promise<FunctionResult> {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
     const sessionId =

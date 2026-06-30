@@ -10,7 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
+import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -289,7 +289,7 @@ export class SurveyAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: SwaigRequestData): SurveySession {
+  private getSession(rawData: SwaigRequest): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -461,7 +461,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData: SwaigRequestData) => {
+      handler: (args, rawData: SwaigRequest) => {
         const questionId = args.question_id ?? '';
         const response = args.response ?? '';
 
@@ -497,7 +497,7 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args, rawData: SwaigRequestData) => {
+      handler: async (args, rawData: SwaigRequest) => {
         const questionId = args.question_id;
         const answer = args.answer;
 
@@ -570,7 +570,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequest) => {
         const session = this.getSession(rawData);
 
         if (session.completed) {
@@ -604,7 +604,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequest) => {
         const session = this.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
         const totalCount = this.questions.length;
@@ -643,7 +643,7 @@ export class SurveyAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     if (summary) {
       try {

@@ -19,7 +19,8 @@ import { getLogger, Logger } from './Logger.js';
 import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
 import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
-import type { SwaigRequestData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { SwaigRequest } from './SwaigContracts.js';
 import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
@@ -412,9 +413,9 @@ export class SWMLService {
       if (c.req.method === 'GET') {
         return handler(c);
       }
-      let payload: SwaigRequestData;
+      let payload: SwaigRequest;
       try {
-        payload = (await c.req.json()) as SwaigRequestData;
+        payload = (await c.req.json()) as SwaigRequest;
       } catch {
         return c.json({ error: 'Invalid JSON' }, 400);
       }
@@ -491,7 +492,7 @@ export class SWMLService {
       required?: R;
       handler: (
         args: ToolArgs<P, R>,
-        rawData: SwaigRequestData,
+        rawData: SwaigRequest,
       ) =>
         | FunctionResult
         | Record<string, unknown>
@@ -534,7 +535,7 @@ export class SWMLService {
   onFunctionCall(
     name: string,
     args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ):
     | FunctionResult
     | Record<string, unknown>
@@ -638,7 +639,7 @@ export class SWMLService {
    * override to add session-token validation or ephemeral dynamic-config.
    */
   protected swaigPreDispatch(
-    _requestData: SwaigRequestData,
+    _requestData: SwaigRequest,
     _funcName: string,
   ): [SWMLService, unknown] {
     return [this, null];

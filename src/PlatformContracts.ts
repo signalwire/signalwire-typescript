@@ -1,7 +1,6 @@
 /**
- * Platform contract types — the shapes the SignalWire backend POSTs to webhook
- * endpoints (SWAIG function calls, post-prompt summaries, dynamic-SWML requests)
- * and the error body the Compatibility REST API returns.
+ * Platform contract types — the dynamic-SWML request body the backend POSTs to a
+ * SWML request handler, and the error body the Compatibility REST API returns.
  *
  * These are GENERATED from porting-sdk/rest-apis/swml-webhooks/openapi.yaml (a
  * faithful transcription of the prose contracts in relay-apis/public/swml.md +
@@ -10,14 +9,16 @@
  * keeps a stable `./PlatformContracts.js` import path; regenerate via
  * `npx tsx scripts/generate-rest-types.ts`. Do not hand-edit the shapes here —
  * edit the spec and regenerate.
+ *
+ * NOTE: the SWAIG payloads (function-request + post-prompt) are NOT re-exported
+ * here — they now come from the AUTHORITATIVE mod_openai engine specs via
+ * `./SwaigContracts.js` (SwaigRequest / PostPrompt), matching the Python
+ * reference. The swml-webhooks spec's own SwaigRequestData / PostPromptData* are
+ * the superseded non-authoritative derivatives (see SwaigContracts.generated.ts);
+ * they remain in PlatformContracts.generated.ts only until the SWAIG schemas are
+ * dropped from the shared swml-webhooks spec (a coupled cross-port spec change).
  */
 export type {
-  SwaigRequestData,
-  SwaigArgument,
-  PostPromptData,
-  PostPromptParams,
-  PostPromptConversationTurn,
-  PostPromptFunctionCall,
   SwmlRequestData,
   SwmlRequestCall,
   SignalWireErrorBody,

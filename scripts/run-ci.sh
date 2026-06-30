@@ -22,6 +22,11 @@
 #                                            generated types' SHAPE — DRIFT can't, since
 #                                            ~40% of the Python reference is Dict[str,Any]
 #                                            and `any` matches any port type)
+#  4c. swaig-coverage gate                 — porting-sdk swaig_coverage.py --check
+#                                           (every engine SWAIG response action in the
+#                                            vendored swaig-response.yaml must be emittable
+#                                            by src/FunctionResult.ts; allowlisted gaps in
+#                                            porting-sdk/SWAIG_COVERAGE_ALLOWLIST.md)
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
 #                                           (byte-compares this port's FunctionResult
@@ -165,6 +170,18 @@ genfresh_gate() {
         npx tsx scripts/generate-rest-types.ts --check
 }
 run_gate "GEN-FRESH" "generated types match canonical schema (--check)" genfresh_gate
+
+# Gate 4c: SWAIG-COVERAGE — every engine response action in the vendored
+# swaig-specs/swaig-response.yaml must be emittable by this port's FunctionResult
+# (SWAIG_PIPELINE §5). The shared checker reads the action vocabulary from the
+# spec and diffs it against what src/FunctionResult.ts can put on the wire
+# (addAction('key', …) / this.action.push({ key: … }), incl. the multi-line
+# { SWML: …, transfer: … } form); a non-allowlisted gap fails. Signed-off gaps
+# live in porting-sdk/SWAIG_COVERAGE_ALLOWLIST.md (back_to_back_functions,
+# user_event). The SWAIG analogue of REST-COVERAGE.
+run_gate "SWAIG-COVERAGE" "every engine SWAIG action emittable (modulo allowlist)" \
+    python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
+        --emission "$PORT_ROOT/src/FunctionResult.ts"
 
 # Gate 5: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \

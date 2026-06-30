@@ -18,7 +18,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
-import type { SwaigRequestData } from '../../PlatformContracts.js';
+import type { SwaigRequest } from '../../SwaigContracts.js';
 import { getLogger } from '../../Logger.js';
 
 const log = getLogger('InfoGathererSkill');
@@ -227,7 +227,7 @@ export class InfoGathererSkill extends SkillBase {
    */
   private _handleStartQuestions(
     _args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ): FunctionResult {
     const state = this.getSkillData(rawData);
     const questions = (state['questions'] as QuestionDefinition[] | undefined) ?? [];
@@ -258,7 +258,7 @@ export class InfoGathererSkill extends SkillBase {
    */
   private _handleSubmitAnswer(
     args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ): FunctionResult {
     const answer = (args['answer'] as string | undefined) ?? '';
     const confirmed = (args['confirmed_by_user'] as boolean | undefined) ?? false;

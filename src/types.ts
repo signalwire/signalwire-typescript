@@ -2,7 +2,8 @@
  * Shared type definitions for SignalWire AI Agents SDK.
  */
 
-import type { PostPromptData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /** Configuration options for constructing an AgentBase instance. */
 export interface AgentOptions {
@@ -167,6 +168,6 @@ export type DynamicConfigCallback<TAgent = import('./AgentBase.js').AgentBase> =
  * @param rawData - The full raw post-prompt payload.
  */
 export type SummaryCallback = (
-  summary: Record<string, unknown> | null,
-  rawData: PostPromptData,
+  summary: PostPromptData | null,
+  rawData: PostPrompt,
 ) => void | Promise<void>;

@@ -9,7 +9,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { PostPromptData } from '../PlatformContracts.js';
+import type { PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -278,7 +278,7 @@ export class ConciergeAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     if (summary) {
       try {

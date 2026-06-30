@@ -44,7 +44,8 @@ import type {
   FunctionInclude,
   DynamicConfigCallback,
 } from './types.js';
-import type { SwaigRequestData, PostPromptData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /**
  * Callback invoked at a registered routing endpoint to determine how to handle an
@@ -1359,7 +1360,7 @@ export class AgentBase extends SWMLService {
         const rawData = {
           function: toolName,
           argument: { parsed: [args] },
-        } as unknown as SwaigRequestData;
+        } as unknown as SwaigRequest;
         const resultDict = await fn.execute(args, rawData, this._onError);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
@@ -1955,10 +1956,7 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(
-    _summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
-  ): void | Promise<void> {
+  onSummary(_summary: PostPromptData | null, _rawData: PostPrompt): void | Promise<void> {
     // Default no-op
   }
 
@@ -2511,7 +2509,7 @@ export class AgentBase extends SWMLService {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always POSTs the full SWAIG payload,
       // and the parse-failure path below is rejected before any field is read.
-      let body: SwaigRequestData = {} as SwaigRequestData;
+      let body: SwaigRequest = {} as SwaigRequest;
       try {
         body = await c.req.json();
       } catch {
@@ -2601,7 +2599,7 @@ export class AgentBase extends SWMLService {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always POSTs the full post_prompt
       // payload, and the parse-failure path leaves an empty summary lookup.
-      let body: PostPromptData = {} as PostPromptData;
+      let body: PostPrompt = {} as PostPrompt;
       try {
         body = await c.req.json();
       } catch {
@@ -2902,7 +2900,7 @@ export class AgentBase extends SWMLService {
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
-  private findSummary(body: PostPromptData): Record<string, unknown> | null {
+  private findSummary(body: PostPrompt): Record<string, unknown> | null {
     if (!body) return null;
     if (body['summary']) return body['summary'] as Record<string, unknown>;
     const ppd = body['post_prompt_data'] as Record<string, unknown> | undefined;

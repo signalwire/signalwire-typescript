@@ -10,7 +10,8 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { SwaigRequestData, SwmlRequestData } from '../PlatformContracts.js';
+import type { SwmlRequestData } from '../PlatformContracts.js';
+import type { SwaigRequest } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -289,7 +290,7 @@ export class InfoGathererAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: SwaigRequestData) => {
+      handler: (_args: Record<string, unknown>, rawData: SwaigRequest) => {
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
         const questionIndex = (globalData['question_index'] as number) ?? 0;

@@ -5,7 +5,7 @@
 import Ajv from 'ajv';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
-import type { SwaigRequestData } from './PlatformContracts.js';
+import type { SwaigRequest } from './SwaigContracts.js';
 
 const ajv = new Ajv({ allErrors: true });
 
@@ -79,7 +79,7 @@ export function normalizeParameters(
  */
 export type SwaigHandler = (
   args: Record<string, unknown>,
-  rawData: SwaigRequestData,
+  rawData: SwaigRequest,
 ) =>
   | FunctionResult
   | Record<string, unknown>
@@ -95,7 +95,7 @@ export interface SwaigErrorContext {
   /** The parsed arguments the handler was invoked with. */
   args: Record<string, unknown>;
   /** The full raw request payload (if available). */
-  rawData?: SwaigRequestData;
+  rawData?: SwaigRequest;
 }
 
 /**
@@ -319,14 +319,14 @@ export class SwaigFunction {
    */
   async execute(
     args: Record<string, unknown>,
-    rawData?: SwaigRequestData,
+    rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always sends the full payload, but
       // `execute` allows callers to omit it (e.g. CLI/test harnesses).
-      const result = await this.handler(args, rawData ?? ({} as SwaigRequestData));
+      const result = await this.handler(args, rawData ?? ({} as SwaigRequest));
       if (result instanceof FunctionResult) {
         return result.toDict();
       }
