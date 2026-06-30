@@ -3913,7 +3913,7 @@
       "functions": {
         "get_execution_mode": {
           "params": [],
-          "returns": "tuple<string,union<string,string,string>>"
+          "returns": "string"
         },
         "get_logger": {
           "params": [

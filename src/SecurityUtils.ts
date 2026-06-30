@@ -164,6 +164,6 @@ export async function validateUrl(url: string, allowPrivate = false): Promise<bo
  * Python parity: ``signalwire.utils.is_serverless_mode``.
  */
 export function isServerlessMode(): boolean {
-  const [mode] = getExecutionMode();
+  const mode = getExecutionMode();
   return mode !== 'server';
 }

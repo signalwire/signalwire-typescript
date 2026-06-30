@@ -23,22 +23,40 @@ type LogFormat = 'text' | 'json';
 type LogStream = 'stdout' | 'stderr';
 
 /**
- * Detect the execution environment, matching Python SDK's detection logic.
- * @returns A tuple of [environment_name, derived_log_mode].
+ * Detect the execution environment, matching the Python SDK's `get_execution_mode()`.
+ * @returns the environment name: 'cgi' | 'lambda' | 'google_cloud_function' |
+ *   'azure_function' | 'server'.
  */
-export function getExecutionMode(): [string, 'off' | 'stderr' | 'default'] {
-  if (process.env['GATEWAY_INTERFACE']) return ['cgi', 'off'];
-  if (process.env['AWS_LAMBDA_FUNCTION_NAME'] || process.env['LAMBDA_TASK_ROOT'])
-    return ['lambda', 'stderr'];
+export function getExecutionMode(): string {
+  if (process.env['GATEWAY_INTERFACE']) return 'cgi';
+  if (process.env['AWS_LAMBDA_FUNCTION_NAME'] || process.env['LAMBDA_TASK_ROOT']) return 'lambda';
   if (
     process.env['FUNCTION_TARGET'] ||
     process.env['K_SERVICE'] ||
     process.env['GOOGLE_CLOUD_PROJECT']
   )
-    return ['google_cloud_function', 'default'];
+    return 'google_cloud_function';
   if (process.env['AZURE_FUNCTIONS_ENVIRONMENT'] || process.env['FUNCTIONS_WORKER_RUNTIME'])
-    return ['azure_function', 'default'];
-  return ['server', 'default'];
+    return 'azure_function';
+  return 'server';
+}
+
+/**
+ * The log-mode TS derives from the execution environment. Kept separate from
+ * `getExecutionMode()` so that function matches Python's string-only contract
+ * (Python derives the log mode in `configure_logging`, not in get_execution_mode).
+ * TS's mapping is richer than Python's `cgi→off else default`: it also routes the
+ * serverless envs to stderr/default as before.
+ */
+function getDerivedLogMode(): 'off' | 'stderr' | 'default' {
+  switch (getExecutionMode()) {
+    case 'cgi':
+      return 'off';
+    case 'lambda':
+      return 'stderr';
+    default:
+      return 'default';
+  }
 }
 
 /** Check process.argv for CLI flags that should disable colors. */
@@ -49,8 +67,7 @@ function cliSuppressesColor(): boolean {
 function deriveSuppressed(mode: string | undefined): boolean {
   if (mode === 'off') return true;
   if (!mode || mode === 'auto') {
-    const [, derived] = getExecutionMode();
-    return derived === 'off';
+    return getDerivedLogMode() === 'off';
   }
   return false;
 }
@@ -58,8 +75,7 @@ function deriveSuppressed(mode: string | undefined): boolean {
 function deriveStreamFromMode(mode: string | undefined): LogStream {
   if (mode === 'stderr') return 'stderr';
   if (!mode || mode === 'auto') {
-    const [, derived] = getExecutionMode();
-    if (derived === 'stderr') return 'stderr';
+    if (getDerivedLogMode() === 'stderr') return 'stderr';
   }
   return 'stdout';
 }
