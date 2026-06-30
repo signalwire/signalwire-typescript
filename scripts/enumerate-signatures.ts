@@ -306,6 +306,15 @@ function camelToSnake(name: string): string {
 
 function fallbackModuleName(fileRelPath: string): string {
   let rel = fileRelPath.replace(/^src\//, '').replace(/\.ts$/, '');
+  // Generated REST modules follow the Python file-naming idiom in the oracle:
+  // ``video.resources.generated`` ≡ ``video_resources_generated`` and
+  // ``video.types.generated`` ≡ ``video_types_generated`` (dotted TS filename →
+  // underscored Python module). Fold the trailing ``.resources.generated`` /
+  // ``.types.generated`` to one underscored segment so the class module path
+  // lines up with the reference oracle (e.g.
+  // signalwire.rest.namespaces.video_resources_generated).
+  rel = rel.replace(/\.resources\.generated$/, '_resources_generated');
+  rel = rel.replace(/\.types\.generated$/, '_types_generated');
   const parts = rel.split('/').map((p) => camelToSnake(p).replace(/-/g, '_'));
   return ['signalwire', ...parts].join('.');
 }
@@ -660,6 +669,7 @@ function collectClass(
           true,
           false,
           `${mod}.${canonClass}.__init__`,
+          false,
         );
       } catch (e) {
         if (e instanceof TypeTranslationError) failures.push(e);
@@ -716,6 +726,7 @@ function collectClass(
         false,
         isStatic,
         `${mod}.${canonClass}.${snake}`,
+        rel.includes('.resources.generated.'),
       );
     } catch (e) {
       if (e instanceof TypeTranslationError) failures.push(e);
@@ -724,6 +735,19 @@ function collectClass(
   }
 
   if (Object.keys(methods).length === 0) return;
+
+  // Generated REST resource classes (``*.resources.generated.ts``) carry typed
+  // OPERATION methods whose params the Python reference enumerates as
+  // keyword-only (the exploded body fields) + a trailing ``**kwargs`` (var_keyword)
+  // / ``**params`` (var_keyword) tail. TypeScript has no keyword-only construct —
+  // these are emitted as plain positional args + a trailing ``extras`` /
+  // ``params`` object. Re-classify them to the reference's kinds so the drift gate
+  // (which compares param KIND, not name) matches: leading required ``string``
+  // path-id args stay positional; the rest of the named body args become
+  // ``keyword``; an ``extras`` object becomes ``keyword`` + a synthetic
+  // ``kwargs`` var_keyword tail (the Python idiom); a trailing ``params`` query
+  // object becomes ``var_keyword`` (the ``**params`` tail). CRUD create/update on
+  // a crud_base class are excused structurally, so re-classifying them is harmless.
   if (!doc.modules[mod]) doc.modules[mod] = {};
   if (!doc.modules[mod].classes) doc.modules[mod].classes = {};
   const entry: { methods: Record<string, CanonicalSignature>; crud_base?: { base: string; bind: string[] } } = {
@@ -744,6 +768,7 @@ const CRUD_BASE_NAMES = new Set([
   'CrudWithAddresses',
   'FabricResource',
   'FabricResourcePUT',
+  'ReadResource',
   'AutoMaterializedWebhook',
 ]);
 
@@ -826,6 +851,121 @@ function signatureFromProperty(
   return { params, returns: canon };
 }
 
+/**
+ * Re-classify a generated REST resource method's params to the Python reference's
+ * kinds (see the call site in collectClass). Mutates `sig.params` in place.
+ *
+ * The TS generator emits: `self`, then leading `string` path-id positionals, then
+ * the exploded body fields (positional), then a trailing `extras?: Record<…>`
+ * (POST/PUT body) or `params?: QueryParams` (GET query). The reference enumerates
+ * the body fields as `keyword`, `extras` as `keyword` followed by a `**kwargs`
+ * (var_keyword) tail, and a GET query as a single `**params` (var_keyword) tail.
+ */
+function reclassifyGeneratedResourceParams(
+  sig: CanonicalSignature,
+  keywordFields: Set<string>,
+): void {
+  const ps = sig.params;
+  const out: CanonicalParam[] = [];
+  for (const p of ps) {
+    if (p.kind === 'self' || p.kind === 'var_positional' || p.kind === 'var_keyword') {
+      out.push(p);
+      continue;
+    }
+    if (p.name === 'extras') {
+      // `extras` (the typed escape door) → keyword, plus a synthetic `**kwargs`
+      // (the Python idiom: a closed surface ends in `extras, **kwargs`).
+      out.push({ ...p, kind: 'keyword' });
+      out.push({ name: 'kwargs', kind: 'var_keyword', type: 'any', required: false, default: {} });
+      continue;
+    }
+    if (p.name === 'extra') {
+      // A set_methods trailing `extra` object → the reference's `**extra` tail.
+      out.push({ name: 'extra', kind: 'var_keyword', type: 'any', required: false, default: {} });
+      continue;
+    }
+    if (p.name === 'params') {
+      // The GET query object → the reference's `**params` (var_keyword) tail.
+      out.push({ name: 'params', kind: 'var_keyword', type: 'any', required: false, default: {} });
+      continue;
+    }
+    // An exploded body field (a shorthand in the method's `_fields = { … }` object)
+    // → keyword-only in the reference. Everything else (path-ids, `call_id`, a
+    // single `body` param, set_methods positional args) stays positional.
+    if (keywordFields.has(p.name)) {
+      out.push({ ...p, kind: 'keyword' });
+      continue;
+    }
+    out.push(p);
+  }
+  sig.params = out;
+}
+
+/**
+ * The exploded-body-field parameter names of a generated resource method: the
+ * shorthand properties of the `const _fields = { … }` / `const params = { … }`
+ * object the generator builds the wire body from (operation methods + command-
+ * dispatch). These are exactly the params the Python reference enumerates as
+ * keyword-only; everything else (path-ids, `call_id`, a single `body` param,
+ * set_methods positional args) stays positional. Read from the method body so the
+ * classification is structural, not guessed from type/position.
+ */
+function keywordFieldNames(m: ts.Node): Set<string> {
+  const names = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    // `const _fields = { url, timeout, ... }` / `const params = { ... }` — each
+    // shorthand-property name is an exploded body field.
+    if (ts.isObjectLiteralExpression(node)) {
+      for (const prop of node.properties) {
+        if (ts.isShorthandPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
+          names.add(camelToSnake(prop.name.text));
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(m);
+  return names;
+}
+
+/**
+ * If a parameter's WRITTEN type node references a generated `*.types.generated`
+ * alias, return its canonical `class:…<Name>` ref (or `list<…>` for an array of
+ * one) so the Python reference's by-name recording (`gen:uuid`) matches — rather
+ * than letting `getTypeAtLocation` resolve a trivial `type uuid = string` alias
+ * down to `string`. Returns null when the node is not a generated-alias reference.
+ */
+function generatedAliasFromNode(
+  node: ts.TypeNode | undefined,
+  checker: ts.TypeChecker,
+): string | null {
+  if (!node) return null;
+  // `uuid[]` → list<…>
+  if (ts.isArrayTypeNode(node)) {
+    const inner = generatedAliasFromNode(node.elementType, checker);
+    return inner ? `list<${inner}>` : null;
+  }
+  if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+    let sym = checker.getSymbolAtLocation(node.typeName);
+    // Follow an import alias to the original declaration so the source file is the
+    // `*.types.generated.ts` that DECLARES the alias, not the resources module that
+    // imports it.
+    if (sym && sym.flags & ts.SymbolFlags.Alias) sym = checker.getAliasedSymbol(sym);
+    const decl = sym?.declarations?.[0];
+    const src = decl?.getSourceFile().fileName ?? '';
+    // Only generated TYPE aliases get the by-name treatment, and they are recorded
+    // under the `*_types_generated` module so the diff's generated-type
+    // normalization (which keys off `.types.generated.` / `_types_generated.`)
+    // folds them to `gen:<Name>` and matches the Python reference.
+    const m = src.match(/\/src\/(.+?)\.ts$/);
+    if (m && /\.types\.generated$/.test(m[1])) {
+      const modPath = m[1].replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
+      return `class:signalwire.${modPath}.${node.typeName.text}`;
+    }
+  }
+  return null;
+}
+
 function signatureFromMethod(
   m:
     | ts.ConstructorDeclaration
@@ -838,6 +978,7 @@ function signatureFromMethod(
   isCtor: boolean,
   isStatic: boolean,
   ctx: string,
+  genResource: boolean,
 ): CanonicalSignature {
   const params: CanonicalParam[] = [];
   const isMethod =
@@ -852,8 +993,13 @@ function signatureFromMethod(
     if (!p.name || !ts.isIdentifier(p.name)) continue;
     const native = p.name.text;
     const snake = camelToSnake(native);
-    const tsType = checker.getTypeAtLocation(p);
-    const canon = translateType(tsType, checker, aliases, `${ctx}[${snake}]`);
+    // Prefer the WRITTEN type node when it references a generated *.types.generated
+    // alias (e.g. `uuid` / `jwt` / `docid`). The Python reference records these by
+    // alias NAME (`gen:uuid`); `getTypeAtLocation` would resolve a trivial
+    // `type uuid = string` alias down to `string` (losing aliasSymbol) and drift.
+    const canon =
+      generatedAliasFromNode(p.type, checker) ??
+      translateType(checker.getTypeAtLocation(p), checker, aliases, `${ctx}[${snake}]`);
     const param: CanonicalParam = { name: snake, type: canon };
     if (p.dotDotDotToken) param.kind = 'var_positional';
     if (p.questionToken || p.initializer) {
@@ -885,7 +1031,16 @@ function signatureFromMethod(
     returns = translateType(retType, checker, aliases, `${ctx}[->]`);
   }
 
-  return { params, returns };
+  const sig: CanonicalSignature = { params, returns };
+  // Generated REST resource methods (operation methods / set_methods /
+  // command-dispatch) are emitted as positional TS args + a trailing `extras` /
+  // `params` object; the Python reference enumerates the body fields as
+  // keyword-only with a `**kwargs` / `**params` tail. Re-classify so the drift
+  // gate (which compares param KIND, not name) matches. Constructors are exempt.
+  if (genResource && !isCtor) {
+    reclassifyGeneratedResourceParams(sig, keywordFieldNames(m));
+  }
+  return sig;
 }
 
 // ---------------------------------------------------------------------------
@@ -977,6 +1132,7 @@ function main(): number {
               false,
               true,
               `${mod}.${projected}`,
+              false,
             );
             // Strip `self` from free functions
             sig.params = sig.params.filter((p) => p.kind !== 'self');

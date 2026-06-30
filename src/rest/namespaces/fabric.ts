@@ -7,15 +7,15 @@ import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { FabricResource, FabricResourcePUT } from '../base/FabricResource.js';
 import {
-  AiAgentsResource,
-  CxmlScriptsResource,
-  CxmlWebhooksResource,
-  FreeswitchConnectorsResource,
-  RelayApplicationsResource,
-  SipEndpointsResource,
-  SipGatewaysResource,
-  SwmlScriptsResource,
-  SwmlWebhooksResource,
+  AiAgents,
+  CxmlScripts,
+  CxmlWebhooks,
+  FreeswitchConnectors,
+  RelayApplications,
+  SipEndpoints,
+  SipGateways,
+  SwmlScripts,
+  SwmlWebhooks,
 } from './fabric.resources.generated.js';
 import type {
   CallFlowAddressListResponse,
@@ -267,7 +267,7 @@ export class CxmlApplicationsResource extends FabricResourcePUT<
  *
  * See the porting-sdk's `phone-binding.md` for the full model.
  */
-// `SwmlWebhooksResource` / `CxmlWebhooksResource` are now plain generated typed CRUD
+// `SwmlWebhooks` / `CxmlWebhooks` are now plain generated typed CRUD
 // resources (see `fabric.resources.generated`, imported above). The former
 // `AutoMaterializedWebhookResource` deprecation wrapper was removed — these SDKs are
 // pre-release, so there is no back-compat to deprecate. The phone-number binding model
@@ -497,34 +497,34 @@ export class FabricTokens extends BaseResource {
 export class FabricNamespace {
   // PUT-update resources
   /** SWML script CRUD (full-replacement `PUT` update). */
-  readonly swmlScripts: SwmlScriptsResource;
+  readonly swmlScripts: SwmlScripts;
   /** Relay Application CRUD (full-replacement `PUT` update). */
-  readonly relayApplications: RelayApplicationsResource;
+  readonly relayApplications: RelayApplications;
   /** Call Flow CRUD with version listing and publishing. */
   readonly callFlows: CallFlowsResource;
   /** Conference Room CRUD with address listing. */
   readonly conferenceRooms: ConferenceRoomsResource;
   /** FreeSWITCH Connector CRUD. */
-  readonly freeswitchConnectors: FreeswitchConnectorsResource;
+  readonly freeswitchConnectors: FreeswitchConnectors;
   /** Subscriber CRUD plus nested SIP endpoint management. */
   readonly subscribers: SubscribersResource;
   /** Top-level SIP endpoint CRUD. */
-  readonly sipEndpoints: SipEndpointsResource;
+  readonly sipEndpoints: SipEndpoints;
   /** cXML (LaML) script CRUD. */
-  readonly cxmlScripts: CxmlScriptsResource;
+  readonly cxmlScripts: CxmlScripts;
   /** cXML application read / update / delete (no create). */
   readonly cxmlApplications: CxmlApplicationsResource;
 
   // PATCH-update resources. `swmlWebhooks` / `cxmlWebhooks` are normally
   // auto-materialized via `phoneNumbers.setSwmlWebhook` / `setCxmlWebhook`;
   // direct create is a normal operation.
-  readonly swmlWebhooks: SwmlWebhooksResource;
+  readonly swmlWebhooks: SwmlWebhooks;
   /** AI Agent CRUD — the platform-managed agent registration resource. */
-  readonly aiAgents: AiAgentsResource;
+  readonly aiAgents: AiAgents;
   /** SIP Gateway CRUD. */
-  readonly sipGateways: SipGatewaysResource;
+  readonly sipGateways: SipGateways;
   /** cXML webhook CRUD. */
-  readonly cxmlWebhooks: CxmlWebhooksResource;
+  readonly cxmlWebhooks: CxmlWebhooks;
 
   // Special resources
   /** Generic operations across all resource types (list, get, delete, phone route assignment). */
@@ -538,25 +538,22 @@ export class FabricNamespace {
     const base = '/api/fabric/resources';
 
     // Generated typed CRUD resources (named-subclass shape, closed body + extras).
-    this.swmlScripts = new SwmlScriptsResource(http, `${base}/swml_scripts`);
-    this.relayApplications = new RelayApplicationsResource(http, `${base}/relay_applications`);
+    this.swmlScripts = new SwmlScripts(http);
+    this.relayApplications = new RelayApplications(http);
     this.callFlows = new CallFlowsResource(http, `${base}/call_flows`);
     this.conferenceRooms = new ConferenceRoomsResource(http, `${base}/conference_rooms`);
-    this.freeswitchConnectors = new FreeswitchConnectorsResource(
-      http,
-      `${base}/freeswitch_connectors`,
-    );
+    this.freeswitchConnectors = new FreeswitchConnectors(http);
     this.subscribers = new SubscribersResource(http, `${base}/subscribers`);
-    this.sipEndpoints = new SipEndpointsResource(http, `${base}/sip_endpoints`);
-    this.cxmlScripts = new CxmlScriptsResource(http, `${base}/cxml_scripts`);
+    this.sipEndpoints = new SipEndpoints(http);
+    this.cxmlScripts = new CxmlScripts(http);
     this.cxmlApplications = new CxmlApplicationsResource(http, `${base}/cxml_applications`);
 
     // swmlWebhooks / cxmlWebhooks are normally auto-materialized via
     // phoneNumbers.setSwmlWebhook / setCxmlWebhook; direct create is a normal operation.
-    this.swmlWebhooks = new SwmlWebhooksResource(http, `${base}/swml_webhooks`);
-    this.aiAgents = new AiAgentsResource(http, `${base}/ai_agents`);
-    this.sipGateways = new SipGatewaysResource(http, `${base}/sip_gateways`);
-    this.cxmlWebhooks = new CxmlWebhooksResource(http, `${base}/cxml_webhooks`);
+    this.swmlWebhooks = new SwmlWebhooks(http);
+    this.aiAgents = new AiAgents(http);
+    this.sipGateways = new SipGateways(http);
+    this.cxmlWebhooks = new CxmlWebhooks(http);
 
     // Special resources
     this.resources = new GenericResources(http, base);

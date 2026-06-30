@@ -229,15 +229,15 @@ export {
   FabricTokens,
 } from './namespaces/fabric.js';
 export {
-  AiAgentsResource,
-  CxmlScriptsResource,
-  CxmlWebhooksResource,
-  FreeswitchConnectorsResource,
-  RelayApplicationsResource,
-  SipEndpointsResource,
-  SipGatewaysResource,
-  SwmlScriptsResource,
-  SwmlWebhooksResource,
+  AiAgents,
+  CxmlScripts,
+  CxmlWebhooks,
+  FreeswitchConnectors,
+  RelayApplications,
+  SipEndpoints,
+  SipGateways,
+  SwmlScripts,
+  SwmlWebhooks,
 } from './namespaces/fabric.resources.generated.js';
 export { CallingNamespace } from './namespaces/calling.js';
 export { DatasphereNamespace, DatasphereDocuments } from './namespaces/datasphere.js';

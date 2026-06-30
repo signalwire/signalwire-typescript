@@ -35,9 +35,7 @@ describe('VideoRooms streams', () => {
   });
 
   it('create_stream_posts_kwargs_in_body', async () => {
-    const body = await client.video.rooms.createStream('room-1', {
-      url: 'rtmp://example.com/live',
-    });
+    const body = await client.video.rooms.createStream('room-1', 'rtmp://example.com/live');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -221,9 +219,7 @@ describe('VideoStreams', () => {
   });
 
   it('update_uses_put_with_kwargs', async () => {
-    const body = await client.video.streams.update('stream-2', {
-      url: 'rtmp://example.com/new',
-    });
+    const body = await client.video.streams.update('stream-2', 'rtmp://example.com/new');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
