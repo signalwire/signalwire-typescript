@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 27a2b8f2f97955a9a29e272d689035b21e79ab68",
+  "generated_from": "signalwire-typescript @ 98fdc88450e262c40c02a419719525b3ae9cf630",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1226,8 +1226,9 @@
         "CrudWithAddresses": [
           "list_addresses"
         ],
+        "FabricResource": [],
+        "FabricResourcePUT": [],
         "ReadResource": [
-          "__init__",
           "get",
           "list"
         ]
@@ -1336,6 +1337,7 @@
           "update"
         ],
         "CompatCalls": [
+          "__init__",
           "start_recording",
           "start_stream",
           "stop_stream",
@@ -1343,18 +1345,21 @@
           "update_recording"
         ],
         "CompatMessages": [
+          "__init__",
           "delete_media",
           "get_media",
           "list_media",
           "update"
         ],
         "CompatFaxes": [
+          "__init__",
           "delete_media",
           "get_media",
           "list_media",
           "update"
         ],
         "CompatConferences": [
+          "__init__",
           "delete_recording",
           "get",
           "get_participant",
@@ -1382,28 +1387,34 @@
           "update"
         ],
         "CompatApplications": [
+          "__init__",
           "update"
         ],
         "CompatLamlBins": [
+          "__init__",
           "update"
         ],
         "CompatQueues": [
+          "__init__",
           "dequeue_member",
           "get_member",
           "list_members",
           "update"
         ],
         "CompatRecordings": [
+          "__init__",
           "delete",
           "get",
           "list"
         ],
         "CompatTranscriptions": [
+          "__init__",
           "delete",
           "get",
           "list"
         ],
         "CompatTokens": [
+          "__init__",
           "create",
           "delete",
           "update"
@@ -1414,7 +1425,7 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.datasphere": {
+    "signalwire.rest.namespaces.datasphere_resources_generated": {
       "classes": {
         "DatasphereDocuments": [
           "__init__",
@@ -1428,15 +1439,13 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.fabric": {
+    "signalwire.rest.namespaces.fabric_resources_generated": {
       "classes": {
-        "FabricResource": [],
-        "FabricResourcePUT": [],
         "FabricAddresses": [
-          "get",
-          "list"
+          "__init__"
         ],
         "GenericResources": [
+          "__init__",
           "assign_domain_application",
           "assign_phone_route",
           "delete",
@@ -1444,19 +1453,6 @@
           "list",
           "list_addresses"
         ],
-        "FabricTokens": [
-          "__init__",
-          "create_embed_token",
-          "create_guest_token",
-          "create_invite_token",
-          "create_subscriber_token",
-          "refresh_subscriber_token"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.fabric_resources_generated": {
-      "classes": {
         "AiAgents": [
           "__init__",
           "create",
@@ -1533,32 +1529,44 @@
           "__init__",
           "create",
           "update"
+        ],
+        "FabricTokens": [
+          "__init__",
+          "create_embed_token",
+          "create_guest_token",
+          "create_invite_token",
+          "create_subscriber_token",
+          "refresh_subscriber_token"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.logs": {
+    "signalwire.rest.namespaces.fax_resources_generated": {
       "classes": {
         "FaxLogs": [
-          "get",
-          "list"
-        ],
-        "ConferenceLogs": [
-          "list"
-        ],
-        "MessageLogs": [
-          "get",
-          "list"
-        ],
-        "VoiceLogs": [
-          "get",
-          "list",
-          "list_events"
+          "__init__"
         ]
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.project": {
+    "signalwire.rest.namespaces.logs_resources_generated": {
+      "classes": {
+        "ConferenceLogs": [
+          "__init__",
+          "list"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.message_resources_generated": {
+      "classes": {
+        "MessageLogs": [
+          "__init__"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.project_resources_generated": {
       "classes": {
         "ProjectTokens": [
           "__init__",
@@ -1574,31 +1582,6 @@
         "PubSub": [
           "__init__",
           "create_token"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.registry": {
-      "classes": {
-        "RegistryBrands": [
-          "create",
-          "create_campaign",
-          "get",
-          "list",
-          "list_campaigns"
-        ],
-        "RegistryCampaigns": [
-          "create_order",
-          "get",
-          "list_numbers",
-          "list_orders",
-          "update"
-        ],
-        "RegistryNumbers": [
-          "delete"
-        ],
-        "RegistryOrders": [
-          "get"
         ]
       },
       "functions": []
@@ -1662,6 +1645,30 @@
           "get",
           "list"
         ],
+        "RegistryBrands": [
+          "__init__",
+          "create",
+          "create_campaign",
+          "get",
+          "list",
+          "list_campaigns"
+        ],
+        "RegistryCampaigns": [
+          "__init__",
+          "create_order",
+          "get",
+          "list_numbers",
+          "list_orders",
+          "update"
+        ],
+        "RegistryNumbers": [
+          "__init__",
+          "delete"
+        ],
+        "RegistryOrders": [
+          "__init__",
+          "get"
+        ],
         "ShortCodes": [
           "__init__",
           "get",
@@ -1683,13 +1690,15 @@
       },
       "functions": []
     },
-    "signalwire.rest.namespaces.video": {
+    "signalwire.rest.namespaces.video_resources_generated": {
       "classes": {
         "VideoConferenceTokens": [
+          "__init__",
           "get",
           "reset"
         ],
         "VideoConferences": [
+          "__init__",
           "create",
           "create_stream",
           "list_conference_tokens",
@@ -1697,31 +1706,43 @@
           "update"
         ],
         "VideoRoomRecordings": [
+          "__init__",
           "delete",
           "get",
           "list",
           "list_events"
         ],
         "VideoRoomSessions": [
-          "get",
-          "list",
+          "__init__",
           "list_events",
           "list_members",
           "list_recordings"
         ],
         "VideoRoomTokens": [
+          "__init__",
           "create"
         ],
         "VideoRooms": [
+          "__init__",
           "create",
           "create_stream",
           "list_streams",
           "update"
         ],
         "VideoStreams": [
+          "__init__",
           "delete",
           "get",
           "update"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.voice_resources_generated": {
+      "classes": {
+        "VoiceLogs": [
+          "__init__",
+          "list_events"
         ]
       },
       "functions": []

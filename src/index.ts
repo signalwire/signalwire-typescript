@@ -43,7 +43,6 @@
  * import { RestClient } from '@signalwire/sdk';
  *
  * const client = new RestClient(); // reads SIGNALWIRE_* env vars
- * const calls = await client.compat.calls.list();
  * ```
  *
  * @see {@link AgentBase} — core agent class
@@ -330,7 +329,6 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * import { restClient } from '@signalwire/sdk';
  *
  * const client = restClient({ project: 'p', token: 't', host: 'h.signalwire.com' });
- * await client.compat.calls.list();
  *
  * // Or using env vars:
  * const env = restClient();  // reads env vars

@@ -55,16 +55,16 @@ describe('RestClient', () => {
       ['project', 'project'],
       ['pubsub', 'pubsub'],
       ['chat', 'chat'],
-      ['compat', 'compat'],
     ];
     for (const [key, label] of expected) {
       const ns = client[key] as unknown;
       expect(ns, `client.${label} missing or wrong type`).toBeInstanceOf(Object);
       expect(typeof ns).toBe('object');
     }
-    // Sanity-check the count to lock in the documented 21-namespace
-    // contract. Adding a new namespace should require updating the test.
-    expect(expected).toHaveLength(21);
+    // Sanity-check the count to lock in the documented namespace contract.
+    // Adding a new namespace should require updating the test. (20 since the
+    // Twilio-compat namespace was removed, matching the Python reference.)
+    expect(expected).toHaveLength(20);
   });
 
   it('throws when project is missing', () => {
@@ -171,19 +171,6 @@ describe('RestClient', () => {
     client.phoneNumbers.list();
     expect(getRequests()[0].url).toMatch(/^https:\/\/my\.signalwire\.com/);
     expect(getRequests()[0].url).not.toContain('https://https://');
-  });
-
-  it('compat namespace is scoped to project ID', async () => {
-    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { calls: [] } }]);
-    const client = new RestClient({
-      project: 'proj-abc',
-      token: 'tok',
-      host: 'test.signalwire.com',
-      fetchImpl,
-    });
-
-    await client.compat.calls.list();
-    expect(getRequests()[0].url).toContain('/api/laml/2010-04-01/Accounts/proj-abc/Calls');
   });
 
   it('all namespaces route through same HttpClient', async () => {

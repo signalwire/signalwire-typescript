@@ -50,12 +50,6 @@ async function main() {
   const voiceLogs = await client.logs.voice.list({ page_size: 5 });
   console.log('Recent voice logs:', voiceLogs.data?.length ?? 0);
 
-  console.log('\n=== Compat (Twilio-compatible) ===');
-
-  // List calls via compatibility API
-  const calls = await client.compat.calls.list();
-  console.log('Compat calls:', calls.calls?.length ?? 0);
-
   console.log('\nDone.');
 }
 

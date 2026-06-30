@@ -1354,7 +1354,6 @@ async function main(): Promise<void> {
     // some specs back several namespace files (fabric → addresses/registry/…).
     calling: 'src/rest/namespaces/calling.types.generated.ts',
     chat: 'src/rest/namespaces/chat.types.generated.ts',
-    compatibility: 'src/rest/namespaces/compatibility.types.generated.ts',
     datasphere: 'src/rest/namespaces/datasphere.types.generated.ts',
     fabric: 'src/rest/namespaces/fabric.types.generated.ts',
     fax: 'src/rest/namespaces/fax.types.generated.ts',
@@ -1374,8 +1373,7 @@ async function main(): Promise<void> {
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
     // Spec-dir discovery is dynamic (mirrors the Python generator's
     // ``spec_dirs``): a mapped spec whose dir is absent from the resolved
-    // porting-sdk (e.g. ``compatibility``, which is hand-written and not yet
-    // spec-backed) is skipped, leaving its committed *.types.generated.ts in
+    // porting-sdk is skipped, leaving its committed *.types.generated.ts in
     // place — rather than throwing and breaking the whole prebuild.
     if (!fs.existsSync(specPath)) {
       console.log(`skipped ${specDir} (no spec at ${specPath}; using committed output)`);

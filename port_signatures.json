@@ -12788,15 +12788,6 @@
                 }
               ],
               "returns": "void"
-            },
-            "compat": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatNamespace"
             }
           }
         }
@@ -13269,7 +13260,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_message": {
               "params": [
@@ -13298,7 +13289,7 @@
                 },
                 {
                   "name": "reset",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.CallAIMessageResetParams>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.CallAIMessageResetParams>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -13325,7 +13316,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_stop": {
               "params": [
@@ -13359,7 +13350,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "ai_unhold": {
               "params": [
@@ -13394,7 +13385,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect": {
               "params": [
@@ -13464,7 +13455,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect_start_input_timers": {
               "params": [
@@ -13498,7 +13489,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "collect_stop": {
               "params": [
@@ -13532,7 +13523,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "denoise": {
               "params": [
@@ -13560,7 +13551,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "denoise_stop": {
               "params": [
@@ -13588,7 +13579,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "detect": {
               "params": [
@@ -13636,7 +13627,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "detect_stop": {
               "params": [
@@ -13670,7 +13661,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "dial": {
               "params": [
@@ -13741,7 +13732,7 @@
                 },
                 {
                   "name": "swml",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.SWMLObject>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.SWMLObject>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -13761,7 +13752,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "disconnect": {
               "params": [
@@ -13789,7 +13780,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "end": {
               "params": [
@@ -13804,7 +13795,7 @@
                 },
                 {
                   "name": "reason",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.HangupReason>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.HangupReason>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -13824,7 +13815,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "live_transcribe": {
               "params": [
@@ -13839,7 +13830,7 @@
                 },
                 {
                   "name": "action",
-                  "type": "union<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranscribeStartAction,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranscribeSummarizeAction,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranscribeStopAction>",
+                  "type": "union<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranscribeStartAction,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranscribeSummarizeAction,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranscribeStopAction>",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -13858,7 +13849,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "live_translate": {
               "params": [
@@ -13873,7 +13864,7 @@
                 },
                 {
                   "name": "action",
-                  "type": "union<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranslateStartAction,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranslateSummarizeAction,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranslateInjectAction,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.LiveTranslateStopAction>",
+                  "type": "union<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranslateStartAction,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranslateSummarizeAction,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranslateInjectAction,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.LiveTranslateStopAction>",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -13899,7 +13890,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play": {
               "params": [
@@ -13968,7 +13959,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_pause": {
               "params": [
@@ -14002,7 +13993,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_resume": {
               "params": [
@@ -14036,7 +14027,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_stop": {
               "params": [
@@ -14070,7 +14061,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "play_volume": {
               "params": [
@@ -14110,7 +14101,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "receive_fax_stop": {
               "params": [
@@ -14144,7 +14135,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record": {
               "params": [
@@ -14193,7 +14184,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_pause": {
               "params": [
@@ -14227,7 +14218,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_resume": {
               "params": [
@@ -14261,7 +14252,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "record_stop": {
               "params": [
@@ -14295,7 +14286,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "refer": {
               "params": [
@@ -14336,7 +14327,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "send_fax_stop": {
               "params": [
@@ -14370,7 +14361,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "stream": {
               "params": [
@@ -14439,7 +14430,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "stream_stop": {
               "params": [
@@ -14473,7 +14464,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "tap": {
               "params": [
@@ -14520,7 +14511,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "tap_stop": {
               "params": [
@@ -14554,7 +14545,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transcribe": {
               "params": [
@@ -14596,7 +14587,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transcribe_stop": {
               "params": [
@@ -14630,7 +14621,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "transfer": {
               "params": [
@@ -14645,7 +14636,7 @@
                 },
                 {
                   "name": "dest",
-                  "type": "union<string,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.SWMLObject>",
+                  "type": "union<string,class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.SWMLObject>",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -14664,7 +14655,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "update": {
               "params": [
@@ -14674,7 +14665,7 @@
                 },
                 {
                   "name": "id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.uuid",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -14708,7 +14699,7 @@
                 },
                 {
                   "name": "swml",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling_types_generated.SWMLObject>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.calling_types_generated.SWMLObject>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -14728,7 +14719,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             },
             "user_event": {
               "params": [
@@ -14762,7 +14753,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.calling.types.generated.CallResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.calling.types.generated.CallResponse"
             }
           }
         }
@@ -14800,7 +14791,7 @@
                 },
                 {
                   "name": "channels",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.chat_types_generated.ChatChannel",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.chat_types_generated.ChatChannel",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -14813,7 +14804,7 @@
                 },
                 {
                   "name": "state",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.chat_types_generated.ChatState>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.chat_types_generated.ChatState>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -14834,1459 +14825,6 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.chat_types_generated.ChatToken"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat": {
-      "classes": {
-        "CompatAccounts": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.compatibility_types_generated.CreateSubprojectRequest",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.Account"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AccountResponse"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AccountListResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AccountResponse"
-            }
-          }
-        },
-        "CompatApplications": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ApplicationResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:ApplicationListResponse",
-              "class:ApplicationResponse",
-              "class:CreateApplicationRequest",
-              "class:UpdateApplicationRequest"
-            ]
-          }
-        },
-        "CompatCalls": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "start_recording": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CallRecordingResponse"
-            },
-            "start_stream": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CallStreamResponse"
-            },
-            "stop_stream": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "stream_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CallStreamResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CallResponse"
-            },
-            "update_recording": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "recording_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CallRecordingResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:CallListResponse",
-              "class:CallResponse",
-              "class:CreateCallRequest",
-              "class:UpdateCallRequest"
-            ]
-          }
-        },
-        "CompatConferences": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete_recording": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "recording_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceResponse"
-            },
-            "get_participant": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceParticipantResponse"
-            },
-            "get_recording": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "recording_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceRecordingResponse"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceListResponse"
-            },
-            "list_participants": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceParticipantListResponse"
-            },
-            "list_recordings": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceRecordingListResponse"
-            },
-            "remove_participant": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "start_stream": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceStreamResponse"
-            },
-            "stop_stream": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "stream_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceStreamResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceResponse"
-            },
-            "update_participant": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceParticipantResponse"
-            },
-            "update_recording": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "conference_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "recording_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.ConferenceRecordingResponse"
-            }
-          }
-        },
-        "CompatFaxes": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "fax_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "media_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "fax_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "media_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.FaxMediaResponse"
-            },
-            "list_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "fax_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.FaxMediaListResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.FaxResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:FaxListResponse",
-              "class:FaxResponse",
-              "class:SendFaxRequest",
-              "class:UpdateFaxRequest"
-            ]
-          }
-        },
-        "CompatLamlBins": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.CxmlScriptResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:CxmlScriptListResponse",
-              "class:CxmlScriptResponse",
-              "class:CreateCxmlScriptRequest",
-              "class:UpdateCxmlScriptRequest"
-            ]
-          }
-        },
-        "CompatMessages": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "message_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "media_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "message_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "media_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.MessageMediaResponse"
-            },
-            "list_media": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "message_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.MessageMediaListResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.MessageResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:MessageListResponse",
-              "class:MessageResponse",
-              "class:CreateMessageRequest",
-              "class:UpdateMessageRequest"
-            ]
-          }
-        },
-        "CompatNamespace": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "account_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "accounts": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatAccounts"
-            },
-            "applications": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatApplications"
-            },
-            "calls": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatCalls"
-            },
-            "conferences": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatConferences"
-            },
-            "faxes": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatFaxes"
-            },
-            "laml_bins": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatLamlBins"
-            },
-            "messages": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatMessages"
-            },
-            "phone_numbers": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatPhoneNumbers"
-            },
-            "queues": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatQueues"
-            },
-            "recordings": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatRecordings"
-            },
-            "tokens": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatTokens"
-            },
-            "transcriptions": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compat.CompatTranscriptions"
-            }
-          }
-        },
-        "CompatPhoneNumbers": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.IncomingPhoneNumberResponse"
-            },
-            "import_number": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.compatibility_types_generated.ImportPhoneNumberRequest",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.IncomingPhoneNumber"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.IncomingPhoneNumberListResponse"
-            },
-            "list_available_countries": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AvailablePhoneNumberResourcesResponse"
-            },
-            "purchase": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.compatibility_types_generated.CreateIncomingPhoneNumberRequest",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.IncomingPhoneNumber"
-            },
-            "search_local": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "country",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AvailablePhoneNumberListResponse"
-            },
-            "search_toll_free": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "country",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.AvailablePhoneNumberListResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.IncomingPhoneNumberResponse"
-            }
-          }
-        },
-        "CompatQueues": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "dequeue_member": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "queue_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.QueueMemberResponse"
-            },
-            "get_member": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "queue_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "call_sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.QueueMemberResponse"
-            },
-            "list_members": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "queue_sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.QueueMemberListResponse"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.QueueResponse"
-            }
-          },
-          "crud_base": {
-            "base": "CrudResource",
-            "bind": [
-              "class:QueueListResponse",
-              "class:QueueResponse",
-              "class:CreateQueueRequest",
-              "class:UpdateQueueRequest"
-            ]
-          }
-        },
-        "CompatRecordings": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.RecordingResponse"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.RecordingListResponse"
-            }
-          }
-        },
-        "CompatTokens": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.compatibility_types_generated.CreateTokenRequest",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.TokenResponse"
-            },
-            "delete": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "token_id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "update": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "token_id",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.TokenResponse"
-            }
-          }
-        },
-        "CompatTranscriptions": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "http",
-                  "type": "class:signalwire.rest._base.HttpClient",
-                  "required": true
-                },
-                {
-                  "name": "base_path",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "void"
-            },
-            "delete": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "sid",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.TranscriptionResponse"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.rest.namespaces.compatibility_types_generated.TranscriptionListResponse"
             }
           }
         }
@@ -16318,7 +14856,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere_types_generated.DocumentCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere_types_generated.DocumentCreateRequest",
                   "required": true
                 },
                 {
@@ -16425,7 +14963,7 @@
                 },
                 {
                   "name": "document_id",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere_types_generated.docid>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere_types_generated.docid>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -16495,7 +15033,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere_types_generated.DocumentUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere_types_generated.DocumentUpdateRequest",
                   "required": true
                 },
                 {
@@ -16519,10 +15057,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere.resources.generated.DocumentListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere.resources.generated.Document",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere.resources.generated.DocumentCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.datasphere.resources.generated.DocumentUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere.resources.generated.DocumentListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere.resources.generated.Document",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere.resources.generated.DocumentCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.datasphere.resources.generated.DocumentUpdateRequest"
             ]
           }
         }
@@ -16554,7 +15092,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.AIAgentCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.AIAgentCreateRequest",
                   "required": true
                 },
                 {
@@ -16587,7 +15125,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.AIAgentUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.AIAgentUpdateRequest",
                   "required": true
                 },
                 {
@@ -16611,10 +15149,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.AIAgentListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.AIAgentResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.AIAgentCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.AIAgentUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.AIAgentUpdateRequest"
             ]
           }
         },
@@ -16642,7 +15180,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CallFlowCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CallFlowCreateRequest",
                   "required": true
                 },
                 {
@@ -16675,7 +15213,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CallFlowVersionDeployRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CallFlowVersionDeployRequest",
                   "required": true
                 },
                 {
@@ -16750,7 +15288,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CallFlowUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CallFlowUpdateRequest",
                   "required": true
                 },
                 {
@@ -16774,10 +15312,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CallFlowListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CallFlowResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CallFlowCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CallFlowUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CallFlowUpdateRequest"
             ]
           }
         },
@@ -16805,7 +15343,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.ConferenceRoomCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.ConferenceRoomCreateRequest",
                   "required": true
                 },
                 {
@@ -16859,7 +15397,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.ConferenceRoomUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.ConferenceRoomUpdateRequest",
                   "required": true
                 },
                 {
@@ -16883,10 +15421,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.ConferenceRoomListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.ConferenceRoomResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.ConferenceRoomCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.ConferenceRoomUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.ConferenceRoomUpdateRequest"
             ]
           }
         },
@@ -16998,7 +15536,7 @@
                 },
                 {
                   "name": "account_sid",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -17130,7 +15668,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CXMLScriptCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CXMLScriptCreateRequest",
                   "required": true
                 },
                 {
@@ -17163,7 +15701,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CXMLScriptUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CXMLScriptUpdateRequest",
                   "required": true
                 },
                 {
@@ -17187,10 +15725,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLScriptListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLScriptResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLScriptCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLScriptUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLScriptUpdateRequest"
             ]
           }
         },
@@ -17218,7 +15756,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CXMLWebhookCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CXMLWebhookCreateRequest",
                   "required": true
                 },
                 {
@@ -17251,7 +15789,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.CXMLWebhookUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.CXMLWebhookUpdateRequest",
                   "required": true
                 },
                 {
@@ -17275,10 +15813,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLWebhookListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLWebhookResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLWebhookCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.CXMLWebhookUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.CXMLWebhookUpdateRequest"
             ]
           }
         },
@@ -17302,8 +15840,8 @@
           "crud_base": {
             "base": "ReadResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FabricAddressesResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FabricAddress"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FabricAddressesResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FabricAddress"
             ]
           }
         },
@@ -17360,7 +15898,7 @@
                 },
                 {
                   "name": "allowed_addresses",
-                  "type": "list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid>",
+                  "type": "list<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid>",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -17396,7 +15934,7 @@
                 },
                 {
                   "name": "address_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -17445,7 +15983,7 @@
                 },
                 {
                   "name": "application_id",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -17538,7 +16076,7 @@
                 },
                 {
                   "name": "refresh_token",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.jwt",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.jwt",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -17585,7 +16123,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.FreeswitchConnectorCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.FreeswitchConnectorCreateRequest",
                   "required": true
                 },
                 {
@@ -17618,7 +16156,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.FreeswitchConnectorUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.FreeswitchConnectorUpdateRequest",
                   "required": true
                 },
                 {
@@ -17642,10 +16180,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.FreeswitchConnectorUpdateRequest"
             ]
           }
         },
@@ -17678,7 +16216,7 @@
                 },
                 {
                   "name": "domain_application_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -17712,13 +16250,13 @@
                 },
                 {
                   "name": "phone_route_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.uuid",
                   "required": true,
                   "kind": "keyword"
                 },
                 {
                   "name": "handler",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.UsedForType",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.UsedForType",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -17772,7 +16310,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.types.generated.ResourceResponse"
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.types.generated.ResourceResponse"
             },
             "list": {
               "params": [
@@ -17837,7 +16375,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.RelayApplicationCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.RelayApplicationCreateRequest",
                   "required": true
                 },
                 {
@@ -17870,7 +16408,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.RelayApplicationUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.RelayApplicationUpdateRequest",
                   "required": true
                 },
                 {
@@ -17894,10 +16432,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.RelayApplicationListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.RelayApplicationResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.RelayApplicationCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.RelayApplicationUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.RelayApplicationUpdateRequest"
             ]
           }
         },
@@ -17925,7 +16463,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SipEndpointCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SipEndpointCreateRequest",
                   "required": true
                 },
                 {
@@ -17958,7 +16496,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SipEndpointUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SipEndpointUpdateRequest",
                   "required": true
                 },
                 {
@@ -17982,10 +16520,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipEndpointListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipEndpointResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipEndpointCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipEndpointUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipEndpointUpdateRequest"
             ]
           }
         },
@@ -18013,7 +16551,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SipGatewayRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SipGatewayRequest",
                   "required": true
                 },
                 {
@@ -18046,7 +16584,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SipGatewayRequestUpdate",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SipGatewayRequestUpdate",
                   "required": true
                 },
                 {
@@ -18070,10 +16608,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipGatewayListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipGatewayResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipGatewayRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SipGatewayRequestUpdate"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SipGatewayRequestUpdate"
             ]
           }
         },
@@ -18101,7 +16639,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SubscriberRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SubscriberRequest",
                   "required": true
                 },
                 {
@@ -18160,21 +16698,21 @@
                 },
                 {
                   "name": "ciphers",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Ciphers>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Ciphers>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "codecs",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Codecs>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Codecs>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "encryption",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Encryption>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Encryption>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -18275,7 +16813,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SubscriberRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SubscriberRequest",
                   "required": true
                 },
                 {
@@ -18341,21 +16879,21 @@
                 },
                 {
                   "name": "ciphers",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Ciphers>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Ciphers>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "codecs",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Codecs>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Codecs>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "encryption",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.Encryption>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.Encryption>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -18381,10 +16919,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SubscriberListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SubscriberResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SubscriberRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SubscriberRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SubscriberRequest"
             ]
           }
         },
@@ -18412,7 +16950,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SwmlScriptCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SwmlScriptCreateRequest",
                   "required": true
                 },
                 {
@@ -18445,7 +16983,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SwmlScriptUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SwmlScriptUpdateRequest",
                   "required": true
                 },
                 {
@@ -18469,10 +17007,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SwmlScriptListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SwmlScriptResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SwmlScriptCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SwmlScriptUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SwmlScriptUpdateRequest"
             ]
           }
         },
@@ -18500,7 +17038,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SWMLWebhookCreateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SWMLWebhookCreateRequest",
                   "required": true
                 },
                 {
@@ -18533,7 +17071,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric_types_generated.SWMLWebhookUpdateRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric_types_generated.SWMLWebhookUpdateRequest",
                   "required": true
                 },
                 {
@@ -18557,10 +17095,10 @@
           "crud_base": {
             "base": "FabricResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SWMLWebhookListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SWMLWebhookResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SWMLWebhookCreateRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fabric.resources.generated.SWMLWebhookUpdateRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookCreateRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fabric.resources.generated.SWMLWebhookUpdateRequest"
             ]
           }
         }
@@ -18588,8 +17126,8 @@
           "crud_base": {
             "base": "ReadResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fax.resources.generated.LogListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.fax.resources.generated.LogResponse"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fax.resources.generated.LogListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.fax.resources.generated.LogResponse"
             ]
           }
         }
@@ -18655,8 +17193,8 @@
           "crud_base": {
             "base": "ReadResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.message.resources.generated.LogListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.message.resources.generated.LogRetrieveResponse"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.message.resources.generated.LogListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.message.resources.generated.LogRetrieveResponse"
             ]
           }
         }
@@ -18694,7 +17232,7 @@
                 },
                 {
                   "name": "permissions",
-                  "type": "list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.project_types_generated.TokenPermission>",
+                  "type": "list<class:signalwire.signalwire-typescript.src.rest.namespaces.project_types_generated.TokenPermission>",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -18756,7 +17294,7 @@
                 },
                 {
                   "name": "permissions",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.project_types_generated.TokenPermission>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.project_types_generated.TokenPermission>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -18814,7 +17352,7 @@
                 },
                 {
                   "name": "channels",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.pubsub_types_generated.PubSubChannels",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.pubsub_types_generated.PubSubChannels",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -18827,7 +17365,7 @@
                 },
                 {
                   "name": "state",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.pubsub_types_generated.PubSubState>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.pubsub_types_generated.PubSubState>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -18933,7 +17471,7 @@
                 },
                 {
                   "name": "address_type",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.AddressType>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.AddressType>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -19337,7 +17875,7 @@
                 },
                 {
                   "name": "phone_number_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.uuid",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -19366,7 +17904,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateNumberGroupRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateNumberGroupRequest",
                   "required": true
                 },
                 {
@@ -19455,7 +17993,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.UpdateNumberGroupRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.UpdateNumberGroupRequest",
                   "required": true
                 },
                 {
@@ -19479,10 +18017,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.NumberGroupListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.NumberGroupResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.CreateNumberGroupRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.UpdateNumberGroupRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.NumberGroupListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.NumberGroupResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.CreateNumberGroupRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.UpdateNumberGroupRequest"
             ]
           }
         },
@@ -19510,7 +18048,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.PurchasePhoneNumberRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.PurchasePhoneNumberRequest",
                   "required": true
                 },
                 {
@@ -19559,7 +18097,7 @@
                 },
                 {
                   "name": "agent_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.uuid",
                   "required": true
                 },
                 {
@@ -19585,7 +18123,7 @@
                 },
                 {
                   "name": "flow_id",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.uuid",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.uuid",
                   "required": true
                 },
                 {
@@ -19765,7 +18303,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.UpdatePhoneNumberRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.UpdatePhoneNumberRequest",
                   "required": true
                 },
                 {
@@ -19789,10 +18327,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.PhoneNumberListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.PhoneNumberResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.PurchasePhoneNumberRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.UpdatePhoneNumberRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.PhoneNumberListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.PhoneNumberResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.PurchasePhoneNumberRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.UpdatePhoneNumberRequest"
             ]
           }
         },
@@ -19820,7 +18358,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateQueueRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateQueueRequest",
                   "required": true
                 },
                 {
@@ -19921,7 +18459,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.UpdateQueueRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.UpdateQueueRequest",
                   "required": true
                 },
                 {
@@ -19945,10 +18483,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.QueueListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.QueueResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.CreateQueueRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.UpdateQueueRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.QueueListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.QueueResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.CreateQueueRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.UpdateQueueRequest"
             ]
           }
         },
@@ -20045,7 +18583,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "union<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateManagedBrandRequest,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateCspBrandRequest>",
+                  "type": "union<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateManagedBrandRequest,class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateCspBrandRequest>",
                   "required": true
                 },
                 {
@@ -20078,7 +18616,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "union<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateManagedCampaignRequest,class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreatePartnerCampaignRequest>",
+                  "type": "union<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateManagedCampaignRequest,class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreatePartnerCampaignRequest>",
                   "required": true
                 },
                 {
@@ -20459,7 +18997,7 @@
                 },
                 {
                   "name": "message_handler",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.ShortCodeMessageHandler",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.ShortCodeMessageHandler",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -20472,7 +19010,7 @@
                 },
                 {
                   "name": "message_request_method",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.HttpMethod>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.HttpMethod>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20486,14 +19024,14 @@
                 },
                 {
                   "name": "message_fallback_method",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.HttpMethod>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.HttpMethod>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "message_laml_application_id",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.uuid>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.uuid>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20640,7 +19178,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.CreateVerifiedCallerIDRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.CreateVerifiedCallerIDRequest",
                   "required": true
                 },
                 {
@@ -20721,7 +19259,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest_types_generated.UpdateVerifiedCallerIDRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest_types_generated.UpdateVerifiedCallerIDRequest",
                   "required": true
                 },
                 {
@@ -20745,10 +19283,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.VerifiedCallerIDListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.VerifiedCallerIDResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.CreateVerifiedCallerIDRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.relay-rest.resources.generated.UpdateVerifiedCallerIDRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.VerifiedCallerIDListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.VerifiedCallerIDResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.CreateVerifiedCallerIDRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.relay-rest.resources.generated.UpdateVerifiedCallerIDRequest"
             ]
           }
         }
@@ -20833,7 +19371,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.CreateConferenceRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.CreateConferenceRequest",
                   "required": true
                 },
                 {
@@ -20942,7 +19480,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.UpdateConferenceRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.UpdateConferenceRequest",
                   "required": true
                 },
                 {
@@ -20966,10 +19504,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.ListConferencesResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.Conference",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.CreateConferenceRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.UpdateConferenceRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.ListConferencesResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.Conference",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.CreateConferenceRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.UpdateConferenceRequest"
             ]
           }
         },
@@ -21146,8 +19684,8 @@
           "crud_base": {
             "base": "ReadResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.ListRoomSessionsResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.RoomSessionSummary"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.ListRoomSessionsResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.RoomSessionSummary"
             ]
           }
         },
@@ -21188,7 +19726,7 @@
                 },
                 {
                   "name": "permissions",
-                  "type": "optional<list<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.RoomTokenPermission>>",
+                  "type": "optional<list<class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.RoomTokenPermission>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21265,14 +19803,14 @@
                 },
                 {
                   "name": "join_as",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.JoinAsType>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.JoinAsType>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "media_allowed",
-                  "type": "optional<class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.MediaAllowedType>",
+                  "type": "optional<class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.MediaAllowedType>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21341,7 +19879,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.CreateRoomRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.CreateRoomRequest",
                   "required": true
                 },
                 {
@@ -21429,7 +19967,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video_types_generated.UpdateRoomRequest",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.video_types_generated.UpdateRoomRequest",
                   "required": true
                 },
                 {
@@ -21453,10 +19991,10 @@
           "crud_base": {
             "base": "CrudResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.ListRoomsResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.RoomResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.CreateRoomRequest",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.video.resources.generated.UpdateRoomRequest"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.ListRoomsResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.RoomResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.CreateRoomRequest",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.video.resources.generated.UpdateRoomRequest"
             ]
           }
         },
@@ -21592,8 +20130,8 @@
           "crud_base": {
             "base": "ReadResource",
             "bind": [
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.voice.resources.generated.LogListResponse",
-              "class:signalwire.signalwire-typescript..claude.worktrees.agent-ad9265f43e63410fa.src.rest.namespaces.voice.resources.generated.VoiceLog"
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.voice.resources.generated.LogListResponse",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.voice.resources.generated.VoiceLog"
             ]
           }
         }

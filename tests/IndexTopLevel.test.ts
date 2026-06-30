@@ -42,7 +42,6 @@ describe('top-level index helpers', () => {
       // Namespaces are wired up: every required accessor is present.
       expect(client.fabric).toBeDefined();
       expect(client.calling).toBeDefined();
-      expect(client.compat).toBeDefined();
       expect(client.phoneNumbers).toBeDefined();
     });
 
@@ -86,7 +85,6 @@ describe('top-level index helpers', () => {
         host: 'legacy.signalwire.com',
       });
       expect(client).toBeInstanceOf(RestClient);
-      expect(client.compat).toBeDefined();
     });
   });
 

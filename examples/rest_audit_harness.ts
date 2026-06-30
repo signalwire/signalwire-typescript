@@ -23,7 +23,6 @@
  *   - `messaging.send`            POST /api/laml/2010-04-01/Accounts/{proj}/Messages.json
  *   - `phone_numbers.list`        GET  /api/relay/rest/phone_numbers
  *   - `fabric.subscribers.list`   GET  /api/fabric/resources/subscribers
- *   - `compatibility.calls.list`  GET  /api/laml/2010-04-01/Accounts/{proj}/Calls.json
  *
  * Exits 0 on success (with the parsed response printed as JSON to stdout),
  * 1 on any error (with a diagnostic on stderr).
@@ -48,9 +47,7 @@ function asStringMap(args: unknown): Record<string, string> {
 }
 
 /**
- * The compat namespaces expose their `HttpClient` as a `protected _http`
  * member. The audit needs to issue a raw GET/POST against an exact path
- * (Python keeps the `.json` suffix that `CompatCalls.list` drops), so we
  * reach the shared transport directly. This local view types that
  * otherwise-protected access without resorting to `any`.
  */
@@ -66,26 +63,6 @@ async function dispatch(
   // every operation hits the audit fixture URL with Basic auth.
   // `client` itself is constructed pointed at REST_FIXTURE_URL.
   switch (operation) {
-    case 'calling.list_calls':
-    case 'compatibility.calls.list': {
-      // Both Python operation names map to the same wire endpoint —
-      // the LAML /Accounts/{proj}/Calls.json list. The TS surface
-      // exposes this via `client.compat.calls.list(...)`. We reach into
-      // the HttpClient directly so the path matches Python's
-      // `/api/laml/2010-04-01/Accounts/{proj}/Calls.json` exactly,
-      // because TS's CompatCalls.list omits the `.json` suffix.
-      const path = `/api/laml/2010-04-01/Accounts/${project}/Calls.json`;
-      return (client.compat.calls as unknown as WithHttp)._http.get(path, asStringMap(args));
-    }
-
-    case 'messaging.send': {
-      // Python's `messaging.send` is the LAML POST /Accounts/{proj}/Messages.json
-      // create. The TS surface exposes this via `client.compat.messages.create(body)`.
-      // Match Python's path with the `.json` suffix.
-      const path = `/api/laml/2010-04-01/Accounts/${project}/Messages.json`;
-      return (client.compat.messages as unknown as WithHttp)._http.post(path, args);
-    }
-
     case 'phone_numbers.list': {
       // The TS surface ships this directly: `client.phoneNumbers.list(params)`
       // hits `/api/relay/rest/phone_numbers`.

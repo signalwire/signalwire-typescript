@@ -12,9 +12,6 @@ import type { ClientOptions } from './types.js';
 // from each resource's spec placement (RULES §8). RestClient composes it and
 // owns only the non-spec-derivable bits (auth, HTTP construction).
 import { _GeneratedResourceTree } from './namespaces/_client_tree_generated.js';
-// Compatibility (Twilio-compatible LAML) is hand-written — it has no OpenAPI
-// spec in this checkout, so it is NOT part of the generated tree.
-import { CompatNamespace } from './namespaces/compat.js';
 
 const logger = getLogger('rest_client');
 
@@ -37,7 +34,6 @@ const logger = getLogger('rest_client');
  * await client.calling.play(callId, { play: [...] });
  * await client.phoneNumbers.search({ areaCode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
- * await client.compat.calls.list();
  * ```
  */
 export class RestClient extends _GeneratedResourceTree {
@@ -45,11 +41,6 @@ export class RestClient extends _GeneratedResourceTree {
   // (fabric, video, logs, registry, …) are declared + wired by the generated
   // `_GeneratedResourceTree` base (RULES §8). RestClient adds only what is NOT
   // spec-derivable below.
-
-  // Compatibility (Twilio-compatible) API — hand-written, no OpenAPI spec, so it
-  // is NOT part of the generated tree.
-  /** Twilio-compatible LAML surface (legacy; prefer native namespaces for new work). */
-  readonly compat: CompatNamespace;
 
   /**
    * Create a new REST client.
@@ -88,9 +79,6 @@ export class RestClient extends _GeneratedResourceTree {
 
     // Generated resource tree (flat resources + namespace containers).
     this._wireResources(http);
-
-    // Compatibility (Twilio-compatible) API — hand-wired (not spec-derived).
-    this.compat = new CompatNamespace(http, project);
   }
 }
 
@@ -182,18 +170,3 @@ export {
 export { ProjectNamespace, ProjectTokens } from './namespaces/project.js';
 export { PubSubResource } from './namespaces/pubsub.js';
 export { ChatResource } from './namespaces/chat.js';
-export {
-  CompatNamespace,
-  CompatAccounts,
-  CompatCalls,
-  CompatMessages,
-  CompatFaxes,
-  CompatConferences,
-  CompatPhoneNumbers,
-  CompatApplications,
-  CompatLamlBins,
-  CompatQueues,
-  CompatRecordings,
-  CompatTranscriptions,
-  CompatTokens,
-} from './namespaces/compat.js';
