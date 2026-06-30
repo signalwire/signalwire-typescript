@@ -339,6 +339,18 @@ signalwire.core.security_config.SslConfig.get_server_options: TS splits SSL conf
 signalwire.core.security_config.SslConfig.hsts_middleware: TS splits SSL configuration into a dedicated SslConfig class (Python keeps it inside SecurityConfig); the SslConfig methods are all port-specific SSL helpers
 signalwire.core.security_config.SslConfig.is_configured: TS splits SSL configuration into a dedicated SslConfig class (Python keeps it inside SecurityConfig); the SslConfig methods are all port-specific SSL helpers
 
+## SWML-verbs generated-payload reserved-word fields (port emits what the reference can't name)
+
+The reference's TypedDict generator cannot name a field that is a Python keyword, so it
+drops `else` to a `# non-identifier field 'else'` comment (the wire key still round-trips
+at runtime). TypeScript object keys have no such restriction, so the generated SWML-verb
+configs legitimately type the field — the port is MORE faithful to the wire than the
+reference can express. This is the read-side analog of the `from`→`from_` reserved-word
+handling. Keyed by the gen-payload fold token.
+
+gen-payload.CondElse.else: TS generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the TS interface types it
+gen-payload.CondReg.else: TS generated SWML-verb config field the Python reference drops because `else` is a Python keyword (recorded as a `# non-identifier field` comment); the wire key is real and the TS interface types it
+
 ## SWMLBuilder port-specific additions
 
 signalwire.core.swml_builder.SWMLBuilder.add_verb: TS SwmlBuilder helper method — additional convenience on top of the canonical addVerb() API
