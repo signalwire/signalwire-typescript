@@ -10,7 +10,7 @@ export default defineConfig({
     // NODE_EXTRA_CA_CERTS so the worker boots trusting the porting-sdk test CA.
     // It is a no-op (and the TLS tests skip) when porting-sdk is not adjacent,
     // and only *adds* a CA to trust, so all other tests are unaffected.
-    globalSetup: ['./tests/tls/gen_certs_setup.ts'],
+    globalSetup: ['./tests/tls/gen_certs_setup.ts', './tests/rest/mock_server_setup.ts'],
     // File parallelism is ON: every mock-backed test is session-isolated, so
     // tests across files can run concurrently without racing on the shared
     // singleton mock servers.

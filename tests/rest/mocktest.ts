@@ -218,6 +218,43 @@ const state: ServerState = {
   starting: null,
 };
 
+// A spawned mock server is `detached` + `unref()` so it survives across a test
+// binary's lifetime. Without an explicit teardown it ORPHANS on normal exit — and an
+// orphaned uvicorn/asyncio process can busy-spin its event loop on a dead fd, pegging
+// a core. Under file-parallelism that's one leaked, spinning server PER WORKER, which
+// can saturate the CPU. So: kill the child (its whole process group, since detached
+// makes it a group leader) when THIS worker process exits or is signalled. Idempotent
+// + registered once. When MOCK_SIGNALWIRE_PORT is set (CI pre-spawns a shared server)
+// we never spawn a child here, so there's nothing to clean up — the gate owns it.
+let cleanupRegistered = false;
+function registerChildCleanup(child: ChildProcess): void {
+  const killGroup = (): void => {
+    const pid = child.pid;
+    if (pid === undefined) return;
+    try {
+      // Negative pid => kill the process GROUP (the detached leader + any children).
+      process.kill(-pid, 'SIGKILL');
+    } catch {
+      try {
+        child.kill('SIGKILL');
+      } catch {
+        // already gone
+      }
+    }
+  };
+  if (cleanupRegistered) return;
+  cleanupRegistered = true;
+  process.once('exit', killGroup);
+  process.once('SIGINT', () => {
+    killGroup();
+    process.exit(130);
+  });
+  process.once('SIGTERM', () => {
+    killGroup();
+    process.exit(143);
+  });
+}
+
 // Ask the OS for a free loopback TCP port (listen on :0, read it, close).
 async function pickFreePort(): Promise<number> {
   const { createServer } = await import('node:net');
@@ -318,6 +355,7 @@ async function ensureServer(): Promise<MockHarness> {
     );
     child.unref();
     state.child = child;
+    registerChildCleanup(child);
 
     child.on('error', (err) => {
       state.startError = new Error(
