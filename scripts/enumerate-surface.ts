@@ -429,11 +429,35 @@ function enumerateFile(file: string): FileSurface {
     /PlatformContracts\.generated\.ts$/.test(file) ||
     /swml_verbs_generated\.ts$/.test(file);
 
+  // Generated type names the TS emitter suffixes with `_` to avoid colliding with a
+  // TS built-in type (`Record<>`/`Set<>`); the reference (Python, no such collision)
+  // names them bare. Map back so they compare equal — the type analog of the
+  // reserved-word field rename (Python `from`→`from_`).
+  const BUILTIN_COLLISION_RENAME: Record<string, string> = { Record_: 'Record', Set_: 'Set' };
+
   function collectTypeDefinition(name: string): void {
     if (name.startsWith('_')) return;
+    const canon = BUILTIN_COLLISION_RENAME[name] ?? name;
     // A generated type carries no methods; record it as a bare class symbol so it
     // flattens to `<module>.<TypeName>` exactly like the reference's TypedDict surface.
-    classes.push({ name, methods: [] });
+    classes.push({ name: canon, methods: [] });
+  }
+
+  // A type alias whose RHS is a single primitive keyword (`string`, `number`,
+  // `boolean`, `null`, `unknown`, `any`) — a pure format alias with no structural
+  // surface. The reference emits these too but its surface enumerator drops them.
+  function isBareScalarAlias(typeNode: ts.TypeNode): boolean {
+    switch (typeNode.kind) {
+      case ts.SyntaxKind.StringKeyword:
+      case ts.SyntaxKind.NumberKeyword:
+      case ts.SyntaxKind.BooleanKeyword:
+      case ts.SyntaxKind.NullKeyword:
+      case ts.SyntaxKind.UnknownKeyword:
+      case ts.SyntaxKind.AnyKeyword:
+        return true;
+      default:
+        return false;
+    }
   }
 
   function collectFunction(name: string): void {
@@ -471,7 +495,20 @@ function enumerateFile(file: string): FileSurface {
         // Generated spec types (interface/type) — surface each as a bare symbol so
         // it matches the reference's `*_types_generated.<TypeName>` entry. Only in
         // generated-type files (see isGeneratedTypeFile).
-        collectTypeDefinition(node.name.text);
+        //
+        // EXCEPT a bare-scalar format alias (`type uuid = string`, `docid = string`,
+        // `jwt = string`, `SWMLVar = string`): the reference GENERATES these too
+        // (`uuid: TypeAlias = "str"`) but its surface enumerator (griffe) does NOT
+        // record a module-level scalar TypeAlias as a class — so they're absent from
+        // python_surface.json. They carry no structural surface (a `type X = string`
+        // is just `string`), so skip them to match the reference's surfacing policy.
+        // Union/enum aliases (`type CallDirection = 'inbound' | ...`) and aliases to
+        // NAMED types are kept — those are real surface.
+        if (ts.isTypeAliasDeclaration(node) && isBareScalarAlias(node.type)) {
+          // skip — matches the reference surface (griffe drops scalar TypeAliases)
+        } else {
+          collectTypeDefinition(node.name.text);
+        }
       } else if (ts.isFunctionDeclaration(node) && isExported(node) && node.name) {
         // Only care about concrete functions (they have a body). Overload
         // declarations without a body are parsed as separate nodes.

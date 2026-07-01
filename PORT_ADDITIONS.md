@@ -502,6 +502,8 @@ signalwire.relay.call.TapAction.stop: concrete-action control method; Python emi
 signalwire.relay.call.TranscribeAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
 signalwire.relay.call.Action.call: TS readonly accessor exposing the parent Call instance from an Action; Python keeps the back-reference as a private attribute that callers don't need
 signalwire.rest._base.CrudResource.__init__: TS-port explicit constructor for the abstract CrudResource; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
+signalwire.rest._base.CrudResource.get: TS folds list/get onto the CrudResource base; Python splits them onto a separate ReadResource base, so the reference's CrudResource surfaces only create/update/delete
+signalwire.rest._base.CrudResource.list: TS folds list/get onto the CrudResource base; Python splits them onto a separate ReadResource base, so the reference's CrudResource surfaces only create/update/delete
 signalwire.rest._base.CrudWithAddresses.__init__: TS-port explicit constructor for the abstract CrudWithAddresses; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
 signalwire.rest._base.ReadResource.__init__: TS-port explicit constructor for the abstract ReadResource (list/get base); Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
 signalwire.rest.client.RestClient.compat: Twilio-compatible LAML namespace, hand-written in the TS port (no OpenAPI spec in this porting-sdk checkout, so it is NOT part of the generated client tree); the Python reference here has no compat namespace. The generated flat resources + namespace containers are wired by the `_GeneratedResourceTree` base (skipped by the enumerator, mirroring Python's private `_GeneratedResourceTree`), so `compat` is the only resource accessor RestClient itself declares.
@@ -516,3 +518,129 @@ signalwire.skills.registry.SkillRegistry.get_external_paths: TS-native method on
 ## Webhook signature validation: Hono middleware
 
 signalwire.core.security.webhook_middleware.webhook_validation_middleware: TS port ships a Hono middleware factory equivalent to Python's FastAPI `make_webhook_validation_dependency` (see PORT_OMISSIONS.md); both wrap the shared `validateWebhookSignature` core but use each language's dominant HTTP framework idiom.
+
+## Generated-type surface: idiomatic named types the reference inlines
+
+TS's REST/SWML type generator names more types than the Python reference: it extracts inline
+enums to named string/number-literal unions (autocomplete + typo-check), names discriminated /
+permission / recording unions, and names per-operation request/response shapes. The Python
+reference inlines these (as `Literal[…]` or anonymous refs) so they carry no standalone surface
+symbol. These are idiomatic-TS improvements (RULES: keep the better shape; document as additions
+rather than strip). See porting-sdk SESSION_CHANGESET_FOR_PORTS.md §H(5). Every one is generated
++ GEN-FRESH-gated (not hand-added).
+
+signalwire.relay.protocol_types_generated.CallingCallParams: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.relay.protocol_types_generated.CallingCallResult: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.relay.protocol_types_generated.SignalwireDisconnectResult: TS names this inline operation-body type; the reference inlines it
+signalwire.rest.namespaces.calling_types_generated.CallDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.CallRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.CallResponse: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.CallResponseStatus: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.HangupReason: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.LiveTranscribeStopAction: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.calling_types_generated.LiveTranslateStopAction: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.chat_types_generated.ChatChannel: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.chat_types_generated.ChatState: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.datasphere_types_generated.ChunkingStrategy: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.datasphere_types_generated.ChunkStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.datasphere_types_generated.DocumentCreatePageRequest: TS names this per-operation request/response type as an alias of the shared base; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.datasphere_types_generated.DocumentCreateParagraphRequest: TS names this per-operation request/response type as an alias of the shared base; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.datasphere_types_generated.DocumentCreateRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.datasphere_types_generated.DocumentCreateSentenceRequest: TS names this per-operation request/response type as an alias of the shared base; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.datasphere_types_generated.DocumentCreateSlidingRequest: TS names this per-operation request/response type as an alias of the shared base; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.datasphere_types_generated.DocumentStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.AddressChannel: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.AIPostPromptUpdate: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.AIPromptUpdate: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.CallFlowVersionDeployRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.CallHandlerType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.Ciphers: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.Codecs: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.ContextsObjectUpdate: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.DisplayTypes: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.Encryption: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.FunctionFillersUpdate: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.Layout: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.ListSipEndpointsResponse: TS names this list-operation response as a named array-of type; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.fabric_types_generated.ListSubscriberAddressesResponse: TS names this list-operation response as a named array-of type; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.fabric_types_generated.ListSwmlScriptsResponse: TS names this list-operation response as a named array-of type; the reference doesn't emit the operation-named alias
+signalwire.rest.namespaces.fabric_types_generated.ResourceResponse: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.fabric_types_generated.UsedForType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.project_types_generated.TokenPermission: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.pubsub_types_generated.PubSubChannels: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.pubsub_types_generated.PubSubState: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.AddressType: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.CallReceiveMode: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.CompanyVertical: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.CreateBrandRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.CreateCampaignRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.DomainAppCallHandler: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.DomainAppCallHandlerRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.GetRecordingResponse: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.HttpMethod: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.LegalEntityType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneNumberCallHandler: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneNumberCallHandlerRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneNumberCapability: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneNumberMessageHandler: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneNumberType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.Recording: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.ShortCodeCapability: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.ShortCodeMessageHandler: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.ShortCodeType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.relay_rest_types_generated.SipEndpointCallHandler: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.ConferenceSize: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.JoinAsType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.LogSource: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.LogStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.LogType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.MediaAllowedType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.RoomLayout: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.RoomRecordingStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.RoomSessionStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.RoomTokenPermission: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.VideoFps: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.VideoLayout: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.VideoLog: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.video_types_generated.VideoQuality: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.RelayVoiceType: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.VideoRoomVoiceType: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.VoiceDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.VoiceLog: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.VoiceLogStatus: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+signalwire.rest.namespaces.voice_types_generated.VoiceSources: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+signalwire.swaig_contracts.generated.PostPromptCallLogEntry: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+
+### SWML-schema named types (folded to the gen-type token)
+
+The SWML schema the reference duplicates across modules is compared under the `gen-type` fold
+(SESSION_CHANGESET_FOR_PORTS.md §H6). These SWML-verb schema types TS names but the reference
+inlines/omits — keyed by the fold token.
+
+gen-type.AIPostPrompt: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.AIPrompt: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.BedrockPostPrompt: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.BedrockPrompt: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.BedrockSWAIGFunction: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.CallStatus: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.CondParams: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.ContextSteps: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.ContextsObject: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.ConversationRole: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.Direction: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.FunctionFillers: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.Languages: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.POM: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.PayPromptAction: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.SWAIGNativeFunction: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.SWMLMethod: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.SchemaType: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.SpeechEngine: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.StringFormat: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.SummarizeActionUnion: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.TranscribeDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.TranscribeSummarizeActionUnion: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.TranslateAction: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+gen-type.TranslateDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.TranslationFilterPreset: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
+gen-type.ValidConfirmMethods: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there

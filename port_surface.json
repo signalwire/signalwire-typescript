@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ efe4381c6d001dac13e47e879308ed36a3d0195b",
+  "generated_from": "signalwire-typescript @ 35a2fb157e92e06d04778a2500b5ad81545a1061",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -779,14 +779,14 @@
         "Play": [],
         "Prompt": [],
         "ReceiveFax": [],
-        "Record_": [],
+        "Record": [],
         "RecordCall": [],
         "Request": [],
         "Return": [],
         "SendDigits": [],
         "SendFax": [],
         "SendSMS": [],
-        "Set_": [],
+        "Set": [],
         "Sleep": [],
         "SIPRefer": [],
         "StopDenoise": [],
@@ -799,7 +799,6 @@
         "Pay": [],
         "DetectMachine": [],
         "UserEvent": [],
-        "SWMLVar": [],
         "AIObject": [],
         "AmazonBedrockObject": [],
         "CondParams": [],
@@ -813,7 +812,6 @@
         "JoinConferenceObject": [],
         "PlayWithURL": [],
         "PlayWithURLS": [],
-        "play_url": [],
         "SMSWithBody": [],
         "SMSWithMedia": [],
         "PayParameters": [],
@@ -843,7 +841,6 @@
         "PayPromptAction": [],
         "LanguagesWithSoloFillers": [],
         "LanguagesWithFillers": [],
-        "AttentionTimeout": [],
         "ConversationMessage": [],
         "Direction": [],
         "AIPostPromptText": [],
@@ -863,7 +860,6 @@
         "SpeechEngine": [],
         "TranscribeSummarizeAction": [],
         "TranslationFilterPreset": [],
-        "CustomTranslationFilter": [],
         "TranslateDirection": [],
         "SummarizeAction": [],
         "PayPromptSayAction": [],
@@ -1692,7 +1688,6 @@
         "Answer": [],
         "AnyOfProperty": [],
         "ArrayProperty": [],
-        "AttentionTimeout": [],
         "BedrockParams": [],
         "BedrockPostPrompt": [],
         "BedrockPrompt": [],
@@ -1773,7 +1768,6 @@
         "ContextsTextObject": [],
         "ConversationMessage": [],
         "ConversationRole": [],
-        "CustomTranslationFilter": [],
         "DataMap": [],
         "Denoise": [],
         "DetectMachine": [],
@@ -1833,7 +1827,7 @@
         "Prompt": [],
         "Pronounce": [],
         "ReceiveFax": [],
-        "Record_": [],
+        "Record": [],
         "RecordCall": [],
         "Request": [],
         "Return": [],
@@ -1848,14 +1842,13 @@
         "SWMLAction": [],
         "SWMLMethod": [],
         "SWMLObject": [],
-        "SWMLVar": [],
         "SayAction": [],
         "SchemaType": [],
         "Section": [],
         "SendDigits": [],
         "SendFax": [],
         "SendSMS": [],
-        "Set_": [],
+        "Set": [],
         "SetGlobalDataAction": [],
         "SetMetaDataAction": [],
         "Sleep": [],
@@ -1895,9 +1888,7 @@
         "UserInputAction": [],
         "UserSWAIGFunction": [],
         "ValidConfirmMethods": [],
-        "Webhook": [],
-        "play_url": [],
-        "uuid": []
+        "Webhook": []
       },
       "functions": []
     },
@@ -1960,9 +1951,7 @@
         "PaginationResponse": [],
         "SearchResponse": [],
         "SearchStatusCode422": [],
-        "UpdateStatusCode422": [],
-        "docid": [],
-        "uuid": []
+        "UpdateStatusCode422": []
       },
       "functions": []
     },
@@ -2089,7 +2078,6 @@
         "AIPromptTextUpdate": [],
         "AIPromptUpdate": [],
         "AddressChannel": [],
-        "AttentionTimeout": [],
         "AudioChannel": [],
         "BedrockPostPrompt": [],
         "BedrockPrompt": [],
@@ -2150,7 +2138,6 @@
         "ContextsTextObjectUpdate": [],
         "ContextsUpdate": [],
         "ConversationRole": [],
-        "CustomTranslationFilter": [],
         "CxmlApplication": [],
         "CxmlApplicationAddressListResponse": [],
         "CxmlApplicationAddressPaginationResponse": [],
@@ -2205,7 +2192,6 @@
         "PhoneRouteAssignRequest": [],
         "PhoneRouteCreateStatusCode422": [],
         "PhoneRouteResponse": [],
-        "Record_": [],
         "RefreshTokenStatusCode422": [],
         "RelayApplication": [],
         "RelayApplicationAddressListResponse": [],
@@ -2246,7 +2232,6 @@
         "SWMLMethod": [],
         "SWMLScriptAddressListResponse": [],
         "SWMLScriptAddressPaginationResponse": [],
-        "SWMLVar": [],
         "SWMLWebhook": [],
         "SWMLWebhookAddressListResponse": [],
         "SWMLWebhookAddressPaginationResponse": [],
@@ -2256,7 +2241,6 @@
         "SWMLWebhookResponse": [],
         "SWMLWebhookUpdateRequest": [],
         "SchemaType": [],
-        "Set_": [],
         "SipEndpoint": [],
         "SipEndpointAddressListResponse": [],
         "SipEndpointAddressPaginationResponse": [],
@@ -2322,9 +2306,6 @@
         "UsedForType": [],
         "ValidConfirmMethods": [],
         "VideoChannel": [],
-        "jwt": [],
-        "play_url": [],
-        "uuid": [],
         "ListSipEndpointsResponse": [],
         "ListSubscriberAddressesResponse": [],
         "ListSwmlScriptsResponse": []
@@ -2347,8 +2328,7 @@
         "FaxLogsListStatusCode422": [],
         "LogListResponse": [],
         "LogPaginationResponse": [],
-        "LogResponse": [],
-        "uuid": []
+        "LogResponse": []
       },
       "functions": []
     },
@@ -2368,8 +2348,7 @@
         "ConferencesResponse": [],
         "CxmlConference": [],
         "RelayConference": [],
-        "VideoRoomSessionConference": [],
-        "uuid": []
+        "VideoRoomSessionConference": []
       },
       "functions": []
     },
@@ -2386,8 +2365,7 @@
         "LogRetrieveResponse": [],
         "MessageLog": [],
         "MessageLogShowStatusCode422": [],
-        "MessageLogsListStatusCode422": [],
-        "uuid": []
+        "MessageLogsListStatusCode422": []
       },
       "functions": []
     },
@@ -2637,7 +2615,6 @@
         "VerifiedCallerIDResponse": [],
         "VerifyCallerIDRequest": [],
         "WebRtcRecording": [],
-        "uuid": [],
         "GetRecordingResponse": [],
         "CreateBrandRequest": [],
         "CreateCampaignRequest": []
@@ -2779,8 +2756,7 @@
         "VoiceLog": [],
         "VoiceLogStatus": [],
         "VoiceLogsListStatusCode422": [],
-        "VoiceSources": [],
-        "uuid": []
+        "VoiceSources": []
       },
       "functions": []
     },
