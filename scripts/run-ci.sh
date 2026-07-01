@@ -328,6 +328,11 @@ run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
 lint_gate() {
     npx tsc --noEmit || return 1
     npx tsc --noEmit --project tsconfig.examples.json || return 1
+    # The test suite is strict-type-checked too, via tsconfig.test.json (src+tests,
+    # noEmit). The build tsconfig.json keeps rootDir=src/declaration=true and
+    # excludes tests so dist/ stays test-free; tsconfig.test.json is the type floor
+    # for tests/ (the F changeset item — hand-written tests are now strict-clean).
+    npx tsc --noEmit --project tsconfig.test.json || return 1
     # eslint must cover EVERY example tree (examples/, rest/examples/,
     # relay/examples/), not just the top-level one — a file-level disable or `any`
     # in rest/examples slipped past when only `examples` was linted.
@@ -349,7 +354,7 @@ lint_gate() {
     # defensive casts in example demos, generic safe<T> wrappers.
     npx tsx scripts/check-ts-idioms.ts || return 1
 }
-run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
+run_gate "LINT" "tsc (src + examples + tests) + eslint (lint gate)" lint_gate
 
 # Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
 # real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in
