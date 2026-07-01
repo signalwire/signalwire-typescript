@@ -34,7 +34,7 @@ describe('PlayBackgroundFileSkill', () => {
   it('should register tools', () => {
     const tools = new PlayBackgroundFileSkill(FILES).getTools();
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools[0]!.handler).toBeTypeOf('function');
   });
 
   it('should provide prompt sections', () => {

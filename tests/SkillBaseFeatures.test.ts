@@ -28,9 +28,9 @@ describe('SkillBase Features', () => {
       const schema = SkillBase.getParameterSchema();
       expect(schema).toHaveProperty('swaig_fields');
       expect(schema).toHaveProperty('skip_prompt');
-      expect(schema.swaig_fields.type).toBe('object');
-      expect(schema.skip_prompt.type).toBe('boolean');
-      expect(schema.skip_prompt.default).toBe(false);
+      expect(schema.swaig_fields!.type).toBe('object');
+      expect(schema.skip_prompt!.type).toBe('boolean');
+      expect(schema.skip_prompt!.default).toBe(false);
     });
 
     it('TestSkill inherits base schema', () => {
@@ -64,7 +64,7 @@ describe('SkillBase Features', () => {
       const skill = new TestSkill();
       const sections = skill.getPromptSections();
       expect(sections.length).toBe(1);
-      expect(sections[0].title).toBe('Test Section');
+      expect(sections[0]!.title).toBe('Test Section');
     });
 
     it('returns empty when skip_prompt is true', () => {

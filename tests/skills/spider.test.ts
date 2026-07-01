@@ -31,7 +31,7 @@ describe('SpiderSkill', () => {
     expect(names).toContain('scrape_url');
     expect(names).toContain('crawl_site');
     expect(names).toContain('extract_structured_data');
-    expect(tools[0].required).toContain('url');
+    expect(tools[0]!.required).toContain('url');
   });
 
   it('should provide no prompt sections (matches Python — no override)', () => {
@@ -86,8 +86,8 @@ describe('SpiderSkill', () => {
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
   });
 

@@ -113,10 +113,10 @@ describe('agent introspection', () => {
     const agent = createAgent();
     const tools = agent.getRegisteredTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('greet');
-    expect(tools[0].description).toBe('Say hello');
-    expect(tools[0].parameters).toHaveProperty('name');
-    expect(tools[1].name).toBe('get_time');
+    expect(tools[0]!.name).toBe('greet');
+    expect(tools[0]!.description).toBe('Say hello');
+    expect(tools[0]!.parameters).toHaveProperty('name');
+    expect(tools[1]!.name).toBe('get_time');
   });
 
   it('getRegisteredTools returns empty for no tools', () => {

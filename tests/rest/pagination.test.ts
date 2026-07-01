@@ -109,7 +109,7 @@ describe('paginate', () => {
     await paginateAll(http, '/api/test', { page_size: 5 });
 
     const reqs = getRequests();
-    expect(reqs[0].url).toContain('page_size=5');
+    expect(reqs[0]!.url).toContain('page_size=5');
   });
 
   it('handles relative links.next', async () => {

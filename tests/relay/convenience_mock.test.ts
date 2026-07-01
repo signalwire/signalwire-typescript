@@ -107,11 +107,11 @@ describe('Call.playTTS', () => {
     const p = await lastFrameParams('calling.play');
     expect(p.call_id).toBe('conv-ptts');
     expect(p.volume).toBe(3.5);
-    expect(p.play[0].type).toBe('tts');
-    expect(p.play[0].params.text).toBe('hello world');
-    expect(p.play[0].params.language).toBe('en-US');
-    expect(p.play[0].params.gender).toBe('female');
-    expect(p.play[0].params.voice).toBe('Polly.Joanna');
+    expect(p.play![0]!.type).toBe('tts');
+    expect(p.play![0]!.params!.text).toBe('hello world');
+    expect(p.play![0]!.params!.language).toBe('en-US');
+    expect(p.play![0]!.params!.gender).toBe('female');
+    expect(p.play![0]!.params!.voice).toBe('Polly.Joanna');
   });
 
   it('omits unset optional params (only text, no volume)', async () => {
@@ -119,10 +119,10 @@ describe('Call.playTTS', () => {
     await call.playTTS('bare');
     const p = await lastFrameParams('calling.play');
     expect(p).not.toHaveProperty('volume');
-    expect(p.play[0].params.text).toBe('bare');
-    expect(p.play[0].params).not.toHaveProperty('language');
-    expect(p.play[0].params).not.toHaveProperty('gender');
-    expect(p.play[0].params).not.toHaveProperty('voice');
+    expect(p.play![0]!.params!.text).toBe('bare');
+    expect(p.play![0]!.params).not.toHaveProperty('language');
+    expect(p.play![0]!.params).not.toHaveProperty('gender');
+    expect(p.play![0]!.params).not.toHaveProperty('voice');
   });
 });
 
@@ -133,8 +133,8 @@ describe('Call.playAudio', () => {
     expect(action).toBeInstanceOf(PlayAction);
     const p = await lastFrameParams('calling.play');
     expect(p.volume).toBe(-2.0);
-    expect(p.play[0].type).toBe('audio');
-    expect(p.play[0].params.url).toBe('https://example.com/a.mp3');
+    expect(p.play![0]!.type).toBe('audio');
+    expect(p.play![0]!.params!.url).toBe('https://example.com/a.mp3');
   });
 });
 
@@ -144,8 +144,8 @@ describe('Call.playSilence', () => {
     const action = await call.playSilence(2.5);
     expect(action).toBeInstanceOf(PlayAction);
     const p = await lastFrameParams('calling.play');
-    expect(p.play[0].type).toBe('silence');
-    expect(p.play[0].params.duration).toBe(2.5);
+    expect(p.play![0]!.type).toBe('silence');
+    expect(p.play![0]!.params!.duration).toBe(2.5);
   });
 });
 
@@ -156,17 +156,17 @@ describe('Call.playRingtone', () => {
     expect(action).toBeInstanceOf(PlayAction);
     const p = await lastFrameParams('calling.play');
     expect(p.volume).toBe(1.0);
-    expect(p.play[0].type).toBe('ringtone');
-    expect(p.play[0].params.name).toBe('us');
-    expect(p.play[0].params.duration).toBe(4.0);
+    expect(p.play![0]!.type).toBe('ringtone');
+    expect(p.play![0]!.params!.name).toBe('us');
+    expect(p.play![0]!.params!.duration).toBe(4.0);
   });
 
   it('omits duration from ringtone params when unset', async () => {
     const call = await answeredInboundCall('conv-prng2');
     await call.playRingtone('gb');
     const p = await lastFrameParams('calling.play');
-    expect(p.play[0].params.name).toBe('gb');
-    expect(p.play[0].params).not.toHaveProperty('duration');
+    expect(p.play![0]!.params!.name).toBe('gb');
+    expect(p.play![0]!.params).not.toHaveProperty('duration');
   });
 });
 
@@ -182,16 +182,16 @@ describe('Call.detectDigit', () => {
     const p = await lastFrameParams('calling.detect');
     expect(p.call_id).toBe('conv-ddig');
     expect(p.timeout).toBe(7.0);
-    expect(p.detect.type).toBe('digit');
-    expect(p.detect.params.digits).toBe('123');
+    expect(p.detect!.type).toBe('digit');
+    expect(p.detect!.params!.digits).toBe('123');
   });
 
   it('omits digits from detect params when unset', async () => {
     const call = await answeredInboundCall('conv-ddig2');
     await call.detectDigit();
     const p = await lastFrameParams('calling.detect');
-    expect(p.detect.type).toBe('digit');
-    expect(p.detect.params).not.toHaveProperty('digits');
+    expect(p.detect!.type).toBe('digit');
+    expect(p.detect!.params).not.toHaveProperty('digits');
   });
 });
 
@@ -207,14 +207,14 @@ describe('Call.detectAnsweringMachine', () => {
     expect(action).toBeInstanceOf(DetectAction);
     const p = await lastFrameParams('calling.detect');
     expect(p.timeout).toBe(30.0);
-    expect(p.detect.type).toBe('machine');
-    expect(p.detect.params.initial_timeout).toBe(5.0);
-    expect(p.detect.params.end_silence_timeout).toBe(1.0);
-    expect(p.detect.params.detect_interruptions).toBe(true);
+    expect(p.detect!.type).toBe('machine');
+    expect(p.detect!.params!.initial_timeout).toBe(5.0);
+    expect(p.detect!.params!.end_silence_timeout).toBe(1.0);
+    expect(p.detect!.params!.detect_interruptions).toBe(true);
     // Params the caller did not set must be absent (only-provided-keys).
-    expect(p.detect.params).not.toHaveProperty('machine_voice_threshold');
-    expect(p.detect.params).not.toHaveProperty('machine_words_threshold');
-    expect(p.detect.params).not.toHaveProperty('detect_message_end');
+    expect(p.detect!.params).not.toHaveProperty('machine_voice_threshold');
+    expect(p.detect!.params).not.toHaveProperty('machine_words_threshold');
+    expect(p.detect!.params).not.toHaveProperty('detect_message_end');
   });
 });
 
@@ -224,8 +224,8 @@ describe('Call.detectFax', () => {
     const action = await call.detectFax({ tone: 'CED' });
     expect(action).toBeInstanceOf(DetectAction);
     const p = await lastFrameParams('calling.detect');
-    expect(p.detect.type).toBe('fax');
-    expect(p.detect.params.tone).toBe('CED');
+    expect(p.detect!.type).toBe('fax');
+    expect(p.detect!.params!.tone).toBe('CED');
   });
 });
 
@@ -244,10 +244,10 @@ describe('Call.promptTTS', () => {
     expect(action).toBeInstanceOf(CollectAction);
     const p = await lastFrameParams('calling.play_and_collect');
     expect(p.volume).toBe(2.0);
-    expect(p.play[0].type).toBe('tts');
-    expect(p.play[0].params.text).toBe('enter pin');
-    expect(p.play[0].params.voice).toBe('en-US-Neural');
-    expect(p.collect.digits.max).toBe(3);
+    expect(p.play![0]!.type).toBe('tts');
+    expect(p.play![0]!.params!.text).toBe('enter pin');
+    expect(p.play![0]!.params!.voice).toBe('en-US-Neural');
+    expect(p.collect!.digits!.max).toBe(3);
   });
 });
 
@@ -258,9 +258,9 @@ describe('Call.promptAudio', () => {
     const action = await call.promptAudio('https://example.com/prompt.wav', collect);
     expect(action).toBeInstanceOf(CollectAction);
     const p = await lastFrameParams('calling.play_and_collect');
-    expect(p.play[0].type).toBe('audio');
-    expect(p.play[0].params.url).toBe('https://example.com/prompt.wav');
-    expect(p.collect.speech.end_silence_timeout).toBe(1);
+    expect(p.play![0]!.type).toBe('audio');
+    expect(p.play![0]!.params!.url).toBe('https://example.com/prompt.wav');
+    expect(p.collect!.speech!.end_silence_timeout).toBe(1);
   });
 });
 

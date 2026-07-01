@@ -138,7 +138,7 @@ describe('top-level index helpers', () => {
       registerSkill(TopLevelDummySkill as never);
       const schema = listSkillsWithParams();
       expect(schema['top_level_dummy_skill_index']).toBeDefined();
-      expect(schema['top_level_dummy_skill_index'].name).toBe('top_level_dummy_skill_index');
+      expect(schema['top_level_dummy_skill_index']!.name).toBe('top_level_dummy_skill_index');
     });
   });
 });

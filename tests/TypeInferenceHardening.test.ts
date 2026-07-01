@@ -27,21 +27,21 @@ describe('paren-depth parameter extraction', () => {
     const src = 'function f(name, greeting = makeGreeting()) {}';
     const params = parseFunctionParams(src);
     expect(params.map((p) => p.name)).toEqual(['name', 'greeting']);
-    expect(params[1].defaultValue).toBe('makeGreeting()');
+    expect(params[1]!.defaultValue).toBe('makeGreeting()');
   });
 
   it('keeps a string default that contains a close paren', () => {
     const src = 'function f(a, b = "(x)") {}';
     const params = parseFunctionParams(src);
     expect(params.map((p) => p.name)).toEqual(['a', 'b']);
-    expect(params[1].defaultValue).toBe('"(x)"');
+    expect(params[1]!.defaultValue).toBe('"(x)"');
   });
 
   it('keeps a string default that contains a comma', () => {
     const src = "function f(a, b = 'x,y', c) {}";
     const params = parseFunctionParams(src);
     expect(params.map((p) => p.name)).toEqual(['a', 'b', 'c']);
-    expect(params[1].defaultValue).toBe("'x,y'");
+    expect(params[1]!.defaultValue).toBe("'x,y'");
   });
 
   it('strips line comments inside the parameter list', () => {
@@ -60,7 +60,7 @@ describe('paren-depth parameter extraction', () => {
     const src = 'function f(cb = () => 1, x) {}';
     const params = parseFunctionParams(src);
     expect(params.map((p) => p.name)).toEqual(['cb', 'x']);
-    expect(params[0].defaultValue).toBe('() => 1');
+    expect(params[0]!.defaultValue).toBe('() => 1');
   });
 });
 
@@ -82,7 +82,7 @@ describe('inferSchema correct parses (parens / strings / calls in defaults)', ()
     const fn = makeFnWithSource(src);
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
-    expect(schema!.parameters['a'].type).toBe('string');
+    expect(schema!.parameters['a']!.type).toBe('string');
     expect(warnSpy).not.toHaveBeenCalled();
   });
 });
@@ -156,7 +156,7 @@ describe('inferSchema accepts the legitimate cases unchanged', () => {
     expect(schema).not.toBeNull();
     expect(schema!.paramNames).toEqual(['city', 'days']);
     expect(schema!.required).toEqual(['city']);
-    expect(schema!.parameters['days'].type).toBe('integer');
+    expect(schema!.parameters['days']!.type).toBe('integer');
     expect(warnSpy).not.toHaveBeenCalled();
   });
 

@@ -81,9 +81,9 @@ describe('Dial — happy path', () => {
     await client.dial([[phoneDevice()]], { tag: 't-frame', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     const p = entry!.frame.params;
-    expect(p.tag).toBe('t-frame');
-    expect(Array.isArray(p.devices)).toBe(true);
-    expect(p.devices[0][0].type).toBe('phone');
+    expect(p!.tag).toBe('t-frame');
+    expect(Array.isArray(p!.devices)).toBe(true);
+    expect(p!.devices![0]![0]!.type).toBe('phone');
   });
 
   it('test_dial_with_max_duration_in_frame', async () => {
@@ -96,7 +96,7 @@ describe('Dial — happy path', () => {
     });
     await client.dial([[phoneDevice()]], { tag: 't-md', maxDuration: 300, dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
-    expect(entry!.frame.params.max_duration).toBe(300);
+    expect(entry!.frame.params!.max_duration).toBe(300);
   });
 
   it('test_dial_auto_generates_uuid_tag_when_omitted', async () => {
@@ -107,7 +107,7 @@ describe('Dial — happy path', () => {
       for (let i = 0; i < 200; i++) {
         const entries = await mock.journalRecv('calling.dial');
         if (entries.length > 0) {
-          seenTag.v = entries[entries.length - 1]!.frame.params.tag as string;
+          seenTag.v = entries[entries.length - 1]!.frame.params!.tag as string;
           break;
         }
         await new Promise((r) => setTimeout(r, 10));
@@ -213,9 +213,9 @@ describe('Dial — winner / losers', () => {
     expect(sends.length).toBeGreaterThan(0);
     const finals = sends.filter((e) => e.frame.params?.params?.dial_state === 'answered');
     expect(finals.length).toBe(1);
-    const inner = finals[0]!.frame.params.params;
-    expect(inner.call.dial_winner).toBe(true);
-    expect(inner.call.call_id).toBe('WIN-ID');
+    const inner = finals[0]!.frame.params!.params;
+    expect(inner!.call!.dial_winner).toBe(true);
+    expect(inner!.call!.call_id).toBe('WIN-ID');
   });
 
   it('test_dial_losers_get_state_events', async () => {
@@ -230,9 +230,9 @@ describe('Dial — winner / losers', () => {
     await client.dial([[phoneDevice()]], { tag: 't-losers', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const loserStates = stateEvents
-      .filter((e) => e.frame.params.params?.call_id === 'L1')
-      .map((e) => e.frame.params.params);
-    expect(loserStates.some((s) => s.call_state === 'ended')).toBe(true);
+      .filter((e) => e.frame.params!.params?.call_id === 'L1')
+      .map((e) => e.frame.params!.params);
+    expect(loserStates.some((s) => s!.call_state === 'ended')).toBe(true);
   });
 
   it('test_dial_losers_cleaned_up_from_calls_dict', async () => {
@@ -269,9 +269,9 @@ describe('Dial — devices shape', () => {
     await client.dial(devs, { tag: 't-serial', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
     const params = entry!.frame.params;
-    expect(params.devices.length).toBe(1);
-    expect(params.devices[0].length).toBe(2);
-    expect(params.devices[0][0].params.to_number).toBe('+15551110001');
+    expect(params!.devices!.length).toBe(1);
+    expect(params!.devices![0]!.length).toBe(2);
+    expect(params!.devices![0]![0]!.params!.to_number).toBe('+15551110001');
   });
 
   it('test_dial_devices_parallel_two_legs_on_wire', async () => {
@@ -285,7 +285,7 @@ describe('Dial — devices shape', () => {
     const devs = [[phoneDevice('+15551110001')], [phoneDevice('+15551110002')]];
     await client.dial(devs, { tag: 't-par', dialTimeout: 5.0 });
     const [entry] = await mock.journalRecv('calling.dial');
-    expect(entry!.frame.params.devices.length).toBe(2);
+    expect(entry!.frame.params!.devices!.length).toBe(2);
   });
 });
 
@@ -305,8 +305,8 @@ describe('Dial — state progression', () => {
     const call = await client.dial([[phoneDevice()]], { tag: 't-prog', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const winnerStates = stateEvents
-      .filter((e) => e.frame.params.params?.call_id === 'WIN-PROG')
-      .map((e) => e.frame.params.params.call_state);
+      .filter((e) => e.frame.params!.params?.call_id === 'WIN-PROG')
+      .map((e) => e.frame.params!.params!.call_state);
     expect(winnerStates).toContain('created');
     expect(winnerStates).toContain('ringing');
     expect(winnerStates).toContain('answered');
@@ -331,7 +331,7 @@ describe('Dial — usable call after answer', () => {
     await call.hangup();
     const ends = await mock.journalRecv('calling.end');
     expect(ends.length).toBeGreaterThan(0);
-    expect(ends[ends.length - 1]!.frame.params.call_id).toBe('WIN-AFTER');
+    expect(ends[ends.length - 1]!.frame.params!.call_id).toBe('WIN-AFTER');
   });
 
   it('test_dialed_call_can_play', async () => {
@@ -347,8 +347,8 @@ describe('Dial — usable call after answer', () => {
     const plays = await mock.journalRecv('calling.play');
     expect(plays.length).toBeGreaterThan(0);
     const p = plays[plays.length - 1]!.frame.params;
-    expect(p.call_id).toBe('WIN-PLAY');
-    expect(p.play[0].type).toBe('tts');
+    expect(p!.call_id).toBe('WIN-PLAY');
+    expect(p!.play![0]!.type).toBe('tts');
   });
 });
 

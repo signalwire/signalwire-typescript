@@ -92,9 +92,9 @@ describe('PlayAction', () => {
     await call.play([{ type: 'tts', params: { text: 'hi' } }], { controlId: 'play-ctl-1' });
     const [entry] = await mock.journalRecv('calling.play');
     const p = entry!.frame.params;
-    expect(p.call_id).toBe('call-play');
-    expect(p.control_id).toBe('play-ctl-1');
-    expect(p.play[0].type).toBe('tts');
+    expect(p!.call_id).toBe('call-play');
+    expect(p!.control_id).toBe('play-ctl-1');
+    expect(p!.play![0]!.type).toBe('tts');
   });
 
   it('test_play_resolves_on_finished_event', async () => {
@@ -120,7 +120,7 @@ describe('PlayAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.play.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('play-ctl-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('play-ctl-stop');
   });
 
   it('test_play_pause_resume_volume_journal', async () => {
@@ -136,7 +136,7 @@ describe('PlayAction', () => {
     expect((await mock.journalRecv('calling.play.resume')).length).toBeGreaterThan(0);
     const vol = await mock.journalRecv('calling.play.volume');
     expect(vol.length).toBeGreaterThan(0);
-    expect(vol[vol.length - 1]!.frame.params.volume).toBe(-3.0);
+    expect(vol[vol.length - 1]!.frame.params!.volume).toBe(-3.0);
   });
 
   it('test_play_on_completed_callback_fires', async () => {
@@ -176,9 +176,9 @@ describe('RecordAction', () => {
     await call.record({ format: 'mp3' }, { controlId: 'rec-ctl-1' });
     const [entry] = await mock.journalRecv('calling.record');
     const p = entry!.frame.params;
-    expect(p.call_id).toBe('call-rec');
-    expect(p.control_id).toBe('rec-ctl-1');
-    expect(p.record.audio.format).toBe('mp3');
+    expect(p!.call_id).toBe('call-rec');
+    expect(p!.control_id).toBe('rec-ctl-1');
+    expect(p!.record!.audio!.format).toBe('mp3');
   });
 
   it('test_record_resolves_on_finished_event', async () => {
@@ -199,7 +199,7 @@ describe('RecordAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.record.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('rec-ctl-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('rec-ctl-stop');
   });
 });
 
@@ -229,7 +229,7 @@ describe('DetectAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.detect.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('det-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('det-stop');
   });
 });
 
@@ -247,9 +247,9 @@ describe('CollectAction (play_and_collect)', () => {
     );
     const [entry] = await mock.journalRecv('calling.play_and_collect');
     const p = entry!.frame.params;
-    expect(p.call_id).toBe('call-pac');
-    expect(p.play[0].type).toBe('tts');
-    expect(p.collect.digits.max).toBe(1);
+    expect(p!.call_id).toBe('call-pac');
+    expect(p!.play![0]!.type).toBe('tts');
+    expect(p!.collect!.digits!.max).toBe(1);
   });
 
   it('test_play_and_collect_resolves_on_collect_event_only', async () => {
@@ -302,7 +302,7 @@ describe('CollectAction (play_and_collect)', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.play_and_collect.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('pac-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('pac-stop');
   });
 });
 
@@ -316,8 +316,8 @@ describe('StandaloneCollectAction', () => {
     const action = await call.collect({ digits: { max: 4 }, controlId: 'col-ctl' });
     expect(action).toBeInstanceOf(StandaloneCollectAction);
     const [entry] = await mock.journalRecv('calling.collect');
-    expect(entry!.frame.params.digits).toEqual({ max: 4 });
-    expect(entry!.frame.params.control_id).toBe('col-ctl');
+    expect(entry!.frame.params!.digits).toEqual({ max: 4 });
+    expect(entry!.frame.params!.control_id).toBe('col-ctl');
   });
 
   it('test_collect_stop_journals_collect_stop', async () => {
@@ -326,7 +326,7 @@ describe('StandaloneCollectAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.collect.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('col-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('col-stop');
   });
 });
 
@@ -343,9 +343,9 @@ describe('PayAction', () => {
     });
     const [entry] = await mock.journalRecv('calling.pay');
     const p = entry!.frame.params;
-    expect(p.payment_connector_url).toBe('https://pay.example/connect');
-    expect(p.control_id).toBe('pay-ctl');
-    expect(p.charge_amount).toBe('9.99');
+    expect(p!.payment_connector_url).toBe('https://pay.example/connect');
+    expect(p!.control_id).toBe('pay-ctl');
+    expect(p!.charge_amount).toBe('9.99');
   });
 
   it('test_pay_returns_pay_action', async () => {
@@ -361,7 +361,7 @@ describe('PayAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.pay.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('pay-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('pay-stop');
   });
 });
 
@@ -378,9 +378,9 @@ describe('FaxAction', () => {
     });
     const [entry] = await mock.journalRecv('calling.send_fax');
     const p = entry!.frame.params;
-    expect(p.document).toBe('https://docs.example/test.pdf');
-    expect(p.identity).toBe('+15551112222');
-    expect(p.control_id).toBe('sfax-ctl');
+    expect(p!.document).toBe('https://docs.example/test.pdf');
+    expect(p!.identity).toBe('+15551112222');
+    expect(p!.control_id).toBe('sfax-ctl');
   });
 
   it('test_receive_fax_returns_fax_action', async () => {
@@ -404,9 +404,9 @@ describe('TapAction', () => {
     );
     const [entry] = await mock.journalRecv('calling.tap');
     const p = entry!.frame.params;
-    expect(p.tap).toEqual({ type: 'audio' });
-    expect(p.device.params.port).toBe(4000);
-    expect(p.control_id).toBe('tap-ctl');
+    expect(p!.tap).toEqual({ type: 'audio' });
+    expect(p!.device!.params!.port).toBe(4000);
+    expect(p!.control_id).toBe('tap-ctl');
   });
 
   it('test_tap_stop_journals_tap_stop', async () => {
@@ -420,7 +420,7 @@ describe('TapAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.tap.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('tap-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('tap-stop');
   });
 });
 
@@ -437,9 +437,9 @@ describe('StreamAction', () => {
     });
     const [entry] = await mock.journalRecv('calling.stream');
     const p = entry!.frame.params;
-    expect(p.url).toBe('wss://stream.example/audio');
-    expect(p.codec).toBe('OPUS@48000h');
-    expect(p.control_id).toBe('strm-ctl');
+    expect(p!.url).toBe('wss://stream.example/audio');
+    expect(p!.codec).toBe('OPUS@48000h');
+    expect(p!.control_id).toBe('strm-ctl');
   });
 
   it('test_stream_stop_journals_stream_stop', async () => {
@@ -449,7 +449,7 @@ describe('StreamAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.stream.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('strm-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('strm-stop');
   });
 });
 
@@ -463,7 +463,7 @@ describe('TranscribeAction', () => {
     const action = await call.transcribe({ controlId: 'tr-ctl' });
     expect(action).toBeInstanceOf(TranscribeAction);
     const [entry] = await mock.journalRecv('calling.transcribe');
-    expect(entry!.frame.params.control_id).toBe('tr-ctl');
+    expect(entry!.frame.params!.control_id).toBe('tr-ctl');
   });
 
   it('test_transcribe_stop_journals_transcribe_stop', async () => {
@@ -472,7 +472,7 @@ describe('TranscribeAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.transcribe.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('tr-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('tr-stop');
   });
 });
 
@@ -490,8 +490,8 @@ describe('AIAction', () => {
     expect(action).toBeInstanceOf(AIAction);
     const [entry] = await mock.journalRecv('calling.ai');
     const p = entry!.frame.params;
-    expect(p.prompt).toEqual({ text: 'You are helpful.' });
-    expect(p.control_id).toBe('ai-ctl');
+    expect(p!.prompt).toEqual({ text: 'You are helpful.' });
+    expect(p!.control_id).toBe('ai-ctl');
   });
 
   it('test_ai_stop_journals_ai_stop', async () => {
@@ -503,7 +503,7 @@ describe('AIAction', () => {
     await action.stop();
     const stops = await mock.journalRecv('calling.ai.stop');
     expect(stops.length).toBeGreaterThan(0);
-    expect(stops[stops.length - 1]!.frame.params.control_id).toBe('ai-stop');
+    expect(stops[stops.length - 1]!.frame.params!.control_id).toBe('ai-stop');
   });
 });
 

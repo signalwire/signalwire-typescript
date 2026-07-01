@@ -38,14 +38,14 @@ describe('WeatherApiSkill', () => {
   it('should register a get_weather tool', () => {
     const tools = new WeatherApiSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_weather');
-    expect(tools[0].required).toContain('location');
+    expect(tools[0]!.name).toBe('get_weather');
+    expect(tools[0]!.required).toContain('location');
   });
 
   it('should provide prompt sections', () => {
     const sections = new WeatherApiSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Weather Information');
+    expect(sections[0]!.title).toBe('Weather Information');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -66,7 +66,7 @@ describe('WeatherApiSkill', () => {
 
   it('should return error when API key is missing', async () => {
     delete process.env['WEATHER_API_KEY'];
-    const handler = new WeatherApiSkill().getTools()[0].handler;
+    const handler = new WeatherApiSkill().getTools()[0]!.handler;
     const result = (await handler({ location: 'London' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
@@ -76,11 +76,11 @@ describe('WeatherApiSkill', () => {
     // `units` and `api_key` must both be real entries with the
     // expected types — a stub returning `{units: undefined}` would
     // fail the type check.
-    expect(schema['units'].type).toBe('string');
-    expect(Array.isArray(schema['units'].enum)).toBe(true);
-    expect(schema['units'].enum).toContain('imperial');
-    expect(schema['units'].enum).toContain('metric');
-    expect(schema['api_key'].type).toBe('string');
-    expect(schema['api_key'].env_var).toBe('WEATHER_API_KEY');
+    expect(schema['units']!.type).toBe('string');
+    expect(Array.isArray(schema['units']!.enum)).toBe(true);
+    expect(schema['units']!.enum).toContain('imperial');
+    expect(schema['units']!.enum).toContain('metric');
+    expect(schema['api_key']!.type).toBe('string');
+    expect(schema['api_key']!.env_var).toBe('WEATHER_API_KEY');
   });
 });

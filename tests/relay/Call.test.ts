@@ -85,7 +85,7 @@ describe('Call', () => {
       const call = makeCall(client);
 
       await call._execute('end', { reason: 'hangup' });
-      expect(client.execCalls[0].params.reason).toBe('hangup');
+      expect(client.execCalls[0]!.params.reason).toBe('hangup');
     });
 
     it('returns {} on RelayError (call-gone)', async () => {
@@ -161,7 +161,7 @@ describe('Call', () => {
       });
 
       expect(events).toHaveLength(1);
-      expect(events[0].eventType).toBe('calling.call.play');
+      expect(events[0]!.eventType).toBe('calling.call.play');
     });
 
     it('handles listener errors gracefully', async () => {
@@ -229,7 +229,7 @@ describe('Call', () => {
 
       const action = await call.play([{ type: 'tts', text: 'hello' }]);
       expect(action).toBeInstanceOf(PlayAction);
-      expect(client.execCalls[0].method).toBe('calling.play');
+      expect(client.execCalls[0]!.method).toBe('calling.play');
     });
 
     it('resolves immediately if call already ended', async () => {
@@ -282,22 +282,22 @@ describe('Call', () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.answer();
-      expect(client.execCalls[0].method).toBe('calling.answer');
+      expect(client.execCalls[0]!.method).toBe('calling.answer');
     });
 
     it('hangup sends calling.end with reason', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.hangup('busy');
-      expect(client.execCalls[0].method).toBe('calling.end');
-      expect(client.execCalls[0].params.reason).toBe('busy');
+      expect(client.execCalls[0]!.method).toBe('calling.end');
+      expect(client.execCalls[0]!.params.reason).toBe('busy');
     });
 
     it('pass sends calling.pass', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.pass();
-      expect(client.execCalls[0].method).toBe('calling.pass');
+      expect(client.execCalls[0]!.method).toBe('calling.pass');
     });
   });
 
@@ -382,8 +382,8 @@ describe('Call', () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.connect([[{ type: 'phone', to: '+1234', from: '+5678' }]]);
-      expect(client.execCalls[0].method).toBe('calling.connect');
-      expect(client.execCalls[0].params.devices).toEqual([
+      expect(client.execCalls[0]!.method).toBe('calling.connect');
+      expect(client.execCalls[0]!.params.devices).toEqual([
         [{ type: 'phone', params: { to_number: '+1234', from_number: '+5678' } }],
       ]);
     });
@@ -392,23 +392,23 @@ describe('Call', () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.disconnect();
-      expect(client.execCalls[0].method).toBe('calling.disconnect');
+      expect(client.execCalls[0]!.method).toBe('calling.disconnect');
     });
 
     it('sendDigits sends calling.send_digits', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.sendDigits('1234#');
-      expect(client.execCalls[0].method).toBe('calling.send_digits');
-      expect(client.execCalls[0].params.digits).toBe('1234#');
+      expect(client.execCalls[0]!.method).toBe('calling.send_digits');
+      expect(client.execCalls[0]!.params.digits).toBe('1234#');
     });
 
     it('transfer sends calling.transfer', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.transfer('laml://transfer.xml');
-      expect(client.execCalls[0].method).toBe('calling.transfer');
-      expect(client.execCalls[0].params.dest).toBe('laml://transfer.xml');
+      expect(client.execCalls[0]!.method).toBe('calling.transfer');
+      expect(client.execCalls[0]!.params.dest).toBe('laml://transfer.xml');
     });
 
     it('hold/unhold send correct methods', async () => {
@@ -416,8 +416,8 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.hold();
       await call.unhold();
-      expect(client.execCalls[0].method).toBe('calling.hold');
-      expect(client.execCalls[1].method).toBe('calling.unhold');
+      expect(client.execCalls[0]!.method).toBe('calling.hold');
+      expect(client.execCalls[1]!.method).toBe('calling.unhold');
     });
 
     it('denoise/denoiseStop send correct methods', async () => {
@@ -425,46 +425,46 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.denoise();
       await call.denoiseStop();
-      expect(client.execCalls[0].method).toBe('calling.denoise');
-      expect(client.execCalls[1].method).toBe('calling.denoise.stop');
+      expect(client.execCalls[0]!.method).toBe('calling.denoise');
+      expect(client.execCalls[1]!.method).toBe('calling.denoise.stop');
     });
 
     it('echo sends calling.echo', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.echo({ timeout: 30 });
-      expect(client.execCalls[0].method).toBe('calling.echo');
-      expect(client.execCalls[0].params.timeout).toBe(30);
+      expect(client.execCalls[0]!.method).toBe('calling.echo');
+      expect(client.execCalls[0]!.params.timeout).toBe(30);
     });
 
     it('bindDigit sends calling.bind_digit', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.bindDigit('*1', 'calling.play');
-      expect(client.execCalls[0].method).toBe('calling.bind_digit');
-      expect(client.execCalls[0].params.digits).toBe('*1');
+      expect(client.execCalls[0]!.method).toBe('calling.bind_digit');
+      expect(client.execCalls[0]!.params.digits).toBe('*1');
     });
 
     it('clearDigitBindings sends calling.clear_digit_bindings', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.clearDigitBindings();
-      expect(client.execCalls[0].method).toBe('calling.clear_digit_bindings');
+      expect(client.execCalls[0]!.method).toBe('calling.clear_digit_bindings');
     });
 
     it('liveTranscribe sends calling.live_transcribe', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.liveTranscribe({ action: 'start' });
-      expect(client.execCalls[0].method).toBe('calling.live_transcribe');
+      expect(client.execCalls[0]!.method).toBe('calling.live_transcribe');
     });
 
     it('liveTranslate sends calling.live_translate', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.liveTranslate({ action: 'start' }, { statusUrl: 'https://cb.com' });
-      expect(client.execCalls[0].method).toBe('calling.live_translate');
-      expect(client.execCalls[0].params.status_url).toBe('https://cb.com');
+      expect(client.execCalls[0]!.method).toBe('calling.live_translate');
+      expect(client.execCalls[0]!.params.status_url).toBe('https://cb.com');
     });
 
     it('joinRoom/leaveRoom send correct methods', async () => {
@@ -472,40 +472,40 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.joinRoom('my-room');
       await call.leaveRoom();
-      expect(client.execCalls[0].method).toBe('calling.join_room');
-      expect(client.execCalls[1].method).toBe('calling.leave_room');
+      expect(client.execCalls[0]!.method).toBe('calling.join_room');
+      expect(client.execCalls[1]!.method).toBe('calling.leave_room');
     });
 
     it('joinConference sends calling.join_conference', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.joinConference('standup', { muted: true, record: 'true' });
-      expect(client.execCalls[0].method).toBe('calling.join_conference');
-      expect(client.execCalls[0].params.name).toBe('standup');
-      expect(client.execCalls[0].params.muted).toBe(true);
+      expect(client.execCalls[0]!.method).toBe('calling.join_conference');
+      expect(client.execCalls[0]!.params.name).toBe('standup');
+      expect(client.execCalls[0]!.params.muted).toBe(true);
     });
 
     it('leaveConference sends calling.leave_conference', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.leaveConference('conf-1');
-      expect(client.execCalls[0].method).toBe('calling.leave_conference');
-      expect(client.execCalls[0].params.conference_id).toBe('conf-1');
+      expect(client.execCalls[0]!.method).toBe('calling.leave_conference');
+      expect(client.execCalls[0]!.params.conference_id).toBe('conf-1');
     });
 
     it('amazonBedrock sends calling.amazon_bedrock', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.amazonBedrock({ prompt: 'Hello' });
-      expect(client.execCalls[0].method).toBe('calling.amazon_bedrock');
+      expect(client.execCalls[0]!.method).toBe('calling.amazon_bedrock');
     });
 
     it('aiMessage sends calling.ai_message', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.aiMessage({ messageText: 'hi', role: 'user' });
-      expect(client.execCalls[0].method).toBe('calling.ai_message');
-      expect(client.execCalls[0].params.message_text).toBe('hi');
+      expect(client.execCalls[0]!.method).toBe('calling.ai_message');
+      expect(client.execCalls[0]!.params.message_text).toBe('hi');
     });
 
     it('aiHold/aiUnhold send correct methods', async () => {
@@ -513,15 +513,15 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.aiHold({ timeout: '30' });
       await call.aiUnhold({ prompt: 'welcome back' });
-      expect(client.execCalls[0].method).toBe('calling.ai_hold');
-      expect(client.execCalls[1].method).toBe('calling.ai_unhold');
+      expect(client.execCalls[0]!.method).toBe('calling.ai_hold');
+      expect(client.execCalls[1]!.method).toBe('calling.ai_unhold');
     });
 
     it('userEvent sends calling.user_event', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.userEvent({ event: 'custom_event' });
-      expect(client.execCalls[0].method).toBe('calling.user_event');
+      expect(client.execCalls[0]!.method).toBe('calling.user_event');
     });
 
     it('queueEnter/queueLeave send correct methods', async () => {
@@ -529,17 +529,17 @@ describe('Call', () => {
       const call = makeCall(client);
       await call.queueEnter('support');
       await call.queueLeave('support', { queueId: 'q1' });
-      expect(client.execCalls[0].method).toBe('calling.queue.enter');
-      expect(client.execCalls[0].params.queue_name).toBe('support');
-      expect(client.execCalls[1].method).toBe('calling.queue.leave');
-      expect(client.execCalls[1].params.queue_id).toBe('q1');
+      expect(client.execCalls[0]!.method).toBe('calling.queue.enter');
+      expect(client.execCalls[0]!.params.queue_name).toBe('support');
+      expect(client.execCalls[1]!.method).toBe('calling.queue.leave');
+      expect(client.execCalls[1]!.params.queue_id).toBe('q1');
     });
 
     it('refer sends calling.refer', async () => {
       const client = mockClient();
       const call = makeCall(client);
       await call.refer({ type: 'sip', to: 'sip:+1234@example.com' });
-      expect(client.execCalls[0].method).toBe('calling.refer');
+      expect(client.execCalls[0]!.method).toBe('calling.refer');
     });
   });
 

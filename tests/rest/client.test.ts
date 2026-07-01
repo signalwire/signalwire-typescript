@@ -118,9 +118,9 @@ describe('RestClient', () => {
     await client.phoneNumbers.list();
     const reqs = getRequests();
     expect(reqs).toHaveLength(1);
-    expect(reqs[0].url).toContain('env.signalwire.com');
+    expect(reqs[0]!.url).toContain('env.signalwire.com');
     const expectedAuth = 'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
-    expect(reqs[0].headers['Authorization']).toBe(expectedAuth);
+    expect(reqs[0]!.headers['Authorization']).toBe(expectedAuth);
   });
 
   it('explicit options override env vars', () => {
@@ -141,9 +141,9 @@ describe('RestClient', () => {
     const reqs = getRequests();
     // Auth header should use explicit creds
     const expected = 'Basic ' + Buffer.from('explicit-proj:explicit-tok').toString('base64');
-    expect(reqs[0].headers['Authorization']).toBe(expected);
+    expect(reqs[0]!.headers['Authorization']).toBe(expected);
     // URL should use explicit host
-    expect(reqs[0].url).toContain('explicit.signalwire.com');
+    expect(reqs[0]!.url).toContain('explicit.signalwire.com');
   });
 
   it('normalizes host without https://', () => {
@@ -156,7 +156,7 @@ describe('RestClient', () => {
     });
 
     client.phoneNumbers.list();
-    expect(getRequests()[0].url).toMatch(/^https:\/\/my\.signalwire\.com/);
+    expect(getRequests()[0]!.url).toMatch(/^https:\/\/my\.signalwire\.com/);
   });
 
   it('preserves https:// if already present', () => {
@@ -169,8 +169,8 @@ describe('RestClient', () => {
     });
 
     client.phoneNumbers.list();
-    expect(getRequests()[0].url).toMatch(/^https:\/\/my\.signalwire\.com/);
-    expect(getRequests()[0].url).not.toContain('https://https://');
+    expect(getRequests()[0]!.url).toMatch(/^https:\/\/my\.signalwire\.com/);
+    expect(getRequests()[0]!.url).not.toContain('https://https://');
   });
 
   it('all namespaces route through same HttpClient', async () => {
@@ -196,15 +196,15 @@ describe('RestClient', () => {
     expect(reqs).toHaveLength(4);
 
     // All should use same auth
-    const auth = reqs[0].headers['Authorization'];
+    const auth = reqs[0]!.headers['Authorization'];
     for (const req of reqs) {
       expect(req.headers['Authorization']).toBe(auth);
     }
 
     // Verify different paths
-    expect(reqs[0].url).toContain('/api/fabric/resources/ai_agents');
-    expect(reqs[1].url).toContain('/api/calling/calls');
-    expect(reqs[2].url).toContain('/api/relay/rest/phone_numbers');
-    expect(reqs[3].url).toContain('/api/video/rooms');
+    expect(reqs[0]!.url).toContain('/api/fabric/resources/ai_agents');
+    expect(reqs[1]!.url).toContain('/api/calling/calls');
+    expect(reqs[2]!.url).toContain('/api/relay/rest/phone_numbers');
+    expect(reqs[3]!.url).toContain('/api/video/rooms');
   });
 });

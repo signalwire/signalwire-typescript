@@ -14,13 +14,13 @@ describe('LogsNamespace', () => {
     it('lists message logs', async () => {
       const { logs, getRequests } = setup();
       await logs.messages.list();
-      expect(getRequests()[0].url).toContain('/api/messaging/logs');
+      expect(getRequests()[0]!.url).toContain('/api/messaging/logs');
     });
 
     it('gets a message log', async () => {
       const { logs, getRequests } = setup([{ status: 200, body: { id: 'ml1' } }]);
       await logs.messages.get('ml1');
-      expect(getRequests()[0].url).toContain('/api/messaging/logs/ml1');
+      expect(getRequests()[0]!.url).toContain('/api/messaging/logs/ml1');
     });
   });
 
@@ -28,19 +28,19 @@ describe('LogsNamespace', () => {
     it('lists voice logs', async () => {
       const { logs, getRequests } = setup();
       await logs.voice.list();
-      expect(getRequests()[0].url).toContain('/api/voice/logs');
+      expect(getRequests()[0]!.url).toContain('/api/voice/logs');
     });
 
     it('gets a voice log', async () => {
       const { logs, getRequests } = setup([{ status: 200, body: { id: 'vl1' } }]);
       await logs.voice.get('vl1');
-      expect(getRequests()[0].url).toContain('/api/voice/logs/vl1');
+      expect(getRequests()[0]!.url).toContain('/api/voice/logs/vl1');
     });
 
     it('lists events for a voice log', async () => {
       const { logs, getRequests } = setup();
       await logs.voice.listEvents('vl1');
-      expect(getRequests()[0].url).toContain('/api/voice/logs/vl1/events');
+      expect(getRequests()[0]!.url).toContain('/api/voice/logs/vl1/events');
     });
   });
 
@@ -48,13 +48,13 @@ describe('LogsNamespace', () => {
     it('lists fax logs', async () => {
       const { logs, getRequests } = setup();
       await logs.fax.list();
-      expect(getRequests()[0].url).toContain('/api/fax/logs');
+      expect(getRequests()[0]!.url).toContain('/api/fax/logs');
     });
 
     it('gets a fax log', async () => {
       const { logs, getRequests } = setup([{ status: 200, body: { id: 'fl1' } }]);
       await logs.fax.get('fl1');
-      expect(getRequests()[0].url).toContain('/api/fax/logs/fl1');
+      expect(getRequests()[0]!.url).toContain('/api/fax/logs/fl1');
     });
   });
 
@@ -62,7 +62,7 @@ describe('LogsNamespace', () => {
     it('lists conference logs', async () => {
       const { logs, getRequests } = setup();
       await logs.conferences.list();
-      expect(getRequests()[0].url).toContain('/api/logs/conferences');
+      expect(getRequests()[0]!.url).toContain('/api/logs/conferences');
     });
   });
 });

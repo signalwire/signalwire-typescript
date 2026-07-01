@@ -279,8 +279,8 @@ describe('PromptObjectModel.fromJson / fromYaml', () => {
     ];
     const pom = PromptObjectModel.fromJson(data);
     expect(pom.sections.length).toBe(2);
-    expect(pom.sections[0].title).toBe('A');
-    expect(pom.sections[1].bullets).toEqual(['x']);
+    expect(pom.sections[0]!.title).toBe('A');
+    expect(pom.sections[1]!.bullets).toEqual(['x']);
   });
 
   it('fromJson rejects sections with neither body, bullets, nor subsections', () => {
@@ -308,7 +308,7 @@ describe('PromptObjectModel.fromJson / fromYaml', () => {
   it('fromJson injects "Untitled Section" for any non-first section missing a title', () => {
     const data = [{ title: 'First', body: 'one' }, { body: 'no title' }];
     const pom = PromptObjectModel.fromJson(data);
-    expect(pom.sections[1].title).toBe('Untitled Section');
+    expect(pom.sections[1]!.title).toBe('Untitled Section');
   });
 
   it('fromJson recursively rebuilds subsections', () => {
@@ -323,9 +323,9 @@ describe('PromptObjectModel.fromJson / fromYaml', () => {
       },
     ];
     const pom = PromptObjectModel.fromJson(data);
-    expect(pom.sections[0].subsections.length).toBe(2);
-    expect(pom.sections[0].subsections[0].title).toBe('Child');
-    expect(pom.sections[0].subsections[1].bullets).toEqual(['x']);
+    expect(pom.sections[0]!.subsections.length).toBe(2);
+    expect(pom.sections[0]!.subsections[0]!.title).toBe('Child');
+    expect(pom.sections[0]!.subsections[1]!.bullets).toEqual(['x']);
   });
 });
 
@@ -435,8 +435,8 @@ describe('PromptObjectModel.addPomAsSubsection', () => {
 
     const parent = target.findSection('Parent')!;
     expect(parent.subsections.length).toBe(2);
-    expect(parent.subsections[0].title).toBe('A');
-    expect(parent.subsections[1].bullets).toEqual(['x']);
+    expect(parent.subsections[0]!.title).toBe('A');
+    expect(parent.subsections[1]!.bullets).toEqual(['x']);
   });
 
   it('accepts a Section reference as the target', () => {
@@ -448,7 +448,7 @@ describe('PromptObjectModel.addPomAsSubsection', () => {
     target.addPomAsSubsection(parent, other);
 
     expect(parent.subsections.length).toBe(1);
-    expect(parent.subsections[0].title).toBe('Solo');
+    expect(parent.subsections[0]!.title).toBe('Solo');
   });
 
   it('throws Error when no section with the target title exists', () => {
@@ -492,8 +492,8 @@ describe('PomBuilder.pom getter (Python parity)', () => {
       .addSection('A', { body: 'a', numbered: true })
       .addSection('B', { bullets: ['x', 'y'], numberedBullets: true });
     const pom = builder.pom;
-    expect(pom.sections[0].numbered).toBe(true);
-    expect(pom.sections[1].numberedBullets).toBe(true);
+    expect(pom.sections[0]!.numbered).toBe(true);
+    expect(pom.sections[1]!.numberedBullets).toBe(true);
     expect(pom.renderMarkdown()).toContain('## 1. A');
     expect(pom.renderMarkdown()).toContain('1. x');
   });

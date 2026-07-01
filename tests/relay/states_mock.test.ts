@@ -59,7 +59,7 @@ function extractAlias(aliasName: string): string {
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
   if (!m)
     throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1]
+  return m[1]!
     .replace(/\s+/g, ' ')
     .replace(/^\|\s*/, '')
     .trim();

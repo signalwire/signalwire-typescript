@@ -13,33 +13,33 @@ describe('DatasphereNamespace', () => {
   it('lists documents', async () => {
     const { ds, getRequests } = setup();
     await ds.documents.list();
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents');
-    expect(getRequests()[0].method).toBe('GET');
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents');
+    expect(getRequests()[0]!.method).toBe('GET');
   });
 
   it('creates a document', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'doc1' } }]);
     await ds.documents.create({ name: 'test', content: 'hello' });
-    expect(getRequests()[0].method).toBe('POST');
-    expect(getRequests()[0].body).toEqual({ name: 'test', content: 'hello' });
+    expect(getRequests()[0]!.method).toBe('POST');
+    expect(getRequests()[0]!.body).toEqual({ name: 'test', content: 'hello' });
   });
 
   it('gets a document', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'doc1' } }]);
     await ds.documents.get('doc1');
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents/doc1');
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/doc1');
   });
 
   it('updates a document', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'doc1' } }]);
     await ds.documents.update('doc1', { name: 'updated' });
-    expect(getRequests()[0].method).toBe('PATCH');
+    expect(getRequests()[0]!.method).toBe('PATCH');
   });
 
   it('deletes a document', async () => {
     const { ds, getRequests } = setup([{ status: 204 }]);
     await ds.documents.delete('doc1');
-    expect(getRequests()[0].method).toBe('DELETE');
+    expect(getRequests()[0]!.method).toBe('DELETE');
   });
 
   it('searches documents', async () => {
@@ -47,27 +47,27 @@ describe('DatasphereNamespace', () => {
     // Generated `search` takes exploded spec-field params: query_string (required),
     // then optional tags, document_id, distance, count, … (matches the Python oracle).
     await ds.documents.search('test query', undefined, undefined, undefined, 5);
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents/search');
-    expect(getRequests()[0].method).toBe('POST');
-    expect(getRequests()[0].body).toEqual({ query_string: 'test query', count: 5 });
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/search');
+    expect(getRequests()[0]!.method).toBe('POST');
+    expect(getRequests()[0]!.body).toEqual({ query_string: 'test query', count: 5 });
   });
 
   it('lists chunks for a document', async () => {
     const { ds, getRequests } = setup();
     await ds.documents.listChunks('doc1');
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents/doc1/chunks');
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/doc1/chunks');
   });
 
   it('gets a specific chunk', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'c1' } }]);
     await ds.documents.getChunk('doc1', 'c1');
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents/doc1/chunks/c1');
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/doc1/chunks/c1');
   });
 
   it('deletes a specific chunk', async () => {
     const { ds, getRequests } = setup([{ status: 204 }]);
     await ds.documents.deleteChunk('doc1', 'c1');
-    expect(getRequests()[0].method).toBe('DELETE');
-    expect(getRequests()[0].url).toContain('/api/datasphere/documents/doc1/chunks/c1');
+    expect(getRequests()[0]!.method).toBe('DELETE');
+    expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/doc1/chunks/c1');
   });
 });

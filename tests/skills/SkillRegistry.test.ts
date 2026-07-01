@@ -77,13 +77,13 @@ describe('SkillRegistry', () => {
     registry.register(SimpleSkill);
     const list = registry.listSkills();
     expect(list).toHaveLength(1);
-    expect(list[0].name).toBe('simple');
-    expect(list[0].description).toBe('Simple skill');
-    expect(list[0].version).toBe('1.0.0');
-    expect(list[0].supportsMultipleInstances).toBe(false);
-    expect(list[0].requiredEnvVars).toEqual([]);
-    expect(list[0].requiredPackages).toEqual([]);
-    expect(list[0].parameters).toHaveProperty('swaig_fields');
+    expect(list[0]!.name).toBe('simple');
+    expect(list[0]!.description).toBe('Simple skill');
+    expect(list[0]!.version).toBe('1.0.0');
+    expect(list[0]!.supportsMultipleInstances).toBe(false);
+    expect(list[0]!.requiredEnvVars).toEqual([]);
+    expect(list[0]!.requiredPackages).toEqual([]);
+    expect(list[0]!.parameters).toHaveProperty('swaig_fields');
   });
 
   it('register throws when SKILL_NAME is missing', () => {

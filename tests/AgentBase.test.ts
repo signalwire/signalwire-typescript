@@ -383,8 +383,8 @@ describe('AgentBase', () => {
     });
     const tools = agent.getRegisteredTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('fn1');
-    expect(tools[1].name).toBe('fn2');
+    expect(tools[0]!.name).toBe('fn1');
+    expect(tools[1]!.name).toBe('fn2');
   });
 
   it('getTool returns a SwaigFunction', () => {
@@ -1233,8 +1233,8 @@ describe('AgentBase', () => {
       const pom = agent.pom;
       expect(pom).toBeInstanceOf(PromptObjectModel);
       expect(pom!.sections.length).toBe(1);
-      expect(pom!.sections[0].title).toBe('Greeting');
-      expect(pom!.sections[0].body).toBe('Hello');
+      expect(pom!.sections[0]!.title).toBe('Greeting');
+      expect(pom!.sections[0]!.body).toBe('Hello');
     });
 
     it('returns a PromptObjectModel after addSection on PomBuilder via promptManager', async () => {
@@ -1244,8 +1244,8 @@ describe('AgentBase', () => {
       const pom = agent.pom;
       expect(pom).toBeInstanceOf(PromptObjectModel);
       expect(pom!.sections.length).toBe(1);
-      expect(pom!.sections[0].title).toBe('Topic');
-      expect(pom!.sections[0].body).toBe('Body text');
+      expect(pom!.sections[0]!.title).toBe('Topic');
+      expect(pom!.sections[0]!.body).toBe('Body text');
     });
 
     it('returns null when usePom is false', () => {
@@ -1263,8 +1263,8 @@ describe('AgentBase', () => {
       agent.setPromptPom([{ title: 'New', body: 'Other' }]);
       const pom2 = agent.pom!;
       expect(pom2.sections.length).toBe(1);
-      expect(pom2.sections[0].title).toBe('New');
-      expect(pom2.sections[0].body).toBe('Other');
+      expect(pom2.sections[0]!.title).toBe('New');
+      expect(pom2.sections[0]!.body).toBe('Other');
     });
   });
 

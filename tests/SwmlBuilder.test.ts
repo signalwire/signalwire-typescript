@@ -22,7 +22,7 @@ function extractUnion(aliasName: string): string {
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
   if (!m)
     throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1]
+  return m[1]!
     .replace(/\s+/g, ' ')
     .replace(/^\|\s*/, '')
     .trim();
@@ -264,7 +264,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       builder.addVerbToSection('greet', 'play', { url: 'https://example.com/hi.mp3' });
       const doc = builder.build() as { sections: Record<string, unknown[]> };
       expect(doc.sections['greet']).toHaveLength(1);
-      expect(doc.sections['greet'][0]).toEqual({ play: { url: 'https://example.com/hi.mp3' } });
+      expect(doc.sections['greet']![0]).toEqual({ play: { url: 'https://example.com/hi.mp3' } });
     });
   });
 
@@ -331,7 +331,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       b.say('hi', { gender: 'female' }); // bare string literal
       const docStr = b.build() as { sections: { main: Array<Record<string, unknown>> } };
 
-      expect((docTyped.sections.main[0].play as Record<string, unknown>).say_gender).toBe('female');
+      expect((docTyped.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('female');
       // Byte-for-byte identical play verb whether the value was the typed union
       // member or the bare string — the type is pure compile-time ergonomics.
       expect(docStr.sections.main[0]).toEqual(docTyped.sections.main[0]);
@@ -341,7 +341,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       const gender: TtsGender = 'male';
       builder.say('hi', { gender });
       const doc = builder.build() as { sections: { main: Array<Record<string, unknown>> } };
-      expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('male');
+      expect((doc.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('male');
     });
 
     it('rejects an off-spec gender at the call site, but the wire is unchanged', () => {
@@ -353,7 +353,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       // @ts-expect-error — 'neutral' is not a TtsGender; the open arm was removed.
       builder.say('hi', { gender: 'neutral' });
       const doc = builder.build() as { sections: { main: Array<Record<string, unknown>> } };
-      expect((doc.sections.main[0].play as Record<string, unknown>).say_gender).toBe('neutral');
+      expect((doc.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('neutral');
     });
 
     it("autocompletes 'male'/'female' and REJECTS an off-spec value at COMPILE time", () => {

@@ -47,7 +47,7 @@ describe('Agent', () => {
     });
     expect(agent.instructions).toBe('Weather bot');
     expect(agent.tools['get_weather']).toBeDefined();
-    expect(agent.tools['get_weather'].description).toBe('Get weather');
+    expect(agent.tools['get_weather']!.description).toBe('Get weather');
   });
 
   it('accepts userData generic', () => {
@@ -633,8 +633,8 @@ describe('Agent alignment gaps', () => {
     const agent = new Agent({ instructions: 'test' });
     await agent.updateTools([t1, t2]);
     expect(Object.keys(agent.tools)).toHaveLength(2);
-    expect(agent.tools['tool1'].description).toBe('Tool 1');
-    expect(agent.tools['tool2'].description).toBe('Tool 2');
+    expect(agent.tools['tool1']!.description).toBe('Tool 1');
+    expect(agent.tools['tool2']!.description).toBe('Tool 2');
   });
 });
 
@@ -775,9 +775,9 @@ describe('ChatContext', () => {
       .append({ role: 'user', text: 'Hello' })
       .append({ role: 'assistant', text: 'Hi there' });
     expect(ctx.messages).toHaveLength(3);
-    expect(ctx.messages[0].role).toBe('system');
-    expect(ctx.messages[1].role).toBe('user');
-    expect(ctx.messages[2].role).toBe('assistant');
+    expect(ctx.messages[0]!.role).toBe('system');
+    expect(ctx.messages[1]!.role).toBe('user');
+    expect(ctx.messages[2]!.role).toBe('assistant');
   });
 
   it('is accessible via llm.ChatContext', () => {

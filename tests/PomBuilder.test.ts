@@ -42,15 +42,15 @@ describe('PomBuilder', () => {
 
     const dict = b.toDict();
     expect(dict.length).toBe(2);
-    expect(dict[0].title).toBe('Role');
-    expect(dict[0].body).toBe('You are a helper');
-    expect(dict[1].bullets).toEqual(['Be nice', 'Be helpful']);
+    expect(dict[0]!.title).toBe('Role');
+    expect(dict[0]!.body).toBe('You are a helper');
+    expect(dict[1]!.bullets).toEqual(['Be nice', 'Be helpful']);
   });
 
   it('addToSection creates section if missing', () => {
     const b = new PomBuilder().addToSection('New', { body: 'hello' });
     expect(b.hasSection('New')).toBe(true);
-    expect(b.toDict()[0].body).toBe('hello');
+    expect(b.toDict()[0]!.body).toBe('hello');
   });
 
   it('addToSection appends body', () => {
@@ -74,14 +74,14 @@ describe('PomBuilder', () => {
       .addSubsection('Parent', 'Child', { body: 'child body' });
 
     const dict = b.toDict();
-    expect(dict[0].subsections!.length).toBe(1);
-    expect(dict[0].subsections![0].title).toBe('Child');
+    expect(dict[0]!.subsections!.length).toBe(1);
+    expect(dict[0]!.subsections![0]!.title).toBe('Child');
   });
 
   it('addSubsection auto-creates parent', () => {
     const b = new PomBuilder().addSubsection('P', 'C', { body: 'x' });
     expect(b.hasSection('P')).toBe(true);
-    expect(b.toDict()[0].subsections![0].title).toBe('C');
+    expect(b.toDict()[0]!.subsections![0]!.title).toBe('C');
   });
 
   it('hasSection / getSection / findSection', () => {
@@ -115,7 +115,7 @@ describe('PomBuilder', () => {
       ],
     });
     const dict = b.toDict();
-    expect(dict[0].subsections!.length).toBe(2);
+    expect(dict[0]!.subsections!.length).toBe(2);
   });
 
   // ── fromSections ──────────────────────────────────────────────────────
@@ -167,10 +167,10 @@ describe('addPomAsSubsection', () => {
 
     const parent = target.getSection('Parent')!;
     expect(parent.subsections.length).toBe(2);
-    expect(parent.subsections[0].title).toBe('Child A');
-    expect(parent.subsections[0].body).toBe('a');
-    expect(parent.subsections[1].title).toBe('Child B');
-    expect(parent.subsections[1].bullets).toEqual(['x', 'y']);
+    expect(parent.subsections[0]!.title).toBe('Child A');
+    expect(parent.subsections[0]!.body).toBe('a');
+    expect(parent.subsections[1]!.title).toBe('Child B');
+    expect(parent.subsections[1]!.bullets).toEqual(['x', 'y']);
   });
 
   it('appends sections when target is a PomSection reference', () => {
@@ -181,8 +181,8 @@ describe('addPomAsSubsection', () => {
     target.addPomAsSubsection(parent, other);
 
     expect(parent.subsections.length).toBe(2);
-    expect(parent.subsections[0].title).toBe('One');
-    expect(parent.subsections[1].title).toBe('Two');
+    expect(parent.subsections[0]!.title).toBe('One');
+    expect(parent.subsections[1]!.title).toBe('Two');
   });
 
   it('throws when target title does not match any section', () => {
@@ -228,8 +228,8 @@ describe('SwmlBuilder', () => {
     b.addVerb('answer', {});
     b.addVerb('ai', { prompt: { text: 'hello' } });
     const main = (b.build()['sections'] as Record<string, unknown[]>)['main'];
-    expect(main.length).toBe(2);
-    expect(main[0]).toEqual({ answer: {} });
+    expect(main!.length).toBe(2);
+    expect(main![0]).toEqual({ answer: {} });
   });
 
   it('addVerbToSection creates section', () => {
@@ -237,7 +237,7 @@ describe('SwmlBuilder', () => {
     b.addVerbToSection('custom', 'play', { url: 'test.mp3' });
     const sections = b.build()['sections'] as Record<string, unknown[]>;
     expect(sections['custom']).toBeDefined();
-    expect(sections['custom'][0]).toEqual({ play: { url: 'test.mp3' } });
+    expect(sections['custom']![0]).toEqual({ play: { url: 'test.mp3' } });
   });
 
   it('reset clears document', () => {

@@ -15,27 +15,27 @@ describe('FabricNamespace', () => {
     it('lists ai agents', async () => {
       const { fabric, getRequests } = setup();
       await fabric.aiAgents.list();
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/ai_agents');
-      expect(getRequests()[0].method).toBe('GET');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/ai_agents');
+      expect(getRequests()[0]!.method).toBe('GET');
     });
 
     it('creates an ai agent', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'a1' } }]);
       await fabric.aiAgents.create({ name: 'test' });
-      expect(getRequests()[0].method).toBe('POST');
-      expect(getRequests()[0].body).toEqual({ name: 'test' });
+      expect(getRequests()[0]!.method).toBe('POST');
+      expect(getRequests()[0]!.body).toEqual({ name: 'test' });
     });
 
     it('updates ai agent with PATCH', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'a1' } }]);
       await fabric.aiAgents.update('a1', { name: 'updated' });
-      expect(getRequests()[0].method).toBe('PATCH');
+      expect(getRequests()[0]!.method).toBe('PATCH');
     });
 
     it('lists addresses for ai agent', async () => {
       const { fabric, getRequests } = setup();
       await fabric.aiAgents.listAddresses('a1');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/ai_agents/a1/addresses');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/ai_agents/a1/addresses');
     });
   });
 
@@ -43,7 +43,7 @@ describe('FabricNamespace', () => {
     it('updates swml script with PUT', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 's1' } }]);
       await fabric.swmlScripts.update('s1', { code: 'new' });
-      expect(getRequests()[0].method).toBe('PUT');
+      expect(getRequests()[0]!.method).toBe('PUT');
     });
   });
 
@@ -51,20 +51,20 @@ describe('FabricNamespace', () => {
     it('uses singular call_flow for addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.callFlows.listAddresses('cf1');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/call_flow/cf1/addresses');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/addresses');
     });
 
     it('lists versions', async () => {
       const { fabric, getRequests } = setup();
       await fabric.callFlows.listVersions('cf1');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/call_flow/cf1/versions');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/versions');
     });
 
     it('deploys a version', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { version: 2 } }]);
       await fabric.callFlows.deployVersion('cf1', { version: 2 });
-      expect(getRequests()[0].method).toBe('POST');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/call_flow/cf1/versions');
+      expect(getRequests()[0]!.method).toBe('POST');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/versions');
     });
   });
 
@@ -72,7 +72,7 @@ describe('FabricNamespace', () => {
     it('uses singular conference_room for addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.conferenceRooms.listAddresses('cr1');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/conference_room/cr1/addresses');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/conference_room/cr1/addresses');
     });
   });
 
@@ -80,7 +80,7 @@ describe('FabricNamespace', () => {
     it('lists SIP endpoints', async () => {
       const { fabric, getRequests } = setup();
       await fabric.subscribers.listSipEndpoints('sub1');
-      expect(getRequests()[0].url).toContain(
+      expect(getRequests()[0]!.url).toContain(
         '/api/fabric/resources/subscribers/sub1/sip_endpoints',
       );
     });
@@ -88,27 +88,27 @@ describe('FabricNamespace', () => {
     it('creates a SIP endpoint', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'ep1' } }]);
       await fabric.subscribers.createSipEndpoint('sub1', 'test');
-      expect(getRequests()[0].method).toBe('POST');
-      expect(getRequests()[0].body).toEqual({ username: 'test' });
+      expect(getRequests()[0]!.method).toBe('POST');
+      expect(getRequests()[0]!.body).toEqual({ username: 'test' });
     });
 
     it('gets a SIP endpoint', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'ep1' } }]);
       await fabric.subscribers.getSipEndpoint('sub1', 'ep1');
-      expect(getRequests()[0].url).toContain('/subscribers/sub1/sip_endpoints/ep1');
+      expect(getRequests()[0]!.url).toContain('/subscribers/sub1/sip_endpoints/ep1');
     });
 
     it('updates a SIP endpoint with PATCH', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
       await fabric.subscribers.updateSipEndpoint('sub1', 'ep1', undefined, 'new');
-      expect(getRequests()[0].method).toBe('PATCH');
-      expect(getRequests()[0].body).toEqual({ password: 'new' });
+      expect(getRequests()[0]!.method).toBe('PATCH');
+      expect(getRequests()[0]!.body).toEqual({ password: 'new' });
     });
 
     it('deletes a SIP endpoint', async () => {
       const { fabric, getRequests } = setup([{ status: 204 }]);
       await fabric.subscribers.deleteSipEndpoint('sub1', 'ep1');
-      expect(getRequests()[0].method).toBe('DELETE');
+      expect(getRequests()[0]!.method).toBe('DELETE');
     });
   });
 
@@ -135,8 +135,8 @@ describe('FabricNamespace', () => {
           name: 'wh',
           primary_request_url: 'https://example.com',
         });
-        expect(getRequests()[0].method).toBe('POST');
-        expect(getRequests()[0].url).toContain('/api/fabric/resources/swml_webhooks');
+        expect(getRequests()[0]!.method).toBe('POST');
+        expect(getRequests()[0]!.url).toContain('/api/fabric/resources/swml_webhooks');
         expect(warnSpy).not.toHaveBeenCalled();
       } finally {
         warnSpy.mockRestore();
@@ -151,8 +151,8 @@ describe('FabricNamespace', () => {
           name: 'wh',
           primary_request_url: 'https://example.com',
         });
-        expect(getRequests()[0].method).toBe('POST');
-        expect(getRequests()[0].url).toContain('/api/fabric/resources/cxml_webhooks');
+        expect(getRequests()[0]!.method).toBe('POST');
+        expect(getRequests()[0]!.url).toContain('/api/fabric/resources/cxml_webhooks');
         expect(warnSpy).not.toHaveBeenCalled();
       } finally {
         warnSpy.mockRestore();
@@ -183,8 +183,8 @@ describe('FabricNamespace', () => {
     it('lists all resources', async () => {
       const { fabric, getRequests } = setup();
       await fabric.resources.list();
-      expect(getRequests()[0].url).toContain('/api/fabric/resources');
-      expect(getRequests()[0].url).not.toContain('/api/fabric/resources/');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources');
+      expect(getRequests()[0]!.url).not.toContain('/api/fabric/resources/');
     });
 
     it('assigns phone route (posts to phone_routes with typed body)', async () => {
@@ -193,15 +193,15 @@ describe('FabricNamespace', () => {
       // (phone_route_id, handler) and posts them as the request body. It no
       // longer emits a deprecation warning — that was a hand-class artifact.
       await fabric.resources.assignPhoneRoute('r1', 'pr-1', 'calling');
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/phone_routes');
-      expect(getRequests()[0].method).toBe('POST');
-      expect(getRequests()[0].body).toEqual({ phone_route_id: 'pr-1', handler: 'calling' });
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/r1/phone_routes');
+      expect(getRequests()[0]!.method).toBe('POST');
+      expect(getRequests()[0]!.body).toEqual({ phone_route_id: 'pr-1', handler: 'calling' });
     });
 
     it('assigns domain application', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
       await fabric.resources.assignDomainApplication('r1', { domain: 'test.com' });
-      expect(getRequests()[0].url).toContain('/api/fabric/resources/r1/domain_applications');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/r1/domain_applications');
     });
   });
 
@@ -209,13 +209,13 @@ describe('FabricNamespace', () => {
     it('lists addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.addresses.list();
-      expect(getRequests()[0].url).toContain('/api/fabric/addresses');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/addresses');
     });
 
     it('gets an address', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'addr1' } }]);
       await fabric.addresses.get('addr1');
-      expect(getRequests()[0].url).toContain('/api/fabric/addresses/addr1');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/addresses/addr1');
     });
   });
 
@@ -223,32 +223,32 @@ describe('FabricNamespace', () => {
     it('creates subscriber token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
       await fabric.tokens.createSubscriberToken({ subscriber_id: 's1' });
-      expect(getRequests()[0].url).toContain('/api/fabric/subscribers/tokens');
-      expect(getRequests()[0].method).toBe('POST');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/subscribers/tokens');
+      expect(getRequests()[0]!.method).toBe('POST');
     });
 
     it('refreshes subscriber token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
       await fabric.tokens.refreshSubscriberToken({ token: 'old' });
-      expect(getRequests()[0].url).toContain('/api/fabric/subscribers/tokens/refresh');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/subscribers/tokens/refresh');
     });
 
     it('creates invite token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
       await fabric.tokens.createInviteToken({});
-      expect(getRequests()[0].url).toContain('/api/fabric/subscriber/invites');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/subscriber/invites');
     });
 
     it('creates guest token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
       await fabric.tokens.createGuestToken({});
-      expect(getRequests()[0].url).toContain('/api/fabric/guests/tokens');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/guests/tokens');
     });
 
     it('creates embed token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
       await fabric.tokens.createEmbedToken({});
-      expect(getRequests()[0].url).toContain('/api/fabric/embeds/tokens');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/embeds/tokens');
     });
   });
 });

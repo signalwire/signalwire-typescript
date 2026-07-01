@@ -46,7 +46,7 @@ function extractTypedToolHandler(): string {
     throw new Error(
       `could not locate \`export type TypedToolHandler = …;\` in ${TYPE_INFERENCE_SRC}`,
     );
-  return m[1].replace(/\s+/g, ' ').trim();
+  return m[1]!.replace(/\s+/g, ' ').trim();
 }
 
 /**

@@ -44,9 +44,9 @@ describe('DateTimeSkill', () => {
     const skill = new DateTimeSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Date and Time Information');
-    expect(sections[0].bullets).toBeDefined();
-    expect(sections[0].bullets!.length).toBeGreaterThan(0);
+    expect(sections[0]!.title).toBe('Date and Time Information');
+    expect(sections[0]!.bullets).toBeDefined();
+    expect(sections[0]!.bullets!.length).toBeGreaterThan(0);
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -88,7 +88,7 @@ describe('DateTimeSkill', () => {
 
   it('should execute handler with an invalid timezone', () => {
     const skill = new DateTimeSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ timezone: 'Invalid/Zone' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Invalid');
@@ -102,8 +102,8 @@ describe('DateTimeSkill', () => {
     for (const key of ['swaig_fields', 'skip_prompt']) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type)).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type)).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
   });
 });

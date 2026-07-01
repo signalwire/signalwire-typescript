@@ -152,25 +152,25 @@ describe('ParameterSchema (Tier-1 closed-set convenience → enum:[...])', () =>
       description: 'Recording format',
       enum: ['wav', 'mp3', 'mp4'],
     });
-    expect(built.properties['fmt']['enum']).toEqual([...RECORD_FORMATS]);
+    expect(built.properties['fmt']!['enum']).toEqual([...RECORD_FORMATS]);
   });
 
   it('recordDirection bakes in {speak,listen,both} (uses listen)', () => {
     const built = paramSchema().recordDirection('dir').build();
-    expect(built.properties['dir']['enum']).toEqual(['speak', 'listen', 'both']);
-    expect(built.properties['dir']['enum']).toEqual([...RECORD_DIRECTIONS]);
+    expect(built.properties['dir']!['enum']).toEqual(['speak', 'listen', 'both']);
+    expect(built.properties['dir']!['enum']).toEqual([...RECORD_DIRECTIONS]);
   });
 
   it('tapDirection bakes in {speak,hear,both} (uses hear, NOT listen)', () => {
     const built = paramSchema().tapDirection('dir').build();
-    expect(built.properties['dir']['enum']).toEqual(['speak', 'hear', 'both']);
-    expect(built.properties['dir']['enum']).toEqual([...TAP_DIRECTIONS]);
+    expect(built.properties['dir']!['enum']).toEqual(['speak', 'hear', 'both']);
+    expect(built.properties['dir']!['enum']).toEqual([...TAP_DIRECTIONS]);
   });
 
   it('codec bakes in the 2-value SWAIG tap codec {PCMU,PCMA}', () => {
     const built = paramSchema().codec('media_codec').build();
-    expect(built.properties['media_codec']['enum']).toEqual(['PCMU', 'PCMA']);
-    expect(built.properties['media_codec']['enum']).toEqual([...TAP_CODECS]);
+    expect(built.properties['media_codec']!['enum']).toEqual(['PCMU', 'PCMA']);
+    expect(built.properties['media_codec']!['enum']).toEqual([...TAP_CODECS]);
   });
 
   it('the three direction/codec vocabularies stay distinct (never unified)', () => {
@@ -245,8 +245,8 @@ describe('ParameterSchema (real agent: rendered SWAIG JSON, no mocks)', () => {
       properties: Record<string, { type: string; enum?: unknown[] }>;
     };
     expect(rendered.type).toBe('object');
-    expect(rendered.properties['fmt'].type).toBe('string');
-    expect(rendered.properties['fmt'].enum).toEqual(['wav', 'mp3', 'mp4']);
+    expect(rendered.properties['fmt']!.type).toBe('string');
+    expect(rendered.properties['fmt']!.enum).toEqual(['wav', 'mp3', 'mp4']);
   });
 
   it('builder params also work via defineTypedTool (override inference)', () => {
@@ -263,7 +263,7 @@ describe('ParameterSchema (real agent: rendered SWAIG JSON, no mocks)', () => {
     const rendered = renderedParams(agent, 'pick_format') as {
       properties: Record<string, { enum?: unknown[] }>;
     };
-    expect(rendered.properties['fmt'].enum).toEqual(['wav', 'mp3', 'mp4']);
+    expect(rendered.properties['fmt']!.enum).toEqual(['wav', 'mp3', 'mp4']);
   });
 
   it('the builder-built tool actually executes and returns its result', async () => {

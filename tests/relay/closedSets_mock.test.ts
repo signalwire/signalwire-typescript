@@ -48,7 +48,7 @@ function extractUnion(aliasName: string): string {
   const m = src.match(new RegExp(`export type ${aliasName}\\s*=\\s*([\\s\\S]*?);`));
   if (!m)
     throw new Error(`could not locate \`export type ${aliasName} = ...;\` in ${CLOSED_SETS_SRC}`);
-  return m[1]
+  return m[1]!
     .replace(/\s+/g, ' ')
     .replace(/^\|\s*/, '')
     .trim();
@@ -163,14 +163,14 @@ describe('TtsGender closed set (playTTS / promptTTS gender)', () => {
     const callTyped = await answeredInboundCall('cs-gender-typed');
     await callTyped.playTTS('hi', { gender: typed });
     const pTyped = await lastFrameParams('calling.play');
-    expect(pTyped.play[0].params.gender).toBe('female');
+    expect(pTyped.play![0]!.params!.gender).toBe('female');
 
     const callStr = await answeredInboundCall('cs-gender-str');
     await callStr.playTTS('hi', { gender: 'female' });
     const pStr = await lastFrameParams('calling.play');
     // Byte-for-byte identical media entry whether typed or string.
-    expect(pStr.play[0].params.gender).toBe(pTyped.play[0].params.gender);
-    expect(pStr.play[0]).toEqual(pTyped.play[0]);
+    expect(pStr.play![0]!.params!.gender).toBe(pTyped.play![0]!.params!.gender);
+    expect(pStr.play![0]).toEqual(pTyped.play![0]);
   });
 
   it('promptTTS carries the typed gender through play_and_collect identically', async () => {
@@ -178,7 +178,7 @@ describe('TtsGender closed set (playTTS / promptTTS gender)', () => {
     const call = await answeredInboundCall('cs-gender-prompt');
     await call.promptTTS('pin?', { digits: { max: 4 } }, { gender: typed });
     const p = await lastFrameParams('calling.play_and_collect');
-    expect(p.play[0].params.gender).toBe('male');
+    expect(p.play![0]!.params!.gender).toBe('male');
   });
 
   it('still accepts an arbitrary (forward-compat) gender string — Python str parity', async () => {
@@ -187,7 +187,7 @@ describe('TtsGender closed set (playTTS / promptTTS gender)', () => {
     const call = await answeredInboundCall('cs-gender-open');
     await call.playTTS('hi', { gender: 'neutral' });
     const p = await lastFrameParams('calling.play');
-    expect(p.play[0].params.gender).toBe('neutral');
+    expect(p.play![0]!.params!.gender).toBe('neutral');
   });
 
   it('rejects a typo’d gender at COMPILE time', () => {
@@ -210,13 +210,13 @@ describe('FaxTone closed set (detectFax tone)', () => {
     const callTyped = await answeredInboundCall('cs-tone-typed');
     await callTyped.detectFax({ tone: typed });
     const pTyped = await lastFrameParams('calling.detect');
-    expect(pTyped.detect.type).toBe('fax');
-    expect(pTyped.detect.params.tone).toBe('CED');
+    expect(pTyped.detect!.type).toBe('fax');
+    expect(pTyped.detect!.params!.tone).toBe('CED');
 
     const callStr = await answeredInboundCall('cs-tone-str');
     await callStr.detectFax({ tone: 'CED' });
     const pStr = await lastFrameParams('calling.detect');
-    expect(pStr.detect.params.tone).toBe(pTyped.detect.params.tone);
+    expect(pStr.detect!.params!.tone).toBe(pTyped.detect!.params!.tone);
     expect(pStr.detect).toEqual(pTyped.detect);
   });
 

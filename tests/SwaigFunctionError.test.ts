@@ -54,9 +54,9 @@ describe('SwaigFunction.execute error handling (#19371)', () => {
     });
     await fn.execute({ city: 'Paris' }, undefined);
     expect(seen).toHaveLength(1);
-    expect((seen[0].error as Error).message).toBe('kaboom');
-    expect(seen[0].ctx.functionName).toBe('boom');
-    expect(seen[0].ctx.args).toEqual({ city: 'Paris' });
+    expect((seen[0]!.error as Error).message).toBe('kaboom');
+    expect(seen[0]!.ctx.functionName).toBe('boom');
+    expect(seen[0]!.ctx.args).toEqual({ city: 'Paris' });
   });
 
   it('lets a per-tool onError hook return a FunctionResult to control the response', async () => {

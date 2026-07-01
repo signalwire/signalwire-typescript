@@ -79,7 +79,7 @@ describe('Skill Parameter Schemas', () => {
     it('DataSphereSkill has tool_name param', () => {
       const schema = DataSphereSkill.getParameterSchema();
       expect(schema).toHaveProperty('tool_name');
-      expect(schema.tool_name.type).toBe('string');
+      expect(schema.tool_name!.type).toBe('string');
     });
 
     it('DataSphereServerlessSkill has tool_name param', () => {
@@ -97,48 +97,48 @@ describe('Skill Parameter Schemas', () => {
     it('WeatherApiSkill has api_key with hidden and env_var', () => {
       const schema = WeatherApiSkill.getParameterSchema();
       expect(schema.api_key).toBeDefined();
-      expect(schema.api_key.hidden).toBe(true);
-      expect(schema.api_key.env_var).toBe('WEATHER_API_KEY');
-      expect(schema.api_key.required).toBe(true);
+      expect(schema.api_key!.hidden).toBe(true);
+      expect(schema.api_key!.env_var).toBe('WEATHER_API_KEY');
+      expect(schema.api_key!.required).toBe(true);
     });
 
     it('WebSearchSkill has num_results with min/max', () => {
       const schema = WebSearchSkill.getParameterSchema();
       expect(schema.num_results).toBeDefined();
-      expect(schema.num_results.min).toBe(1);
-      expect(schema.num_results.max).toBe(10);
-      expect(schema.num_results.default).toBe(3);
+      expect(schema.num_results!.min).toBe(1);
+      expect(schema.num_results!.max).toBe(10);
+      expect(schema.num_results!.default).toBe(3);
     });
 
     it('AskClaudeSkill has model with default', () => {
       const schema = AskClaudeSkill.getParameterSchema();
       expect(schema.model).toBeDefined();
-      expect(schema.model.default).toBe('claude-sonnet-4-5-20250929');
+      expect(schema.model!.default).toBe('claude-sonnet-4-5-20250929');
     });
 
     it('ClaudeSkillsSkill has skills_path required', () => {
       const schema = ClaudeSkillsSkill.getParameterSchema();
       expect(schema.skills_path).toBeDefined();
-      expect(schema.skills_path.required).toBe(true);
+      expect(schema.skills_path!.required).toBe(true);
     });
 
     it('DataSphereSkill has distance with min/max', () => {
       const schema = DataSphereSkill.getParameterSchema();
       expect(schema.distance).toBeDefined();
-      expect(schema.distance.min).toBe(0);
-      expect(schema.distance.max).toBe(10);
+      expect(schema.distance!.min).toBe(0);
+      expect(schema.distance!.max).toBe(10);
     });
 
     it('SwmlTransferSkill has patterns array', () => {
       const schema = SwmlTransferSkill.getParameterSchema();
       expect(schema.patterns).toBeDefined();
-      expect(schema.patterns.type).toBe('array');
+      expect(schema.patterns!.type).toBe('array');
     });
 
     it('GoogleMapsSkill exposes api_key + the two tool-name configs', () => {
       const schema = GoogleMapsSkill.getParameterSchema();
       expect(schema.api_key).toBeDefined();
-      expect(schema.api_key.env_var).toBe('GOOGLE_MAPS_API_KEY');
+      expect(schema.api_key!.env_var).toBe('GOOGLE_MAPS_API_KEY');
       // Two tools (lookup_address, compute_route) → two configurable names.
       expect(schema.lookup_tool_name).toBeDefined();
       expect(schema.route_tool_name).toBeDefined();

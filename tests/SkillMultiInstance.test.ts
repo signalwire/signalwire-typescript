@@ -82,17 +82,17 @@ describe('Skill Multi-Instance', () => {
 
     const entries = manager.getLoadedSkillEntries();
     expect(entries.length).toBe(2);
-    expect(entries[0].skillName).toBe('multi_skill');
-    expect(entries[0].SkillClass).toBe(MultiInstanceSkill);
-    expect(entries[0].config).toHaveProperty('tool_name');
+    expect(entries[0]!.skillName).toBe('multi_skill');
+    expect(entries[0]!.SkillClass).toBe(MultiInstanceSkill);
+    expect(entries[0]!.config).toHaveProperty('tool_name');
 
     // Entries should be usable to re-create skills.
     // SkillManager stores concrete subclass references at runtime; the static
     // type is abstract so we cast through unknown to drop the abstract flag.
-    const Ctor = entries[0].SkillClass as unknown as new (
+    const Ctor = entries[0]!.SkillClass as unknown as new (
       config?: Record<string, unknown>,
     ) => SkillBase;
-    const recreated = new Ctor(entries[0].config);
+    const recreated = new Ctor(entries[0]!.config);
     expect(recreated).toBeInstanceOf(MultiInstanceSkill);
   });
 

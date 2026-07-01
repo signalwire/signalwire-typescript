@@ -91,9 +91,9 @@ describe('DateTimeSkill', () => {
     const skill = createDateTimeSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Date and Time Information');
-    expect(sections[0].bullets).toBeDefined();
-    expect(sections[0].bullets!.length).toBeGreaterThan(0);
+    expect(sections[0]!.title).toBe('Date and Time Information');
+    expect(sections[0]!.bullets).toBeDefined();
+    expect(sections[0]!.bullets!.length).toBeGreaterThan(0);
   });
 
   it('should execute handlers and return time/date for a timezone', () => {
@@ -132,23 +132,23 @@ describe('MathSkill', () => {
     const skill = createMathSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('calculate');
+    expect(tools[0]!.name).toBe('calculate');
     // Matches Python: no `required` on the calculate tool (math/skill.py:33).
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createMathSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Mathematical Calculations');
-    expect(sections[0].bullets).toBeDefined();
-    expect(sections[0].bullets!.length).toBeGreaterThan(0);
+    expect(sections[0]!.title).toBe('Mathematical Calculations');
+    expect(sections[0]!.bullets).toBeDefined();
+    expect(sections[0]!.bullets!.length).toBeGreaterThan(0);
   });
 
   it('should evaluate basic math expressions correctly', () => {
     const skill = createMathSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ expression: '2 + 3 * 4' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('14');
@@ -156,7 +156,7 @@ describe('MathSkill', () => {
 
   it('should reject unsafe expressions', () => {
     const skill = createMathSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ expression: 'process.exit(1)' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('Could not evaluate');
@@ -187,21 +187,21 @@ describe('JokeSkill', () => {
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
     // Interface matches Python (get_joke, required `type` enum jokes|dadjokes).
-    expect(tools[0].name).toBe('get_joke');
-    expect(tools[0].required).toEqual(['type']);
+    expect(tools[0]!.name).toBe('get_joke');
+    expect(tools[0]!.required).toEqual(['type']);
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createJokeSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Jokes');
-    expect(sections[0].bullets).toBeDefined();
+    expect(sections[0]!.title).toBe('Jokes');
+    expect(sections[0]!.bullets).toBeDefined();
   });
 
   it('should execute handler and return a joke', () => {
     const skill = createJokeSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ type: 'jokes' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     // Jokes contain " ... " between setup and punchline
@@ -231,8 +231,8 @@ describe('WeatherApiSkill', () => {
     const skill = createWeatherApiSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_weather');
-    expect(tools[0].required).toContain('location');
+    expect(tools[0]!.name).toBe('get_weather');
+    expect(tools[0]!.required).toContain('location');
   });
 
   it('should report missing env var via validateEnvVars', () => {
@@ -248,7 +248,7 @@ describe('WeatherApiSkill', () => {
     const originalKey = process.env['WEATHER_API_KEY'];
     delete process.env['WEATHER_API_KEY'];
     const skill = createWeatherApiSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({ location: 'London' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
@@ -291,19 +291,19 @@ describe('PlayBackgroundFileSkill', () => {
   it('emits a single action-enum tool (start_<key> / stop), like Python', () => {
     const tools = createPlayBackgroundFileSkill(HOLD_MUSIC).getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('play_background_file');
-    expect(tools[0].required).toEqual(['action']);
-    const action = (tools[0].parameters as Record<string, { enum?: string[] }>)['action'];
-    expect(action.enum).toEqual(['start_hold', 'stop']);
+    expect(tools[0]!.name).toBe('play_background_file');
+    expect(tools[0]!.required).toEqual(['action']);
+    const action = (tools[0]!.parameters as Record<string, { enum?: string[] }>)['action'];
+    expect(action!.enum).toEqual(['start_hold', 'stop']);
   });
 
   it('executes start_<key> to play the configured file and stop to stop it', () => {
     const tool = createPlayBackgroundFileSkill(HOLD_MUSIC).getTools()[0];
-    const play = tool.handler({ action: 'start_hold' }, {}) as FunctionResult;
+    const play = tool!.handler({ action: 'start_hold' }, {}) as FunctionResult;
     expect(play).toBeInstanceOf(FunctionResult);
     expect(play.action[0]).toHaveProperty('playback_bg');
 
-    const stop = tool.handler({ action: 'stop' }, {}) as FunctionResult;
+    const stop = tool!.handler({ action: 'stop' }, {}) as FunctionResult;
     expect(stop.action[0]).toHaveProperty('stop_playback_bg');
   });
 });
@@ -329,13 +329,13 @@ describe('SwmlTransferSkill', () => {
     const skill = createSwmlTransferSkill();
     const tools = skill.getTools();
     expect(tools.length).toBeGreaterThanOrEqual(1);
-    expect(tools[0].name).toBe('transfer_call');
-    expect(tools[0].required).toContain('transfer_type');
+    expect(tools[0]!.name).toBe('transfer_call');
+    expect(tools[0]!.required).toContain('transfer_type');
   });
 
   it('should execute transfer with arbitrary destination', () => {
     const skill = createSwmlTransferSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ transfer_type: '+15551234567' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toBe('Transferring you now...');
@@ -356,10 +356,10 @@ describe('SwmlTransferSkill', () => {
     const tools = skill.getTools();
     // Should have transfer_call + list_transfer_destinations
     expect(tools.length).toBe(2);
-    expect(tools[1].name).toBe('list_transfer_destinations');
+    expect(tools[1]!.name).toBe('list_transfer_destinations');
 
     // Transfer by name
-    const handler = tools[0].handler;
+    const handler = tools[0]!.handler;
     const result = handler({ transfer_type: 'sales' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.action.length).toBeGreaterThan(0);
@@ -371,7 +371,7 @@ describe('SwmlTransferSkill', () => {
       allow_arbitrary: false,
       default_message: 'Please specify a valid transfer type.',
     });
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({ transfer_type: 'unknown_dept' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('valid transfer type');
@@ -403,7 +403,7 @@ describe('ApiNinjasTriviaSkill', () => {
     delete process.env['API_NINJAS_KEY'];
     try {
       const skill = createApiNinjasTriviaSkill({ api_key: 'config-key' });
-      const handler = skill.getTools()[0].handler;
+      const handler = skill.getTools()[0]!.handler;
       // Intercept fetch to avoid a real network call; we only need to assert
       // that the handler treats the config value as present (no "not configured").
       const originalFetch = globalThis.fetch;
@@ -427,7 +427,7 @@ describe('ApiNinjasTriviaSkill', () => {
     const skill = createApiNinjasTriviaSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('get_trivia');
+    expect(tools[0]!.name).toBe('get_trivia');
   });
 
   it('should return hints for speech recognition', () => {
@@ -441,7 +441,7 @@ describe('ApiNinjasTriviaSkill', () => {
     const originalKey = process.env['API_NINJAS_KEY'];
     delete process.env['API_NINJAS_KEY'];
     const skill = createApiNinjasTriviaSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({}, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('API_NINJAS_KEY');
@@ -516,8 +516,8 @@ describe('CustomSkillsSkill', () => {
     });
     const tools = skill.getTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('greet');
-    expect(tools[1].name).toBe('farewell');
+    expect(tools[0]!.name).toBe('greet');
+    expect(tools[1]!.name).toBe('farewell');
   });
 
   it('should execute custom tool handler', async () => {
@@ -534,7 +534,7 @@ describe('CustomSkillsSkill', () => {
           },
         ],
       });
-      const handler = skill.getTools()[0].handler;
+      const handler = skill.getTools()[0]!.handler;
       const result = (await handler({ name: 'World' }, {})) as FunctionResult;
       expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).toBe('Hello, World!');
@@ -570,16 +570,16 @@ describe('WebSearchSkill', () => {
     const skill = createWebSearchSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('web_search');
+    expect(tools[0]!.name).toBe('web_search');
     // Python passes no `required` (web_search/skill.py:707); TS matches.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createWebSearchSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('Web Search');
+    expect(sections[0]!.title).toContain('Web Search');
   });
 
   it('should return error when API keys are not set', async () => {
@@ -590,7 +590,7 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
     const skill = createWebSearchSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
@@ -621,18 +621,18 @@ describe('WikipediaSearchSkill', () => {
     const skill = createWikipediaSearchSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wiki');
+    expect(tools[0]!.name).toBe('search_wiki');
     // Python passes no `required` (wikipedia_search/skill.py:87); TS matches.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createWikipediaSearchSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Wikipedia Search');
-    expect(sections[0].bullets).toBeDefined();
-    expect(sections[0].bullets!.length).toBeGreaterThan(0);
+    expect(sections[0]!.title).toBe('Wikipedia Search');
+    expect(sections[0]!.bullets).toBeDefined();
+    expect(sections[0]!.bullets!.length).toBeGreaterThan(0);
   });
 
   it('should declare empty requiredEnvVars (free API, matches Python REQUIRED_ENV_VARS = [])', () => {
@@ -730,16 +730,16 @@ describe('DataSphereSkill', () => {
     const skill = createDataSphereSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_knowledge');
+    expect(tools[0]!.name).toBe('search_knowledge');
     // Python passes no `required` (datasphere/skill.py:171); TS matches.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should return non-empty prompt sections', () => {
     const skill = createDataSphereSkill();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('Knowledge Search');
+    expect(sections[0]!.title).toContain('Knowledge Search');
   });
 
   it('should return error when env vars are not set', async () => {
@@ -750,7 +750,7 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
     const skill = createDataSphereSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('not configured');
@@ -784,12 +784,12 @@ describe('DataSphereServerlessSkill', () => {
     const skill = createDataSphereServerlessSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_knowledge');
+    expect(tools[0]!.name).toBe('search_knowledge');
   });
 
   it('should return stub handler message indicating DataMap mode', () => {
     const skill = createDataSphereServerlessSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = handler({}, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('serverless DataMap');
@@ -840,14 +840,14 @@ describe('NativeVectorSearchSkill', () => {
     await skill.setup();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_knowledge');
-    expect(tools[0].required).toContain('query');
+    expect(tools[0]!.name).toBe('search_knowledge');
+    expect(tools[0]!.required).toContain('query');
   });
 
   it('should execute search and find relevant documents', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler(
       { query: 'TypeScript programming language' },
       {},
@@ -860,7 +860,7 @@ describe('NativeVectorSearchSkill', () => {
   it('should rank relevant documents higher (scoring works)', async () => {
     const skill = createNativeVectorSearchSkill({ documents: testDocuments });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler(
       { query: 'programming language', count: 4 },
       {},
@@ -935,8 +935,8 @@ describe('AskClaudeSkill', () => {
     const skill = createAskClaudeSkill();
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('ask_claude');
-    expect(tools[0].required).toContain('prompt');
+    expect(tools[0]!.name).toBe('ask_claude');
+    expect(tools[0]!.required).toContain('prompt');
   });
 });
 
@@ -1213,7 +1213,7 @@ describe('ClaudeSkillsSkill', () => {
     });
     await skill.setup();
     const tools = skill.getTools();
-    expect(tools[0].name).toBe('sk_greeting');
+    expect(tools[0]!.name).toBe('sk_greeting');
   });
 
   it('should apply response_prefix and response_postfix', async () => {
@@ -1225,7 +1225,7 @@ describe('ClaudeSkillsSkill', () => {
     });
     await skill.setup();
     const tools = skill.getTools();
-    const result = tools[0].handler({ arguments: 'World' }, {}) as FunctionResult;
+    const result = tools[0]!.handler({ arguments: 'World' }, {}) as FunctionResult;
     expect(result.response).toMatch(/^\[PREFIX\]/);
     expect(result.response).toMatch(/\[POSTFIX\]$/);
     expect(result.response).toContain('Hello World! Welcome.');
@@ -1334,7 +1334,7 @@ describe('ClaudeSkillsSkill', () => {
     });
     await skill.setup();
     const tools = skill.getTools();
-    expect(tools[0].description).toBe('Custom description');
+    expect(tools[0]!.description).toBe('Custom description');
   });
 
   it('should return unique instance keys for different paths', () => {
@@ -1363,7 +1363,7 @@ describe('McpGatewaySkill', () => {
 
   it('should return a configuration-prompt message when unconfigured', async () => {
     const skill = createMcpGatewaySkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({ server: 'test', method: 'test' }, {})) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toMatch(/not configured|configure/i);
@@ -1429,7 +1429,7 @@ describe('SpiderSkill - SSRF protection', () => {
 describe('Skill error messages do not leak internal details', () => {
   it('math skill catch returns generic message', () => {
     const skill = createMathSkill();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     // Intentionally malformed expression that will throw
     const result = handler({ expression: '2 +' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
@@ -1475,7 +1475,7 @@ describe('Skill error messages do not leak internal details', () => {
           },
         ],
       });
-      const handler = skill.getTools()[0].handler;
+      const handler = skill.getTools()[0]!.handler;
       const result = (await handler({}, {})) as FunctionResult;
       expect(result).toBeInstanceOf(FunctionResult);
       expect(result.response).not.toContain('secret internal stack trace info');

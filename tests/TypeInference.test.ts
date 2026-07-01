@@ -13,10 +13,10 @@ describe('parseFunctionParams', () => {
     };
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(2);
-    expect(params[0].name).toBe('city');
-    expect(params[0].defaultValue).toBeUndefined();
-    expect(params[1].name).toBe('count');
-    expect(params[1].defaultValue).toBe('5');
+    expect(params[0]!.name).toBe('city');
+    expect(params[0]!.defaultValue).toBeUndefined();
+    expect(params[1]!.name).toBe('count');
+    expect(params[1]!.defaultValue).toBe('5');
   });
 
   it('parses regular function', () => {
@@ -25,8 +25,8 @@ describe('parseFunctionParams', () => {
     }
     const params = parseFunctionParams(myFunc.toString());
     expect(params.length).toBe(2);
-    expect(params[0].name).toBe('city');
-    expect(params[1].name).toBe('count');
+    expect(params[0]!.name).toBe('city');
+    expect(params[1]!.name).toBe('count');
   });
 
   it('parses function with no params', () => {
@@ -39,17 +39,17 @@ describe('parseFunctionParams', () => {
     const fn = (name = 'world') => name;
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(1);
-    expect(params[0].name).toBe('name');
+    expect(params[0]!.name).toBe('name');
     // JS runtime may use single or double quotes in Function.toString()
-    expect(params[0].defaultValue).toMatch(/^['"]world['"]$/);
+    expect(params[0]!.defaultValue).toMatch(/^['"]world['"]$/);
   });
 
   it('parses function with boolean default', () => {
     const fn = (verbose = true) => verbose;
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(1);
-    expect(params[0].name).toBe('verbose');
-    expect(params[0].defaultValue).toBe('true');
+    expect(params[0]!.name).toBe('verbose');
+    expect(params[0]!.defaultValue).toBe('true');
   });
 });
 
@@ -61,9 +61,9 @@ describe('inferSchema', () => {
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.paramNames).toEqual(['city', 'count', 'verbose']);
-    expect(schema!.parameters['city'].type).toBe('string');
-    expect(schema!.parameters['count'].type).toBe('integer');
-    expect(schema!.parameters['verbose'].type).toBe('boolean');
+    expect(schema!.parameters['city']!.type).toBe('string');
+    expect(schema!.parameters['count']!.type).toBe('integer');
+    expect(schema!.parameters['verbose']!.type).toBe('boolean');
     expect(schema!.required).toEqual(['city']);
   });
 
@@ -116,7 +116,7 @@ describe('inferSchema', () => {
     const fn = (greeting = 'hello') => greeting;
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
-    expect(schema!.parameters['greeting'].type).toBe('string');
+    expect(schema!.parameters['greeting']!.type).toBe('string');
     expect(schema!.required).toEqual([]);
   });
 
@@ -124,7 +124,7 @@ describe('inferSchema', () => {
     const fn = (temp = 98.6) => temp;
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
-    expect(schema!.parameters['temp'].type).toBe('number');
+    expect(schema!.parameters['temp']!.type).toBe('number');
   });
 
   it('params without defaults are required', () => {
