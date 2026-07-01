@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 1dc1ef3f4b115fdd7fff7c9a999d92b88e9958cb",
+  "generated_from": "signalwire-typescript @ 4a6eb9a28016ea646f54b7a7becf93804a0ac170",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -512,8 +512,8 @@
     },
     "signalwire.core.post_prompt_generated": {
       "classes": {
-        "PostPrompt": [],
         "PostPromptData": [],
+        "PostPrompt": [],
         "PostPromptUserEntry": [],
         "PostPromptAssistantEntry": [],
         "PostPromptThinkingEntry": [],
@@ -2632,6 +2632,18 @@
         "GetRecordingResponse": [],
         "CreateBrandRequest": [],
         "CreateCampaignRequest": []
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.swml_webhooks_types_generated": {
+      "classes": {
+        "SwaigRequestData": [],
+        "PostPromptParams": [],
+        "PostPromptConversationTurn": [],
+        "PostPromptFunctionCall": [],
+        "SwmlRequestData": [],
+        "SwmlRequestCall": [],
+        "SignalWireErrorBody": []
       },
       "functions": []
     },

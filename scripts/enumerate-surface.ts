@@ -193,6 +193,10 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // fold the module path to match (the surface analog of the signature diff's
   // gen-payload module fold). Their type names then compare 1:1 cross-port.
   'src/swml_verbs_generated.ts': 'signalwire.core.swml_verbs_generated',
+  // The SWML/SWAIG webhook payload types the reference generates under
+  // `signalwire.rest.namespaces.swml_webhooks_types_generated`.
+  'src/PlatformContracts.generated.ts':
+    'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
@@ -409,15 +413,18 @@ function enumerateFile(file: string): FileSurface {
   }
 
   // Generated type modules (`*.types.generated.ts`, the relay `protocol.types.generated.ts`,
-  // and the SWAIG/SWML payload contracts) export the spec-derived type DEFINITIONS as
+  // the SWAIG/SWML payload contracts, and `PlatformContracts.generated.ts` = the reference's
+  // `swml_webhooks_types_generated`) export the spec-derived type DEFINITIONS as
   // `interface`/`type` declarations. The Python reference surfaces each such type as a
   // top-level symbol under its `*_types_generated` module, so we must emit them too — as
-  // zero-method "classes" (a bare type definition has no callable surface). Scoped to these
-  // files ONLY: a blanket interface walk would flood the surface with every internal
-  // interface in the codebase (PlatformContracts, types.ts, …) that the reference doesn't carry.
+  // zero-method "classes" (a bare type definition has no callable surface). Scoped to the
+  // GENERATED files ONLY: a blanket interface walk would flood the surface with every
+  // internal interface (the HAND-written `PlatformContracts.ts`, `types.ts`, …) the reference
+  // doesn't carry — hence the `.generated.` qualifier below.
   const isGeneratedTypeFile =
     /\.types\.generated\.ts$/.test(file) ||
     /SwaigContracts\.generated\.ts$/.test(file) ||
+    /PlatformContracts\.generated\.ts$/.test(file) ||
     /swml_verbs_generated\.ts$/.test(file);
 
   function collectTypeDefinition(name: string): void {

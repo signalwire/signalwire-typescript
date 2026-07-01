@@ -481,3 +481,25 @@ signalwire.core.swml_service.SWMLService.on_request: Python declares `on_request
 ## Webhook signature validation: framework-specific adapter
 
 signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: framework-specific (FastAPI ``Depends`` factory); the TS port ships an equivalent Hono middleware exported as `webhook_validation_middleware` from the same module — see PORT_ADDITIONS.md. Both wrap the same `validateWebhookSignature` core.
+
+## RELAY abstract action mixin bases (TS flattens the hierarchy)
+
+Python factors the call-action controls into an abstract mixin chain
+(``StoppableAction`` → ``PausableAction`` → ``VolumeAction`` → concrete ``PlayAction``/…), so the
+control methods live on the abstract bases. TS gives each concrete action `extends Action` with the
+methods inlined, so the abstract bases have no TS class — but the CONTRACT (each control method on
+each concrete action) IS present and surfaced (PlayAction.stop/pause/resume/volume, etc., recorded
+in PORT_ADDITIONS.md). The signature gate excuses this structurally via
+_is_abstract_action_base_method; the surface gate excuses the bare base classes + their methods here.
+
+signalwire.relay.call.StoppableAction: abstract mixin base; TS inlines `stop` onto each concrete action (see PORT_ADDITIONS)
+signalwire.relay.call.StoppableAction.stop: abstract mixin base method; present on each concrete action in TS
+signalwire.relay.call.PausableAction: abstract mixin base; TS inlines `pause`/`resume` onto each concrete action
+signalwire.relay.call.PausableAction.pause: abstract mixin base method; present on each concrete action in TS
+signalwire.relay.call.PausableAction.resume: abstract mixin base method; present on each concrete action in TS
+signalwire.relay.call.VolumeAction: abstract mixin base; TS inlines `volume` onto each concrete action
+signalwire.relay.call.VolumeAction.volume: abstract mixin base method; present on each concrete action in TS
+
+## relay_rest PhoneCallHandler enum (hand-written in TS, generated in the reference)
+
+signalwire.rest.namespaces.relay_rest_types_generated.PhoneCallHandler: the `call_handler` value enum; the reference generates it into relay_rest_types_generated, TS hand-writes it as the idiomatic const+type pair in src/rest/callHandler.ts (exported as `PhoneCallHandler`, named to avoid colliding with CallHandler). Same values; not surfaced under the generated-type module because it lives in a hand file, which the surface enumerator intentionally does not scan for types.
