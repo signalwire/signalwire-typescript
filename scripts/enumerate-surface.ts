@@ -196,8 +196,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SwaigActions.generated.ts': 'signalwire.core.swaig_actions_generated',
   // The SWML/SWAIG webhook payload types the reference generates under
   // `signalwire.rest.namespaces.swml_webhooks_types_generated`.
-  'src/PlatformContracts.generated.ts':
-    'signalwire.rest.namespaces.swml_webhooks_types_generated',
+  'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
@@ -800,7 +799,12 @@ function main(): void {
     // SWML-schema `Section`/`DataMap` interfaces). `resolveInherited` is name-keyed, so
     // without this guard those builder methods spray onto the schema interface. Skip the
     // whole augmentation for these — they have, and should keep, zero methods.
-    if (c.methods.length === 0 && /\.types\.generated\.ts$|swml_verbs_generated\.ts$|SwaigContracts\.generated\.ts$/.test(c.fileRel)) {
+    if (
+      c.methods.length === 0 &&
+      /\.types\.generated\.ts$|swml_verbs_generated\.ts$|SwaigContracts\.generated\.ts$/.test(
+        c.fileRel,
+      )
+    ) {
       continue;
     }
     const candidateMods = classToModules.get(emitName);

@@ -301,7 +301,8 @@ function operationAliases(doc: OpenApiDoc, taken: Set<string>): string[] {
   // name that shape has. (Verified: every spec's op request/response is a bare
   // `$ref`, so today this suppresses all redundant aliases; an inline op body would
   // still get its operation-named type.)
-  const isBareRef = (schema: Schema | undefined): boolean => !!schema && typeof schema.$ref === 'string';
+  const isBareRef = (schema: Schema | undefined): boolean =>
+    !!schema && typeof schema.$ref === 'string';
   for (const ops of Object.values(doc.paths ?? {})) {
     for (const [method, op] of Object.entries(ops)) {
       if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
@@ -1424,8 +1425,7 @@ async function generateSwaigActions(specPath: string, outPath: string): Promise<
   if (!actions) throw new Error('swaig-response.yaml: missing SwaigAction.properties');
 
   const decls: string[] = [];
-  const isObj = (s: Schema | undefined): boolean =>
-    !!s && s.type === 'object' && !!s.properties;
+  const isObj = (s: Schema | undefined): boolean => !!s && s.type === 'object' && !!s.properties;
 
   // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces.
   // Matches the Python emitter: a bare object → one interface; the object branches of
