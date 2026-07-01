@@ -27,6 +27,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { JournalEntry, MockHarness } from './mocktest.js';
+import type {
+  PurchasePhoneNumberRequest,
+  CreateVerifiedCallerIDRequest,
+  CreateNumberGroupRequest,
+  CreateCspBrandRequest,
+  CreateManagedBrandRequest,
+  CreateManagedCampaignRequest,
+} from '../../src/rest/namespaces/relay-rest.types.generated.js';
 import { RestError } from '../../src/rest/RestError.js';
 
 let client: RestClient;
@@ -65,6 +73,13 @@ async function callErr(
   return mock.last();
 }
 
+// Typed request bodies in this route-coverage suite are placeholders: every
+// `it()` asserts only method/path/matched_route (and, for errors, status)
+// against the journal — never the request body. The mock synthesizes its
+// response from the OpenAPI spec and does not validate the body. So a create
+// call passes a minimal object cast to its typed *Request param rather than a
+// full valid fixture; the cast documents "route-only body, unchecked".
+
 // ---- Phone Numbers -----------------------------------------------------
 
 describe('Phone Numbers', () => {
@@ -91,7 +106,7 @@ describe('Phone Numbers', () => {
   });
   it('purchase error 422', async () => {
     const last = await callErr('relay-rest.purchase_phone_number', 422, () =>
-      client.phoneNumbers.create({}),
+      client.phoneNumbers.create({} as PurchasePhoneNumberRequest),
     );
     expect(last.matched_route).toBe('relay-rest.purchase_phone_number');
     expect(last.response_status).toBe(422);
@@ -172,13 +187,27 @@ describe('Addresses', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.addresses.create({ display_name: 'a' }));
+    const { last } = await callOk(() =>
+      client.addresses.create(
+        'home',
+        'US',
+        'Ada',
+        'Lovelace',
+        '1',
+        'Main St',
+        'Denver',
+        'CO',
+        '80202',
+      ),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/addresses');
     expect(last.matched_route).toBe('relay-rest.create_address');
   });
   it('create error 422', async () => {
-    const last = await callErr('relay-rest.create_address', 422, () => client.addresses.create({}));
+    const last = await callErr('relay-rest.create_address', 422, () =>
+      client.addresses.create('home', 'US', 'Ada', 'Lovelace', '1', 'Main St', 'Denver', 'CO', '80202'),
+    );
     expect(last.matched_route).toBe('relay-rest.create_address');
     expect(last.response_status).toBe(422);
   });
@@ -238,7 +267,7 @@ describe('Verified Caller IDs', () => {
   });
   it('create error 422', async () => {
     const last = await callErr('relay-rest.create_verified_caller_id', 422, () =>
-      client.verifiedCallers.create({}),
+      client.verifiedCallers.create({} as CreateVerifiedCallerIDRequest),
     );
     expect(last.matched_route).toBe('relay-rest.create_verified_caller_id');
     expect(last.response_status).toBe(422);
@@ -302,7 +331,7 @@ describe('Verified Caller IDs', () => {
 
   it('submit verification success (PUT)', async () => {
     const { last } = await callOk(() =>
-      client.verifiedCallers.submitVerification('vci-1', { verification_code: '1234' }),
+      client.verifiedCallers.submitVerification('vci-1', '1234'),
     );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/verified_caller_ids/vci-1/verification');
@@ -310,7 +339,7 @@ describe('Verified Caller IDs', () => {
   });
   it('submit verification error 422', async () => {
     const last = await callErr('relay-rest.validate_verification_code', 422, () =>
-      client.verifiedCallers.submitVerification('vci-1', {}),
+      client.verifiedCallers.submitVerification('vci-1', ''),
     );
     expect(last.matched_route).toBe('relay-rest.validate_verification_code');
     expect(last.response_status).toBe(422);
@@ -500,7 +529,7 @@ describe('Number Groups', () => {
   });
   it('create error 422', async () => {
     const last = await callErr('relay-rest.create_number_group', 422, () =>
-      client.numberGroups.create({}),
+      client.numberGroups.create({} as CreateNumberGroupRequest),
     );
     expect(last.matched_route).toBe('relay-rest.create_number_group');
     expect(last.response_status).toBe(422);
@@ -565,7 +594,7 @@ describe('Number Groups', () => {
 
   it('add membership success', async () => {
     const { last } = await callOk(() =>
-      client.numberGroups.addMembership('ng-1', { phone_number_id: 'pn-1' }),
+      client.numberGroups.addMembership('ng-1', 'pn-1'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/number_groups/ng-1/number_group_memberships');
@@ -573,7 +602,7 @@ describe('Number Groups', () => {
   });
   it('add membership error 422', async () => {
     const last = await callErr('relay-rest.create_number_group_membership', 422, () =>
-      client.numberGroups.addMembership('ng-1', {}),
+      client.numberGroups.addMembership('ng-1', ''),
     );
     expect(last.matched_route).toBe('relay-rest.create_number_group_membership');
     expect(last.response_status).toBe(422);
@@ -639,14 +668,16 @@ describe('Short Codes', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.shortCodes.update('sc-1', { name: 'x' }));
+    const { last } = await callOk(() =>
+      client.shortCodes.update('sc-1', 'x', 'relay_context'),
+    );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/short_codes/sc-1');
     expect(last.matched_route).toBe('relay-rest.update_short_code');
   });
   it('update error 404', async () => {
     const last = await callErr('relay-rest.update_short_code', 404, () =>
-      client.shortCodes.update('missing', { name: 'x' }),
+      client.shortCodes.update('missing', 'x', 'relay_context'),
     );
     expect(last.matched_route).toBe('relay-rest.update_short_code');
     expect(last.response_status).toBe(404);
@@ -657,14 +688,16 @@ describe('Short Codes', () => {
 
 describe('Imported Phone Numbers', () => {
   it('create success', async () => {
-    const { last } = await callOk(() => client.importedNumbers.create({ number: '+15551234567' }));
+    const { last } = await callOk(() =>
+      client.importedNumbers.create('+15551234567', 'longcode'),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/imported_phone_numbers');
     expect(last.matched_route).toBe('relay-rest.create_imported_phone_number');
   });
   it('create error 422', async () => {
     const last = await callErr('relay-rest.create_imported_phone_number', 422, () =>
-      client.importedNumbers.create({}),
+      client.importedNumbers.create('+15551234567', 'longcode'),
     );
     expect(last.matched_route).toBe('relay-rest.create_imported_phone_number');
     expect(last.response_status).toBe(422);
@@ -675,38 +708,38 @@ describe('Imported Phone Numbers', () => {
 
 describe('MFA', () => {
   it('request sms success', async () => {
-    const { last } = await callOk(() => client.mfa.sms({ to: '+15551234567' }));
+    const { last } = await callOk(() => client.mfa.sms('+15551234567'));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/mfa/sms');
     expect(last.matched_route).toBe('relay-rest.request_mfa_sms');
   });
   it('request sms error 422', async () => {
-    const last = await callErr('relay-rest.request_mfa_sms', 422, () => client.mfa.sms({}));
+    const last = await callErr('relay-rest.request_mfa_sms', 422, () => client.mfa.sms(''));
     expect(last.matched_route).toBe('relay-rest.request_mfa_sms');
     expect(last.response_status).toBe(422);
   });
 
   it('request call success', async () => {
-    const { last } = await callOk(() => client.mfa.call({ to: '+15551234567' }));
+    const { last } = await callOk(() => client.mfa.call('+15551234567'));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/mfa/call');
     expect(last.matched_route).toBe('relay-rest.request_mfa_call');
   });
   it('request call error 422', async () => {
-    const last = await callErr('relay-rest.request_mfa_call', 422, () => client.mfa.call({}));
+    const last = await callErr('relay-rest.request_mfa_call', 422, () => client.mfa.call(''));
     expect(last.matched_route).toBe('relay-rest.request_mfa_call');
     expect(last.response_status).toBe(422);
   });
 
   it('verify success', async () => {
-    const { last } = await callOk(() => client.mfa.verify('mfa-1', { token: '123456' }));
+    const { last } = await callOk(() => client.mfa.verify('mfa-1', '123456'));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/mfa/mfa-1/verify');
     expect(last.matched_route).toBe('relay-rest.verify_mfa_token');
   });
   it('verify error 422', async () => {
     const last = await callErr('relay-rest.verify_mfa_token', 422, () =>
-      client.mfa.verify('mfa-1', {}),
+      client.mfa.verify('mfa-1', ''),
     );
     expect(last.matched_route).toBe('relay-rest.verify_mfa_token');
     expect(last.response_status).toBe(422);
@@ -731,14 +764,14 @@ describe('SIP Profile', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.sipProfile.update({ domain: 'x' }));
+    const { last } = await callOk(() => client.sipProfile.update('x'));
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/sip_profile');
     expect(last.matched_route).toBe('relay-rest.update_sip_profile');
   });
   it('update error 422', async () => {
     const last = await callErr('relay-rest.update_sip_profile', 422, () =>
-      client.sipProfile.update({}),
+      client.sipProfile.update(),
     );
     expect(last.matched_route).toBe('relay-rest.update_sip_profile');
     expect(last.response_status).toBe(422);
@@ -780,14 +813,16 @@ describe('Registry Brands', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.registry.brands.create({ name: 'b' }));
+    const { last } = await callOk(() =>
+      client.registry.brands.create({ name: 'b' } as unknown as CreateManagedBrandRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/registry/beta/brands');
     expect(last.matched_route).toBe('relay-rest.create_brand');
   });
   it('create error 422', async () => {
     const last = await callErr('relay-rest.create_brand', 422, () =>
-      client.registry.brands.create({}),
+      client.registry.brands.create({} as CreateManagedBrandRequest),
     );
     expect(last.matched_route).toBe('relay-rest.create_brand');
     expect(last.response_status).toBe(422);
@@ -824,7 +859,7 @@ describe('Registry Brands', () => {
 
   it('create campaign success', async () => {
     const { last } = await callOk(() =>
-      client.registry.brands.createCampaign('brand-1', { name: 'c' }),
+      client.registry.brands.createCampaign('brand-1', { name: 'c' } as unknown as CreateManagedCampaignRequest),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/registry/beta/brands/brand-1/campaigns');
@@ -832,7 +867,7 @@ describe('Registry Brands', () => {
   });
   it('create campaign error 422', async () => {
     const last = await callErr('relay-rest.create_campaign', 422, () =>
-      client.registry.brands.createCampaign('brand-1', {}),
+      client.registry.brands.createCampaign('brand-1', {} as CreateManagedCampaignRequest),
     );
     expect(last.matched_route).toBe('relay-rest.create_campaign');
     expect(last.response_status).toBe(422);
@@ -857,14 +892,14 @@ describe('Registry Campaigns', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.registry.campaigns.update('camp-1', { name: 'x' }));
+    const { last } = await callOk(() => client.registry.campaigns.update('camp-1', 'x'));
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/registry/beta/campaigns/camp-1');
     expect(last.matched_route).toBe('relay-rest.update_campaign');
   });
   it('update error 404', async () => {
     const last = await callErr('relay-rest.update_campaign', 404, () =>
-      client.registry.campaigns.update('missing', { name: 'x' }),
+      client.registry.campaigns.update('missing', 'x'),
     );
     expect(last.matched_route).toBe('relay-rest.update_campaign');
     expect(last.response_status).toBe(404);
@@ -901,14 +936,14 @@ describe('Registry Campaigns', () => {
   });
 
   it('create order success', async () => {
-    const { last } = await callOk(() => client.registry.campaigns.createOrder('camp-1', {}));
+    const { last } = await callOk(() => client.registry.campaigns.createOrder('camp-1', ['pn-1']));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/registry/beta/campaigns/camp-1/orders');
     expect(last.matched_route).toBe('relay-rest.create_order');
   });
   it('create order error 422', async () => {
     const last = await callErr('relay-rest.create_order', 422, () =>
-      client.registry.campaigns.createOrder('camp-1', {}),
+      client.registry.campaigns.createOrder('camp-1', ['pn-1']),
     );
     expect(last.matched_route).toBe('relay-rest.create_order');
     expect(last.response_status).toBe(422);
