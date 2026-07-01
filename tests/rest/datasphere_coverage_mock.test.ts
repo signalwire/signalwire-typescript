@@ -99,7 +99,7 @@ describe('Datasphere Documents', () => {
 
   it('search success', async () => {
     const { last } = await callOk(() =>
-      client.datasphere.documents.search({ query_string: 'find me', count: 3 }),
+      client.datasphere.documents.search('find me', undefined, undefined, undefined, 3),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/datasphere/documents/search');
@@ -107,7 +107,7 @@ describe('Datasphere Documents', () => {
   });
   it('search error 422', async () => {
     const last = await callErr('datasphere.search_documents', 422, () =>
-      client.datasphere.documents.search({ query_string: 'find me' }),
+      client.datasphere.documents.search('find me'),
     );
     expect(last.matched_route).toBe('datasphere.search_documents');
     expect(last.response_status).toBe(422);

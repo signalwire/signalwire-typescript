@@ -65,7 +65,7 @@ describe('AddressesResource', () => {
   it('creates an address', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: { id: 'a1' } }]);
     const res = new AddressesResource(http);
-    await res.create({ street: '123 Main' });
+    await res.create('home', 'US', 'Ada', 'Lovelace', '123', 'Main St', 'Denver', 'CO', '80202');
     expect(getRequests()[0]!.method).toBe('POST');
   });
 
@@ -171,7 +171,7 @@ describe('NumberGroupsResource', () => {
   it('adds a membership', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: { id: 'ngm1' } }]);
     const res = new NumberGroupsResource(http);
-    await res.addMembership('ng1', { phone_number_id: 'pn1' });
+    await res.addMembership('ng1', 'pn1');
     expect(getRequests()[0]!.method).toBe('POST');
     expect(getRequests()[0]!.url).toContain('/number_group_memberships');
   });
@@ -218,7 +218,7 @@ describe('VerifiedCallersResource', () => {
   it('submits verification code', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: {} }]);
     const res = new VerifiedCallersResource(http);
-    await res.submitVerification('vc1', { code: '1234' });
+    await res.submitVerification('vc1', '1234');
     expect(getRequests()[0]!.url).toContain('/verified_caller_ids/vc1/verification');
     expect(getRequests()[0]!.method).toBe('PUT');
   });
@@ -236,7 +236,7 @@ describe('SipProfileResource', () => {
   it('updates SIP profile with PUT', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: {} }]);
     const res = new SipProfileResource(http);
-    await res.update({ codecs: ['PCMU'] });
+    await res.update(undefined, ['PCMU']);
     expect(getRequests()[0]!.url).toContain('/api/relay/rest/sip_profile');
     expect(getRequests()[0]!.method).toBe('PUT');
   });
@@ -276,7 +276,7 @@ describe('ShortCodesResource', () => {
   it('updates with PUT', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: {} }]);
     const res = new ShortCodesResource(http);
-    await res.update('sc1', { name: 'promo' });
+    await res.update('sc1', 'promo', 'relay_context');
     expect(getRequests()[0]!.method).toBe('PUT');
   });
 });
@@ -285,7 +285,7 @@ describe('ImportedNumbersResource', () => {
   it('creates (imports) a number', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: { id: 'in1' } }]);
     const res = new ImportedNumbersResource(http);
-    await res.create({ number: '+15551234567' });
+    await res.create('+15551234567', 'longcode');
     expect(getRequests()[0]!.url).toContain('/api/relay/rest/imported_phone_numbers');
     expect(getRequests()[0]!.method).toBe('POST');
   });

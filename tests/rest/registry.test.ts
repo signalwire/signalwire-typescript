@@ -1,6 +1,10 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RegistryNamespace } from '../../src/rest/namespaces/registry.js';
 import { mockClientOptions, type MockResponse } from './helpers.js';
+import type {
+  CreateManagedBrandRequest,
+  CreateManagedCampaignRequest,
+} from '../../src/rest/namespaces/relay-rest.types.generated.js';
 
 describe('RegistryNamespace', () => {
   function setup(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
@@ -19,7 +23,7 @@ describe('RegistryNamespace', () => {
 
     it('creates a brand', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: { id: 'b1' } }]);
-      await registry.brands.create({ name: 'Acme' });
+      await registry.brands.create({ name: 'Acme' } as unknown as CreateManagedBrandRequest);
       expect(getRequests()[0]!.method).toBe('POST');
     });
 
@@ -37,7 +41,11 @@ describe('RegistryNamespace', () => {
 
     it('creates a campaign for a brand', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: { id: 'c1' } }]);
-      await registry.brands.createCampaign('b1', { use_case: 'marketing' });
+      // `use_case` is not a typed spec field (the spec field is sms_use_case),
+      // so route it through createCampaign's `extras` escape hatch.
+      await registry.brands.createCampaign('b1', {} as CreateManagedCampaignRequest, {
+        use_case: 'marketing',
+      });
       expect(getRequests()[0]!.method).toBe('POST');
       expect(getRequests()[0]!.url).toContain('/brands/b1/campaigns');
     });
@@ -52,7 +60,9 @@ describe('RegistryNamespace', () => {
 
     it('updates a campaign with PUT', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: {} }]);
-      await registry.campaigns.update('c1', { description: 'updated' });
+      // `description` travels via the extras escape hatch (update is
+      // update(id, name?, extras?); description is not a typed positional field).
+      await registry.campaigns.update('c1', undefined, { description: 'updated' });
       expect(getRequests()[0]!.method).toBe('PUT');
     });
 
@@ -70,7 +80,7 @@ describe('RegistryNamespace', () => {
 
     it('creates an order for a campaign', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: { id: 'o1' } }]);
-      await registry.campaigns.createOrder('c1', { number_ids: ['n1'] });
+      await registry.campaigns.createOrder('c1', ['n1']);
       expect(getRequests()[0]!.method).toBe('POST');
     });
   });

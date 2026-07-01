@@ -1,6 +1,10 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { DatasphereNamespace } from '../../src/rest/namespaces/datasphere.js';
 import { mockClientOptions, type MockResponse } from './helpers.js';
+import type {
+  DocumentCreateRequest,
+  DocumentUpdateRequest,
+} from '../../src/rest/namespaces/datasphere.types.generated.js';
 
 describe('DatasphereNamespace', () => {
   function setup(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
@@ -19,7 +23,10 @@ describe('DatasphereNamespace', () => {
 
   it('creates a document', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'doc1' } }]);
-    await ds.documents.create({ name: 'test', content: 'hello' });
+    // `name`/`content` are not typed DocumentCreateRequest fields (the typed
+    // field is `url`); the test asserts the exact wire body, so send them via
+    // the `extras` escape hatch with an empty typed body.
+    await ds.documents.create({} as DocumentCreateRequest, { name: 'test', content: 'hello' });
     expect(getRequests()[0]!.method).toBe('POST');
     expect(getRequests()[0]!.body).toEqual({ name: 'test', content: 'hello' });
   });
@@ -32,7 +39,7 @@ describe('DatasphereNamespace', () => {
 
   it('updates a document', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { id: 'doc1' } }]);
-    await ds.documents.update('doc1', { name: 'updated' });
+    await ds.documents.update('doc1', {} as DocumentUpdateRequest, { name: 'updated' });
     expect(getRequests()[0]!.method).toBe('PATCH');
   });
 

@@ -25,7 +25,7 @@ describe('VideoNamespace', () => {
 
     it('updates with PUT', async () => {
       const { video, getRequests } = setup([{ status: 200, body: {} }]);
-      await video.rooms.update('r1', { name: 'updated' });
+      await video.rooms.update('r1', { display_name: 'updated' });
       expect(getRequests()[0]!.method).toBe('PUT');
     });
 
@@ -37,7 +37,7 @@ describe('VideoNamespace', () => {
 
     it('creates a stream for a room', async () => {
       const { video, getRequests } = setup([{ status: 200, body: {} }]);
-      await video.rooms.createStream('r1', { url: 'rtmp://...' });
+      await video.rooms.createStream('r1', 'rtmp://...');
       expect(getRequests()[0]!.method).toBe('POST');
       expect(getRequests()[0]!.url).toContain('/api/video/rooms/r1/streams');
     });
@@ -46,7 +46,7 @@ describe('VideoNamespace', () => {
   describe('Room Tokens', () => {
     it('creates a room token', async () => {
       const { video, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
-      await video.roomTokens.create({ room_name: 'test' });
+      await video.roomTokens.create('test');
       expect(getRequests()[0]!.url).toContain('/api/video/room_tokens');
       expect(getRequests()[0]!.method).toBe('POST');
     });
@@ -113,7 +113,7 @@ describe('VideoNamespace', () => {
 
     it('updates with PUT', async () => {
       const { video, getRequests } = setup([{ status: 200, body: {} }]);
-      await video.conferences.update('c1', { name: 'updated' });
+      await video.conferences.update('c1', { display_name: 'updated' });
       expect(getRequests()[0]!.method).toBe('PUT');
     });
 
@@ -131,7 +131,7 @@ describe('VideoNamespace', () => {
 
     it('creates a stream for a conference', async () => {
       const { video, getRequests } = setup([{ status: 200, body: {} }]);
-      await video.conferences.createStream('c1', { url: 'rtmp://...' });
+      await video.conferences.createStream('c1', 'rtmp://...');
       expect(getRequests()[0]!.method).toBe('POST');
     });
   });
@@ -160,7 +160,7 @@ describe('VideoNamespace', () => {
 
     it('updates with PUT', async () => {
       const { video, getRequests } = setup([{ status: 200, body: {} }]);
-      await video.streams.update('st1', { name: 'updated' });
+      await video.streams.update('st1', 'rtmp://updated');
       expect(getRequests()[0]!.method).toBe('PUT');
     });
 

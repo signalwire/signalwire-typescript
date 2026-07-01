@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { FabricNamespace } from '../../src/rest/namespaces/fabric.js';
 import { mockClientOptions, type MockResponse } from './helpers.js';
+import type { AIAgentCreateRequest } from '../../src/rest/namespaces/fabric.types.generated.js';
 
 describe('FabricNamespace', () => {
   function setup(responses: MockResponse[] = [{ status: 200, body: { data: [] } }]) {
@@ -21,7 +22,10 @@ describe('FabricNamespace', () => {
 
     it('creates an ai agent', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'a1' } }]);
-      await fabric.aiAgents.create({ name: 'test' });
+      // This test asserts the exact wire body, so keep the fixture as-is and
+      // cast to the typed create param (AIAgentCreateRequest requires `prompt`,
+      // but the test intentionally sends a minimal body to verify passthrough).
+      await fabric.aiAgents.create({ name: 'test' } as unknown as AIAgentCreateRequest);
       expect(getRequests()[0]!.method).toBe('POST');
       expect(getRequests()[0]!.body).toEqual({ name: 'test' });
     });
@@ -42,7 +46,7 @@ describe('FabricNamespace', () => {
   describe('SWML Scripts (PUT-update)', () => {
     it('updates swml script with PUT', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 's1' } }]);
-      await fabric.swmlScripts.update('s1', { code: 'new' });
+      await fabric.swmlScripts.update('s1', { contents: 'new' });
       expect(getRequests()[0]!.method).toBe('PUT');
     });
   });
@@ -62,7 +66,7 @@ describe('FabricNamespace', () => {
 
     it('deploys a version', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { version: 2 } }]);
-      await fabric.callFlows.deployVersion('cf1', { version: 2 });
+      await fabric.callFlows.deployVersion('cf1', { document_version: 2 });
       expect(getRequests()[0]!.method).toBe('POST');
       expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/versions');
     });
@@ -87,7 +91,11 @@ describe('FabricNamespace', () => {
 
     it('creates a SIP endpoint', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { id: 'ep1' } }]);
-      await fabric.subscribers.createSipEndpoint('sub1', 'test');
+      // createSipEndpoint types `password` as a required string, but the spec's
+      // SipEndpointCreateRequest does not require it and the SDK omits undefined
+      // fields from the wire body. This test verifies the username-only body, so
+      // pass password=undefined (cast to satisfy the stricter-than-spec param).
+      await fabric.subscribers.createSipEndpoint('sub1', 'test', undefined as unknown as string);
       expect(getRequests()[0]!.method).toBe('POST');
       expect(getRequests()[0]!.body).toEqual({ username: 'test' });
     });
@@ -200,7 +208,7 @@ describe('FabricNamespace', () => {
 
     it('assigns domain application', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.resources.assignDomainApplication('r1', { domain: 'test.com' });
+      await fabric.resources.assignDomainApplication('r1', 'da-1');
       expect(getRequests()[0]!.url).toContain('/api/fabric/resources/r1/domain_applications');
     });
   });
@@ -222,32 +230,32 @@ describe('FabricNamespace', () => {
   describe('Tokens', () => {
     it('creates subscriber token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
-      await fabric.tokens.createSubscriberToken({ subscriber_id: 's1' });
+      await fabric.tokens.createSubscriberToken('s1');
       expect(getRequests()[0]!.url).toContain('/api/fabric/subscribers/tokens');
       expect(getRequests()[0]!.method).toBe('POST');
     });
 
     it('refreshes subscriber token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
-      await fabric.tokens.refreshSubscriberToken({ token: 'old' });
+      await fabric.tokens.refreshSubscriberToken('old');
       expect(getRequests()[0]!.url).toContain('/api/fabric/subscribers/tokens/refresh');
     });
 
     it('creates invite token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.tokens.createInviteToken({});
+      await fabric.tokens.createInviteToken('addr-1');
       expect(getRequests()[0]!.url).toContain('/api/fabric/subscriber/invites');
     });
 
     it('creates guest token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.tokens.createGuestToken({});
+      await fabric.tokens.createGuestToken(['addr-1']);
       expect(getRequests()[0]!.url).toContain('/api/fabric/guests/tokens');
     });
 
     it('creates embed token', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.tokens.createEmbedToken({});
+      await fabric.tokens.createEmbedToken('tok-1');
       expect(getRequests()[0]!.url).toContain('/api/fabric/embeds/tokens');
     });
   });
