@@ -73,6 +73,17 @@ export interface JournalEntry {
 }
 
 /**
+ * A parsed wire request body for assertions: a recursively-indexable JSON object.
+ * Indexing yields a `WireValue` — a primitive OR another `WireBody` — so nested
+ * access (`body.params.id`) and comparisons (`.command === 'update'`) both type-check
+ * in a wire-assertion test without an `any`. Used by `MockTest.lastBody()`.
+ */
+export type WireValue = string | number | boolean | null | undefined | WireBody;
+export interface WireBody {
+  [key: string]: WireValue;
+}
+
+/**
  * Harness wraps the running mock server. It exposes journal accessors,
  * a helper to push scenario overrides, and a reset method tests call from
  * beforeEach.
@@ -137,6 +148,17 @@ export class MockHarness {
       throw new Error('mocktest: journal is empty - SDK call did not reach the mock server');
     }
     return entries[entries.length - 1]!;
+  }
+
+  /**
+   * The parsed JSON body of the most recent request, typed as an indexable wire
+   * object for assertions. `JournalEntry.body` is deliberately `unknown` (arbitrary
+   * wire payload); a wire-assertion test knows the shape it sent, so this narrows to
+   * a recursively-indexable object — `(await mock.lastBody()).params.id` type-checks
+   * without an `any` per access site. The value is still the real parsed body.
+   */
+  async lastBody(): Promise<WireBody> {
+    return (await this.last()).body as WireBody;
   }
 
   /**
