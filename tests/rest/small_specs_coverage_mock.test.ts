@@ -68,7 +68,7 @@ async function callErr(
 describe('Project Tokens', () => {
   it('create success', async () => {
     const { last } = await callOk(() =>
-      client.project.tokens.create({ name: 'tok', permissions: ['messaging'] }),
+      client.project.tokens.create('tok', ['messaging']),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/project/tokens');
@@ -76,21 +76,21 @@ describe('Project Tokens', () => {
   });
   it('create error 422', async () => {
     const last = await callErr('project.create_token', 422, () =>
-      client.project.tokens.create({ name: 'tok', permissions: ['messaging'] }),
+      client.project.tokens.create('tok', ['messaging']),
     );
     expect(last.matched_route).toBe('project.create_token');
     expect(last.response_status).toBe(422);
   });
 
   it('update success (PATCH)', async () => {
-    const { last } = await callOk(() => client.project.tokens.update('tok-1', { name: 'renamed' }));
+    const { last } = await callOk(() => client.project.tokens.update('tok-1', 'renamed'));
     expect(last.method).toBe('PATCH');
     expect(last.path).toBe('/api/project/tokens/tok-1');
     expect(last.matched_route).toBe('project.update_token');
   });
   it('update error 404', async () => {
     const last = await callErr('project.update_token', 404, () =>
-      client.project.tokens.update('missing', { name: 'renamed' }),
+      client.project.tokens.update('missing', 'renamed'),
     );
     expect(last.matched_route).toBe('project.update_token');
     expect(last.response_status).toBe(404);
@@ -237,7 +237,7 @@ describe('Conference Logs', () => {
 describe('Calling dial', () => {
   it('dial success', async () => {
     const { body, last } = await callOk(() =>
-      client.calling.dial({ from: '+15551112222', to: '+15553334444' }),
+      client.calling.dial('+15551112222', '+15553334444'),
     );
     expect(typeof body === 'object' && body !== null).toBe(true);
     expect(last.method).toBe('POST');
@@ -249,7 +249,7 @@ describe('Calling dial', () => {
   });
   it('dial error 422', async () => {
     const last = await callErr('calling.call-commands', 422, () =>
-      client.calling.dial({ from: '+15551112222', to: '+15553334444' }),
+      client.calling.dial('+15551112222', '+15553334444'),
     );
     expect(last.matched_route).toBe('calling.call-commands');
     expect(last.response_status).toBe(422);
@@ -261,7 +261,7 @@ describe('Calling dial', () => {
 describe('Chat Token', () => {
   it('create token success', async () => {
     const { body, last } = await callOk(() =>
-      client.chat.createToken({ ttl: 60, channels: { room1: { read: true } } }),
+      client.chat.createToken(60, { room1: { read: true } }),
     );
     expect(typeof body === 'object' && body !== null).toBe(true);
     expect(last.method).toBe('POST');
@@ -270,7 +270,7 @@ describe('Chat Token', () => {
   });
   it('create token error 422', async () => {
     const last = await callErr('chat.create_chat_token', 422, () =>
-      client.chat.createToken({ ttl: 60, channels: { room1: { read: true } } }),
+      client.chat.createToken(60, { room1: { read: true } }),
     );
     expect(last.matched_route).toBe('chat.create_chat_token');
     expect(last.response_status).toBe(422);
@@ -282,7 +282,7 @@ describe('Chat Token', () => {
 describe('PubSub Token', () => {
   it('create token success', async () => {
     const { body, last } = await callOk(() =>
-      client.pubsub.createToken({ ttl: 60, channels: { ch1: { read: true } } }),
+      client.pubsub.createToken(60, { ch1: { read: true } }),
     );
     expect(typeof body === 'object' && body !== null).toBe(true);
     expect(last.method).toBe('POST');
@@ -291,7 +291,7 @@ describe('PubSub Token', () => {
   });
   it('create token error 422', async () => {
     const last = await callErr('pubsub.create_token', 422, () =>
-      client.pubsub.createToken({ ttl: 60, channels: { ch1: { read: true } } }),
+      client.pubsub.createToken(60, { ch1: { read: true } }),
     );
     expect(last.matched_route).toBe('pubsub.create_token');
     expect(last.response_status).toBe(422);

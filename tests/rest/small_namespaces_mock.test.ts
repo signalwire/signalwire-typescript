@@ -11,7 +11,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 let client: RestClient;
 let mock: MockHarness;
@@ -48,7 +48,7 @@ describe('Addresses', () => {
       'London', // city
       'CA', // state
       '94105', // postal_code
-      'commercial', // address_type
+      'Suite', // address_type (valid AddressType enum member)
     );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -57,8 +57,8 @@ describe('Addresses', () => {
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/addresses');
-    const sent = last.body || {};
-    expect(sent.address_type).toBe('commercial');
+    const sent = (last.body ?? {}) as WireBody;
+    expect(sent.address_type).toBe('Suite');
     expect(sent.first_name).toBe('Ada');
     expect(sent.country).toBe('US');
   });
@@ -162,7 +162,7 @@ describe('ShortCodes', () => {
     // short_codes uses PUT for update.
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/short_codes/sc-1');
-    const sent = last.body || {};
+    const sent = (last.body ?? {}) as WireBody;
     expect(sent.name).toBe('Marketing SMS');
     expect(sent.message_handler).toBe('relay_context');
   });
@@ -184,7 +184,7 @@ describe('ImportedNumbers', () => {
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/imported_phone_numbers');
-    const sent = last.body || {};
+    const sent = (last.body ?? {}) as WireBody;
     expect(sent.number).toBe('+15551234567');
     expect(sent.number_type).toBe('longcode');
     expect(sent.capabilities).toEqual(['sms', 'voice']);
@@ -207,7 +207,7 @@ describe('Mfa', () => {
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/relay/rest/mfa/call');
-    const sent = last.body || {};
+    const sent = (last.body ?? {}) as WireBody;
     expect(sent.to).toBe('+15551234567');
     expect(sent['from']).toBe('+15559876543');
     expect(sent.message).toBe('Your code is {code}');
@@ -226,7 +226,7 @@ describe('SipProfile', () => {
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/relay/rest/sip_profile');
-    const sent = last.body || {};
+    const sent = (last.body ?? {}) as WireBody;
     // Generated update uses spec field `domain_identifier`.
     expect(sent.domain_identifier).toBe('myco.sip.signalwire.com');
     expect(sent.default_codecs).toEqual(['PCMU', 'PCMA']);
@@ -273,7 +273,7 @@ describe('ProjectTokens', () => {
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.path).toBe('/api/project/tokens/tok-1');
-    const sent = last.body || {};
+    const sent = (last.body ?? {}) as WireBody;
     expect(sent.name).toBe('renamed-token');
   });
 
