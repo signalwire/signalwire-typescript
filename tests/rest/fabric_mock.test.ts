@@ -10,7 +10,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 let client: RestClient;
 let mock: MockHarness;
@@ -121,7 +121,7 @@ describe('Subscribers SIP endpoint ops', () => {
     expect(last.path).toBe('/api/fabric/resources/subscribers/sub-1/sip_endpoints/ep-1');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.username).toBe('renamed');
+    expect((last.body as WireBody).username).toBe('renamed');
   });
 
   it('delete_sip_endpoint', async () => {
@@ -156,7 +156,7 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/subscriber/invites');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.email).toBe('invitee@example.com');
+    expect((last.body as WireBody).email).toBe('invitee@example.com');
   });
 
   it('create_embed_token', async () => {
@@ -173,7 +173,7 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/embeds/tokens');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.allowed_addresses).toEqual(['addr-1', 'addr-2']);
+    expect((last.body as WireBody).allowed_addresses).toEqual(['addr-1', 'addr-2']);
   });
 
   it('refresh_subscriber_token', async () => {
@@ -186,7 +186,7 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/subscribers/tokens/refresh');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.refresh_token).toBe('abc-123');
+    expect((last.body as WireBody).refresh_token).toBe('abc-123');
   });
 });
 
@@ -249,6 +249,6 @@ describe('GenericResources', () => {
     expect(last.path).toBe('/api/fabric/resources/res-4/domain_applications');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.domain_application_id).toBe('da-7');
+    expect((last.body as WireBody).domain_application_id).toBe('da-7');
   });
 });

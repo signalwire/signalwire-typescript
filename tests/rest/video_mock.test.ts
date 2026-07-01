@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 let client: RestClient;
 let mock: MockHarness;
@@ -44,7 +44,7 @@ describe('VideoRooms streams', () => {
     expect(last.path).toBe('/api/video/rooms/room-1/streams');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.url).toBe('rtmp://example.com/live');
+    expect((last.body as WireBody).url).toBe('rtmp://example.com/live');
   });
 });
 
@@ -228,7 +228,7 @@ describe('VideoStreams', () => {
     expect(last.path).toBe('/api/video/streams/stream-2');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.url).toBe('rtmp://example.com/new');
+    expect((last.body as WireBody).url).toBe('rtmp://example.com/new');
   });
 
   it('delete', async () => {
