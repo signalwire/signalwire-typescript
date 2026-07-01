@@ -260,10 +260,9 @@ describe('ParameterSchema (real agent: rendered SWAIG JSON, no mocks)', () => {
     agent.defineTypedTool({
       name: 'pick_format',
       description: 'Pick a recording format',
-      parameters: paramSchema().recordFormat('fmt', 'Recording format').build() as unknown as Record<
-        string,
-        unknown
-      >,
+      parameters: paramSchema()
+        .recordFormat('fmt', 'Recording format')
+        .build() as unknown as Record<string, unknown>,
       handler: (fmt: string) => new FunctionResult(`Picked ${fmt}`),
     });
     const rendered = renderedParams(agent, 'pick_format') as {

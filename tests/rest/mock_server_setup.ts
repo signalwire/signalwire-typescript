@@ -4,13 +4,15 @@
  *
  * WHY: without this, every parallel worker's mocktest.ts spawns its OWN detached
  * mock server (resolvePort() picks a fresh free port per worker when
- * MOCK_SIGNALWIRE_PORT is unset). Under fileParallelism that's N servers, each
- * `detached` + `unref()` and orphaned on exit — and an orphaned uvicorn/asyncio
- * process can busy-spin a core. N spinning orphans saturate the CPU. Running one
- * shared server here (in vitest's MAIN process, before workers fork) and exporting
- * MOCK_SIGNALWIRE_PORT makes every worker REUSE it (mocktest.ts probes the port and
- * reuses a healthy server), so zero per-worker spawns happen. The returned teardown
- * kills the server (its whole process group) when the run ends.
+ * MOCK_SIGNALWIRE_PORT is unset). Each server's startup parses ~12 OpenAPI specs
+ * (~0.2s CPU with libyaml, more without), so under fileParallelism that's N concurrent
+ * spec-loads — an N-core spike — and each server is `detached` + `unref()`, so it
+ * ORPHANS on exit and accumulates across runs. That storm (not a busy loop) is what can
+ * saturate a dev machine. Running one shared server here (in vitest's MAIN process,
+ * before workers fork) and exporting MOCK_SIGNALWIRE_PORT makes every worker REUSE it
+ * (mocktest.ts probes the port and reuses a healthy server), so the spec-load happens
+ * ONCE. The returned teardown kills the server (its whole process group) when the run
+ * ends.
  *
  * CI already pre-spawns a shared server and sets MOCK_SIGNALWIRE_PORT itself
  * (run-ci.sh REST-COVERAGE gate); in that case we detect the env var and do nothing.
@@ -83,7 +85,16 @@ export default async function setup(): Promise<() => void> {
 
   child = spawn(
     'python',
-    ['-m', 'mock_signalwire', '--host', '127.0.0.1', '--port', String(port), '--log-level', 'error'],
+    [
+      '-m',
+      'mock_signalwire',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      String(port),
+      '--log-level',
+      'error',
+    ],
     { detached: true, stdio: 'ignore', env },
   );
   child.unref();

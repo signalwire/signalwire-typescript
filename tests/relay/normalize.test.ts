@@ -122,7 +122,12 @@ describe('Call methods emit nested wire shape', () => {
       // ({type, name}) into the nested {type, params:{name}} wire form (asserted
       // below). The typed `ringback` param models the already-nested shape, so
       // the flat convenience input is cast to exercise the normalization path.
-      ringback: [{ type: 'ringtone', name: 'us' } as unknown as { type: string; params: Record<string, unknown> }],
+      ringback: [
+        { type: 'ringtone', name: 'us' } as unknown as {
+          type: string;
+          params: Record<string, unknown>;
+        },
+      ],
     });
     const sent = last()!;
     expect(sent.method).toBe('calling.connect');

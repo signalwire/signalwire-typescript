@@ -159,7 +159,10 @@ export class MockRelayHarness {
     if (eventType == null) return entries;
     return entries.filter((e) => {
       const params = (e.frame?.params ?? {}) as RelayFrame;
-      return frameStr(e.frame?.method) === 'signalwire.event' && frameStr(params?.event_type) === eventType;
+      return (
+        frameStr(e.frame?.method) === 'signalwire.event' &&
+        frameStr(params?.event_type) === eventType
+      );
     });
   }
 

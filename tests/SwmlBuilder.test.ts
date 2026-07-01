@@ -331,7 +331,9 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       b.say('hi', { gender: 'female' }); // bare string literal
       const docStr = b.build() as { sections: { main: Array<Record<string, unknown>> } };
 
-      expect((docTyped.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('female');
+      expect((docTyped.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe(
+        'female',
+      );
       // Byte-for-byte identical play verb whether the value was the typed union
       // member or the bare string — the type is pure compile-time ergonomics.
       expect(docStr.sections.main[0]).toEqual(docTyped.sections.main[0]);

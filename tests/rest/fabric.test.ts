@@ -76,7 +76,9 @@ describe('FabricNamespace', () => {
     it('uses singular conference_room for addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.conferenceRooms.listAddresses('cr1');
-      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/conference_room/cr1/addresses');
+      expect(getRequests()[0]!.url).toContain(
+        '/api/fabric/resources/conference_room/cr1/addresses',
+      );
     });
   });
 
