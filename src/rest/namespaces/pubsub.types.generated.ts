@@ -75,7 +75,3 @@ export interface Types_StatusCodes_StatusCode401 {
 export interface Types_StatusCodes_StatusCode500 {
   error: 'Internal Server Error';
 }
-
-export type CreateTokenRequest = NewPubSubToken;
-
-export type CreateTokenResponse = PubSubToken;

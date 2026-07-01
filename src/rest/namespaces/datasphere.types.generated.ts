@@ -218,23 +218,3 @@ export type docid = string;
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type ListDocumentsResponse = DocumentListResponse;
-
-export type CreateDocumentRequest = DocumentCreateRequest;
-
-export type CreateDocumentResponse = Document;
-
-export type SearchDocumentsRequest = DocumentSearchRequest;
-
-export type SearchDocumentsResponse = SearchResponse;
-
-export type ListDocumentChunksResponse = ChunkListResponse;
-
-export type GetDocumentChunkResponse = ChunkResponse;
-
-export type GetDocumentResponse = Document;
-
-export type UpdateDocumentRequest = DocumentUpdateRequest;
-
-export type UpdateDocumentResponse = Document;

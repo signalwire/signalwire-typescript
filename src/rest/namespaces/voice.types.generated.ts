@@ -265,9 +265,3 @@ export type VoiceSources = 'dialogflow' | 'laml' | 'realtime_api';
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type ListVoiceLogsResponse = LogListResponse;
-
-export type GetVoiceLogResponse = VoiceLog;
-
-export type ListVoiceLogEventsResponse = LogEventsListResponse;

@@ -3436,7 +3436,3 @@ export type play_url = string;
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type CallCommandsRequest = CallRequest;
-
-export type CallCommandsResponse = CallResponse;

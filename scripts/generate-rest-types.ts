@@ -292,16 +292,26 @@ function operationAliases(doc: OpenApiDoc, taken: Set<string>): string[] {
     taken.add(name);
     out.push(`export type ${name} = ${expr};\n`);
   };
+  // A request/response that is a bare `$ref` to a named schema already has a
+  // surface symbol under that schema's name (which the Python reference also emits
+  // and surfaces). An operationId-derived alias (`ListVoiceLogsResponse =
+  // LogListResponse`) would just be a SECOND name for the identical type — surface
+  // noise the reference doesn't carry. Emit the operation alias ONLY when the
+  // request/response schema is inline (no `$ref`), i.e. when the alias is the only
+  // name that shape has. (Verified: every spec's op request/response is a bare
+  // `$ref`, so today this suppresses all redundant aliases; an inline op body would
+  // still get its operation-named type.)
+  const isBareRef = (schema: Schema | undefined): boolean => !!schema && typeof schema.$ref === 'string';
   for (const ops of Object.values(doc.paths ?? {})) {
     for (const [method, op] of Object.entries(ops)) {
       if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
       if (!op.operationId) continue;
       const base = pascal(op.operationId);
       const reqSchema = schemaFromContent(op.requestBody?.content);
-      if (reqSchema) emit(`${base}Request`, tsType(reqSchema, 0));
+      if (reqSchema && !isBareRef(reqSchema)) emit(`${base}Request`, tsType(reqSchema, 0));
       const ok = op.responses?.['200'] ?? op.responses?.['201'] ?? op.responses?.['2XX'];
       const resSchema = schemaFromContent(ok?.content);
-      if (resSchema) emit(`${base}Response`, tsType(resSchema, 0));
+      if (resSchema && !isBareRef(resSchema)) emit(`${base}Response`, tsType(resSchema, 0));
     }
   }
   return out;

@@ -70,7 +70,3 @@ export interface Types_StatusCodes_StatusCode400 {
 export interface Types_StatusCodes_StatusCode401 {
   error: 'Unauthorized';
 }
-
-export type CreateChatTokenRequest = NewChatToken;
-
-export type CreateChatTokenResponse = ChatToken;

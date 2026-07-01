@@ -188,6 +188,11 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SwmlBuilder.ts': 'signalwire.core.swml_builder',
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
+  // Generated payload modules: the reference emits these under `signalwire.core.*`
+  // (python's `signalwire/core/<name>.py`); TS keeps them at `src/<name>.ts`, so
+  // fold the module path to match (the surface analog of the signature diff's
+  // gen-payload module fold). Their type names then compare 1:1 cross-port.
+  'src/swml_verbs_generated.ts': 'signalwire.core.swml_verbs_generated',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
@@ -403,6 +408,25 @@ function enumerateFile(file: string): FileSurface {
     classes.push({ name: rawName, methods: Array.from(methods).sort(), extendsName });
   }
 
+  // Generated type modules (`*.types.generated.ts`, the relay `protocol.types.generated.ts`,
+  // and the SWAIG/SWML payload contracts) export the spec-derived type DEFINITIONS as
+  // `interface`/`type` declarations. The Python reference surfaces each such type as a
+  // top-level symbol under its `*_types_generated` module, so we must emit them too — as
+  // zero-method "classes" (a bare type definition has no callable surface). Scoped to these
+  // files ONLY: a blanket interface walk would flood the surface with every internal
+  // interface in the codebase (PlatformContracts, types.ts, …) that the reference doesn't carry.
+  const isGeneratedTypeFile =
+    /\.types\.generated\.ts$/.test(file) ||
+    /SwaigContracts\.generated\.ts$/.test(file) ||
+    /swml_verbs_generated\.ts$/.test(file);
+
+  function collectTypeDefinition(name: string): void {
+    if (name.startsWith('_')) return;
+    // A generated type carries no methods; record it as a bare class symbol so it
+    // flattens to `<module>.<TypeName>` exactly like the reference's TypedDict surface.
+    classes.push({ name, methods: [] });
+  }
+
   function collectFunction(name: string): void {
     if (name.startsWith('_')) return;
     const snake = camelToSnake(name);
@@ -430,6 +454,15 @@ function enumerateFile(file: string): FileSurface {
             ? `${nsPath.join('')}${node.name.text}` // namespace-prefixed (e.g. "Inference" + "STT")
             : node.name.text;
         collectClass(node, nm);
+      } else if (
+        isGeneratedTypeFile &&
+        (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&
+        isExported(node)
+      ) {
+        // Generated spec types (interface/type) — surface each as a bare symbol so
+        // it matches the reference's `*_types_generated.<TypeName>` entry. Only in
+        // generated-type files (see isGeneratedTypeFile).
+        collectTypeDefinition(node.name.text);
       } else if (ts.isFunctionDeclaration(node) && isExported(node) && node.name) {
         // Only care about concrete functions (they have a body). Overload
         // declarations without a body are parsed as separate nodes.
@@ -532,6 +565,14 @@ function pickModule(
   const restNs = restNamespaceModule(tsFileRel);
   if (restNs) return restNs;
 
+  // Class-name candidates from the reference come FIRST: a class the reference
+  // knows (e.g. `SecurityConfig`, declared in TS's SWMLService.ts but placed by the
+  // reference in `security_config`) must route to the reference's module, NOT to the
+  // file's alias for its primary class. The file alias (TS_MODULE_ALIASES) is the
+  // FALLBACK for classes the reference doesn't know. (The POM builder `Section`/
+  // `DataMap` name-collision leak — builder methods spraying onto the same-named
+  // SWML-schema interface — is fixed separately by the empty-method generated-type
+  // guard in the method-augmentation loop, not by reordering this precedence.)
   const candidates = classToModules.get(className);
   if (candidates && candidates.length > 0) {
     if (candidates.length === 1) return candidates[0]!;
@@ -705,6 +746,17 @@ function main(): void {
   for (const c of rawClasses) {
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     const emitName = CLASS_NAME_ALIASES[cleanName] ?? cleanName;
+    const moduleGuess = pickModule(emitName, c.fileRel, classToModules);
+    // A generated-type interface (recorded method-less from a *.types.generated /
+    // swml_verbs_generated / SwaigContracts.generated file) is a pure data shape — it
+    // must NOT absorb inherited/Python methods from a same-named BUILDER class in
+    // another module (the POM `Section`/`DataMap` builders collide by name with the
+    // SWML-schema `Section`/`DataMap` interfaces). `resolveInherited` is name-keyed, so
+    // without this guard those builder methods spray onto the schema interface. Skip the
+    // whole augmentation for these — they have, and should keep, zero methods.
+    if (c.methods.length === 0 && /\.types\.generated\.ts$|swml_verbs_generated\.ts$|SwaigContracts\.generated\.ts$/.test(c.fileRel)) {
+      continue;
+    }
     const candidateMods = classToModules.get(emitName);
     const pythonSet = new Set<string>();
     if (candidateMods) {
@@ -717,7 +769,6 @@ function main(): void {
     const inherited = resolveInherited(cleanName);
     // Apply skill aliases to the inherited set so the method names line up
     // against Python (e.g. `get_tools` → `register_tools`).
-    const moduleGuess = pickModule(emitName, c.fileRel, classToModules);
     const skillCtx =
       moduleGuess === 'signalwire.core.skill_base' || moduleGuess.startsWith('signalwire.skills.');
     const toAlias = (m: string): string => {

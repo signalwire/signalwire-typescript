@@ -166,7 +166,3 @@ export interface Types_StatusCodes_StatusCode500 {
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type ListFaxLogsResponse = LogListResponse;
-
-export type GetFaxLogResponse = LogResponse;
