@@ -126,7 +126,9 @@ describe('AuthHandler', () => {
       json: (body: unknown, status: number) => ({ body, status }),
     };
 
-    const result = await mw(mockCtx, async () => {
+    // mockCtx is a deliberately-minimal stand-in for Hono's Context (only the
+    // fields this middleware path reads); cast to the parameter type.
+    const result = await mw(mockCtx as unknown as Parameters<typeof mw>[0], async () => {
       nextCalled = true;
     });
     expect(nextCalled).toBe(false);

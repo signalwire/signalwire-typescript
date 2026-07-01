@@ -50,7 +50,10 @@ function httpsGet(
       const sock = res.socket as TLSSocket;
       const authorized = Boolean(sock.authorized);
       const cert = sock.getPeerCertificate ? sock.getPeerCertificate() : undefined;
-      const peerCN = cert?.subject?.CN;
+      // cert.subject.CN can type as string | string[]; this test's certs carry a
+      // single CN string, so narrow to string (else undefined).
+      const rawCN = cert?.subject?.CN;
+      const peerCN = typeof rawCN === 'string' ? rawCN : undefined;
       let data = '';
       res.on('data', (c) => (data += c));
       res.on('end', () => resolve({ status: res.statusCode ?? 0, body: data, authorized, peerCN }));

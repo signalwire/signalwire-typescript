@@ -124,7 +124,7 @@ describe('top-level index helpers', () => {
         static override SKILL_VERSION = '0.0.1';
         static override REQUIRED_PACKAGES: string[] = [];
         static override REQUIRED_ENV_VARS: string[] = [];
-        static override SKILL_PARAMETERS = {
+        static SKILL_PARAMETERS = {
           enabled: {
             type: 'boolean' as const,
             default: true,

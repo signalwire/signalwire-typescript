@@ -188,7 +188,7 @@ describe('RestClient', () => {
     });
 
     await client.fabric.aiAgents.list();
-    await client.calling.dial({ to: '+1' });
+    await client.calling.dial('+15550000001', '+1');
     await client.phoneNumbers.list();
     await client.video.rooms.list();
 

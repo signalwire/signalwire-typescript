@@ -54,7 +54,7 @@ describe.skipIf(!ready)('TLS: RestClient over https://', () => {
 
     // Real JSON response over HTTPS.
     expect('data' in body).toBe(true);
-    expect(Array.isArray((body as Record<string, unknown>).data)).toBe(true);
+    expect(Array.isArray((body as unknown as Record<string, unknown>).data)).toBe(true);
 
     // Wire proof: the GET landed on the mock's HTTPS control plane.
     const last = await mock.last();

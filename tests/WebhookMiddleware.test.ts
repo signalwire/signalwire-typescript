@@ -131,7 +131,10 @@ describe('webhookValidationMiddleware', () => {
     let observedRawBody: string | undefined;
     app.use('/webhook', webhookValidationMiddleware({ signingKey: KEY }));
     app.post('/webhook', (c) => {
-      observedRawBody = c.get('rawBody') as string | undefined;
+      // `rawBody` is set by the validation middleware via c.set but isn't in
+      // this untyped Hono app's Variables map, so c.get rejects the key; read
+      // it through an untyped getter (the middleware guarantees it at runtime).
+      observedRawBody = (c.get as (key: string) => unknown)('rawBody') as string | undefined;
       return c.json({ ok: true });
     });
 

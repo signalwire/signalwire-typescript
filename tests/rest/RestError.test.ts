@@ -1,4 +1,5 @@
 import { RestError, SignalWireRestError } from '../../src/rest/RestError.js';
+import type { SignalWireErrorBody } from '../../src/PlatformContracts.js';
 
 describe('RestError', () => {
   it('formats error message from status, body, url, method', () => {
@@ -30,7 +31,11 @@ describe('RestError', () => {
   });
 
   it('accepts an object body and stringifies it in the message', () => {
-    const bodyObj = { errors: ['invalid field'] };
+    // RestError.body is typed `string | SignalWireErrorBody`, but at runtime the
+    // HttpClient passes whatever arbitrary JSON the server returned (it casts
+    // `JSON.parse(text) as SignalWireErrorBody`). This test verifies object-body
+    // stringification with an arbitrary error shape; cast to the param type.
+    const bodyObj = { errors: ['invalid field'] } as unknown as SignalWireErrorBody;
     const err = new RestError(422, bodyObj, '/api/test', 'POST');
     expect(err.body).toEqual(bodyObj);
     expect(typeof err.body).toBe('object');
