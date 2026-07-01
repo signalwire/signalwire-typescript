@@ -21,6 +21,26 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { JournalEntry, MockHarness } from './mocktest.js';
+import type {
+  AIAgentCreateRequest,
+  CallFlowCreateRequest,
+  CallFlowUpdateRequest,
+  CallFlowVersionDeployRequest,
+  ConferenceRoomCreateRequest,
+  ConferenceRoomUpdateRequest,
+  CXMLScriptCreateRequest,
+  CXMLScriptUpdateRequest,
+  CXMLWebhookCreateRequest,
+  FreeswitchConnectorCreateRequest,
+  RelayApplicationCreateRequest,
+  SipEndpointCreateRequest,
+  SipEndpointUpdateRequest,
+  SipGatewayRequest,
+  SubscriberRequest,
+  SwmlScriptCreateRequest,
+  SwmlScriptUpdateRequest,
+  SWMLWebhookCreateRequest,
+} from '../../src/rest/namespaces/fabric.types.generated.js';
 import { RestError } from '../../src/rest/RestError.js';
 
 let client: RestClient;
@@ -59,6 +79,13 @@ async function callErr(
   return mock.last();
 }
 
+// Typed request bodies in this route-coverage suite are placeholders: every
+// `it()` asserts only method/path/matched_route (and, for errors, status)
+// against the journal — never the request body. The mock synthesizes its
+// response from the OpenAPI spec and does not validate the body. So a create/
+// update call passes a minimal object cast to its typed *Request param rather
+// than a full valid fixture; the cast documents "route-only body, unchecked".
+
 // ---- Fabric Addresses --------------------------------------------------
 
 describe('Fabric Addresses', () => {
@@ -96,28 +123,28 @@ describe('Fabric Addresses', () => {
 
 describe('Fabric Tokens', () => {
   it('create embeds token success', async () => {
-    const { last } = await callOk(() => client.fabric.tokens.createEmbedToken({}));
+    const { last } = await callOk(() => client.fabric.tokens.createEmbedToken('tok-1'));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/embeds/tokens');
     expect(last.matched_route).toBe('fabric.create_embeds_token');
   });
   it('create embeds token error 422', async () => {
     const last = await callErr('fabric.create_embeds_token', 422, () =>
-      client.fabric.tokens.createEmbedToken({}),
+      client.fabric.tokens.createEmbedToken('tok-1'),
     );
     expect(last.matched_route).toBe('fabric.create_embeds_token');
     expect(last.response_status).toBe(422);
   });
 
   it('create guest token success', async () => {
-    const { last } = await callOk(() => client.fabric.tokens.createGuestToken({}));
+    const { last } = await callOk(() => client.fabric.tokens.createGuestToken(['addr-1']));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/guests/tokens');
     expect(last.matched_route).toBe('fabric.create_subscriber_guest_token');
   });
   it('create guest token error 422', async () => {
     const last = await callErr('fabric.create_subscriber_guest_token', 422, () =>
-      client.fabric.tokens.createGuestToken({}),
+      client.fabric.tokens.createGuestToken(['addr-1']),
     );
     expect(last.matched_route).toBe('fabric.create_subscriber_guest_token');
     expect(last.response_status).toBe(422);
@@ -125,7 +152,7 @@ describe('Fabric Tokens', () => {
 
   it('create invite token success', async () => {
     const { last } = await callOk(() =>
-      client.fabric.tokens.createInviteToken({ email: 'a@b.com' }),
+      client.fabric.tokens.createInviteToken('addr-1'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/subscriber/invites');
@@ -133,21 +160,21 @@ describe('Fabric Tokens', () => {
   });
   it('create invite token error 422', async () => {
     const last = await callErr('fabric.create_subscriber_invite_token', 422, () =>
-      client.fabric.tokens.createInviteToken({}),
+      client.fabric.tokens.createInviteToken('addr-1'),
     );
     expect(last.matched_route).toBe('fabric.create_subscriber_invite_token');
     expect(last.response_status).toBe(422);
   });
 
   it('create subscriber token success', async () => {
-    const { last } = await callOk(() => client.fabric.tokens.createSubscriberToken({}));
+    const { last } = await callOk(() => client.fabric.tokens.createSubscriberToken('sub-ref-1'));
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/subscribers/tokens');
     expect(last.matched_route).toBe('fabric.create_subscriber_token');
   });
   it('create subscriber token error 422', async () => {
     const last = await callErr('fabric.create_subscriber_token', 422, () =>
-      client.fabric.tokens.createSubscriberToken({}),
+      client.fabric.tokens.createSubscriberToken('sub-ref-1'),
     );
     expect(last.matched_route).toBe('fabric.create_subscriber_token');
     expect(last.response_status).toBe(422);
@@ -155,7 +182,7 @@ describe('Fabric Tokens', () => {
 
   it('refresh subscriber token success', async () => {
     const { last } = await callOk(() =>
-      client.fabric.tokens.refreshSubscriberToken({ refresh_token: 'r-1' }),
+      client.fabric.tokens.refreshSubscriberToken('r-1'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/subscribers/tokens/refresh');
@@ -163,7 +190,7 @@ describe('Fabric Tokens', () => {
   });
   it('refresh subscriber token error 422', async () => {
     const last = await callErr('fabric.refresh_subscriber_token', 422, () =>
-      client.fabric.tokens.refreshSubscriberToken({}),
+      client.fabric.tokens.refreshSubscriberToken('r-1'),
     );
     expect(last.matched_route).toBe('fabric.refresh_subscriber_token');
     expect(last.response_status).toBe(422);
@@ -231,7 +258,7 @@ describe('Generic Resources', () => {
 
   it('assign domain application success', async () => {
     const { last } = await callOk(() =>
-      client.fabric.resources.assignDomainApplication('res-4', { domain_application_id: 'da-7' }),
+      client.fabric.resources.assignDomainApplication('res-4', 'da-7'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/res-4/domain_applications');
@@ -239,7 +266,7 @@ describe('Generic Resources', () => {
   });
   it('assign domain application error 422', async () => {
     const last = await callErr('fabric.assign_resource_domain_application', 422, () =>
-      client.fabric.resources.assignDomainApplication('res-4', { domain_application_id: 'da-7' }),
+      client.fabric.resources.assignDomainApplication('res-4', 'da-7'),
     );
     expect(last.matched_route).toBe('fabric.assign_resource_domain_application');
     expect(last.response_status).toBe(422);
@@ -247,7 +274,7 @@ describe('Generic Resources', () => {
 
   it('assign phone route success', async () => {
     const { last } = await callOk(() =>
-      client.fabric.resources.assignPhoneRoute('res-5', { phone_number_id: 'pn-1' }),
+      client.fabric.resources.assignPhoneRoute('res-5', 'pn-1', 'calling'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/res-5/phone_routes');
@@ -255,7 +282,7 @@ describe('Generic Resources', () => {
   });
   it('assign phone route error 422', async () => {
     const last = await callErr('fabric.assign_resource_phone_route', 422, () =>
-      client.fabric.resources.assignPhoneRoute('res-5', { phone_number_id: 'pn-1' }),
+      client.fabric.resources.assignPhoneRoute('res-5', 'pn-1', 'calling'),
     );
     expect(last.matched_route).toBe('fabric.assign_resource_phone_route');
     expect(last.response_status).toBe(422);
@@ -279,14 +306,16 @@ describe('AI Agents', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.aiAgents.create({ name: 'a' }));
+    const { last } = await callOk(() =>
+      client.fabric.aiAgents.create({ name: 'a' } as unknown as AIAgentCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/ai_agents');
     expect(last.matched_route).toBe('fabric.create_ai_agent');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_ai_agent', 422, () =>
-      client.fabric.aiAgents.create({}),
+      client.fabric.aiAgents.create({} as AIAgentCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_ai_agent');
     expect(last.response_status).toBe(422);
@@ -367,14 +396,16 @@ describe('Call Flows', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.callFlows.create({ name: 'cf' }));
+    const { last } = await callOk(() =>
+      client.fabric.callFlows.create({ name: 'cf' } as unknown as CallFlowCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/call_flows');
     expect(last.matched_route).toBe('fabric.create_call_flow');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_call_flow', 422, () =>
-      client.fabric.callFlows.create({}),
+      client.fabric.callFlows.create({} as CallFlowCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_call_flow');
     expect(last.response_status).toBe(422);
@@ -395,14 +426,16 @@ describe('Call Flows', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.fabric.callFlows.update('cf-1', { name: 'x' }));
+    const { last } = await callOk(() =>
+      client.fabric.callFlows.update('cf-1', { name: 'x' } as unknown as CallFlowUpdateRequest),
+    );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/call_flows/cf-1');
     expect(last.matched_route).toBe('fabric.update_call_flow');
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_call_flow', 404, () =>
-      client.fabric.callFlows.update('missing', { name: 'x' }),
+      client.fabric.callFlows.update('missing', { name: 'x' } as unknown as CallFlowUpdateRequest),
     );
     expect(last.matched_route).toBe('fabric.update_call_flow');
     expect(last.response_status).toBe(404);
@@ -453,14 +486,16 @@ describe('Call Flows', () => {
   });
 
   it('deploy version success', async () => {
-    const { last } = await callOk(() => client.fabric.callFlows.deployVersion('cf-1', {}));
+    const { last } = await callOk(() =>
+      client.fabric.callFlows.deployVersion('cf-1', {} as CallFlowVersionDeployRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/call_flow/cf-1/versions');
     expect(last.matched_route).toBe('fabric.deploy_call_flow_version');
   });
   it('deploy version error 422', async () => {
     const last = await callErr('fabric.deploy_call_flow_version', 422, () =>
-      client.fabric.callFlows.deployVersion('cf-1', {}),
+      client.fabric.callFlows.deployVersion('cf-1', {} as CallFlowVersionDeployRequest),
     );
     expect(last.matched_route).toBe('fabric.deploy_call_flow_version');
     expect(last.response_status).toBe(422);
@@ -486,14 +521,16 @@ describe('Conference Rooms', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.conferenceRooms.create({ name: 'cr' }));
+    const { last } = await callOk(() =>
+      client.fabric.conferenceRooms.create({ name: 'cr' } as unknown as ConferenceRoomCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/conference_rooms');
     expect(last.matched_route).toBe('fabric.create_conference_room');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_conference_room', 422, () =>
-      client.fabric.conferenceRooms.create({}),
+      client.fabric.conferenceRooms.create({} as ConferenceRoomCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_conference_room');
     expect(last.response_status).toBe(422);
@@ -515,7 +552,7 @@ describe('Conference Rooms', () => {
 
   it('update success (PUT)', async () => {
     const { last } = await callOk(() =>
-      client.fabric.conferenceRooms.update('cr-1', { name: 'x' }),
+      client.fabric.conferenceRooms.update('cr-1', { name: 'x' } as unknown as ConferenceRoomUpdateRequest),
     );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/conference_rooms/cr-1');
@@ -523,7 +560,7 @@ describe('Conference Rooms', () => {
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_conference_room', 404, () =>
-      client.fabric.conferenceRooms.update('missing', { name: 'x' }),
+      client.fabric.conferenceRooms.update('missing', { name: 'x' } as unknown as ConferenceRoomUpdateRequest),
     );
     expect(last.matched_route).toBe('fabric.update_conference_room');
     expect(last.response_status).toBe(404);
@@ -603,7 +640,7 @@ describe('cXML Applications', () => {
 
   it('update success (PUT)', async () => {
     const { last } = await callOk(() =>
-      client.fabric.cxmlApplications.update('ca-1', { name: 'x' }),
+      client.fabric.cxmlApplications.update('ca-1', 'x'),
     );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/cxml_applications/ca-1');
@@ -611,7 +648,7 @@ describe('cXML Applications', () => {
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_cxml_application', 404, () =>
-      client.fabric.cxmlApplications.update('missing', { name: 'x' }),
+      client.fabric.cxmlApplications.update('missing', 'x'),
     );
     expect(last.matched_route).toBe('fabric.update_cxml_application');
     expect(last.response_status).toBe(404);
@@ -666,14 +703,16 @@ describe('cXML Scripts', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.cxmlScripts.create({ name: 'cs' }));
+    const { last } = await callOk(() =>
+      client.fabric.cxmlScripts.create({ name: 'cs' } as unknown as CXMLScriptCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/cxml_scripts');
     expect(last.matched_route).toBe('fabric.create_cxml_script');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_cxml_script', 422, () =>
-      client.fabric.cxmlScripts.create({}),
+      client.fabric.cxmlScripts.create({} as CXMLScriptCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_cxml_script');
     expect(last.response_status).toBe(422);
@@ -694,14 +733,16 @@ describe('cXML Scripts', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.fabric.cxmlScripts.update('cs-1', { name: 'x' }));
+    const { last } = await callOk(() =>
+      client.fabric.cxmlScripts.update('cs-1', { name: 'x' } as unknown as CXMLScriptUpdateRequest),
+    );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/cxml_scripts/cs-1');
     expect(last.matched_route).toBe('fabric.update_cxml_script');
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_cxml_script', 404, () =>
-      client.fabric.cxmlScripts.update('missing', { name: 'x' }),
+      client.fabric.cxmlScripts.update('missing', { name: 'x' } as unknown as CXMLScriptUpdateRequest),
     );
     expect(last.matched_route).toBe('fabric.update_cxml_script');
     expect(last.response_status).toBe(404);
@@ -756,14 +797,16 @@ describe('cXML Webhooks', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.cxmlWebhooks.create({ name: 'cw' }));
+    const { last } = await callOk(() =>
+      client.fabric.cxmlWebhooks.create({ name: 'cw' } as unknown as CXMLWebhookCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/cxml_webhooks');
     expect(last.matched_route).toBe('fabric.create_cxml_webhook');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_cxml_webhook', 422, () =>
-      client.fabric.cxmlWebhooks.create({}),
+      client.fabric.cxmlWebhooks.create({} as CXMLWebhookCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_cxml_webhook');
     expect(last.response_status).toBe(422);
@@ -846,14 +889,18 @@ describe('FreeSWITCH Connectors', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.freeswitchConnectors.create({ name: 'fc' }));
+    const { last } = await callOk(() =>
+      client.fabric.freeswitchConnectors.create(
+        { name: 'fc' } as unknown as FreeswitchConnectorCreateRequest,
+      ),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/freeswitch_connectors');
     expect(last.matched_route).toBe('fabric.create_freeswitch_connector');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_freeswitch_connector', 422, () =>
-      client.fabric.freeswitchConnectors.create({}),
+      client.fabric.freeswitchConnectors.create({} as FreeswitchConnectorCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_freeswitch_connector');
     expect(last.response_status).toBe(422);
@@ -940,14 +987,18 @@ describe('Relay Applications', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.relayApplications.create({ name: 'ra' }));
+    const { last } = await callOk(() =>
+      client.fabric.relayApplications.create(
+        { name: 'ra' } as unknown as RelayApplicationCreateRequest,
+      ),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/relay_applications');
     expect(last.matched_route).toBe('fabric.create_relay_application');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_relay_application', 422, () =>
-      client.fabric.relayApplications.create({}),
+      client.fabric.relayApplications.create({} as RelayApplicationCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_relay_application');
     expect(last.response_status).toBe(422);
@@ -1034,14 +1085,16 @@ describe('SIP Endpoints', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.sipEndpoints.create({ username: 'se' }));
+    const { last } = await callOk(() =>
+      client.fabric.sipEndpoints.create({ username: 'se' } as unknown as SipEndpointCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/sip_endpoints');
     expect(last.matched_route).toBe('fabric.create_sip_endpoint');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_sip_endpoint', 422, () =>
-      client.fabric.sipEndpoints.create({}),
+      client.fabric.sipEndpoints.create({} as SipEndpointCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_sip_endpoint');
     expect(last.response_status).toBe(422);
@@ -1063,7 +1116,7 @@ describe('SIP Endpoints', () => {
 
   it('update success (PUT)', async () => {
     const { last } = await callOk(() =>
-      client.fabric.sipEndpoints.update('se-1', { username: 'x' }),
+      client.fabric.sipEndpoints.update('se-1', { username: 'x' } as unknown as SipEndpointUpdateRequest),
     );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/sip_endpoints/se-1');
@@ -1071,7 +1124,7 @@ describe('SIP Endpoints', () => {
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_sip_endpoint', 404, () =>
-      client.fabric.sipEndpoints.update('missing', { username: 'x' }),
+      client.fabric.sipEndpoints.update('missing', { username: 'x' } as unknown as SipEndpointUpdateRequest),
     );
     expect(last.matched_route).toBe('fabric.update_sip_endpoint');
     expect(last.response_status).toBe(404);
@@ -1126,14 +1179,16 @@ describe('SIP Gateways', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.sipGateways.create({ name: 'sg' }));
+    const { last } = await callOk(() =>
+      client.fabric.sipGateways.create({ name: 'sg' } as unknown as SipGatewayRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/sip_gateways');
     expect(last.matched_route).toBe('fabric.create_sip_gateway');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_sip_gateway', 422, () =>
-      client.fabric.sipGateways.create({}),
+      client.fabric.sipGateways.create({} as SipGatewayRequest),
     );
     expect(last.matched_route).toBe('fabric.create_sip_gateway');
     expect(last.response_status).toBe(422);
@@ -1208,7 +1263,7 @@ describe('Subscribers', () => {
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_subscriber', 422, () =>
-      client.fabric.subscribers.create({}),
+      client.fabric.subscribers.create({} as SubscriberRequest),
     );
     expect(last.matched_route).toBe('fabric.create_subscriber');
     expect(last.response_status).toBe(422);
@@ -1290,7 +1345,7 @@ describe('Subscribers', () => {
 
   it('create sip endpoint success', async () => {
     const { last } = await callOk(() =>
-      client.fabric.subscribers.createSipEndpoint('sub-1', { username: 'u' }),
+      client.fabric.subscribers.createSipEndpoint('sub-1', 'u', 'pw'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/subscribers/sub-1/sip_endpoints');
@@ -1298,7 +1353,7 @@ describe('Subscribers', () => {
   });
   it('create sip endpoint error 422', async () => {
     const last = await callErr('fabric.create_subscriber_sip_endpoint', 422, () =>
-      client.fabric.subscribers.createSipEndpoint('sub-1', { username: 'u' }),
+      client.fabric.subscribers.createSipEndpoint('sub-1', 'u', 'pw'),
     );
     expect(last.matched_route).toBe('fabric.create_subscriber_sip_endpoint');
     expect(last.response_status).toBe(422);
@@ -1320,7 +1375,7 @@ describe('Subscribers', () => {
 
   it('update sip endpoint success (PATCH)', async () => {
     const { last } = await callOk(() =>
-      client.fabric.subscribers.updateSipEndpoint('sub-1', 'ep-1', { username: 'renamed' }),
+      client.fabric.subscribers.updateSipEndpoint('sub-1', 'ep-1', 'renamed'),
     );
     expect(last.method).toBe('PATCH');
     expect(last.path).toBe('/api/fabric/resources/subscribers/sub-1/sip_endpoints/ep-1');
@@ -1328,7 +1383,7 @@ describe('Subscribers', () => {
   });
   it('update sip endpoint error 404', async () => {
     const last = await callErr('fabric.update_subscriber_sip_endpoint', 404, () =>
-      client.fabric.subscribers.updateSipEndpoint('sub-1', 'missing', { username: 'x' }),
+      client.fabric.subscribers.updateSipEndpoint('sub-1', 'missing', 'x'),
     );
     expect(last.matched_route).toBe('fabric.update_subscriber_sip_endpoint');
     expect(last.response_status).toBe(404);
@@ -1370,14 +1425,16 @@ describe('SWML Scripts', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.swmlScripts.create({ name: 'ss' }));
+    const { last } = await callOk(() =>
+      client.fabric.swmlScripts.create({ name: 'ss' } as unknown as SwmlScriptCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/swml_scripts');
     expect(last.matched_route).toBe('fabric.create_swml_script');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_swml_script', 422, () =>
-      client.fabric.swmlScripts.create({}),
+      client.fabric.swmlScripts.create({} as SwmlScriptCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_swml_script');
     expect(last.response_status).toBe(422);
@@ -1398,14 +1455,16 @@ describe('SWML Scripts', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.fabric.swmlScripts.update('ss-1', { name: 'x' }));
+    const { last } = await callOk(() =>
+      client.fabric.swmlScripts.update('ss-1', { name: 'x' } as unknown as SwmlScriptUpdateRequest),
+    );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/fabric/resources/swml_scripts/ss-1');
     expect(last.matched_route).toBe('fabric.update_swml_script');
   });
   it('update error 404', async () => {
     const last = await callErr('fabric.update_swml_script', 404, () =>
-      client.fabric.swmlScripts.update('missing', { name: 'x' }),
+      client.fabric.swmlScripts.update('missing', { name: 'x' } as unknown as SwmlScriptUpdateRequest),
     );
     expect(last.matched_route).toBe('fabric.update_swml_script');
     expect(last.response_status).toBe(404);
@@ -1460,14 +1519,16 @@ describe('SWML Webhooks', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.fabric.swmlWebhooks.create({ name: 'sw' }));
+    const { last } = await callOk(() =>
+      client.fabric.swmlWebhooks.create({ name: 'sw' } as unknown as SWMLWebhookCreateRequest),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/fabric/resources/swml_webhooks');
     expect(last.matched_route).toBe('fabric.create_swml_webhook');
   });
   it('create error 422', async () => {
     const last = await callErr('fabric.create_swml_webhook', 422, () =>
-      client.fabric.swmlWebhooks.create({}),
+      client.fabric.swmlWebhooks.create({} as SWMLWebhookCreateRequest),
     );
     expect(last.matched_route).toBe('fabric.create_swml_webhook');
     expect(last.response_status).toBe(422);

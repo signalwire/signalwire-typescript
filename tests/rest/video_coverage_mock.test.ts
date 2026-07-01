@@ -21,6 +21,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
 import type { JournalEntry, MockHarness } from './mocktest.js';
+import type {
+  CreateRoomRequest,
+  CreateConferenceRequest,
+} from '../../src/rest/namespaces/video.types.generated.js';
 import { RestError } from '../../src/rest/RestError.js';
 
 let client: RestClient;
@@ -82,7 +86,11 @@ describe('Video Rooms', () => {
     expect(last.matched_route).toBe('video.create_room');
   });
   it('create error 422', async () => {
-    const last = await callErr('video.create_room', 422, () => client.video.rooms.create({}));
+    // 422 path: intentionally-invalid (empty) body; cast to satisfy the typed
+    // create() param since the test is exercising the error route, not a body.
+    const last = await callErr('video.create_room', 422, () =>
+      client.video.rooms.create({} as CreateRoomRequest),
+    );
     expect(last.matched_route).toBe('video.create_room');
     expect(last.response_status).toBe(422);
   });
@@ -105,14 +113,14 @@ describe('Video Rooms', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.video.rooms.update('room-1', { name: 'x' }));
+    const { last } = await callOk(() => client.video.rooms.update('room-1', { display_name: 'x' }));
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/video/rooms/room-1');
     expect(last.matched_route).toBe('video.update_room');
   });
   it('update error 404', async () => {
     const last = await callErr('video.update_room', 404, () =>
-      client.video.rooms.update('missing', { name: 'x' }),
+      client.video.rooms.update('missing', { display_name: 'x' }),
     );
     expect(last.matched_route).toBe('video.update_room');
     expect(last.response_status).toBe(404);
@@ -149,7 +157,7 @@ describe('Video Rooms', () => {
 
   it('create stream success', async () => {
     const { last } = await callOk(() =>
-      client.video.rooms.createStream('room-1', { url: 'rtmp://example.com/live' }),
+      client.video.rooms.createStream('room-1', 'rtmp://example.com/live'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/video/rooms/room-1/streams');
@@ -157,7 +165,7 @@ describe('Video Rooms', () => {
   });
   it('create stream error 422', async () => {
     const last = await callErr('video.create_room_stream', 422, () =>
-      client.video.rooms.createStream('room-1', { url: 'rtmp://example.com/live' }),
+      client.video.rooms.createStream('room-1', 'rtmp://example.com/live'),
     );
     expect(last.matched_route).toBe('video.create_room_stream');
     expect(last.response_status).toBe(422);
@@ -169,7 +177,7 @@ describe('Video Rooms', () => {
 describe('Video Room Tokens', () => {
   it('create success', async () => {
     const { last } = await callOk(() =>
-      client.video.roomTokens.create({ room_name: 'standup', user_name: 'Alice' }),
+      client.video.roomTokens.create('standup', 'Alice'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/video/room_tokens');
@@ -177,7 +185,7 @@ describe('Video Room Tokens', () => {
   });
   it('create error 422', async () => {
     const last = await callErr('video.create_room_token', 422, () =>
-      client.video.roomTokens.create({ room_name: 'standup' }),
+      client.video.roomTokens.create('standup'),
     );
     expect(last.matched_route).toBe('video.create_room_token');
     expect(last.response_status).toBe(422);
@@ -343,14 +351,16 @@ describe('Video Conferences', () => {
   });
 
   it('create success', async () => {
-    const { last } = await callOk(() => client.video.conferences.create({ name: 'conf' }));
+    const { last } = await callOk(() =>
+      client.video.conferences.create({ display_name: 'conf' }),
+    );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/video/conferences');
     expect(last.matched_route).toBe('video.create_video_conference');
   });
   it('create error 422', async () => {
     const last = await callErr('video.create_video_conference', 422, () =>
-      client.video.conferences.create({}),
+      client.video.conferences.create({} as CreateConferenceRequest),
     );
     expect(last.matched_route).toBe('video.create_video_conference');
     expect(last.response_status).toBe(422);
@@ -371,14 +381,16 @@ describe('Video Conferences', () => {
   });
 
   it('update success (PUT)', async () => {
-    const { last } = await callOk(() => client.video.conferences.update('conf-1', { name: 'x' }));
+    const { last } = await callOk(() =>
+      client.video.conferences.update('conf-1', { display_name: 'x' }),
+    );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/video/conferences/conf-1');
     expect(last.matched_route).toBe('video.update_video_conference');
   });
   it('update error 404', async () => {
     const last = await callErr('video.update_video_conference', 404, () =>
-      client.video.conferences.update('missing', { name: 'x' }),
+      client.video.conferences.update('missing', { display_name: 'x' }),
     );
     expect(last.matched_route).toBe('video.update_video_conference');
     expect(last.response_status).toBe(404);
@@ -432,7 +444,7 @@ describe('Video Conferences', () => {
 
   it('create stream success', async () => {
     const { last } = await callOk(() =>
-      client.video.conferences.createStream('conf-1', { url: 'rtmp://example.com/live' }),
+      client.video.conferences.createStream('conf-1', 'rtmp://example.com/live'),
     );
     expect(last.method).toBe('POST');
     expect(last.path).toBe('/api/video/conferences/conf-1/streams');
@@ -440,7 +452,7 @@ describe('Video Conferences', () => {
   });
   it('create stream error 422', async () => {
     const last = await callErr('video.create_conference_stream', 422, () =>
-      client.video.conferences.createStream('conf-1', { url: 'rtmp://example.com/live' }),
+      client.video.conferences.createStream('conf-1', 'rtmp://example.com/live'),
     );
     expect(last.matched_route).toBe('video.create_conference_stream');
     expect(last.response_status).toBe(422);
@@ -496,7 +508,7 @@ describe('Video Streams', () => {
 
   it('update success (PUT)', async () => {
     const { last } = await callOk(() =>
-      client.video.streams.update('stream-1', { url: 'rtmp://example.com/new' }),
+      client.video.streams.update('stream-1', 'rtmp://example.com/new'),
     );
     expect(last.method).toBe('PUT');
     expect(last.path).toBe('/api/video/streams/stream-1');
@@ -504,7 +516,7 @@ describe('Video Streams', () => {
   });
   it('update error 404', async () => {
     const last = await callErr('video.update_stream', 404, () =>
-      client.video.streams.update('missing', { url: 'rtmp://example.com/new' }),
+      client.video.streams.update('missing', 'rtmp://example.com/new'),
     );
     expect(last.matched_route).toBe('video.update_stream');
     expect(last.response_status).toBe(404);
