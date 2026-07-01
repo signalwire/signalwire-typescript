@@ -348,7 +348,7 @@ describe('Call', () => {
 
     it('tap returns TapAction', async () => {
       const call = makeCall();
-      const action = await call.tap({}, { type: 'rtp' });
+      const action = await call.tap({ type: 'audio' }, { type: 'rtp' });
       expect(action).toBeInstanceOf(TapAction);
     });
 

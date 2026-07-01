@@ -220,7 +220,7 @@ describe('DetectAction', () => {
     const action = await call.detect({ type: 'machine', params: {} }, { controlId: 'det-ctl-1' });
     expect(action).toBeInstanceOf(DetectAction);
     const event = await action.wait(5);
-    expect(event.params.detect?.type).toBe('machine');
+    expect((event.params.detect as { type?: string } | undefined)?.type).toBe('machine');
   });
 
   it('test_detect_stop_journals_detect_stop', async () => {
@@ -289,7 +289,7 @@ describe('CollectAction (play_and_collect)', () => {
     });
     const event = await action.wait(2);
     expect(event.eventType).toBe('calling.call.collect');
-    expect(event.params.result?.type).toBe('digit');
+    expect((event.params.result as { type?: string } | undefined)?.type).toBe('digit');
   });
 
   it('test_play_and_collect_stop_journals_pac_stop', async () => {

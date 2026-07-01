@@ -32,7 +32,7 @@ export class MockWebSocket extends EventEmitter {
   /** Get the last sent JSON message. */
   getLastSent(): Record<string, unknown> | null {
     if (this.sent.length === 0) return null;
-    return JSON.parse(this.sent[this.sent.length - 1]);
+    return JSON.parse(this.sent[this.sent.length - 1]!);
   }
 
   /** Get all sent messages as parsed JSON. */

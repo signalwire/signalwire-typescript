@@ -23,9 +23,13 @@ function mockCall(): CallLike & {
   const execCalls: Array<{ method: string; params?: Record<string, unknown> }> = [];
   return {
     execCalls,
-    async _execute(method: string, params?: Record<string, unknown>) {
+    async _execute<R extends object = Record<string, unknown>>(
+      method: string,
+      params?: Record<string, unknown>,
+    ): Promise<R> {
       execCalls.push({ method, params });
-      return { code: '200', message: 'OK' };
+      // Mock always returns the same generic OK result; cast to the caller's R.
+      return { code: '200', message: 'OK' } as unknown as R;
     },
   };
 }

@@ -82,7 +82,7 @@ async function lastFrameParams(method: string): Promise<RelayFrame> {
   const deadline = Date.now() + 2000;
   for (;;) {
     const entries = await mock.journalRecv(method);
-    if (entries.length > 0) return entries[entries.length - 1]!.frame.params;
+    if (entries.length > 0) return entries[entries.length - 1]!.frame.params!;
     if (Date.now() >= deadline) {
       throw new Error(`no ${method} frame landed in journal within 2s`);
     }

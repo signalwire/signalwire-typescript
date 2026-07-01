@@ -145,7 +145,7 @@ async function lastFrameParams(method: string): Promise<RelayFrame> {
   const deadline = Date.now() + 2000;
   for (;;) {
     const entries = await mock.journalRecv(method);
-    if (entries.length > 0) return entries[entries.length - 1]!.frame.params;
+    if (entries.length > 0) return entries[entries.length - 1]!.frame.params!;
     if (Date.now() >= deadline) throw new Error(`no ${method} frame landed in journal within 2s`);
     await new Promise((r) => setTimeout(r, 20));
   }
@@ -182,10 +182,12 @@ describe('TtsGender closed set (playTTS / promptTTS gender)', () => {
   });
 
   it('still accepts an arbitrary (forward-compat) gender string — Python str parity', async () => {
-    // The `(string & {})` arm widens the param back to string at the type
-    // level, so a value outside the literal set is accepted and forwarded.
+    // This test verifies the RUNTIME forwards an out-of-set gender string
+    // unchanged (Python str parity). The SDK types `gender` as the closed
+    // TtsGender union ('male' | 'female'), so an arbitrary value is a compile
+    // error; cast to exercise the runtime-forwarding behavior the test asserts.
     const call = await answeredInboundCall('cs-gender-open');
-    await call.playTTS('hi', { gender: 'neutral' });
+    await call.playTTS('hi', { gender: 'neutral' as TtsGender });
     const p = await lastFrameParams('calling.play');
     expect(p.play![0]!.params!.gender).toBe('neutral');
   });
