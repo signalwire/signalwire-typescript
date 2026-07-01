@@ -24,7 +24,7 @@ beforeEach(async () => {
 
 describe('datasphere wire (generated)', () => {
   it('documents_create success', async () => {
-    await client.datasphere.documents.create({});
+    await client.datasphere.documents.create({ url: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('datasphere.create_document');
@@ -32,7 +32,7 @@ describe('datasphere wire (generated)', () => {
 
   it('documents_create error', async () => {
     await mock.pushScenario('datasphere.create_document', 500, { error: 'x' });
-    await expect(client.datasphere.documents.create({})).rejects.toThrow(RestError);
+    await expect(client.datasphere.documents.create({ url: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -136,7 +136,7 @@ describe('datasphere wire (generated)', () => {
   });
 
   it('documents_update success', async () => {
-    await client.datasphere.documents.update('x', {});
+    await client.datasphere.documents.update('x', { tags: [] });
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.matched_route).toBe('datasphere.update_document');
@@ -144,7 +144,7 @@ describe('datasphere wire (generated)', () => {
 
   it('documents_update error', async () => {
     await mock.pushScenario('datasphere.update_document', 500, { error: 'x' });
-    await expect(client.datasphere.documents.update('x', {})).rejects.toThrow(RestError);
+    await expect(client.datasphere.documents.update('x', { tags: [] })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

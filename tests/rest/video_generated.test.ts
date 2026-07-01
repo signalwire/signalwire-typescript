@@ -24,7 +24,7 @@ beforeEach(async () => {
 
 describe('video wire (generated)', () => {
   it('conferences_create success', async () => {
-    await client.video.conferences.create({});
+    await client.video.conferences.create({ display_name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('video.create_video_conference');
@@ -32,7 +32,7 @@ describe('video wire (generated)', () => {
 
   it('conferences_create error', async () => {
     await mock.pushScenario('video.create_video_conference', 500, { error: 'x' });
-    await expect(client.video.conferences.create({})).rejects.toThrow(RestError);
+    await expect(client.video.conferences.create({ display_name: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -122,7 +122,7 @@ describe('video wire (generated)', () => {
   });
 
   it('conferences_update success', async () => {
-    await client.video.conferences.update('x', {});
+    await client.video.conferences.update('x', { display_name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('video.update_video_conference');
@@ -130,7 +130,9 @@ describe('video wire (generated)', () => {
 
   it('conferences_update error', async () => {
     await mock.pushScenario('video.update_video_conference', 500, { error: 'x' });
-    await expect(client.video.conferences.update('x', {})).rejects.toThrow(RestError);
+    await expect(client.video.conferences.update('x', { display_name: 'x' })).rejects.toThrow(
+      RestError,
+    );
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -220,7 +222,7 @@ describe('video wire (generated)', () => {
   });
 
   it('rooms_create success', async () => {
-    await client.video.rooms.create({});
+    await client.video.rooms.create({ name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('video.create_room');
@@ -228,7 +230,7 @@ describe('video wire (generated)', () => {
 
   it('rooms_create error', async () => {
     await mock.pushScenario('video.create_room', 500, { error: 'x' });
-    await expect(client.video.rooms.create({})).rejects.toThrow(RestError);
+    await expect(client.video.rooms.create({ name: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

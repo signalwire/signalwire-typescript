@@ -267,8 +267,25 @@ class SignatureResolver {
     // Array / tuple → [].
     if (this.checker.isArrayType(type) || this.checker.isTupleType(type)) return '[]';
 
-    // Object / interface / TypedDict-like → {}.
-    if (type.flags & ts.TypeFlags.Object) return '{}';
+    // Object / interface / TypedDict-like. A bare `{}` fails to type-check against a closed
+    // request type that has REQUIRED fields (TS2345 under strict). So fill each required
+    // property with its own sentinel; optional props are omitted. An index-signature-only /
+    // all-optional object still yields `{}`.
+    if (type.flags & ts.TypeFlags.Object) {
+      const required = this.checker
+        .getPropertiesOfType(type)
+        .filter((sym) => !(sym.flags & ts.SymbolFlags.Optional));
+      if (required.length === 0) return '{}';
+      const entries = required.map((sym) => {
+        const propType = this.checker.getTypeOfSymbolAtLocation(
+          sym,
+          sym.valueDeclaration ?? sym.declarations?.[0] ?? (undefined as unknown as ts.Node),
+        );
+        const key = /^[A-Za-z_$][\w$]*$/.test(sym.name) ? sym.name : JSON.stringify(sym.name);
+        return `${key}: ${this.sentinel(propType, depth + 1)}`;
+      });
+      return `{ ${entries.join(', ')} }`;
+    }
 
     // any / unknown / fallback.
     return "'x'";
