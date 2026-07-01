@@ -1,6 +1,7 @@
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { CallingNamespace } from '../../src/rest/namespaces/calling.js';
 import { mockClientOptions, type MockResponse } from './helpers.js';
+import type { WireBody } from './mocktest.js';
 
 describe('CallingNamespace', () => {
   function setup(responses: MockResponse[] = [{ status: 200, body: { result: 'ok' } }]) {
@@ -37,7 +38,7 @@ describe('CallingNamespace', () => {
       ['OPUS', 'G729', 'VP8', 'PCMA'],
     );
     const req = getRequests()[0];
-    expect(req!.body.params.codecs).toEqual(['OPUS', 'G729', 'VP8', 'PCMA']);
+    expect((req!.body.params as WireBody).codecs).toEqual(['OPUS', 'G729', 'VP8', 'PCMA']);
   });
 
   it('dial forwards codecs as comma-separated string', async () => {
@@ -54,7 +55,7 @@ describe('CallingNamespace', () => {
       'OPUS,G729,VP8,PCMA',
     );
     const req = getRequests()[0];
-    expect(req!.body.params.codecs).toBe('OPUS,G729,VP8,PCMA');
+    expect((req!.body.params as WireBody).codecs).toBe('OPUS,G729,VP8,PCMA');
   });
 
   it('end sends command with call_id', async () => {
