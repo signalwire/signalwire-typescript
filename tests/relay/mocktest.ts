@@ -73,6 +73,19 @@ export interface RelayFrame {
 export type RelayFrameValue = RelayFrame;
 
 /**
+ * Read a journaled-frame leaf as the string it is on the wire. `RelayFrame`
+ * models every node as an open object so nested reads stay cast-free (see
+ * above), which means a leaf that is actually a wire string types as
+ * `RelayFrame | undefined`. Comparing that to a string literal is a genuine
+ * "no overlap" type error even though it is correct at runtime. `frameStr`
+ * localizes the one unavoidable cast: use it when asserting a leaf's string
+ * value (`frameStr(frame.method) === 'signalwire.event'`).
+ */
+export function frameStr(v: RelayFrameValue | undefined): string | undefined {
+  return v as unknown as string | undefined;
+}
+
+/**
  * One recorded WebSocket frame from the mock server's journal. Mirrors
  * mock_relay.journal.JournalEntry over the wire.
  */
@@ -145,8 +158,8 @@ export class MockRelayHarness {
     const entries = j.filter((e) => e.direction === 'send');
     if (eventType == null) return entries;
     return entries.filter((e) => {
-      const params = e.frame?.params ?? {};
-      return e.frame?.method === 'signalwire.event' && params?.event_type === eventType;
+      const params = (e.frame?.params ?? {}) as RelayFrame;
+      return frameStr(e.frame?.method) === 'signalwire.event' && frameStr(params?.event_type) === eventType;
     });
   }
 

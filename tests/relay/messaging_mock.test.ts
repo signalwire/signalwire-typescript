@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Message } from '../../src/relay/Message.js';
-import { newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { frameStr, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -70,7 +70,7 @@ describe('Messaging — outbound send', () => {
     const p = entry!.frame.params;
     expect(p!.media).toEqual(['https://media.example/cat.jpg']);
     // The Python test allows either no body or empty body; check the same.
-    expect(p!.body == null || p!.body === '').toBe(true);
+    expect(p!.body == null || frameStr(p!.body) === '').toBe(true);
   });
 
   it('test_send_message_includes_context', async () => {

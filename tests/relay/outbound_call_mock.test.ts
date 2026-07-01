@@ -19,7 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
-import { newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { frameStr, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -107,7 +107,7 @@ describe('Dial — happy path', () => {
       for (let i = 0; i < 200; i++) {
         const entries = await mock.journalRecv('calling.dial');
         if (entries.length > 0) {
-          seenTag.v = entries[entries.length - 1]!.frame.params!.tag as string;
+          seenTag.v = frameStr(entries[entries.length - 1]!.frame.params!.tag);
           break;
         }
         await new Promise((r) => setTimeout(r, 10));
@@ -211,7 +211,7 @@ describe('Dial — winner / losers', () => {
 
     const sends = await mock.journalSend('calling.call.dial');
     expect(sends.length).toBeGreaterThan(0);
-    const finals = sends.filter((e) => e.frame.params?.params?.dial_state === 'answered');
+    const finals = sends.filter((e) => frameStr(e.frame.params?.params?.dial_state) === 'answered');
     expect(finals.length).toBe(1);
     const inner = finals[0]!.frame.params!.params;
     expect(inner!.call!.dial_winner).toBe(true);
@@ -230,9 +230,9 @@ describe('Dial — winner / losers', () => {
     await client.dial([[phoneDevice()]], { tag: 't-losers', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const loserStates = stateEvents
-      .filter((e) => e.frame.params!.params?.call_id === 'L1')
+      .filter((e) => frameStr(e.frame.params!.params?.call_id) === 'L1')
       .map((e) => e.frame.params!.params);
-    expect(loserStates.some((s) => s!.call_state === 'ended')).toBe(true);
+    expect(loserStates.some((s) => frameStr(s!.call_state) === 'ended')).toBe(true);
   });
 
   it('test_dial_losers_cleaned_up_from_calls_dict', async () => {
@@ -305,7 +305,7 @@ describe('Dial — state progression', () => {
     const call = await client.dial([[phoneDevice()]], { tag: 't-prog', dialTimeout: 5.0 });
     const stateEvents = await mock.journalSend('calling.call.state');
     const winnerStates = stateEvents
-      .filter((e) => e.frame.params!.params?.call_id === 'WIN-PROG')
+      .filter((e) => frameStr(e.frame.params!.params?.call_id) === 'WIN-PROG')
       .map((e) => e.frame.params!.params!.call_state);
     expect(winnerStates).toContain('created');
     expect(winnerStates).toContain('ringing');

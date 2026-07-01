@@ -21,7 +21,13 @@ import {
   METHOD_SIGNALWIRE_CONNECT,
   PROTOCOL_VERSION,
 } from '../../src/relay/constants.js';
-import { getMockRelay, newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
+import {
+  frameStr,
+  getMockRelay,
+  newRelayClient,
+  sessionIdOf,
+  type MockRelayHarness,
+} from './mocktest.js';
 
 let client: RelayClient | null = null;
 let mock: MockRelayHarness;
@@ -132,7 +138,7 @@ describe('RelayClient.connect — reconnect with protocol', () => {
     await c2.disconnect();
 
     const connects = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    const resumed = connects.filter((e) => e.frame?.params?.protocol === issued);
+    const resumed = connects.filter((e) => frameStr(e.frame?.params?.protocol) === issued);
     expect(resumed.length).toBeGreaterThan(0);
   });
 
@@ -250,6 +256,6 @@ describe('RelayClient.connect — JWT', () => {
     const auth = entry!.frame.params!.authentication;
     expect(auth!.jwt_token).toBe('fake-jwt-eyJ.AaaA.BbB');
     // JWT path doesn't include project/token.
-    expect(auth!.token == null || auth!.token === '').toBe(true);
+    expect(auth!.token == null || frameStr(auth!.token) === '').toBe(true);
   });
 });

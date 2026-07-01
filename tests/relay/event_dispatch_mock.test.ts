@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { RelayEvent } from '../../src/relay/RelayEvent.js';
-import { newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
+import { frameStr, newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -219,7 +219,7 @@ describe('Event dispatch — event ACK', () => {
 
     const j = await mock.journal();
     const acks = j.filter(
-      (e) => e.direction === 'recv' && e.frame.id === evtId && 'result' in e.frame,
+      (e) => e.direction === 'recv' && frameStr(e.frame.id) === evtId && 'result' in e.frame,
     );
     expect(acks.length).toBeGreaterThan(0);
   });
@@ -285,7 +285,7 @@ describe('Event dispatch — server ping', () => {
 
     const j = await mock.journal();
     const pongs = j.filter(
-      (e) => e.direction === 'recv' && e.frame.id === pingId && 'result' in e.frame,
+      (e) => e.direction === 'recv' && frameStr(e.frame.id) === pingId && 'result' in e.frame,
     );
     expect(pongs.length).toBeGreaterThan(0);
   });
