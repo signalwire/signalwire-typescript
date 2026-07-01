@@ -193,6 +193,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // fold the module path to match (the surface analog of the signature diff's
   // gen-payload module fold). Their type names then compare 1:1 cross-port.
   'src/swml_verbs_generated.ts': 'signalwire.core.swml_verbs_generated',
+  'src/SwaigActions.generated.ts': 'signalwire.core.swaig_actions_generated',
   // The SWML/SWAIG webhook payload types the reference generates under
   // `signalwire.rest.namespaces.swml_webhooks_types_generated`.
   'src/PlatformContracts.generated.ts':
@@ -424,6 +425,7 @@ function enumerateFile(file: string): FileSurface {
   const isGeneratedTypeFile =
     /\.types\.generated\.ts$/.test(file) ||
     /SwaigContracts\.generated\.ts$/.test(file) ||
+    /SwaigActions\.generated\.ts$/.test(file) ||
     /PlatformContracts\.generated\.ts$/.test(file) ||
     /swml_verbs_generated\.ts$/.test(file);
 

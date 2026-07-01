@@ -1407,6 +1407,57 @@ async function generateSwaigContracts(
   return decls.length;
 }
 
+// ---- SWAIG response-action config types (swaig-response.yaml) ---------------
+
+/**
+ * The typed SWAIG response-action CONFIG surface, mirroring the Python reference's
+ * `generate_swaig_actions` (swaig_actions_generated.py). For each action under
+ * `SwaigAction.properties`, an object-shaped value (a bare object, or the object
+ * branches of a oneOf) is lifted into a `<Verb>Action` interface — the typed config a
+ * FunctionResult action builder accepts (e.g. `TransferAction`, `PlaybackBgAction`).
+ * Only the TYPE surface is emitted here; the ergonomic builder methods live on
+ * FunctionResult. Emitted into one module so cross-action refs resolve locally.
+ */
+async function generateSwaigActions(specPath: string, outPath: string): Promise<number> {
+  const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
+  const actions = doc.components?.schemas?.SwaigAction?.properties;
+  if (!actions) throw new Error('swaig-response.yaml: missing SwaigAction.properties');
+
+  const decls: string[] = [];
+  const isObj = (s: Schema | undefined): boolean =>
+    !!s && s.type === 'object' && !!s.properties;
+
+  // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces.
+  // Matches the Python emitter: a bare object → one interface; the object branches of
+  // a oneOf → `<Verb>Action`, `<Verb>Action2`, … (scalar/const/array branches are not
+  // named types). Names collide-free with the SWML verb types (same PascalCase(verb)).
+  for (const verb of Object.keys(actions).sort()) {
+    const schema = actions[verb]!;
+    const branches = schema.oneOf ?? (isObj(schema) ? [schema] : []);
+    let objIdx = 0;
+    for (const b of branches) {
+      if (!isObj(b)) continue;
+      objIdx += 1;
+      const name = `${pascal(verb)}Action${objIdx === 1 ? '' : String(objIdx)}`;
+      decls.push(swaigDeclaration(name, { type: 'object', properties: b.properties }));
+    }
+  }
+
+  const header =
+    `// AUTO-GENERATED from porting-sdk/swaig-specs/swaig-response.yaml — DO NOT EDIT.\n` +
+    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// The typed SWAIG response-action CONFIG types (one <Verb>Action per object-shaped\n` +
+    `// action value). The ergonomic builder methods live on FunctionResult; these are the\n` +
+    `// shapes those methods accept. Held to the same lint bar as hand source.\n\n`;
+  const config = (await prettier.resolveConfig(outPath)) ?? {};
+  const formatted = await prettier.format(header + decls.join('\n'), {
+    ...config,
+    parser: 'typescript',
+  });
+  emitFile(outPath, formatted);
+  return decls.length;
+}
+
 // ---- SWML verb config types (schema.json $defs) ----------------------------
 
 /**
@@ -1671,6 +1722,19 @@ async function main(): Promise<void> {
     console.log(
       `skipped SWAIG contracts (no swaig-specs at ${path.join(psdk, 'swaig-specs')}; ` +
         `using committed src/SwaigContracts.generated.ts).`,
+    );
+  }
+
+  // Typed SWAIG response-action CONFIG types (from swaig-response.yaml).
+  const swaigRespSpec = path.join(psdk, 'swaig-specs', 'swaig-response.yaml');
+  if (fs.existsSync(swaigRespSpec)) {
+    const swaigActionsOut = 'src/SwaigActions.generated.ts';
+    const n = await generateSwaigActions(swaigRespSpec, swaigActionsOut);
+    console.log(`${verb} ${swaigActionsOut} (${n} types)`);
+  } else {
+    console.log(
+      `skipped SWAIG action contracts (no swaig-response.yaml; ` +
+        `using committed src/SwaigActions.generated.ts).`,
     );
   }
 

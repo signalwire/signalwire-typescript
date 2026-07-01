@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4a6eb9a28016ea646f54b7a7becf93804a0ac170",
+  "generated_from": "signalwire-typescript @ efe4381c6d001dac13e47e879308ed36a3d0195b",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -643,6 +643,15 @@
           "size",
           "unload_skill"
         ]
+      },
+      "functions": []
+    },
+    "signalwire.core.swaig_actions_generated": {
+      "classes": {
+        "ContextSwitchAction": [],
+        "HoldAction": [],
+        "PlaybackBgAction": [],
+        "TransferAction": []
       },
       "functions": []
     },
