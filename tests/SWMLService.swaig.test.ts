@@ -27,7 +27,8 @@ describe('SWMLService SWAIG hosting', () => {
         description: 'Look it up',
         parameters: {},
         handler: (args, _raw) => {
-          for (const k of Object.keys(args)) captured[k] = args[k];
+          const a = args as Record<string, unknown>;
+          for (const k of Object.keys(a)) captured[k] = a[k];
           return { response: 'ok' };
         },
       });
@@ -43,8 +44,8 @@ describe('SWMLService SWAIG hosting', () => {
 
     it('lists tool names in registration order', () => {
       const svc = new SWMLService();
-      svc.defineTool({ name: 'first', description: 'f', parameters: {}, handler: () => null });
-      svc.defineTool({ name: 'second', description: 's', parameters: {}, handler: () => null });
+      svc.defineTool({ name: 'first', description: 'f', parameters: {}, handler: () => ({}) });
+      svc.defineTool({ name: 'second', description: 's', parameters: {}, handler: () => ({}) });
       expect(svc.listToolNames()).toEqual(['first', 'second']);
     });
 
@@ -148,9 +149,10 @@ describe('SWMLService SWAIG hosting', () => {
         direction: ['remote-caller', 'local-caller'],
       });
       const rendered = svc.renderSwml();
-      const main = (rendered['sections'] as Record<string, unknown[]>)['main'] as Array<
-        Record<string, unknown>
-      >;
+      const main = ((rendered as Record<string, unknown>)['sections'] as Record<
+        string,
+        unknown[]
+      >)['main'] as Array<Record<string, unknown>>;
       const verbs = main.map((v) => Object.keys(v)[0]);
       expect(verbs).toContain('answer');
       expect(verbs).toContain('ai_sidecar');

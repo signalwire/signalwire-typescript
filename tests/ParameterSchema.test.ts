@@ -18,6 +18,7 @@ import {
   RECORD_DIRECTIONS,
   TAP_DIRECTIONS,
   TAP_CODECS,
+  type ParameterSchemaObject,
 } from '../src/ParameterSchema.js';
 
 /** Pull a named function's `parameters` out of a real rendered SWML document. */
@@ -192,13 +193,15 @@ describe('ParameterSchema (Tier-1 closed-set convenience → enum:[...])', () =>
 });
 
 describe('ParameterSchema (real agent: rendered SWAIG JSON, no mocks)', () => {
-  function agentWithTool(parameters: Record<string, unknown>): AgentBase {
+  function agentWithTool(parameters: ParameterSchemaObject | Record<string, unknown>): AgentBase {
     const agent = new AgentBase({ name: 'ps-test', route: '/ps' });
     agent.setPromptText('hello');
     agent.defineTool({
       name: 'get_forecast',
       description: 'Get a 3-day forecast',
-      parameters,
+      // ParameterSchemaObject is a closed interface (no index signature) but is
+      // a structurally-valid parameters blob; widen to the Record the API takes.
+      parameters: parameters as Record<string, unknown>,
       handler: (args: Record<string, unknown>) =>
         new FunctionResult(`Forecast for ${args['location']}`),
     });
@@ -257,7 +260,10 @@ describe('ParameterSchema (real agent: rendered SWAIG JSON, no mocks)', () => {
     agent.defineTypedTool({
       name: 'pick_format',
       description: 'Pick a recording format',
-      parameters: paramSchema().recordFormat('fmt', 'Recording format').build(),
+      parameters: paramSchema().recordFormat('fmt', 'Recording format').build() as unknown as Record<
+        string,
+        unknown
+      >,
       handler: (fmt: string) => new FunctionResult(`Picked ${fmt}`),
     });
     const rendered = renderedParams(agent, 'pick_format') as {

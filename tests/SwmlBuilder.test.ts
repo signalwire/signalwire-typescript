@@ -68,7 +68,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       const verbNames = schemaUtils.getVerbNames();
       expect(verbNames.length).toBe(38);
       for (const name of verbNames) {
-        expect(typeof (builder as Record<string, unknown>)[name]).toBe('function');
+        expect(typeof (builder as unknown as Record<string, unknown>)[name]).toBe('function');
       }
     });
 
@@ -134,7 +134,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
 
     it('label() with string', () => {
-      (builder as unknown as Record<string, (...args: unknown[]) => unknown>)['label']('greeting');
+      (builder as unknown as Record<string, (...args: unknown[]) => unknown>)['label']!('greeting');
       const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ label: 'greeting' });
     });

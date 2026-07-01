@@ -986,8 +986,8 @@ describe('AgentBase', () => {
       name: 'arg_test',
       description: 'Test args',
       parameters: {},
-      handler: (_args, _params, _body) => {
-        captured.push(_args);
+      handler: (args) => {
+        captured.push(args as Record<string, unknown>);
         return new FunctionResult('ok');
       },
     });
@@ -1258,7 +1258,7 @@ describe('AgentBase', () => {
       agent.setPromptPom([{ title: 'Original', body: 'Body' }]);
       const pom = agent.pom!;
       // Mutate the snapshot directly.
-      pom.sections.push(pom.sections[0]);
+      pom.sections.push(pom.sections[0]!);
       // Subsequent calls reflect agent state, not the mutated snapshot.
       agent.setPromptPom([{ title: 'New', body: 'Other' }]);
       const pom2 = agent.pom!;

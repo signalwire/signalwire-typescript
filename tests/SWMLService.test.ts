@@ -41,7 +41,9 @@ describe('SWMLService', () => {
 
       const doc = svc.renderSwml();
       expect(doc).toHaveProperty('version', '1.0.0');
-      const main = (doc['sections'] as Record<string, unknown>)['main'] as unknown[];
+      const main = ((doc as Record<string, unknown>)['sections'] as Record<string, unknown>)[
+        'main'
+      ] as unknown[];
       expect(main).toHaveLength(3);
       expect(main[0]).toEqual({ answer: { max_duration: 300 } });
       expect(main[1]).toEqual({ play: { url: 'say:Hello' } });
@@ -63,7 +65,9 @@ describe('SWMLService', () => {
       expect(doc).toHaveProperty('version', '1.0.0');
       expect(doc).toHaveProperty('sections');
       // No AI block
-      const main = (doc['sections'] as Record<string, unknown>)['main'] as unknown[];
+      const main = ((doc as Record<string, unknown>)['sections'] as Record<string, unknown>)[
+        'main'
+      ] as unknown[];
       for (const verb of main) {
         expect(verb).not.toHaveProperty('ai');
       }
@@ -72,7 +76,9 @@ describe('SWMLService', () => {
     it('returns empty main section when no verbs added', () => {
       const svc = new SWMLService();
       const doc = svc.renderSwml();
-      const main = (doc['sections'] as Record<string, unknown>)['main'] as unknown[];
+      const main = ((doc as Record<string, unknown>)['sections'] as Record<string, unknown>)[
+        'main'
+      ] as unknown[];
       expect(main).toEqual([]);
     });
   });
