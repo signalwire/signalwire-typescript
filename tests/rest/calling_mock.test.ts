@@ -15,7 +15,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 const CALLS_PATH = '/api/calling/calls';
 
@@ -45,13 +45,14 @@ describe('Calling lifecycle', () => {
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
     expect(last.matched_route).not.toBeNull();
-    expect(last.body.command).toBe('update');
-    expect('id' in last.body).toBe(false);
-    expect(last.body.params.id).toBe('call-1');
-    expect(last.body.params.state).toBe('hold');
+    expect(wireBody.command).toBe('update');
+    expect('id' in wireBody).toBe(false);
+    expect((wireBody.params as WireBody).id).toBe('call-1');
+    expect((wireBody.params as WireBody).state).toBe('hold');
   });
 
   it('test_transfer', async () => {
@@ -63,12 +64,13 @@ describe('Calling lifecycle', () => {
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.transfer');
-    expect(last.body.id).toBe('call-123');
-    expect(last.body.params.destination).toBe('+15551234567');
-    expect(last.body.params.from_number).toBe('+15559876543');
+    expect(wireBody.command).toBe('calling.transfer');
+    expect(wireBody.id).toBe('call-123');
+    expect((wireBody.params as WireBody).destination).toBe('+15551234567');
+    expect((wireBody.params as WireBody).from_number).toBe('+15559876543');
   });
 
   it('test_disconnect', async () => {
@@ -77,11 +79,12 @@ describe('Calling lifecycle', () => {
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.disconnect');
-    expect(last.body.id).toBe('call-456');
-    expect(last.body.params.reason).toBe('busy');
+    expect(wireBody.command).toBe('calling.disconnect');
+    expect(wireBody.id).toBe('call-456');
+    expect((wireBody.params as WireBody).reason).toBe('busy');
   });
 });
 
@@ -95,11 +98,12 @@ describe('Calling play', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.play.pause');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('ctrl-1');
+    expect(wireBody.command).toBe('calling.play.pause');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('ctrl-1');
   });
 
   it('test_play_resume', async () => {
@@ -107,11 +111,12 @@ describe('Calling play', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.play.resume');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('ctrl-1');
+    expect(wireBody.command).toBe('calling.play.resume');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('ctrl-1');
   });
 
   it('test_play_stop', async () => {
@@ -119,11 +124,12 @@ describe('Calling play', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.play.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('ctrl-1');
+    expect(wireBody.command).toBe('calling.play.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('ctrl-1');
   });
 
   it('test_play_volume', async () => {
@@ -131,11 +137,12 @@ describe('Calling play', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.play.volume');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.volume).toBe(2.5);
+    expect(wireBody.command).toBe('calling.play.volume');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).volume).toBe(2.5);
   });
 });
 
@@ -151,11 +158,12 @@ describe('Calling record', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.record');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.record).toEqual({ format: 'mp3' });
+    expect(wireBody.command).toBe('calling.record');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).record).toEqual({ format: 'mp3' });
   });
 
   it('test_record_pause', async () => {
@@ -163,11 +171,12 @@ describe('Calling record', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.record.pause');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('rec-1');
+    expect(wireBody.command).toBe('calling.record.pause');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('rec-1');
   });
 
   it('test_record_resume', async () => {
@@ -175,11 +184,12 @@ describe('Calling record', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.record.resume');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('rec-1');
+    expect(wireBody.command).toBe('calling.record.resume');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('rec-1');
   });
 });
 
@@ -193,11 +203,12 @@ describe('Calling collect', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.collect');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.initial_timeout).toBe(5);
+    expect(wireBody.command).toBe('calling.collect');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).initial_timeout).toBe(5);
   });
 
   it('test_collect_stop', async () => {
@@ -205,11 +216,12 @@ describe('Calling collect', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.collect.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('col-1');
+    expect(wireBody.command).toBe('calling.collect.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('col-1');
   });
 
   it('test_collect_start_input_timers', async () => {
@@ -217,11 +229,12 @@ describe('Calling collect', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.collect.start_input_timers');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('col-1');
+    expect(wireBody.command).toBe('calling.collect.start_input_timers');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('col-1');
   });
 });
 
@@ -235,11 +248,12 @@ describe('Calling detect', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.detect');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.detect.type).toBe('machine');
+    expect(wireBody.command).toBe('calling.detect');
+    expect(wireBody.id).toBe('call-1');
+    expect(((wireBody.params as WireBody).detect as WireBody).type).toBe('machine');
   });
 
   it('test_detect_stop', async () => {
@@ -247,11 +261,12 @@ describe('Calling detect', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.detect.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('det-1');
+    expect(wireBody.command).toBe('calling.detect.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('det-1');
   });
 });
 
@@ -261,11 +276,12 @@ describe('Calling tap', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.tap');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.tap).toEqual({ type: 'audio' });
+    expect(wireBody.command).toBe('calling.tap');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).tap).toEqual({ type: 'audio' });
   });
 
   it('test_tap_stop', async () => {
@@ -273,11 +289,12 @@ describe('Calling tap', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.tap.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('tap-1');
+    expect(wireBody.command).toBe('calling.tap.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('tap-1');
   });
 });
 
@@ -287,11 +304,12 @@ describe('Calling stream', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.stream');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.url).toBe('wss://example.com/audio');
+    expect(wireBody.command).toBe('calling.stream');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).url).toBe('wss://example.com/audio');
   });
 
   it('test_stream_stop', async () => {
@@ -299,11 +317,12 @@ describe('Calling stream', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.stream.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('stream-1');
+    expect(wireBody.command).toBe('calling.stream.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('stream-1');
   });
 });
 
@@ -313,10 +332,11 @@ describe('Calling denoise', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.denoise');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.denoise');
+    expect(wireBody.id).toBe('call-1');
   });
 
   it('test_denoise_stop', async () => {
@@ -324,10 +344,11 @@ describe('Calling denoise', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.denoise.stop');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.denoise.stop');
+    expect(wireBody.id).toBe('call-1');
   });
 });
 
@@ -340,11 +361,12 @@ describe('Calling transcribe', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.transcribe');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.language).toBe('en-US');
+    expect(wireBody.command).toBe('calling.transcribe');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).language).toBe('en-US');
   });
 
   it('test_transcribe_stop', async () => {
@@ -352,11 +374,12 @@ describe('Calling transcribe', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.transcribe.stop');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.control_id).toBe('tr-1');
+    expect(wireBody.command).toBe('calling.transcribe.stop');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).control_id).toBe('tr-1');
   });
 });
 
@@ -370,10 +393,11 @@ describe('Calling AI', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.ai_hold');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.ai_hold');
+    expect(wireBody.id).toBe('call-1');
   });
 
   it('test_ai_unhold', async () => {
@@ -381,10 +405,11 @@ describe('Calling AI', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.ai_unhold');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.ai_unhold');
+    expect(wireBody.id).toBe('call-1');
   });
 
   it('test_ai_stop', async () => {
@@ -392,10 +417,11 @@ describe('Calling AI', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.ai.stop');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.ai.stop');
+    expect(wireBody.id).toBe('call-1');
   });
 });
 
@@ -413,11 +439,12 @@ describe('Calling live transcribe / translate', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.live_transcribe');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.language).toBe('en-US');
+    expect(wireBody.command).toBe('calling.live_transcribe');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).language).toBe('en-US');
   });
 
   it('test_live_translate', async () => {
@@ -430,12 +457,13 @@ describe('Calling live transcribe / translate', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.live_translate');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.source_language).toBe('en');
-    expect(last.body.params.target_language).toBe('es');
+    expect(wireBody.command).toBe('calling.live_translate');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).source_language).toBe('en');
+    expect((wireBody.params as WireBody).target_language).toBe('es');
   });
 });
 
@@ -449,10 +477,11 @@ describe('Calling fax', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.send_fax.stop');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.send_fax.stop');
+    expect(wireBody.id).toBe('call-1');
   });
 
   it('test_receive_fax_stop', async () => {
@@ -460,10 +489,11 @@ describe('Calling fax', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.receive_fax.stop');
-    expect(last.body.id).toBe('call-1');
+    expect(wireBody.command).toBe('calling.receive_fax.stop');
+    expect(wireBody.id).toBe('call-1');
   });
 });
 
@@ -479,11 +509,12 @@ describe('Calling misc (refer / user_event)', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.refer');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.to).toBe('sip:other@example.com');
+    expect(wireBody.command).toBe('calling.refer');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).to).toBe('sip:other@example.com');
   });
 
   it('test_user_event', async () => {
@@ -498,11 +529,12 @@ describe('Calling misc (refer / user_event)', () => {
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
+    const wireBody = last.body as WireBody;
     expect(last.method).toBe('POST');
     expect(last.path).toBe(CALLS_PATH);
-    expect(last.body.command).toBe('calling.user_event');
-    expect(last.body.id).toBe('call-1');
-    expect(last.body.params.event_name).toBe('my-event');
-    expect(last.body.params.payload).toEqual({ foo: 'bar' });
+    expect(wireBody.command).toBe('calling.user_event');
+    expect(wireBody.id).toBe('call-1');
+    expect((wireBody.params as WireBody).event_name).toBe('my-event');
+    expect((wireBody.params as WireBody).payload).toEqual({ foo: 'bar' });
   });
 });
