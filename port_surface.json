@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 665395a4284df7aaecb4115e4da011e3c48cbd52",
+  "generated_from": "signalwire-typescript @ 9d595f7b6af75c94f39549e7c9ac74a725ee4890",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -31,6 +31,23 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.agents.bedrock": {
+      "classes": {
+        "BedrockAgent": [
+          "__init__",
+          "render_swml",
+          "set_inference_params",
+          "set_llm_model",
+          "set_llm_temperature",
+          "set_post_prompt_llm_params",
+          "set_prompt_llm_params",
+          "set_voice"
+        ]
+      },
+      "functions": [
+        "create_bedrock_agent"
+      ]
     },
     "signalwire.cli.core.agent_loader": {
       "classes": {},
@@ -779,6 +796,7 @@
           "list_tool_names",
           "manual_set_proxy_url",
           "on_function_call",
+          "on_request",
           "register_additional_routes",
           "register_routing_callback",
           "register_swaig_function",
@@ -1141,7 +1159,9 @@
       "classes": {
         "ConciergeAgent": [
           "__init__",
+          "check_availability",
           "define_tools",
+          "get_directions",
           "on_summary"
         ]
       },
@@ -1154,7 +1174,8 @@
         "FAQBotAgent": [
           "__init__",
           "define_tools",
-          "on_summary"
+          "on_summary",
+          "search_faqs"
         ]
       },
       "functions": [
@@ -1167,7 +1188,9 @@
           "__init__",
           "define_tools",
           "on_swml_request",
-          "set_question_callback"
+          "set_question_callback",
+          "start_questions",
+          "submit_answer"
         ]
       },
       "functions": [
@@ -1191,7 +1214,9 @@
         "SurveyAgent": [
           "__init__",
           "define_tools",
-          "on_summary"
+          "log_response",
+          "on_summary",
+          "validate_response"
         ]
       },
       "functions": [
@@ -2666,7 +2691,8 @@
         "WebRtcRecording": [],
         "GetRecordingResponse": [],
         "CreateBrandRequest": [],
-        "CreateCampaignRequest": []
+        "CreateCampaignRequest": [],
+        "PhoneCallHandler": []
       },
       "functions": []
     },

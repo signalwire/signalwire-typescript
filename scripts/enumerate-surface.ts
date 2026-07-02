@@ -223,6 +223,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/skills/SkillBase.ts': 'signalwire.core.skill_base',
   'src/skills/SkillManager.ts': 'signalwire.core.skill_manager',
   'src/skills/SkillRegistry.ts': 'signalwire.skills.registry',
+  // Agents
+  'src/agents/BedrockAgent.ts': 'signalwire.agents.bedrock',
   // Prefabs
   'src/prefabs/ConciergeAgent.ts': 'signalwire.prefabs.concierge',
   'src/prefabs/FAQBotAgent.ts': 'signalwire.prefabs.faq_bot',
@@ -1121,6 +1123,50 @@ function main(): void {
         if (refMethods?.has(v)) existing.add(v);
       }
       modules[SWML_BUILDER]!.classes['SWMLBuilder'] = Array.from(existing).sort();
+    }
+  }
+
+  // Reconcile: SWMLService.on_request. Python declares the default no-op
+  // `on_request` hook on BOTH SWMLService (the base) AND WebMixin. TS declares
+  // the single overridable `onRequest` hook on AgentBase (which extends
+  // SWMLService); the AgentBase-folding loop above already projected it onto
+  // WebMixin (where it now lives, having been moved off AgentBase). Project the
+  // same member onto SWMLService too so the surface records the base-class
+  // declaration — same capability, reachable via `agent.onRequest(...)`. Kept in
+  // lock-step with the signatures enumerator's SWMLService.on_request projection.
+  // Guarded on WebMixin actually carrying on_request so a rename fails loud.
+  {
+    const webMixinHasOnRequest = (
+      modules['signalwire.core.mixins.web_mixin']?.classes?.['WebMixin'] ?? []
+    ).includes('on_request');
+    if (webMixinHasOnRequest) {
+      const entry = ensureModule('signalwire.core.swml_service');
+      const existing = new Set(entry.classes['SWMLService'] ?? []);
+      existing.add('on_request');
+      entry.classes['SWMLService'] = Array.from(existing).sort();
+    }
+  }
+
+  // Reconcile: PhoneCallHandler (the `call_handler` value enum). The reference
+  // GENERATES it as a method-less enum class under
+  // `signalwire.rest.namespaces.relay_rest_types_generated`. TS expresses the same
+  // value set as the idiomatic `const PhoneCallHandler = {…} as const` + companion
+  // union type in `src/rest/callHandler.ts` (named PhoneCallHandler to avoid
+  // colliding with the RELAY inbound-call-handler callback). An `export const`
+  // object literal is not a class or a callable, so the AST walk above does not
+  // collect it — but the CAPABILITY (the enum surface) is present. Surface it as a
+  // bare (method-less) class under the reference's generated-type module so it
+  // compares equal. Guarded on the file actually exporting the const so a rename
+  // fails loud rather than silently keeping a phantom symbol.
+  {
+    const callHandlerAbs = path.join(srcDir, 'rest', 'callHandler.ts');
+    if (fs.existsSync(callHandlerAbs)) {
+      const src = fs.readFileSync(callHandlerAbs, 'utf-8');
+      if (/export\s+const\s+PhoneCallHandler\b/.test(src)) {
+        const mod = 'signalwire.rest.namespaces.relay_rest_types_generated';
+        const entry = ensureModule(mod);
+        if (!entry.classes['PhoneCallHandler']) entry.classes['PhoneCallHandler'] = [];
+      }
     }
   }
 

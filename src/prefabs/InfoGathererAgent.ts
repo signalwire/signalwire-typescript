@@ -11,7 +11,6 @@ import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwmlRequestData } from '../PlatformContracts.js';
-import type { SwaigRequest } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -290,26 +289,7 @@ export class InfoGathererAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args: Record<string, unknown>, rawData: SwaigRequest) => {
-        const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
-        const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
-        const questionIndex = (globalData['question_index'] as number) ?? 0;
-
-        if (!questions || questionIndex >= questions.length) {
-          return new FunctionResult("I don't have any questions to ask.");
-        }
-
-        const current = questions[questionIndex]!; // questionIndex < length checked above
-        const instruction = this.generateQuestionInstruction(
-          current.question_text ?? '',
-          current.confirm === true,
-          true,
-        );
-
-        const result = new FunctionResult(instruction);
-        result.replaceInHistory('Welcome! Let me ask you a few questions.');
-        return result;
-      },
+      handler: this.startQuestions.bind(this),
     });
 
     // Tool: submit_answer
@@ -325,46 +305,80 @@ export class InfoGathererAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData) => {
-        // args.answer is inferred `string` from the wrapped schema's properties.
-        const answer = args.answer ?? '';
-
-        const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
-        const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
-        const questionIndex = (globalData['question_index'] as number) ?? 0;
-        const priorAnswers =
-          (globalData['answers'] as Array<{ key_name: string; answer: string }>) ?? [];
-
-        if (questionIndex >= questions.length) {
-          return new FunctionResult('All questions have already been answered.');
-        }
-
-        const current = questions[questionIndex]!; // questionIndex < length checked above
-        const keyName = current.key_name ?? '';
-        const newAnswers = [...priorAnswers, { key_name: keyName, answer }];
-        const newIndex = questionIndex + 1;
-
-        if (newIndex < questions.length) {
-          const next = questions[newIndex]!; // newIndex < length checked above
-          const instruction = this.generateQuestionInstruction(
-            next.question_text ?? '',
-            next.confirm === true,
-            false,
-          );
-          const result = new FunctionResult(instruction);
-          result.replaceInHistory();
-          result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
-          return result;
-        }
-
-        const result = new FunctionResult(
-          "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
-        );
-        result.replaceInHistory();
-        result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
-        return result;
-      },
+      handler: this.submitAnswer.bind(this),
     });
+  }
+
+  // ── SWAIG tool handlers (named methods, mirroring the Python prefab) ───
+
+  /**
+   * SWAIG handler for `start_questions`: emit the instruction for the first
+   * question from the per-call `global_data`. Mirrors Python
+   * `InfoGathererAgent.start_questions`.
+   */
+  startQuestions(_args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
+    const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
+    const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
+    const questionIndex = (globalData['question_index'] as number) ?? 0;
+
+    if (!questions || questionIndex >= questions.length) {
+      return new FunctionResult("I don't have any questions to ask.");
+    }
+
+    const current = questions[questionIndex]!; // questionIndex < length checked above
+    const instruction = this.generateQuestionInstruction(
+      current.question_text ?? '',
+      current.confirm === true,
+      true,
+    );
+
+    const result = new FunctionResult(instruction);
+    result.replaceInHistory('Welcome! Let me ask you a few questions.');
+    return result;
+  }
+
+  /**
+   * SWAIG handler for `submit_answer`: record the answer to the current question
+   * and advance to the next one. Mirrors Python
+   * `InfoGathererAgent.submit_answer`.
+   */
+  submitAnswer(args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
+    const answer = (args['answer'] as string) ?? '';
+
+    const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
+    const questions = (globalData['questions'] as InfoGathererQuestion[]) ?? [];
+    const questionIndex = (globalData['question_index'] as number) ?? 0;
+    const priorAnswers =
+      (globalData['answers'] as Array<{ key_name: string; answer: string }>) ?? [];
+
+    if (questionIndex >= questions.length) {
+      return new FunctionResult('All questions have already been answered.');
+    }
+
+    const current = questions[questionIndex]!; // questionIndex < length checked above
+    const keyName = current.key_name ?? '';
+    const newAnswers = [...priorAnswers, { key_name: keyName, answer }];
+    const newIndex = questionIndex + 1;
+
+    if (newIndex < questions.length) {
+      const next = questions[newIndex]!; // newIndex < length checked above
+      const instruction = this.generateQuestionInstruction(
+        next.question_text ?? '',
+        next.confirm === true,
+        false,
+      );
+      const result = new FunctionResult(instruction);
+      result.replaceInHistory();
+      result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
+      return result;
+    }
+
+    const result = new FunctionResult(
+      "Thank you! All questions have been answered. You can now summarize the information collected or ask if there's anything else the user would like to discuss.",
+    );
+    result.replaceInHistory();
+    result.updateGlobalData({ answers: newAnswers, question_index: newIndex });
+    return result;
   }
 }
 

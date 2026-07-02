@@ -235,6 +235,10 @@ export {
   McpGatewaySkill,
 } from './skills/builtin/index.js';
 
+// Agents
+export { BedrockAgent, createBedrockAgent } from './agents/BedrockAgent.js';
+export type { BedrockAgentConfig } from './agents/BedrockAgent.js';
+
 // Prefab Agents
 export {
   InfoGathererAgent,

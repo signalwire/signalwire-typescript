@@ -94,6 +94,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/skills/SkillBase.ts': 'signalwire.core.skill_base',
   'src/skills/SkillManager.ts': 'signalwire.core.skill_manager',
   'src/skills/SkillRegistry.ts': 'signalwire.skills.registry',
+  'src/agents/BedrockAgent.ts': 'signalwire.agents.bedrock',
   'src/prefabs/ConciergeAgent.ts': 'signalwire.prefabs.concierge',
   'src/prefabs/FAQBotAgent.ts': 'signalwire.prefabs.faq_bot',
   'src/prefabs/InfoGathererAgent.ts': 'signalwire.prefabs.info_gatherer',
@@ -267,6 +268,12 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   ],
   MCPServerMixin: ['signalwire.core.mixins.mcp_server_mixin', ['add_mcp_server']],
   StateMixin: ['signalwire.core.mixins.state_mixin', ['validate_tool_token']],
+  // Python declares the default no-op `on_request` hook on BOTH WebMixin AND
+  // SWMLService (the base). TS declares the single `onRequest` hook on AgentBase
+  // (which extends SWMLService). Project it onto SWMLService too so the base-class
+  // declaration is recorded (kept in lock-step with enumerate-surface.ts's
+  // SWMLService.on_request projection).
+  SWMLService: ['signalwire.core.swml_service', ['on_request']],
 };
 
 const SKIP_METHOD_NAMES = new Set([

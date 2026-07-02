@@ -75,15 +75,12 @@ signalwire.search.search_service.SearchService.stop: approved: Python-only RAG /
 
 ## Bedrock (AWS-specific agent)
 
-signalwire.agents.bedrock.BedrockAgent: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.__init__: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.__repr__: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_inference_params: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_llm_model: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
-signalwire.agents.bedrock.BedrockAgent.set_voice: deliberately omitted: AWS Bedrock agent belongs to a Python-specific cloud path (see PORTING_GUIDE.md § What to Skip)
+# BedrockAgent is now IMPLEMENTED as a real TS AgentBase subclass in
+# src/agents/BedrockAgent.ts (class + __init__ + the 6 setters), mirroring the
+# Python prefab. Those symbols are PRESENT in port_surface.json and compare
+# equal — they are no longer omitted. Only __repr__ (Python object protocol)
+# remains omitted, under the "Python dunder methods" section below with an
+# `impossible:` reason.
 
 ## CLI: init_project
 
@@ -289,7 +286,7 @@ signalwire.mcp_gateway.session_manager.SessionManager.shutdown: approved: Python
 
 ## Mixin class identifiers (folded into AgentBase in TS)
 
-signalwire.core.mixins.tool_mixin.ToolMixin.tool: TS architecture folds all mixins into AgentBase directly — mixin class names have no TS counterpart (the methods themselves are folded and present on AgentBase)
+signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
 
 ## Web-search variants (skill_improved / skill_original)
 
@@ -327,15 +324,11 @@ signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.register_tools: approved: Py
 signalwire.skills.web_search.skill_improved.WebSearchSkill.register_tools: TS SkillBase handles tool registration automatically inside addSkill() via the getTools() contract; concrete skills do not need to expose a separate register_tools hook
 signalwire.skills.web_search.skill_original.WebSearchSkill.register_tools: TS SkillBase handles tool registration automatically inside addSkill() via the getTools() contract; concrete skills do not need to expose a separate register_tools hook
 
-## Prefab tool-handler methods (closure-based in TS)
-
-signalwire.prefabs.concierge.ConciergeAgent.check_availability: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.concierge.ConciergeAgent.get_directions: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.faq_bot.FAQBotAgent.search_faqs: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.info_gatherer.InfoGathererAgent.start_questions: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.info_gatherer.InfoGathererAgent.submit_answer: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.survey.SurveyAgent.log_response: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
-signalwire.prefabs.survey.SurveyAgent.validate_response: prefab tool handler method — TS prefabs use closure-based tools rather than named methods; behavior is equivalent
+# Prefab tool-handler methods are now REFACTORED from inline closures into named
+# class methods (checkAvailability / getDirections / searchFaqs / startQuestions /
+# submitAnswer / logResponse / validateResponse), each registered via
+# `handler: this.<method>.bind(this)`. They are PRESENT in port_surface.json and
+# compare equal to the Python prefab handlers — no longer omitted.
 
 ## Python dunder methods (no TS equivalent)
 
@@ -357,19 +350,18 @@ signalwire.rest._pagination.PaginatedIterator.__next__: impossible: Python itera
 
 ## Individual omissions (case-by-case)
 
-signalwire.core.agent.tools.decorator.ToolDecorator: deliberately omitted: Python uses decorators for tool registration; TS uses imperative defineTool() instead, which is idiomatic for TypeScript
-signalwire.core.agent.tools.decorator.ToolDecorator.create_class_decorator: deliberately omitted: see ToolDecorator rationale
-signalwire.core.agent.tools.decorator.ToolDecorator.create_instance_decorator: deliberately omitted: see ToolDecorator rationale
-signalwire.core.agent.tools.registry.ToolRegistry.register_class_decorated_tools: deliberately omitted: TS does not use decorator-based tool registration (see ToolDecorator)
+signalwire.core.agent.tools.decorator.ToolDecorator: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
+signalwire.core.agent.tools.decorator.ToolDecorator.create_class_decorator: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
+signalwire.core.agent.tools.decorator.ToolDecorator.create_instance_decorator: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
+signalwire.core.agent.tools.registry.ToolRegistry.register_class_decorated_tools: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
 signalwire.core.auth_handler.AuthHandler.flask_decorator: impossible: produces a Flask view decorator; Flask is a Python web framework with no TS equivalent — TS ships the Hono-native AuthHandler.middleware + expressMiddleware instead (recorded additions)
 signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: impossible: produces a FastAPI Depends() dependency; FastAPI is a Python web framework with no TS equivalent — TS ships the Hono-native AuthHandler.middleware instead (recorded addition)
 signalwire.core.security_config.SecurityConfig.get_ssl_context_kwargs: impossible: returns kwargs for Python's stdlib ssl.SSLContext; TS/node has no ssl.SSLContext — the equivalent capability is SslConfig.getServerOptions() for node:https (recorded addition)
-signalwire.core.swml_renderer.SwmlRenderer: deliberately omitted: TS folds SWML rendering into AgentBase.renderSwml() / SWMLService.render() — no free-standing SwmlRenderer class needed
-signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: deliberately omitted: see SwmlRenderer rationale
-signalwire.core.swml_renderer.SwmlRenderer.render_swml: deliberately omitted: see SwmlRenderer rationale
-signalwire.rest._pagination.PaginatedIterator: TS uses the paginate() / paginateAll() async generator helpers instead of a class-based iterator (functionally equivalent; more idiomatic for JS)
-signalwire.rest._pagination.PaginatedIterator.__init__: see PaginatedIterator rationale
-signalwire.rest.call_handler.PhoneCallHandler: TS exports PhoneCallHandler as a string literal type rather than a Python-style enum class; the value set (flow, cxml, webhook, relay) is the same
+signalwire.core.swml_renderer.SwmlRenderer: impossible: TS folds SWML rendering into SWMLService/AgentBase (AgentBase.renderSwml / SWMLService.render), no separate SwmlRenderer class
+signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: impossible: TS folds SWML rendering into SWMLService/AgentBase, no separate SwmlRenderer class
+signalwire.core.swml_renderer.SwmlRenderer.render_swml: impossible: TS folds SWML rendering into SWMLService/AgentBase, no separate SwmlRenderer class
+signalwire.rest._pagination.PaginatedIterator: impossible: TS paginates via the paginate()/paginateAll() async-iterator functions (native AsyncGenerator), no PaginatedIterator class
+signalwire.rest._pagination.PaginatedIterator.__init__: impossible: TS paginates via the paginate()/paginateAll() async-iterator functions (native AsyncGenerator), no PaginatedIterator class to construct
 signalwire.rest.namespaces.fabric.AutoMaterializedWebhook: deliberately omitted: TS uses the AutoMaterializedWebhookResource alias to avoid collision with the TS string literal type of the same idea; the Resource class covers the create() flow
 signalwire.rest.namespaces.fabric.AutoMaterializedWebhook.create: see AutoMaterializedWebhook rationale
 signalwire.skills.google_maps.skill.GoogleMapsClient: deliberately omitted: GoogleMapsClient is a Python-only helper class; TS GoogleMapsSkill calls the Maps HTTP API directly via fetch
@@ -391,10 +383,10 @@ signalwire.skills.web_search.skill.GoogleSearchScraper.is_reddit_url: see Google
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape: see GoogleSearchScraper rationale
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape_best: see GoogleSearchScraper rationale
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_google: see GoogleSearchScraper rationale
-signalwire.utils.schema_utils.SchemaUtils.generate_method_body: deliberately omitted: Python code-generation helper used by generateVerbTypes.ts; TS emits the generated file directly rather than via a SchemaUtils method
-signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: deliberately omitted: see generate_method_body rationale
-signalwire.utils.schema_utils.SchemaValidationError: TS uses plain Error subclasses; no dedicated SchemaValidationError class needed — see PORT_ADDITIONS.md for RestError / AjvError equivalents
-signalwire.utils.schema_utils.SchemaValidationError.__init__: see SchemaValidationError rationale
+signalwire.utils.schema_utils.SchemaUtils.generate_method_body: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
+signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
+signalwire.utils.schema_utils.SchemaValidationError: impossible: TS returns a ValidationResult (SchemaUtils.validate → { valid, errors }), no exception class
+signalwire.utils.schema_utils.SchemaValidationError.__init__: impossible: TS returns a ValidationResult (SchemaUtils.validate → { valid, errors }), no exception class to construct
 
 ## ToolMixin / ToolRegistry (Python uses mixin pattern — TS uses direct methods on SWMLService)
 
@@ -413,9 +405,13 @@ signalwire.skills.registry.SkillRegistry.logger: TS uses `getLogger('SkillRegist
 signalwire.web.web_service.WebService.app: TS WebService exposes the Hono app via `getApp()` getter (see PORT_ADDITIONS.md WebService.get_app); the bare `app` attribute name is not used in TS
 signalwire.web.web_service.WebService.security: TS WebService exposes the SslConfig via `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS
 
-## SWMLService.on_request (default no-op; subclass-overridable hook)
-
-signalwire.core.swml_service.SWMLService.on_request: Python declares `on_request` as a default no-op on SWMLService that subclasses override; TS only declares the override on AgentBase via WebMixin projection — equivalent functionality is reachable through `agent.onRequest(...)`, but the bare declaration on SWMLService is not surfaced
+# SWMLService.on_request is now RECONCILED: the enumerators (surface +
+# signatures, in lock-step) project TS's AgentBase.onRequest hook onto
+# SWMLService (its base), mirroring Python which declares the default no-op
+# `on_request` on both SWMLService and WebMixin. It is PRESENT in
+# port_surface.json — no longer omitted. (The signature type divergence — TS
+# types the body param as SwmlRequestData vs Python's Optional[Dict] — is
+# recorded in PORT_SIGNATURE_OMISSIONS.md, same as the WebMixin projection.)
 
 ## Webhook signature validation: framework-specific adapter
 
@@ -432,9 +428,11 @@ in PORT_ADDITIONS.md). The signature gate excuses this structurally via
 _is_abstract_action_base_method; the surface gate excuses the bare base classes + their methods here.
 
 
-## relay_rest PhoneCallHandler enum (hand-written in TS, generated in the reference)
-
-signalwire.rest.namespaces.relay_rest_types_generated.PhoneCallHandler: the `call_handler` value enum; the reference generates it into relay_rest_types_generated, TS hand-writes it as the idiomatic const+type pair in src/rest/callHandler.ts (exported as `PhoneCallHandler`, named to avoid colliding with CallHandler). Same values; not surfaced under the generated-type module because it lives in a hand file, which the surface enumerator intentionally does not scan for types.
+# relay_rest PhoneCallHandler is now RECONCILED: the surface enumerator projects
+# TS's `export const PhoneCallHandler` (src/rest/callHandler.ts, the `call_handler`
+# value enum) as a bare method-less class under the reference's generated-type
+# module `signalwire.rest.namespaces.relay_rest_types_generated.PhoneCallHandler`.
+# It is PRESENT in port_surface.json and compares equal — no longer omitted.
 
 ## AgentServer.agents (private field + accessor idiom)
 

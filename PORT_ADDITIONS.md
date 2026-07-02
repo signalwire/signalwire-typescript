@@ -93,6 +93,8 @@ signalwire.core.mixins.serverless_mixin.ServerlessAdapter.get_platform: TS port-
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.handle_request: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.swaig_function.is_full_parameter_schema: TS port-only helper — discriminates a full JSON Schema from a bare properties map; Python inlines the sniff and has no exported helper
 signalwire.core.swaig_function.normalize_parameters: TS port-only helper — unifies the parameters-shape normalization (full schema vs bare map) that was reimplemented in 3 places; no Python counterpart
+signalwire.agents.bedrock.BedrockAgent.render_swml: TS override of the public renderSwml entry point (transforms the ai verb into amazon_bedrock); Python overrides the private `_render_swml` instead, so the public method isn't re-declared on the class. Same pattern as the recorded AgentBase.render_swml addition.
+signalwire.agents.bedrock.create_bedrock_agent: TS port-only factory helper mirroring the prefab create_*_agent factories; no Python counterpart.
 signalwire.prefabs.concierge.ConciergeAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.concierge.create_concierge_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.prefabs.faq_bot.FAQBotAgent.define_tools: TS port-only helper — functionality has no direct Python equivalent

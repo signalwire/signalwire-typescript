@@ -471,6 +471,7 @@ signalwire.core.contexts.GatherInfo.to_dict: TS returns `class:...GatherInfoDict
 signalwire.core.contexts.Step.to_dict: TS returns `class:...StepDict`; Python returns the equivalent `dict<string,any>`. Same JSON, stronger TS typing.
 signalwire.core.function_result.FunctionResult.to_dict: TS returns `class:...SwaigResultDict` (typed `{response?, action?, post_process?}`); Python returns the equivalent `dict<string,any>`. Same SWAIG response JSON, stronger TS typing.
 signalwire.core.mixins.web_mixin.WebMixin.on_request: TS types the request body param as `class:...SwmlRequestData` (the canonical dynamic-SWML request shape, swml.md); Python types it `Optional[Dict[str, Any]]`. Same payload, stronger TS typing.
+signalwire.core.swml_service.SWMLService.on_request: TS types the request body param as `class:...SwmlRequestData` (the canonical dynamic-SWML request shape, swml.md); Python types it `Optional[Dict[str, Any]]`. Same payload, stronger TS typing. (Same AgentBase.onRequest hook projected onto SWMLService, the reference's base declaration.)
 signalwire.core.skill_base.SkillBase.get_skill_data: TS types the raw_data param as `class:...SwaigRequestData` (the canonical SWAIG-webhook request shape, swml.md); Python types it `Dict[str, Any]`. Same payload, stronger TS typing.
 
 ## Webhook validator: optional<union<...>> vs union<...,void>
@@ -512,3 +513,21 @@ signalwire.core.swml_builder.SWMLBuilder.play: idiom: dynamically-installed/decl
 signalwire.rest._base.SignalWireRestError.body: idiom: TS exposes the parsed error body as a public property on the consolidated RestError/SignalWireRestError class; Python has no such attribute
 signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_parameter_schema: idiom: TS static get_parameter_schema accessor; the reference SIGNATURES oracle records no class for this skill module (same shape as the other per-skill get_parameter_schema backlog entries)
 signalwire.utils.schema_utils.SchemaUtils.validate_document: idiom: TS validate() returns a ValidationResult object (structured), Python validate_document returns a (bool, list[str]) tuple — same validation capability, TS-idiomatic return
+
+## BedrockAgent: present in the surface oracle, absent from the signatures oracle
+
+The Python reference records `signalwire.agents.bedrock.BedrockAgent` in
+`python_surface.json` (the surface gate requires it) but NOT in
+`python_signatures.json` (the signatures enumerator did not capture the class).
+The TS port implements BedrockAgent as a real AgentBase subclass
+(src/agents/BedrockAgent.ts), so its methods are enumerated on the port side but
+have no reference signature to compare against (missing-reference). Excused here
+until the reference signatures oracle carries BedrockAgent.
+
+signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+signalwire.agents.bedrock.BedrockAgent.set_voice: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare

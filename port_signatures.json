@@ -249,6 +249,160 @@
         }
       }
     },
+    "signalwire.agents.bedrock": {
+      "classes": {
+        "BedrockAgent": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "config",
+                  "type": "class:signalwire.agents.bedrock.BedrockAgentConfig",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "render_swml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "modifications",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "string"
+            },
+            "set_inference_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "temperature",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "top_p",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_tokens",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "set_llm_model": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "model",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_llm_temperature": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "temperature",
+                  "type": "float",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_post_prompt_llm_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_params",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_prompt_llm_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_params",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      },
+      "functions": {
+        "create_bedrock_agent": {
+          "params": [
+            {
+              "name": "config",
+              "type": "class:signalwire.agents.bedrock.BedrockAgentConfig",
+              "required": false,
+              "default": {}
+            }
+          ],
+          "returns": "class:signalwire.agents.bedrock.BedrockAgent"
+        }
+      }
+    },
     "signalwire.cli.agent_loader": {
       "functions": {
         "list_agents": {
@@ -7261,6 +7415,27 @@
                 }
               ],
               "returns": "class:signalwire.core.swml_service.VerbHandlerRegistry"
+            },
+            "on_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "callback_path",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
             }
           }
         },
@@ -8673,6 +8848,25 @@
               ],
               "returns": "void"
             },
+            "check_availability": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
+            },
             "define_tools": {
               "params": [
                 {
@@ -8681,6 +8875,25 @@
                 }
               ],
               "returns": "void"
+            },
+            "get_directions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
             },
             "on_summary": {
               "params": [
@@ -8771,6 +8984,25 @@
                 }
               ],
               "returns": "union<void,void>"
+            },
+            "search_faqs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
             }
           }
         }
@@ -8843,6 +9075,44 @@
                 }
               ],
               "returns": "any"
+            },
+            "start_questions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
+            },
+            "submit_answer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
             }
           }
         }
@@ -8950,6 +9220,25 @@
               ],
               "returns": "void"
             },
+            "log_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
+            },
             "on_summary": {
               "params": [
                 {
@@ -8977,6 +9266,25 @@
                 }
               ],
               "returns": "list<class:signalwire.prefabs.survey.SurveyQuestion>"
+            },
+            "validate_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.core.function_result.FunctionResult"
             }
           }
         }
