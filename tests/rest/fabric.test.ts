@@ -110,7 +110,7 @@ describe('FabricNamespace', () => {
 
     it('updates a SIP endpoint with PATCH', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.subscribers.updateSipEndpoint('sub1', 'ep1', undefined, 'new');
+      await fabric.subscribers.updateSipEndpoint('sub1', 'ep1', { password: 'new' });
       expect(getRequests()[0]!.method).toBe('PATCH');
       expect(getRequests()[0]!.body).toEqual({ password: 'new' });
     });

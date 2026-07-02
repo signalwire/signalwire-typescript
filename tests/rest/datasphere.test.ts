@@ -51,9 +51,10 @@ describe('DatasphereNamespace', () => {
 
   it('searches documents', async () => {
     const { ds, getRequests } = setup([{ status: 200, body: { results: [] } }]);
-    // Generated `search` takes exploded spec-field params: query_string (required),
-    // then optional tags, document_id, distance, count, … (matches the Python oracle).
-    await ds.documents.search('test query', undefined, undefined, undefined, 5);
+    // Generated `search` takes the required query_string positional + a trailing
+    // options object of the optional spec fields (tags, document_id, distance,
+    // count, …) — the TS options-object idiom (matches the Python oracle's set).
+    await ds.documents.search('test query', { count: 5 });
     expect(getRequests()[0]!.url).toContain('/api/datasphere/documents/search');
     expect(getRequests()[0]!.method).toBe('POST');
     expect(getRequests()[0]!.body).toEqual({ query_string: 'test query', count: 5 });

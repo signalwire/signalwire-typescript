@@ -1195,6 +1195,44 @@ function generatedAliasFromNode(
   return null;
 }
 
+/**
+ * Canonicalize a parameter's (or options-object member's) WRITTEN type node,
+ * mirroring the param loop's rule: prefer the generated-alias-by-name path
+ * (`generatedAliasFromNode`, so `docid` / `uuid` / `SWMLObject` keep their name and
+ * `string[] | string` keeps its written union), wrapping optional when the param
+ * is optional; otherwise fall back to the type checker. `param` (when given) lets
+ * the fallback use the param's RESOLVED type (which already carries the `|
+ * undefined` from a `?`); for an options-object member (no `param`) we resolve the
+ * written type node and add the `optional<…>` wrap ourselves.
+ */
+function canonForParamNode(
+  typeNode: ts.TypeNode | undefined,
+  optional: boolean,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  ctx: string,
+  param?: ts.ParameterDeclaration,
+): string {
+  let canon = generatedAliasFromNode(typeNode, checker);
+  if (canon !== null) {
+    if (optional && !canon.startsWith('optional<')) canon = `optional<${canon}>`;
+    return canon;
+  }
+  if (param) {
+    // Param fallback: `getTypeAtLocation` returns the DECLARED type, which does NOT
+    // carry the `| undefined` an optional param's `?` implies (that optionality is
+    // on the parameter symbol, not the type node) — so translateType does NOT wrap
+    // it in `optional<…>` (e.g. `extras?: Record<…>` → `dict<string,any>`,
+    // `status_events?: (…)[]` → `list<union<…>>`, un-wrapped). Match that.
+    return translateType(checker.getTypeAtLocation(param), checker, aliases, ctx);
+  }
+  // Options-member fallback: resolve the written type node and translate it the
+  // same way (NO manual optional wrap) so an unfolded member matches what the
+  // pre-unfold flat param produced via the fallback path.
+  const resolved = typeNode ? checker.getTypeFromTypeNode(typeNode) : checker.getAnyType();
+  return translateType(resolved, checker, aliases, ctx);
+}
+
 function signatureFromMethod(
   m:
     | ts.ConstructorDeclaration
@@ -1222,25 +1260,70 @@ function signatureFromMethod(
     if (!p.name || !ts.isIdentifier(p.name)) continue;
     const native = p.name.text;
     const snake = camelToSnake(native);
-    // Prefer the WRITTEN type node when it references a generated *.types.generated
-    // alias (e.g. `uuid` / `jwt` / `docid`). The Python reference records these by
-    // alias NAME (`gen:uuid`); `getTypeAtLocation` would resolve a trivial
-    // `type uuid = string` alias down to `string` (losing aliasSymbol) and drift.
-    let canon = generatedAliasFromNode(p.type, checker);
-    if (canon !== null) {
-      // The syntactic path reads the WRITTEN type node, which does not carry the
-      // `| undefined` an optional param's RESOLVED type would (the `?` is on the
-      // parameter, not in the type node). The Python reference wraps an optional
-      // param's type in `optional<...>`, so mirror that here when the param is
-      // optional and not already optional-wrapped. (The `translateType` fallback
-      // already produces `optional<...>` for these, via the resolved `| undefined`.)
-      if ((p.questionToken || p.initializer) && !canon.startsWith('optional<')) {
-        canon = `optional<${canon}>`;
+    // Options-object UNFOLD (generated resource methods only). The REST generator
+    // emits operation + command-dispatch methods in the TS options-object idiom
+    // (RULES §5, §5.1; TYPED_SURFACE_STRATEGY §4a): leading required positionals +
+    // ONE trailing `options?: { … }` object of optionals + `extras`. The Python
+    // oracle records the FLAT keyword set (query_string, tags, …, extras). To keep
+    // port_signatures.json byte-identical to the pre-options-object form (this is a
+    // pure call-site reshape — same wire body, same param SET), unfold the
+    // `options` object's members back into individual params here: each optional
+    // member → an optional param (optionality wrap like a `?`-param); the `extras`
+    // member is emitted as a plain `extras` param so the downstream reclassify turns
+    // it into `keyword` + a `**kwargs` tail exactly as before. The leading required
+    // positionals + these unfolded params are then re-keyed to the reference's kinds
+    // by reclassifyGeneratedResourceParams (below).
+    if (genResource && native === 'options' && p.type && ts.isTypeLiteralNode(p.type)) {
+      for (const member of p.type.members) {
+        if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
+          continue;
+        const mNative = member.name.text;
+        const mSnake = camelToSnake(mNative);
+        const optional = !!member.questionToken;
+        const type = canonForParamNode(
+          member.type,
+          optional,
+          checker,
+          aliases,
+          `${ctx}[${mSnake}]`,
+        );
+        if (mSnake === 'extras') {
+          // Leave `extras` as a plain param so reclassifyGeneratedResourceParams
+          // converts it to `keyword` + a synthetic `**kwargs` tail (the Python
+          // idiom for a closed surface's escape door) — exactly as it did when
+          // `extras` was a flat trailing param.
+          params.push({
+            name: 'extras',
+            type,
+            required: !optional,
+            default: optional ? null : undefined,
+          });
+        } else {
+          // A member of the options object is a keyword-only field in the Python
+          // reference; record it as `keyword` directly (it is NOT a `_fields`
+          // shorthand, so reclassify's keyword-set path won't reach it).
+          params.push({
+            name: mSnake,
+            type,
+            required: !optional,
+            default: optional ? null : undefined,
+            kind: 'keyword',
+          });
+        }
       }
-    } else {
-      canon = translateType(checker.getTypeAtLocation(p), checker, aliases, `${ctx}[${snake}]`);
+      continue;
     }
-    const param: CanonicalParam = { name: snake, type: canon };
+    const param: CanonicalParam = {
+      name: snake,
+      type: canonForParamNode(
+        p.type,
+        !!(p.questionToken || p.initializer),
+        checker,
+        aliases,
+        `${ctx}[${snake}]`,
+        p,
+      ),
+    };
     if (p.dotDotDotToken) param.kind = 'var_positional';
     if (p.questionToken || p.initializer) {
       param.required = false;

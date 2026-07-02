@@ -48,7 +48,7 @@ describe('Addresses', () => {
       'London', // city
       'CA', // state
       '94105', // postal_code
-      'Suite', // address_type (valid AddressType enum member)
+      { address_type: 'Suite' }, // options: address_type (valid AddressType enum member)
     );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -172,10 +172,13 @@ describe('ShortCodes', () => {
 
 describe('ImportedNumbers', () => {
   it('create', async () => {
-    const body = await client.importedNumbers.create('+15551234567', 'longcode', ['sms', 'voice'], {
-      sip_username: 'alice',
-      sip_password: 'secret',
-      sip_proxy: 'sip.example.com',
+    const body = await client.importedNumbers.create('+15551234567', 'longcode', {
+      capabilities: ['sms', 'voice'],
+      extras: {
+        sip_username: 'alice',
+        sip_password: 'secret',
+        sip_proxy: 'sip.example.com',
+      },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -197,9 +200,12 @@ describe('ImportedNumbers', () => {
 
 describe('Mfa', () => {
   it('call', async () => {
-    // Generated signature: call(to, from?, message?, ...). The wire body
-    // key is `from` (the spec field name).
-    const body = await client.mfa.call('+15551234567', '+15559876543', 'Your code is {code}');
+    // Generated signature: call(to, options?: { from?, message?, ... }). The wire
+    // body key is `from` (the spec field name).
+    const body = await client.mfa.call('+15551234567', {
+      from: '+15559876543',
+      message: 'Your code is {code}',
+    });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -218,7 +224,10 @@ describe('Mfa', () => {
 
 describe('SipProfile', () => {
   it('update', async () => {
-    const body = await client.sipProfile.update('myco.sip.signalwire.com', ['PCMU', 'PCMA']);
+    const body = await client.sipProfile.update({
+      domain_identifier: 'myco.sip.signalwire.com',
+      default_codecs: ['PCMU', 'PCMA'],
+    });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('domain' in body || 'default_codecs' in body).toBe(true);
@@ -265,7 +274,7 @@ describe('NumberGroups', () => {
 
 describe('ProjectTokens', () => {
   it('update', async () => {
-    const body = await client.project.tokens.update('tok-1', 'renamed-token');
+    const body = await client.project.tokens.update('tok-1', { name: 'renamed-token' });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);

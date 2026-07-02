@@ -38,10 +38,10 @@ async function main() {
   // 3. Generate a join token
   console.log('\nGenerating room token...');
   try {
-    const token = await client.video.roomTokens.create('daily-standup', 'alice', [
-      'room.self.audio_mute',
-      'room.self.video_mute',
-    ]);
+    const token = await client.video.roomTokens.create('daily-standup', {
+      user_name: 'alice',
+      permissions: ['room.self.audio_mute', 'room.self.video_mute'],
+    });
     console.log(`  Token: ${String(token.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {

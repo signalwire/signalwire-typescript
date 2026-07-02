@@ -597,7 +597,16 @@ interface ParamSpec {
   required: boolean;
 }
 
-/** Render leading positional path-id params + an exploded body (required-first). */
+/**
+ * Render the idiomatic TS options-object call-site shape (RULES §5, §5.1;
+ * TYPED_SURFACE_STRATEGY §4a): leading positional path-id args + REQUIRED body
+ * fields stay as named leading positionals (mandatory + few); ALL optional body
+ * fields + `extras` collapse into ONE trailing `options?: { … }` object. This is
+ * the TS analog of the Python reference's keyword-only params — names survive at
+ * the call site, optionals are order-independent, and a new optional is a
+ * non-breaking append. Do NOT emit flat positionals (the `search('x', undefined,
+ * undefined, 3)` shape). Same wire body as before (see renderBodyAssembly).
+ */
 function renderSignature(
   pathArgs: string[],
   bodyParams: ParamSpec[],
@@ -608,26 +617,55 @@ function renderSignature(
   const req = bodyParams.filter((p) => p.required);
   const opt = bodyParams.filter((p) => !p.required);
   for (const p of req) parts.push(`${p.name}: ${p.ann}`);
-  for (const p of opt) parts.push(`${p.name}?: ${p.ann}`);
-  if (opts.extras) parts.push('extras?: Record<string, unknown>');
+  const optsObj = renderOptionsObject(opt, opts.extras);
+  if (optsObj) parts.push(optsObj);
   if (opts.query) parts.push('params?: QueryParams');
   return parts.join(', ');
 }
 
 /**
- * Assemble the runtime body/params object from exploded params: named optionals
- * are sent only when defined (the server applies its own default for unset
- * fields), then `extras` is merged. `varName` is `body` or `params`.
+ * The trailing `options?: { … }` object collecting all optional body fields +
+ * (when `extras`) the `extras` escape hatch. Returns '' when there are no
+ * optionals and no extras (so a required-only method keeps a clean signature).
+ * The member order is the optional-body order (spec order), matching the
+ * exploded-body order the wire assembly + the oracle record.
+ */
+function renderOptionsObject(opt: ParamSpec[], extras: boolean): string {
+  const members: string[] = [];
+  for (const p of opt) members.push(`${p.name}?: ${p.ann}`);
+  if (extras) members.push('extras?: Record<string, unknown>');
+  if (members.length === 0) return '';
+  return `options?: { ${members.join('; ')} }`;
+}
+
+/**
+ * Assemble the runtime body/params object: REQUIRED fields are read from their
+ * leading positional params; OPTIONAL fields are read from `options?.<name>`
+ * (sent only when defined — the server applies its own default for unset
+ * fields); then `options?.extras` is merged. `varName` is `body` or `params`.
+ * The wire body is byte-identical to the pre-options-object flat form.
  */
 function renderBodyAssembly(bodyParams: ParamSpec[], extras: boolean, varName = 'body'): string {
+  const req = bodyParams.filter((p) => p.required);
+  const opt = bodyParams.filter((p) => !p.required);
+  const hasOptionsObj = opt.length > 0 || extras;
   if (bodyParams.length === 0) {
-    return extras ? `    const ${varName}: Record<string, unknown> = { ...extras };\n` : '';
+    return extras
+      ? `    const ${varName}: Record<string, unknown> = { ...options?.extras };\n`
+      : '';
   }
-  const entries = bodyParams.map((p) => `      ${p.name},`).join('\n');
+  // Required fields are named leading positionals; optional fields come from
+  // `options?.<name>`. Both funnel through one `_fields` object so unset (===
+  // undefined) values are dropped uniformly.
+  const entries = [
+    ...req.map((p) => `      ${p.name},`),
+    ...opt.map((p) => `      ${p.name}: options?.${p.name},`),
+  ].join('\n');
   let src = `    const ${varName}: Record<string, unknown> = {};\n`;
   src += `    const _fields = {\n${entries}\n    };\n`;
   src += `    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) ${varName}[k] = v;\n`;
-  if (extras) src += `    if (extras) Object.assign(${varName}, extras);\n`;
+  if (extras && hasOptionsObj)
+    src += `    if (options?.extras) Object.assign(${varName}, options.extras);\n`;
   return src;
 }
 
@@ -826,13 +864,16 @@ function emitCommandDispatch(
       for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
       bodyParams.push({ name, ann, required: flat.required.includes(key) });
     }
+    // Same named idiom as operation methods (RULES §6): leading callId (if any)
+    // + required params positional + ONE trailing options object of optionals +
+    // extras. Not flat positionals.
     const parts: string[] = [];
     if (hasId) parts.push('callId: string');
     const reqP = bodyParams.filter((p) => p.required);
     const optP = bodyParams.filter((p) => !p.required);
     for (const p of reqP) parts.push(`${p.name}: ${p.ann}`);
-    for (const p of optP) parts.push(`${p.name}?: ${p.ann}`);
-    parts.push('extras?: Record<string, unknown>');
+    const optsObj = renderOptionsObject(optP, true);
+    if (optsObj) parts.push(optsObj);
     let src = `  async ${camelCase(methodName)}(${parts.join(', ')}): Promise<${returnT}> {\n`;
     src += renderBodyAssembly(bodyParams, true, 'params');
     const wire = hasId

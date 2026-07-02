@@ -36,16 +36,9 @@ async function main() {
   console.log('Dialing outbound call...');
   let callId = 'demo-call-id';
   try {
-    const call = await client.calling.dial(
-      '+15559876543',
-      '+15551234567',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'https://example.com/call-handler',
-    );
+    const call = await client.calling.dial('+15559876543', '+15551234567', {
+      url: 'https://example.com/call-handler',
+    });
     callId = call.id ?? 'demo-call-id';
     console.log(`  Call initiated: ${callId}`);
   } catch (err) {
@@ -70,7 +63,7 @@ async function main() {
   // 4. Record the call
   console.log('\nRecording call...');
   await safe('Record', () =>
-    client.calling.record(callId, 'record-1', { beep: true, format: 'mp3' }),
+    client.calling.record(callId, { control_id: 'record-1', audio: { beep: true, format: 'mp3' } }),
   );
 
   // 5. Pause, resume, stop recording
@@ -82,7 +75,10 @@ async function main() {
   // 6. Transcribe the call
   console.log('\nTranscribing call...');
   await safe('Transcribe', () =>
-    client.calling.transcribe(callId, 'transcribe-1', 'https://example.com/transcriptions'),
+    client.calling.transcribe(callId, {
+      control_id: 'transcribe-1',
+      status_url: 'https://example.com/transcriptions',
+    }),
   );
   await safe('Transcribe stop', () => client.calling.transcribeStop(callId, 'transcribe-1'));
 
@@ -93,7 +89,7 @@ async function main() {
 
   // 8. End the call
   console.log('\nEnding call...');
-  await safe('End', () => client.calling.end(callId, 'hangup'));
+  await safe('End', () => client.calling.end(callId, { reason: 'hangup' }));
 }
 
 main().catch((err) => {

@@ -36,7 +36,11 @@ async function main() {
   // 1. Collect DTMF input
   console.log('Collecting DTMF input...');
   await safe('Collect', () =>
-    client.calling.collect(CALL_ID, 'collect-1', 10, { max: 4, terminators: '#' }),
+    client.calling.collect(CALL_ID, {
+      control_id: 'collect-1',
+      initial_timeout: 10,
+      digits: { max: 4, terminators: '#' },
+    }),
   );
   await safe('Start input timers', () =>
     client.calling.collectStartInputTimers(CALL_ID, 'collect-1'),
@@ -45,13 +49,18 @@ async function main() {
 
   // 2. Answering machine detection
   console.log('\nDetecting answering machine...');
-  await safe('Detect', () => client.calling.detect(CALL_ID, { type: 'machine' }, 'detect-1'));
+  await safe('Detect', () =>
+    client.calling.detect(CALL_ID, { type: 'machine' }, { control_id: 'detect-1' }),
+  );
   await safe('Stop detect', () => client.calling.detectStop(CALL_ID, 'detect-1'));
 
   // 3. AI operations
   console.log('\nAI agent operations...');
   await safe('AI message', () =>
-    client.calling.aiMessage(CALL_ID, 'system', 'The customer wants to check their balance.'),
+    client.calling.aiMessage(CALL_ID, {
+      role: 'system',
+      message_text: 'The customer wants to check their balance.',
+    }),
   );
   await safe('AI hold', () => client.calling.aiHold(CALL_ID));
   await safe('AI unhold', () => client.calling.aiUnhold(CALL_ID));
@@ -113,13 +122,10 @@ async function main() {
   console.log('\nTransfer and disconnect...');
   await safe('Transfer', () => client.calling.transfer(CALL_ID, '+15559999999'));
   await safe('Update call', () =>
-    client.calling.update(
-      CALL_ID,
-      undefined,
-      undefined,
-      'https://example.com/status',
-      'https://example.com/swml/next-step',
-    ),
+    client.calling.update(CALL_ID, {
+      status_url: 'https://example.com/status',
+      url: 'https://example.com/swml/next-step',
+    }),
   );
   await safe('Disconnect', () => client.calling.disconnect(CALL_ID));
 }

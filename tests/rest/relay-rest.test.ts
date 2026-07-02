@@ -236,7 +236,7 @@ describe('SipProfileResource', () => {
   it('updates SIP profile with PUT', async () => {
     const { http, getRequests } = makeHttp([{ status: 200, body: {} }]);
     const res = new SipProfileResource(http);
-    await res.update(undefined, ['PCMU']);
+    await res.update({ default_codecs: ['PCMU'] });
     expect(getRequests()[0]!.url).toContain('/api/relay/rest/sip_profile');
     expect(getRequests()[0]!.method).toBe('PUT');
   });

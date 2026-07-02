@@ -88,12 +88,11 @@ async function main() {
   console.log('\nSending MFA SMS code...');
   let requestId: string | null = null;
   try {
-    const smsResult = await client.mfa.sms(
-      '+15551234567',
-      '+15559876543',
-      'Your code is {{code}}',
-      6,
-    );
+    const smsResult = await client.mfa.sms('+15551234567', {
+      from: '+15559876543',
+      message: 'Your code is {{code}}',
+      token_length: 6,
+    });
     requestId = smsResult.id;
     console.log(`  MFA SMS sent: ${requestId}`);
   } catch (err) {
@@ -105,12 +104,11 @@ async function main() {
   // 8. Send MFA via voice call
   console.log('\nSending MFA voice code...');
   try {
-    const voiceResult = await client.mfa.call(
-      '+15551234567',
-      '+15559876543',
-      'Your verification code is {{code}}',
-      6,
-    );
+    const voiceResult = await client.mfa.call('+15551234567', {
+      from: '+15559876543',
+      message: 'Your verification code is {{code}}',
+      token_length: 6,
+    });
     console.log(`  MFA call sent: ${voiceResult.id}`);
   } catch (err) {
     if (err instanceof RestError) {

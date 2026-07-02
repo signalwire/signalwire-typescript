@@ -112,7 +112,9 @@ describe('Subscribers SIP endpoint ops', () => {
   });
 
   it('update_sip_endpoint_uses_patch', async () => {
-    const body = await client.fabric.subscribers.updateSipEndpoint('sub-1', 'ep-1', 'renamed');
+    const body = await client.fabric.subscribers.updateSipEndpoint('sub-1', 'ep-1', {
+      username: 'renamed',
+    });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -142,11 +144,9 @@ describe('FabricTokens', () => {
   it('create_invite_token', async () => {
     // `email` is not a typed param on the generated signature; pass it via the
     // trailing `extras` escape hatch (address_id left undefined → dropped).
-    const body = await client.fabric.tokens.createInviteToken(
-      undefined as unknown as string,
-      undefined,
-      { email: 'invitee@example.com' },
-    );
+    const body = await client.fabric.tokens.createInviteToken(undefined as unknown as string, {
+      extras: { email: 'invitee@example.com' },
+    });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -161,9 +161,9 @@ describe('FabricTokens', () => {
 
   it('create_embed_token', async () => {
     // `allowed_addresses` is not a typed param (the only typed field is
-    // `token`); pass it via the trailing `extras` escape hatch.
+    // `token`); pass it via the options object's `extras` escape hatch.
     const body = await client.fabric.tokens.createEmbedToken(undefined as unknown as string, {
-      allowed_addresses: ['addr-1', 'addr-2'],
+      extras: { allowed_addresses: ['addr-1', 'addr-2'] },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();

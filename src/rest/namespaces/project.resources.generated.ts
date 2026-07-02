@@ -18,33 +18,30 @@ export class ProjectTokens extends BaseResource {
   async create(
     name: string,
     permissions: TokenPermission[],
-    subproject_id?: string,
-    extras?: Record<string, unknown>,
+    options?: { subproject_id?: string; extras?: Record<string, unknown> },
   ): Promise<TokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       name,
       permissions,
-      subproject_id,
+      subproject_id: options?.subproject_id,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<TokenResponse>(this._basePath, body);
   }
 
   async update(
     token_id: string,
-    name?: string,
-    permissions?: TokenPermission[],
-    extras?: Record<string, unknown>,
+    options?: { name?: string; permissions?: TokenPermission[]; extras?: Record<string, unknown> },
   ): Promise<TokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      name,
-      permissions,
+      name: options?.name,
+      permissions: options?.permissions,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.patch<TokenResponse>(this._path(token_id), body);
   }
 

@@ -118,7 +118,7 @@ async function main() {
   try {
     const profile = await client.sipProfile.get();
     console.log(`  SIP profile: ${JSON.stringify(profile)}`);
-    await client.sipProfile.update(undefined, ['PCMU', 'PCMA']);
+    await client.sipProfile.update({ default_codecs: ['PCMU', 'PCMA'] });
     console.log('  Updated SIP codecs');
   } catch (err) {
     if (err instanceof RestError) {

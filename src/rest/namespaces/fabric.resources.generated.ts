@@ -120,7 +120,7 @@ export class GenericResources extends BaseResource {
     id: string,
     phone_route_id: uuid,
     handler: UsedForType,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<PhoneRouteResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -128,21 +128,21 @@ export class GenericResources extends BaseResource {
       handler,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<PhoneRouteResponse>(this._path(id, 'phone_routes'), body);
   }
 
   async assignDomainApplication(
     id: string,
     domain_application_id: uuid,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<DomainApplicationResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       domain_application_id,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<DomainApplicationResponse>(this._path(id, 'domain_applications'), body);
   }
 }
@@ -285,41 +285,43 @@ export class CxmlApplications extends BaseResource {
 
   async update(
     id: string,
-    display_name?: string,
-    account_sid?: uuid,
-    voice_url?: string,
-    voice_method?: 'GET' | 'POST',
-    voice_fallback_url?: string,
-    voice_fallback_method?: 'GET' | 'POST',
-    status_callback?: string,
-    status_callback_method?: 'GET' | 'POST',
-    sms_url?: string,
-    sms_method?: 'GET' | 'POST',
-    sms_fallback_url?: string,
-    sms_fallback_method?: 'GET' | 'POST',
-    sms_status_callback?: string,
-    sms_status_callback_method?: 'GET' | 'POST',
-    extras?: Record<string, unknown>,
+    options?: {
+      display_name?: string;
+      account_sid?: uuid;
+      voice_url?: string;
+      voice_method?: 'GET' | 'POST';
+      voice_fallback_url?: string;
+      voice_fallback_method?: 'GET' | 'POST';
+      status_callback?: string;
+      status_callback_method?: 'GET' | 'POST';
+      sms_url?: string;
+      sms_method?: 'GET' | 'POST';
+      sms_fallback_url?: string;
+      sms_fallback_method?: 'GET' | 'POST';
+      sms_status_callback?: string;
+      sms_status_callback_method?: 'GET' | 'POST';
+      extras?: Record<string, unknown>;
+    },
   ): Promise<CxmlApplicationResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      display_name,
-      account_sid,
-      voice_url,
-      voice_method,
-      voice_fallback_url,
-      voice_fallback_method,
-      status_callback,
-      status_callback_method,
-      sms_url,
-      sms_method,
-      sms_fallback_url,
-      sms_fallback_method,
-      sms_status_callback,
-      sms_status_callback_method,
+      display_name: options?.display_name,
+      account_sid: options?.account_sid,
+      voice_url: options?.voice_url,
+      voice_method: options?.voice_method,
+      voice_fallback_url: options?.voice_fallback_url,
+      voice_fallback_method: options?.voice_fallback_method,
+      status_callback: options?.status_callback,
+      status_callback_method: options?.status_callback_method,
+      sms_url: options?.sms_url,
+      sms_method: options?.sms_method,
+      sms_fallback_url: options?.sms_fallback_url,
+      sms_fallback_method: options?.sms_fallback_method,
+      sms_status_callback: options?.sms_status_callback,
+      sms_status_callback_method: options?.sms_status_callback_method,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<CxmlApplicationResponse>(this._path(id), body);
   }
 
@@ -554,25 +556,27 @@ export class Subscribers extends FabricResource<
     fabric_subscriber_id: string,
     username: string,
     password: string,
-    caller_id?: string,
-    send_as?: string,
-    ciphers?: Ciphers[],
-    codecs?: Codecs[],
-    encryption?: Encryption,
-    extras?: Record<string, unknown>,
+    options?: {
+      caller_id?: string;
+      send_as?: string;
+      ciphers?: Ciphers[];
+      codecs?: Codecs[];
+      encryption?: Encryption;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<SubscriberSIPEndpoint> {
     const body: Record<string, unknown> = {};
     const _fields = {
       username,
       password,
-      caller_id,
-      send_as,
-      ciphers,
-      codecs,
-      encryption,
+      caller_id: options?.caller_id,
+      send_as: options?.send_as,
+      ciphers: options?.ciphers,
+      codecs: options?.codecs,
+      encryption: options?.encryption,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SubscriberSIPEndpoint>(
       this._path(fabric_subscriber_id, 'sip_endpoints'),
       body,
@@ -593,27 +597,29 @@ export class Subscribers extends FabricResource<
   async updateSipEndpoint(
     fabric_subscriber_id: string,
     id: string,
-    username?: string,
-    password?: string,
-    caller_id?: string,
-    send_as?: string,
-    ciphers?: Ciphers[],
-    codecs?: Codecs[],
-    encryption?: Encryption,
-    extras?: Record<string, unknown>,
+    options?: {
+      username?: string;
+      password?: string;
+      caller_id?: string;
+      send_as?: string;
+      ciphers?: Ciphers[];
+      codecs?: Codecs[];
+      encryption?: Encryption;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<SubscriberSIPEndpoint> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      username,
-      password,
-      caller_id,
-      send_as,
-      ciphers,
-      codecs,
-      encryption,
+      username: options?.username,
+      password: options?.password,
+      caller_id: options?.caller_id,
+      send_as: options?.send_as,
+      ciphers: options?.ciphers,
+      codecs: options?.codecs,
+      encryption: options?.encryption,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.patch<SubscriberSIPEndpoint>(
       this._path(fabric_subscriber_id, 'sip_endpoints', id),
       body,
@@ -695,49 +701,51 @@ export class FabricTokens extends BaseResource {
 
   async createSubscriberToken(
     reference: string,
-    expire_at?: number,
-    application_id?: uuid,
-    password?: string,
-    first_name?: string,
-    last_name?: string,
-    display_name?: string,
-    job_title?: string,
-    time_zone?: string,
-    country?: string,
-    region?: string,
-    company_name?: string,
-    extras?: Record<string, unknown>,
+    options?: {
+      expire_at?: number;
+      application_id?: uuid;
+      password?: string;
+      first_name?: string;
+      last_name?: string;
+      display_name?: string;
+      job_title?: string;
+      time_zone?: string;
+      country?: string;
+      region?: string;
+      company_name?: string;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<SubscriberTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       reference,
-      expire_at,
-      application_id,
-      password,
-      first_name,
-      last_name,
-      display_name,
-      job_title,
-      time_zone,
-      country,
-      region,
-      company_name,
+      expire_at: options?.expire_at,
+      application_id: options?.application_id,
+      password: options?.password,
+      first_name: options?.first_name,
+      last_name: options?.last_name,
+      display_name: options?.display_name,
+      job_title: options?.job_title,
+      time_zone: options?.time_zone,
+      country: options?.country,
+      region: options?.region,
+      company_name: options?.company_name,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SubscriberTokenResponse>(this._path('subscribers', 'tokens'), body);
   }
 
   async refreshSubscriberToken(
     refresh_token: jwt,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<SubscriberRefreshTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       refresh_token,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SubscriberRefreshTokenResponse>(
       this._path('subscribers', 'tokens', 'refresh'),
       body,
@@ -746,16 +754,15 @@ export class FabricTokens extends BaseResource {
 
   async createInviteToken(
     address_id: uuid,
-    expires_at?: number,
-    extras?: Record<string, unknown>,
+    options?: { expires_at?: number; extras?: Record<string, unknown> },
   ): Promise<SubscriberInviteTokenCreateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       address_id,
-      expires_at,
+      expires_at: options?.expires_at,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SubscriberInviteTokenCreateResponse>(
       this._path('subscriber', 'invites'),
       body,
@@ -764,16 +771,15 @@ export class FabricTokens extends BaseResource {
 
   async createGuestToken(
     allowed_addresses: uuid[],
-    expire_at?: number,
-    extras?: Record<string, unknown>,
+    options?: { expire_at?: number; extras?: Record<string, unknown> },
   ): Promise<SubscriberGuestTokenCreateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       allowed_addresses,
-      expire_at,
+      expire_at: options?.expire_at,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SubscriberGuestTokenCreateResponse>(
       this._path('guests', 'tokens'),
       body,
@@ -782,14 +788,14 @@ export class FabricTokens extends BaseResource {
 
   async createEmbedToken(
     token: string,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<EmbedsTokensResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       token,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<EmbedsTokensResponse>(this._path('embeds', 'tokens'), body);
   }
 }

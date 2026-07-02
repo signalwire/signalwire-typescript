@@ -26,41 +26,27 @@ describe('CallingNamespace', () => {
 
   it('dial forwards codecs as array', async () => {
     const { calling, getRequests } = setup();
-    await calling.dial(
-      '',
-      '+15551234567',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'https://example.com/swml',
-      ['OPUS', 'G729', 'VP8', 'PCMA'],
-    );
+    await calling.dial('', '+15551234567', {
+      url: 'https://example.com/swml',
+      codecs: ['OPUS', 'G729', 'VP8', 'PCMA'],
+    });
     const req = getRequests()[0];
     expect((req!.body.params as WireBody).codecs).toEqual(['OPUS', 'G729', 'VP8', 'PCMA']);
   });
 
   it('dial forwards codecs as comma-separated string', async () => {
     const { calling, getRequests } = setup();
-    await calling.dial(
-      '',
-      '+15551234567',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'https://example.com/swml',
-      'OPUS,G729,VP8,PCMA',
-    );
+    await calling.dial('', '+15551234567', {
+      url: 'https://example.com/swml',
+      codecs: 'OPUS,G729,VP8,PCMA',
+    });
     const req = getRequests()[0];
     expect((req!.body.params as WireBody).codecs).toBe('OPUS,G729,VP8,PCMA');
   });
 
   it('end sends command with call_id', async () => {
     const { calling, getRequests } = setup();
-    await calling.end('call-123', 'hangup');
+    await calling.end('call-123', { reason: 'hangup' });
     const req = getRequests()[0];
     expect(req!.body).toEqual({
       command: 'calling.end',
@@ -83,14 +69,14 @@ describe('CallingNamespace', () => {
 
   it('record sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.record('call-123', undefined, undefined, undefined, { beep: true });
+    await calling.record('call-123', { extras: { beep: true } });
     expect(getRequests()[0]!.body.command).toBe('calling.record');
     expect(getRequests()[0]!.body.params).toEqual({ beep: true });
   });
 
   it('collect sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.collect('call-123', undefined, undefined, { max: 4 });
+    await calling.collect('call-123', { digits: { max: 4 } });
     expect(getRequests()[0]!.body.command).toBe('calling.collect');
   });
 
@@ -126,9 +112,7 @@ describe('CallingNamespace', () => {
 
   it('aiMessage sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.aiMessage('call-123', undefined, undefined, undefined, undefined, {
-      message: 'hello',
-    });
+    await calling.aiMessage('call-123', { extras: { message: 'hello' } });
     expect(getRequests()[0]!.body.command).toBe('calling.ai_message');
   });
 

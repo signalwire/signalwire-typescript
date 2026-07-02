@@ -108,7 +108,7 @@ async function main() {
     console.log(`\nCampaign: ${campDetail.name ?? 'N/A'} (${campDetail.state ?? 'N/A'})`);
 
     try {
-      await client.registry.campaigns.update(campaignId, 'Acme Notifications (updated)');
+      await client.registry.campaigns.update(campaignId, { name: 'Acme Notifications (updated)' });
       console.log('  Campaign name updated');
     } catch (err) {
       if (err instanceof RestError) {
@@ -122,7 +122,9 @@ async function main() {
   if (campaignId) {
     console.log('\nCreating number assignment order...');
     try {
-      const order = await client.registry.campaigns.createOrder(campaignId, ['+15125551234']);
+      const order = await client.registry.campaigns.createOrder(campaignId, {
+        phone_numbers: ['+15125551234'],
+      });
       orderId = order.id;
       console.log(`  Created order: ${orderId}`);
     } catch (err) {

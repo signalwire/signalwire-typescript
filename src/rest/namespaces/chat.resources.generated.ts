@@ -18,19 +18,17 @@ export class Chat extends BaseResource {
   async createToken(
     ttl: number,
     channels: ChatChannel,
-    member_id?: string,
-    state?: ChatState,
-    extras?: Record<string, unknown>,
+    options?: { member_id?: string; state?: ChatState; extras?: Record<string, unknown> },
   ): Promise<ChatToken> {
     const body: Record<string, unknown> = {};
     const _fields = {
       ttl,
       channels,
-      member_id,
-      state,
+      member_id: options?.member_id,
+      state: options?.state,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<ChatToken>(this._basePath, body);
   }
 }

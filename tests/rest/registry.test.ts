@@ -61,8 +61,8 @@ describe('RegistryNamespace', () => {
     it('updates a campaign with PUT', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: {} }]);
       // `description` travels via the extras escape hatch (update is
-      // update(id, name?, extras?); description is not a typed positional field).
-      await registry.campaigns.update('c1', undefined, { description: 'updated' });
+      // update(id, options?: { name?; extras? }); description is not a typed field).
+      await registry.campaigns.update('c1', { extras: { description: 'updated' } });
       expect(getRequests()[0]!.method).toBe('PUT');
     });
 
@@ -80,7 +80,7 @@ describe('RegistryNamespace', () => {
 
     it('creates an order for a campaign', async () => {
       const { registry, getRequests } = setup([{ status: 200, body: { id: 'o1' } }]);
-      await registry.campaigns.createOrder('c1', ['n1']);
+      await registry.campaigns.createOrder('c1', { phone_numbers: ['n1'] });
       expect(getRequests()[0]!.method).toBe('POST');
     });
   });

@@ -42,16 +42,9 @@ async function main() {
   // 4. Place a test call (requires valid numbers)
   console.log('\nPlacing a test call...');
   try {
-    const result = await client.calling.dial(
-      '+15559876543',
-      '+15551234567',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'https://example.com/call-handler',
-    );
+    const result = await client.calling.dial('+15559876543', '+15551234567', {
+      url: 'https://example.com/call-handler',
+    });
     console.log(`  Call initiated: ${JSON.stringify(result)}`);
   } catch (err) {
     if (err instanceof RestError) {

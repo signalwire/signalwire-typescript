@@ -93,10 +93,10 @@ describe('RegistryCampaigns', () => {
   });
 
   it('update_uses_put', async () => {
-    // Generated update is update(id, name?, extras?). `description` is not a
-    // typed spec field, so it travels via the extras escape hatch.
-    const body = await client.registry.campaigns.update('camp-2', undefined, {
-      description: 'Updated',
+    // Generated update is update(id, options?: { name?; extras? }). `description`
+    // is not a typed spec field, so it travels via the extras escape hatch.
+    const body = await client.registry.campaigns.update('camp-2', {
+      extras: { description: 'Updated' },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -121,9 +121,11 @@ describe('RegistryCampaigns', () => {
   });
 
   it('create_order_posts_to_orders_subpath', async () => {
-    // Generated createOrder is createOrder(id, phone_numbers?, ...); the wire
-    // field is the spec field name `phone_numbers`.
-    const body = await client.registry.campaigns.createOrder('camp-4', ['pn-1', 'pn-2']);
+    // Generated createOrder is createOrder(id, options?: { phone_numbers?, ... });
+    // the wire field is the spec field name `phone_numbers`.
+    const body = await client.registry.campaigns.createOrder('camp-4', {
+      phone_numbers: ['pn-1', 'pn-2'],
+    });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 

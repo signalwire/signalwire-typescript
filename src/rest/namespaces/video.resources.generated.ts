@@ -95,13 +95,17 @@ export class VideoConferences extends CrudResource<
     return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params);
   }
 
-  async createStream(id: string, url: string, extras?: Record<string, unknown>): Promise<Stream> {
+  async createStream(
+    id: string,
+    url: string,
+    options?: { extras?: Record<string, unknown> },
+  ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
       url,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<Stream>(this._path(id, 'streams'), body);
   }
 }
@@ -156,48 +160,50 @@ export class VideoRoomTokens extends BaseResource {
 
   async create(
     room_name: string,
-    user_name?: string,
-    permissions?: RoomTokenPermission[],
-    join_from?: string,
-    join_until?: string,
-    remove_at?: string,
-    remove_after_seconds_elapsed?: number,
-    join_audio_muted?: boolean,
-    join_video_muted?: boolean,
-    auto_create_room?: boolean,
-    enable_room_previews?: boolean,
-    room_display_name?: string,
-    end_room_session_on_leave?: boolean,
-    join_as?: JoinAsType,
-    media_allowed?: MediaAllowedType,
-    room_meta?: Record<string, Record<string, unknown>>,
-    meta?: Record<string, Record<string, unknown>>,
-    sync_audio_video?: boolean,
-    extras?: Record<string, unknown>,
+    options?: {
+      user_name?: string;
+      permissions?: RoomTokenPermission[];
+      join_from?: string;
+      join_until?: string;
+      remove_at?: string;
+      remove_after_seconds_elapsed?: number;
+      join_audio_muted?: boolean;
+      join_video_muted?: boolean;
+      auto_create_room?: boolean;
+      enable_room_previews?: boolean;
+      room_display_name?: string;
+      end_room_session_on_leave?: boolean;
+      join_as?: JoinAsType;
+      media_allowed?: MediaAllowedType;
+      room_meta?: Record<string, Record<string, unknown>>;
+      meta?: Record<string, Record<string, unknown>>;
+      sync_audio_video?: boolean;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<RoomTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       room_name,
-      user_name,
-      permissions,
-      join_from,
-      join_until,
-      remove_at,
-      remove_after_seconds_elapsed,
-      join_audio_muted,
-      join_video_muted,
-      auto_create_room,
-      enable_room_previews,
-      room_display_name,
-      end_room_session_on_leave,
-      join_as,
-      media_allowed,
-      room_meta,
-      meta,
-      sync_audio_video,
+      user_name: options?.user_name,
+      permissions: options?.permissions,
+      join_from: options?.join_from,
+      join_until: options?.join_until,
+      remove_at: options?.remove_at,
+      remove_after_seconds_elapsed: options?.remove_after_seconds_elapsed,
+      join_audio_muted: options?.join_audio_muted,
+      join_video_muted: options?.join_video_muted,
+      auto_create_room: options?.auto_create_room,
+      enable_room_previews: options?.enable_room_previews,
+      room_display_name: options?.room_display_name,
+      end_room_session_on_leave: options?.end_room_session_on_leave,
+      join_as: options?.join_as,
+      media_allowed: options?.media_allowed,
+      room_meta: options?.room_meta,
+      meta: options?.meta,
+      sync_audio_video: options?.sync_audio_video,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<RoomTokenResponse>(this._basePath, body);
   }
 }
@@ -235,13 +241,17 @@ export class VideoRooms extends CrudResource<
     return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params);
   }
 
-  async createStream(id: string, url: string, extras?: Record<string, unknown>): Promise<Stream> {
+  async createStream(
+    id: string,
+    url: string,
+    options?: { extras?: Record<string, unknown> },
+  ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
       url,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<Stream>(this._path(id, 'streams'), body);
   }
 }
@@ -255,13 +265,17 @@ export class VideoStreams extends BaseResource {
     return this._http.get<Stream>(this._path(id), params);
   }
 
-  async update(id: string, url: string, extras?: Record<string, unknown>): Promise<Stream> {
+  async update(
+    id: string,
+    url: string,
+    options?: { extras?: Record<string, unknown> },
+  ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
       url,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<Stream>(this._path(id), body);
   }
 

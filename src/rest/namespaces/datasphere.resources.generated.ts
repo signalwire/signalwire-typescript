@@ -49,28 +49,30 @@ export class DatasphereDocuments extends CrudResource<
 
   async search(
     query_string: string,
-    tags?: string[],
-    document_id?: docid,
-    distance?: number,
-    count?: number,
-    language?: string,
-    pos_to_expand?: string[],
-    max_synonyms?: number,
-    extras?: Record<string, unknown>,
+    options?: {
+      tags?: string[];
+      document_id?: docid;
+      distance?: number;
+      count?: number;
+      language?: string;
+      pos_to_expand?: string[];
+      max_synonyms?: number;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<SearchResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      tags,
-      document_id,
       query_string,
-      distance,
-      count,
-      language,
-      pos_to_expand,
-      max_synonyms,
+      tags: options?.tags,
+      document_id: options?.document_id,
+      distance: options?.distance,
+      count: options?.count,
+      language: options?.language,
+      pos_to_expand: options?.pos_to_expand,
+      max_synonyms: options?.max_synonyms,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<SearchResponse>(this._path('search'), body);
   }
 

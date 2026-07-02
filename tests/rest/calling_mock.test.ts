@@ -32,15 +32,7 @@ beforeEach(async () => {
 
 describe('Calling lifecycle', () => {
   it('test_update', async () => {
-    const body = await client.calling.update(
-      'call-1',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { state: 'hold' },
-    );
+    const body = await client.calling.update('call-1', { extras: { state: 'hold' } });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -57,8 +49,7 @@ describe('Calling lifecycle', () => {
 
   it('test_transfer', async () => {
     const body = await client.calling.transfer('call-123', '+15551234567', {
-      destination: '+15551234567',
-      from_number: '+15559876543',
+      extras: { destination: '+15551234567', from_number: '+15559876543' },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -74,7 +65,7 @@ describe('Calling lifecycle', () => {
   });
 
   it('test_disconnect', async () => {
-    const body = await client.calling.disconnect('call-456', { reason: 'busy' });
+    const body = await client.calling.disconnect('call-456', { extras: { reason: 'busy' } });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
     expect('id' in body).toBe(true);
@@ -152,8 +143,8 @@ describe('Calling play', () => {
 
 describe('Calling record', () => {
   it('test_record', async () => {
-    const body = await client.calling.record('call-1', undefined, undefined, undefined, {
-      record: { format: 'mp3' },
+    const body = await client.calling.record('call-1', {
+      extras: { record: { format: 'mp3' } },
     });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
@@ -199,7 +190,7 @@ describe('Calling record', () => {
 
 describe('Calling collect', () => {
   it('test_collect', async () => {
-    const body = await client.calling.collect('call-1', undefined, 5, { max: 4 });
+    const body = await client.calling.collect('call-1', { initial_timeout: 5, digits: { max: 4 } });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -340,7 +331,7 @@ describe('Calling denoise', () => {
   });
 
   it('test_denoise_stop', async () => {
-    const body = await client.calling.denoiseStop('call-1', { control_id: 'dn-1' });
+    const body = await client.calling.denoiseStop('call-1', { extras: { control_id: 'dn-1' } });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -354,9 +345,8 @@ describe('Calling denoise', () => {
 
 describe('Calling transcribe', () => {
   it('test_transcribe', async () => {
-    const body = await client.calling.transcribe('call-1', undefined, undefined, {
-      language: 'en-US',
-      transcribe: { engine: 'google' },
+    const body = await client.calling.transcribe('call-1', {
+      extras: { language: 'en-US', transcribe: { engine: 'google' } },
     });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
@@ -434,7 +424,7 @@ describe('Calling live transcribe / translate', () => {
     const body = await client.calling.liveTranscribe(
       'call-1',
       { start: { lang: 'en-US', direction: ['remote-caller'] } },
-      { language: 'en-US' },
+      { extras: { language: 'en-US' } },
     );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
@@ -451,8 +441,7 @@ describe('Calling live transcribe / translate', () => {
     const body = await client.calling.liveTranslate(
       'call-1',
       { start: { from_lang: 'en', to_lang: 'es', direction: ['remote-caller'] } },
-      undefined,
-      { source_language: 'en', target_language: 'es' },
+      { extras: { source_language: 'en', target_language: 'es' } },
     );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
@@ -503,9 +492,13 @@ describe('Calling fax', () => {
 
 describe('Calling misc (refer / user_event)', () => {
   it('test_refer', async () => {
-    const body = await client.calling.refer('call-1', {}, undefined, {
-      to: 'sip:other@example.com',
-    });
+    const body = await client.calling.refer(
+      'call-1',
+      {},
+      {
+        extras: { to: 'sip:other@example.com' },
+      },
+    );
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -522,8 +515,10 @@ describe('Calling misc (refer / user_event)', () => {
       'call-1',
       {},
       {
-        event_name: 'my-event',
-        payload: { foo: 'bar' },
+        extras: {
+          event_name: 'my-event',
+          payload: { foo: 'bar' },
+        },
       },
     );
     expect(typeof body).toBe('object');

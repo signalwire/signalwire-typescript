@@ -77,9 +77,11 @@ export class Addresses extends BaseResource {
     city: string,
     state: string,
     postal_code: string,
-    address_type?: AddressType,
-    address_number?: string,
-    extras?: Record<string, unknown>,
+    options?: {
+      address_type?: AddressType;
+      address_number?: string;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<AddressResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -89,14 +91,14 @@ export class Addresses extends BaseResource {
       last_name,
       street_number,
       street_name,
-      address_type,
-      address_number,
       city,
       state,
       postal_code,
+      address_type: options?.address_type,
+      address_number: options?.address_number,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<AddressResponse>(this._basePath, body);
   }
 
@@ -117,17 +119,19 @@ export class ImportedNumbers extends BaseResource {
   async create(
     number: string,
     number_type: 'longcode' | 'tollfree',
-    capabilities?: ('sms' | 'voice' | 'fax' | 'mms')[],
-    extras?: Record<string, unknown>,
+    options?: {
+      capabilities?: ('sms' | 'voice' | 'fax' | 'mms')[];
+      extras?: Record<string, unknown>;
+    },
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       number,
       number_type,
-      capabilities,
+      capabilities: options?.capabilities,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<PhoneNumberResponse>(this._basePath, body);
   }
 }
@@ -152,65 +156,69 @@ export class Mfa extends BaseResource {
 
   async sms(
     to: string,
-    from?: string,
-    message?: string,
-    token_length?: number,
-    valid_for?: number,
-    max_attempts?: number,
-    allow_alphas?: boolean,
-    extras?: Record<string, unknown>,
+    options?: {
+      from?: string;
+      message?: string;
+      token_length?: number;
+      valid_for?: number;
+      max_attempts?: number;
+      allow_alphas?: boolean;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<MfaResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       to,
-      from,
-      message,
-      token_length,
-      valid_for,
-      max_attempts,
-      allow_alphas,
+      from: options?.from,
+      message: options?.message,
+      token_length: options?.token_length,
+      valid_for: options?.valid_for,
+      max_attempts: options?.max_attempts,
+      allow_alphas: options?.allow_alphas,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<MfaResponse>(this._path('sms'), body);
   }
 
   async call(
     to: string,
-    from?: string,
-    message?: string,
-    token_length?: number,
-    valid_for?: number,
-    max_attempts?: number,
-    allow_alphas?: boolean,
-    extras?: Record<string, unknown>,
+    options?: {
+      from?: string;
+      message?: string;
+      token_length?: number;
+      valid_for?: number;
+      max_attempts?: number;
+      allow_alphas?: boolean;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<MfaResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       to,
-      from,
-      message,
-      token_length,
-      valid_for,
-      max_attempts,
-      allow_alphas,
+      from: options?.from,
+      message: options?.message,
+      token_length: options?.token_length,
+      valid_for: options?.valid_for,
+      max_attempts: options?.max_attempts,
+      allow_alphas: options?.allow_alphas,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<MfaResponse>(this._path('call'), body);
   }
 
   async verify(
     mfa_request_id: string,
     token: string,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<MfaVerifyResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       token,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<MfaVerifyResponse>(this._path(mfa_request_id, 'verify'), body);
   }
 }
@@ -257,14 +265,14 @@ export class NumberGroups extends CrudResource<
   async addMembership(
     number_group_id: string,
     phone_number_id: uuid,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<NumberGroupMembershipResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       phone_number_id,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<NumberGroupMembershipResponse>(
       this._path(number_group_id, 'number_group_memberships'),
       body,
@@ -513,15 +521,14 @@ export class RegistryCampaigns extends BaseResource {
 
   async update(
     id: string,
-    name?: string,
-    extras?: Record<string, unknown>,
+    options?: { name?: string; extras?: Record<string, unknown> },
   ): Promise<CampaignResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      name,
+      name: options?.name,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<CampaignResponse>(this._path(id), body);
   }
 
@@ -535,17 +542,19 @@ export class RegistryCampaigns extends BaseResource {
 
   async createOrder(
     id: string,
-    phone_numbers?: string[],
-    status_callback_url?: string,
-    extras?: Record<string, unknown>,
+    options?: {
+      phone_numbers?: string[];
+      status_callback_url?: string;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<OrderResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      phone_numbers,
-      status_callback_url,
+      phone_numbers: options?.phone_numbers,
+      status_callback_url: options?.status_callback_url,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.post<OrderResponse>(this._path(id, 'orders'), body);
   }
 }
@@ -587,27 +596,29 @@ export class ShortCodes extends BaseResource {
     id: string,
     name: string,
     message_handler: ShortCodeMessageHandler,
-    message_request_url?: string,
-    message_request_method?: HttpMethod,
-    message_fallback_url?: string,
-    message_fallback_method?: HttpMethod,
-    message_laml_application_id?: uuid,
-    message_relay_context?: string,
-    extras?: Record<string, unknown>,
+    options?: {
+      message_request_url?: string;
+      message_request_method?: HttpMethod;
+      message_fallback_url?: string;
+      message_fallback_method?: HttpMethod;
+      message_laml_application_id?: uuid;
+      message_relay_context?: string;
+      extras?: Record<string, unknown>;
+    },
   ): Promise<ShortCodeResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       name,
       message_handler,
-      message_request_url,
-      message_request_method,
-      message_fallback_url,
-      message_fallback_method,
-      message_laml_application_id,
-      message_relay_context,
+      message_request_url: options?.message_request_url,
+      message_request_method: options?.message_request_method,
+      message_fallback_url: options?.message_fallback_url,
+      message_fallback_method: options?.message_fallback_method,
+      message_laml_application_id: options?.message_laml_application_id,
+      message_relay_context: options?.message_relay_context,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<ShortCodeResponse>(this._path(id), body);
   }
 }
@@ -621,24 +632,24 @@ export class SipProfile extends BaseResource {
     return this._http.get<SipProfileResponse>(this._basePath, params);
   }
 
-  async update(
-    domain_identifier?: string,
-    default_codecs?: string[],
-    default_ciphers?: string[],
-    default_encryption?: 'required' | 'optional',
-    default_send_as?: string,
-    extras?: Record<string, unknown>,
-  ): Promise<SipProfileResponse> {
+  async update(options?: {
+    domain_identifier?: string;
+    default_codecs?: string[];
+    default_ciphers?: string[];
+    default_encryption?: 'required' | 'optional';
+    default_send_as?: string;
+    extras?: Record<string, unknown>;
+  }): Promise<SipProfileResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      domain_identifier,
-      default_codecs,
-      default_ciphers,
-      default_encryption,
-      default_send_as,
+      domain_identifier: options?.domain_identifier,
+      default_codecs: options?.default_codecs,
+      default_ciphers: options?.default_ciphers,
+      default_encryption: options?.default_encryption,
+      default_send_as: options?.default_send_as,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<SipProfileResponse>(this._basePath, body);
   }
 }
@@ -679,14 +690,14 @@ export class VerifiedCallers extends CrudResource<
   async submitVerification(
     id: string,
     verification_code: string,
-    extras?: Record<string, unknown>,
+    options?: { extras?: Record<string, unknown> },
   ): Promise<VerifiedCallerIDResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       verification_code,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (extras) Object.assign(body, extras);
+    if (options?.extras) Object.assign(body, options.extras);
     return this._http.put<VerifiedCallerIDResponse>(this._path(id, 'verification'), body);
   }
 }
