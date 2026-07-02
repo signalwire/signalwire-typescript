@@ -139,6 +139,27 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   RestError: 'SignalWireRestError',
 };
 
+/** Per-class canonical-module overrides (by post-alias class name). A TS file may
+ *  host a class the Python reference places in a different module than the file's
+ *  default TS_MODULE_ALIASES entry. Keyed by canonical class name. */
+const CLASS_MODULE_OVERRIDES: Record<string, string> = {
+  // SecurityConfig is defined in SWMLService.ts but the reference module is
+  // signalwire.core.security_config.
+  SecurityConfig: 'signalwire.core.security_config',
+};
+
+/** Method-name aliases keyed on the post-alias `${mod}.${Class}`. Kept in lock-step
+ *  with enumerate-surface.ts METHOD_NAME_ALIASES so the two enumerators emit the
+ *  same canonical member names (a name reconciled in surface must also be reconciled
+ *  in signatures, else the drift gate sees a spurious missing-port/missing-reference). */
+const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
+  'signalwire.relay.call.Call': { pass: 'pass_' },
+  'signalwire.utils.schema_utils.SchemaUtils': {
+    get_verb_names: 'get_all_verb_names',
+    validate: 'validate_document',
+  },
+};
+
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
 // Project the canonical Python-mixin methods onto their owning mixin module.
 const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
@@ -279,6 +300,9 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   filter_sensitive_headers: 'signalwire.core.security.security_utils',
   redact_url: 'signalwire.core.security.security_utils',
   is_valid_hostname: 'signalwire.core.security.security_utils',
+  // ``validateUrl`` is the port of Python's url_validator.validate_url — route it
+  // to that canonical module (kept in sync with enumerate-surface.ts).
+  validate_url: 'signalwire.utils.url_validator',
 };
 
 // Per-symbol free-function PARAM-shape overrides (teach-the-checker, scoped to a
@@ -687,7 +711,14 @@ function collectClass(
   // `_GeneratedResourceTree` is likewise absent from the oracle.
   if (className.startsWith('_')) return;
   const canonClass = CLASS_NAME_ALIASES[className] ?? className;
-  const mod = TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
+  // Per-class module override: some TS files host a class the Python reference
+  // places in a DIFFERENT canonical module than the file's default. `SecurityConfig`
+  // lives in SWMLService.ts (→ signalwire.core.swml_service) but the reference puts
+  // it in signalwire.core.security_config; route it there so its methods compare
+  // against the right owner. (Matches how the surface enumerator resolves the class
+  // by its reference module.)
+  const mod =
+    CLASS_MODULE_OVERRIDES[canonClass] ?? TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
 
   const methods: Record<string, CanonicalSignature> = {};
 
@@ -747,7 +778,9 @@ function collectClass(
     if (mods & ts.ModifierFlags.Private) continue;
     const isStatic = !!(mods & ts.ModifierFlags.Static);
 
-    const snake = camelToSnake(native);
+    const methodAliases = METHOD_NAME_ALIASES[`${mod}.${canonClass}`];
+    const snakeRaw = camelToSnake(native);
+    const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
 
     try {

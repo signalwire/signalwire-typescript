@@ -56,15 +56,19 @@ export class SchemaUtils {
    * Load the schema from the path specified in opts.schemaPath (if given) or fall back
    * to the bundled schema.json.  Mirrors Python's SchemaUtils which accepts an explicit
    * schema_path and falls back to _get_default_schema_path() when None is supplied.
+   * Public accessor matching Python SDK's `load_schema()`, which returns the loaded
+   * schema dictionary (or `null` if unavailable). Also (re)populates the internal
+   * verb definitions as a side effect.
+   * @returns The loaded schema object, or `null` if it could not be loaded.
    */
-  private loadSchema(): void {
+  loadSchema(): Record<string, unknown> | null {
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this.schemaPath) {
       try {
         const require = createRequire(import.meta.url);
         this.schema = require(this.schemaPath) as Record<string, unknown>;
         this.verbs = this.extractVerbDefinitions();
-        return;
+        return this.schema;
       } catch {
         // Fall through to bundled schema on load failure
       }
@@ -78,6 +82,7 @@ export class SchemaUtils {
       // Schema loading is optional — validation still works structurally
       this.schema = null;
     }
+    return this.schema;
   }
 
   /**
@@ -119,6 +124,16 @@ export class SchemaUtils {
   }
 
   /**
+   * Whether full JSON-Schema validation is available. Mirrors Python SDK's
+   * `full_validation_available` property (which reports whether `jsonschema` is
+   * installed). The TS port always bundles Ajv, so full validation is always
+   * available — this is constantly `true`.
+   */
+  get fullValidationAvailable(): boolean {
+    return true;
+  }
+
+  /**
    * Get all verb names defined in the schema.
    * @returns Array of verb names (e.g. ["answer", "ai", "hangup", ...]).
    */
@@ -138,6 +153,23 @@ export class SchemaUtils {
     const outerProps = verb.definition['properties'] as Record<string, unknown> | undefined;
     if (!outerProps || !outerProps[verbName]) return {};
     return outerProps[verbName] as Record<string, unknown>;
+  }
+
+  /**
+   * Get the parameter definitions for a specific verb — the map of parameter
+   * name → JSON-schema definition. Mirrors Python SDK's `get_verb_parameters()`:
+   * it returns the nested `properties` object of the verb's inner schema (whereas
+   * `getVerbProperties` returns the whole inner schema object).
+   * @param verbName - The verb name (e.g. "ai", "answer").
+   * @returns Dictionary mapping parameter names to their definitions, or `{}`.
+   */
+  getVerbParameters(verbName: string): Record<string, unknown> {
+    const properties = this.getVerbProperties(verbName);
+    const params = properties['properties'];
+    if (params && typeof params === 'object') {
+      return params as Record<string, unknown>;
+    }
+    return {};
   }
 
   /**

@@ -3911,6 +3911,10 @@
         }
       },
       "functions": {
+        "configure_logging": {
+          "params": [],
+          "returns": "void"
+        },
         "get_execution_mode": {
           "params": [],
           "returns": "string"
@@ -5583,6 +5587,113 @@
     },
     "signalwire.core.security_config": {
       "classes": {
+        "SecurityConfig": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "opts",
+                  "type": "optional<dict<string,any>>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "get_basic_auth": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "tuple<string,string>"
+            },
+            "get_cors_config": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "get_security_headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "is_https",
+                  "type": "bool",
+                  "required": false,
+                  "default": false
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "get_url_scheme": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "load_from_env": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "log_config": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "service_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "should_allow_host": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "host",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "validate_ssl_config": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "tuple<bool,string>"
+            }
+          }
+        },
         "SslConfig": {
           "methods": {
             "__init__": {
@@ -7150,43 +7261,6 @@
                 }
               ],
               "returns": "class:signalwire.core.swml_service.VerbHandlerRegistry"
-            }
-          }
-        },
-        "SecurityConfig": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "get_basic_auth": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "tuple<string,string>"
-            },
-            "validate_ssl_config": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "tuple<bool,string>"
             }
           }
         },
@@ -9519,7 +9593,7 @@
               ],
               "returns": "void"
             },
-            "pass": {
+            "pass_": {
               "params": [
                 {
                   "name": "self",
@@ -25379,22 +25453,6 @@
             }
           ],
           "returns": "any"
-        },
-        "validate_url": {
-          "params": [
-            {
-              "name": "url",
-              "type": "string",
-              "required": true
-            },
-            {
-              "name": "allow_private",
-              "type": "bool",
-              "required": false,
-              "default": false
-            }
-          ],
-          "returns": "bool"
         }
       }
     },
@@ -25426,6 +25484,24 @@
               ],
               "returns": "void"
             },
+            "full_validation_available": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
+            "get_all_verb_names": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_cache_size": {
               "params": [
                 {
@@ -25449,14 +25525,19 @@
               ],
               "returns": "string"
             },
-            "get_verb_names": {
+            "get_verb_parameters": {
               "params": [
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
                 }
               ],
-              "returns": "list<string>"
+              "returns": "dict<string,any>"
             },
             "get_verb_properties": {
               "params": [
@@ -25500,7 +25581,16 @@
               ],
               "returns": "bool"
             },
-            "validate": {
+            "load_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "validate_document": {
               "params": [
                 {
                   "name": "self",
@@ -25534,6 +25624,26 @@
               "returns": "class:signalwire.utils.schema_utils.ValidationResult"
             }
           }
+        }
+      }
+    },
+    "signalwire.utils.url_validator": {
+      "functions": {
+        "validate_url": {
+          "params": [
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "allow_private",
+              "type": "bool",
+              "required": false,
+              "default": false
+            }
+          ],
+          "returns": "bool"
         }
       }
     },

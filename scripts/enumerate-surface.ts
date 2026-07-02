@@ -247,6 +247,12 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   // initialisms (SWML…) for these specific classes.
   SwaigFunction: 'SWAIGFunction',
   SwmlBuilder: 'SWMLBuilder',
+  // Skill class casing aligned with the Python reference (camelCase initialism
+  // in TS ↔ SCREAMING initialism in Python). Kept in sync with the signatures
+  // enumerator's CLASS_NAME_ALIASES. (McpGatewaySkill is intentionally NOT
+  // aliased here — it belongs to the py-only mcp_gateway subsystem which is
+  // handled separately via PORT_OMISSIONS/PORT_ADDITIONS under its TS name.)
+  SwmlTransferSkill: 'SWMLTransferSkill',
   // Note: SWMLService, SWMLVerbHandler, AIVerbHandler keep their ALL-CAPS
   // spelling on both sides.
   // REST error class — Python uses ``SignalWireRestError`` to disambiguate
@@ -271,6 +277,18 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     list_skills: 'list_loaded_skills', // TS listSkills ~ Python list_loaded_skills
   },
 
+  // Call: Python spells `pass_` (trailing underscore) because `pass` is a
+  // reserved word; TS has no keyword clash and spells it `pass`. Same verb.
+  'signalwire.relay.call.Call': { pass: 'pass_' },
+
+  // SchemaUtils: TS idiom names map to the reference's spelling. The
+  // capability is identical (schema verb introspection / document validation);
+  // only the method name differs.
+  'signalwire.utils.schema_utils.SchemaUtils': {
+    get_verb_names: 'get_all_verb_names', // TS getVerbNames ~ Python get_all_verb_names
+    validate: 'validate_document', // TS validate(doc) ~ Python validate_document
+  },
+
   // SkillRegistry: TS singleton-style names map to Python methods.
   'signalwire.skills.registry.SkillRegistry': {
     register: 'register_skill', // TS register(cls) ~ Python register_skill
@@ -287,6 +305,64 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
  *  script aliased `get_tools` → `register_tools` but those are distinct
  *  methods in Python (one returns defs, the other runs registration). */
 const SKILL_METHOD_ALIASES: Record<string, string> = {};
+
+/** MIXIN_PROJECTIONS — the SURFACE analog of enumerate-signatures.ts's table.
+ *  TS folds Python's AgentBase mixins / the ToolRegistry into direct methods on
+ *  AgentBase (or its parent SWMLService, which AgentBase inherits). Python
+ *  factors the same capability onto separate mixin/registry classes. To make the
+ *  surfaces compare EQUAL (idiom is never an omission), project the canonical
+ *  method NAMES onto their Python-owning module+class when the TS AgentBase /
+ *  SWMLService surface actually has them. The SOURCE member (possibly under a
+ *  different TS-idiom name) is given in the value map: `pythonName -> tsSurfaceName`.
+ *  A `null` tsSurfaceName means "no source member required" (the CLASS itself is
+ *  the only symbol, e.g. an empty mixin class). Kept in lock-step with the
+ *  signatures enumerator's MIXIN_PROJECTIONS. */
+const MIXIN_PROJECTIONS: Record<
+  string,
+  { module: string; methods: Record<string, string | null> }
+> = {
+  // Python's tool registry: TS folds every accessor onto SWMLService (the tool
+  // registry is a `toolRegistry` Map field on SWMLService). Same capability.
+  ToolRegistry: {
+    module: 'signalwire.core.agent.tools.registry',
+    methods: {
+      define_tool: 'define_tool',
+      register_swaig_function: 'register_swaig_function',
+      has_function: 'has_function',
+      get_function: 'get_function',
+      get_all_functions: 'get_all_functions',
+      remove_function: 'remove_function',
+    },
+  },
+  // Python's ToolMixin: the tool-definition/registration entrypoints TS puts on
+  // SWMLService (inherited by AgentBase).
+  ToolMixin: {
+    module: 'signalwire.core.mixins.tool_mixin',
+    methods: {
+      define_tool: 'define_tool',
+      register_swaig_function: 'register_swaig_function',
+    },
+  },
+  // Python's MCPServerMixin is a class with no public methods (the MCP helpers
+  // live on AgentBase in TS as get_mcp_servers/handle_mcp_request/…). The only
+  // reference symbol is the bare class; surface it as an empty class.
+  MCPServerMixin: {
+    module: 'signalwire.core.mixins.mcp_server_mixin',
+    methods: {},
+  },
+  // Python's ServerlessMixin.handle_serverless_request ≡ TS AgentBase.runServerless.
+  ServerlessMixin: {
+    module: 'signalwire.core.mixins.serverless_mixin',
+    methods: { handle_serverless_request: 'run_serverless' },
+  },
+  // Python's PromptMixin.contexts (a property) ≡ TS AgentBase.getContexts().
+  // (PromptMixin's other members already reconcile verbatim; only the property
+  // spelling differs from TS's get_contexts.)
+  PromptMixin: {
+    module: 'signalwire.core.mixins.prompt_mixin',
+    methods: { contexts: 'get_contexts' },
+  },
+};
 
 /** Function-name aliases on a per-module basis. */
 const FUNCTION_NAME_ALIASES: Record<string, Record<string, string>> = {
@@ -307,6 +383,11 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   filter_sensitive_headers: 'signalwire.core.security.security_utils',
   redact_url: 'signalwire.core.security.security_utils',
   is_valid_hostname: 'signalwire.core.security.security_utils',
+  // ``validateUrl`` lives in TS's SecurityUtils.ts (module ``signalwire.utils``)
+  // but is the port of Python's ``signalwire.utils.url_validator.validate_url``.
+  // Route it to that canonical module so it compares equal. (``resolve_and_validate_url``
+  // stays in ``signalwire.utils`` — it is a TS-only helper; see PORT_ADDITIONS.)
+  validate_url: 'signalwire.utils.url_validator',
 };
 
 /** Skills (builtin): `src/skills/builtin/<name>.ts` maps to
@@ -926,6 +1007,120 @@ function main(): void {
       const existing = new Set(entry.functions);
       existing.add(aliases[fn] ?? fn);
       entry.functions = Array.from(existing).sort();
+    }
+  }
+
+  // Reconcile: MIXIN_PROJECTIONS. TS folds Python's mixin / ToolRegistry methods
+  // onto AgentBase (or its parent SWMLService). Project the canonical method
+  // names onto their Python-owning module+class so the surfaces compare equal —
+  // the same reconciliation the signatures enumerator performs. The source member
+  // may be spelled under a TS idiom name (value of the methods map); we look for
+  // it on AgentBase first (it overrides), then SWMLService.
+  {
+    const abEntry = new Set(modules['signalwire.core.agent_base']?.classes?.['AgentBase'] ?? []);
+    const svcEntry = new Set(
+      modules['signalwire.core.swml_service']?.classes?.['SWMLService'] ?? [],
+    );
+    // PromptManager is a distinct TS class Python's PromptMixin delegates to;
+    // some PromptMixin members (e.g. the `contexts` property ≡ getContexts) live
+    // there rather than on AgentBase/SWMLService.
+    const pmEntry = new Set(
+      modules['signalwire.core.agent.prompt.manager']?.classes?.['PromptManager'] ?? [],
+    );
+    const hasMember = (name: string): boolean =>
+      abEntry.has(name) || svcEntry.has(name) || pmEntry.has(name);
+    for (const [targetCls, spec] of Object.entries(MIXIN_PROJECTIONS)) {
+      const present: string[] = [];
+      for (const [pyName, tsName] of Object.entries(spec.methods)) {
+        if (tsName === null || hasMember(tsName)) present.push(pyName);
+      }
+      // An empty mixin class (no methods to project) is still surfaced as a bare
+      // class if the reference declares it method-less.
+      const refMethods = pythonMethodsByOwner.get(`${spec.module}.${targetCls}`);
+      if (present.length === 0 && !(refMethods && refMethods.size === 0)) continue;
+      const entry = ensureModule(spec.module);
+      const existing = new Set(entry.classes[targetCls] ?? []);
+      for (const m of present) existing.add(m);
+      entry.classes[targetCls] = Array.from(existing).sort();
+    }
+  }
+
+  // Reconcile: skill `register_tools`. TS skills use the declarative getTools()
+  // contract (emitted as `get_tools`); Python's SkillBase + every concrete skill
+  // declares the imperative `register_tools`. They are the same capability (surface
+  // the skill's tools), so where TS emits `get_tools` and the reference class
+  // declares `register_tools`, ADD `register_tools` (keeping `get_tools`, which the
+  // four skills that also declare it in Python match verbatim; for the rest it is a
+  // recorded TS addition). This is a duplication mapping, not a rename — nothing is
+  // removed, so no reference symbol goes missing.
+  for (const [mod, entry] of Object.entries(modules)) {
+    if (mod !== 'signalwire.core.skill_base' && !mod.startsWith('signalwire.skills.')) continue;
+    for (const [cls, methods] of Object.entries(entry.classes)) {
+      const refMethods = pythonMethodsByOwner.get(`${mod}.${cls}`);
+      if (!refMethods || !refMethods.has('register_tools')) continue;
+      if (!methods.includes('get_tools')) continue;
+      if (!methods.includes('register_tools')) {
+        entry.classes[cls] = Array.from(new Set([...methods, 'register_tools'])).sort();
+      }
+    }
+  }
+
+  // Reconcile: abstract RELAY action mixin bases. Python factors the call-action
+  // controls into an abstract mixin chain (StoppableAction → PausableAction →
+  // VolumeAction → concrete PlayAction/RecordAction/…), so the control methods
+  // live on those abstract bases. TS flattens the hierarchy: every concrete action
+  // `extends Action` with the control methods inlined (surfaced per concrete action,
+  // e.g. PlayAction.stop/pause/resume/volume — recorded in PORT_ADDITIONS). The
+  // abstract bases therefore have no TS class, but the CAPABILITY is present. Surface
+  // the three bases (with their control methods) so they compare equal to the
+  // reference; the signature gate already excuses them via _is_abstract_action_base_method.
+  {
+    const RELAY_CALL = 'signalwire.relay.call';
+    const callClasses = modules[RELAY_CALL]?.classes ?? {};
+    const anyConcreteHas = (method: string): boolean =>
+      Object.entries(callClasses).some(
+        ([cls, ms]) => cls.endsWith('Action') && ms.includes(method),
+      );
+    const bases: Record<string, string[]> = {
+      StoppableAction: ['stop'],
+      PausableAction: ['pause', 'resume'],
+      VolumeAction: ['volume'],
+    };
+    const entry = ensureModule(RELAY_CALL);
+    for (const [baseCls, controls] of Object.entries(bases)) {
+      // Only surface the base if the reference declares it AND a concrete TS
+      // action actually carries at least one of its control methods.
+      const refMethods = pythonMethodsByOwner.get(`${RELAY_CALL}.${baseCls}`);
+      if (!refMethods) continue;
+      const present = controls.filter((m) => anyConcreteHas(m));
+      if (present.length === 0) continue;
+      const existing = new Set(entry.classes[baseCls] ?? []);
+      for (const m of present) existing.add(m);
+      entry.classes[baseCls] = Array.from(existing).sort();
+    }
+  }
+
+  // Reconcile: SWMLBuilder verb convenience methods. Python hand-writes `ai`,
+  // `answer`, `hangup`, `play` as explicit convenience wrappers on SWMLBuilder
+  // (plus `__getattr__` for the rest). TS installs EVERY schema verb dynamically
+  // in the constructor (`_installVerbMethods`) and declares them via a generated
+  // declaration-merge interface (SwmlVerbMethods.generated.ts) — so ai/answer/
+  // hangup/play are provably present, callable, typed members of SwmlBuilder, just
+  // not literal class-body methods the AST walker sees. Surface exactly the four
+  // the reference declares explicitly so they compare equal. (`say` is already a
+  // real class method and is enumerated normally; the config-object vs positional
+  // param-shape difference is recorded in PORT_SIGNATURE_OMISSIONS.)
+  {
+    const SWML_BUILDER = 'signalwire.core.swml_builder';
+    const builderEntry = modules[SWML_BUILDER]?.classes?.['SWMLBuilder'];
+    if (builderEntry) {
+      const refMethods = pythonMethodsByOwner.get(`${SWML_BUILDER}.SWMLBuilder`);
+      const dynamicVerbs = ['ai', 'answer', 'hangup', 'play'];
+      const existing = new Set(builderEntry);
+      for (const v of dynamicVerbs) {
+        if (refMethods?.has(v)) existing.add(v);
+      }
+      modules[SWML_BUILDER]!.classes['SWMLBuilder'] = Array.from(existing).sort();
     }
   }
 

@@ -492,3 +492,23 @@ command-dispatch emitter; not introduced by the client-tree roll.)
 
 signalwire.rest.namespaces.calling_resources_generated.Calling.live_transcribe: `action` param — flat `union<LiveTranscribeStartAction,LiveTranscribeSummarizeAction,LiveTranscribeStopAction>` vs the reference's right-nested griffe rendering of the same three-variant `anyOf`. Identical wire contract.
 signalwire.rest.namespaces.calling_resources_generated.Calling.live_translate: `action` param — flat union of the four LiveTranslate*Action variants vs the reference's right-nested griffe rendering of the same `anyOf`. Identical wire contract.
+
+## Surface-reconciled symbols: signature-shape / projection divergences
+
+These symbols are reconciled to PRESENT in the surface audit (idiom-mapped in the
+enumerators so they compare equal by name); the signature-level divergence below is
+the residual idiom difference (TS declaration-merge / projection / callback shape),
+not a functional gap.
+
+signalwire.core.agent.tools.registry.ToolRegistry.__init__: idiom: TS has no ToolRegistry class to construct (the registry is a `toolRegistry` Map folded onto SWMLService); the class is surfaced by projection, so Python's constructor has no TS counterpart signature
+signalwire.core.mixins.mcp_server_mixin.MCPServerMixin.add_mcp_server: idiom: reference MCPServerMixin is an empty class; TS folds MCP helpers onto AgentBase and the signatures enumerator projects add_mcp_server onto the mixin — a port-only projection with no reference method
+signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: idiom: Python exposes `contexts` as a property on the mixin; TS surfaces the same capability via AgentBase/PromptManager.getContexts() (get_contexts), reconciled by name in the surface audit
+signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: idiom: TS expresses this as AgentBase.runServerless() (reconciled by name to handle_serverless_request in the surface audit); the signature shape is TS-idiomatic
+signalwire.core.skill_base.SkillBase.register_tools: idiom: TS skills use the declarative getTools() contract (get_tools), reconciled by name to register_tools in the surface audit; no separate imperative register_tools method exists to sign
+signalwire.core.swml_builder.SWMLBuilder.ai: idiom: SwmlBuilder installs every schema verb dynamically at construction + declares them via a generated declaration-merge interface; the config-object param shape differs from Python's positional convenience-wrapper params (same as the existing SWMLBuilder.say backlog entry)
+signalwire.core.swml_builder.SWMLBuilder.answer: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
+signalwire.core.swml_builder.SWMLBuilder.hangup: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
+signalwire.core.swml_builder.SWMLBuilder.play: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
+signalwire.rest._base.SignalWireRestError.body: idiom: TS exposes the parsed error body as a public property on the consolidated RestError/SignalWireRestError class; Python has no such attribute
+signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_parameter_schema: idiom: TS static get_parameter_schema accessor; the reference SIGNATURES oracle records no class for this skill module (same shape as the other per-skill get_parameter_schema backlog entries)
+signalwire.utils.schema_utils.SchemaUtils.validate_document: idiom: TS validate() returns a ValidationResult object (structured), Python validate_document returns a (bool, list[str]) tuple — same validation capability, TS-idiomatic return

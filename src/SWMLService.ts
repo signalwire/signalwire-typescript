@@ -80,6 +80,14 @@ export class SecurityConfig {
   basicAuthUser: string | null;
   /** Basic auth password from config, or null. */
   basicAuthPassword: string | null;
+  /** Allowed request hosts (`['*']` = allow all). */
+  allowedHosts: string[];
+  /** Allowed CORS origins. */
+  corsOrigins: string[];
+  /** Whether to emit an HSTS header on HTTPS responses. */
+  useHsts: boolean;
+  /** HSTS `max-age` in seconds. */
+  hstsMaxAge: number;
 
   private sslConfig: SslConfig;
 
@@ -91,13 +99,47 @@ export class SecurityConfig {
     this.sslKeyPath = this.sslConfig.keyPath;
     this.domain = this.sslConfig.domain;
 
-    // Auth defaults from env vars
+    // Auth + host/CORS/HSTS defaults from env vars
     this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] ?? null;
     this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] ?? null;
+    this.allowedHosts = ['*'];
+    this.corsOrigins = ['*'];
+    this.useHsts = true;
+    this.hstsMaxAge = 31536000;
+    this.loadFromEnv();
 
     // Load from config file if available
     if (opts?.configFile) {
       this.loadFromConfigFile(opts.configFile);
+    }
+  }
+
+  /** Split a comma-separated env value into a trimmed, non-empty list. */
+  private static parseList(value: string | undefined): string[] | null {
+    if (value === undefined) return null;
+    const items = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    return items.length > 0 ? items : null;
+  }
+
+  /**
+   * (Re)load host/CORS/HSTS settings from environment variables. Mirrors Python
+   * SDK's `SecurityConfig.load_from_env()`. SSL/auth are loaded in the constructor
+   * from their own env vars; this refreshes the network-policy fields.
+   */
+  loadFromEnv(): void {
+    const hosts = SecurityConfig.parseList(process.env['SWML_ALLOWED_HOSTS']);
+    if (hosts) this.allowedHosts = hosts;
+    const cors = SecurityConfig.parseList(process.env['SWML_CORS_ORIGINS']);
+    if (cors) this.corsOrigins = cors;
+    if (process.env['SWML_USE_HSTS'] !== undefined) {
+      this.useHsts = process.env['SWML_USE_HSTS'] === 'true';
+    }
+    const maxAge = process.env['SWML_HSTS_MAX_AGE'];
+    if (maxAge !== undefined && !Number.isNaN(Number(maxAge))) {
+      this.hstsMaxAge = Number(maxAge);
     }
   }
 
@@ -135,6 +177,68 @@ export class SecurityConfig {
     if (!this.sslCertPath) return [false, 'SSL cert path not configured'];
     if (!this.sslKeyPath) return [false, 'SSL key path not configured'];
     return this.sslConfig.isConfigured() ? [true, null] : [false, 'SSL cert or key file not found'];
+  }
+
+  /** Get the URL scheme based on SSL configuration. Mirrors Python's `get_url_scheme()`. */
+  getUrlScheme(): string {
+    return this.sslEnabled ? 'https' : 'http';
+  }
+
+  /**
+   * Check whether a host is allowed. Mirrors Python's `should_allow_host()`:
+   * a wildcard `*` in the allow-list permits any host.
+   */
+  shouldAllowHost(host: string): boolean {
+    if (this.allowedHosts.includes('*')) return true;
+    return this.allowedHosts.includes(host);
+  }
+
+  /**
+   * Get CORS configuration. Mirrors Python's `get_cors_config()`.
+   * @returns An object of CORS settings (origins, credentials, methods, headers).
+   */
+  getCorsConfig(): Record<string, unknown> {
+    return {
+      allow_origins: this.corsOrigins,
+      allow_credentials: true,
+      allow_methods: ['*'],
+      allow_headers: ['*'],
+    };
+  }
+
+  /**
+   * Get the security headers to add to responses. Mirrors Python's
+   * `get_security_headers()`; adds an HSTS header when the request is HTTPS and
+   * HSTS is enabled.
+   * @param isHttps - Whether the connection is over HTTPS.
+   */
+  getSecurityHeaders(isHttps = false): Record<string, string> {
+    const headers: Record<string, string> = {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    };
+    if (isHttps && this.useHsts) {
+      headers['Strict-Transport-Security'] = `max-age=${this.hstsMaxAge}; includeSubDomains`;
+    }
+    return headers;
+  }
+
+  /**
+   * Log the current security configuration. Mirrors Python's `log_config()`.
+   * @param serviceName - The service name to tag the log line with.
+   */
+  logConfig(serviceName: string): void {
+    getLogger('SecurityConfig').info('security_config_loaded', {
+      service: serviceName,
+      ssl_enabled: this.sslEnabled,
+      domain: this.domain,
+      allowed_hosts: this.allowedHosts,
+      cors_origins: this.corsOrigins,
+      use_hsts: this.useHsts,
+      has_basic_auth: !!(this.basicAuthUser && this.basicAuthPassword),
+    });
   }
 }
 

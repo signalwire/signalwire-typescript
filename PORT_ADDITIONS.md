@@ -61,12 +61,7 @@ signalwire.skills.play_background_file.skill.create_skill: TS-specific skill hel
 signalwire.skills.registry.register_builtin_skills: TS-specific skill helper method or class
 signalwire.skills.spider.skill.SpiderSkill.get_tools: TS-specific skill helper method or class
 signalwire.skills.spider.skill.create_skill: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill.get_hints: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill.get_instance_key: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill.get_parameter_schema: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill.get_tools: TS-specific skill helper method or class
-signalwire.skills.swml_transfer.skill.SwmlTransferSkill.setup: TS-specific skill helper method or class
+signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_tools: TS-specific declarative tools accessor (getTools()); the reference exposes the same capability imperatively via register_tools (which the port also surfaces)
 signalwire.skills.swml_transfer.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.weather_api.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.web_search.skill.WebSearchSkill.get_tools: TS-specific skill helper method or class

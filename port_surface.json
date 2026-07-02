@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 14e5aae0ebdda976869eb0507c8072480d7cac0f",
+  "generated_from": "signalwire-typescript @ 665395a4284df7aaecb4115e4da011e3c48cbd52",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -67,6 +67,20 @@
           "set_post_prompt",
           "set_prompt_pom",
           "set_prompt_text"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.agent.tools.registry": {
+      "classes": {
+        "ToolRegistry": [
+          "__init__",
+          "define_tool",
+          "get_all_functions",
+          "get_function",
+          "has_function",
+          "register_swaig_function",
+          "remove_function"
         ]
       },
       "functions": []
@@ -351,6 +365,7 @@
         ]
       },
       "functions": [
+        "configure_logging",
         "get_execution_mode",
         "get_logger",
         "reset_logging_configuration",
@@ -402,9 +417,16 @@
       },
       "functions": []
     },
+    "signalwire.core.mixins.mcp_server_mixin": {
+      "classes": {
+        "MCPServerMixin": []
+      },
+      "functions": []
+    },
     "signalwire.core.mixins.prompt_mixin": {
       "classes": {
         "PromptMixin": [
+          "contexts",
           "define_contexts",
           "get_post_prompt",
           "get_prompt",
@@ -431,6 +453,9 @@
           "generate_url",
           "get_platform",
           "handle_request"
+        ],
+        "ServerlessMixin": [
+          "handle_serverless_request"
         ]
       },
       "functions": []
@@ -457,8 +482,10 @@
     "signalwire.core.mixins.tool_mixin": {
       "classes": {
         "ToolMixin": [
+          "define_tool",
           "define_tools",
-          "on_function_call"
+          "on_function_call",
+          "register_swaig_function"
         ]
       },
       "functions": []
@@ -576,6 +603,12 @@
         "SecurityConfig": [
           "__init__",
           "get_basic_auth",
+          "get_cors_config",
+          "get_security_headers",
+          "get_url_scheme",
+          "load_from_env",
+          "log_config",
+          "should_allow_host",
           "validate_ssl_config"
         ],
         "SslConfig": [
@@ -611,6 +644,7 @@
           "has_all_packages",
           "is_initialized",
           "mark_initialized",
+          "register_tools",
           "set_agent",
           "setup",
           "update_skill_data",
@@ -684,9 +718,13 @@
           "add_section",
           "add_verb",
           "add_verb_to_section",
+          "ai",
+          "answer",
           "build",
           "document",
           "get_schema_utils",
+          "hangup",
+          "play",
           "render",
           "reset",
           "say",
@@ -1249,7 +1287,7 @@
           "live_transcribe",
           "live_translate",
           "on",
-          "pass",
+          "pass_",
           "pay",
           "play",
           "play_and_collect",
@@ -1278,6 +1316,16 @@
           "wait_for_ended",
           "wait_for_ending",
           "wait_for_ringing"
+        ],
+        "StoppableAction": [
+          "stop"
+        ],
+        "PausableAction": [
+          "pause",
+          "resume"
+        ],
+        "VolumeAction": [
+          "volume"
         ]
       },
       "functions": []
@@ -2769,6 +2817,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2794,6 +2843,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2824,6 +2874,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2841,6 +2892,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2855,6 +2907,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2869,6 +2922,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2883,6 +2937,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2898,6 +2953,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2912,6 +2968,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2943,6 +3000,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -2957,6 +3015,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -3003,6 +3062,7 @@
           "get_instance_key",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -3012,11 +3072,13 @@
     },
     "signalwire.skills.swml_transfer.skill": {
       "classes": {
-        "SwmlTransferSkill": [
+        "SWMLTransferSkill": [
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
+          "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -3030,6 +3092,7 @@
           "__init__",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -3046,6 +3109,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },
@@ -3061,6 +3125,7 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_tools",
+          "register_tools",
           "search_wiki",
           "setup"
         ]
@@ -3081,8 +3146,7 @@
         "is_private_ip",
         "is_serverless_mode",
         "resolve_and_validate_url",
-        "safe_assign",
-        "validate_url"
+        "safe_assign"
       ]
     },
     "signalwire.utils.schema_utils": {
@@ -3090,17 +3154,26 @@
         "SchemaUtils": [
           "__init__",
           "clear_cache",
+          "full_validation_available",
+          "get_all_verb_names",
           "get_cache_size",
           "get_verb_description",
-          "get_verb_names",
+          "get_verb_parameters",
           "get_verb_properties",
           "get_verb_required_properties",
           "has_verb",
-          "validate",
+          "load_schema",
+          "validate_document",
           "validate_verb"
         ]
       },
       "functions": []
+    },
+    "signalwire.utils.url_validator": {
+      "classes": {},
+      "functions": [
+        "validate_url"
+      ]
     },
     "signalwire.web.web_service": {
       "classes": {

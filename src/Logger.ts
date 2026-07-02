@@ -156,8 +156,25 @@ export function setGlobalLogStream(stream: LogStream): void {
   globalStream = stream;
 }
 
+/** Tracks whether {@link configureLogging} has already run (idempotency guard). */
+let _loggingConfigured = false;
+
+/**
+ * Configure the logging system once, globally, from environment variables.
+ * Mirrors Python SDK's `configure_logging()`: it reads `SIGNALWIRE_LOG_MODE`,
+ * `SIGNALWIRE_LOG_LEVEL`, and `SIGNALWIRE_LOG_FORMAT` and applies them, and is
+ * idempotent — subsequent calls are a no-op until {@link resetLoggingConfiguration}
+ * is invoked. (Use `resetLoggingConfiguration()` to force a re-read of the env.)
+ */
+export function configureLogging(): void {
+  if (_loggingConfigured) return;
+  resetLoggingConfiguration();
+  _loggingConfigured = true;
+}
+
 /** Reset all logging settings to their environment-variable-based defaults. */
 export function resetLoggingConfiguration(): void {
+  _loggingConfigured = false;
   const mode = process.env['SIGNALWIRE_LOG_MODE'];
   globalLevel = (process.env['SIGNALWIRE_LOG_LEVEL'] as LogLevel) ?? 'info';
   globalSuppressed = deriveSuppressed(mode);
