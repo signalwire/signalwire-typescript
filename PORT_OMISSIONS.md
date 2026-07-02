@@ -503,3 +503,7 @@ signalwire.relay.call.VolumeAction.volume: abstract mixin base method; present o
 ## relay_rest PhoneCallHandler enum (hand-written in TS, generated in the reference)
 
 signalwire.rest.namespaces.relay_rest_types_generated.PhoneCallHandler: the `call_handler` value enum; the reference generates it into relay_rest_types_generated, TS hand-writes it as the idiomatic const+type pair in src/rest/callHandler.ts (exported as `PhoneCallHandler`, named to avoid colliding with CallHandler). Same values; not surfaced under the generated-type module because it lives in a hand file, which the surface enumerator intentionally does not scan for types.
+
+## AgentServer.agents (private field + accessor idiom)
+
+signalwire.agent_server.AgentServer.agents: Python exposes `agents` as a public dict attribute; TS keeps the map private (`private agents: Map<string, AgentBase>`) and exposes it via the `getAgents()` accessor (idiomatic TS private-field + accessor). Same registry, not a public field.

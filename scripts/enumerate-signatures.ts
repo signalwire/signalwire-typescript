@@ -159,6 +159,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'set_internal_fillers',
       'set_language_params',
       'set_languages',
+      'set_multilingual',
       'set_native_functions',
       'set_param',
       'set_params',
@@ -831,13 +832,16 @@ function collectInterface(
     if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
     const native = m.name.text;
     if (native.startsWith('_')) continue;
-    // Mirror the Python enumerator (enumerate_python_signatures.py): it skips any
-    // member whose name is ALL-CAPS (`mname.isupper() or
-    // mname.replace("_","").isupper()`) — the Python convention treats all-caps as a
-    // constant, not an API attribute. So the reference drops fields like `SWAIG`
-    // (`AIObject.SWAIG`, `AmazonBedrockObject.SWAIG`); the port must drop them too.
-    const letters = native.replace(/[^A-Za-z]/g, '');
-    if (letters.length > 0 && letters === letters.toUpperCase()) continue;
+    // Mirror the Python enumerator (enumerate_python_signatures.py): it skips a
+    // member whose name is ALL-CAPS (a Python-convention constant, not an API
+    // attribute) — BUT only when the field is not SDK-class-typed. An all-caps
+    // field whose type IS a class (`AIObject.SWAIG: SWAIG`) is a real data field
+    // the reference records; only a genuine all-caps *constant* (primitive type)
+    // is dropped. (The reference had the same fix; the port must match it.)
+    const isAllCaps = (() => {
+      const letters = native.replace(/[^A-Za-z]/g, '');
+      return letters.length > 0 && letters === letters.toUpperCase();
+    })();
     // Key the field by its VERBATIM wire name, NOT camelToSnake(native). A generated-
     // payload interface field IS the schema property name (`allOf`, `numberedBullets`,
     // `post_prompt`); the Python (griffe) reference records the TypedDict key verbatim,
@@ -859,6 +863,9 @@ function collectInterface(
         methods[key] = { params: [{ name: 'self', kind: 'self' }], returns: written };
         continue;
       }
+      // Not class-typed via the alias path. An all-caps name here is a genuine
+      // constant (a class-typed all-caps field would have been kept above) — drop it.
+      if (isAllCaps) continue;
       // A PropertySignature is structurally a PropertyDeclaration for the field
       // we need (`.name`, `.type`); signatureFromProperty applies the same
       // SDK-class-typed-only filter (returns null for primitives) as Python.
@@ -956,20 +963,31 @@ function extractCrudBase(
 }
 
 /**
- * A canonical type ref is an SDK-class-typed field (the only fields the Python
- * `_is_sdk_class_type` rule records): a direct `class:`, an `optional<class:…>`, a
- * single-level `list<class:…>`, or a `union<…>` that contains a class arm.
- * Deliberately does NOT accept deeper nestings like `list<list<class:…>>` — the
- * Python reference doesn't record those either (e.g. `serial_parallel`), so a port
- * that did would over-record vs the oracle.
+ * A canonical type ref is an SDK-class-typed field (the fields the Python
+ * `_is_sdk_class_type` rule records): any canonical type that mentions an SDK
+ * `class:` at any nesting depth — `class:`, `optional<class:…>`, `list<class:…>`,
+ * `union<…class:…>`, and the deeper nestings `list<union<…class:…>>` (e.g.
+ * `AIObject.hints: (string|Hint)[]`), `list<list<class:…>>` (e.g.
+ * `serial_parallel`), and `dict<…,class:…>` (composition registries).
+ * A primitive-only canonical type never contains the substring `class:`, so its
+ * presence at any depth is a sound+complete "carries SDK-class surface" test.
+ * This matches the porting-sdk oracle rule (`"class:" in canonical`) after its
+ * fix; the old shallow ladder dropped the deeper-nested real fields.
  */
 function isSdkClassRef(canon: string): boolean {
-  return (
-    canon.startsWith('class:') ||
-    canon.startsWith('optional<class:') ||
-    canon.startsWith('list<class:') ||
-    (canon.startsWith('union<') && canon.includes('class:'))
-  );
+  // A field whose (optional-unwrapped) type IS a callable<…> is a function-typed
+  // property (a handler/callback). The Python reference models such things as a
+  // method — or not at all — never as an SDK-class data field, so exclude it even
+  // though its callable signature mentions a class. Every OTHER `class:` at any
+  // nesting depth is a real composed data field: `class:`, `optional<class:…>`,
+  // `list<class:…>`, `union<…class:…>`, `list<union<…class:…>>` (`AIObject.hints`),
+  // `list<list<class:…>>` (`serial_parallel`), `dict<…,class:…>` (composition
+  // registries). Matches the porting-sdk oracle rule (`"class:" in canonical`);
+  // the old shallow ladder dropped the deeper-nested real fields.
+  let t = canon;
+  while (t.startsWith('optional<') && t.endsWith('>')) t = t.slice(9, -1);
+  if (t.startsWith('callable<')) return false;
+  return canon.includes('class:');
 }
 
 function signatureFromProperty(

@@ -29,6 +29,25 @@ describe('AgentBase', () => {
     expect(main[1].ai.prompt.text).toBe('You are a helpful assistant');
   });
 
+  it('setMultilingual emits a top-level multilingual object on the AI verb', () => {
+    const agent = createAgent();
+    agent.setPromptText('hi');
+    const ret = agent.setMultilingual({ languages: ['en', 'es'], start_language: 'en' });
+    expect(ret).toBe(agent); // fluent
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    expect(ai.multilingual).toEqual({ languages: ['en', 'es'], start_language: 'en' });
+  });
+
+  it('setMultilingual is a no-op on a non-object config', () => {
+    const agent = createAgent();
+    agent.setPromptText('hi');
+    agent.setMultilingual(undefined as unknown as Record<string, unknown>);
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    expect(ai).not.toHaveProperty('multilingual');
+  });
+
   it('renders SWML without auto-answer', () => {
     const agent = new AgentBase({ name: 'test', route: '/test', autoAnswer: false });
     agent.setPromptText('hello');

@@ -4219,6 +4219,20 @@
               ],
               "returns": "any"
             },
+            "set_multilingual": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "config",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_native_functions": {
               "params": [
                 {
@@ -7099,6 +7113,15 @@
                 }
               ],
               "returns": "class:signalwire.core.swml_builder.SWMLBuilder"
+            },
+            "tool_registry": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,union<dict<string,any>,class:signalwire.core.swaig_function.SWAIGFunction>>"
             },
             "validate_basic_auth": {
               "params": [
@@ -21646,6 +21669,24 @@
         },
         "AIObject": {
           "methods": {
+            "SWAIG": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWAIG"
+            },
+            "hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<union<string,class:signalwire.swml_verbs_generated.Hint>>"
+            },
             "languages": {
               "params": [
                 {
@@ -22542,6 +22583,15 @@
         },
         "AmazonBedrockObject": {
           "methods": {
+            "SWAIG": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.signalwire_typescript.src.swml_verbs_generated.BedrockSWAIG"
+            },
             "params": {
               "params": [
                 {
@@ -22842,6 +22892,15 @@
                 }
               ],
               "returns": "list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>"
+            },
+            "serial_parallel": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>>"
             },
             "session_timeout": {
               "params": [
@@ -23169,6 +23228,15 @@
                 }
               ],
               "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectSwitch,list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.CondParams>>"
+            },
+            "serial_parallel": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<list<class:signalwire.signalwire_typescript.src.swml_verbs_generated.ConnectDeviceSingle>>"
             },
             "session_timeout": {
               "params": [

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 35a2fb157e92e06d04778a2500b5ad81545a1061",
+  "generated_from": "signalwire-typescript @ 14e5aae0ebdda976869eb0507c8072480d7cac0f",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -381,6 +381,7 @@
           "set_internal_fillers",
           "set_language_params",
           "set_languages",
+          "set_multilingual",
           "set_native_functions",
           "set_param",
           "set_params",

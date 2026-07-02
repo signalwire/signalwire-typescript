@@ -147,6 +147,7 @@ export class AgentBase extends SWMLService {
   // AI config
   private hints: string[] = [];
   private languages: LanguageConfig[] = [];
+  private multilingual: Record<string, unknown> = {};
   private pronounce: PronunciationRule[] = [];
   private params: Record<string, unknown> = {};
   private globalData: Record<string, unknown> = {};
@@ -795,6 +796,26 @@ export class AgentBase extends SWMLService {
   setLanguages(languages: LanguageConfig[]): this {
     this.languages = [];
     for (const l of languages) this.addLanguage(l);
+    return this;
+  }
+
+  /**
+   * Configure ASR-driven multilingual mode (Mode B).
+   *
+   * Emits a top-level `multilingual` object on the AI verb. The recognizer runs
+   * in code-switching mode and the agent answers in whatever language the caller
+   * actually spoke — the model does not pick the language. Mutually exclusive
+   * with {@link setLanguages}; if both are set the server uses `multilingual` and
+   * ignores `languages`.
+   *
+   * @param config - The multilingual config object (languages, allowed,
+   *   start_language, min_switch_words, fillers, etc.).
+   * @returns This agent instance for chaining.
+   */
+  setMultilingual(config: Record<string, unknown>): this {
+    if (config && typeof config === 'object') {
+      this.multilingual = config;
+    }
     return this;
   }
 
@@ -2187,6 +2208,8 @@ export class AgentBase extends SWMLService {
     // Additional config
     if (this.hints.length) aiConfig['hints'] = this.hints;
     if (this.languages.length) aiConfig['languages'] = this.languages;
+    // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
+    if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
     if (Object.keys(this.params).length) aiConfig['params'] = this.params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
@@ -2238,6 +2261,7 @@ export class AgentBase extends SWMLService {
     copy.toolRegistry = new Map(this.toolRegistry);
     copy.hints = [...this.hints];
     copy.languages = [...this.languages];
+    copy.multilingual = { ...this.multilingual };
     copy.pronounce = [...this.pronounce];
     copy.params = { ...this.params };
     copy.globalData = { ...this.globalData };
