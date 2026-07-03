@@ -159,6 +159,21 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     get_verb_names: 'get_all_verb_names',
     validate: 'validate_document',
   },
+  // TS SkillManager uses camel names that project onto the reference's SkillManager
+  // methods: listSkillKeys ≡ list_loaded_skills (returns the loaded-instance keys),
+  // removeSkill ≡ unload_skill (cleanup + delete; TS is async). (Verified against
+  // signalwire/core/skill_manager.py.)
+  'signalwire.core.skill_manager.SkillManager': {
+    list_skill_keys: 'list_loaded_skills',
+    remove_skill: 'unload_skill',
+  },
+  // TS SkillRegistry.listSkills ≡ the reference's discover_skills (enumerate
+  // available skill metadata); register ≡ register_skill (validate subclass +
+  // SKILL_NAME + get_parameter_schema, then register). (signalwire/skills/registry.py.)
+  'signalwire.skills.registry.SkillRegistry': {
+    list_skills: 'discover_skills',
+    register: 'register_skill',
+  },
 };
 
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
@@ -172,9 +187,11 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'add_hints',
       'add_internal_filler',
       'add_language',
+      'add_mcp_server',
       'add_pattern_hint',
       'add_pronunciation',
       'enable_debug_events',
+      'enable_mcp_server',
       'get_language_params',
       'set_function_includes',
       'set_global_data',
@@ -203,6 +220,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'prompt_has_section',
       'reset_contexts',
       'set_post_prompt',
+      'set_prompt_pom',
       'set_prompt_text',
     ],
   ],
@@ -257,8 +275,11 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   WebMixin: [
     'signalwire.core.mixins.web_mixin',
     [
+      'as_router',
       'enable_debug_routes',
+      'get_app',
       'manual_set_proxy_url',
+      'register_routing_callback',
       'run',
       'serve',
       'set_dynamic_config_callback',
@@ -284,6 +305,67 @@ const SKIP_METHOD_NAMES = new Set([
   'propertyIsEnumerable',
   'toLocaleString',
 ]);
+
+// Hand-written methods whose single trailing inline `options`/`opts`/`config`
+// object collapses a Python method's exploded KEYWORD argument set. For these,
+// unfold the object's members back to individual `keyword` params + a synthetic
+// `**kwargs` tail so the port signature matches the reference positionally (see
+// signatureFromMethod). Keyed by canonical `module.Class.method`. Only methods
+// whose Python reference uses keyword-only params belong here — methods that take
+// a SINGLE `dict` param (DataMap.foreach) or whose reference uses positional-or-
+// keyword params (the `ts-options-object`-excused set) MUST NOT be listed.
+// (Set the env var UNFOLD_ALL=1 to unfold every options-object method — a build
+// aid for deriving this list; never used in CI.)
+const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
+  // Context.add_step — Python keyword-only step config (task/bullets/criteria/…).
+  'signalwire.core.contexts.Context.add_step',
+  // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
+  'signalwire.relay.call.Call.ai',
+  'signalwire.relay.call.Call.ai_hold',
+  'signalwire.relay.call.Call.ai_message',
+  'signalwire.relay.call.Call.ai_unhold',
+  'signalwire.relay.call.Call.amazon_bedrock',
+  'signalwire.relay.call.Call.bind_digit',
+  'signalwire.relay.call.Call.collect',
+  'signalwire.relay.call.Call.connect',
+  'signalwire.relay.call.Call.detect',
+  'signalwire.relay.call.Call.detect_answering_machine',
+  'signalwire.relay.call.Call.detect_digit',
+  'signalwire.relay.call.Call.detect_fax',
+  'signalwire.relay.call.Call.echo',
+  'signalwire.relay.call.Call.join_conference',
+  'signalwire.relay.call.Call.join_room',
+  'signalwire.relay.call.Call.live_translate',
+  'signalwire.relay.call.Call.pay',
+  'signalwire.relay.call.Call.play',
+  'signalwire.relay.call.Call.play_and_collect',
+  'signalwire.relay.call.Call.play_audio',
+  'signalwire.relay.call.Call.play_ringtone',
+  'signalwire.relay.call.Call.play_silence',
+  'signalwire.relay.call.Call.play_tts',
+  'signalwire.relay.call.Call.prompt_audio',
+  'signalwire.relay.call.Call.prompt_tts',
+  'signalwire.relay.call.Call.queue_enter',
+  'signalwire.relay.call.Call.queue_leave',
+  'signalwire.relay.call.Call.receive_fax',
+  'signalwire.relay.call.Call.record',
+  'signalwire.relay.call.Call.refer',
+  'signalwire.relay.call.Call.send_fax',
+  'signalwire.relay.call.Call.stream',
+  'signalwire.relay.call.Call.tap',
+  'signalwire.relay.call.Call.transcribe',
+  'signalwire.relay.call.Call.user_event',
+  'signalwire.relay.client.RelayClient.dial',
+  'signalwire.relay.client.RelayClient.send_message',
+]);
+const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
+
+// TS `static` factory methods that mirror a Python `@classmethod` (whose first
+// param is `cls`). The enumerator emits a leading `cls` receiver for these so the
+// arity + receiver line up with the reference (the diff treats `self` ≡ `cls`).
+// Keyed by native (camelCase) method name — these names are unambiguously
+// classmethod-style instance factories in this SDK.
+const CLASSMETHOD_STATIC_METHODS = new Set(['fromPayload', 'fromSections']);
 
 // Free-function name overrides — for cases where the Python canonical
 // name doesn't follow snake_case. Python's top-level
@@ -655,7 +737,7 @@ function translateType(
 
 interface CanonicalParam {
   name: string;
-  kind?: 'self' | 'positional' | 'keyword' | 'var_positional' | 'var_keyword';
+  kind?: 'self' | 'cls' | 'positional' | 'keyword' | 'var_positional' | 'var_keyword';
   type?: string;
   required?: boolean;
   default?: unknown;
@@ -1290,16 +1372,84 @@ function signatureFromMethod(
   const params: CanonicalParam[] = [];
   const isMethod =
     !isCtor && (ts.isMethodDeclaration(m) || ts.isGetAccessor(m) || ts.isSetAccessor(m));
+  // A TS `static` factory method that mirrors a Python `@classmethod` (first param
+  // `cls`) — e.g. the typed-event `fromPayload` factories and `PomBuilder.
+  // fromSections`. TS has no `cls`/`self` receiver on statics, but the Python
+  // reference records `cls` as param[0]; emit a matching `cls` receiver so the
+  // classmethod's arity + receiver line up (the diff treats `self` ≡ `cls`). Keyed
+  // by native method name (these are unambiguously classmethod-style factories).
+  const methodNative = m.name && ts.isIdentifier(m.name) ? m.name.text : undefined;
+  const isClassmethodStatic =
+    isMethod && isStatic && !!methodNative && CLASSMETHOD_STATIC_METHODS.has(methodNative);
   if (isMethod && !isStatic) {
     params.push({ name: 'self', kind: 'self' });
   } else if (isCtor) {
     params.push({ name: 'self', kind: 'self' });
+  } else if (isClassmethodStatic) {
+    params.push({ name: 'cls', kind: 'cls' });
   }
+
+  // General options-object UNFOLD (opt-in allowlist of hand-written methods). A
+  // pervasive TS idiom in this port collapses a Python method's keyword argument
+  // set (`def m(self, a, b=None, c=None, **kwargs)`) into ONE trailing inline
+  // options object (`m(a, options: { b?, c? } = {})`). The Python reference records
+  // the FLAT keyword set (b, c, [**kwargs]); the collapsed port would read as a
+  // param-count-mismatch. Types erase and the emitted wire is identical (the method
+  // reads the same members off the object), so this is a pure call-site RESHAPE.
+  // Where the reference genuinely EXPLODES into that keyword set, unfold the inline
+  // object's members back into individual `keyword` params + a synthetic trailing
+  // `kwargs` var_keyword so the port MATCHES the reference positionally (the diff
+  // compares KIND + TYPE by position, never names). This is NOT applied blindly:
+  // some methods take a SINGLE Python `dict` param (e.g. DataMap.foreach(
+  // foreach_config: dict) → one param), and exploding those would be WRONG. Whether
+  // a method explodes vs takes one dict is not derivable from TS source, so the set
+  // below is an explicit, audited allowlist keyed by the canonical `module.Class.
+  // method` ctx. Where unfolding still leaves a residual kind mismatch (the Python
+  // ref uses positional-or-keyword, not keyword-only) the method is NOT on this list
+  // and is instead excused with the `ts-options-object` reason (the options object
+  // is a keyword-passing bag; it can't express Python's positional affordance).
+  // Generated resources (genResource) have their own richer unfold below;
+  // constructors keep the TS options-object idiom.
+  const shouldGeneralUnfold =
+    !isCtor && !genResource && (UNFOLD_ALL || GENERAL_OPTIONS_UNFOLD.has(ctx));
+  let didGeneralUnfold = false;
 
   for (const p of m.parameters) {
     if (!p.name || !ts.isIdentifier(p.name)) continue;
     const native = p.name.text;
     const snake = camelToSnake(native);
+    // General options-object unfold (allowlisted methods): a trailing inline
+    // `options`/`opts`/`config` type-literal → its members as `keyword` params.
+    if (
+      shouldGeneralUnfold &&
+      (native === 'options' || native === 'opts' || native === 'config') &&
+      p.type &&
+      ts.isTypeLiteralNode(p.type)
+    ) {
+      for (const member of p.type.members) {
+        if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
+          continue;
+        const mNative = member.name.text;
+        const mSnake = camelToSnake(mNative);
+        const optional = !!member.questionToken;
+        const type = canonForParamNode(
+          member.type,
+          optional,
+          checker,
+          aliases,
+          `${ctx}[${mSnake}]`,
+        );
+        params.push({
+          name: mSnake,
+          type,
+          required: !optional,
+          default: optional ? null : undefined,
+          kind: 'keyword',
+        });
+      }
+      didGeneralUnfold = true;
+      continue;
+    }
     // Options-object UNFOLD (generated resource methods only). The REST generator
     // emits operation + command-dispatch methods in the TS options-object idiom
     // (RULES §5, §5.1; TYPED_SURFACE_STRATEGY §4a): leading required positionals +
@@ -1376,6 +1526,15 @@ function signatureFromMethod(
       param.required = true;
     }
     params.push(param);
+  }
+
+  // After a general options-object unfold, append the synthetic `kwargs`
+  // var_keyword tail that mirrors the Python convenience method's `**kwargs`.
+  // When the reference method has a `**kwargs`, this makes the port match
+  // positionally; when it does not, the trailing optional var_keyword is an
+  // allowed port-side extra (the diff ignores extra trailing optional params).
+  if (didGeneralUnfold) {
+    params.push({ name: 'kwargs', kind: 'var_keyword', type: 'any', required: false, default: {} });
   }
 
   let returns: string;

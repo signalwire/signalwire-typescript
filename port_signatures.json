@@ -1008,15 +1008,6 @@
               ],
               "returns": "any"
             },
-            "as_router": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "auto_map_sip_usernames": {
               "params": [
                 {
@@ -1104,15 +1095,6 @@
               ],
               "returns": "any"
             },
-            "enable_mcp_server": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "enable_sip_routing": {
               "params": [
                 {
@@ -1152,15 +1134,6 @@
                 }
               ],
               "returns": "string"
-            },
-            "get_app": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
             },
             "get_full_url": {
               "params": [
@@ -1318,26 +1291,6 @@
                 }
               ],
               "returns": "class:signalwire.core.agent.prompt.manager.PromptManager"
-            },
-            "register_routing_callback": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "callback",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData>,union<string,string>>",
-                  "required": true
-                },
-                {
-                  "name": "path",
-                  "type": "string",
-                  "required": false,
-                  "default": "/sip"
-                }
-              ],
-              "returns": "any"
             },
             "register_sip_username": {
               "params": [
@@ -1986,10 +1939,46 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "task",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "criteria",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "functions",
+                  "type": "optional<union<string,list<string>>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "valid_steps",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "class:signalwire.core.contexts.Step"
@@ -4245,6 +4234,26 @@
               ],
               "returns": "any"
             },
+            "add_mcp_server": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "optional<dict<string,any>>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
             "add_pattern_hint": {
               "params": [
                 {
@@ -4284,6 +4293,15 @@
                   "type": "float",
                   "required": false,
                   "default": 1
+                }
+              ],
+              "returns": "any"
+            },
+            "enable_mcp_server": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -4707,6 +4725,20 @@
               ],
               "returns": "any"
             },
+            "set_prompt_pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "pom",
+                  "type": "list<dict<string,any>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_prompt_text": {
               "params": [
                 {
@@ -4985,7 +5017,25 @@
       "classes": {
         "WebMixin": {
           "methods": {
+            "as_router": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "enable_debug_routes": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_app": {
               "params": [
                 {
                   "name": "self",
@@ -5004,6 +5054,26 @@
                   "name": "url",
                   "type": "string",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "register_routing_callback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "callback",
+                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData>,union<string,string>>",
+                  "required": true
+                },
+                {
+                  "name": "path",
+                  "type": "string",
+                  "required": false,
+                  "default": "/sip"
                 }
               ],
               "returns": "any"
@@ -5207,6 +5277,10 @@
             },
             "from_sections": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "sections",
                   "type": "list<class:signalwire.core.pom_builder.PomSectionData>",
@@ -6328,7 +6402,7 @@
               ],
               "returns": "bool"
             },
-            "list_skill_keys": {
+            "list_loaded_skills": {
               "params": [
                 {
                   "name": "self",
@@ -6395,20 +6469,6 @@
               ],
               "returns": "dict<string,class:signalwire.core.skill_base.SkillBase>"
             },
-            "remove_skill": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key_or_id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "bool"
-            },
             "remove_skill_by_name": {
               "params": [
                 {
@@ -6431,6 +6491,20 @@
                 }
               ],
               "returns": "float"
+            },
+            "unload_skill": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key_or_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
@@ -9460,8 +9534,107 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "agent",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt_auth_user",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt_auth_password",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "global_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "pronounce",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "hints",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "languages",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "swaig",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ai_params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9475,8 +9648,23 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "timeout",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9490,8 +9678,37 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "message_text",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "role",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "reset",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "global_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9505,8 +9722,16 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9520,8 +9745,51 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "prompt",
+                  "type": "any",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "swaig",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ai_params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "global_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9560,8 +9828,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "bind_params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "realm",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_triggers",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9590,8 +9880,72 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "digits",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "speech",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "initial_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "partial_results",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "continuous",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "send_start_of_input",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "start_input_timers",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9610,8 +9964,44 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "ringback",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "tag",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_duration",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_price_per_minute",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9648,8 +10038,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9663,8 +10075,65 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "initial_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "end_silence_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "machine_voice_threshold",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "machine_words_threshold",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "detect_interruptions",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "detect_message_end",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9678,8 +10147,30 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "digits",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9693,8 +10184,30 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "tone",
+                  "type": "union<string,string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9726,8 +10239,23 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9779,8 +10307,142 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "muted",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "beep",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "start_on_enter",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "end_on_exit",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "wait_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_participants",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "record",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "region",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "trim",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "coach",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback_event",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback_event_type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback_event",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback_event_type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "stream",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9799,8 +10461,16 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9874,8 +10544,16 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9922,8 +10600,142 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "input_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "payment_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_attempts",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "security_code",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "postal_code",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "min_postal_code_length",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "token_type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "charge_amount",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "currency",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "language",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "description",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "valid_card_types",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "parameters",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompts",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9942,8 +10754,44 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "direction",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "loop",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9967,8 +10815,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -9987,8 +10857,23 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10007,8 +10892,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "duration",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10027,8 +10934,16 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10047,8 +10962,44 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "language",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "gender",
+                  "type": "union<string,string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10072,8 +11023,23 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10097,8 +11063,44 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "language",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "gender",
+                  "type": "union<string,string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10117,8 +11119,23 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10137,8 +11154,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "queue_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10152,8 +11191,23 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10173,8 +11227,23 @@
                   "default": null
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10193,8 +11262,16 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10233,8 +11310,37 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "identity",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "header_info",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10253,8 +11359,72 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "name",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "codec",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "track",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "authorization_bearer_token",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "custom_parameters",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10278,8 +11448,23 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10293,8 +11478,30 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -10888,8 +12095,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "optional<dict<string,any>>",
+                  "name": "tag",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_duration",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "dial_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -11024,9 +12253,65 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "to_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "from_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "context",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "body",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "media",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "tags",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "region",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "class:signalwire.relay.message.Message"
@@ -11220,6 +12505,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11292,6 +12581,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11344,6 +12637,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -11412,6 +12709,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11470,6 +12771,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11523,6 +12828,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11570,6 +12879,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -11623,6 +12936,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -11682,6 +12999,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11729,6 +13050,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -11783,6 +13108,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -11830,6 +13159,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -11923,6 +13256,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -12022,6 +13359,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12075,6 +13416,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12127,6 +13472,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -12201,6 +13550,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12274,6 +13627,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12337,6 +13694,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12381,6 +13742,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -12434,6 +13799,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -12497,6 +13866,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -12570,6 +13943,10 @@
             "from_payload": {
               "params": [
                 {
+                  "name": "cls",
+                  "kind": "cls"
+                },
+                {
                   "name": "payload",
                   "type": "dict<string,any>",
                   "required": true
@@ -12642,6 +14019,10 @@
             },
             "from_payload": {
               "params": [
+                {
+                  "name": "cls",
+                  "kind": "cls"
+                },
                 {
                   "name": "payload",
                   "type": "dict<string,any>",
@@ -21449,6 +22830,15 @@
               ],
               "returns": "list<string>"
             },
+            "discover_skills": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<class:signalwire.skills.registry.SkillSchemaInfo>"
+            },
             "get_all_skills_schema": {
               "params": [
                 {
@@ -21540,15 +22930,6 @@
               ],
               "returns": "list<string>"
             },
-            "list_skills": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<class:signalwire.skills.registry.SkillSchemaInfo>"
-            },
             "lock": {
               "params": [
                 {
@@ -21564,7 +22945,7 @@
               ],
               "returns": "void"
             },
-            "register": {
+            "register_skill": {
               "params": [
                 {
                   "name": "self",
