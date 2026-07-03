@@ -4,8 +4,15 @@
 # Same script invoked locally (`bash scripts/run-ci.sh`) AND by the
 # GitHub Actions workflow. No drift between local and CI behavior.
 #
+# The FMT / LINT / TEST gates delegate to the canonical scripts under scripts/
+# (the single documented entry points; see RUN_LINT_FORMAT_SPEC in porting-sdk):
+#   FMT  → scripts/run-format.sh [--check]   (prettier)
+#   LINT → scripts/run-lint.sh               (tsc + eslint)
+#   TEST → scripts/run-tests.sh [filter]     (vitest)
+# They self-bootstrap their node toolchain (scripts/_env.sh) and run from any CWD.
+#
 # Gates (in order, fail-fast):
-#   1. vitest run                         — language test runner
+#   1. run-tests.sh (vitest run)          — language test runner
 #   2. signature regen                    — npx tsx scripts/enumerate-signatures.ts
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
@@ -33,8 +40,8 @@
 #                                            serialisation vs Python's to_dict() over
 #                                            the shared 81-entry corpus; closes the
 #                                            drift-0 hole the surface gates can't see)
-#   7. fmt gate                           — prettier (local: auto-fix; CI: --check)
-#   8. lint gate                          — tsc --noEmit + eslint (.golangci-equiv)
+#   7. fmt gate                           — run-format.sh (local: auto-fix; CI: --check)
+#   8. lint gate                          — run-lint.sh (tsc --noEmit + eslint)
 #   9. doc-audit gate                     — porting-sdk audit_docs.py
 #  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #
@@ -115,9 +122,10 @@ cd "$PORT_ROOT"
 
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 
-# Gate 1: vitest
-run_gate "TEST" "npx vitest run" \
-    npx vitest run
+# Gate 1: vitest — via the canonical scripts/run-tests.sh entry point (which
+# self-bootstraps the node toolchain and runs from any CWD).
+run_gate "TEST" "scripts/run-tests.sh (vitest)" \
+    bash "$PORT_ROOT/scripts/run-tests.sh"
 
 # Gate 2: signature regen
 run_gate "SIGNATURES" "regenerate port_signatures.json" \
@@ -296,65 +304,25 @@ run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
 # Gate 7: FMT — the language format gate (ts: prettier, governed by .prettierrc.json:
 # printWidth 100, singleQuote, semi — the house style). Source-style only, proven
 # surface/emission-neutral (a reformat leaves port_signatures.json byte-identical).
-#   * LOCAL ($CI unset)  → `prettier --write`: reformats your working tree in place.
-#   * CI ($CI=true)      → `prettier --check`: read-only, FAILS on any unformatted file.
-fmt_gate() {
-    # Cover every source + example tree (scripts + all three example dirs), so a
-    # mis-formatted rest/examples file can't pass FMT locally and fail in CI.
-    local globs=(
-        "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
-        "examples/**/*.ts" "rest/examples/**/*.ts" "relay/examples/**/*.ts"
-    )
-    if [ -n "${CI:-}" ]; then
-        npx prettier --check "${globs[@]}"
-    else
-        npx prettier --write "${globs[@]}" >/dev/null
-        if ! git diff --quiet 2>/dev/null; then
-            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
-        fi
-    fi
-}
-run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
+# Delegated to the canonical scripts/run-format.sh (self-bootstraps, runs from any
+# CWD, formats every source + example tree):
+#   * LOCAL ($CI unset)  → run-format.sh          → `prettier --write` (in place).
+#   * CI ($CI=true)      → run-format.sh --check   → read-only, FAILS on unformatted.
+run_gate "FMT" "scripts/run-format.sh (local: auto-fix; CI: --check)" \
+    bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
 
 # Gate 8: LINT — the language lint gate (ts: tsc --noEmit type floor + eslint).
 # tsc proves the types compile (strict); eslint (.golangci-equivalent: eslint.config.mjs)
 # enforces the deeper rule set incl. no-explicit-any=error after the burndown to zero.
 # Both blocking. --max-warnings 0 so a warning can't slip through.
 #
-# tsc runs over BOTH tsconfigs: the default (src) AND tsconfig.examples.json — the
-# examples have their own config (the default tsconfig only includes src/**), and
-# without the second pass a type error in examples/ slips past LINT locally and
-# only fails in the separate doc-audit workflow. Folding it in keeps local==CI.
-lint_gate() {
-    npx tsc --noEmit || return 1
-    npx tsc --noEmit --project tsconfig.examples.json || return 1
-    # The test suite is strict-type-checked too, via tsconfig.test.json (src+tests,
-    # noEmit). The build tsconfig.json keeps rootDir=src/declaration=true and
-    # excludes tests so dist/ stays test-free; tsconfig.test.json is the type floor
-    # for tests/ (the F changeset item — hand-written tests are now strict-clean).
-    npx tsc --noEmit --project tsconfig.test.json || return 1
-    # eslint must cover EVERY example tree (examples/, rest/examples/,
-    # relay/examples/), not just the top-level one — a file-level disable or `any`
-    # in rest/examples slipped past when only `examples` was linted.
-    npx eslint src tests examples rest/examples relay/examples --max-warnings 0 || return 1
-    # Honesty guard: a file-level `eslint-disable .../no-explicit-any` switches the
-    # rule OFF for the whole file, hiding every `any` from the gate (this exact
-    # blind spot once made a "no-explicit-any=0" claim false). Forbid the
-    # file-level form outright; only line-level `eslint-disable-next-line` on a
-    # justified site is allowed. Generated modules already carry zero disables.
-    # Cover EVERY tree eslint lints — not just src; the gap let file-disables hide
-    # in tests/ + examples/ (~50 `any`) undetected.
-    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' \
-        src tests examples rest/examples relay/examples; then
-        echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
-        return 1
-    fi
-    # TS-idiom guards the type system can't enforce: no widened typed-callback
-    # params, no nested open index signatures in generated types, no dead
-    # defensive casts in example demos, generic safe<T> wrappers.
-    npx tsx scripts/check-ts-idioms.ts || return 1
-}
-run_gate "LINT" "tsc (src + examples + tests) + eslint (lint gate)" lint_gate
+# Delegated to the canonical scripts/run-lint.sh (self-bootstraps, runs from any
+# CWD). It runs tsc --noEmit over the default (src), tsconfig.examples.json, and
+# tsconfig.test.json configs, eslint over every source + example tree with
+# --max-warnings 0, the file-level no-explicit-any-disable honesty guard, and the
+# TS-idiom checks. Kept identical to the pre-delegation gate body.
+run_gate "LINT" "scripts/run-lint.sh (tsc src+examples+tests + eslint)" \
+    bash "$PORT_ROOT/scripts/run-lint.sh"
 
 # Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
 # real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in

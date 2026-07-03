@@ -267,21 +267,32 @@ Guides are also available in the [`docs/`](docs/) directory:
 
 ## Testing
 
+Lint, format, and test go through the canonical scripts under `scripts/`. They
+self-bootstrap their toolchain (installing dependencies on first run) and work
+from any directory:
+
 ```bash
-# Install dependencies
-npm install
+# Run the test suite (optional filter passed through to vitest)
+bash scripts/run-tests.sh
+bash scripts/run-tests.sh AgentBase
 
-# Run the test suite
-npm test
+# Format the tree (or --check to verify without writing)
+bash scripts/run-format.sh
+bash scripts/run-format.sh --check
 
-# Watch mode
-npm run test:watch
+# Lint (tsc + eslint; --fix to autofix)
+bash scripts/run-lint.sh
+```
 
+```bash
 # Build
 npm run build
 
 # Dev mode (watch + rebuild)
 npm run dev
+
+# Watch-mode tests
+npm run test:watch
 ```
 
 ## License
