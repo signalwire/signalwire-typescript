@@ -221,11 +221,11 @@ signalwire.cli.output.swml_dump.setup_output_suppression: deliberately omitted: 
 
 ## CLI: test_swaig / swaig_test_wrapper
 
-signalwire.cli.swaig_test_wrapper.main: not_yet_implemented: the full swaig-test CLI is a candidate for a future port; the TS SDK ships a lighter swaig-test bin that covers the core call-simulation use case
-signalwire.cli.test_swaig.console_entry_point: not_yet_implemented: the full swaig-test CLI is a candidate for a future port; the TS SDK ships a lighter swaig-test bin that covers the core call-simulation use case
-signalwire.cli.test_swaig.main: not_yet_implemented: the full swaig-test CLI is a candidate for a future port; the TS SDK ships a lighter swaig-test bin that covers the core call-simulation use case
-signalwire.cli.test_swaig.print_help_examples: not_yet_implemented: the full swaig-test CLI is a candidate for a future port; the TS SDK ships a lighter swaig-test bin that covers the core call-simulation use case
-signalwire.cli.test_swaig.print_help_platforms: not_yet_implemented: the full swaig-test CLI is a candidate for a future port; the TS SDK ships a lighter swaig-test bin that covers the core call-simulation use case
+signalwire.cli.swaig_test_wrapper.main: Python's argparse CLI entry-point plumbing; the TS SDK ships its own `bin/swaig-test` (src/cli/swaig-test.ts, exposed via package.json `bin`) with the equivalent CLI surface (--dump-swml / --list-tools / --exec), so the Python wrapper module has no TS analog.
+signalwire.cli.test_swaig.console_entry_point: Python's argparse CLI entry-point plumbing; the TS SDK ships its own `bin/swaig-test` (src/cli/swaig-test.ts, exposed via package.json `bin`) with the equivalent CLI surface (--dump-swml / --list-tools / --exec), so the Python wrapper module has no TS analog.
+signalwire.cli.test_swaig.main: Python's argparse CLI entry-point plumbing; the TS SDK ships its own `bin/swaig-test` (src/cli/swaig-test.ts, exposed via package.json `bin`) with the equivalent CLI surface (--dump-swml / --list-tools / --exec), so the Python wrapper module has no TS analog.
+signalwire.cli.test_swaig.print_help_examples: Python's argparse CLI entry-point plumbing; the TS SDK ships its own `bin/swaig-test` (src/cli/swaig-test.ts, exposed via package.json `bin`) with the equivalent CLI surface (--dump-swml / --list-tools / --exec), so the Python wrapper module has no TS analog.
+signalwire.cli.test_swaig.print_help_platforms: Python's argparse CLI entry-point plumbing; the TS SDK ships its own `bin/swaig-test` (src/cli/swaig-test.ts, exposed via package.json `bin`) with the equivalent CLI surface (--dump-swml / --list-tools / --exec), so the Python wrapper module has no TS analog.
 
 ## CLI: type definitions
 
