@@ -417,15 +417,10 @@ signalwire.web.web_service.WebService.security: TS WebService exposes the SslCon
 
 signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: impossible: produces a FastAPI Depends() dependency; FastAPI is a Python web framework with no TS equivalent — the TS port ships the equivalent Hono middleware `webhook_validation_middleware` from the same module (recorded addition). Both wrap the same validateWebhookSignature core.
 
-## RELAY abstract action mixin bases (TS flattens the hierarchy)
-
-Python factors the call-action controls into an abstract mixin chain
-(``StoppableAction`` → ``PausableAction`` → ``VolumeAction`` → concrete ``PlayAction``/…), so the
-control methods live on the abstract bases. TS gives each concrete action `extends Action` with the
-methods inlined, so the abstract bases have no TS class — but the CONTRACT (each control method on
-each concrete action) IS present and surfaced (PlayAction.stop/pause/resume/volume, etc., recorded
-in PORT_ADDITIONS.md). The signature gate excuses this structurally via
-_is_abstract_action_base_method; the surface gate excuses the bare base classes + their methods here.
+# RELAY abstract action mixin bases: RECONCILED. The oracle (porting-sdk @ 5744580)
+# no longer emits StoppableAction/PausableAction/VolumeAction as cross-port symbols —
+# it projects their control methods directly onto the concrete actions. TS's inlined
+# concrete methods now compare equal, so there is nothing to omit for the vanished bases.
 
 
 # relay_rest PhoneCallHandler is now RECONCILED: the surface enumerator projects

@@ -473,30 +473,12 @@ signalwire.prefabs.survey.SurveyAgent.questions: TS public `questions` field exp
 
 ## Relay Action / REST resource port-specific accessors
 
-# Action control methods (stop/pause/resume/volume): Python factors these into abstract mixin
-# bases (StoppableAction → PausableAction → VolumeAction) that the concrete actions inherit, so
-# the reference surface emits each method on the BASE only. TS flattens the hierarchy — every
-# concrete action `extends Action` with the control methods inlined — so the surface emits them on
-# the CONCRETE action, where the caller actually invokes them. Same idiom the signature gate
-# excuses structurally via _is_abstract_action_base_method; the surface gate has no structural
-# skip, so the concrete-class copies are recorded here as port additions.
-signalwire.relay.call.AIAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.CollectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.CollectAction.volume: concrete-action control method; Python emits volume on the VolumeAction mixin base it inherits
-signalwire.relay.call.DetectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.FaxAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PayAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PlayAction.pause: concrete-action control method; Python emits pause on the PausableAction mixin base it inherits
-signalwire.relay.call.PlayAction.resume: concrete-action control method; Python emits resume on the PausableAction mixin base it inherits
-signalwire.relay.call.PlayAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.PlayAction.volume: concrete-action control method; Python emits volume on the VolumeAction mixin base it inherits
-signalwire.relay.call.RecordAction.pause: concrete-action control method; Python emits pause on the PausableAction mixin base it inherits
-signalwire.relay.call.RecordAction.resume: concrete-action control method; Python emits resume on the PausableAction mixin base it inherits
-signalwire.relay.call.RecordAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.StandaloneCollectAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.StreamAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.TapAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
-signalwire.relay.call.TranscribeAction.stop: concrete-action control method; Python emits stop on the StoppableAction mixin base it inherits
+# Action control methods (stop/pause/resume/volume) are NO LONGER additions: the oracle
+# (porting-sdk @ 5744580) projects the StoppableAction/PausableAction/VolumeAction mixin
+# methods directly onto the concrete actions (PlayAction.stop/pause/resume/volume,
+# RecordAction.stop/pause/resume, CollectAction.{...}, StandaloneCollectAction.start_input_timers/stop,
+# and stop on Detect/Fax/Pay/Stream/Transcribe/AI). TS's inlined concrete methods now MATCH
+# the reference surface — no additions to record.
 signalwire.relay.call.Action.call: TS readonly accessor exposing the parent Call instance from an Action; Python keeps the back-reference as a private attribute that callers don't need
 signalwire.rest._base.CrudResource.__init__: TS-port explicit constructor for the abstract CrudResource; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
 signalwire.rest._base.CrudResource.get: TS folds list/get onto the CrudResource base; Python splits them onto a separate ReadResource base, so the reference's CrudResource surfaces only create/update/delete

@@ -11702,6 +11702,30 @@
               ],
               "returns": "void"
             },
+            "pause": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.relay.protocol_types_generated.CallingPlayAndCollectResult"
+            },
+            "resume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.relay.protocol_types_generated.CallingPlayAndCollectResult"
+            },
             "start_input_timers": {
               "params": [
                 {
@@ -11863,6 +11887,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "class:signalwire.relay.protocol_types_generated.CallingPlayPauseResult"

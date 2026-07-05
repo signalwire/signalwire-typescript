@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 5cc7d3961aaa70c126b173d78ba425f5ec15d6d7",
+  "generated_from": "signalwire-typescript @ 8f0fb6bb7974be3c22f888f4bea5b2bbcc3f7e4f",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1250,6 +1250,8 @@
         ],
         "CollectAction": [
           "__init__",
+          "pause",
+          "resume",
           "start_input_timers",
           "stop",
           "volume"
@@ -1342,16 +1344,6 @@
           "wait_for_ended",
           "wait_for_ending",
           "wait_for_ringing"
-        ],
-        "StoppableAction": [
-          "stop"
-        ],
-        "PausableAction": [
-          "pause",
-          "resume"
-        ],
-        "VolumeAction": [
-          "volume"
         ]
       },
       "functions": []

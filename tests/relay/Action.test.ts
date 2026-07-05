@@ -138,6 +138,17 @@ describe('PlayAction', () => {
     expect(call.execCalls[3]!.params).toEqual({ control_id: 'ctrl1', volume: -3.5 });
   });
 
+  it('pause forwards the optional behavior when supplied and omits it otherwise', async () => {
+    const call = mockCall();
+    const a = new PlayAction(call, 'ctrl1');
+
+    await a.pause();
+    await a.pause('silence');
+
+    expect(call.execCalls[0]!.params).toEqual({ control_id: 'ctrl1' });
+    expect(call.execCalls[1]!.params).toEqual({ control_id: 'ctrl1', behavior: 'silence' });
+  });
+
   it('resolves on finished', async () => {
     const call = mockCall();
     const a = new PlayAction(call, 'ctrl1');
@@ -166,6 +177,12 @@ describe('RecordAction', () => {
     expect(call.execCalls[1]!.method).toBe('record.pause');
     expect(call.execCalls[1]!.params?.behavior).toBe('silence');
     expect(call.execCalls[2]!.method).toBe('record.resume');
+  });
+
+  it('exposes no volume control (record is pausable, not volume-adjustable)', () => {
+    const call = mockCall();
+    const a = new RecordAction(call, 'ctrl1');
+    expect((a as unknown as { volume?: unknown }).volume).toBeUndefined();
   });
 
   it('resolves on finished', () => {
@@ -253,17 +270,32 @@ describe('CollectAction', () => {
     expect(a.isDone).toBe(true);
   });
 
-  it('stop/volume/startInputTimers call correct methods', async () => {
+  it('stop/pause/resume/volume/startInputTimers call correct methods', async () => {
     const call = mockCall();
     const a = new CollectAction(call, 'ctrl1');
 
     await a.stop();
+    await a.pause();
+    await a.resume();
     await a.volume(-2);
     await a.startInputTimers();
 
     expect(call.execCalls[0]!.method).toBe('play_and_collect.stop');
-    expect(call.execCalls[1]!.method).toBe('play_and_collect.volume');
-    expect(call.execCalls[2]!.method).toBe('collect.start_input_timers');
+    expect(call.execCalls[1]!.method).toBe('play_and_collect.pause');
+    expect(call.execCalls[2]!.method).toBe('play_and_collect.resume');
+    expect(call.execCalls[3]!.method).toBe('play_and_collect.volume');
+    expect(call.execCalls[4]!.method).toBe('collect.start_input_timers');
+  });
+
+  it('pause forwards the optional behavior when supplied and omits it otherwise', async () => {
+    const call = mockCall();
+    const a = new CollectAction(call, 'ctrl1');
+
+    await a.pause();
+    await a.pause('silence');
+
+    expect(call.execCalls[0]!.params).toEqual({ control_id: 'ctrl1' });
+    expect(call.execCalls[1]!.params).toEqual({ control_id: 'ctrl1', behavior: 'silence' });
   });
 });
 
