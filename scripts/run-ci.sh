@@ -224,6 +224,9 @@ sched_gate SURFACE-FRESH res=surface desc="check_surface_freshness vs committed 
 sched_gate GEN-FRESH desc="generated types match canonical schema (--check)" \
     --fn genfresh_gate
 
+sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs (--check)" \
+    -- npx tsx scripts/generate-rest-tests.ts --check
+
 sched_gate SWAIG-COVERAGE desc="every engine SWAIG action emittable (modulo allowlist)" \
     -- python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
         --emission "$PORT_ROOT/src/FunctionResult.ts"
