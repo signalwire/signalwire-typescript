@@ -201,9 +201,6 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
-  // web.ts holds the named `HostAppRouter` marker type (the as_router() return);
-  // Python records it as the class `signalwire.core.web.HostAppRouter`.
-  'src/web.ts': 'signalwire.core.web',
   // Relay
   'src/relay/Action.ts': 'signalwire.relay.call',
   'src/relay/Call.ts': 'signalwire.relay.call',
@@ -395,13 +392,6 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   validate_url: 'signalwire.utils.url_validator',
 };
 
-/** Hand-written NAMED type aliases the reference surface records as zero-method
- *  classes (cross-port named-marker types). `HostAppRouter` is the `asRouter()`
- *  return named in the as_router pass — Python surfaces it as the class
- *  `signalwire.core.web.HostAppRouter`. An explicit allowlist so only these
- *  intentional markers are surfaced, not every internal alias. */
-const MARKER_TYPE_ALIASES: ReadonlySet<string> = new Set(['HostAppRouter']);
-
 /** Skills (builtin): `src/skills/builtin/<name>.ts` maps to
  *  `signalwire.skills.<name>.skill` per the Python layout. */
 function builtinSkillModule(fileRel: string): string | null {
@@ -579,20 +569,6 @@ function enumerateFile(file: string): FileSurface {
             ? `${nsPath.join('')}${node.name.text}` // namespace-prefixed (e.g. "Inference" + "STT")
             : node.name.text;
         collectClass(node, nm);
-      } else if (
-        !isGeneratedTypeFile &&
-        ts.isTypeAliasDeclaration(node) &&
-        isExported(node) &&
-        MARKER_TYPE_ALIASES.has(node.name.text)
-      ) {
-        // A hand-written NAMED marker type alias the reference records as a
-        // zero-method class (e.g. `HostAppRouter` — the `asRouter()` return
-        // named in the as_router cross-port pass; Python: the class
-        // `signalwire.core.web.HostAppRouter`). Surface it as a bare class so it
-        // matches python_surface.json. Scoped to an explicit allowlist so a
-        // blanket type-alias walk doesn't flood the surface with internal aliases
-        // the reference doesn't carry.
-        collectTypeDefinition(node.name.text);
       } else if (
         isGeneratedTypeFile &&
         (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&

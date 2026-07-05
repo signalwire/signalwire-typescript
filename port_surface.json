@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 8adea4603cc0425357c19befd87d168e45f75ac1",
+  "generated_from": "signalwire-typescript @ 5cc7d3961aaa70c126b173d78ba425f5ec15d6d7",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -999,12 +999,6 @@
         "PayConfig": [],
         "DetectMachineConfig": [],
         "UserEventConfig": []
-      },
-      "functions": []
-    },
-    "signalwire.core.web": {
-      "classes": {
-        "HostAppRouter": []
       },
       "functions": []
     },
