@@ -118,12 +118,28 @@ surface_fresh_gate() {
     return "$rc"
 }
 
-# GEN-FRESH — the committed src/**/*.types.generated.ts must still match what the
-# canonical schemas produce. The ONLY gate that validates the generated types'
-# SHAPE. Read-only (--check never writes).
+# GEN-FRESH family — the committed generated modules must still match what the
+# canonical sources produce. The ONLY gates that validate the generated types'
+# SHAPE. Read-only (--check never writes). Five separate scripts mirror the other
+# ports' fixed 5-command generator contract (REST / RELAY / SWAIG / SWML surfaces).
 genfresh_gate() {
     PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
         npx tsx scripts/generate-rest-types.ts --check
+}
+
+genfresh_relay_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-relay-protocol.ts --check
+}
+
+genfresh_swaig_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-swaig-payloads.ts --check
+}
+
+genfresh_swml_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-swml-verbs.ts --check
 }
 
 # REST-COVERAGE — every implemented REST route covered success+error. Self-
@@ -222,11 +238,20 @@ sched_gate DRIFT deps=SIGNATURES desc="diff_port_signatures vs python reference"
 sched_gate SURFACE-FRESH res=surface desc="check_surface_freshness vs committed port_surface.json" \
     --fn surface_fresh_gate
 
-sched_gate GEN-FRESH desc="generated types match canonical schema (--check)" \
+sched_gate GEN-FRESH desc="generated REST types match canonical schema (--check)" \
     --fn genfresh_gate
 
 sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs (--check)" \
     -- npx tsx scripts/generate-rest-tests.ts --check
+
+sched_gate GEN-FRESH-RELAY desc="generated RELAY protocol types match canonical schemas (--check)" \
+    --fn genfresh_relay_gate
+
+sched_gate GEN-FRESH-SWAIG desc="generated SWAIG payloads match canonical engine specs (--check)" \
+    --fn genfresh_swaig_gate
+
+sched_gate GEN-FRESH-SWML desc="generated SWML verb config types match schema.json (--check)" \
+    --fn genfresh_swml_gate
 
 sched_gate SWAIG-COVERAGE desc="every engine SWAIG action emittable (modulo allowlist)" \
     -- python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \

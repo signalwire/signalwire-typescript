@@ -18,261 +18,23 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
-import * as prettier from 'prettier';
-
-// `--check` (the GEN-FRESH gate): regenerate in-memory and FAIL if any committed
-// output differs from what the canonical schema produces — instead of writing.
-// This is the real validator for the generated types' SHAPE: DRIFT can't check
-// it (≈40% of the Python reference is `Any`, which matches any TS type), so the
-// only thing proving the committed types still match their source is that they
-// reproduce exactly from that source. Mirrors the SURFACE-FRESH gate.
-const CHECK = process.argv.includes('--check');
-const staleFiles: string[] = [];
-
-/** Write `formatted` to `outPath`, or (in --check) record it as stale on mismatch. */
-function emitFile(outPath: string, formatted: string): void {
-  if (CHECK) {
-    const current = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf-8') : '';
-    if (current !== formatted) staleFiles.push(outPath);
-    return;
-  }
-  fs.writeFileSync(outPath, formatted);
-}
-
-// ---- spec types (minimal) --------------------------------------------------
-
-interface Schema {
-  type?: string | string[];
-  $ref?: string;
-  allOf?: Schema[];
-  oneOf?: Schema[];
-  anyOf?: Schema[];
-  enum?: unknown[];
-  const?: unknown;
-  items?: Schema;
-  properties?: Record<string, Schema>;
-  required?: string[];
-  additionalProperties?: boolean | Schema;
-  unevaluatedProperties?: boolean | Schema;
-  nullable?: boolean;
-  description?: string;
-  format?: string;
-  // SWML schema (schema.json) field-markup overrides, mirrored from the Python
-  // generator's py_type: `x-sdk-enum-literal` forces a closed literal union the
-  // schema itself doesn't carry; `x-sdk-widen` does the opposite (a schema
-  // enum/const is only a hint → widen to the base scalar). REST specs never carry
-  // these keys, so honoring them in tsType is inert for the OpenAPI path.
-  'x-sdk-enum-literal'?: unknown[];
-  'x-sdk-widen'?: boolean;
-}
-
-interface Operation {
-  operationId?: string;
-  requestBody?: { content?: Record<string, { schema?: Schema }> };
-  responses?: Record<string, { content?: Record<string, { schema?: Schema }> }>;
-}
-
-interface OpenApiDoc {
-  components?: { schemas?: Record<string, Schema> };
-  paths?: Record<string, Record<string, Operation>>;
-}
-
-// ---- name sanitisation -----------------------------------------------------
-
-// TS lib globals a schema name must not shadow — shadowing `Record` breaks every
-// `Record<string, unknown>` the generator emits, etc. Colliding schema names get
-// a `_` suffix; the rename is applied uniformly through tsName() so $ref
-// resolution (refName) and declarations stay consistent.
-const RESERVED_GLOBALS = new Set([
-  'Record',
-  'Array',
-  'Partial',
-  'Required',
-  'Readonly',
-  'Pick',
-  'Omit',
-  'Promise',
-  'Map',
-  'Set',
-  'Date',
-  'Object',
-  'String',
-  'Number',
-  'Boolean',
-  'Function',
-  'Error',
-]);
-
-// Schema names can contain dots / non-identifier chars (e.g.
-// "Types.StatusCodes.StatusCode400"); turn them into a valid TS identifier,
-// stable across runs.
-function tsName(rawName: string): string {
-  const cleaned = rawName.replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+/, '');
-  const id = /^[A-Za-z_]/.test(cleaned) ? cleaned : `Schema_${cleaned}`;
-  return RESERVED_GLOBALS.has(id) ? `${id}_` : id;
-}
-
-function refName(ref: string): string {
-  // Take the last pointer segment for both OpenAPI (#/components/schemas/<Name>)
-  // and JSON-Schema ($defs) refs (#/$defs/<Name>) — the leaf name is the type
-  // identifier in either form. (Mirrors the Python generator's ref_name.)
-  return tsName(ref.slice(ref.lastIndexOf('/') + 1));
-}
-
-// ---- schema → TS type expression ------------------------------------------
-
-function tsType(schema: Schema | undefined, indent = 0): string {
-  if (!schema) return 'unknown';
-
-  // Field-markup overrides (the SWML schema's formulaic-enrichment vocabulary,
-  // mirrored from the Python generator's py_type). REST specs never set these.
-  const lit = schema['x-sdk-enum-literal'];
-  if (lit && lit.length) {
-    return lit.map((v) => (v === null ? 'null' : JSON.stringify(v))).join(' | ');
-  }
-  if (schema['x-sdk-widen']) {
-    const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-    return t === 'integer' || t === 'number' ? 'number' : t === 'boolean' ? 'boolean' : 'string';
-  }
-
-  if (schema.$ref) {
-    // An external/file ref (e.g. "SWMLObject.json") points outside this document —
-    // the type isn't emitted here, so treat the value as an opaque record (the TS
-    // analog of Python's dict[str, Any]).
-    if (!schema.$ref.startsWith('#/') && schema.$ref.endsWith('.json')) {
-      return 'Record<string, unknown>';
-    }
-    return refName(schema.$ref);
-  }
-
-  // const → literal
-  if (schema.const !== undefined) return JSON.stringify(schema.const);
-
-  // enum → string/number-literal union
-  if (schema.enum) {
-    const lits = schema.enum.map((v) => (v === null ? 'null' : JSON.stringify(v)));
-    return lits.join(' | ') || 'never';
-  }
-
-  // allOf: single ref (wrapper for description) → the ref; multiple → intersection
-  if (schema.allOf && schema.allOf.length) {
-    const parts = schema.allOf.map((s) => tsType(s, indent));
-    return parts.length === 1 ? parts[0] : parts.map((p) => `(${p})`).join(' & ');
-  }
-
-  // oneOf / anyOf → union (null members collapse to `| null`)
-  const union = schema.oneOf ?? schema.anyOf;
-  if (union && union.length) {
-    const parts = union.map((s) => tsType(s, indent));
-    return [...new Set(parts)].join(' | ');
-  }
-
-  // explicit nullable on a typed schema
-  const wrapNull = (t: string): string => (schema.nullable ? `${t} | null` : t);
-
-  // type may be an array (e.g. ['string','null'])
-  const types = Array.isArray(schema.type) ? schema.type : schema.type ? [schema.type] : [];
-  if (types.length > 1) {
-    return types
-      .map((t) => (t === 'null' ? 'null' : tsType({ ...schema, type: t, nullable: false }, indent)))
-      .join(' | ');
-  }
-  const type = types[0];
-
-  switch (type) {
-    case 'string':
-      return wrapNull('string');
-    case 'integer':
-    case 'number':
-      return wrapNull('number');
-    case 'boolean':
-      return wrapNull('boolean');
-    case 'null':
-      return 'null';
-    case 'array': {
-      // Parenthesize a union/intersection item type before `[]` — otherwise
-      // `A | B | C[]` binds as `A | B | (C[])` (only the last member an array)
-      // instead of the intended `(A | B | C)[]`.
-      const item = tsType(schema.items, indent);
-      const needsParens = / [|&] /.test(item);
-      return wrapNull(`${needsParens ? `(${item})` : item}[]`);
-    }
-    case 'object':
-    case undefined: {
-      // object with known properties → inline interface body
-      if (schema.properties) {
-        return wrapNull(objectBody(schema, indent));
-      }
-      // free-form object → Record. additionalProperties may give a value type.
-      const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
-      if (ap && typeof ap === 'object') return wrapNull(`Record<string, ${tsType(ap, indent)}>`);
-      // a bare `type: object` with no shape, or no type at all → open record
-      return wrapNull('Record<string, unknown>');
-    }
-    default:
-      return 'unknown';
-  }
-}
-
-function objectBody(schema: Schema, indent: number, topLevel = false): string {
-  const props = schema.properties ?? {};
-  const required = new Set(schema.required ?? []);
-  const pad = '  '.repeat(indent + 1);
-  const closePad = '  '.repeat(indent);
-  const lines: string[] = [];
-  for (const [key, propSchema] of Object.entries(props)) {
-    const optional = required.has(key) ? '' : '?';
-    const keyTok = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
-    if (propSchema.description) {
-      lines.push(`${pad}/** ${propSchema.description.split('\n')[0]} */`);
-    }
-    lines.push(`${pad}${keyTok}${optional}: ${tsType(propSchema, indent + 1)};`);
-  }
-  // additionalProperties:true → an open `[key: string]: unknown` index signature.
-  // We emit it ONLY on the TOP-LEVEL declared type, NOT on nested inline objects:
-  // an index signature on a property-bearing object silently swallows TYPOS in
-  // known fields (`{ formt: 'mp3' }` compiles), and the nested objects are what
-  // callers fill via indexed access — so closing them there is where the
-  // typo-safety matters. The top-level type keeps the open tail for forward-
-  // compatibility (a new server field round-trips). When additionalProperties is
-  // a typed schema (not `true`), the index value must also include the declared
-  // prop types so TS accepts them against the index (TS2411).
-  const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
-  if (ap === true) {
-    if (topLevel) lines.push(`${pad}[key: string]: unknown;`);
-  } else if (ap && typeof ap === 'object') {
-    const base = tsType(ap, indent + 1);
-    const propTypes = Object.values(props).map((p) => tsType(p, indent + 1));
-    const hasOptional = Object.keys(props).some((k) => !required.has(k));
-    const members = [base, ...propTypes, ...(hasOptional ? ['undefined'] : [])];
-    const value = [...new Set(members)].join(' | ');
-    lines.push(`${pad}[key: string]: ${value};`);
-  }
-  // No declared members AND no emitted index signature → this is an open object
-  // with nothing modeled. Emit `Record<string, unknown>` rather than a bare `{}`
-  // (which `no-empty-object-type` flags and which means "any non-null value").
-  if (lines.length === 0) return 'Record<string, unknown>';
-  return `{\n${lines.join('\n')}\n${closePad}}`;
-}
-
-// ---- top-level declaration per schema --------------------------------------
-
-function declaration(name: string, schema: Schema): string {
-  const id = tsName(name);
-  const doc = schema.description ? `/** ${schema.description.split('\n')[0]} */\n` : '';
-  // object with properties → interface (extensible, readable)
-  const isObject =
-    (schema.type === 'object' || (!schema.type && schema.properties)) &&
-    !schema.oneOf &&
-    !schema.anyOf &&
-    !schema.allOf;
-  if (isObject && schema.properties) {
-    // topLevel=true: the open `[key: string]: unknown` tail is emitted here (the
-    // named type) but suppressed on nested inline objects (see objectBody).
-    return `${doc}export interface ${id} ${objectBody(schema, 0, true)}\n`;
-  }
-  return `${doc}export type ${id} = ${tsType(schema, 0)};\n`;
-}
+import {
+  CHECK,
+  OpenApiDoc,
+  Operation,
+  Schema,
+  declaration,
+  emitFile,
+  finalizeCheck,
+  flattenSchema,
+  flattenUnion,
+  formatTs,
+  pascal,
+  resolvePortingSdk,
+  resolveRef,
+  tsName,
+  tsType,
+} from './_gen-common.js';
 
 // ---- operation request/response aliases ------------------------------------
 
@@ -316,24 +78,6 @@ function operationAliases(doc: OpenApiDoc, taken: Set<string>): string[] {
     }
   }
   return out;
-}
-
-function pascal(s: string): string {
-  return s
-    .split(/[_\-\s]/)
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join('');
-}
-
-// ---- driver ----------------------------------------------------------------
-
-function resolvePortingSdk(): string | null {
-  const env = process.env.PORTING_SDK ?? process.env.PORTING_SDK_PATH;
-  if (env && fs.existsSync(path.join(env, 'rest-apis'))) return env;
-  const sibling = path.resolve(process.cwd(), '..', 'porting-sdk');
-  if (fs.existsSync(path.join(sibling, 'rest-apis'))) return sibling;
-  return null;
 }
 
 // ===========================================================================
@@ -428,14 +172,6 @@ function groupResources(doc: OpenApiDoc): Record<string, Record<string, Resource
   return resources;
 }
 
-function resolveRef(doc: OpenApiDoc, ref: string): Schema {
-  let node: unknown = doc;
-  for (const part of ref.replace('#/', '').split('/')) {
-    node = (node as Record<string, unknown>)?.[part];
-  }
-  return (node ?? {}) as Schema;
-}
-
 function identityField(doc: OpenApiDoc, resRef: string): string {
   if (!resRef) return 'id';
   const flat = flattenSchema(doc, { $ref: resRef }).props;
@@ -443,58 +179,6 @@ function identityField(doc: OpenApiDoc, resRef: string): string {
     if (k.toLowerCase() === 'id' || k.toLowerCase() === 'sid') return k;
   }
   return 'id';
-}
-
-/** Resolve a (possibly $ref / allOf) object schema to its property map + required list. */
-function flattenSchema(
-  doc: OpenApiDoc,
-  schema: Schema | undefined,
-): { props: Record<string, Schema>; required: string[] } {
-  if (!schema) return { props: {}, required: [] };
-  let s = schema;
-  if (s.$ref) s = resolveRef(doc, s.$ref);
-  const props: Record<string, Schema> = {};
-  const required: string[] = [];
-  for (const sub of s.allOf ?? []) {
-    const f = flattenSchema(doc, sub);
-    Object.assign(props, f.props);
-    required.push(...f.required);
-  }
-  Object.assign(props, s.properties ?? {});
-  required.push(...(s.required ?? []));
-  return { props, required };
-}
-
-/**
- * Like flattenSchema but also resolves an anyOf/oneOf UNION: the property set is
- * the union of the variants' properties (every reachable field becomes a typed
- * param); a field is required only if EVERY variant requires it. Used for
- * command-dispatch `params` (RULES §6) — the OPPOSITE of a CRUD union body.
- */
-function flattenUnion(
-  doc: OpenApiDoc,
-  schema: Schema | undefined,
-): { props: Record<string, Schema>; required: string[] } {
-  if (!schema) return { props: {}, required: [] };
-  let s = schema;
-  if (s.$ref) s = resolveRef(doc, s.$ref);
-  const base = flattenSchema(doc, s);
-  const props = { ...base.props };
-  const required = [...base.required];
-  const variants = s.anyOf ?? s.oneOf;
-  if (variants && variants.length) {
-    const reqSets: Set<string>[] = [];
-    for (const sub of variants) {
-      const f = flattenUnion(doc, sub);
-      Object.assign(props, f.props);
-      reqSets.push(new Set(f.required));
-    }
-    if (reqSets.length) {
-      const inter = [...reqSets[0]].filter((k) => reqSets.every((rs) => rs.has(k)));
-      required.push(...inter);
-    }
-  }
-  return { props, required };
 }
 
 /** The namespace URL-path prefix from `servers[0].url` (the path portion). */
@@ -1350,307 +1034,9 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
   const raw = header + decls.join('\n') + '\n' + ops.join('\n');
   // Format through the repo's own prettier config so generated files pass the
   // FMT gate by construction (the gate is `prettier --check` in CI).
-  const config = (await prettier.resolveConfig(outPath)) ?? {};
-  const formatted = await prettier.format(raw, { ...config, parser: 'typescript' });
+  const formatted = await formatTs(raw, outPath);
   emitFile(outPath, formatted);
   return decls.length + ops.length;
-}
-
-/**
- * The typed SWAIG wire payloads (SWAIG_PIPELINE §4), from the vendored
- * porting-sdk/swaig-specs/*.yaml — the AUTHORITATIVE mod_openai engine specs (not
- * the non-authoritative swml-webhooks derivative). Mirrors the Python reference
- * (`generate_swaig_request` + `generate_post_prompt` in
- * generate_python_rest_types.py): `swaig-request.yaml` → the `SwaigRequest` the
- * function handler RECEIVES, `post-prompt.yaml` → the full `PostPrompt` payload
- * tree the post-prompt/onSummary callback RECEIVES.
- *
- * Both are READ-side payloads, so they are OPEN-SHAPED: every field is optional
- * (the engine sends conditionals only when their precondition holds — the spec's
- * `required:` list is intentionally ignored, exactly as the Python emitter drops
- * it under TypedDict `total=False`) and every named type carries a top-level
- * `[key: string]: unknown` index signature so unmodeled server keys round-trip.
- * There is NO `extras` write door — these are received, never built.
- *
- * Both specs emit into ONE module so the cross-spec `SwaigRequest` ref (used by
- * `PostPromptSwaigLogEntry.post_data`) resolves locally (Python re-imports it
- * across modules; TS co-locates).
- */
-function swaigDeclaration(name: string, schema: Schema): string {
-  // Open-shaped READ payload: drop `required` (all fields optional) and force the
-  // top-level open index signature. `objectBody(topLevel=true)` emits the index
-  // signature only on `additionalProperties: true`, so set it for object schemas.
-  const doc = schema.description ? `/** ${schema.description.split('\n')[0]} */\n` : '';
-  const isObject =
-    (schema.type === 'object' || (!schema.type && schema.properties)) &&
-    !schema.oneOf &&
-    !schema.anyOf &&
-    !schema.allOf;
-  if (isObject && schema.properties) {
-    const open: Schema = { ...schema, required: [], additionalProperties: true };
-    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true)}\n`;
-  }
-  // oneOf/anyOf union (PostPromptCallLogEntry) / non-object → a type alias.
-  return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
-}
-
-async function generateSwaigContracts(
-  requestSpecPath: string,
-  postPromptSpecPath: string,
-  outPath: string,
-): Promise<number> {
-  const reqDoc = yaml.load(fs.readFileSync(requestSpecPath, 'utf-8')) as OpenApiDoc;
-  const ppDoc = yaml.load(fs.readFileSync(postPromptSpecPath, 'utf-8')) as OpenApiDoc;
-  const decls: string[] = [];
-
-  // --- swaig-request.yaml → SwaigRequest (+ the inline `argument` lifted to a
-  // named SwaigArgument), mirroring generate_swaig_request. ---
-  const reqSchema = reqDoc.components?.schemas?.SwaigRequest;
-  if (!reqSchema) throw new Error('swaig-request.yaml: missing components.schemas.SwaigRequest');
-  const reqProps = reqSchema.properties ?? {};
-  const outProps: Record<string, Schema> = {};
-  for (const [pname, pschema] of Object.entries(reqProps)) {
-    if (pname === 'argument' && pschema.properties) {
-      decls.push(
-        swaigDeclaration('SwaigArgument', { type: 'object', properties: pschema.properties }),
-      );
-      outProps[pname] = { $ref: '#/components/schemas/SwaigArgument' };
-    } else {
-      outProps[pname] = pschema;
-    }
-  }
-  decls.push(swaigDeclaration('SwaigRequest', { type: 'object', properties: outProps }));
-
-  // --- post-prompt.yaml → the PostPrompt tree (one decl per component schema),
-  // mirroring generate_post_prompt. SwaigRequest is already declared above, so
-  // its in-tree ref (PostPromptSwaigLogEntry.post_data) resolves locally. ---
-  const ppSchemas = ppDoc.components?.schemas ?? {};
-  for (const [pname, pschema] of Object.entries(ppSchemas)) {
-    if (pname === 'SwaigRequest') continue; // declared from the request spec above
-    decls.push(swaigDeclaration(pname, pschema));
-  }
-
-  const header =
-    `// AUTO-GENERATED from porting-sdk/swaig-specs/{swaig-request,post-prompt}.yaml — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
-    `// The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE\n` +
-    `// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler\n` +
-    `// RECEIVES; the PostPrompt tree is the call-end summary payload the\n` +
-    `// post-prompt / onSummary callback RECEIVES. Open-shaped READ payloads — every\n` +
-    `// field optional, every named type carries a [key: string]: unknown tail so\n` +
-    `// unmodeled server keys round-trip. Held to the same lint bar as hand-written\n` +
-    `// source (no rule suppressions, no loose types).\n\n`;
-  const config = (await prettier.resolveConfig(outPath)) ?? {};
-  const formatted = await prettier.format(header + decls.join('\n'), {
-    ...config,
-    parser: 'typescript',
-  });
-  emitFile(outPath, formatted);
-  return decls.length;
-}
-
-// ---- SWAIG response-action config types (swaig-response.yaml) ---------------
-
-/**
- * The typed SWAIG response-action CONFIG surface, mirroring the Python reference's
- * `generate_swaig_actions` (swaig_actions_generated.py). For each action under
- * `SwaigAction.properties`, an object-shaped value (a bare object, or the object
- * branches of a oneOf) is lifted into a `<Verb>Action` interface — the typed config a
- * FunctionResult action builder accepts (e.g. `TransferAction`, `PlaybackBgAction`).
- * Only the TYPE surface is emitted here; the ergonomic builder methods live on
- * FunctionResult. Emitted into one module so cross-action refs resolve locally.
- */
-async function generateSwaigActions(specPath: string, outPath: string): Promise<number> {
-  const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
-  const actions = doc.components?.schemas?.SwaigAction?.properties;
-  if (!actions) throw new Error('swaig-response.yaml: missing SwaigAction.properties');
-
-  const decls: string[] = [];
-  const isObj = (s: Schema | undefined): boolean => !!s && s.type === 'object' && !!s.properties;
-
-  // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces.
-  // Matches the Python emitter: a bare object → one interface; the object branches of
-  // a oneOf → `<Verb>Action`, `<Verb>Action2`, … (scalar/const/array branches are not
-  // named types). Names collide-free with the SWML verb types (same PascalCase(verb)).
-  for (const verb of Object.keys(actions).sort()) {
-    const schema = actions[verb]!;
-    const branches = schema.oneOf ?? (isObj(schema) ? [schema] : []);
-    let objIdx = 0;
-    for (const b of branches) {
-      if (!isObj(b)) continue;
-      objIdx += 1;
-      const name = `${pascal(verb)}Action${objIdx === 1 ? '' : String(objIdx)}`;
-      decls.push(swaigDeclaration(name, { type: 'object', properties: b.properties }));
-    }
-  }
-
-  const header =
-    `// AUTO-GENERATED from porting-sdk/swaig-specs/swaig-response.yaml — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
-    `// The typed SWAIG response-action CONFIG types (one <Verb>Action per object-shaped\n` +
-    `// action value). The ergonomic builder methods live on FunctionResult; these are the\n` +
-    `// shapes those methods accept. Held to the same lint bar as hand source.\n\n`;
-  const config = (await prettier.resolveConfig(outPath)) ?? {};
-  const formatted = await prettier.format(header + decls.join('\n'), {
-    ...config,
-    parser: 'typescript',
-  });
-  emitFile(outPath, formatted);
-  return decls.length;
-}
-
-// ---- SWML verb config types (schema.json $defs) ----------------------------
-
-/**
- * Open-shaped declaration for a SWML $defs schema: like the read-side SWAIG
- * payloads, every field is optional (drop `required`) and every named object type
- * carries a top-level `[key: string]: unknown` tail so unmodeled server keys
- * round-trip (mirrors the Python TypedDict `total=False` + open-shape contract).
- * Optionality is invisible to the cross-port oracle — the enumerator records a
- * field's WRITTEN type node, so `params?: AIParams` still reads as `class:AIParams`
- * exactly like Python's `total=False` `params: AIParams`.
- */
-function swmlDeclaration(name: string, schema: Schema): string {
-  const doc = schema.description ? `/** ${schema.description.split('\n')[0]} */\n` : '';
-  const isObject =
-    (schema.type === 'object' || (!schema.type && schema.properties)) &&
-    !schema.oneOf &&
-    !schema.anyOf &&
-    !schema.allOf;
-  if (isObject && schema.properties) {
-    const open: Schema = { ...schema, required: [], additionalProperties: true };
-    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true)}\n`;
-  }
-  return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
-}
-
-/**
- * Typed SWML verb CONFIG surface from porting-sdk/schema.json ($defs). Mirrors the
- * Python generator's `generate_swml_verbs`: emit one declaration per $defs schema
- * (object-with-props → interface; everything else → a type alias) so every $ref
- * resolves, plus the flattened `<Verb>Config` interfaces produced by walking
- * `$defs.SWMLMethod.anyOf` (each wrapper's single property is the verb, whose inner
- * oneOf/object schema flattens into a `<Verb>Config`). The `$ref`/`oneOf` follows
- * and the x-sdk markup is honored by tsType — no hardcoded per-verb tables.
- *
- * This is the CONFIG TYPE surface (the `<Config>` payload shapes); the verb METHOD
- * surface (the chainable `builder.ai(...)` methods) is the complementary, already-
- * committed src/SwmlVerbMethods.generated.ts module augmentation. Python co-locates
- * both in swml_verbs_generated.py with a `_SwmlVerbs` method class; here the method
- * surface lives in its own module, so this file carries only the config decls (the
- * `_SwmlVerbs` class is `_`-prefixed and never part of the cross-port oracle). Held
- * to the same lint bar as hand-written source.
- *
- * `handWritten` names the verbs THIS port hand-writes with richer ergonomics; they
- * are excluded from the verb walk so their `<Verb>Config` is not flattened (matching
- * the Python reference, which excludes the same set). This only affects which Config
- * decls are emitted — every $defs schema is still emitted unconditionally.
- */
-async function generateSwmlVerbs(
-  schemaPath: string,
-  outPath: string,
-  handWritten: ReadonlySet<string>,
-): Promise<number> {
-  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as {
-    $defs?: Record<string, Schema>;
-  };
-  const defs = schema.$defs ?? {};
-  // The shared resolveRef/flattenSchema/flattenUnion walk a pointer string against
-  // the doc root generically, so `#/$defs/<Name>` resolves the same way `#/components
-  // /schemas/<Name>` does — the `{ $defs }` root just needs to carry that key. The
-  // OpenApiDoc cast is only to satisfy those helpers' parameter type.
-  const doc = { $defs: defs } as unknown as OpenApiDoc;
-
-  const decls: string[] = [];
-  // 1. One declaration per $defs schema (so every $ref resolves).
-  for (const [name, sch] of Object.entries(defs)) {
-    if (sch && typeof sch === 'object') decls.push(swmlDeclaration(name, sch));
-  }
-
-  // 2. Walk SWMLMethod.anyOf → flatten each non-hand-written verb's inner schema
-  //    into a <Verb>Config interface (only when the inner is a oneOf/object-with-
-  //    props and has no direct $ref; a $ref inner already names a declared type).
-  const swmlMethod = defs.SWMLMethod ?? {};
-  for (const ref of swmlMethod.anyOf ?? []) {
-    const wrapperName = (ref.$ref ?? '').split('/').pop() ?? '';
-    const wdef = defs[wrapperName] ?? {};
-    const propNames = Object.keys(wdef.properties ?? {});
-    if (propNames.length === 0) continue;
-    const verb = propNames[0];
-    if (handWritten.has(verb)) continue;
-    const inner = wdef.properties![verb];
-    if (inner.type === 'string' || inner.$ref) continue;
-    const hasInlineProps = inner.type === 'object' && inner.properties;
-    if (!inner.oneOf && !hasInlineProps) continue;
-    const { props } = flattenUnion(doc, inner);
-    if (Object.keys(props).length === 0) continue;
-    const cfgName = pascal(verb) + 'Config';
-    const desc = (inner.description ?? `Add the ${verb} verb.`).split('\n')[0].trim();
-    decls.push(swmlDeclaration(cfgName, { type: 'object', properties: props, description: desc }));
-  }
-
-  const header =
-    `// AUTO-GENERATED from porting-sdk/schema.json ($defs) — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
-    `// The typed SWML verb CONFIG surface: one interface per schema.json $defs entry\n` +
-    `// (object → interface; non-object → type alias) + the flattened <Verb>Config\n` +
-    `// payload shapes. These are the config payloads the SwmlBuilder verb methods\n` +
-    `// accept; the chainable verb METHODS live in SwmlVerbMethods.generated.ts. Open-\n` +
-    `// shaped: every field optional and every named type carries a [key: string]:\n` +
-    `// unknown tail so unmodeled server keys round-trip. Held to the same lint bar as\n` +
-    `// hand-written source (no rule suppressions, no loose types).\n\n`;
-  const config = (await prettier.resolveConfig(outPath)) ?? {};
-  const formatted = await prettier.format(header + decls.join('\n'), {
-    ...config,
-    parser: 'typescript',
-  });
-  emitFile(outPath, formatted);
-  return decls.length;
-}
-
-/**
- * RELAY WS protocol types. Unlike the REST namespaces (one OpenAPI doc with
- * components/schemas), the relay contracts are one standalone JSON-Schema file
- * per method+phase under porting-sdk/relay-protocol/ (extracted from the C#
- * switchblade wire classes — the canonical RELAY source). Emit one interface per
- * `*.params.json`, named from its `x-method` (e.g. calling.detect →
- * CallingDetectParams). The schemas are draft-2020-12 JSON Schema, which the same
- * tsType()/objectBody() machinery already handles.
- */
-async function generateRelayProtocol(dir: string, outPath: string): Promise<number> {
-  // Both phases: `.params.json` → <Method>Params (method inputs) and
-  // `.result.json` → <Method>Result (JSON-RPC ack the method resolves to).
-  const decls: string[] = [];
-  for (const phase of ['params', 'result'] as const) {
-    const suffix = phase === 'params' ? 'Params' : 'Result';
-    const files = fs
-      .readdirSync(dir)
-      .filter((f) => f.endsWith(`.${phase}.json`))
-      .sort();
-    for (const f of files) {
-      const schema = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')) as Schema & {
-        'x-method'?: string;
-      };
-      // calling.detect.stop → CallingDetectStopParams / CallingDetectStopResult
-      const method = (schema['x-method'] ??
-        f.replace(new RegExp(`\\.${phase}\\.json$`), '')) as string;
-      const name = pascal(method.replace(/[.]/g, '_')) + suffix;
-      decls.push(declaration(name, schema));
-    }
-  }
-  const header =
-    `// AUTO-GENERATED from porting-sdk/relay-protocol/*.{params,result}.json — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
-    `// One interface per RELAY method's params (<Method>Params) and ack result\n` +
-    `// (<Method>Result), from the canonical switchblade wire schemas. Held to the\n` +
-    `// same lint bar as hand-written source (no rule suppressions, no loose types).\n\n`;
-  const config = (await prettier.resolveConfig(outPath)) ?? {};
-  const formatted = await prettier.format(header + decls.join('\n'), {
-    ...config,
-    parser: 'typescript',
-  });
-  emitFile(outPath, formatted);
-  return decls.length;
 }
 
 async function main(): Promise<void> {
@@ -1678,10 +1064,6 @@ async function main(): Promise<void> {
   }
   // spec dir (under rest-apis/) → output .generated.ts path
   const map: Record<string, string> = {
-    // The SWML/SWAIG webhook contracts (manufactured spec from swml.md prose —
-    // no upstream OpenAPI) live alongside the others and generate the platform
-    // contract types that were previously hand-written in PlatformContracts.ts.
-    'swml-webhooks': 'src/PlatformContracts.generated.ts',
     // REST namespace specs → one generated module per spec. A namespace .ts file
     // imports the named schema/operation types it needs from its spec's module;
     // some specs back several namespace files (fabric → addresses/registry/…).
@@ -1723,8 +1105,7 @@ async function main(): Promise<void> {
     if (resSrc !== null) {
       resourceDocs[specDir] = doc;
       const resOut = `src/rest/namespaces/${specDir}.resources.generated.ts`;
-      const config = (await prettier.resolveConfig(resOut)) ?? {};
-      const formatted = await prettier.format(resSrc, { ...config, parser: 'typescript' });
+      const formatted = await formatTs(resSrc, resOut);
       emitFile(resOut, formatted);
       console.log(`${verb} ${resOut} (resources)`);
     }
@@ -1735,79 +1116,12 @@ async function main(): Promise<void> {
   if (Object.keys(resourceDocs).length) {
     const treeOut = 'src/rest/namespaces/_client_tree_generated.ts';
     const treeSrc = emitClientTree(resourceDocs);
-    const config = (await prettier.resolveConfig(treeOut)) ?? {};
-    const formatted = await prettier.format(treeSrc, { ...config, parser: 'typescript' });
+    const formatted = await formatTs(treeSrc, treeOut);
     emitFile(treeOut, formatted);
     console.log(`${verb} ${treeOut} (client tree)`);
   }
 
-  // RELAY WS protocol params (separate source tree + format from the REST specs).
-  const relayDir = path.join(psdk, 'relay-protocol');
-  if (fs.existsSync(relayDir)) {
-    const relayOut = 'src/relay/protocol.types.generated.ts';
-    const n = await generateRelayProtocol(relayDir, relayOut);
-    console.log(`${verb} ${relayOut} (${n} types)`);
-  }
-
-  // Typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the vendored swaig-specs/
-  // (the authoritative mod_openai engine specs). Separate source dir from the REST
-  // rest-apis/ specs; skipped cleanly if the swaig-specs aren't present in the
-  // resolved porting-sdk (mirrors the per-spec fail-soft above).
-  const swaigReqSpec = path.join(psdk, 'swaig-specs', 'swaig-request.yaml');
-  const postPromptSpec = path.join(psdk, 'swaig-specs', 'post-prompt.yaml');
-  if (fs.existsSync(swaigReqSpec) && fs.existsSync(postPromptSpec)) {
-    const swaigOut = 'src/SwaigContracts.generated.ts';
-    const n = await generateSwaigContracts(swaigReqSpec, postPromptSpec, swaigOut);
-    console.log(`${verb} ${swaigOut} (${n} types)`);
-  } else {
-    console.log(
-      `skipped SWAIG contracts (no swaig-specs at ${path.join(psdk, 'swaig-specs')}; ` +
-        `using committed src/SwaigContracts.generated.ts).`,
-    );
-  }
-
-  // Typed SWAIG response-action CONFIG types (from swaig-response.yaml).
-  const swaigRespSpec = path.join(psdk, 'swaig-specs', 'swaig-response.yaml');
-  if (fs.existsSync(swaigRespSpec)) {
-    const swaigActionsOut = 'src/SwaigActions.generated.ts';
-    const n = await generateSwaigActions(swaigRespSpec, swaigActionsOut);
-    console.log(`${verb} ${swaigActionsOut} (${n} types)`);
-  } else {
-    console.log(
-      `skipped SWAIG action contracts (no swaig-response.yaml; ` +
-        `using committed src/SwaigActions.generated.ts).`,
-    );
-  }
-
-  // Typed SWML verb CONFIG types from schema.json ($defs). Separate source file
-  // from the rest-apis/ specs; skipped cleanly if schema.json isn't present in the
-  // resolved porting-sdk (mirrors the per-spec fail-soft above). The verb METHOD
-  // surface stays in the committed src/SwmlVerbMethods.generated.ts.
-  const swmlSchema = path.join(psdk, 'schema.json');
-  if (fs.existsSync(swmlSchema)) {
-    const swmlOut = 'src/swml_verbs_generated.ts';
-    // Verbs this port hand-writes with richer ergonomics — excluded from the verb
-    // walk so their <Verb>Config isn't flattened (matches the Python reference's
-    // hand_written set; only affects which Config decls are emitted).
-    const handWritten = new Set(['answer', 'hangup', 'ai', 'play', 'say']);
-    const n = await generateSwmlVerbs(swmlSchema, swmlOut, handWritten);
-    console.log(`${verb} ${swmlOut} (${n} types)`);
-  } else {
-    console.log(
-      `skipped SWML verb contracts (no schema.json at ${swmlSchema}; ` +
-        `using committed src/swml_verbs_generated.ts).`,
-    );
-  }
-
-  if (CHECK && staleFiles.length) {
-    console.error(
-      `\nGEN-FRESH FAIL: ${staleFiles.length} generated file(s) are stale — ` +
-        `they no longer match what the canonical schema produces. Run ` +
-        `\`npx tsx scripts/generate-rest-types.ts\` and commit:`,
-    );
-    for (const f of staleFiles) console.error(`  - ${f}`);
-    process.exit(1);
-  }
+  finalizeCheck('npx tsx scripts/generate-rest-types.ts');
 }
 
 main().catch((err: unknown) => {
