@@ -180,6 +180,26 @@ export class SecurityConfig {
     return this.sslConfig.isConfigured() ? [true, null] : [false, 'SSL cert or key file not found'];
   }
 
+  /**
+   * Build the SSL parameters for the HTTPS server, as a plain dictionary of
+   * primitive filesystem paths. Mirrors Python's
+   * `SecurityConfig.get_ssl_context_kwargs()` verbatim: the reference targets
+   * uvicorn's `ssl_certfile`/`ssl_keyfile` kwargs, and this returns the exact
+   * same primitive path pair (the TS HTTPS server passes them to
+   * `node:https.createServer` / `readFileSync`). Returns an empty object when
+   * SSL is disabled or the cert/key files fail validation.
+   * @returns `{ ssl_certfile, ssl_keyfile }` path strings, or `{}` when unavailable.
+   */
+  getSslContextKwargs(): Record<string, string> {
+    if (!this.sslEnabled) return {};
+    const [isValid] = this.validateSslConfig();
+    if (!isValid) return {};
+    return {
+      ssl_certfile: this.sslCertPath as string,
+      ssl_keyfile: this.sslKeyPath as string,
+    };
+  }
+
   /** Get the URL scheme based on SSL configuration. Mirrors Python's `get_url_scheme()`. */
   getUrlScheme(): string {
     return this.sslEnabled ? 'https' : 'http';

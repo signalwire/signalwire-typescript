@@ -5904,6 +5904,15 @@
               ],
               "returns": "dict<string,any>"
             },
+            "get_ssl_context_kwargs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "get_url_scheme": {
               "params": [
                 {

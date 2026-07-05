@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 8f0fb6bb7974be3c22f888f4bea5b2bbcc3f7e4f",
+  "generated_from": "signalwire-typescript @ e566378eee1a09176fcd74e84ebba355afa3cbc1",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -623,6 +623,7 @@
           "get_basic_auth",
           "get_cors_config",
           "get_security_headers",
+          "get_ssl_context_kwargs",
           "get_url_scheme",
           "load_from_env",
           "log_config",
