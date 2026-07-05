@@ -392,6 +392,22 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   validate_url: 'signalwire.utils.url_validator',
 };
 
+/** Module functions the SIGNATURE oracle records but the SURFACE oracle
+ *  deliberately does NOT — so the port must emit them for DRIFT (signatures)
+ *  yet omit them from the surface to match python_surface.json.
+ *
+ *  `webhook_middleware.validate` is the decomposed cross-port webhook-validation
+ *  core added to python_signatures.json at porting-sdk 3434643. That commit
+ *  regenerated ONLY the signatures oracle ("surface unchanged (module
+ *  function)") — python_surface.json still lists only
+ *  `make_webhook_validation_dependency`. Mirror the reference surfacing policy:
+ *  keep `validate` in port_signatures.json (DRIFT requires it) but drop it from
+ *  port_surface.json so SURFACE-DIFF compares equal. Keyed by canonical module →
+ *  set of projected (snake_case) function names. */
+const SURFACE_FUNCTION_EXCLUSIONS: Record<string, ReadonlySet<string>> = {
+  'signalwire.core.security.webhook_middleware': new Set(['validate']),
+};
+
 /** Skills (builtin): `src/skills/builtin/<name>.ts` maps to
  *  `signalwire.skills.<name>.skill` per the Python layout. */
 function builtinSkillModule(fileRel: string): string | null {
@@ -1003,6 +1019,8 @@ function main(): void {
       // A per-symbol override can route a single file's function to a
       // different canonical module than its file-level home.
       const mod = FREE_FN_MODULE_OVERRIDES[fn] ?? fileMod;
+      // Signature-only symbols the surface oracle deliberately omits.
+      if (SURFACE_FUNCTION_EXCLUSIONS[mod]?.has(fn)) continue;
       const aliases = FUNCTION_NAME_ALIASES[mod] ?? {};
       const entry = ensureModule(mod);
       const existing = new Set(entry.functions);
