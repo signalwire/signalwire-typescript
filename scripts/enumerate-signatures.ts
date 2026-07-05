@@ -360,6 +360,31 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
 ]);
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
 
+// Hand-written methods whose Python reference is a PURE ``**kwargs``/``**params``
+// passthrough — ``def m(self, **params: Any)`` with NO exploded keyword set. The
+// port expresses that single variadic tail as ONE required positional
+// ``Record<string, unknown>`` bag (``m(params: Record<string, unknown>)``). The
+// Python signature oracle STRIPS a trailing ``**kwargs``/``**params`` (porting-sdk
+// #58), recording the reference as just ``[self]``; the port's required bag then
+// reads as a param-count-mismatch. This is pure idiom — the bag IS the ``**kwargs``
+// tail — so classify that single trailing dict param as an OPTIONAL ``var_keyword``
+// (matching the reference's stripped tail: the diff excuses a trailing optional
+// var_keyword). Only methods whose reference is ``**kwargs``-ONLY belong here — a
+// method that takes a genuine single ``dict`` domain param (DataMap.foreach) or that
+// explodes into a keyword set (use GENERAL_OPTIONS_UNFOLD) MUST NOT be listed.
+// Keyed by the ctx used at ENUMERATION time (source class), which for the two
+// mixin-projected setters is the AgentBase class where they are physically
+// declared (the mixin projection copies that computed signature into the
+// AIConfigMixin module afterward). build_config is declared on SWMLVerbHandler
+// directly, so its ctx is the swml_handler one.
+const KWARGS_TAIL_ONLY: Set<string> = new Set([
+  // AgentBase LLM-param setters — Python `def set_*_llm_params(self, **params)`.
+  'signalwire.core.agent_base.AgentBase.set_prompt_llm_params',
+  'signalwire.core.agent_base.AgentBase.set_post_prompt_llm_params',
+  // SWMLVerbHandler base contract — Python `def build_config(self, **kwargs)`.
+  'signalwire.core.swml_handler.SWMLVerbHandler.build_config',
+]);
+
 // TS `static` factory methods that mirror a Python `@classmethod` (whose first
 // param is `cls`). The enumerator emits a leading `cls` receiver for these so the
 // arity + receiver line up with the reference (the diff treats `self` ≡ `cls`).
@@ -1524,6 +1549,16 @@ function signatureFromMethod(
       }
     } else {
       param.required = true;
+    }
+    // Pure `**kwargs`/`**params` passthrough (allowlisted): the single trailing
+    // dict bag IS the Python variadic tail, which the oracle strips (porting-sdk
+    // #58). Emit it as an OPTIONAL `var_keyword` so it tail-matches the reference's
+    // stripped `[self]` (the diff excuses a trailing optional var_keyword) instead
+    // of reading as an extra required param.
+    if (KWARGS_TAIL_ONLY.has(ctx) && param.type.startsWith('dict<string,')) {
+      param.kind = 'var_keyword';
+      param.required = false;
+      param.default = {};
     }
     params.push(param);
   }
