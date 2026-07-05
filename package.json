@@ -13,7 +13,6 @@
     "swaig-test": "./dist/cli/swaig-test.js"
   },
   "scripts": {
-    "generate:verbs": "npx tsx src/generateVerbTypes.ts",
     "generate:rest-types": "npx tsx scripts/generate-rest-types.ts",
     "generate:rest-types:check": "npx tsx scripts/generate-rest-types.ts --check",
     "generate:relay-protocol": "npx tsx scripts/generate-relay-protocol.ts",
@@ -22,7 +21,7 @@
     "generate:swaig-payloads:check": "npx tsx scripts/generate-swaig-payloads.ts --check",
     "generate:swml-verbs": "npx tsx scripts/generate-swml-verbs.ts",
     "generate:swml-verbs:check": "npx tsx scripts/generate-swml-verbs.ts --check",
-    "prebuild": "npm run generate:verbs && npm run generate:rest-types && npm run generate:relay-protocol && npm run generate:swaig-payloads && npm run generate:swml-verbs",
+    "prebuild": "npm run generate:rest-types && npm run generate:relay-protocol && npm run generate:swaig-payloads && npm run generate:swml-verbs",
     "build": "tsc",
     "postbuild": "cp src/schema.json dist/schema.json",
     "prepublishOnly": "npm run build",

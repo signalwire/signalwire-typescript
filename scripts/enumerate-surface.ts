@@ -748,7 +748,6 @@ function findSourceFiles(root: string): string[] {
       } else if (name.endsWith('.ts') && !name.endsWith('.d.ts')) {
         // Skip codegen artifacts.
         if (name === 'SwmlVerbMethods.generated.ts') continue;
-        if (name === 'generateVerbTypes.ts') continue;
         out.push(full);
       }
     }

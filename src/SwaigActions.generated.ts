@@ -1,5 +1,5 @@
 // AUTO-GENERATED from porting-sdk/swaig-specs/swaig-response.yaml — DO NOT EDIT.
-// Regenerate with: npx tsx scripts/generate-rest-types.ts
+// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts
 //
 // The typed SWAIG response-action CONFIG types (one <Verb>Action per object-shaped
 // action value). The ergonomic builder methods live on FunctionResult; these are the

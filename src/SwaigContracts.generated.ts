@@ -1,5 +1,5 @@
 // AUTO-GENERATED from porting-sdk/swaig-specs/{swaig-request,post-prompt}.yaml — DO NOT EDIT.
-// Regenerate with: npx tsx scripts/generate-rest-types.ts
+// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts
 //
 // The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE
 // mod_openai engine specs: SwaigRequest is the body a SWAIG function handler

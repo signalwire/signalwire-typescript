@@ -105,7 +105,7 @@ async function generateSwaigContracts(
 
   const header =
     `// AUTO-GENERATED from porting-sdk/swaig-specs/{swaig-request,post-prompt}.yaml — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts\n//\n` +
     `// The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE\n` +
     `// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler\n` +
     `// RECEIVES; the PostPrompt tree is the call-end summary payload the\n` +
@@ -155,7 +155,7 @@ async function generateSwaigActions(specPath: string, outPath: string): Promise<
 
   const header =
     `// AUTO-GENERATED from porting-sdk/swaig-specs/swaig-response.yaml — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts\n//\n` +
     `// The typed SWAIG response-action CONFIG types (one <Verb>Action per object-shaped\n` +
     `// action value). The ergonomic builder methods live on FunctionResult; these are the\n` +
     `// shapes those methods accept. Held to the same lint bar as hand source.\n\n`;

@@ -1,5 +1,5 @@
 // AUTO-GENERATED from porting-sdk/relay-protocol/*.{params,result}.json — DO NOT EDIT.
-// Regenerate with: npx tsx scripts/generate-rest-types.ts
+// Regenerate with: npx tsx scripts/generate-relay-protocol.ts
 //
 // One interface per RELAY method's params (<Method>Params) and ack result
 // (<Method>Result), from the canonical switchblade wire schemas. Held to the

@@ -49,7 +49,7 @@ async function generateRelayProtocol(dir: string, outPath: string): Promise<numb
   }
   const header =
     `// AUTO-GENERATED from porting-sdk/relay-protocol/*.{params,result}.json — DO NOT EDIT.\n` +
-    `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
+    `// Regenerate with: npx tsx scripts/generate-relay-protocol.ts\n//\n` +
     `// One interface per RELAY method's params (<Method>Params) and ack result\n` +
     `// (<Method>Result), from the canonical switchblade wire schemas. Held to the\n` +
     `// same lint bar as hand-written source (no rule suppressions, no loose types).\n\n`;

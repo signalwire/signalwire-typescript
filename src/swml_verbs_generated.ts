@@ -1,5 +1,5 @@
 // AUTO-GENERATED from porting-sdk/schema.json ($defs) — DO NOT EDIT.
-// Regenerate with: npx tsx scripts/generate-rest-types.ts
+// Regenerate with: npx tsx scripts/generate-swml-verbs.ts
 //
 // The typed SWML verb CONFIG surface: one interface per schema.json $defs entry
 // (object → interface; non-object → type alias) + the flattened <Verb>Config
