@@ -438,6 +438,22 @@ const FREE_FN_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
     { name: 'args', kind: 'positional', type: 'list<any>', required: false },
     { name: 'kwargs', kind: 'positional', type: 'dict<string,any>', required: false },
   ],
+  // `webhook_middleware.validate` — the decomposed cross-port webhook-validation
+  // decision core. Python declares `signing_key` keyword-only (`def validate(
+  // method, url, headers, body, *, signing_key)`); TS spells it as a plain
+  // trailing string param (JS has no keyword-only affordance for a positional
+  // function). Record the audited shape with `signing_key` as `kind: 'keyword'`
+  // so the kind matches the reference — the same teach-the-checker projection
+  // used for `RestClient`, scoped to this one symbol. Types are the port's real
+  // ones (Record<string,string> → dict<string,string>; the number status →
+  // int under numeric-monotype); only the kind is projected.
+  validate: [
+    { name: 'method', kind: 'positional', type: 'string', required: true },
+    { name: 'url', kind: 'positional', type: 'string', required: true },
+    { name: 'headers', kind: 'positional', type: 'dict<string,string>', required: true },
+    { name: 'body', kind: 'positional', type: 'string', required: true },
+    { name: 'signing_key', kind: 'keyword', type: 'string', required: true },
+  ],
 };
 
 function camelToSnake(name: string): string {

@@ -5751,6 +5751,41 @@
     },
     "signalwire.core.security.webhook_middleware": {
       "functions": {
+        "validate": {
+          "params": [
+            {
+              "name": "method",
+              "kind": "positional",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "kind": "positional",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "headers",
+              "kind": "positional",
+              "type": "dict<string,string>",
+              "required": true
+            },
+            {
+              "name": "body",
+              "kind": "positional",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signing_key",
+              "kind": "keyword",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "tuple<float,dict<string,any>,string>"
+        },
         "webhook_validation_middleware": {
           "params": [
             {

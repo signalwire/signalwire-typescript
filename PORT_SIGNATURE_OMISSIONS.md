@@ -369,9 +369,6 @@ signalwire.core.mixins.web_mixin.WebMixin.on_request: TS types the request body 
 signalwire.core.swml_service.SWMLService.on_request: TS types the request body param as `class:...SwmlRequestData` (the canonical dynamic-SWML request shape, swml.md); Python types it `Optional[Dict[str, Any]]`. Same payload, stronger TS typing. (Same AgentBase.onRequest hook projected onto SWMLService, the reference's base declaration.)
 signalwire.core.skill_base.SkillBase.get_skill_data: TS types the raw_data param as `class:...SwaigRequestData` (the canonical SWAIG-webhook request shape, swml.md); Python types it `Dict[str, Any]`. Same payload, stronger TS typing.
 
-## Webhook validator: optional<union<...>> vs union<...,void>
-
-signalwire.core.security.webhook_validator.validate_request: Python's source uses `Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`, which the canonical translator emits as `union<...,void>`; TypeScript's `string | Record<string, unknown> | Array<[string, unknown]> | null | undefined` is emitted as `optional<union<...>>` because the TS translator collapses null/undefined into the `optional<...>` wrapper rather than keeping `void` as a sibling union member. Same call-site contract; both forms accept the same set of values at runtime.
 
 ## Command-dispatch `action` union: griffe right-nests, TS emits a flat union
 
