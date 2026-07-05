@@ -69,6 +69,9 @@ export type { OnRequestCallback, SWMLServiceOptions } from './SWMLService.js';
 export { WebService } from './WebService.js';
 export type { WebServiceOptions } from './WebService.js';
 
+// Host-app router type — the named cross-port return type of asRouter().
+export type { HostAppRouter } from './web.js';
+
 // Tool results & functions
 export { FunctionResult } from './FunctionResult.js';
 /** @deprecated Use {@link FunctionResult} instead. */

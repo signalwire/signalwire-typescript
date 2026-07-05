@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
@@ -2775,10 +2776,17 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Return this agent's Hono app for mounting as a sub-router in an AgentServer.
-   * @returns The Hono application instance.
+   * Get a router to embed this agent's routes in a host web app.
+   *
+   * Returns the fully-wired Hono app (routes for `/`, `/swaig`, `/post_prompt`,
+   * plus any routing callbacks) as a mountable sub-app. The host mounts it with
+   * `hostApp.route(path, agent.asRouter())`. This is the TypeScript realization
+   * of Python's `as_router()`; the named {@link HostAppRouter} type is the
+   * cross-port "embed my routes in a host app" contract.
+   *
+   * @returns A mountable Hono sub-app carrying this agent's routes.
    */
-  asRouter(): Hono {
+  asRouter(): HostAppRouter {
     return this.getApp();
   }
 

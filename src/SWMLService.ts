@@ -8,6 +8,7 @@
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { randomBytes } from 'node:crypto';
@@ -1059,12 +1060,16 @@ export class SWMLService {
   }
 
   /**
-   * Alias for `getApp()`. Provided for cross-SDK consistency with Python's
-   * `as_router()` method — allows Python callers porting to TypeScript to use
-   * the familiar name without changes.
-   * @returns The configured Hono app.
+   * Get a router to embed this service's routes in a host web app.
+   *
+   * Returns the fully-wired Hono app as a mountable sub-app; the host mounts it
+   * with `hostApp.route(path, service.asRouter())`. This is the TypeScript
+   * realization of Python's `as_router()`; the named {@link HostAppRouter} type
+   * is the cross-port "embed my routes in a host app" contract.
+   *
+   * @returns A mountable Hono sub-app carrying this service's routes.
    */
-  asRouter(): Hono {
+  asRouter(): HostAppRouter {
     return this.getApp();
   }
 

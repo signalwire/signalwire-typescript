@@ -345,6 +345,85 @@ describe('AgentBase', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
+  // ── asRouter (host-app mounting) ──────────────────────────────────
+
+  it('asRouter returns the same wired Hono app as getApp', () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const router = agent.asRouter();
+    // asRouter is the "embed my routes in a host app" handle; it is the same
+    // fully-wired Hono app getApp() builds (idempotent build), returned for
+    // mounting instead of serving.
+    expect(router).toBe(agent.getApp());
+    expect(typeof router.request).toBe('function');
+    expect(typeof router.route).toBe('function');
+  });
+
+  it('asRouter serves the agent SWML route when mounted into a host app', async () => {
+    const { Hono } = await import('hono');
+    const agent = new AgentBase({ name: 'mounted', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello from mounted agent');
+
+    // Mount the agent's router as a sub-app under /agent in a host application,
+    // exactly as Python's `host_app.include_router(agent.as_router())`.
+    const host = new Hono();
+    host.route('/agent', agent.asRouter());
+
+    // The agent's root SWML route (registered at the sub-app root) is reached at
+    // the mount path; the /swaig, /post_prompt sub-routes hang off it.
+    const res = await host.request('/agent', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    expect(res.status).toBe(200);
+    const swml = await res.json();
+    expect(swml).toHaveProperty('sections');
+
+    // The mounted sub-routes are reachable under the mount prefix too.
+    const swaigRes = await host.request('/agent/swaig', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: 'nope', argument: {} }),
+    });
+    expect(swaigRes.status).toBe(404); // route wired; function unknown
+  });
+
+  it('asRouter carries the /swaig and /post_prompt routes', async () => {
+    const agent = new AgentBase({ name: 'mounted', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const router = agent.asRouter();
+
+    // /swaig dispatches SWAIG function calls; an unknown function is a 404 from
+    // the mounted route (proving the route exists and is wired, not a Hono miss).
+    const swaigRes = await router.request('/swaig', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: 'does_not_exist', argument: {} }),
+    });
+    expect(swaigRes.status).toBe(404);
+
+    // /post_prompt accepts the call summary callback.
+    const ppRes = await router.request('/post_prompt', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    expect(ppRes.status).toBe(200);
+  });
+
   // ── Debug events ──────────────────────────────────────────────────
 
   it('enableDebugEvents injects debug_webhook_url in SWML', () => {
