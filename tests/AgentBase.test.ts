@@ -424,6 +424,71 @@ describe('AgentBase', () => {
     expect(ppRes.status).toBe(200);
   });
 
+  // ── Served-path routing (307 through handleRequest) ───────────────
+
+  it('served routing-callback path returns a real 307 redirect with Location (not a 200)', async () => {
+    // #61: serve()/asRouter() route through getApp(), whose routing-callback
+    // handler must return the same 307 the decomposed handleRequest core does —
+    // NOT a wrong-status 200 with an {action:redirect} body. Hit the actual
+    // served endpoint (the app getApp() builds, which serve()/asRouter() use).
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => '/other-agent', '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc', from: 'sip:alice@example.com' }),
+      // Do not auto-follow the redirect; we assert on the 307 itself.
+      redirect: 'manual',
+    });
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/other-agent');
+  });
+
+  it('served routing callback returning null falls through to 200 SWML', async () => {
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => undefined, '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc' }),
+    });
+
+    expect(res.status).toBe(200);
+    const swml = await res.json();
+    expect(swml).toHaveProperty('sections');
+  });
+
+  it('served routing-callback path rejects bad auth with 401', async () => {
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => '/other-agent', '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:wrong'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc' }),
+    });
+
+    expect(res.status).toBe(401);
+  });
+
   // ── Debug events ──────────────────────────────────────────────────
 
   it('enableDebugEvents injects debug_webhook_url in SWML', () => {
@@ -569,20 +634,20 @@ describe('AgentBase', () => {
     suppress(false); // reset before the test
     const captured: string[] = [];
     const origErr = process.stderr.write.bind(process.stderr);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (process.stderr as any).write = ((chunk: string | Uint8Array): boolean => {
+    // Swap the overloaded `write` via a typed view of stderr (the method is
+    // not writable through the public `WriteStream` type) rather than `any`.
+    const stderrWritable = process.stderr as unknown as { write: typeof process.stderr.write };
+    stderrWritable.write = ((chunk: string | Uint8Array): boolean => {
       captured.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
       return true;
     }) as typeof process.stderr.write;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new AgentBase({ name: 'test', route: '/test', suppressLogs: true } as any);
+      new AgentBase({ name: 'test', route: '/test', suppressLogs: true });
       const log = getLogger('agent_base_suppress_test');
       log.error('this-message-should-be-suppressed');
       expect(captured.join('')).not.toContain('this-message-should-be-suppressed');
     } finally {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (process.stderr as any).write = origErr;
+      stderrWritable.write = origErr;
       suppress(false); // restore
     }
   });

@@ -2097,7 +2097,36 @@ export class AgentBase extends SWMLService {
       );
     }
 
-    const swml = this.renderSwml(callId, modifications || undefined);
+    // Per-request dynamic config: render from an ephemeral copy so the Hono and
+    // primitive paths produce identical SWML. Mirrors the Hono root handler and
+    // Python's _render_swml (which applies the dynamic-config callback inline).
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
+    let agentToUse: AgentBase = this;
+    if (this.dynamicConfigCallback) {
+      agentToUse = this.createEphemeralCopy();
+      const queryParams: Record<string, string> = {};
+      try {
+        new URL(url).searchParams.forEach((v, k) => {
+          queryParams[k] = v;
+        });
+      } catch {
+        /* bare path — no query params to extract */
+      }
+      try {
+        await this.dynamicConfigCallback(
+          queryParams,
+          parsedBody,
+          filterSensitiveHeaders(headers),
+          agentToUse,
+        );
+      } catch (err) {
+        this.log.error(
+          `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    const swml = agentToUse.renderSwml(callId, modifications || undefined);
     return [200, {}, swml];
   }
 
@@ -2427,6 +2456,57 @@ export class AgentBase extends SWMLService {
   // ── Hono HTTP app ───────────────────────────────────────────────────
 
   /**
+   * Thin Hono adapter over the decomposed {@link handleRequest} core. Extracts
+   * `(method, url, headers, body)` primitives from the Hono `Context`, delegates
+   * the auth / routing-callback / render DECISION to `handleRequest`, and
+   * marshals the returned `[status, headers, body]` triple back into a Hono
+   * `Response` — including the routing-callback **307** (`Location`) and the
+   * **401** (`WWW-Authenticate`). This is what routes serve()/asRouter() through
+   * the same core the primitive path uses, instead of a parallel inline
+   * auth/render/redirect path (mirrors the rust/dotnet/php served path).
+   *
+   * Proxy detection stays here as framework plumbing (it needs the raw request);
+   * everything else comes from `handleRequest`.
+   */
+  private async serveViaHandleRequest(c: Context): Promise<Response> {
+    this.detectProxyFromRequest(c);
+
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = (await c.req.json()) as Record<string, unknown>;
+    } catch {
+      /* GET or no body */
+    }
+
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v: string, k: string) => {
+      headers[k] = v;
+    });
+
+    const [status, respHeaders, bodyStr] = await this.handleRequest(
+      c.req.method,
+      c.req.url,
+      headers,
+      body,
+    );
+
+    // 307 routing redirect — real redirect status + Location, empty body.
+    if (status === 307 && respHeaders['Location']) {
+      return c.redirect(respHeaders['Location'], 307);
+    }
+
+    // Marshal any remaining headers (e.g. WWW-Authenticate on a 401) and emit
+    // the body. The 200 SWML body is a JSON string; other statuses carry a JSON
+    // error string — both are already serialized, so pass through with a JSON
+    // content type and the exact status handleRequest chose.
+    for (const [k, v] of Object.entries(respHeaders)) {
+      c.header(k, v);
+    }
+    c.header('Content-Type', 'application/json');
+    return c.body(bodyStr, status as Parameters<Context['body']>[1]);
+  }
+
+  /**
    * Get or lazily create the Hono HTTP application with all routes, middleware, auth, and CORS.
    * @returns The configured Hono application instance.
    */
@@ -2549,57 +2629,14 @@ export class AgentBase extends SWMLService {
 
     const basePath = this.route === '/' ? '' : this.route;
 
-    // Root - returns SWML
-    const handleSwml = async (c: Context) => {
-      let reqLog = this.log.bind({ endpoint: this.route });
-      reqLog.debug('endpoint_called');
-
-      let body: SwmlRequestData = {};
-      try {
-        body = await c.req.json();
-      } catch {
-        /* GET or no body */
-      }
-
-      reqLog.debug('request_body_received', { body_size: JSON.stringify(body).length });
-
-      this.detectProxyFromRequest(c);
-      const callbackPath = (body['callback_path'] as string) ?? undefined;
-      let swmlMods: Record<string, unknown> | void = undefined;
-      try {
-        swmlMods = await this.onSwmlRequest(body, callbackPath, c);
-        if (swmlMods) reqLog.debug('on_swml_request_modifications_applied');
-      } catch (err) {
-        reqLog.error('error_in_on_swml_request', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-
-      const callId = (body['call_id'] as string) || undefined;
-      if (callId) reqLog = reqLog.bind({ call_id: callId });
-
-      // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
-      let agentToUse: AgentBase = this;
-      if (this.dynamicConfigCallback) {
-        agentToUse = this.createEphemeralCopy();
-        const queryParams: Record<string, string> = {};
-        const url = new URL(c.req.url);
-        url.searchParams.forEach((v: string, k: string) => {
-          queryParams[k] = v;
-        });
-        const rawHeaders: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => {
-          rawHeaders[k] = v;
-        });
-        const headers = filterSensitiveHeaders(rawHeaders);
-        await this.dynamicConfigCallback(queryParams, body, headers, agentToUse);
-        reqLog.debug('dynamic_config_complete');
-      }
-
-      const swml = agentToUse.renderSwml(callId, swmlMods || undefined);
-      reqLog.debug('swml_rendered', { swml_size: swml.length });
-      reqLog.info('request_successful');
-      return c.json(JSON.parse(swml));
+    // Root - returns SWML. Delegates the auth / routing-callback / dynamic-config
+    // / render DECISION to handleRequest (the decomposed core), then marshals the
+    // [status, headers, body] triple back — so serve()/asRouter() honor the
+    // routing-callback 307 on the root path too, through the same core the
+    // primitive path uses. Proxy detection stays in the thin adapter.
+    const handleSwml = async (c: Context): Promise<Response> => {
+      this.log.bind({ endpoint: this.route }).debug('endpoint_called');
+      return this.serveViaHandleRequest(c);
     };
 
     app.get(`${basePath}`, authMw, handleSwml);
@@ -2821,41 +2858,16 @@ export class AgentBase extends SWMLService {
       app.post(`${basePath}/check_for_input`, authMw, handleCheckForInput);
     }
 
-    // Routing callbacks (registered via registerRoutingCallback)
-    for (const [callbackPath, callback] of this._routingCallbacks) {
+    // Routing callbacks (registered via registerRoutingCallback). The served
+    // path delegates to handleRequest, which runs the callback and returns a
+    // real 307 (Location) on a redirect — NOT a 200 {action:redirect} — with the
+    // same auth/render decision the primitive core makes. handleRequest resolves
+    // the matching callback from the request URL via _callbackPathForUrl.
+    for (const callbackPath of this._routingCallbacks.keys()) {
       const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
-      const handleRouting = async (c: Context) => {
-        const reqLog = this.log.bind({ endpoint: fullPath });
-        reqLog.debug('routing_callback_called');
-
-        let body: Record<string, unknown> = {};
-        try {
-          body = await c.req.json();
-        } catch {
-          /* GET or no body */
-        }
-
-        const cbHeaders: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => {
-          cbHeaders[k] = v;
-        });
-
-        try {
-          const route = await callback(body, cbHeaders);
-          if (route) {
-            reqLog.info('routing_callback_redirect', { route });
-            return c.json({ action: 'redirect', route });
-          }
-          // No redirect — return SWML for this agent
-          this.detectProxyFromRequest(c);
-          const swml = this.renderSwml();
-          return c.json(JSON.parse(swml));
-        } catch (err) {
-          reqLog.error('routing_callback_error', {
-            error: err instanceof Error ? err.message : String(err),
-          });
-          return c.json({ error: 'Routing callback failed' }, 500);
-        }
+      const handleRouting = async (c: Context): Promise<Response> => {
+        this.log.bind({ endpoint: fullPath }).debug('routing_callback_called');
+        return this.serveViaHandleRequest(c);
       };
 
       app.get(fullPath, authMw, handleRouting);
