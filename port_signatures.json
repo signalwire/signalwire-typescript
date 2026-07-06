@@ -4810,6 +4810,23 @@
               ],
               "returns": "void"
             },
+            "build_cgi_event": {
+              "params": [
+                {
+                  "name": "env",
+                  "type": "any",
+                  "required": false,
+                  "default": "process.env"
+                },
+                {
+                  "name": "body",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "class:signalwire.core.mixins.serverless_mixin.ServerlessEvent"
+            },
             "create_azure_handler": {
               "params": [
                 {
@@ -4819,6 +4836,16 @@
                 }
               ],
               "returns": "callable<list<class:signalwire.core.mixins.serverless_mixin.AzureContext,class:signalwire.core.mixins.serverless_mixin.AzureRequest>,void>"
+            },
+            "create_cgi_handler": {
+              "params": [
+                {
+                  "name": "app",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "callable<list<>,void>"
             },
             "create_gcf_handler": {
               "params": [

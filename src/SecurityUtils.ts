@@ -109,7 +109,11 @@ export function isPrivateIp(ip: string): boolean {
  * @throws If the resolved IP is private and `allowPrivate` is false.
  */
 export async function resolveAndValidateUrl(url: string, allowPrivate = false): Promise<void> {
-  if (allowPrivate) return;
+  // Env-var escape hatch, matching Python's validate_url (utils/url_validator.py:59):
+  // SWML_ALLOW_PRIVATE_URLS in (1/true/yes) permits private/loopback URLs (e.g. a
+  // local search server in dev or tests).
+  const allowEnv = (process.env['SWML_ALLOW_PRIVATE_URLS'] ?? '').toLowerCase();
+  if (allowPrivate || allowEnv === '1' || allowEnv === 'true' || allowEnv === 'yes') return;
 
   let hostname: string;
   try {

@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
@@ -1159,6 +1160,33 @@ export class AgentBase extends SWMLService {
   enableSipRouting(autoMap = true, path = '/sip'): this {
     this._sipRoutingEnabled = true;
     this._sipRoute = path;
+
+    // Register a routing callback at `path` that extracts the SIP username from
+    // the request body and consults this agent's registered usernames. Mirrors
+    // Python `enable_sip_routing` (core/agent_base.py:708-753): the callback is
+    // what makes `_sipUsernames` CONSULTED rather than stored-but-unconsulted.
+    //
+    // Framework-free `(body, headers)` shape; only the body is inspected. When
+    // the username is registered with THIS agent the callback returns null so
+    // the agent serves its own SWML (no redirect — it already handles that
+    // username). An unregistered username also returns null, letting an
+    // enclosing AgentServer's server-level callback (registered at the same
+    // path, checked first) decide the cross-agent redirect.
+    const sipRoutingCallback: RoutingCallback = (body) => {
+      const sipUsername = AgentBase.extractSipUsername(body);
+      if (sipUsername) {
+        this.log.info(`sip_username_extracted username=${sipUsername}`);
+        if (this._sipUsernames && this._sipUsernames.has(sipUsername.toLowerCase())) {
+          this.log.info(`sip_username_matched username=${sipUsername}`);
+          // Handled by this agent; no redirect needed.
+          return null;
+        }
+        this.log.info(`sip_username_not_matched username=${sipUsername}`);
+      }
+      return null;
+    };
+    this.registerRoutingCallback(sipRoutingCallback, path);
+
     if (autoMap) {
       this._sipAutoMap = true;
       this.autoMapSipUsernames();
@@ -2503,7 +2531,9 @@ export class AgentBase extends SWMLService {
       c.header(k, v);
     }
     c.header('Content-Type', 'application/json');
-    return c.body(bodyStr, status as Parameters<Context['body']>[1]);
+    // The 307 redirect returned above; every remaining status (200 SWML, 401,
+    // 4xx/5xx error JSON) carries a body, so it is a ContentfulStatusCode.
+    return c.body(bodyStr, status as ContentfulStatusCode);
   }
 
   /**
@@ -3007,7 +3037,17 @@ export class AgentBase extends SWMLService {
     // Wrap Hono's fetch (which returns `Response | Promise<Response>`) into a plain
     // `Promise<Response>` so it satisfies ServerlessAdapter.handleRequest's type constraint.
     const fetchFn = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
-    return adapter.handleRequest({ fetch: fetchFn }, event);
+
+    // CGI has no event object — the request lives in the environment + stdin.
+    // When dispatched in CGI mode with no explicit event, reconstruct it from
+    // the CGI environment so the request routes through the same Hono path as
+    // the other platforms (mirrors Python serverless_mixin CGI mode).
+    let resolvedEvent = event;
+    if (adapter.getPlatform() === 'cgi' && (event == null || Object.keys(event).length === 0)) {
+      resolvedEvent = ServerlessAdapter.buildCgiEvent();
+    }
+
+    return adapter.handleRequest({ fetch: fetchFn }, resolvedEvent);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────

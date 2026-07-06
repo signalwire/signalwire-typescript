@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 428409fd71b19d13d663d474c72c83f746119001",
+  "generated_from": "signalwire-typescript @ c8ce47253e777372687d04c68af6740dd6f0f960",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -464,7 +464,9 @@
       "classes": {
         "ServerlessAdapter": [
           "__init__",
+          "build_cgi_event",
           "create_azure_handler",
+          "create_cgi_handler",
           "create_gcf_handler",
           "create_lambda_handler",
           "detect_platform",

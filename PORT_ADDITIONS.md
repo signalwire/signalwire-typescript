@@ -84,7 +84,9 @@ signalwire.core.data_map.get_allowed_env_prefixes: TS port-only helper — funct
 signalwire.core.data_map.set_allowed_env_prefixes: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.__init__: TS port-only helper — functionality has no direct Python equivalent
+signalwire.core.mixins.serverless_mixin.ServerlessAdapter.build_cgi_event: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.create_azure_handler: TS port-only helper — functionality has no direct Python equivalent
+signalwire.core.mixins.serverless_mixin.ServerlessAdapter.create_cgi_handler: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.create_gcf_handler: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.create_lambda_handler: TS port-only helper — functionality has no direct Python equivalent
 signalwire.core.mixins.serverless_mixin.ServerlessAdapter.detect_platform: TS port-only helper — functionality has no direct Python equivalent
