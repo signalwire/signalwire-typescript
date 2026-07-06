@@ -81,6 +81,21 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
 export PORTING_SDK="$PORTING_SDK_DIR"
 export PORTING_SDK_PATH="$PORTING_SDK_DIR"
 
+# signalwire-python is the oracle source for the Layer-D BEHAVIORAL-* gates
+# (diff_port_<surface>.py build the oracle by importing signalwire-python's
+# package). Resolve it the same way diff_port_emission.py's _resolve_python_sdk
+# does: $PYTHON_SDK env wins, else adjacency next to this repo (CI checks it out
+# as a sibling; local dev has it at ~/src/signalwire-python == that same
+# adjacency). Passed explicitly via --python-sdk so the gate never depends on the
+# caller's ambient sys.path.
+if [ -n "${PYTHON_SDK:-}" ] && [ -d "$PYTHON_SDK/signalwire" ]; then
+    PYTHON_SDK_DIR="$PYTHON_SDK"
+elif [ -d "$PORT_ROOT/../signalwire-python/signalwire" ]; then
+    PYTHON_SDK_DIR="$(cd "$PORT_ROOT/../signalwire-python" && pwd)"
+else
+    PYTHON_SDK_DIR="$PORT_ROOT/../signalwire-python"
+fi
+
 # The shared gate scheduler (concurrency + deps + fail-fast). Defines sched_init /
 # sched_gate / sched_run and the FAILED_GATES contract.
 # shellcheck source=/dev/null
@@ -270,6 +285,35 @@ sched_gate EMISSION desc="diff_port_emission vs python oracle" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "npx tsx scripts/emit-corpus.ts" \
         --port-repo "$PORT_ROOT"
+
+# Layer-D BEHAVIORAL-* gates: each dump emits ONLY JSON on stdout; the surface
+# differ builds the python oracle (from $PYTHON_SDK_DIR) and compares. The dumps
+# need SIGNALWIRE_LOG_MODE=off to keep ts logs off stdout, so that env is baked
+# into each --dump-cmd (the gate must not depend on the caller's ambient env).
+sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/wire-dump.ts"
+
+sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/swml-dump.ts"
+
+sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/state-dump.ts"
+
+sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/http-dump.ts"
+
+sched_gate BEHAVIORAL-WIRE-RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/wire-relay-dump.ts"
 
 sched_gate SKILL-CONTRACT desc="diff_skill_contracts vs python reference" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
