@@ -72,7 +72,8 @@ export class SessionManager {
    */
   generateToken(functionName: string, callId: string): string {
     const expiry = Math.floor(Date.now() / 1000) + this.tokenExpirySecs;
-    const nonce = randomBytes(16).toString('hex');
+    // 8 random bytes -> 16 hex chars (parity with Python's secrets.token_hex(8)).
+    const nonce = randomBytes(8).toString('hex');
     const message = `${callId}:${functionName}:${expiry}:${nonce}`;
     const signature = createHmac('sha256', this.secretKey).update(message).digest('hex');
     const token = `${callId}.${functionName}.${expiry}.${nonce}.${signature}`;

@@ -781,6 +781,7 @@ export class AgentBase extends SWMLService {
     };
     if (config.voice) lang['voice'] = config.voice;
     if (config.engine) lang['engine'] = config.engine;
+    if (config.model) lang['model'] = config.model;
     if (config.fillers) lang['fillers'] = config.fillers;
     if (config.speechModel) lang['speech_model'] = config.speechModel;
     if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
@@ -1282,13 +1283,20 @@ export class AgentBase extends SWMLService {
     const call = requestBody?.['call'] as Record<string, unknown> | undefined;
     const callTo = call?.['to'] as string | undefined;
     if (callTo) {
-      let uri = callTo;
-      if (uri.startsWith('sip:') || uri.startsWith('sips:')) {
-        uri = uri.replace(/^sips?:/, '');
+      // SIP/SIPS URIs: strip the scheme, then the username is the part before '@'.
+      if (callTo.startsWith('sip:') || callTo.startsWith('sips:')) {
+        const uri = callTo.replace(/^sips?:/, '');
+        const atIdx = uri.indexOf('@');
+        if (atIdx > 0) return uri.substring(0, atIdx);
+        return uri;
       }
-      const atIdx = uri.indexOf('@');
-      if (atIdx > 0) return uri.substring(0, atIdx);
-      return uri;
+      // TEL URIs ("tel:+1234567890") — strip the scheme (parity with
+      // SWMLService.extractSipUsername / Python swml_service.extract_sip_username).
+      if (callTo.startsWith('tel:')) {
+        return callTo.substring(4);
+      }
+      // Otherwise return the whole 'to' field.
+      return callTo;
     }
     return null;
   }
@@ -2327,19 +2335,25 @@ export class AgentBase extends SWMLService {
     // ── PHASE 4: AI verb ──
     const aiConfig: Record<string, unknown> = {};
 
-    // Prompt
+    // Prompt. Mirror Python (agent_base.py: `prompt_is_pom = isinstance(prompt, list)`;
+    // ai_config = {"prompt": {"text" if not prompt_is_pom else "pom": prompt}}):
+    // when the agent is in POM mode with at least one section AND no raw prompt
+    // string was set, the prompt renders as a structured `pom` array, not `text`.
+    // A raw prompt string (getRawPrompt) always wins, matching PromptManager.getPrompt.
+    const promptPom = this.getRawPrompt() === null ? this.getPromptPom() : null;
+    const buildPromptObj = (fallbackText: string): Record<string, unknown> => {
+      const obj: Record<string, unknown> = promptPom ? { pom: promptPom } : { text: fallbackText };
+      if (Object.keys(this.promptLlmParams).length) Object.assign(obj, this.promptLlmParams);
+      return obj;
+    };
     if (this.contextsBuilder) {
       const contextsDict = this.contextsBuilder.toDict();
-      const promptObj: Record<string, unknown> = {
-        text: prompt || `You are ${this.name}, a helpful AI assistant.`,
-      };
-      if (Object.keys(this.promptLlmParams).length) Object.assign(promptObj, this.promptLlmParams);
-      aiConfig['prompt'] = promptObj;
+      aiConfig['prompt'] = buildPromptObj(
+        prompt || `You are ${this.name}, a helpful AI assistant.`,
+      );
       aiConfig['contexts'] = contextsDict;
     } else {
-      const promptObj: Record<string, unknown> = { text: prompt };
-      if (Object.keys(this.promptLlmParams).length) Object.assign(promptObj, this.promptLlmParams);
-      aiConfig['prompt'] = promptObj;
+      aiConfig['prompt'] = buildPromptObj(prompt);
     }
 
     // Post-prompt
@@ -2640,9 +2654,17 @@ export class AgentBase extends SWMLService {
       });
     }
 
-    // Auth middleware
+    // Auth middleware. The 401 challenge body must be the JSON envelope
+    // {"error":"Unauthorized"} to match Python's auth challenge
+    // (auth_mixin._send_lambda_auth_challenge / the primitive handleRequest 401);
+    // Hono's default basicAuth returns a plain "Unauthorized" text body, which
+    // diverges on the serverless dispatch path.
     const [user, pass] = this.basicAuthCreds;
-    const authMw = basicAuth({ username: user, password: pass });
+    const authMw = basicAuth({
+      username: user,
+      password: pass,
+      invalidUserMessage: JSON.stringify({ error: 'Unauthorized' }),
+    });
 
     // Webhook signature validation middleware — only mounted (and only on
     // POST routes) when a signing key is configured. Per

@@ -107,6 +107,8 @@ export interface LanguageConfig {
   voice?: string;
   /** TTS engine identifier. */
   engine?: string;
+  /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */
+  model?: string;
   /** Filler phrases keyed by category for this language. */
   fillers?: Record<string, string[]>;
   /** Speech recognition model identifier. */
