@@ -1,5 +1,5 @@
 /**
- * Tier-2 behavioral-contract tests (porting-sdk/BEHAVIORAL_CONTRACTS.md, tests 2-6).
+ * Tier-2 behavioral-contract tests (porting-sdk/BEHAVIORAL_CONTRACTS.md, tests 2-8).
  *
  * These assert the SAME observable behavior the Python reference has for
  * capabilities whose signature is DRIFT-clean but whose body is easy to stub.
@@ -10,10 +10,14 @@
  *  4. native_vector_search REMOTE HTTP — real POST to <remote_url>/search.
  *  5. Serverless per-platform DISPATCH — lambda + cgi + gcf reach a real response.
  *  6. SIP routing DISPATCH over the served /sip path — 307 redirect on a match.
+ *  7. Tool-token WIRE FORMAT + nonce parity + CONSTANT-TIME validate.
+ *  8. AI/LLM structured add_pattern_hint / add_language (fillers/engine/model survive).
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createHmac } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { AddressInfo } from 'node:net';
 import { AgentBase } from '../src/AgentBase.js';
 import { AgentServer } from '../src/AgentServer.js';
@@ -21,6 +25,7 @@ import { ServerlessAdapter } from '../src/ServerlessAdapter.js';
 import { NativeVectorSearchSkill } from '../src/skills/builtin/index.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import { InfoGathererSkill } from '../src/skills/builtin/index.js';
+import { SessionManager } from '../src/SessionManager.js';
 import { suppressAllLogs } from '../src/Logger.js';
 
 beforeAll(() => {
@@ -357,5 +362,176 @@ describe('Contract 6 — SIP routing dispatches over the served /sip path', () =
     // Own username matched → agent serves its own SWML (callback returned null).
     // Before the fix, no callback was registered at all, so the map was inert.
     expect(status).toBe(200);
+  });
+});
+
+// ── Contract 7: Tool-token WIRE FORMAT + nonce parity + CONSTANT-TIME ────────
+//
+// Python (core/security/session_manager.py): a minted tool token base64url-wraps
+// `{call_id}.{function_name}.{expiry}.{nonce}.{signature}`; the HMAC-SHA256 signed
+// message is `{call_id}:{function_name}:{expiry}:{nonce}`; nonce = token_hex(8)
+// (16 hex chars); validation uses a CONSTANT-TIME compare. The contract asserts
+// on the DECODED form. A 3-field / no-nonce / fn-first token FAILS (1)+(2)+(3);
+// a plain `!==` signature compare (short-circuits on first mismatch) FAILS (5).
+describe('Contract 7 — tool-token wire format, nonce parity, constant-time validate', () => {
+  const SECRET = '0123456789abcdef0123456789abcdef';
+
+  // Decode a base64url-wrapped token to its raw dot-joined form.
+  function decode(token: string): string {
+    return Buffer.from(token, 'base64url').toString();
+  }
+
+  it('(1) a freshly minted token, decoded, has exactly 5 dot-fields with a NON-EMPTY nonce', () => {
+    const sm = new SessionManager(900, SECRET);
+    const parts = decode(sm.generateToken('get_time', 'call-1')).split('.');
+    expect(parts).toHaveLength(5);
+    const [callId, fn, expiry, nonce, sig] = parts;
+    expect(callId).toBe('call-1'); // call_id first (NOT fn-first)
+    expect(fn).toBe('get_time');
+    expect(Number.isNaN(parseInt(expiry!, 10))).toBe(false);
+    expect(nonce).toBeTruthy(); // non-empty nonce (a 3-field/no-nonce token has none)
+    expect(nonce!.length).toBeGreaterThan(0);
+    expect(sig).toMatch(/^[0-9a-f]{64}$/); // full HMAC-SHA256 hex digest
+  });
+
+  it('(2) two mints for the SAME (function_name, call_id, expiry) produce DIFFERENT nonces', () => {
+    const sm = new SessionManager(900, SECRET);
+    const a = decode(sm.generateToken('get_time', 'call-1')).split('.');
+    const b = decode(sm.generateToken('get_time', 'call-1')).split('.');
+    // Same expiry window, same fn+call → the ONLY thing that must differ is the nonce.
+    expect(a[3]).not.toBe(b[3]);
+  });
+
+  it('(3) a python-oracle-format token (16-hex-char nonce) validates in-port (interop)', () => {
+    // Construct a token exactly as the Python reference would: 16-hex-char nonce
+    // (token_hex(8)) — SHORTER than ts's own 32-char nonce — signed over the
+    // `:`-joined message, then base64url-wrapped. It must validate, proving ts
+    // reads the nonce field POSITIONALLY (parts[3]) rather than assuming a length.
+    const callId = 'call-oracle';
+    const fn = 'lookup';
+    const expiry = Math.floor(Date.now() / 1000) + 900;
+    const nonce = 'a1b2c3d4e5f60718'; // 16 hex chars, python token_hex(8) length
+    const message = `${callId}:${fn}:${expiry}:${nonce}`;
+    const sig = createHmac('sha256', SECRET).update(message).digest('hex');
+    const raw = `${callId}.${fn}.${expiry}.${nonce}.${sig}`;
+    const oracleToken = Buffer.from(raw, 'utf-8').toString('base64url');
+
+    const sm = new SessionManager(900, SECRET);
+    expect(sm.validateToken(callId, fn, oracleToken)).toBe(true);
+    // A 3-field / no-nonce / fn-first token must FAIL validation.
+    const badRaw = `${fn}.${callId}.${sig}`; // fn-first, no expiry, no nonce
+    const badToken = Buffer.from(badRaw, 'utf-8').toString('base64url');
+    expect(sm.validateToken(callId, fn, badToken)).toBe(false);
+  });
+
+  it('(4) flipping one byte of the signature → validation fails', () => {
+    const sm = new SessionManager(900, SECRET);
+    const parts = decode(sm.generateToken('get_time', 'call-1')).split('.');
+    const sig = parts[4]!;
+    // Flip the first hex char of the signature (any real change invalidates it).
+    const flipped = (sig[0] === 'a' ? 'b' : 'a') + sig.slice(1);
+    parts[4] = flipped;
+    const tampered = Buffer.from(parts.join('.'), 'utf-8').toString('base64url');
+    expect(sm.validateToken('call-1', 'get_time', tampered)).toBe(false);
+  });
+
+  it('(5) signature compare is CONSTANT-TIME (uses timingSafeEqual, no first-mismatch early return)', () => {
+    // A wall-clock timing test over a 64-char digest is inherently flaky, so —
+    // like the ruby lock-in — assert the constant-time PROPERTY behaviorally
+    // rather than by measuring nanoseconds:
+    //  - a wrong-in-the-FIRST-byte signature and a wrong-only-in-the-LAST-byte
+    //    signature BOTH reject (a short-circuit `!==` also rejects both, but the
+    //    contract's guarantee is that neither leaks WHERE the mismatch is), and
+    //  - a wrong-LENGTH signature rejects without throwing (timingSafeEqual
+    //    requires equal-length buffers; the impl must guard length first, not
+    //    let it raise). A raw `!==` would "pass" length trivially but a naive
+    //    timingSafeEqual without the guard would throw — this pins the guard.
+    const sm = new SessionManager(900, SECRET);
+    const parts = decode(sm.generateToken('probe', 'call-1')).split('.');
+    const goodSig = parts[4]!;
+    const wrongFirst = (goodSig[0] === 'f' ? 'e' : 'f') + goodSig.slice(1); // byte 0 differs
+    const wrongLast = goodSig.slice(0, 63) + (goodSig[63] === 'a' ? 'b' : 'a'); // byte 63 differs
+    const wrongLength = goodSig.slice(0, 63); // 63 chars — length mismatch
+
+    const mk = (sig: string): string => {
+      parts[4] = sig;
+      return Buffer.from(parts.join('.'), 'utf-8').toString('base64url');
+    };
+
+    // Both a first-byte and a last-byte mismatch reject (no positional leak).
+    expect(sm.validateToken('call-1', 'probe', mk(wrongFirst))).toBe(false);
+    expect(sm.validateToken('call-1', 'probe', mk(wrongLast))).toBe(false);
+    // A length-mismatched signature rejects WITHOUT throwing (the length guard
+    // in front of timingSafeEqual). This fails if the impl calls timingSafeEqual
+    // on unequal-length buffers (which throws) instead of guarding.
+    expect(() => sm.validateToken('call-1', 'probe', mk(wrongLength))).not.toThrow();
+    expect(sm.validateToken('call-1', 'probe', mk(wrongLength))).toBe(false);
+
+    // Pin the constant-time PRIMITIVE at the source level: the manager must route
+    // the signature compare through node's timingSafeEqual, not a raw `!==` on the
+    // digest (which short-circuits at the first differing character). This is the
+    // assertion that FAILS against the pre-fix body.
+    const src = readFileSync(new URL('../src/SessionManager.ts', import.meta.url), 'utf-8');
+    expect(src).toContain('timingSafeEqual');
+    expect(src).not.toMatch(/tokenSignature\s*!==\s*expectedSig/);
+  });
+});
+
+// ── Contract 8: AI/LLM structured add_pattern_hint / add_language ────────────
+//
+// Python (ai_config mixin): add_pattern_hint attaches a STRUCTURED hint
+// ({pattern, replace/hints, ...}) not a bare string; add_language carries engine,
+// model (speech_model), and fillers into the rendered SWML ai.languages entry.
+// A degraded/bare-string impl drops the structure/engine/model/fillers.
+describe('Contract 8 — structured pattern-hint + language (fillers/engine/model survive)', () => {
+  // Pull the AI verb block out of the rendered SWML document.
+  function aiBlock(agent: AgentBase): Record<string, unknown> {
+    const doc = JSON.parse(agent.renderSwml()) as {
+      sections: { main: Array<Record<string, unknown>> };
+    };
+    return doc.sections.main.find((v) => 'ai' in v)!['ai'] as Record<string, unknown>;
+  }
+
+  it('a pattern hint with replacements survives as a STRUCTURED object (not a bare string)', () => {
+    const agent = new AgentBase({ name: 'ph', route: '/ph' });
+    agent.setPromptText('hi');
+    agent.addPatternHint({
+      hint: 'SignalWire',
+      pattern: 'signal\\s*wire',
+      replace: 'SignalWire',
+      ignoreCase: true,
+    });
+
+    const hints = aiBlock(agent)['hints'] as unknown[];
+    const structured = hints.find(
+      (h) => typeof h === 'object' && h !== null && 'pattern' in (h as object),
+    ) as Record<string, unknown>;
+    expect(structured).toBeTruthy(); // a bare-string impl would leave only strings
+    expect(structured['pattern']).toBe('signal\\s*wire');
+    expect(structured['replace']).toBe('SignalWire'); // the replacement survives
+    expect(structured['hint']).toBe('SignalWire');
+    expect(structured['ignore_case']).toBe(true); // wire key is snake_case
+  });
+
+  it('a language with engine + model + fillers renders all three into ai.languages', () => {
+    const agent = new AgentBase({ name: 'lang', route: '/lang' });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'rime.spore',
+      engine: 'rime',
+      speechModel: 'arcana',
+      fillers: { default: ['um', 'let me check'] },
+    });
+
+    const languages = aiBlock(agent)['languages'] as Array<Record<string, unknown>>;
+    expect(languages).toHaveLength(1);
+    const lang = languages[0]!;
+    expect(lang['name']).toBe('English');
+    expect(lang['code']).toBe('en-US');
+    expect(lang['engine']).toBe('rime'); // dropped by a degraded impl
+    expect(lang['speech_model']).toBe('arcana'); // model — dropped by a degraded impl
+    expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
   });
 });

@@ -5,7 +5,7 @@
  * shared secret. No server-side state is stored.
  */
 
-import { randomBytes, createHmac } from 'node:crypto';
+import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { getLogger } from './Logger.js';
 
 /** Decoded token debug info matching the Python SDK's nested return structure. */
@@ -134,7 +134,14 @@ export class SessionManager {
 
       const message = `${tokenCallId}:${tokenFunction}:${tokenExpiry}:${tokenNonce}`;
       const expectedSig = createHmac('sha256', this.secretKey).update(message).digest('hex');
-      if (tokenSignature !== expectedSig) {
+      // CONSTANT-TIME compare (parity with Python's hmac.compare_digest) — a
+      // plain `!==` short-circuits at the first mismatched character and leaks
+      // signature bytes via timing. A length mismatch is not secret (the HMAC
+      // hex digest is a fixed 64 chars) so guarding it before timingSafeEqual
+      // (which requires equal-length buffers) is safe.
+      const sigBuf = Buffer.from(tokenSignature, 'utf-8');
+      const expectedBuf = Buffer.from(expectedSig, 'utf-8');
+      if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
         this.log.warn('token_invalid', { function: functionName });
         return false;
       }
