@@ -53,11 +53,14 @@ import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.
  * incoming request. Return a route string to redirect to that agent route, or
  * null / undefined to let normal SWML processing continue.
  *
- * Mirrors Python `web_mixin.register_routing_callback` callback signature (body-only
- * variant — Hono request object is not forwarded; use the parsed body instead).
+ * Mirrors Python `web_mixin.register_routing_callback` callback signature. Python
+ * decomposed the routing callback to `callback_fn(body, headers)` — the parsed body
+ * plus the request headers (the raw Hono request object is not forwarded). `headers`
+ * is optional so existing body-only callbacks keep working.
  */
 export type RoutingCallback = (
   body: SwmlRequestData,
+  headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
@@ -2029,6 +2032,94 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Framework-free request-dispatch core for AgentBase.
+   *
+   * Overrides {@link SWMLService.handleRequest} so the primitive dispatch surface
+   * renders SWML via AgentBase's {@link renderSwml} (mirroring the Hono root path)
+   * instead of the base `renderDocument`. Performs basic-auth, the routing-callback
+   * check `(body, headers)`, and `onSwmlRequest` modification over plain
+   * primitives, returning a `[status, headers, bodyString]` triple with the
+   * 401-auth and 307-redirect behavior preserved. Mirrors Python's
+   * `AgentBase.handle_request(method, url, headers, body)`.
+   *
+   * @param method  HTTP method, e.g. `"GET"` or `"POST"`.
+   * @param url     The full request URL.
+   * @param headers Request headers as a plain dict.
+   * @param body    The already-parsed JSON body for POST requests, or `undefined`.
+   * @returns A `[statusCode, responseHeaders, bodyString]` triple.
+   */
+  override async handleRequest(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: Record<string, unknown> | null,
+  ): Promise<[number, Record<string, string>, string]> {
+    const parsedBody: Record<string, unknown> = body ?? {};
+    const callbackPath = this._callbackPathForUrl(url);
+
+    // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
+    if (!this.checkAgentBasicAuth(headers)) {
+      return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
+    }
+
+    // call_id: from the body for POST, absent otherwise.
+    let callId: string | undefined;
+    if (method === 'POST' && Object.keys(parsedBody).length > 0) {
+      callId = (parsedBody['call_id'] as string | undefined) ?? undefined;
+      if (!callId && parsedBody['call'] && typeof parsedBody['call'] === 'object') {
+        callId = (parsedBody['call'] as Record<string, unknown>)['call_id'] as string | undefined;
+      }
+
+      // Routing callback: (body, headers) -> route | null.
+      if (callbackPath && this._routingCallbacks.has(callbackPath)) {
+        const callbackFn = this._routingCallbacks.get(callbackPath)!;
+        try {
+          const route = await callbackFn(parsedBody, headers);
+          if (route != null) {
+            this.log.info(`routing_request route=${route}`);
+            return [307, { Location: route }, ''];
+          }
+        } catch (err) {
+          this.log.error(
+            `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    // Subclass modification hook (primitive path passes no Hono context).
+    let modifications: Record<string, unknown> | void = undefined;
+    try {
+      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined);
+    } catch (err) {
+      this.log.error(
+        `error_in_request_modifier error=${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    const swml = this.renderSwml(callId, modifications || undefined);
+    return [200, {}, swml];
+  }
+
+  /** Validate basic-auth against AgentBase's `basicAuthCreds` from a plain
+   *  headers dict (the primitive analog of the Hono `basicAuth` middleware). */
+  private checkAgentBasicAuth(headers: Record<string, string>): boolean {
+    const [user, pass] = this.basicAuthCreds;
+    if (!user || !pass) return true;
+    const authHeader = headers['authorization'] ?? headers['Authorization'];
+    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    let decoded: string;
+    try {
+      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+    } catch {
+      return false;
+    }
+    const idx = decoded.indexOf(':');
+    if (idx < 0) return false;
+    return decoded.slice(0, idx) === user && decoded.slice(idx + 1) === pass;
+  }
+
+  /**
    * Lifecycle hook called when a debug event webhook is received. Override in subclasses.
    * @param _event - The debug event payload.
    */
@@ -2744,8 +2835,13 @@ export class AgentBase extends SWMLService {
           /* GET or no body */
         }
 
+        const cbHeaders: Record<string, string> = {};
+        c.req.raw.headers.forEach((v: string, k: string) => {
+          cbHeaders[k] = v;
+        });
+
         try {
-          const route = await callback(body);
+          const route = await callback(body, cbHeaders);
           if (route) {
             reqLog.info('routing_callback_redirect', { route });
             return c.json({ action: 'redirect', route });

@@ -139,7 +139,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData>,union<string,string>>",
+                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,union<string,string>>",
                   "required": true
                 },
                 {
@@ -1199,6 +1199,36 @@
                 }
               ],
               "returns": "dict<string,any>"
+            },
+            "handle_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "headers",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "tuple<float,dict<string,any>,string>"
             },
             "is_mcp_server_enabled": {
               "params": [
@@ -5070,7 +5100,7 @@
                 },
                 {
                   "name": "callback",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData>,union<string,string>>",
+                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,union<string,string>>",
                   "required": true
                 },
                 {
@@ -7208,6 +7238,36 @@
               ],
               "returns": "class:signalwire.core.swaig_function.SWAIGFunction"
             },
+            "handle_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "headers",
+                  "type": "dict<string,any>",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "tuple<float,dict<string,any>,string>"
+            },
             "has_function": {
               "params": [
                 {
@@ -7314,7 +7374,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData>,union<string,string>>",
+                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,union<string,string>>",
                   "required": true
                 },
                 {

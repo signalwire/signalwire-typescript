@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ e566378eee1a09176fcd74e84ebba355afa3cbc1",
+  "generated_from": "signalwire-typescript @ 428409fd71b19d13d663d474c72c83f746119001",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -136,6 +136,7 @@
           "get_prompt_pom",
           "get_tools",
           "handle_mcp_request",
+          "handle_request",
           "is_mcp_server_enabled",
           "native_functions",
           "on_debug_event",
@@ -793,6 +794,7 @@
           "get_function",
           "get_registered_tools",
           "get_tool",
+          "handle_request",
           "has_function",
           "has_tool",
           "list_tool_names",

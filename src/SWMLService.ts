@@ -273,9 +273,12 @@ export type OnRequestCallback = (
 ) => SwmlBuilder | Promise<SwmlBuilder>;
 
 // RoutingCallback is owned by AgentBase.ts; SWMLService uses a structurally
-// compatible local alias to avoid an import cycle and stay independent.
+// compatible local alias to avoid an import cycle and stay independent. Python
+// decomposed the callback to `callback_fn(body, headers)`; headers is optional
+// so body-only callbacks keep working.
 type RoutingCallback = (
   requestBody: SwmlRequestData,
+  headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -889,6 +892,130 @@ export class SWMLService {
     return this.swmlBuilder.render();
   }
 
+  /**
+   * Framework-free request-dispatch core.
+   *
+   * The primitive dispatch surface the SDK ports share (mirrors Python's
+   * `SWMLService.handle_request(method, url, headers, body)` and, e.g., the
+   * dotnet `(int, Dictionary, string) HandleRequest(...)`). It performs the
+   * routing-callback check, `on_request` modification, and basic-auth exactly as
+   * the Hono handler path does, but over plain primitives instead of Hono
+   * `Context`/`Response` objects — so both paths produce identical responses.
+   *
+   * @param method  HTTP method, e.g. `"GET"` or `"POST"`.
+   * @param url     The full request URL (used to derive the callback path).
+   * @param headers Request headers as a plain dict.
+   * @param body    The already-parsed JSON body for POST requests, or `undefined`.
+   * @returns A `[status, responseHeaders, bodyString]` triple. For a routing
+   *   redirect the status is 307 with a `Location` header and an empty body; an
+   *   auth failure is 401 with `WWW-Authenticate: Basic`; otherwise 200 with the
+   *   SWML document as the body string.
+   */
+  async handleRequest(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: Record<string, unknown> | null,
+  ): Promise<[number, Record<string, string>, string]> {
+    const parsedBody: Record<string, unknown> = body ?? {};
+    const callbackPath = this._callbackPathForUrl(url);
+
+    // Auth check over primitives.
+    if (!(await this._checkBasicAuthHeaders(headers))) {
+      return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
+    }
+
+    // Routing callback: (body, headers) -> route | null. Only runs for a POST
+    // with a non-empty parsed body targeting a registered callback path.
+    if (
+      method === 'POST' &&
+      Object.keys(parsedBody).length > 0 &&
+      callbackPath &&
+      this._routingCallbacks.has(callbackPath)
+    ) {
+      const callbackFn = this._routingCallbacks.get(callbackPath)!;
+      try {
+        const route = await callbackFn(parsedBody, headers);
+        if (route != null) {
+          this.log.info(`routing_request route=${route}`);
+          return [307, { Location: route }, ''];
+        }
+      } catch (err) {
+        this.log.error(
+          `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    // Allow customized handling in subclasses (the SWML-builder hook analog of
+    // Python's on_request modification merge).
+    const queryParams: Record<string, string> = {};
+    try {
+      new URL(url).searchParams.forEach((v, k) => {
+        queryParams[k] = v;
+      });
+    } catch {
+      /* url may be a bare path — no query params to extract */
+    }
+    const hookResult = this.buildSwmlForRequest(
+      queryParams,
+      parsedBody,
+      headers,
+      callbackPath ?? undefined,
+    );
+    if (hookResult !== null) {
+      return [200, {}, JSON.stringify(hookResult.build())];
+    }
+
+    return [200, {}, this.renderDocument()];
+  }
+
+  /**
+   * Derive the registered routing-callback path (if any) a URL targets. Mirrors
+   * Python's `_callback_path_for_url` — the primitive `handleRequest` recovers
+   * the equivalent of the router's `request.state.callback_path` by matching the
+   * URL's normalized path against the registered callbacks.
+   */
+  protected _callbackPathForUrl(url: string): string | null {
+    if (this._routingCallbacks.size === 0) return null;
+    let path = url;
+    try {
+      path = new URL(url).pathname;
+    } catch {
+      /* bare path — use as-is */
+    }
+    const trimmed = path.replace(/^\/+|\/+$/g, '');
+    const normalized = trimmed ? `/${trimmed}` : path.replace(/\/+$/, '');
+    for (const cbPath of this._routingCallbacks.keys()) {
+      if (normalized === cbPath || normalized.endsWith(cbPath)) return cbPath;
+    }
+    return null;
+  }
+
+  /**
+   * Validate HTTP basic-auth from a plain headers dict (the primitive analog of
+   * the Hono `basicAuth` middleware). Returns true when auth is not enforced or
+   * the provided credentials match.
+   */
+  protected async _checkBasicAuthHeaders(headers: Record<string, string>): Promise<boolean> {
+    // Auth is only enforced when credentials were explicitly provided or came
+    // from the environment; auto-generated credentials are not enforced.
+    if (!this.authCredentials || this.authSource === 'generated') return true;
+    const authHeader = headers['authorization'] ?? headers['Authorization'];
+    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    let decoded: string;
+    try {
+      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+    } catch {
+      return false;
+    }
+    const idx = decoded.indexOf(':');
+    if (idx < 0) return false;
+    const user = decoded.slice(0, idx);
+    const pass = decoded.slice(idx + 1);
+    return await this.validateBasicAuth(user, pass);
+  }
+
   // ── Verb handler registration ────────────────────────────────────────
 
   /**
@@ -932,7 +1059,12 @@ export class SWMLService {
         }
       }
 
-      const route = callbackFn(body);
+      const cbHeaders: Record<string, string> = {};
+      c.req.raw.headers.forEach((v: string, k: string) => {
+        cbHeaders[k] = v;
+      });
+
+      const route = callbackFn(body, cbHeaders);
       // Preserve the original `route !== null` runtime guard exactly — a
       // types-only change must not alter behavior. The callback's declared
       // return includes undefined|Promise, which the pre-typing `c: any` code

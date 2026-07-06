@@ -53,6 +53,32 @@ describe('parseFunctionParams', () => {
   });
 });
 
+describe('inferSchema — typed-handler → SWAIG param schema (oracle infer_schema idiom)', () => {
+  // The oracle's infer_schema returns a positional 5-tuple
+  // (properties, required, description, ...); TS returns the equivalent
+  // InferredSchema struct. Assert a typed tool handler maps to the same schema
+  // content: a properties map keyed by param name, a required list, and the
+  // rawData flag — the struct fields that correspond to the tuple positions.
+  it('builds a SWAIG parameter schema from a typed tool handler', () => {
+    const handler = (city: string, units = 'metric', includeForecast = false) => {
+      void [city, units, includeForecast];
+    };
+    const schema = inferSchema(handler);
+    expect(schema).not.toBeNull();
+    // properties (tuple[0])
+    expect(schema!.parameters).toEqual({
+      city: { type: 'string', description: 'The city parameter' },
+      units: { type: 'string', description: 'The units parameter' },
+      includeForecast: { type: 'boolean', description: 'The includeForecast parameter' },
+    });
+    // required (tuple[1]) — only params without a default
+    expect(schema!.required).toEqual(['city']);
+    // hasRawData flag (a static-port field with no positional-tuple slot)
+    expect(schema!.hasRawData).toBe(false);
+    expect(schema!.paramNames).toEqual(['city', 'units', 'includeForecast']);
+  });
+});
+
 describe('inferSchema', () => {
   it('infers schema from arrow function with defaults', () => {
     const fn = (city: string, count = 5, verbose = true) => {
