@@ -373,6 +373,19 @@ sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
     --fn dayone_artifact_deny
 
+# ---- Expansion gates (BLOCKING, non-report-only) -----------------------------
+# ROUTE-COLLISION is NOT wired: ts has no default route-registry command the gate
+# can consume (route_collision.py self-skips for typescript). Wiring it needs a
+# registry builder for the gate first — follow-up.
+sched_gate GEN-TYPE-DEGENERACY res=dayone desc="generated types are not degenerate (allowlist GEN_TYPE_DEGENERACY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port typescript --repo .
+sched_gate PUBLIC-JARGON res=dayone desc="no porting-process jargon in public API surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port typescript --repo .
+sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (held to the same idiom bar)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port typescript --repo .
+sched_gate RELEASE-FRESH res=dayone desc="publish path is gated (gates run before publish)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port typescript --repo .
+
 sched_run
 rc=$?
 if [ "$rc" -eq 0 ]; then
