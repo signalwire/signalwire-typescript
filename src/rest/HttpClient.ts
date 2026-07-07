@@ -5,12 +5,37 @@
  * Returns {} on 204 No Content.
  */
 
+import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
 import { RestError } from './RestError.js';
 import type { SignalWireErrorBody } from '../PlatformContracts.js';
 import type { HttpClientOptions, QueryParams } from './types.js';
 
 const logger = getLogger('rest_client');
+
+/**
+ * REST client User-Agent, derived at runtime from the installed package version
+ * so it can never drift from a hardcoded literal (the token used to be a stale
+ * `@signalwire/sdk-ts/2.0.0` while the package moved on). The product token is
+ * `signalwire-typescript`, mirroring the Python reference's `signalwire-python/<v>`.
+ *
+ * `../../package.json` resolves identically in both layouts — from `src/rest/`
+ * during dev (tsx) and from `dist/rest/` when installed — since package.json
+ * always ships at the package root two levels above this module.
+ */
+function buildUserAgent(): string {
+  let version = 'unknown';
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require('../../package.json') as { version?: string };
+    if (pkg.version) version = pkg.version;
+  } catch {
+    // Uninstalled / unusual bundling — fall back to the stable product token.
+  }
+  return `signalwire-typescript/${version}`;
+}
+
+const USER_AGENT = buildUserAgent();
 
 /**
  * Low-level HTTP client used by every REST namespace resource.
@@ -70,7 +95,7 @@ export class HttpClient {
     const headers: Record<string, string> = {
       Authorization: this._authHeader,
       Accept: 'application/json',
-      'User-Agent': '@signalwire/sdk-ts/2.0.0',
+      'User-Agent': USER_AGENT,
     };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';

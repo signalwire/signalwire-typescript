@@ -1,6 +1,10 @@
+import { createRequire } from 'node:module';
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RestError } from '../../src/rest/RestError.js';
 import { createMockFetch, mockClientOptions } from './helpers.js';
+
+const pkgVersion = (createRequire(import.meta.url)('../../package.json') as { version: string })
+  .version;
 
 describe('HttpClient', () => {
   it('sends Basic Auth header', async () => {
@@ -23,7 +27,9 @@ describe('HttpClient', () => {
 
     const reqs = getRequests();
     expect(reqs[0]!.headers['Accept']).toBe('application/json');
-    expect(reqs[0]!.headers['User-Agent']).toContain('@signalwire/sdk-ts');
+    // Product token is stable; the version segment is derived from package.json
+    // at runtime so it can never drift from a hardcoded literal.
+    expect(reqs[0]!.headers['User-Agent']).toBe(`signalwire-typescript/${pkgVersion}`);
   });
 
   it('sends Content-Type for POST with body', async () => {
