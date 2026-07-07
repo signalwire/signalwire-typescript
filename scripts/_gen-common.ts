@@ -13,6 +13,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as prettier from 'prettier';
+import * as yaml from 'js-yaml';
 
 // ---- --check (GEN-FRESH) plumbing ------------------------------------------
 // `--check`: regenerate in-memory and FAIL if any committed output differs from
@@ -234,17 +235,94 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
   }
 }
 
-export function objectBody(schema: Schema, indent: number, topLevel = false): string {
+// ---- SDK-surface policy overlay (the single source; NOT wire truth) --------
+// porting-sdk/rest-apis/x-sdk-overlay.yaml is the ONE authoritative place that
+// says which spec fields the SDKs HIDE (dropped from the surface entirely, still
+// on the wire) or DEPRECATE (emitted-but-flagged). It is a policy overlay, not
+// markup in the (often vendored) specs, so the same field is governed once and
+// applied wherever it surfaces (schema.json $defs/AIParams + the calling/fabric
+// REST projections). Mirrors the Python reference generator
+// (porting-sdk/scripts/generate_python_rest_types.py).
+//
+// MATCHING: each rule is (field, scope-or-undefined). `scope` is matched against
+// the containing SPEC schema name — the `$defs/<name>` / `components/schemas/
+// <name>` key exactly as it appears in the spec — NOT the language-idiomatic type
+// name this generator later emits, so one `scope` value works cross-port. An
+// unscoped rule matches everywhere; a scoped rule only inside its schema.
+type OverlayRule = { field: string; scope?: string };
+type Overlay = { hidden: OverlayRule[]; deprecated: OverlayRule[] };
+let _overlayCache: Overlay | null = null;
+
+function loadOverlay(): Overlay {
+  if (_overlayCache) return _overlayCache;
+  const psdk = resolvePortingSdk();
+  const empty: Overlay = { hidden: [], deprecated: [] };
+  if (!psdk) {
+    _overlayCache = empty;
+    return empty;
+  }
+  const overlayPath = path.join(psdk, 'rest-apis', 'x-sdk-overlay.yaml');
+  if (!fs.existsSync(overlayPath)) {
+    _overlayCache = empty;
+    return empty;
+  }
+  const data = (yaml.load(fs.readFileSync(overlayPath, 'utf-8')) ?? {}) as {
+    hidden?: OverlayRule[];
+    deprecated?: OverlayRule[];
+  };
+  const rules = (list?: OverlayRule[]): OverlayRule[] =>
+    (list ?? [])
+      .filter((e): e is OverlayRule => !!e && typeof e.field === 'string')
+      .map((e) => ({ field: e.field, scope: e.scope }));
+  _overlayCache = { hidden: rules(data.hidden), deprecated: rules(data.deprecated) };
+  return _overlayCache;
+}
+
+// A rule matches when its field equals `field` AND (it is unscoped OR its scope
+// equals the containing SPEC schema name).
+function overlayMatch(rules: OverlayRule[], field: string, schemaName?: string): boolean {
+  return rules.some((r) => r.field === field && (r.scope === undefined || r.scope === schemaName));
+}
+
+export function overlayHidden(field: string, schemaName?: string): boolean {
+  return overlayMatch(loadOverlay().hidden, field, schemaName);
+}
+
+export function overlayDeprecated(field: string, schemaName?: string): boolean {
+  return overlayMatch(loadOverlay().deprecated, field, schemaName);
+}
+
+// `schemaName` is the SPEC schema name of the type being emitted (the $defs /
+// components.schemas key). It is threaded through only at the TOP-LEVEL named-
+// declaration sites (declaration / swmlDeclaration / swaig payloads) where the
+// name is known; nested inline objects pass it undefined (an unscoped overlay
+// rule would still match, a scoped one — like AIParams — would not, which is
+// correct since AIParams always surfaces as a top-level named schema).
+export function objectBody(
+  schema: Schema,
+  indent: number,
+  topLevel = false,
+  schemaName?: string,
+): string {
   const props = schema.properties ?? {};
   const required = new Set(schema.required ?? []);
   const pad = '  '.repeat(indent + 1);
   const closePad = '  '.repeat(indent);
   const lines: string[] = [];
   for (const [key, propSchema] of Object.entries(props)) {
+    // SDK-surface policy comes from the single overlay (x-sdk-overlay.yaml), NOT
+    // from markup in the (often vendored) specs. Hidden → drop from the surface
+    // entirely (still on the wire); deprecated → emit but flag with TSDoc.
+    if (overlayHidden(key, schemaName)) continue;
     const optional = required.has(key) ? '' : '?';
     const keyTok = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
-    if (propSchema.description) {
-      lines.push(`${pad}/** ${propSchema.description.split('\n')[0]} */`);
+    const deprecated = overlayDeprecated(key, schemaName);
+    const descLine = propSchema.description ? propSchema.description.split('\n')[0] : '';
+    if (deprecated) {
+      // Combine the @deprecated tag with any existing description in one TSDoc block.
+      lines.push(descLine ? `${pad}/** @deprecated ${descLine} */` : `${pad}/** @deprecated */`);
+    } else if (descLine) {
+      lines.push(`${pad}/** ${descLine} */`);
     }
     lines.push(`${pad}${keyTok}${optional}: ${tsType(propSchema, indent + 1)};`);
   }
@@ -289,7 +367,7 @@ export function declaration(name: string, schema: Schema): string {
   if (isObject && schema.properties) {
     // topLevel=true: the open `[key: string]: unknown` tail is emitted here (the
     // named type) but suppressed on nested inline objects (see objectBody).
-    return `${doc}export interface ${id} ${objectBody(schema, 0, true)}\n`;
+    return `${doc}export interface ${id} ${objectBody(schema, 0, true, name)}\n`;
   }
   return `${doc}export type ${id} = ${tsType(schema, 0)};\n`;
 }

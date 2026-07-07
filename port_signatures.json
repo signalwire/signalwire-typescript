@@ -23720,24 +23720,6 @@
               ],
               "returns": "union<class:signalwire.signalwire_typescript.src.swml_verbs_generated.AttentionTimeout,float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
             },
-            "audible_debug": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
-            },
-            "audible_latency": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
-            },
             "background_file_loops": {
               "params": [
                 {
@@ -23773,15 +23755,6 @@
                 }
               ],
               "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
-            },
-            "cache_mode": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
             },
             "conversation_sliding_window": {
               "params": [
@@ -23854,15 +23827,6 @@
                 }
               ],
               "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
-            },
-            "enable_accounting": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
             },
             "enable_barge": {
               "params": [
@@ -24232,15 +24196,6 @@
                 }
               ],
               "returns": "union<float,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
-            },
-            "verbose_logs": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "union<bool,class:signalwire.signalwire_typescript.src.swml_verbs_generated.SWMLVar>"
             },
             "wait_for_user": {
               "params": [

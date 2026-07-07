@@ -118,7 +118,7 @@ function swmlDeclaration(name: string, schema: Schema): string {
     !schema.allOf;
   if (isObject && schema.properties) {
     const open: Schema = { ...schema, required: [], additionalProperties: true };
-    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true)}\n`;
+    return `${doc}export interface ${tsName(name)} ${objectBody(open, 0, true, name)}\n`;
   }
   return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
 }

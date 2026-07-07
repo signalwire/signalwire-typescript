@@ -193,10 +193,6 @@ export interface AIParams {
   asr_diarize?: boolean | SWMLVar;
   /** If true, will force the AI Agent to only respond to the speaker who reesponds to the AI Agent first. */
   asr_speaker_affinity?: boolean | SWMLVar;
-  /** If `true`, the AI will announce the function that is being executed on the call. **Default:** `false`. */
-  audible_debug?: boolean | SWMLVar;
-  /** If `true`, the AI will announce latency information during the call. Useful for debugging. **Default:** `false`. */
-  audible_latency?: boolean | SWMLVar;
   /** URL of audio file to play in the background while AI plays in foreground. */
   background_file?: string;
   /** Maximum number of times to loop playing the background file. `undefined` means loop indefinitely. */
@@ -217,8 +213,6 @@ export interface AIParams {
   barge_min_words?: number | SWMLVar;
   /** If `true`, allows functions to be executed while the AI is being interrupted. **Default:** `true`. */
   barge_functions?: boolean | SWMLVar;
-  /** If `true`, enables response caching for improved performance. **Default:** `false`. */
-  cache_mode?: boolean | SWMLVar;
   /** Sets the prompt which binds the agent to its purpose. */
   conscience?: string;
   /** Injects pre-existing conversation history into the AI session at startup. This allows you to seed the AI agent with context from a previous conversation or provide example interactions. */
@@ -241,8 +235,6 @@ export interface AIParams {
   digit_timeout?: number | SWMLVar;
   /** Amount of silence, in ms, at the end of an utterance to detect end of speech. Allowed values from `250` - `10,000`. **Default:** `700` ms. */
   end_of_speech_timeout?: number | SWMLVar;
-  /** If `true`, enables usage accounting. The default is `false`. */
-  enable_accounting?: boolean | SWMLVar;
   /** Enables thinking output for the AI Agent. */
   enable_thinking?: boolean | SWMLVar;
   /** Enables visual input processing for the AI Agent. */
@@ -279,7 +271,7 @@ export interface AIParams {
   interrupt_on_noise?: boolean | SWMLVar;
   /** Provide a prompt for the agent to handle crosstalk. */
   interrupt_prompt?: string;
-  /** Allows multilingualism when `true`. */
+  /** @deprecated Allows multilingualism when `true`. */
   languages_enabled?: boolean | SWMLVar;
   /** The local timezone setting for the AI. Value should use `IANA TZ ID` */
   local_tz?: string;
@@ -337,8 +329,6 @@ export interface AIParams {
   turn_detection_timeout?: number | SWMLVar;
   /** The format for the AI agent to reference phone numbers. */
   tts_number_format?: 'international' | 'national';
-  /** Enable verbose logging. */
-  verbose_logs?: boolean | SWMLVar;
   /** URL of a video file to play when AI is listening to the user speak. Only works for calls that support video. */
   video_listening_file?: string;
   /** URL of a video file to play when AI is idle. Only works for calls that support video. */
