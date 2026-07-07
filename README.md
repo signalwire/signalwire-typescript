@@ -22,6 +22,19 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 
 ---
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const callId: string;
+  const signingKey: string;
+  const signatureHeader: string;
+  const fullUrl: string;
+  const rawBodyString: string;
+  const requestParams: Record<string, string>;
+}
+```
+
 ## What's in this SDK
 
 | Capability | What it does | Quick link |
@@ -183,7 +196,7 @@ const ok = validateRequest(signingKey, signatureHeader, fullUrl, requestParams);
 
 // Raw request body (JSON/SWML, or cXML form bodies that carry bodySHA256) —
 // the equivalent of RestClient.validateRequestWithBody():
-const ok = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
+const okBody = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
 ```
 
 `validateRequest` folds both Compatibility API methods into one call: pass a

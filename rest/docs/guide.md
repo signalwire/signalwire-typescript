@@ -2,25 +2,29 @@
 
 The SignalWire REST client provides typed HTTP access to all SignalWire platform APIs. It's a standalone module that doesn't depend on AgentBase — you can use it independently for any server-side integration.
 
+<!-- snippet-setup -->
+```ts
+// Shared context the fragments below assume. `client` is constructed in the
+// Quick Start example; `httpClient` is a constructed HttpClient (see Pagination).
+import { RestClient } from '@signalwire/sdk';
+const client = new RestClient();
+declare const httpClient: import('@signalwire/sdk').HttpClient;
+```
+
 ## Quick Start
 
-```typescript
-import { RestClient } from '@signalwire/sdk';
-
-const client = new RestClient({
-  project: 'your-project-id',
-  token: 'your-api-token',
-  host: 'your-space.signalwire.com',
-});
+```ts
+// `client` is a constructed RestClient (see the setup above / Getting Started):
+//   const client = new RestClient({ project, token, host });
 
 // List AI agents
 const agents = await client.fabric.aiAgents.list();
 
 // Search phone numbers
-const numbers = await client.phoneNumbers.search({ area_code: '512' });
+const numbers = await client.phoneNumbers.search({ areaCode: '512' });
 
-// Make a REST call
-await client.calling.play('call-id', { url: 'https://example.com/audio.mp3' });
+// Play audio into a call (the `play` array is positional)
+await client.calling.play('call-id', [{ type: 'audio', url: 'https://example.com/audio.mp3' }]);
 ```
 
 ## Authentication
@@ -33,9 +37,11 @@ The client uses HTTP Basic Auth with your project ID and API token. Credentials 
 | `token` | `SIGNALWIRE_API_TOKEN` |
 | `host` | `SIGNALWIRE_SPACE` |
 
-```typescript
-// Using environment variables (no args needed)
-const client = new RestClient();
+```ts
+// Using environment variables (no args needed):
+//   const client = new RestClient();
+const envClient = client; // the env-configured client (see setup)
+void envClient;
 ```
 
 ## Namespaces
@@ -46,31 +52,31 @@ The client organizes all APIs into namespaces:
 
 Resource management for the SignalWire Fabric platform.
 
-```typescript
-// AI Agents (PATCH updates)
+```ts
+// AI Agents (PATCH updates) — create requires both `name` and `prompt`
 await client.fabric.aiAgents.list();
-await client.fabric.aiAgents.create({ name: 'My Agent' });
+await client.fabric.aiAgents.create({ name: 'My Agent', prompt: { text: 'Be helpful' } });
 await client.fabric.aiAgents.get('agent-id');
 await client.fabric.aiAgents.update('agent-id', { name: 'Updated' });
 await client.fabric.aiAgents.delete('agent-id');
 await client.fabric.aiAgents.listAddresses('agent-id');
 
-// SWML Scripts (PUT updates)
-await client.fabric.swmlScripts.create({ name: 'flow', code: '...' });
-await client.fabric.swmlScripts.update('id', { code: '...' });
+// SWML Scripts (PUT updates) — the script body key is `contents`
+await client.fabric.swmlScripts.create({ name: 'flow', contents: '...' });
+await client.fabric.swmlScripts.update('id', { contents: '...' });
 
 // Call Flows (with version management)
 await client.fabric.callFlows.list();
 await client.fabric.callFlows.listVersions('cf-id');
-await client.fabric.callFlows.deployVersion('cf-id', { version: 2 });
+await client.fabric.callFlows.deployVersion('cf-id', { document_version: 2 });
 
-// Subscribers (with SIP endpoints)
+// Subscribers (with SIP endpoints) — username + password are positional
 await client.fabric.subscribers.listSipEndpoints('sub-id');
-await client.fabric.subscribers.createSipEndpoint('sub-id', { username: 'user' });
+await client.fabric.subscribers.createSipEndpoint('sub-id', 'user', 'secret');
 
-// Tokens
-await client.fabric.tokens.createSubscriberToken({ subscriber_id: 's1' });
-await client.fabric.tokens.createGuestToken({ resource_id: 'r1' });
+// Tokens — the primary identifier is positional
+await client.fabric.tokens.createSubscriberToken('user@example.com');
+await client.fabric.tokens.createGuestToken(['address-uuid']);
 ```
 
 **Sub-resources:** `swmlScripts`, `relayApplications`, `callFlows`, `conferenceRooms`, `freeswitchConnectors`, `subscribers`, `sipEndpoints`, `cxmlScripts`, `cxmlApplications`, `swmlWebhooks`, `aiAgents`, `sipGateways`, `cxmlWebhooks`, `resources`, `addresses`, `tokens`
@@ -79,23 +85,23 @@ await client.fabric.tokens.createGuestToken({ resource_id: 'r1' });
 
 REST-based call control — all 37 commands dispatched via POST.
 
-```typescript
-// Dial
-await client.calling.dial({ to: '+15551234567', from: '+15559876543' });
+```ts
+// Dial — from and to are positional
+await client.calling.dial('+15559876543', '+15551234567');
 
-// Play audio
-await client.calling.play('call-id', { url: 'https://example.com/audio.mp3' });
-await client.calling.playPause('call-id');
-await client.calling.playResume('call-id');
-await client.calling.playStop('call-id');
+// Play audio — the play array is positional; pause/resume/stop take control_id positionally
+await client.calling.play('call-id', [{ type: 'audio', url: 'https://example.com/audio.mp3' }]);
+await client.calling.playPause('call-id', 'ctrl-1');
+await client.calling.playResume('call-id', 'ctrl-1');
+await client.calling.playStop('call-id', 'ctrl-1');
 
-// Record
-await client.calling.record('call-id', { beep: true });
-await client.calling.recordStop('call-id');
+// Record — record takes an options object; recordStop takes control_id positionally
+await client.calling.record('call-id', { audio: { beep: true } });
+await client.calling.recordStop('call-id', 'rec-1');
 
 // AI control
-await client.calling.aiMessage('call-id', { message: 'Hello' });
-await client.calling.aiStop('call-id');
+await client.calling.aiMessage('call-id', { message_text: 'Hello' });
+await client.calling.aiStop('call-id', 'ai-1');
 
 // End call
 await client.calling.end('call-id');
@@ -115,16 +121,16 @@ await client.phoneNumbers.delete('id'); // Release
 
 Document management and semantic search.
 
-```typescript
-// Documents
+```ts
+// Documents — create takes a document URL (chunked server-side)
 await client.datasphere.documents.list();
-await client.datasphere.documents.create({ name: 'FAQ', content: '...' });
+await client.datasphere.documents.create({ url: 'https://example.com/faq.pdf', tags: ['faq'] });
 await client.datasphere.documents.get('doc-id');
-await client.datasphere.documents.update('doc-id', { name: 'Updated FAQ' });
+await client.datasphere.documents.update('doc-id', { tags: ['faq', 'billing'] });
 await client.datasphere.documents.delete('doc-id');
 
-// Search
-await client.datasphere.documents.search({ query: 'how do I reset my password', count: 5 });
+// Search — the query string is positional
+await client.datasphere.documents.search('how do I reset my password', { count: 5 });
 
 // Chunks
 await client.datasphere.documents.listChunks('doc-id');
@@ -134,16 +140,16 @@ await client.datasphere.documents.deleteChunk('doc-id', 'chunk-id');
 
 ### Video (`client.video.*`)
 
-```typescript
-// Rooms
+```ts
+// Rooms — update uses `max_members`
 await client.video.rooms.list();
 await client.video.rooms.create({ name: 'standup' });
-await client.video.rooms.update('room-id', { max_participants: 10 });
+await client.video.rooms.update('room-id', { max_members: 10 });
 await client.video.rooms.listStreams('room-id');
-await client.video.rooms.createStream('room-id', { url: 'rtmp://...' });
+await client.video.rooms.createStream('room-id', 'rtmp://example.com/live');
 
-// Room Tokens
-await client.video.roomTokens.create({ room_name: 'standup', user_name: 'alice' });
+// Room Tokens — room_name is positional
+await client.video.roomTokens.create('standup', { user_name: 'alice' });
 
 // Sessions
 await client.video.roomSessions.list();
@@ -157,10 +163,12 @@ await client.video.conferences.listConferenceTokens('conf-id');
 
 ### Other Namespaces
 
-```typescript
-// Addresses
+```ts
+// Addresses — create takes the address fields positionally
 await client.addresses.list();
-await client.addresses.create({ ... });
+await client.addresses.create(
+  'Office', 'US', 'Jane', 'Doe', '123', 'Main St', 'Austin', 'TX', '78701',
+);
 
 // Queues (with member management)
 await client.queues.list();
@@ -172,38 +180,44 @@ await client.recordings.list();
 await client.recordings.get('recording-id');
 await client.recordings.delete('recording-id');
 
-// Number Groups (with membership)
+// Number Groups (with membership) — phone_number_id is positional
 await client.numberGroups.list();
 await client.numberGroups.listMemberships('group-id');
-await client.numberGroups.addMembership('group-id', { phone_number_id: 'pn-id' });
+await client.numberGroups.addMembership('group-id', 'pn-id');
 
-// Verified Callers
+// Verified Callers — the create body key is `number`
 await client.verifiedCallers.list();
-await client.verifiedCallers.create({ phone_number: '+15551234567' });
-await client.verifiedCallers.submitVerification('id', { code: '1234' });
+await client.verifiedCallers.create({ number: '+15551234567' });
+await client.verifiedCallers.submitVerification('id', '1234');
 
-// SIP Profile (singleton)
+// SIP Profile (singleton) — codecs field is `default_codecs`
 await client.sipProfile.get();
-await client.sipProfile.update({ codecs: ['PCMU', 'PCMA'] });
+await client.sipProfile.update({ default_codecs: ['PCMU', 'PCMA'] });
 
 // Lookup
 await client.lookup.phoneNumber('+15551234567', { include: 'cnam' });
 
-// Short Codes
+// Short Codes — update takes (id, name, message_handler) positionally
 await client.shortCodes.list();
-await client.shortCodes.update('sc-id', { url: 'https://...' });
+await client.shortCodes.update('sc-id', 'Alerts', 'laml_webhooks', {
+  message_request_url: 'https://example.com/sms',
+});
 
-// Imported Numbers
-await client.importedNumbers.create({ number: '+15551234567' });
+// Imported Numbers — number + number_type are positional
+await client.importedNumbers.create('+15551234567', 'longcode');
 
-// MFA
-await client.mfa.sms({ to: '+15551234567', from: '+15559876543' });
-await client.mfa.call({ to: '+15551234567', from: '+15559876543' });
-await client.mfa.verify('request-id', { token: '1234' });
+// MFA — `to` is positional
+await client.mfa.sms('+15551234567', { from: '+15559876543' });
+await client.mfa.call('+15551234567', { from: '+15559876543' });
+await client.mfa.verify('request-id', '1234');
 
-// Registry (10DLC)
+// Registry (10DLC) — createCampaign takes a typed campaign body
 await client.registry.brands.list();
-await client.registry.brands.createCampaign('brand-id', { use_case: 'marketing' });
+await client.registry.brands.createCampaign('brand-id', {
+  name: 'Alerts',
+  brand_id: 'brand-id',
+  csp_campaign_reference: 'CAMP123',
+});
 await client.registry.campaigns.listNumbers('campaign-id');
 
 // Logs
@@ -213,14 +227,14 @@ await client.logs.messages.list();
 await client.logs.fax.list();
 await client.logs.conferences.list();
 
-// Project tokens
-await client.project.tokens.create({ label: 'ci-token' });
-await client.project.tokens.update('token-id', { label: 'updated' });
+// Project tokens — create takes (name, permissions) positionally
+await client.project.tokens.create('ci-token', ['calling', 'messaging', 'numbers']);
+await client.project.tokens.update('token-id', { name: 'updated' });
 await client.project.tokens.delete('token-id');
 
-// PubSub & Chat tokens
-await client.pubsub.createToken({ channels: ['updates'] });
-await client.chat.createToken({ member_id: 'user-1' });
+// PubSub & Chat tokens — createToken(ttl, channels, options?)
+await client.pubsub.createToken(60, { updates: { read: true, write: false } }, { member_id: 'user-1' });
+await client.chat.createToken(60, { support: { read: true, write: true } }, { member_id: 'user-1' });
 ```
 
 ## Pagination
@@ -229,31 +243,38 @@ The client provides two pagination utilities that work with both standard (`link
 
 ### Async Generator
 
-```typescript
-import { RestClient, paginate, HttpClient } from '@signalwire/sdk';
+```ts
+import { paginate } from '@signalwire/sdk';
 
 // paginate() yields items one at a time across pages
-for await (const number of paginate(httpClient, '/api/relay/rest/phone_numbers')) {
-  console.log(number.id, number.number);
+for await (const number of paginate<{ id: string; number: string }>(
+  httpClient,
+  '/api/relay/rest/phone_numbers',
+)) {
+  void number.id;
+  void number.number;
 }
 ```
 
 ### Collect All
 
-```typescript
+```ts
 import { paginateAll } from '@signalwire/sdk';
 
 const allNumbers = await paginateAll(httpClient, '/api/relay/rest/phone_numbers');
-console.log(`Total: ${allNumbers.length}`);
+void allNumbers.length;
 ```
 
 ### Custom Data Key
 
 Some APIs use different keys for the data array. Use the `dataKey` parameter:
 
-```typescript
+```ts
+import { paginateAll } from '@signalwire/sdk';
+
 // LAML uses resource-specific keys like "calls", "messages"
 const allCalls = await paginateAll(httpClient, '/api/laml/.../Calls', undefined, 'calls');
+void allCalls;
 ```
 
 ## Error Handling
@@ -277,15 +298,17 @@ try {
 
 For testing, inject a custom `fetch` implementation:
 
-```typescript
-const mockFetch = async (url, init) => new Response(JSON.stringify({ data: [] }));
+```ts
+const mockFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
+  new Response(JSON.stringify({ data: [] }));
 
-const client = new RestClient({
+const testClient = new RestClient({
   project: 'test',
   token: 'test',
   host: 'test.signalwire.com',
   fetchImpl: mockFetch,
 });
+void testClient;
 ```
 
 This follows the same pattern as the RELAY client's `_wsFactory` injection.

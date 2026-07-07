@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase; // used with `extends`
+}
+```
+
 ## Build & Test Commands
 
 Lint, format, and test go through the canonical scripts under `scripts/`. These
@@ -90,7 +98,7 @@ class MyAgent extends AgentBase {
   protected override defineTools(): void {
     /* register tools */
   }
-  async onSummary(summary, rawData) {
+  async onSummary(summary: any, rawData: any) {
     /* process call summary */
   }
 }

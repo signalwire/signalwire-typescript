@@ -2,6 +2,14 @@
 
 Reference for every namespace beyond Fabric, Calling, and Compat (which have their own pages). All methods are async — `await` them.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume: `client` is a constructed RestClient
+// (see the Getting Started page). Declared here so each example can `await client.<ns>...`.
+declare const client: import('@signalwire/sdk').RestClient;
+```
+
 ## Phone Numbers
 
 ```typescript
@@ -27,12 +35,11 @@ await client.phoneNumbers.delete('pn-uuid');
 
 ```typescript
 const addresses = await client.addresses.list();
-const address = await client.addresses.create({
-  label: 'Office',
-  street: '123 Main St',
-  city: 'Austin',
-  state: 'TX',
-});
+// create takes positional required fields:
+// (label, country, first_name, last_name, street_number, street_name, city, state, postal_code)
+const address = await client.addresses.create(
+  'Office', 'US', 'Jane', 'Doe', '123', 'Main St', 'Austin', 'TX', '78701',
+);
 const found = await client.addresses.get('addr-uuid');
 await client.addresses.delete('addr-uuid');
 ```
@@ -71,7 +78,7 @@ await client.numberGroups.delete('ng-uuid');
 
 // Memberships
 const memberships = await client.numberGroups.listMemberships('ng-uuid');
-await client.numberGroups.addMembership('ng-uuid', { phone_number_id: 'pn-uuid' });
+await client.numberGroups.addMembership('ng-uuid', 'pn-uuid');
 const membership = await client.numberGroups.getMembership('mem-uuid');
 await client.numberGroups.deleteMembership('mem-uuid');
 ```
@@ -81,7 +88,7 @@ await client.numberGroups.deleteMembership('mem-uuid');
 ```typescript
 const callers = await client.verifiedCallers.list();
 const caller = await client.verifiedCallers.create({
-  phone_number: '+15551234567',
+  number: '+15551234567',
   name: 'Office',
 });
 const found = await client.verifiedCallers.get('vc-uuid');
@@ -90,7 +97,7 @@ await client.verifiedCallers.delete('vc-uuid');
 
 // Verification flow
 await client.verifiedCallers.redialVerification('vc-uuid');
-await client.verifiedCallers.submitVerification('vc-uuid', { code: '123456' });
+await client.verifiedCallers.submitVerification('vc-uuid', '123456');
 ```
 
 ## SIP Profile
@@ -99,7 +106,7 @@ Singleton resource -- no ID needed:
 
 ```typescript
 const profile = await client.sipProfile.get();
-await client.sipProfile.update({ username: 'myproject', password: 'newsecret' });
+await client.sipProfile.update({ domain_identifier: 'myproject', default_encryption: 'required' });
 ```
 
 ## Phone Number Lookup
@@ -116,56 +123,68 @@ Note: carrier and CNAM lookups are billable.
 ```typescript
 const codes = await client.shortCodes.list();
 const code = await client.shortCodes.get('sc-uuid');
-await client.shortCodes.update('sc-uuid', { name: 'Alerts' });
+// update takes positional (id, name, messageHandler) plus optional handler URLs
+await client.shortCodes.update('sc-uuid', 'Alerts', 'laml_webhooks', {
+  message_request_url: 'https://example.com/sms',
+});
 ```
 
 ## Imported Phone Numbers
 
 ```typescript
-await client.importedNumbers.create({ number: '+15559999999', carrier: 'external' });
+// create takes (number, numberType) positionally, with optional capabilities
+await client.importedNumbers.create('+15559999999', 'longcode', {
+  capabilities: ['sms', 'voice'],
+});
 ```
 
 ## MFA (Multi-Factor Authentication)
 
 ```typescript
-// Request a verification code via SMS
-const result = await client.mfa.sms({
-  to: '+15551234567',
+// Request a verification code via SMS — `to` is positional, the rest are options
+const result = await client.mfa.sms('+15551234567', {
   from: '+15559876543',
   message: 'Your code is {code}',
 });
 const requestId = result.id;
 
 // Or via phone call
-await client.mfa.call({
-  to: '+15551234567',
+await client.mfa.call('+15551234567', {
   from: '+15559876543',
 });
 
-// Verify the code
-await client.mfa.verify(requestId, { token: '123456' });
+// Verify the code (requestId, token) positionally
+await client.mfa.verify(requestId, '123456');
 ```
 
 ## 10DLC Campaign Registry
 
 ```typescript
-// Brands
+// Brands — a self-registered (CSP) brand needs its approved TCR brand reference
 const brands = await client.registry.brands.list();
-const brand = await client.registry.brands.create({ name: 'My Brand', ein: '12-3456789' });
+const brand = await client.registry.brands.create({
+  csp_self_registered: true,
+  name: 'My Brand',
+  csp_brand_reference: 'BRAND123',
+});
 const found = await client.registry.brands.get('brand-uuid');
 
-// Campaigns under a brand
+// Campaigns under a brand (CSP/partner form needs the approved TCR campaign reference)
 const campaigns = await client.registry.brands.listCampaigns('brand-uuid');
-const campaign = await client.registry.brands.createCampaign('brand-uuid', { description: 'Alerts' });
+const campaign = await client.registry.brands.createCampaign('brand-uuid', {
+  name: 'Alerts',
+  brand_id: 'brand-uuid',
+  csp_campaign_reference: 'CAMP123',
+});
 
 // Campaign management
 const camp = await client.registry.campaigns.get('camp-uuid');
-await client.registry.campaigns.update('camp-uuid', { description: 'Updated alerts' });
+await client.registry.campaigns.update('camp-uuid', { name: 'Updated alerts' });
 
 // Number assignments
 const numbers = await client.registry.campaigns.listNumbers('camp-uuid');
 const orders = await client.registry.campaigns.listOrders('camp-uuid');
-const order = await client.registry.campaigns.createOrder('camp-uuid', { phone_number_ids: ['pn-1'] });
+const order = await client.registry.campaigns.createOrder('camp-uuid', { phone_numbers: ['pn-1'] });
 const fetched = await client.registry.orders.get('order-uuid');
 await client.registry.numbers.delete('number-assignment-uuid');
 ```
@@ -184,8 +203,7 @@ await client.datasphere.documents.update('doc-uuid', { tags: ['support', 'billin
 await client.datasphere.documents.delete('doc-uuid');
 
 // Semantic search (the body keys are platform snake_case)
-const results = await client.datasphere.documents.search({
-  query_string: 'How do I reset my password?',
+const results = await client.datasphere.documents.search('How do I reset my password?', {
   tags: ['support'],
   count: 5,
 });
@@ -206,10 +224,10 @@ const found = await client.video.rooms.get('room-uuid');
 await client.video.rooms.update('room-uuid', { max_members: 20 });
 await client.video.rooms.delete('room-uuid');
 await client.video.rooms.listStreams('room-uuid');
-await client.video.rooms.createStream('room-uuid', { url: 'rtmp://example.com/live' });
+await client.video.rooms.createStream('room-uuid', 'rtmp://example.com/live');
 
-// Room tokens
-const roomToken = await client.video.roomTokens.create({ room_name: 'standup', user_name: 'alice' });
+// Room tokens (room_name positional, everything else in options)
+const roomToken = await client.video.roomTokens.create('standup', { user_name: 'alice' });
 
 // Room sessions
 const sessions = await client.video.roomSessions.list({ room_name: 'standup' });
@@ -226,13 +244,13 @@ const recEvents = await client.video.roomRecordings.listEvents('rec-uuid');
 
 // Conferences
 const confs = await client.video.conferences.list();
-const conf = await client.video.conferences.create({ name: 'all-hands', quality: '720p' });
+const conf = await client.video.conferences.create({ name: 'all-hands', display_name: 'All Hands', quality: '720p' });
 const conference = await client.video.conferences.get('conf-uuid');
-await client.video.conferences.update('conf-uuid', { quality: '1080p' });
+await client.video.conferences.update('conf-uuid', { display_name: 'All Hands', quality: '1080p' });
 await client.video.conferences.delete('conf-uuid');
 const confTokens = await client.video.conferences.listConferenceTokens('conf-uuid');
 await client.video.conferences.listStreams('conf-uuid');
-await client.video.conferences.createStream('conf-uuid', { url: 'rtmp://example.com/live' });
+await client.video.conferences.createStream('conf-uuid', 'rtmp://example.com/live');
 
 // Conference tokens
 const confToken = await client.video.conferenceTokens.get('token-uuid');
@@ -240,7 +258,7 @@ await client.video.conferenceTokens.reset('token-uuid');
 
 // Streams
 const stream = await client.video.streams.get('stream-uuid');
-await client.video.streams.update('stream-uuid', { url: 'rtmp://example.com/new' });
+await client.video.streams.update('stream-uuid', 'rtmp://example.com/new');
 await client.video.streams.delete('stream-uuid');
 ```
 
@@ -269,10 +287,7 @@ const conferenceLogs = await client.logs.conferences.list();
 ## Project Tokens
 
 ```typescript
-const token = await client.project.tokens.create({
-  name: 'ci-token',
-  permissions: ['calling', 'messaging', 'numbers'],
-});
+const token = await client.project.tokens.create('ci-token', ['calling', 'messaging', 'numbers']);
 await client.project.tokens.update('token-uuid', { name: 'renamed-token' });
 await client.project.tokens.delete('token-uuid');
 ```
@@ -280,19 +295,19 @@ await client.project.tokens.delete('token-uuid');
 ## PubSub Tokens
 
 ```typescript
-const token = await client.pubsub.createToken({
-  ttl: 60,
-  channels: [{ name: 'updates', read: true, write: false }],
-  member_id: 'user-123',
-});
+const token = await client.pubsub.createToken(
+  60,
+  { updates: { read: true, write: false } },
+  { member_id: 'user-123' },
+);
 ```
 
 ## Chat Tokens
 
 ```typescript
-const token = await client.chat.createToken({
-  ttl: 60,
-  channels: [{ name: 'support', read: true, write: true }],
-  member_id: 'user-123',
-});
+const token = await client.chat.createToken(
+  60,
+  { support: { read: true, write: true } },
+  { member_id: 'user-123' },
+);
 ```

@@ -2,6 +2,23 @@
 
 Complete guide to the Skills system in the SignalWire AI Agents TypeScript SDK -- modular, reusable capabilities that can be added to any agent.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const SkillBase: typeof import('@signalwire/sdk').SkillBase;
+  const SkillRegistry: typeof import('@signalwire/sdk').SkillRegistry;
+  const registerBuiltinSkills: typeof import('@signalwire/sdk').registerBuiltinSkills;
+  const registry: import('@signalwire/sdk').SkillRegistry;
+  // Illustrative custom skill class referenced by the registry examples.
+  const MyCustomSkill: typeof import('@signalwire/sdk').SkillBase;
+  // Node globals (tsconfig sets types:[], so declare them here).
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ---
 
 ## Table of Contents
@@ -358,6 +375,7 @@ interface SkillConfig {
 
 Skills use `this.getConfig<T>(key, defaultValue)` to read configuration values with type safety and defaults:
 
+<!-- snippet: no-compile illustrative method-body fragment; `this` refers to a SkillBase subclass -->
 ```typescript
 // Inside a skill class
 const maxResults = this.getConfig<number>('max_results', 5);
@@ -370,6 +388,8 @@ const patterns = this.getConfig<TransferPattern[]>('patterns', []);
 Skills declare their metadata as static class fields and expose config parameter info via `getParameterSchema()`:
 
 ```typescript
+import { SkillBase, type ParameterSchemaEntry } from '@signalwire/sdk';
+
 export class MySkill extends SkillBase {
   static override SKILL_NAME = 'my_skill';
   static override SKILL_DESCRIPTION = 'Does something useful.';
@@ -596,12 +616,14 @@ export class InventorySkill extends SkillBase {
     };
   }
 
-  // Initialization -- called when the skill is added to an agent
-  async setup(): Promise<void> {
+  // Initialization -- called when the skill is added to an agent.
+  // Return true on success; return false to signal setup failed.
+  override async setup(): Promise<boolean> {
     const dbUrl = process.env['INVENTORY_DB_URL'];
     // ... connect to database, load initial data ...
     this.db.set('widget-a', 150);
     this.db.set('widget-b', 3);
+    return true;
   }
 
   // Cleanup -- called when the skill is removed
@@ -732,6 +754,8 @@ Construction -> setup() -> register tools/prompts/hints -> active use -> cleanup
 The skill is instantiated with a name and optional config. The `instanceId` is generated automatically (combination of skill name, timestamp, and random bytes):
 
 ```typescript
+import { DateTimeSkill } from '@signalwire/sdk';
+
 const skill = new DateTimeSkill({ /* config */ });
 // skill.skillName === 'datetime'
 // skill.instanceId === 'datetime-m2abc123-deadbeef'
@@ -747,13 +771,15 @@ When `agent.addSkill(skill)` is called, the `SkillManager`:
 3. Calls `await skill.setup()` for async initialization.
 4. Calls `skill.markInitialized()`.
 
+<!-- snippet: no-compile illustrative bare method fragment (class body context) -->
 ```typescript
 // Inside a custom skill
-async setup(): Promise<void> {
+async setup(): Promise<boolean> {
   // Connect to databases, validate API keys, pre-load data, etc.
   const apiKey = process.env['MY_API_KEY'];
   if (!apiKey) throw new Error('API key is required');
   this.client = await connectToService(apiKey);
+  return true;
 }
 ```
 
@@ -774,6 +800,7 @@ The skill is now active. Its tools are called by the AI during conversations. Th
 
 When `agent.removeSkill(instanceId)` is called (or the SkillManager is cleared), the skill's `cleanup()` method is invoked:
 
+<!-- snippet: no-compile illustrative bare method fragment (class body context) -->
 ```typescript
 async cleanup(): Promise<void> {
   // Close connections, release resources, flush caches
@@ -807,6 +834,8 @@ When `addSkill()` is called, the `SkillManager` automatically validates env vars
 ### Manual Validation
 
 ```typescript
+import { WebSearchSkill } from '@signalwire/sdk';
+
 const skill = new WebSearchSkill();
 const missing = skill.validateEnvVars();
 
@@ -820,6 +849,7 @@ if (missing.length > 0) {
 
 Built-in skills check for environment variables at call time and return user-friendly error messages:
 
+<!-- snippet: no-compile illustrative handler-body fragment (bare `return` outside a function) -->
 ```typescript
 // Inside a tool handler
 const apiKey = process.env['GOOGLE_SEARCH_API_KEY'];

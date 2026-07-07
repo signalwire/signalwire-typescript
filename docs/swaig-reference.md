@@ -2,6 +2,16 @@
 
 Complete API reference for the `FunctionResult` class in the SignalWire AI Agents TypeScript SDK.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each runnable example as a module
+// `FunctionResult` and a shared `agent` are assumed by the runnable examples below
+// (imported/constructed in the Basic usage example). Declared ambiently so each
+// `new FunctionResult(...)` fragment resolves without repeating the import.
+declare const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+declare const agent: import('@signalwire/sdk').AgentBase;
+```
+
 ---
 
 ## Table of Contents
@@ -85,11 +95,11 @@ When a tool handler runs, it constructs a `FunctionResult`, optionally adds acti
 ### Basic usage
 
 ```typescript
-import { AgentBase, FunctionResult } from '@signalwire/sdk';
+import { AgentBase } from '@signalwire/sdk';
 
-const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
+const myAgent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
-agent.defineTool({
+myAgent.defineTool({
   name: 'transfer_call',
   description: 'Transfer the caller to a human agent',
   parameters: {},
@@ -128,6 +138,7 @@ If both `response` and `action` are empty, `toDict()` returns `{ response: "Acti
 
 Create a new `FunctionResult`.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 constructor(response?: string, postProcess?: boolean)
 ```
@@ -156,6 +167,7 @@ const r3 = new FunctionResult('Processing payment...', true);
 
 Set or replace the response text.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setResponse(response: string): this
 ```
@@ -179,6 +191,7 @@ Enable or disable post-processing of actions.
 
 When post-processing is enabled, the actions are executed **after** the AI has formulated its spoken response to the caller, rather than before. This is useful when you want the AI to speak first and then perform side effects (like hanging up).
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setPostProcess(postProcess: boolean): this
 ```
@@ -202,6 +215,7 @@ const result = new FunctionResult('Goodbye!')
 
 Append a single named action to the action list. This is the low-level method used internally by most other methods. You can use it directly for custom or undocumented actions.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 addAction(name: string, data: unknown): this
 ```
@@ -225,6 +239,7 @@ const result = new FunctionResult('Done')
 
 Append multiple action objects at once. Each object in the array should be a single-key record mapping an action name to its payload.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 addActions(actions: Record<string, unknown>[]): this
 ```
@@ -250,6 +265,7 @@ const result = new FunctionResult('Multi-step')
 
 Serialize the result to a plain object for the SWAIG response wire format.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 toDict(): Record<string, unknown>
 ```
@@ -283,6 +299,7 @@ console.log(empty.toDict());
 
 Connect (transfer) the call to another destination using SWML. This generates an inline SWML document with a `connect` verb.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 connect(destination: string, final?: boolean, fromAddr?: string): this
 ```
@@ -315,6 +332,7 @@ const result3 = new FunctionResult('Transferring...')
 
 Transfer the call to a SWML destination with a custom AI response set before transferring. Unlike `connect`, this uses the SWML `transfer` verb with a `set` verb to inject an AI response.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 swmlTransfer(dest: string, aiResponse: string, final?: boolean): this
 ```
@@ -338,6 +356,7 @@ const result = new FunctionResult('Transfer initiated.')
 
 Hang up the call. Adds a `{ hangup: true }` action.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 hangup(): this
 ```
@@ -356,6 +375,7 @@ const result = new FunctionResult('Thank you for calling. Goodbye!')
 
 Place the call on hold for a specified duration. The timeout is clamped between 0 and 900 seconds (15 minutes).
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 hold(timeout?: number): this
 ```
@@ -380,6 +400,7 @@ const result2 = new FunctionResult('Brief hold.').hold(60);
 
 Wait for user input before continuing. Supports multiple modes: simple enable/disable, a timeout, or an "answer first" mode.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 waitForUser(opts?: {
   enabled?: boolean;
@@ -421,6 +442,7 @@ const r4 = new FunctionResult('Continuing.')
 
 Stop the AI session entirely. Adds a `{ stop: true }` action.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 stop(): this
 ```
@@ -439,6 +461,7 @@ const result = new FunctionResult('Session ended.').stop();
 
 Speak text to the caller via text-to-speech (TTS).
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 say(text: string): this
 ```
@@ -460,6 +483,7 @@ const result = new FunctionResult('Info retrieved.')
 
 Play an audio file in the background during the call. The AI conversation continues while the file plays.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 playBackgroundFile(filename: string, wait?: boolean): this
 ```
@@ -487,6 +511,7 @@ const result2 = new FunctionResult('Listen to this announcement.')
 
 Stop any currently playing background audio file.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 stopBackgroundFile(): this
 ```
@@ -506,6 +531,7 @@ const result = new FunctionResult('Stopping music.')
 
 Add dynamic speech recognition hints to improve transcription accuracy for specific words or phrases. Hints can be plain strings or pattern-replacement objects.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 addDynamicHints(
   hints: (string | { pattern: string; replace: string; ignore_case?: boolean })[]
@@ -537,6 +563,7 @@ const result2 = new FunctionResult('Ready.')
 
 Remove all previously added dynamic speech recognition hints.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 clearDynamicHints(): this
 ```
@@ -554,6 +581,7 @@ const result = new FunctionResult('Hints cleared.')
 
 Set the silence duration that marks the end of a user's speech. A shorter timeout makes the AI respond more quickly after the user stops talking; a longer timeout allows for natural pauses.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setEndOfSpeechTimeout(milliseconds: number): this
 ```
@@ -575,6 +603,7 @@ const result = new FunctionResult('Adjusted speech timeout.')
 
 Set the timeout for speech event detection.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setSpeechEventTimeout(milliseconds: number): this
 ```
@@ -598,6 +627,7 @@ const result = new FunctionResult('Event timeout set.')
 
 Merge key-value pairs into the global data store. The global data store is shared across all SWAIG functions during a call and persists for the call's lifetime.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 updateGlobalData(data: Record<string, unknown>): this
 ```
@@ -619,6 +649,7 @@ const result = new FunctionResult('Data saved.')
 
 Remove one or more keys from the global data store.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 removeGlobalData(keys: string | string[]): this
 ```
@@ -645,6 +676,7 @@ const r2 = new FunctionResult('Cleaned up.')
 
 Set metadata key-value pairs on the current call. Metadata is attached to the call record and can be used for reporting, billing tags, or downstream processing.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setMetadata(data: Record<string, unknown>): this
 ```
@@ -666,6 +698,7 @@ const result = new FunctionResult('Metadata set.')
 
 Remove metadata keys from the current call.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 removeMetadata(keys: string | string[]): this
 ```
@@ -689,6 +722,7 @@ const result = new FunctionResult('Metadata removed.')
 
 Execute arbitrary SWML content as an action. Accepts either a JSON string or an object. If the string is not valid JSON, it is wrapped in a `{ raw_swml: ... }` object.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 executeSwml(
   swmlContent: string | Record<string, unknown>,
@@ -729,6 +763,7 @@ const result2 = new FunctionResult('Transferring via SWML.')
 
 Switch the AI context at runtime. This can change the system prompt, inject a user prompt, consolidate conversation history, or perform a full reset of the AI context.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 switchContext(opts?: {
   systemPrompt?: string;
@@ -775,6 +810,7 @@ const r3 = new FunctionResult('Starting fresh.')
 
 Change the current SWML step. Steps are named blocks within a SWML document that control call flow.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 swmlChangeStep(stepName: string): this
 ```
@@ -796,6 +832,7 @@ const result = new FunctionResult('Moving to verification.')
 
 Change the current SWML context. Contexts are separate AI configurations that can be switched during a call.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 swmlChangeContext(contextName: string): this
 ```
@@ -817,6 +854,7 @@ const result = new FunctionResult('Switching to Spanish.')
 
 Emit a custom user event via SWML. User events can be consumed by external systems listening to the call's event stream.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 swmlUserEvent(eventData: Record<string, unknown>): this
 ```
@@ -844,6 +882,7 @@ const result = new FunctionResult('Event emitted.')
 
 Enable or disable SWAIG functions by name at runtime. This allows dynamic control over which tools the AI can call based on the conversation state.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 toggleFunctions(toggles: { function: string; active: boolean }[]): this
 ```
@@ -871,6 +910,7 @@ const result = new FunctionResult('Identity verified.')
 
 Control whether SWAIG functions can fire automatically when the speaker timeout triggers (i.e., when the caller is silent).
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 enableFunctionsOnTimeout(enabled?: boolean): this
 ```
@@ -897,6 +937,7 @@ const r2 = new FunctionResult('Waiting patiently.')
 
 Update AI engine settings at runtime. This allows dynamic modification of parameters like temperature, top_p, or any other engine setting.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 updateSettings(settings: Record<string, unknown>): this
 ```
@@ -920,6 +961,7 @@ const result = new FunctionResult('Settings updated.')
 
 Inject text as if the user had spoken it. This is useful for programmatically driving the conversation flow.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 simulateUserInput(text: string): this
 ```
@@ -941,6 +983,7 @@ const result = new FunctionResult('Proceeding with default.')
 
 Enable or disable extensive data reporting in function calls. When enabled, SWAIG function invocations include additional metadata about the call state.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 enableExtensiveData(enabled?: boolean): this
 ```
@@ -962,6 +1005,7 @@ const result = new FunctionResult('Extensive data enabled.')
 
 Replace the function call output in the conversation history. This controls what the AI "remembers" about this function invocation.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 replaceInHistory(text?: string | boolean): this
 ```
@@ -990,6 +1034,7 @@ const r2 = new FunctionResult('SSN verified.')
 
 Send an SMS or MMS message from within the call flow. At least one of `body` or `media` must be provided.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 sendSms(opts: {
   toNumber: string;
@@ -1039,6 +1084,7 @@ const result2 = new FunctionResult('Receipt sent.')
 
 Start recording the call with configurable options.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 recordCall(opts?: {
   controlId?: string;
@@ -1093,6 +1139,7 @@ const result2 = new FunctionResult('Recording...')
 
 Stop an active call recording.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 stopRecordCall(controlId?: string): this
 ```
@@ -1114,6 +1161,7 @@ const result = new FunctionResult('Recording stopped.')
 
 Start a media tap to stream audio to an external URI (e.g., for real-time transcription or monitoring).
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 tap(opts: {
   uri: string;
@@ -1151,6 +1199,7 @@ const result = new FunctionResult('Tap started.')
 
 Stop an active media tap.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 stopTap(controlId?: string): this
 ```
@@ -1174,6 +1223,7 @@ const result = new FunctionResult('Tap stopped.')
 
 Join a SignalWire room by name.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 joinRoom(name: string): this
 ```
@@ -1195,6 +1245,7 @@ const result = new FunctionResult('Joining the meeting room.')
 
 Send a SIP REFER to transfer the call to another SIP endpoint.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 sipRefer(toUri: string): this
 ```
@@ -1216,6 +1267,7 @@ const result = new FunctionResult('Transferring via SIP.')
 
 Join a conference by name with optional configuration parameters.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 joinConference(name: string, opts?: {
   muted?: boolean;
@@ -1286,6 +1338,7 @@ const result2 = new FunctionResult('Joining as listener.')
 
 Execute a SignalWire RPC method via SWML. This is the low-level RPC method; convenience wrappers like `rpcDial`, `rpcAiMessage`, and `rpcAiUnhold` are built on top of it.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 executeRpc(opts: {
   method: string;
@@ -1321,6 +1374,7 @@ const result = new FunctionResult('RPC executed.')
 
 Dial a number via RPC. This creates an outbound call using the SignalWire RPC mechanism.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 rpcDial(
   toNumber: string,
@@ -1350,6 +1404,7 @@ const result = new FunctionResult('Dialing out.')
 
 Send an AI message to another call via RPC. This injects a message into the target call's AI conversation.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 rpcAiMessage(callId: string, messageText: string, role?: string): this
 ```
@@ -1373,6 +1428,7 @@ const result = new FunctionResult('Message sent to other call.')
 
 Unhold a call that was previously placed on hold, via RPC.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 rpcAiUnhold(callId: string): this
 ```
@@ -1396,6 +1452,7 @@ const result = new FunctionResult('Resuming the held call.')
 
 Initiate a payment collection flow on the call. The payment is collected via DTMF or speech and processed by the specified payment connector.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 pay(opts: {
   paymentConnectorUrl: string;
@@ -1461,6 +1518,7 @@ const result = new FunctionResult('Collecting payment.')
 
 Create a `PaymentPrompt` configuration object for use with the `pay()` method.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 static createPaymentPrompt(
   forSituation: string,
@@ -1492,6 +1550,7 @@ const prompt = FunctionResult.createPaymentPrompt(
 
 Create a `PaymentAction` for use within a `PaymentPrompt`.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 static createPaymentAction(actionType: string, phrase: string): PaymentAction
 ```
@@ -1516,6 +1575,7 @@ const action = FunctionResult.createPaymentAction(
 
 Create a custom `PaymentParameter` for the payment connector.
 
+<!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 static createPaymentParameter(name: string, value: string): PaymentParameter
 ```

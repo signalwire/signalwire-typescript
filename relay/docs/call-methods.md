@@ -2,6 +2,13 @@
 
 A `Call` object represents a live phone call. You get one from `client.onCall(...)` (inbound) or `client.dial()` (outbound).
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context: `call` is a live Call (from `client.onCall` / `client.dial`).
+declare const call: import('@signalwire/sdk').Call;
+```
+
 ## Properties
 
 | Property | Type | Description |

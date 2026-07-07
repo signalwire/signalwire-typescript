@@ -195,6 +195,7 @@ Then `ringing`, then `answered` or `ended` for each leg.
 
 #### Correct dial() implementation
 
+<!-- snippet: no-compile internal SDK-implementation sketch: references internal state (pendingDials, execute) not part of the public API -->
 ```typescript
 async function dial(devices: Device[], tag = crypto.randomUUID(), timeout = 120_000): Promise<Call> {
   // 1. Register pending dial BEFORE sending RPC
@@ -217,6 +218,7 @@ async function dial(devices: Device[], tag = crypto.randomUUID(), timeout = 120_
 
 Your event handler needs three special cases:
 
+<!-- snippet: no-compile internal SDK-implementation sketch: references internal state/helpers (pendingDials, handleInbound, findOrCreateCall, calls, registerDialLeg) not part of the public API -->
 ```typescript
 function handleEvent(payload: RelayEventPayload): void {
   const eventType = payload.event_type;
@@ -304,6 +306,7 @@ When a caller hangs up, the server destroys the call. If your client tries to se
 
 Handle it gracefully: log it and return an empty result instead of raising an exception. This avoids noisy errors in production when callers hang up mid-IVR.
 
+<!-- snippet: no-compile internal SDK-implementation sketch: references internal helpers (execute, log) not part of the public API -->
 ```typescript
 async function executeOnCall(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
@@ -1230,6 +1233,7 @@ Terminal states: `delivered`, `undelivered`, `failed`
 
 The Message object is simpler than Call — it's a data holder with state tracking:
 
+<!-- snippet: no-compile class-shape reference: method signatures shown without implementation bodies -->
 ```typescript
 class Message {
   messageId!: string;

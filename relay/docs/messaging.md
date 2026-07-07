@@ -2,6 +2,13 @@
 
 Send and receive SMS/MMS messages through the RELAY client.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context: `client` is a constructed RelayClient (see the receiving example below).
+declare const client: import('@signalwire/sdk').RelayClient;
+```
+
 ## Sending Messages
 
 Use `client.sendMessage()` to send an outbound SMS or MMS. It takes an options object and returns a `Message` that tracks delivery state.
@@ -33,6 +40,7 @@ if (message.reason) {
 `wait()` accepts an optional timeout in **seconds**:
 
 ```typescript
+declare const message: import('@signalwire/sdk').Message;
 await message.wait(30); // throws if no terminal state within 30s
 ```
 
@@ -91,30 +99,32 @@ Register a handler with `client.onMessage()` to receive inbound SMS/MMS.
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
-const client = new RelayClient({
-  project: 'your-project-id',
-  token: 'your-api-token',
-  host: 'example.signalwire.com',
-  contexts: ['default'],
-});
-
-client.onMessage(async (message) => {
-  console.log(`From: ${message.fromNumber}`);
-  console.log(`To: ${message.toNumber}`);
-  console.log(`Body: ${message.body}`);
-  if (message.media.length) {
-    console.log(`Media: ${message.media}`);
-  }
-
-  // Reply back
-  await client.sendMessage({
-    toNumber: message.fromNumber,
-    fromNumber: message.toNumber,
-    body: `You said: ${message.body}`,
+function main() {
+  const client = new RelayClient({
+    project: 'your-project-id',
+    token: 'your-api-token',
+    host: 'example.signalwire.com',
+    contexts: ['default'],
   });
-});
 
-client.run();
+  client.onMessage(async (message) => {
+    console.log(`From: ${message.fromNumber}`);
+    console.log(`To: ${message.toNumber}`);
+    console.log(`Body: ${message.body}`);
+    if (message.media.length) {
+      console.log(`Media: ${message.media}`);
+    }
+
+    // Reply back
+    await client.sendMessage({
+      toNumber: message.fromNumber,
+      fromNumber: message.toNumber,
+      body: `You said: ${message.body}`,
+    });
+  });
+
+  client.run();
+}
 ```
 
 ## Message Object
@@ -176,19 +186,23 @@ import { MessageReceiveEvent, MessageStateEvent } from '@signalwire/sdk';
 The same `RelayClient` handles both calls and messages:
 
 ```typescript
-const client = new RelayClient({ project: '...', token: '...', contexts: ['default'] });
+import { RelayClient } from '@signalwire/sdk';
 
-client.onCall(async (call) => {
-  await call.answer();
-  await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
-  await call.hangup();
-});
+function main() {
+  const client = new RelayClient({ project: '...', token: '...', contexts: ['default'] });
 
-client.onMessage(async (message) => {
-  console.log(`SMS from ${message.fromNumber}: ${message.body}`);
-});
+  client.onCall(async (call) => {
+    await call.answer();
+    await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
+    await call.hangup();
+  });
 
-client.run();
+  client.onMessage(async (message) => {
+    console.log(`SMS from ${message.fromNumber}: ${message.body}`);
+  });
+
+  client.run();
+}
 ```
 
 ## Next Steps

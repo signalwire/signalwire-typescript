@@ -2,6 +2,25 @@
 
 The RELAY client connects to SignalWire over a persistent WebSocket and gives you real-time, imperative control over phone calls using async/await.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// `await using` needs the disposable global types + Symbol members absent from
+// the harness's ES2020 lib set. Declared here so the `await using` example compiles.
+declare global {
+  interface SymbolConstructor {
+    readonly dispose: unique symbol;
+    readonly asyncDispose: unique symbol;
+  }
+  interface Disposable {
+    [Symbol.dispose](): void;
+  }
+  interface AsyncDisposable {
+    [Symbol.asyncDispose](): PromiseLike<void>;
+  }
+}
+```
+
 ## Installation
 
 The RELAY client is included in the `@signalwire/sdk` package:
@@ -77,6 +96,8 @@ client.run();
 Contexts are topics your client subscribes to for receiving inbound calls. When a call arrives on a context you're subscribed to, your `onCall` handler is invoked.
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
+
 // Subscribe at connect time
 const client = new RelayClient({ contexts: ['sales', 'support'] });
 
@@ -90,6 +111,8 @@ await client.unreceive(['sales']);
 Use `client.dial()` to place an outbound call:
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
+const client = new RelayClient({ contexts: ['default'] });
 await client.connect();
 
 const call = await client.dial([
@@ -104,6 +127,8 @@ await call.hangup();
 The outer array represents serial attempts; the inner array represents parallel attempts. For example, to try two numbers simultaneously:
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
+const client = new RelayClient({ contexts: ['default'] });
 const call = await client.dial([
   [
     { type: 'phone', to: '+15551111111', from: '+15559876543' },
@@ -115,6 +140,8 @@ const call = await client.dial([
 `dial()` accepts an options object as its second argument — `tag`, `maxDuration` (minutes), and `dialTimeout` (seconds, default 120):
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
+const client = new RelayClient({ contexts: ['default'] });
 const call = await client.dial(
   [[{ type: 'phone', to: '+15551234567', from: '+15559876543' }]],
   { dialTimeout: 30 },
@@ -134,6 +161,7 @@ export SIGNALWIRE_LOG_LEVEL=debug
 For use within an existing async application, `RelayClient` is an async-disposable — it disconnects automatically when the scope exits:
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
 await using client = new RelayClient({ contexts: ['default'] });
 await client.connect();
 const call = await client.dial([
@@ -146,6 +174,7 @@ await call.hangup();
 If your runtime doesn't support `await using`, use `try`/`finally`:
 
 ```typescript
+import { RelayClient } from '@signalwire/sdk';
 const client = new RelayClient({ contexts: ['default'] });
 try {
   await client.connect();

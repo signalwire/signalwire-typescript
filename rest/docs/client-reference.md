@@ -82,7 +82,9 @@ Every API surface is available as a namespace property on the client. There are 
 ## Error Handling
 
 ```typescript
-import { SignalWireRestError } from '@signalwire/sdk';
+import { RestClient, SignalWireRestError } from '@signalwire/sdk';
+
+const client = new RestClient();
 
 try {
   await client.fabric.aiAgents.get('bad-id');

@@ -2,6 +2,21 @@
 
 Comprehensive guide to the `DataMap` class in the SignalWire AI Agents TypeScript SDK.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each runnable example as a module
+// Shared context the examples below assume: `DataMap`/`FunctionResult` (imported once above and
+// reused), `agent` (an AgentBase), and `tool` (the DataMap built in the current example).
+// Declared as ambient globals so each fragment resolves without repeating the boilerplate — a
+// block that constructs/imports its own `const tool`/`DataMap` simply shadows these.
+declare global {
+  const DataMap: typeof import('@signalwire/sdk').DataMap;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const agent: import('@signalwire/sdk').AgentBase;
+  const tool: import('@signalwire/sdk').DataMap;
+}
+```
+
 ---
 
 ## Table of Contents
@@ -107,6 +122,7 @@ const tool = new DataMap('get_weather')
 
 Set the tool description that the AI sees. The AI uses this description to decide when to call the tool. `description()` is an alias for `purpose()`.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 purpose(description: string): this
 description(description: string): this
@@ -133,6 +149,7 @@ const tool2 = new DataMap('lookup_order')
 
 Define a parameter that the AI should extract from the conversation and pass to this tool.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 parameter(
   name: string,
@@ -188,6 +205,7 @@ The generated parameter schema:
 
 Add a webhook that SignalWire calls when the tool is invoked. You can add multiple webhooks to a single DataMap.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 webhook(
   method: string,
@@ -238,6 +256,7 @@ const tool2 = new DataMap('create_ticket')
 
 Set the JSON body for the most recently added webhook. Must be called after `webhook()`.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 body(data: Record<string, unknown>): this
 ```
@@ -271,6 +290,7 @@ const tool = new DataMap('create_ticket')
 
 Set query or form parameters for the most recently added webhook. Must be called after `webhook()`.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 params(data: Record<string, unknown>): this
 ```
@@ -322,6 +342,7 @@ const tool = new DataMap('authenticated_lookup')
 
 Add a pattern-matching expression that evaluates a test value against a regex pattern. Expressions work without making any HTTP calls -- they are evaluated entirely on the SignalWire platform.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 expression(
   testValue: string,
@@ -381,6 +402,7 @@ const tool = new DataMap('classify_input')
 
 Set the output template for the most recently added webhook. The template uses `${response.*}` variables to reference fields in the webhook's JSON response and `${args.*}` to reference the tool's input arguments.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 output(result: FunctionResult): this
 ```
@@ -428,6 +450,7 @@ const tool = new DataMap('urgent_alert')
 
 Set pattern-matching expressions on the most recently added webhook. These expressions are evaluated against the webhook's response, allowing conditional output based on the response content.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 webhookExpressions(expressions: Record<string, unknown>[]): this
 ```
@@ -481,6 +504,7 @@ const tool = new DataMap('check_order_status')
 
 Set a fallback output used when no webhook succeeds or no expression matches. This ensures the AI always gets a response even when the tool encounters an error.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 fallbackOutput(result: FunctionResult): this
 ```
@@ -510,6 +534,7 @@ Set error keys on the most recently added webhook. If the webhook response conta
 
 If no webhook has been added, the error keys are set globally (same as `globalErrorKeys`).
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 errorKeys(keys: string[]): this
 ```
@@ -536,6 +561,7 @@ const tool = new DataMap('api_lookup')
 
 Set error keys at the top-level data map scope, regardless of webhook context. These apply to all webhooks in the DataMap.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 globalErrorKeys(keys: string[]): this
 ```
@@ -565,6 +591,7 @@ const tool = new DataMap('multi_api')
 
 Configure iteration over an array in the webhook response. This allows you to loop over a list of items and build a composite response string.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 foreach(config: {
   input_key: string;
@@ -634,6 +661,7 @@ Order #1003: delivered - $15.00
 
 Enable `${ENV.*}` variable expansion in URLs, bodies, headers, and outputs. When enabled, all `${ENV.VARIABLE_NAME}` references are replaced with the corresponding `process.env` values at the time `toSwaigFunction()` is called.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 enableEnvExpansion(enabled?: boolean): this
 ```
@@ -675,6 +703,7 @@ When `toSwaigFunction()` is called, `${ENV.API_KEY}` is replaced with the value 
 
 Register this DataMap tool with an `AgentBase` instance. This is a convenience method that calls `toSwaigFunction()` internally and passes the result to the agent's `registerSwaigFunction()` method.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 registerWithAgent(agent: {
   registerSwaigFunction(fn: Record<string, unknown>): unknown
@@ -709,6 +738,7 @@ agent.run();
 
 Serialize the DataMap to a SWAIG function definition object suitable for inclusion in a SWML document. This is the terminal method that produces the wire format.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 toSwaigFunction(): Record<string, unknown>
 ```
@@ -768,6 +798,7 @@ agent.registerSwaigFunction(tool.toSwaigFunction());
 
 Create a DataMap tool that calls a single API endpoint and formats the response. This is a convenience function for the most common DataMap pattern: one GET/POST request with a response template.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 import { createSimpleApiTool } from '@signalwire/sdk';
 
@@ -841,6 +872,7 @@ agent.registerSwaigFunction(searchTool.toSwaigFunction());
 
 Create a DataMap tool that evaluates expressions against patterns without making any HTTP calls. Useful for validation, classification, and simple lookups.
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 import { createExpressionTool } from '@signalwire/sdk';
 
@@ -923,6 +955,7 @@ Inside a `foreach` `append` template, you can reference fields of the current it
 
 The `${lc:...}` and `${uc:...}` prefixes can be applied to argument variables to transform them to lowercase or uppercase respectively. This is particularly useful in URL templates:
 
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 // Lowercase city name for URL-friendly paths
 .webhook('GET', 'https://api.example.com/cities/${lc:args.city_name}')

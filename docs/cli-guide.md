@@ -107,6 +107,7 @@ Export your agent as `export const agent = new AgentBase(...)` or as default exp
 
 **Recommended export patterns:**
 
+<!-- snippet: no-compile three mutually-exclusive export patterns shown together for reference; not a single runnable module -->
 ```typescript
 // Pattern 1: Named export (highest priority)
 export const agent = new MyAgent({ name: 'my-agent' });

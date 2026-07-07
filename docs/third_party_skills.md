@@ -5,6 +5,21 @@ This guide explains how to create and integrate third-party skills with the Sign
 For the full skills reference (built-in skills, lifecycle, registry API), see the
 [Skills System Guide](skills-guide.md).
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const SkillBase: typeof import('@signalwire/sdk').SkillBase;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  // Illustrative third-party skill class defined in the prose examples above.
+  const WeatherSkill: any;
+  // Node globals (tsconfig sets types:[], so declare them here).
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ## Overview
 
 Third-party skills can be integrated using three approaches:
@@ -69,13 +84,15 @@ export class WeatherSkill extends SkillBase {
     };
   }
 
-  // Async initialization called when the skill is added to an agent
-  override async setup(): Promise<void> {
+  // Async initialization called when the skill is added to an agent.
+  // Return true on success; return false to signal setup failed.
+  override async setup(): Promise<boolean> {
     this.apiKey = this.getConfig<string>('api_key', '') || process.env['WEATHER_API_KEY'];
     this.units = this.getConfig<string>('units', 'celsius');
     if (!this.apiKey) {
-      this.log?.warn('Weather API key is required');
+      this.logger.warn('Weather API key is required');
     }
+    return true;
   }
 
   override getTools(): SkillToolDefinition[] {
@@ -115,7 +132,7 @@ Register the skill class with the global registry, then add it to any agent by n
 
 ```typescript
 import { AgentBase, registerSkill } from '@signalwire/sdk';
-import { WeatherSkill } from './my-weather-skill/skill.js';
+// import { WeatherSkill } from './my-weather-skill/skill.js';
 
 // Register the skill globally
 registerSkill(WeatherSkill);
@@ -202,7 +219,7 @@ console.log(allSkills['weather']);
 //   name: 'weather',
 //   description: 'Get weather information for any location',
 //   version: '1.0.0',
-//   configSchema: {
+//   parameters: {
 //     api_key:  { type: 'string', required: true, hidden: true, env_var: 'WEATHER_API_KEY' },
 //     units:    { type: 'string', default: 'celsius', enum: ['celsius', 'fahrenheit', 'kelvin'] },
 //     ...
@@ -229,15 +246,18 @@ console.log(allSkills['weather']);
 
 Validate configuration in `setup()` and return user-friendly errors at call time:
 
+<!-- snippet: no-compile illustrative bare method fragment (class body context) -->
 ```typescript
-override async setup(): Promise<void> {
+override async setup(): Promise<boolean> {
   this.apiKey = this.getConfig<string>('api_key', '') || process.env['MY_API_KEY'];
   if (!this.apiKey) {
-    this.log?.warn('API key is required; the tool will return a configuration error at call time');
+    this.logger.warn('API key is required; the tool will return a configuration error at call time');
   }
+  return true;
 }
 ```
 
+<!-- snippet: no-compile illustrative tool-handler fragment (references skill instance `this`) -->
 ```typescript
 // Inside a tool handler
 handler: (args) => {
@@ -254,6 +274,7 @@ handler: (args) => {
 
 Customize tool names from config for clearer agent prompts:
 
+<!-- snippet: no-compile illustrative bare method fragment (class body context) -->
 ```typescript
 override getTools(): SkillToolDefinition[] {
   const toolName = this.getConfig<string>('tool_name', 'get_weather');
@@ -276,12 +297,14 @@ override getTools(): SkillToolDefinition[] {
 
 Check whether a required skill is present before completing setup:
 
+<!-- snippet: no-compile illustrative bare method fragment (class body context) -->
 ```typescript
-override async setup(): Promise<void> {
+override async setup(): Promise<boolean> {
   if (this.agent && !this.agent.hasSkill('translation')) {
-    this.log?.error('This skill requires the translation skill');
-    return;
+    this.logger.error('This skill requires the translation skill');
+    return false;
   }
+  return true;
 }
 ```
 
@@ -289,6 +312,7 @@ override async setup(): Promise<void> {
 
 Test your skills with [Vitest](https://vitest.dev/) before distribution:
 
+<!-- snippet: no-compile Vitest test file (imports a local skill module + uses vitest globals) -->
 ```typescript
 // tests/weather-skill.test.ts
 import { AgentBase, registerSkill } from '@signalwire/sdk';
@@ -341,6 +365,7 @@ console.log('Skill paths:', process.env['SIGNALWIRE_SKILL_PATHS'] ?? 'Not set');
 Publish your skill as an npm package that exports the skill class and `createSkill`
 factory. Consumers register it directly:
 
+<!-- snippet: no-compile imports an illustrative third-party npm package that is not installed -->
 ```typescript
 import { AgentBase, registerSkill } from '@signalwire/sdk';
 import { WeatherSkill } from 'my-signalwire-skills';

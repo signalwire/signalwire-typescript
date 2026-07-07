@@ -2,6 +2,14 @@
 
 The Calling API provides REST-based call control. All commands are dispatched via a single `POST /api/calling/calls` endpoint with a `command` field. No WebSocket connection is needed.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume (constructed on the Getting Started page).
+declare const client: import('@signalwire/sdk').RestClient;
+declare const callId: string; // the UUID of an active call
+```
+
 ## How It Works
 
 Every method on `client.calling` sends a POST request with this structure:
@@ -18,28 +26,26 @@ For `dial` and `update`, the call details are inside `params` (no top-level `id`
 
 ## Call Lifecycle
 
-### `dial(params?)`
+### `dial(from, to, options?)`
 
-Initiate an outbound call.
+Initiate an outbound call. `from` and `to` are positional; everything else is options.
 
 ```typescript
-const result = await client.calling.dial({
-  from: '+15559876543',
-  to: '+15551234567',
+const result = await client.calling.dial('+15559876543', '+15551234567', {
   url: 'https://example.com/call-handler',
 });
-const callId = result.id;
+const newCallId = result.id;
 ```
 
-### `update(params?)`
+### `update(id, options?)`
 
-Update an active call's dialplan mid-call.
+Update an active call's dialplan mid-call. The call `id` is positional.
 
 ```typescript
-await client.calling.update({ id: callId, url: 'https://example.com/new-handler' });
+await client.calling.update(callId, { url: 'https://example.com/new-handler' });
 ```
 
-### `end(callId, params?)`
+### `end(callId, options?)`
 
 Terminate a call.
 
@@ -47,12 +53,12 @@ Terminate a call.
 await client.calling.end(callId, { reason: 'hangup' });
 ```
 
-### `transfer(callId, params?)`
+### `transfer(callId, dest, options?)`
 
-Transfer a call to a new destination.
+Transfer a call to a new destination. `dest` is positional.
 
 ```typescript
-await client.calling.transfer(callId, { dest: 'sip:agent@example.com' });
+await client.calling.transfer(callId, 'sip:agent@example.com');
 ```
 
 ### `disconnect(callId)`
@@ -65,59 +71,62 @@ await client.calling.disconnect(callId);
 
 ## Audio Playback
 
-### `play(callId, params?)`
+### `play(callId, play, options?)`
 
-Play audio, TTS, silence, or ringtone.
+Play audio, TTS, silence, or ringtone. The `play` array is positional.
 
 ```typescript
-await client.calling.play(callId, {
-  play: [{ type: 'tts', text: 'Hello!' }],
+await client.calling.play(callId, [{ type: 'tts', text: 'Hello!' }], {
   volume: 5.0,
 });
 ```
 
-### `playPause(callId, params?)` / `playResume(callId, params?)`
+### `playPause(callId, control_id, options?)` / `playResume(callId, control_id, options?)`
 
-Pause or resume active playback.
+Pause or resume active playback. `control_id` is positional.
 
 ```typescript
-await client.calling.playPause(callId, { control_id: 'ctrl-1' });
-await client.calling.playResume(callId, { control_id: 'ctrl-1' });
+await client.calling.playPause(callId, 'ctrl-1');
+await client.calling.playResume(callId, 'ctrl-1');
 ```
 
-### `playStop(callId, params?)`
+### `playStop(callId, control_id, options?)`
 
 Stop active playback.
 
 ```typescript
-await client.calling.playStop(callId, { control_id: 'ctrl-1' });
+await client.calling.playStop(callId, 'ctrl-1');
 ```
 
-### `playVolume(callId, params?)`
+### `playVolume(callId, control_id, volume, options?)`
 
-Adjust playback volume.
+Adjust playback volume. `control_id` and `volume` are positional.
 
 ```typescript
-await client.calling.playVolume(callId, { control_id: 'ctrl-1', volume: -3.0 });
+await client.calling.playVolume(callId, 'ctrl-1', -3.0);
 ```
 
 ## Recording
 
-### `record(callId, params?)` / `recordPause` / `recordResume` / `recordStop`
+### `record(callId, options?)` / `recordPause(callId, control_id, options?)` / `recordResume` / `recordStop`
+
+`record` takes an options object; the pause/resume/stop variants take `control_id` positionally.
 
 ```typescript
 await client.calling.record(callId, {
   control_id: 'rec-1',
   audio: { beep: true, format: 'wav', stereo: true },
 });
-await client.calling.recordPause(callId, { control_id: 'rec-1' });
-await client.calling.recordResume(callId, { control_id: 'rec-1' });
-await client.calling.recordStop(callId, { control_id: 'rec-1' });
+await client.calling.recordPause(callId, 'rec-1');
+await client.calling.recordResume(callId, 'rec-1');
+await client.calling.recordStop(callId, 'rec-1');
 ```
 
 ## Input Collection
 
-### `collect(callId, params?)` / `collectStop` / `collectStartInputTimers`
+### `collect(callId, options?)` / `collectStop(callId, control_id, options?)` / `collectStartInputTimers(callId, control_id, options?)`
+
+`collect` takes an options object; the stop/timer variants take `control_id` positionally.
 
 ```typescript
 await client.calling.collect(callId, {
@@ -125,44 +134,49 @@ await client.calling.collect(callId, {
   digits: { max: 4, terminators: '#' },
   speech: { end_silence_timeout: 2.0 },
 });
-await client.calling.collectStop(callId, { control_id: 'coll-1' });
-await client.calling.collectStartInputTimers(callId, { control_id: 'coll-1' });
+await client.calling.collectStop(callId, 'coll-1');
+await client.calling.collectStartInputTimers(callId, 'coll-1');
 ```
 
 ## Detection
 
-### `detect(callId, params?)` / `detectStop`
+### `detect(callId, detect, options?)` / `detectStop(callId, control_id, options?)`
+
+The `detect` config object is positional; `detectStop` takes `control_id` positionally.
 
 ```typescript
-await client.calling.detect(callId, {
+await client.calling.detect(callId, { type: 'machine', params: { initial_timeout: 4.5 } }, {
   control_id: 'det-1',
-  detect: { type: 'machine', params: { initial_timeout: 4.5 } },
 });
-await client.calling.detectStop(callId, { control_id: 'det-1' });
+await client.calling.detectStop(callId, 'det-1');
 ```
 
 ## Tap & Stream
 
-### `tap(callId, params?)` / `tapStop`
+### `tap(callId, tap, device, options?)` / `tapStop(callId, control_id, options?)`
+
+The `tap` and `device` config objects are positional; `tapStop` takes `control_id` positionally.
 
 ```typescript
-await client.calling.tap(callId, {
-  control_id: 'tap-1',
-  tap: { type: 'audio', params: { direction: 'both' } },
-  device: { type: 'rtp', params: { addr: '192.168.1.1', port: 1234 } },
-});
-await client.calling.tapStop(callId, { control_id: 'tap-1' });
+await client.calling.tap(
+  callId,
+  { type: 'audio', params: { direction: 'both' } },
+  { type: 'rtp', params: { addr: '192.168.1.1', port: 1234 } },
+  { control_id: 'tap-1' },
+);
+await client.calling.tapStop(callId, 'tap-1');
 ```
 
-### `stream(callId, params?)` / `streamStop`
+### `stream(callId, url, options?)` / `streamStop(callId, control_id, options?)`
+
+The stream `url` is positional; `streamStop` takes `control_id` positionally.
 
 ```typescript
-await client.calling.stream(callId, {
+await client.calling.stream(callId, 'wss://example.com/audio-stream', {
   control_id: 'str-1',
-  url: 'wss://example.com/audio-stream',
   codec: 'PCMU',
 });
-await client.calling.streamStop(callId, { control_id: 'str-1' });
+await client.calling.streamStop(callId, 'str-1');
 ```
 
 ## Denoise
@@ -176,11 +190,11 @@ await client.calling.denoiseStop(callId);
 
 ## Transcription
 
-### `transcribe(callId, params?)` / `transcribeStop`
+### `transcribe(callId, options?)` / `transcribeStop(callId, control_id, options?)`
 
 ```typescript
 await client.calling.transcribe(callId, { control_id: 'tx-1', status_url: 'https://example.com/hook' });
-await client.calling.transcribeStop(callId, { control_id: 'tx-1' });
+await client.calling.transcribeStop(callId, 'tx-1');
 ```
 
 ## AI
@@ -200,34 +214,40 @@ await client.calling.aiHold(callId, { timeout: 60, prompt: 'Please wait while I 
 await client.calling.aiUnhold(callId, { prompt: "I'm back, how can I help?" });
 ```
 
-### `aiStop(callId, params?)`
+### `aiStop(callId, control_id, options?)`
 
 ```typescript
-await client.calling.aiStop(callId, { control_id: 'ai-1' });
+await client.calling.aiStop(callId, 'ai-1');
 ```
 
 ## Live Transcribe & Translate
 
+The `action` is a positional structured object. Use `{ start: {...} }` to begin, or `'stop'` to end.
+
 ```typescript
-await client.calling.liveTranscribe(callId, { action: 'start', lang: 'en' });
-await client.calling.liveTranslate(callId, { action: 'start', from_lang: 'en', to_lang: 'es' });
+await client.calling.liveTranscribe(callId, {
+  start: { lang: 'en-US', direction: ['remote-caller'] },
+});
+await client.calling.liveTranslate(callId, {
+  start: { from_lang: 'en-US', to_lang: 'es-ES', direction: ['remote-caller'] },
+});
 ```
 
 ## Fax
 
 ```typescript
-await client.calling.sendFaxStop(callId, { control_id: 'fax-1' });
-await client.calling.receiveFaxStop(callId, { control_id: 'fax-1' });
+await client.calling.sendFaxStop(callId, 'fax-1');
+await client.calling.receiveFaxStop(callId, 'fax-1');
 ```
 
 ## SIP & Custom Events
 
 ```typescript
-// SIP REFER transfer
-await client.calling.refer(callId, { device: { to: 'sip:agent@example.com' } });
+// SIP REFER transfer — the `device` object is positional
+await client.calling.refer(callId, { to: 'sip:agent@example.com' });
 
-// Custom event
-await client.calling.userEvent(callId, { event: { type: 'custom', data: { key: 'value' } } });
+// Custom event — the `event` object is positional; each value is an object
+await client.calling.userEvent(callId, { custom: { key: 'value' } });
 ```
 
 ## Complete Method List
@@ -236,40 +256,40 @@ All 37 commands, with the wire `command` value each dispatches:
 
 | Method | Command | Requires callId |
 |--------|---------|:-:|
-| `dial(params?)` | `dial` | No |
-| `update(params?)` | `update` | No |
-| `end(callId, params?)` | `calling.end` | Yes |
-| `transfer(callId, params?)` | `calling.transfer` | Yes |
-| `disconnect(callId, params?)` | `calling.disconnect` | Yes |
-| `play(callId, params?)` | `calling.play` | Yes |
-| `playPause(callId, params?)` | `calling.play.pause` | Yes |
-| `playResume(callId, params?)` | `calling.play.resume` | Yes |
-| `playStop(callId, params?)` | `calling.play.stop` | Yes |
-| `playVolume(callId, params?)` | `calling.play.volume` | Yes |
-| `record(callId, params?)` | `calling.record` | Yes |
-| `recordPause(callId, params?)` | `calling.record.pause` | Yes |
-| `recordResume(callId, params?)` | `calling.record.resume` | Yes |
-| `recordStop(callId, params?)` | `calling.record.stop` | Yes |
-| `collect(callId, params?)` | `calling.collect` | Yes |
-| `collectStop(callId, params?)` | `calling.collect.stop` | Yes |
-| `collectStartInputTimers(callId, params?)` | `calling.collect.start_input_timers` | Yes |
-| `detect(callId, params?)` | `calling.detect` | Yes |
-| `detectStop(callId, params?)` | `calling.detect.stop` | Yes |
-| `tap(callId, params?)` | `calling.tap` | Yes |
-| `tapStop(callId, params?)` | `calling.tap.stop` | Yes |
-| `stream(callId, params?)` | `calling.stream` | Yes |
-| `streamStop(callId, params?)` | `calling.stream.stop` | Yes |
-| `denoise(callId, params?)` | `calling.denoise` | Yes |
-| `denoiseStop(callId, params?)` | `calling.denoise.stop` | Yes |
-| `transcribe(callId, params?)` | `calling.transcribe` | Yes |
-| `transcribeStop(callId, params?)` | `calling.transcribe.stop` | Yes |
-| `aiMessage(callId, params?)` | `calling.ai_message` | Yes |
-| `aiHold(callId, params?)` | `calling.ai_hold` | Yes |
-| `aiUnhold(callId, params?)` | `calling.ai_unhold` | Yes |
-| `aiStop(callId, params?)` | `calling.ai.stop` | Yes |
-| `liveTranscribe(callId, params?)` | `calling.live_transcribe` | Yes |
-| `liveTranslate(callId, params?)` | `calling.live_translate` | Yes |
-| `sendFaxStop(callId, params?)` | `calling.send_fax.stop` | Yes |
-| `receiveFaxStop(callId, params?)` | `calling.receive_fax.stop` | Yes |
-| `refer(callId, params?)` | `calling.refer` | Yes |
-| `userEvent(callId, params?)` | `calling.user_event` | Yes |
+| `dial(from, to, options?)` | `dial` | No |
+| `update(id, options?)` | `update` | No |
+| `end(callId, options?)` | `calling.end` | Yes |
+| `transfer(callId, dest, options?)` | `calling.transfer` | Yes |
+| `disconnect(callId, options?)` | `calling.disconnect` | Yes |
+| `play(callId, play, options?)` | `calling.play` | Yes |
+| `playPause(callId, control_id, options?)` | `calling.play.pause` | Yes |
+| `playResume(callId, control_id, options?)` | `calling.play.resume` | Yes |
+| `playStop(callId, control_id, options?)` | `calling.play.stop` | Yes |
+| `playVolume(callId, control_id, volume, options?)` | `calling.play.volume` | Yes |
+| `record(callId, options?)` | `calling.record` | Yes |
+| `recordPause(callId, control_id, options?)` | `calling.record.pause` | Yes |
+| `recordResume(callId, control_id, options?)` | `calling.record.resume` | Yes |
+| `recordStop(callId, control_id, options?)` | `calling.record.stop` | Yes |
+| `collect(callId, options?)` | `calling.collect` | Yes |
+| `collectStop(callId, control_id, options?)` | `calling.collect.stop` | Yes |
+| `collectStartInputTimers(callId, control_id, options?)` | `calling.collect.start_input_timers` | Yes |
+| `detect(callId, detect, options?)` | `calling.detect` | Yes |
+| `detectStop(callId, control_id, options?)` | `calling.detect.stop` | Yes |
+| `tap(callId, tap, device, options?)` | `calling.tap` | Yes |
+| `tapStop(callId, control_id, options?)` | `calling.tap.stop` | Yes |
+| `stream(callId, url, options?)` | `calling.stream` | Yes |
+| `streamStop(callId, control_id, options?)` | `calling.stream.stop` | Yes |
+| `denoise(callId, options?)` | `calling.denoise` | Yes |
+| `denoiseStop(callId, options?)` | `calling.denoise.stop` | Yes |
+| `transcribe(callId, options?)` | `calling.transcribe` | Yes |
+| `transcribeStop(callId, control_id, options?)` | `calling.transcribe.stop` | Yes |
+| `aiMessage(callId, options?)` | `calling.ai_message` | Yes |
+| `aiHold(callId, options?)` | `calling.ai_hold` | Yes |
+| `aiUnhold(callId, options?)` | `calling.ai_unhold` | Yes |
+| `aiStop(callId, control_id, options?)` | `calling.ai.stop` | Yes |
+| `liveTranscribe(callId, action, options?)` | `calling.live_transcribe` | Yes |
+| `liveTranslate(callId, action, options?)` | `calling.live_translate` | Yes |
+| `sendFaxStop(callId, control_id, options?)` | `calling.send_fax.stop` | Yes |
+| `receiveFaxStop(callId, control_id, options?)` | `calling.receive_fax.stop` | Yes |
+| `refer(callId, device, options?)` | `calling.refer` | Yes |
+| `userEvent(callId, event, options?)` | `calling.user_event` | Yes |

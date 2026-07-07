@@ -2,6 +2,14 @@
 
 The Fabric API (`/api/fabric`) manages all resource types in your SignalWire project. Most resource types support CRUD operations and address listing. All methods are async — `await` them.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume (constructed on the Getting Started page).
+declare const client: import('@signalwire/sdk').RestClient;
+declare const pnId: string; // a phone-number SID
+```
+
 ## Standard CRUD Pattern
 
 The resource types share the same methods:
@@ -81,10 +89,8 @@ Subscribers have nested SIP endpoint management:
 // List subscriber's SIP endpoints
 const endpoints = await client.fabric.subscribers.listSipEndpoints('subscriber-uuid');
 
-// Create a SIP endpoint for a subscriber
-const endpoint = await client.fabric.subscribers.createSipEndpoint('subscriber-uuid', {
-  username: 'user1',
-  password: 'secret',
+// Create a SIP endpoint for a subscriber (username, password are positional)
+const endpoint = await client.fabric.subscribers.createSipEndpoint('subscriber-uuid', 'user1', 'secret', {
   caller_id: '+15551234567',
 });
 
@@ -131,9 +137,7 @@ await client.fabric.resources.delete('resource-uuid');
 const addresses = await client.fabric.resources.listAddresses('resource-uuid');
 
 // Assign a resource as a domain application handler
-await client.fabric.resources.assignDomainApplication('resource-uuid', {
-  domain_application_id: 'da-uuid',
-});
+await client.fabric.resources.assignDomainApplication('resource-uuid', 'da-uuid');
 ```
 
 ### `assignPhoneRoute` — narrow-use, not for the common case
@@ -168,29 +172,25 @@ const address = await client.fabric.addresses.get('address-uuid');
 Create tokens for subscribers, guests, invites, and embeds:
 
 ```typescript
-// Subscriber token
-const subscriberToken = await client.fabric.tokens.createSubscriberToken({
-  reference: 'user@example.com',
+// Subscriber token — `reference` is positional; the rest are options
+const subscriberToken = await client.fabric.tokens.createSubscriberToken('user@example.com', {
   password: 'secret',
 });
 
-// Refresh a subscriber token
-const refreshed = await client.fabric.tokens.refreshSubscriberToken({
-  refresh_token: 'existing-refresh-token',
+// Refresh a subscriber token — the refresh token is positional
+const refreshed = await client.fabric.tokens.refreshSubscriberToken('existing-refresh-token');
+
+// Guest token — `allowed_addresses` is positional; `expire_at` is a Unix timestamp (seconds)
+const guestToken = await client.fabric.tokens.createGuestToken(
+  ['address-uuid-1', 'address-uuid-2'],
+  { expire_at: 1767225599 },
+);
+
+// Subscriber invite token — `address_id` is positional; `expires_at` is a Unix timestamp
+const inviteToken = await client.fabric.tokens.createInviteToken('address-uuid', {
+  expires_at: 1767225599,
 });
 
-// Guest token
-const guestToken = await client.fabric.tokens.createGuestToken({
-  allowed_addresses: ['address-uuid-1', 'address-uuid-2'],
-  expire_at: '2025-12-31T23:59:59Z',
-});
-
-// Subscriber invite token
-const inviteToken = await client.fabric.tokens.createInviteToken({
-  address_id: 'address-uuid',
-  expires_at: '2025-12-31T23:59:59Z',
-});
-
-// Click-to-call embed token
-const embedToken = await client.fabric.tokens.createEmbedToken({ token: 'embed-source-token' });
+// Click-to-call embed token — the source token is positional
+const embedToken = await client.fabric.tokens.createEmbedToken('embed-source-token');
 ```

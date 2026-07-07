@@ -1,5 +1,14 @@
 # MCP to SWAIG Gateway
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const agent: import('@signalwire/sdk').AgentBase;
+  const McpGatewaySkill: typeof import('@signalwire/sdk').McpGatewaySkill;
+}
+```
+
 ## Overview
 
 The MCP-SWAIG Gateway bridges Model Context Protocol (MCP) servers with SignalWire AI Gateway (SWAIG) functions, letting SignalWire AI agents call MCP-based tools.

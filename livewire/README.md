@@ -45,7 +45,7 @@ export default defineAgent({
 
     const agent = new Agent({
       instructions: 'You are a helpful weather assistant.',
-      tools: { get_weather: { ...getWeather, name: 'get_weather' } },
+      tools: [{ ...getWeather, name: 'get_weather' }],
     });
 
     await session.start({ agent });

@@ -2,6 +2,14 @@
 
 This guide covers deploying SignalWire AI Agents (TypeScript SDK) to Google Cloud Functions and Azure Functions. For the full serverless reference, including AWS Lambda and CGI, see the [Serverless Guide](serverless-guide.md).
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const MyAgent: any; // the AgentBase subclass defined in the entry-file example above
+}
+```
+
 ## Overview
 
 SignalWire AI Agents support deployment to major serverless platforms:
@@ -103,6 +111,7 @@ The agent auto-detects Azure Functions using these environment variables:
 
 1. **Create your function entry file** (e.g. `src/functions/agent.ts`):
 
+<!-- snippet: no-compile deployment example importing the external `@azure/functions` runtime package (not a dependency of this SDK) -->
 ```typescript
 import { app } from '@azure/functions';
 import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';

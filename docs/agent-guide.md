@@ -42,6 +42,31 @@ Caller --> SignalWire Platform --> GET/POST your-agent/ --> SWML document
                                   POST your-agent/post_prompt --> call summary
 ```
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase;
+  const AgentServer: typeof import('@signalwire/sdk').AgentServer;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const DataMap: typeof import('@signalwire/sdk').DataMap;
+  const createSimpleApiTool: typeof import('@signalwire/sdk').createSimpleApiTool;
+  const createExpressionTool: typeof import('@signalwire/sdk').createExpressionTool;
+  // Illustrative user-supplied helpers referenced by tool handlers below.
+  const lookupOrder: (id: string) => Promise<string>;
+  const fetchWeather: (city: string, units: string) => Promise<{ temp: number; condition: string }>;
+  const doTransfer: (amount: number, account: string) => Promise<void>;
+  const createReservation: (args: Record<string, unknown>) => Promise<string>;
+  const logReservationSummary: (summary: Record<string, unknown>) => Promise<void>;
+  const saveToDatabase: (summary: Record<string, unknown>) => Promise<void>;
+  const lookupCustomer: (callerId: string) => Promise<{ name: string }>;
+  // Node globals (tsconfig sets types:[], so declare them here).
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ### Installation
 
 ```bash
@@ -302,6 +327,7 @@ The handler can return:
 
 Parameters follow JSON Schema conventions. You can provide them in shorthand (just the properties) or full schema format:
 
+<!-- snippet: no-compile bare object-literal property fragment, not a standalone statement -->
 ```typescript
 // Shorthand -- properties only, SDK wraps in { type: 'object', properties: ... }
 parameters: {
@@ -347,6 +373,7 @@ When `secure: true` is set, the SWML document includes a `__token` query paramet
 
 `FunctionResult` is a fluent builder for tool responses. It carries response text and an ordered list of actions:
 
+<!-- snippet: no-compile four alternative constructions reuse the `result` name for illustration -->
 ```typescript
 import { FunctionResult } from '@signalwire/sdk';
 
@@ -439,6 +466,7 @@ agent.addHints(['HIPAA', 'deductible', 'copay', 'pre-authorization']);
 
 // Pattern hint (find and replace in transcription)
 agent.addPatternHint({
+  hint: 'SignalWire',
   pattern: 'signal wire',
   replace: 'SignalWire',
   ignoreCase: true,
@@ -556,7 +584,7 @@ agent.updateGlobalData({
 Within a tool handler, you can update global data dynamically:
 
 ```typescript
-handler: async (args) => {
+handler: async (args: Record<string, unknown>) => {
   return new FunctionResult('Customer verified.')
     .updateGlobalData({ customer_verified: true, customer_name: args.name });
 }
@@ -613,7 +641,7 @@ Dynamic configuration lets you modify the agent's settings per-request. On each 
 
 ```typescript
 agent.setDynamicConfigCallback(async (queryParams, bodyParams, headers, ephemeralAgent) => {
-  const agent = ephemeralAgent as AgentBase;
+  const agent = ephemeralAgent as import('@signalwire/sdk').AgentBase;
 
   // Customize based on query parameters
   const lang = queryParams['lang'];

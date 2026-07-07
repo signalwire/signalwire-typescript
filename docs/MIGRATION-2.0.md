@@ -25,6 +25,7 @@ Update your `package.json`:
 
 ## Import Changes
 
+<!-- snippet: no-compile before/after migration example; the "Before" half imports the pre-2.0 `signalwire-agents` package that no longer exists -->
 ```typescript
 // Before
 import { AgentBase, SwaigFunctionResult } from 'signalwire-agents';

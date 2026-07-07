@@ -1,5 +1,23 @@
 # Security
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const agent: import('@signalwire/sdk').AgentBase;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase; // used with `extends`
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const SslConfig: typeof import('@signalwire/sdk').SslConfig;
+  const SessionManager: typeof import('@signalwire/sdk').SessionManager;
+  const ssl: import('@signalwire/sdk').SslConfig;
+  const Hono: any; // Hono framework
+  const auth: any; // AuthHandler instance
+  const app: any; // Hono app
+  const cors: any; // Hono cors middleware
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)

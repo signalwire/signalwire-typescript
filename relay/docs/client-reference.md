@@ -1,5 +1,27 @@
 # RelayClient Reference
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context for the fragments below: `client` is a constructed RelayClient
+// (see the Constructor section). `call` is a live Call from a handler / dial.
+declare const client: import('@signalwire/sdk').RelayClient;
+// `await using` needs the disposable global types + Symbol members absent from
+// the harness's ES2020 lib set.
+declare global {
+  interface SymbolConstructor {
+    readonly dispose: unique symbol;
+    readonly asyncDispose: unique symbol;
+  }
+  interface Disposable {
+    [Symbol.dispose](): void;
+  }
+  interface AsyncDisposable {
+    [Symbol.asyncDispose](): PromiseLike<void>;
+  }
+}
+```
+
 ## Constructor
 
 `RelayClient` takes a single options object:
@@ -7,14 +29,16 @@
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
-const client = new RelayClient({
-  project: 'your-project-id',     // SIGNALWIRE_PROJECT_ID
-  token: 'your-api-token',        // SIGNALWIRE_API_TOKEN
-  jwtToken: 'your-jwt',           // SIGNALWIRE_JWT_TOKEN (alternative auth)
-  host: 'example.signalwire.com', // SIGNALWIRE_SPACE (default: relay.signalwire.com)
-  contexts: ['default'],          // topics to subscribe to
-  maxActiveCalls: 1000,           // RELAY_MAX_ACTIVE_CALLS (default: 1000)
-});
+function makeClient() {
+  return new RelayClient({
+    project: 'your-project-id',     // SIGNALWIRE_PROJECT_ID
+    token: 'your-api-token',        // SIGNALWIRE_API_TOKEN
+    jwtToken: 'your-jwt',           // SIGNALWIRE_JWT_TOKEN (alternative auth)
+    host: 'example.signalwire.com', // SIGNALWIRE_SPACE (default: relay.signalwire.com)
+    contexts: ['default'],          // topics to subscribe to
+    maxActiveCalls: 1000,           // RELAY_MAX_ACTIVE_CALLS (default: 1000)
+  });
+}
 ```
 
 Authentication requires either `project` + `token` or `jwtToken` (no server roundtrip). All options fall back to their corresponding environment variables when omitted.
@@ -42,9 +66,13 @@ await client.disconnect();
 `RelayClient` is also an async-disposable for use with `await using` (auto-disconnects at end of scope):
 
 ```typescript
-await using client = new RelayClient({ contexts: ['default'] });
-await client.connect();
-// ...
+import { RelayClient } from '@signalwire/sdk';
+
+async function withClient() {
+  await using client = new RelayClient({ contexts: ['default'] });
+  await client.connect();
+  // ...
+}
 ```
 
 ### `onCall(handler)`
@@ -156,6 +184,7 @@ For multiple WebSocket connections in one process, set `RELAY_MAX_CONNECTIONS` (
 ```typescript
 import { RelayError } from '@signalwire/sdk';
 
+declare const call: any; // a live relay Call
 try {
   await call.play([{ type: 'tts', params: { text: 'Hello' } }]);
 } catch (err) {

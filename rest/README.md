@@ -20,12 +20,10 @@ const agent = await client.fabric.aiAgents.create({
 });
 
 // Search for a phone number
-const results = await client.phoneNumbers.search({ area_code: '512' });
+const results = await client.phoneNumbers.search({ areaCode: '512' });
 
-// Place a call via REST
-await client.calling.dial({
-  from: '+15559876543',
-  to: '+15551234567',
+// Place a call via REST — from and to are positional
+await client.calling.dial('+15559876543', '+15551234567', {
   url: 'https://example.com/call-handler',
 });
 ```

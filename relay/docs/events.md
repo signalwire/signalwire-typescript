@@ -2,6 +2,15 @@
 
 RELAY events are server-pushed notifications about call state changes and operation results. Events arrive over the WebSocket as `signalwire.event` JSON-RPC messages and are automatically routed to the correct `Call` object.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume (constructed in the Getting Started example).
+declare const client: import('@signalwire/sdk').RelayClient;
+declare const call: any; // a live relay Call
+declare const rawPayload: any; // a raw signalwire.event JSON-RPC payload
+```
+
 ## Listening for Events
 
 ### On a Call

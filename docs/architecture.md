@@ -1,5 +1,16 @@
 # SignalWire AI Agents TypeScript SDK -- Architecture
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const agent: import('@signalwire/sdk').AgentBase;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const cors: any; // Hono cors middleware
+  const WeatherSkill: any; // illustrative user-defined skill class
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -123,6 +134,7 @@ The central class that composes all other components. It is responsible for:
 
 Key internal state:
 
+<!-- snippet: no-compile class-field layout excerpt, not a standalone runnable module -->
 ```typescript
 // Managers (composition)
 private promptManager: PromptManager;
@@ -218,6 +230,7 @@ Key methods:
 
 Wraps a tool handler with metadata for SWAIG registration:
 
+<!-- snippet: no-compile field-shape reference for SwaigFunction; abbreviated `Record` types, not runnable -->
 ```typescript
 class SwaigFunction {
   name: string;              // Tool name
@@ -257,6 +270,7 @@ A fluent builder for SWAIG function responses. Carries:
 
 The `toDict()` serialization:
 
+<!-- snippet: no-compile method-body excerpt shown outside its class, not a standalone module -->
 ```typescript
 toDict(): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -535,6 +549,7 @@ handlePostPrompt():
 
 Each tool registered via `defineTool()` creates a `SwaigFunction` instance stored in the `toolRegistry` Map. The registry also supports raw dictionary entries (DataMap tools registered via `registerSwaigFunction()`).
 
+<!-- snippet: no-compile registry illustration with `...` elision, not runnable -->
 ```typescript
 // Handler-based tool
 toolRegistry.set('get_weather', new SwaigFunction({ name, handler, description, ... }));
@@ -547,6 +562,7 @@ During SWML rendering, the registry is iterated. `SwaigFunction` instances are s
 
 ### Handler Signature
 
+<!-- snippet: no-compile handler type-alias reference, not runnable code -->
 ```typescript
 type SwaigHandler = (
   args: Record<string, unknown>,      // AI-extracted arguments
@@ -630,6 +646,7 @@ base64url( callId . functionName . expiry . nonce . hmacSignature )
 
 ### Token Generation
 
+<!-- snippet: no-compile method-body excerpt shown outside its class, not a standalone module -->
 ```typescript
 generateToken(functionName: string, callId: string): string {
   const expiry = Math.floor(Date.now() / 1000) + this.tokenExpirySecs;
@@ -664,6 +681,7 @@ All checks must pass. Any failure returns a `403 Forbidden` response.
 
 `SessionManager` also provides an in-memory metadata store keyed by session ID:
 
+<!-- snippet: no-compile bare method signatures shown for reference, not runnable -->
 ```typescript
 setSessionMetadata(sessionId: string, metadata: Record<string, unknown>): void;
 getSessionMetadata(sessionId: string): Record<string, unknown> | undefined;
@@ -692,6 +710,7 @@ The detection runs on every SWML request (`detectProxyFromRequest()`). Once the 
 
 ### Webhook URL Building
 
+<!-- snippet: no-compile bare method signature shown for reference, not runnable -->
 ```typescript
 buildWebhookUrl(endpoint: string, extraParams?: Record<string, string>): string
 ```
@@ -804,6 +823,7 @@ The callback receives an ephemeral copy created by `createEphemeralCopy()`. This
 
 ### Declarative PROMPT_SECTIONS
 
+<!-- snippet: no-compile bare static-field type signature shown for reference, not runnable -->
 ```typescript
 static PROMPT_SECTIONS?: {
   title: string;
