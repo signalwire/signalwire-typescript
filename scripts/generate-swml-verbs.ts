@@ -380,7 +380,7 @@ const CUSTOM_VERB_TYPES: Record<
       '  say_voice?: string;',
       '  /** Language code for text-to-speech (e.g. "en-US"). */',
       '  say_language?: string;',
-      '  /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted + typo-checked; any other string is still accepted (WEAK GROUNDING: no `enum:` in the SWML schema, Python never validates — convention, not schema). */',
+      '  /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted and typo-checked; any other string value is also accepted. */',
       `  say_gender?: ${SAY_GENDER_TYPE};`,
       '  /** If true, auto-answer the call before playing audio. Default true. */',
       '  auto_answer?: boolean;',
@@ -534,8 +534,6 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
  * Provides TypeScript interface augmentation for all SWML verb methods
  * auto-installed on SwmlBuilder from schema.json.
  */
-
-/* eslint-disable @typescript-eslint/no-empty-interface */
 
 ${customInterfaces}
 

@@ -319,8 +319,7 @@ export class RelayClient {
    *
    * Most users want {@link onCall} / {@link onMessage} — those deliver
    * typed objects and handle correlation. `onEvent` is the generic
-   * escape hatch used by the porting-sdk audit harness to react to
-   * every event the platform pushes.
+   * escape hatch for reacting to every event the platform pushes.
    *
    * Fires BEFORE typed routing, so the same event will be observed here
    * AND on any matching {@link Call} / {@link Message}.

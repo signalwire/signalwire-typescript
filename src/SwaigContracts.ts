@@ -5,9 +5,8 @@
  * the `PostPrompt` tree is the call-summary payload the post-prompt / `onSummary`
  * callback RECEIVES.
  *
- * GENERATED from the AUTHORITATIVE porting-sdk/swaig-specs/*.yaml (the vendored
- * mod_openai engine specs), mirroring the Python reference's
- * swaig_request_generated / post_prompt_generated modules. This file is a thin
+ * Generated from the authoritative SignalWire AI engine SWAIG specifications,
+ * mirroring the Python SDK's request/response payload types. This file is a thin
  * barrel re-exporting the generated types so every consumer keeps a stable
  * `./SwaigContracts.js` import path; regenerate via
  * `npx tsx scripts/generate-rest-types.ts`. Do not hand-edit the shapes — edit

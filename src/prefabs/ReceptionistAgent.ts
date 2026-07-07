@@ -231,7 +231,7 @@ export class ReceptionistAgent extends AgentBase {
 
   /**
    * Register the `collect_caller_info` and `transfer_call` SWAIG tools
-   * (Python parity). When `checkInEnabled` is `true`, also registers the
+   * (matching the Python SDK). When `checkInEnabled` is `true`, also registers the
    * TS-specific `check_in_visitor` tool.
    */
   protected override defineTools(): void {

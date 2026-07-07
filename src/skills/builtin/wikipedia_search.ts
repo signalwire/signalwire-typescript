@@ -3,7 +3,7 @@
  *
  * Tier 3 built-in skill: no external API key required. Uses the Wikipedia
  * REST API to fetch article summaries and extracts for any given topic.
- * Matches the Python SDK's `num_results` / `no_results_message` parity.
+ * Matches the Python SDK's `num_results` / `no_results_message` options.
  */
 
 import { SkillBase, defineSkillTool } from '../SkillBase.js';

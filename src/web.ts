@@ -8,14 +8,13 @@
  * It is a type alias for Hono's app/router type — so at runtime it IS a `Hono`
  * instance and every existing consumer (`app.route(...)`, `app.fetch`, route
  * introspection) works unchanged; the alias adds no behavior. Its purpose is to
- * give the capability a **stable, named cross-port type** in the signature
- * oracle: every port implements `asRouter()` returning its own framework's mount
- * handle (Python a FastAPI `APIRouter`, Go an `http.Handler`, .NET an
+ * give the capability a **stable, named type** for the router `asRouter()`
+ * returns: across SignalWire SDKs each language exposes its own framework's
+ * mount handle (Python a FastAPI `APIRouter`, Go an `http.Handler`, .NET an
  * `IEndpointRouteBuilder`, Ruby a Rack app, Perl a PSGI coderef, Java an
  * `HttpHandler`, Rust an `axum::Router`, TS a Hono sub-app, C++ an httplib
- * handler), and each port maps that native type to the canonical
- * `signalwire.core.web.HostAppRouter` in its type-alias table. The capability is
- * thereby enforced cross-port; the framework-specific realization is idiom.
+ * handler). The mountable-router capability is consistent across SDKs; the
+ * framework-specific realization is each language's idiom.
  */
 
 import type { Hono } from 'hono';

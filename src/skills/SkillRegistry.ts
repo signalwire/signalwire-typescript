@@ -236,7 +236,7 @@ export class SkillRegistry {
    * `Error` (the JS analog of Python's `ValueError`) for non-existent
    * paths or non-directories. Distinct from `addSearchPath`, which
    * silently accepts anything; `addSkillDirectory` is the strict
-   * Python-parity surface and the recommended entry point for
+   * Python-equivalent surface and the recommended entry point for
    * registering third-party skill directories.
    *
    * @param path - Absolute or relative path to a directory containing
@@ -257,7 +257,7 @@ export class SkillRegistry {
 
   /**
    * Returns a copy of the external skill directories registered via
-   * {@link addSkillDirectory}. Parity surface for Python's
+   * {@link addSkillDirectory}. The equivalent of Python's
    * `_external_paths`.
    */
   getExternalPaths(): string[] {

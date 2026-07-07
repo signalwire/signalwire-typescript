@@ -165,7 +165,7 @@ export async function validateUrl(url: string, allowPrivate = false): Promise<bo
  * Whether the current process is running in a serverless environment
  * (anything other than a long-lived ``server`` runtime).
  *
- * Python parity: ``signalwire.utils.is_serverless_mode``.
+ * Python equivalent: ``signalwire.utils.is_serverless_mode``.
  */
 export function isServerlessMode(): boolean {
   const mode = getExecutionMode();

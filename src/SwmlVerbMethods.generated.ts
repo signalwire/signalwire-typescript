@@ -6,8 +6,6 @@
  * auto-installed on SwmlBuilder from schema.json.
  */
 
-/* eslint-disable @typescript-eslint/no-empty-interface */
-
 export interface AiVerbConfig {
   /** Text prompt for the AI agent (mutually exclusive with prompt when using POM). */
   prompt?: string | Array<Record<string, unknown>>;
@@ -32,7 +30,7 @@ export interface PlayVerbConfig {
   say_voice?: string;
   /** Language code for text-to-speech (e.g. "en-US"). */
   say_language?: string;
-  /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted + typo-checked; any other string is still accepted (WEAK GROUNDING: no `enum:` in the SWML schema, Python never validates — convention, not schema). */
+  /** Gender for text-to-speech. The `"male" | "female"` literals are autocompleted and typo-checked; any other string value is also accepted. */
   say_gender?: 'male' | 'female';
   /** If true, auto-answer the call before playing audio. Default true. */
   auto_answer?: boolean;

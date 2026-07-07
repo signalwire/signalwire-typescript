@@ -70,7 +70,7 @@ function headerLookup(headers: Record<string, string>, name: string): string | u
  * wrapper over this: it reads the raw body + headers off the Hono context, calls
  * ``validate``, and turns a non-null triple into a ``c.text(...)`` response.
  *
- * Behavior mirrors the validator contract in porting-sdk/webhooks.md:
+ * Behavior mirrors the SignalWire webhook signature-validation contract:
  *
  *   - Missing ``X-SignalWire-Signature`` (or the ``X-Twilio-Signature`` alias)
  *     → reject ``[403, {}, 'Forbidden']`` (never throws for a missing header).

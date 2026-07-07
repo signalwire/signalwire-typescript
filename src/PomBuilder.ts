@@ -435,7 +435,7 @@ export class PomBuilder {
         numberedBullets: s.numberedBullets,
         subsections: s.subsections as { title: string; body?: string; bullets?: string[] }[],
       });
-      // Python parity: pom_builder.from_sections only indexes titled
+      // Python equivalent: pom_builder.from_sections only indexes titled
       // sections in the lookup (`if section.title:`). addSection always
       // registers, so drop the untitled entry — the section stays in the
       // document, it just isn't addressable by title via has/getSection.

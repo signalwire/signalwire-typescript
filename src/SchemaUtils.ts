@@ -126,7 +126,7 @@ export class SchemaUtils {
   /**
    * Whether full JSON-Schema validation is available. Mirrors Python SDK's
    * `full_validation_available` property (which reports whether `jsonschema` is
-   * installed). The TS port always bundles Ajv, so full validation is always
+   * installed). This SDK always bundles Ajv, so full validation is always
    * available — this is constantly `true`.
    */
   get fullValidationAvailable(): boolean {

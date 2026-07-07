@@ -408,7 +408,7 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * Register SWAIG tools:
-   *   - Python-parity tools: `validate_response`, `log_response`
+   *   - Tools matching the Python SDK: `validate_response`, `log_response`
    *   - TS-specific session tools: `answer_question`, `get_current_question`, `get_survey_progress`
    */
   protected override defineTools(): void {

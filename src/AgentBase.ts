@@ -463,7 +463,7 @@ export class AgentBase extends SWMLService {
   /**
    * Public accessor for the agent's POM as a {@link PromptObjectModel} instance.
    *
-   * Python parity: ``agent.pom`` instance attribute (agent_base.py line 209)
+   * Python equivalent: ``agent.pom`` instance attribute (agent_base.py line 209)
    * is a ``signalwire.pom.pom.PromptObjectModel`` when ``use_pom=True``,
    * or ``None`` otherwise. This getter returns the equivalent TypeScript
    * ``PromptObjectModel`` instance — callers can use ``addSection``,
@@ -785,7 +785,7 @@ export class AgentBase extends SWMLService {
     if (config.fillers) lang['fillers'] = config.fillers;
     if (config.speechModel) lang['speech_model'] = config.speechModel;
     if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
-    // Per-language params — only emit the key when non-empty (Python parity:
+    // Per-language params — only emit the key when non-empty (Python equivalent:
     // `if params: language["params"] = params`).
     if (config.params && Object.keys(config.params).length > 0) {
       lang['params'] = config.params;
@@ -831,7 +831,7 @@ export class AgentBase extends SWMLService {
    * first and engine-specific tuning is added later (e.g., from a config
    * loader).
    *
-   * Python parity: `set_language_params(code, params)`. Passing an empty
+   * Python equivalent: `set_language_params(code, params)`. Passing an empty
    * object removes the `params` key entirely. Unknown codes are a no-op.
    *
    * @param code - Language code as previously passed to {@link addLanguage} (e.g. `"en-US"`).
@@ -855,7 +855,7 @@ export class AgentBase extends SWMLService {
   /**
    * Read the per-language `params` dict for a previously-added language.
    *
-   * Python parity: `get_language_params(code)`. Returns `undefined` if the
+   * Python equivalent: `get_language_params(code)`. Returns `undefined` if the
    * code is unknown or the language has no params set — no exception path.
    *
    * @param code - Language code as previously passed to {@link addLanguage}.
@@ -1768,7 +1768,7 @@ export class AgentBase extends SWMLService {
    *
    * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
    * and a typo is a compile-time error; any other string is still accepted
-   * (custom skills / parity with Python's bare-`str` `has_skill`).
+   * (custom skills / matching Python's bare-`str` `has_skill`).
    *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.
@@ -1778,11 +1778,11 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Remove a skill by its name (Python parity).
+   * Remove a skill by its name (matches the Python SDK).
    *
    * Python's `remove_skill(skill_name)` removes by skill name.
    * The existing `removeSkill(instanceId)` removes by instance ID.
-   * This method provides name-based removal for cross-SDK parity.
+   * This method provides name-based removal to match the Python SDK.
    *
    * @param skillName - The skill name to remove.
    * @returns True if a skill with that name was found and removed.
@@ -2209,7 +2209,7 @@ export class AgentBase extends SWMLService {
    * — it retrieves and executes the function, returning the result. In TypeScript,
    * `fn.execute()` is called separately after this hook. However, if this method
    * returns a non-void value, it is used as the result and the default execution
-   * is skipped, enabling dispatch interception parity with Python.
+   * is skipped, enabling dispatch interception matching the Python SDK.
    *
    * @param _name - Name of the function about to execute.
    * @param _args - Parsed arguments for the function.
@@ -2383,7 +2383,7 @@ export class AgentBase extends SWMLService {
       aiConfig['debug_webhook_level'] = this.debugEventsLevel;
     }
 
-    // Apply modifications from onSwmlRequest (Python parity: merge into AI verb config).
+    // Apply modifications from onSwmlRequest (Python equivalent: merge into AI verb config).
     // global_data is deep-merged; all other keys override AI config fields directly.
     if (modifications && typeof modifications === 'object') {
       if (modifications['global_data'] && typeof modifications['global_data'] === 'object') {

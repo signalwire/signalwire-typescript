@@ -368,7 +368,7 @@ export class SWMLService {
   protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
 
   /** Validate provided basic-auth credentials against the configured ones
-   * using a constant-time comparison. (Python parity:
+   * using a constant-time comparison. (Python equivalent:
    * ``AuthMixin.validate_basic_auth(username, password)``.) */
   validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
     const [u, p] = this.authCredentials ?? ['', ''];
@@ -686,19 +686,19 @@ export class SWMLService {
   }
 
   /** Whether a SWAIG function with the given name is registered.
-   * (Python parity: ``ToolRegistry.has_function``.) */
+   * (Python equivalent: ``ToolRegistry.has_function``.) */
   hasFunction(name: string): boolean {
     return this.toolRegistry.has(name);
   }
 
   /** Get a registered SWAIG function entry, or undefined.
-   * (Python parity: ``ToolRegistry.get_function``.) */
+   * (Python equivalent: ``ToolRegistry.get_function``.) */
   getFunction(name: string): SwaigFunction | Record<string, unknown> | undefined {
     return this.toolRegistry.get(name);
   }
 
   /** Snapshot of all registered SWAIG functions keyed by name.
-   * (Python parity: ``ToolRegistry.get_all_functions``.) */
+   * (Python equivalent: ``ToolRegistry.get_all_functions``.) */
   getAllFunctions(): Record<string, SwaigFunction | Record<string, unknown>> {
     const out: Record<string, SwaigFunction | Record<string, unknown>> = {};
     for (const [name, fn] of this.toolRegistry) {
@@ -708,7 +708,7 @@ export class SWMLService {
   }
 
   /** Remove a registered SWAIG function. Returns true when removed,
-   * false when not found. (Python parity:
+   * false when not found. (Python equivalent:
    * ``ToolRegistry.remove_function``.) */
   removeFunction(name: string): boolean {
     return this.toolRegistry.delete(name);

@@ -309,14 +309,13 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * Equivalent to Python's top-level `signalwire.RestClient(*args, **kwargs)`
  * factory — a thin wrapper that lazy-imports `signalwire.rest.RestClient`
  * and instantiates it. The TS class is also exported directly at module
- * scope (`new RestClient(...)`); this function provides parity with the
- * Python-style factory call.
+ * scope (`new RestClient(...)`); this function offers the same factory-call
+ * style as Python for users porting code across the two SDKs.
  *
  * Note: TypeScript exports the class `RestClient` at the same name from
  * `./rest/index.js`. The function below is named `restClient` (camelCase)
- * to avoid shadowing the class. The audit adapter remaps the emitted
- * surface entry from `signalwire.rest_client` to `signalwire.RestClient`
- * via the FREE_FN_NAME_OVERRIDES table in enumerate-signatures.ts.
+ * to avoid shadowing the class — use either `new RestClient(opts)` or
+ * `restClient(opts)`; both construct the same client.
  *
  * The declared signature is the idiomatic TS form: a single, fully-typed
  * options object. This gives real compile-time safety on the credential

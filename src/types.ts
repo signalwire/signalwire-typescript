@@ -80,7 +80,7 @@ export interface AgentOptions {
    * omitted. When both are unset, signature validation is disabled and
    * the agent emits a one-time warning on startup so operators notice.
    *
-   * Per `porting-sdk/webhooks.md`: this MUST be treated as secret —
+   * Per SignalWire's webhook signing rules: this MUST be treated as secret —
    * never logged, never echoed to clients, never included in error
    * messages.
    */

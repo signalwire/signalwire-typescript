@@ -199,7 +199,7 @@ export abstract class SkillBase {
   /**
    * Unique skill name. Subclasses MUST override with a non-empty string.
    *
-   * Python parity: `SKILL_NAME: str = None` at `core/skill_base.py:23`.
+   * Python equivalent:`SKILL_NAME: str = None` at `core/skill_base.py:23`.
    * Python raises `ValueError` in `__init__` when this is left as `None`;
    * TS throws at construction when this is left as the empty default.
    */
@@ -208,21 +208,21 @@ export abstract class SkillBase {
   /**
    * Human-readable description of the skill. Subclasses MUST override.
    *
-   * Python parity: `SKILL_DESCRIPTION: str = None` at `core/skill_base.py:24`.
+   * Python equivalent:`SKILL_DESCRIPTION: str = None` at `core/skill_base.py:24`.
    */
   static SKILL_DESCRIPTION: string = '';
 
   /**
    * Semantic version string. Subclasses may override; defaults to `"1.0.0"`.
    *
-   * Python parity: `SKILL_VERSION: str = "1.0.0"` at `core/skill_base.py:25`.
+   * Python equivalent:`SKILL_VERSION: str = "1.0.0"` at `core/skill_base.py:25`.
    */
   static SKILL_VERSION: string = '1.0.0';
 
   /**
    * Packages required by the skill, checked at load time by `validatePackages()`.
    *
-   * Python parity: `REQUIRED_PACKAGES: List[str] = []` at `core/skill_base.py:26`.
+   * Python equivalent:`REQUIRED_PACKAGES: List[str] = []` at `core/skill_base.py:26`.
    * In TS these are npm package names importable via dynamic `import()`.
    */
   static REQUIRED_PACKAGES: readonly string[] = [];
@@ -231,14 +231,14 @@ export abstract class SkillBase {
    * Environment variables required for the skill to function, checked at load
    * time by `validateEnvVars()`.
    *
-   * Python parity: `REQUIRED_ENV_VARS: List[str] = []` at `core/skill_base.py:27`.
+   * Python equivalent:`REQUIRED_ENV_VARS: List[str] = []` at `core/skill_base.py:27`.
    */
   static REQUIRED_ENV_VARS: readonly string[] = [];
 
   /**
    * Whether this skill type supports multiple simultaneous instances (e.g., with different tool_name).
    *
-   * Python parity: `SUPPORTS_MULTIPLE_INSTANCES: bool = False` at `core/skill_base.py:30`.
+   * Python equivalent:`SUPPORTS_MULTIPLE_INSTANCES: bool = False` at `core/skill_base.py:30`.
    */
   static SUPPORTS_MULTIPLE_INSTANCES = false;
 
@@ -310,7 +310,7 @@ export abstract class SkillBase {
   /**
    * Tools registered imperatively via `defineTool()`.
    *
-   * Python parity: Python's `SkillBase.register_tools()` is a `@abstractmethod` that
+   * Python equivalent:Python's `SkillBase.register_tools()` is a `@abstractmethod` that
    * calls `self.agent.define_tool(...)` (or `self.define_tool(...)`) once per tool.
    * In TypeScript the tool pipeline is declarative (pull model): `SkillManager`
    * calls `getTools()` at SWML render time. Skills that want to build their tool
@@ -346,7 +346,7 @@ export abstract class SkillBase {
   /**
    * Create a new skill instance.
    *
-   * Python parity: `core/skill_base.py:32-43`.
+   * Python equivalent:`core/skill_base.py:32-43`.
    * Python `__init__` raises `ValueError` if `SKILL_NAME` or `SKILL_DESCRIPTION`
    * is left as `None` on the subclass. TS throws the equivalent when the static
    * defaults haven't been overridden.
@@ -395,7 +395,7 @@ export abstract class SkillBase {
    * `defineTool()`. Skills using the declarative pattern override this
    * method to return a static array built from their config.
    *
-   * Python parity: replaces the `@abstractmethod register_tools()` contract
+   * Python equivalent:replaces the `@abstractmethod register_tools()` contract
    * — Python skills call `self.define_tool(...)` inside `register_tools()`;
    * TypeScript skills either call `this.defineTool(...)` in `setup()` (and
    * let the default `getTools()` return them) or override `getTools()`
@@ -410,7 +410,7 @@ export abstract class SkillBase {
   /**
    * Imperatively register a tool with this skill.
    *
-   * Python parity: `core/skill_base.py:58` `def define_tool(self, **kwargs)`.
+   * Python equivalent:`core/skill_base.py:58` `def define_tool(self, **kwargs)`.
    * Merges `this.swaigFields` into the tool definition (explicit fields on
    * `toolDef` take precedence), then pushes the result into `_dynamicTools`
    * so the default `getTools()` returns it at SWML render time.
@@ -548,7 +548,7 @@ export abstract class SkillBase {
    * Validate that all required environment variables declared on the skill class
    * are set in the current process environment.
    *
-   * Python parity: `core/skill_base.py:103-110` reads `self.REQUIRED_ENV_VARS`
+   * Python equivalent:`core/skill_base.py:103-110` reads `self.REQUIRED_ENV_VARS`
    * directly. TS reads the same static from the class.
    *
    * Returns the list of missing variable names so callers can produce actionable
@@ -622,7 +622,7 @@ export abstract class SkillBase {
   /**
    * Validate that all required packages declared on the skill class can be imported.
    *
-   * Python parity: `core/skill_base.py:112-124` reads `self.REQUIRED_PACKAGES`
+   * Python equivalent:`core/skill_base.py:112-124` reads `self.REQUIRED_PACKAGES`
    * directly and tries `importlib.import_module(pkg)` for each; TS does the
    * equivalent with a dynamic `import()`.
    *

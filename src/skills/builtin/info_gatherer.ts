@@ -123,7 +123,7 @@ export class InfoGathererSkill extends SkillBase {
    * Validate the `questions` config, derive tool names (with optional prefix),
    * and cache the completion message.
    *
-   * Python parity: skill.py:91-121. Returns `false` (logging an error) when
+   * Python equivalent: skill.py:91-121. Returns `false` (logging an error) when
    * `questions` is missing or fails validation; setup must produce a
    * functional skill or fail closed.
    */

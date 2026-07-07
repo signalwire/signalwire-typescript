@@ -84,7 +84,7 @@ export class SessionManager {
 
   /**
    * Generate a signed token. Equivalent to {@link generateToken} (same
-   * parameter order); both exist for Python parity (`SessionManager`
+   * parameter order); both exist to match the Python SDK (`SessionManager`
    * exposes `generate_token` and `create_tool_token`).
    * @param functionName - The SWAIG function name to bind.
    * @param callId - The call ID to bind.
@@ -163,7 +163,7 @@ export class SessionManager {
    * Validate a token. Equivalent to {@link validateToken}, but **note the
    * different parameter order** — `validateToolToken(functionName, token,
    * callId)` vs `validateToken(callId, functionName, token)`. Both exist for
-   * Python parity (`SessionManager.validate_token` / `validate_tool_token`,
+   * matching the Python SDK (`SessionManager.validate_token` / `validate_tool_token`,
    * which use these exact orders). The forwarding maps the arguments to the
    * correct positions, so both produce identical validation for the same
    * logical token; just be careful not to pass arguments in the wrong order

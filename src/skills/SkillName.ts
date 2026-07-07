@@ -13,7 +13,7 @@
  *     failure.
  *   - The `string & {}` arm widens the parameter back to `string` at the type
  *     level, so it still accepts custom / third-party skill names AND keeps
- *     parity with the Python reference (whose `add_skill` / `has_skill` take a
+ *     consistency with the Python SDK (whose `add_skill` / `has_skill` take a
  *     bare `str`). It is a no-op at runtime — TypeScript erases types, so the
  *     value passed on the wire is the identical string either way.
  *
@@ -49,7 +49,7 @@ export type SkillName =
 /**
  * A skill-name parameter: one of the typed built-in {@link SkillName} values
  * (autocompleted + typo-checked) or any other string (custom / third-party
- * skills, and parity with Python's bare `str`).
+ * skills, and consistency with Python's bare `str`).
  *
  * The `(string & {})` arm preserves string literal autocompletion for the
  * union members while still widening to accept arbitrary strings; it is purely
