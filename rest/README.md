@@ -53,7 +53,6 @@ await client.calling.dial({
 - [rest-datasphere-search.ts](examples/rest-datasphere-search.ts) — upload a document, semantic search
 - [rest-calling-play-and-record.ts](examples/rest-calling-play-and-record.ts) — play, record, transcribe, denoise
 - [rest-calling-ivr-and-ai.ts](examples/rest-calling-ivr-and-ai.ts) — IVR, detect, AI, tap, stream, SIP refer
-- [rest-compat-laml.ts](examples/rest-compat-laml.ts) — Twilio-compatible LAML migration
 - [rest-fabric-swml-and-callflows.ts](examples/rest-fabric-swml-and-callflows.ts) — SWML scripts, call flows, webhooks
 - [rest-fabric-subscribers-and-sip.ts](examples/rest-fabric-subscribers-and-sip.ts) — subscribers, SIP endpoints, gateways
 - [rest-fabric-conferences-and-routing.ts](examples/rest-fabric-conferences-and-routing.ts) — conferences, cXML, routing, tokens

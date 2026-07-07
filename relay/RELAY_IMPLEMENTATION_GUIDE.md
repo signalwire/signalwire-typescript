@@ -195,68 +195,75 @@ Then `ringing`, then `answered` or `ended` for each leg.
 
 #### Correct dial() implementation
 
-```python
-async def dial(devices, tag=None, timeout=120):
-    tag = tag or generate_uuid()
+```typescript
+async function dial(devices: Device[], tag = crypto.randomUUID(), timeout = 120_000): Promise<Call> {
+  // 1. Register pending dial BEFORE sending RPC
+  const deferred = createDeferred<Call>();
+  pendingDials.set(tag, deferred);
 
-    # 1. Register pending dial BEFORE sending RPC
-    future = create_future()
-    pending_dials[tag] = future
+  // 2. Send the RPC — response is just {"code":"200","message":"Dialing"}
+  await execute('calling.dial', { tag, devices });
 
-    # 2. Send the RPC — response is just {"code":"200","message":"Dialing"}
-    await execute("calling.dial", {"tag": tag, "devices": devices})
-
-    # 3. Wait for calling.call.dial event to resolve the future
-    try:
-        call = await wait_for(future, timeout=timeout)
-        return call
-    finally:
-        pending_dials.pop(tag)
+  // 3. Wait for the calling.call.dial event to resolve the deferred
+  try {
+    return await withTimeout(deferred.promise, timeout);
+  } finally {
+    pendingDials.delete(tag);
+  }
+}
 ```
 
 #### Event routing during dial
 
 Your event handler needs three special cases:
 
-```python
-def handle_event(payload):
-    event_type = payload["event_type"]
-    event_params = payload["params"]
-    call_id = event_params.get("call_id", "")
+```typescript
+function handleEvent(payload: RelayEventPayload): void {
+  const eventType = payload.event_type;
+  const eventParams = payload.params;
+  const callId = eventParams.call_id ?? '';
 
-    # 1. Inbound call
-    if event_type == "calling.call.receive":
-        handle_inbound(payload)
-        return
+  // 1. Inbound call
+  if (eventType === 'calling.call.receive') {
+    handleInbound(payload);
+    return;
+  }
 
-    # 2. Dial completion — call_id is NESTED at params.call.call_id
-    if event_type == "calling.call.dial":
-        tag = event_params.get("tag", "")
-        dial_state = event_params.get("dial_state", "")
-        call_info = event_params.get("call", {})
-        future = pending_dials.get(tag)
-        if future:
-            if dial_state == "answered":
-                call = find_or_create_call(call_info)
-                future.resolve(call)
-            elif dial_state == "failed":
-                future.reject(Error("Dial failed"))
-        return
+  // 2. Dial completion — call_id is NESTED at params.call.call_id
+  if (eventType === 'calling.call.dial') {
+    const tag = eventParams.tag ?? '';
+    const dialState = eventParams.dial_state ?? '';
+    const callInfo = eventParams.call ?? {};
+    const deferred = pendingDials.get(tag);
+    if (deferred) {
+      if (dialState === 'answered') {
+        deferred.resolve(findOrCreateCall(callInfo));
+      } else if (dialState === 'failed') {
+        deferred.reject(new Error('Dial failed'));
+      }
+    }
+    return;
+  }
 
-    # 3. State events during dial — call not registered yet
-    if event_type == "calling.call.state":
-        tag = event_params.get("tag", "")
-        if tag in pending_dials and call_id not in calls:
-            # Create the Call object so events route correctly
-            register_dial_leg(tag, event_params)
-        # Fall through to normal routing
+  // 3. State events during dial — call not registered yet
+  if (eventType === 'calling.call.state') {
+    const tag = eventParams.tag ?? '';
+    if (pendingDials.has(tag) && !calls.has(callId)) {
+      // Create the Call object so events route correctly
+      registerDialLeg(tag, eventParams);
+    }
+    // Fall through to normal routing
+  }
 
-    # 4. Normal routing by call_id
-    call = calls.get(call_id)
-    if call:
-        call.dispatch_event(payload)
-        if call.state == "ended":
-            calls.pop(call_id)
+  // 4. Normal routing by call_id
+  const call = calls.get(callId);
+  if (call) {
+    call.dispatchEvent(payload);
+    if (call.state === 'ended') {
+      calls.delete(callId);
+    }
+  }
+}
 ```
 
 ### calling.begin (DEPRECATED)
@@ -297,15 +304,18 @@ When a caller hangs up, the server destroys the call. If your client tries to se
 
 Handle it gracefully: log it and return an empty result instead of raising an exception. This avoids noisy errors in production when callers hang up mid-IVR.
 
-```python
-async def execute_on_call(method, params):
-    try:
-        return await execute(f"calling.{method}", params)
-    except RelayError as e:
-        if e.code in (404, 410):
-            log.info(f"Call gone during {method}")
-            return {}
-        raise
+```typescript
+async function executeOnCall(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  try {
+    return await execute(`calling.${method}`, params);
+  } catch (e) {
+    if (e instanceof RelayError && (e.code === 404 || e.code === 410)) {
+      log.info(`Call gone during ${method}`);
+      return {};
+    }
+    throw e;
+  }
+}
 ```
 
 Also: if an action (play, record, etc.) gets a call-gone response, resolve the action's Future immediately so `action.wait()` doesn't hang forever.
@@ -1220,29 +1230,30 @@ Terminal states: `delivered`, `undelivered`, `failed`
 
 The Message object is simpler than Call — it's a data holder with state tracking:
 
-```python
-class Message:
-    message_id: str
-    context: str
-    direction: str       # "inbound" or "outbound"
-    from_number: str
-    to_number: str
-    body: str
-    media: list[str]
-    segments: int
-    state: str           # current message_state
-    reason: str          # failure reason (on failed/undelivered)
-    tags: list[str]
+```typescript
+class Message {
+  messageId!: string;
+  context!: string;
+  direction!: 'inbound' | 'outbound';
+  fromNumber!: string;
+  toNumber!: string;
+  body!: string;
+  media!: string[];
+  segments!: number;
+  state!: string; // current message_state
+  reason?: string; // failure reason (on failed/undelivered)
+  tags!: string[];
 
-    # Completion
-    is_done: bool        # True when terminal state reached
-    result: RelayEvent   # Terminal event (or None)
+  // Completion
+  isDone!: boolean; // true when terminal state reached
+  result?: RelayEvent; // terminal event (or undefined)
 
-    async def wait(timeout=None) -> RelayEvent
-    def on(handler)      # Register state change listener
+  wait(timeout?: number): Promise<RelayEvent>;
+  on(handler: (event: RelayEvent) => void): void; // register state-change listener
+}
 ```
 
-The `on_completed` callback pattern from calling actions applies here too — pass it to `send_message()` and it fires when a terminal state is reached.
+The `onCompleted` callback pattern from calling actions applies here too — pass it to `sendMessage()` and it fires when a terminal state is reached.
 
 ### Messaging Checklist
 

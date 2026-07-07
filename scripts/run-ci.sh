@@ -45,9 +45,11 @@ PORT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$PORT_ROOT/.sw-tmp"  # repo-local CI scratch (never /tmp)
 PORT_NAME="signalwire-typescript"
 
-# Ensure node 24 is on PATH for vitest/npx/tsx (matches CI image expectation).
-NODE_BIN="/home/devuser/.config/nvm/versions/node/v24.14.1/bin"
-if [ -d "$NODE_BIN" ]; then
+# Ensure the pinned node is on PATH for vitest/npx/tsx when the caller points
+# $SW_NODE_BIN at one (local-dev convenience). In CI, actions/setup-node already
+# puts node 24 on PATH, so $SW_NODE_BIN is unset and the existing PATH is used.
+NODE_BIN="${SW_NODE_BIN:-}"
+if [ -n "$NODE_BIN" ] && [ -d "$NODE_BIN" ]; then
     export PATH="$NODE_BIN:$PATH"
 fi
 

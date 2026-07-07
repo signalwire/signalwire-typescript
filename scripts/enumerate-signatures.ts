@@ -37,9 +37,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
 // PORTING_SDK is the env var run-ci.sh exports; PSDK is a legacy alias.
-// Fallback to the dev-machine adjacency convention only if neither is set.
+// Fallback to the sibling-adjacency convention (../porting-sdk) if neither is set.
 const PSDK =
-  process.env.PORTING_SDK ?? process.env.PSDK ?? '/usr/local/home/devuser/src/porting-sdk';
+  process.env.PORTING_SDK ?? process.env.PSDK ?? path.resolve(REPO_ROOT, '..', 'porting-sdk');
 
 // ---------------------------------------------------------------------------
 // Translation tables — kept in sync with enumerate-surface.ts.

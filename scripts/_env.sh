@@ -21,10 +21,13 @@ REPO="$(dirname "$_ENV_DIR")"
 export REPO
 
 # --- node toolchain on PATH ---------------------------------------------------
-# Prefer the CI image's pinned node if present (matches run-ci's expectation),
-# then fall back to whatever node/npm is already on the caller's PATH.
-_NODE_BIN="/home/devuser/.config/nvm/versions/node/v24.14.1/bin"
-if [ -d "$_NODE_BIN" ]; then
+# Prefer a pinned node bin dir when the caller points $SW_NODE_BIN at one
+# (local-dev convenience: e.g. an nvm install of node 24), then fall back to
+# whatever node/npm is already on the caller's PATH. In CI, actions/setup-node
+# puts the right node on PATH, so $SW_NODE_BIN is unset there and the fallback
+# is used.
+_NODE_BIN="${SW_NODE_BIN:-}"
+if [ -n "$_NODE_BIN" ] && [ -d "$_NODE_BIN" ]; then
     export PATH="$_NODE_BIN:$PATH"
 fi
 
