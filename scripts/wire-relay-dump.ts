@@ -51,59 +51,73 @@ async function main(): Promise<void> {
   const out: Record<string, unknown> = {};
 
   // ────────────────────────────────────────────────────────────────
-  // verb + action frames — capture what Call._execute hands to the wire
+  // verb + action frames — capture at the CLIENT-SEND boundary
   // ────────────────────────────────────────────────────────────────
-  // A recording client: records the latest frame per method and returns a
-  // canned success so verbs/actions proceed (mirrors _RecordingCall._execute).
-  const frames = new Map<string, Record<string, unknown>>();
-  const recordingClient = {
+  // Mirrors the python oracle's _run_verb: build a REAL Call attached to a
+  // recording CLIENT and intercept client.execute — so a frame is observed
+  // ONLY if the verb actually transmits (Call._execute -> client.execute). A
+  // verb that builds a frame but never reaches the client (e.g. rust's
+  // sent_commands Vec, ledger #10) records NOTHING and the case emits the
+  // `_no_frame_transmitted` sentinel, failing the differ.
+  //
+  // Each case gets a FRESH frames buffer + client (not a persistent per-method
+  // Map) so a build-but-never-transmit can't be masked by a prior case's frame.
+  const NO_FRAME = { _no_frame_transmitted: true };
+  const makeClient = (frames: Record<string, unknown>[]) => ({
     execute: async (method: string, params: Record<string, unknown>) => {
-      frames.set(method, params);
+      frames.push({ method, params });
       if (method === 'calling.dial') return { code: '200', message: 'Dialing' };
       if (method === 'messaging.send') return { code: '200', message_id: 'msg-1' };
       return { code: '200' };
     },
+  });
+  // Build a Call (answered state so control-ops proceed) against a fresh
+  // recording client. Returns [call, frames]; `emit` reads the last transmitted
+  // frame or the no-frame sentinel — the oracle's `frames[-1] if frames else …`.
+  const newCall = (): [InstanceType<typeof Call>, Record<string, unknown>[]] => {
+    const frames: Record<string, unknown>[] = [];
+    const call = new Call(makeClient(frames) as any, CALL, NODE, 'proj-1', 'ctx', {
+      state: 'answered' as any,
+    });
+    return [call, frames];
   };
-  // Build a Call in the 'answered' state so control-ops (_start_action) proceed.
-  const newCall = () =>
-    new Call(recordingClient as any, CALL, NODE, 'proj-1', 'ctx', { state: 'answered' as any });
-
-  const last = (method: string): Record<string, unknown> => frames.get(method) ?? {};
+  const emit = (frames: Record<string, unknown>[]): Record<string, unknown> =>
+    frames.length ? (frames[frames.length - 1] as Record<string, unknown>) : NO_FRAME;
 
   // relay_play
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.play([{ type: 'audio', params: { url: 'https://x/a.mp3' } }], {
       volume: 5.0,
       controlId: CID,
     });
-    out['relay_play'] = frame('calling.play', last('calling.play'));
+    out['relay_play'] = emit(frames);
   }
   // relay_play_tts
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.playTTS('Hello world', { voice: 'en-US-Neural' });
-    out['relay_play_tts'] = frame('calling.play', last('calling.play'));
+    out['relay_play_tts'] = emit(frames);
   }
   // relay_record
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.record({ format: 'mp3', beep: true } as any, { controlId: CID });
-    out['relay_record'] = frame('calling.record', last('calling.record'));
+    out['relay_record'] = emit(frames);
   }
   // relay_connect
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.connect([[{ type: 'phone', params: { to_number: '+15551112222' } }]] as any, {
       ringback: [{ type: 'ringtone', params: { name: 'us' } }] as any,
       tag: 'leg-1',
       maxDuration: 3600,
     });
-    out['relay_connect'] = frame('calling.connect', last('calling.connect'));
+    out['relay_connect'] = emit(frames);
   }
   // relay_collect
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.collect({
       digits: { max: 4, terminators: '#' } as any,
       speech: { language: 'en-US' } as any,
@@ -111,88 +125,94 @@ async function main(): Promise<void> {
       partialResults: true,
       controlId: CID,
     });
-    out['relay_collect'] = frame('calling.collect', last('calling.collect'));
+    out['relay_collect'] = emit(frames);
   }
   // relay_prompt (play_and_collect)
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.promptTTS('Enter your PIN', { digits: { max: 4 } } as any, { voice: 'en-US-Neural' });
-    out['relay_prompt'] = frame('calling.play_and_collect', last('calling.play_and_collect'));
+    out['relay_prompt'] = emit(frames);
   }
   // relay_detect
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.detect({ type: 'machine', params: { initial_timeout: 4.0 } } as any, {
       timeout: 30.0,
       controlId: CID,
     });
-    out['relay_detect'] = frame('calling.detect', last('calling.detect'));
+    out['relay_detect'] = emit(frames);
   }
   // relay_detect_amd
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.detectAnsweringMachine({
       initialTimeout: 4.0,
       machineWordsThreshold: 6,
       timeout: 30.0,
     });
-    out['relay_detect_amd'] = frame('calling.detect', last('calling.detect'));
+    out['relay_detect_amd'] = emit(frames);
   }
   // relay_tap
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.tap(
       { type: 'audio', params: { direction: 'both' } } as any,
       { type: 'ws', params: { uri: 'wss://x/tap' } } as any,
       { controlId: CID },
     );
-    out['relay_tap'] = frame('calling.tap', last('calling.tap'));
+    out['relay_tap'] = emit(frames);
   }
   // relay_send_fax
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     await c.sendFax('https://x/doc.pdf', {
       identity: '+15550001111',
       headerInfo: 'Hdr',
       controlId: CID,
     });
-    out['relay_send_fax'] = frame('calling.send_fax', last('calling.send_fax'));
+    out['relay_send_fax'] = emit(frames);
   }
 
   // ---- control-ops (Action methods) ----
+  // The oracle clears the verb's own frame before the action, so we observe
+  // ONLY the action's transmitted frame (fresh buffer per case does the same).
   // relay_play_stop
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     const pa = await c.play([{ type: 'audio', params: { url: 'https://x/a.mp3' } }], {
       controlId: CID,
     });
+    frames.length = 0;
     await pa.stop();
-    out['relay_play_stop'] = frame('calling.play.stop', last('calling.play.stop'));
+    out['relay_play_stop'] = emit(frames);
   }
   // relay_play_pause
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     const pa = await c.play([{ type: 'audio', params: { url: 'https://x/a.mp3' } }], {
       controlId: CID,
     });
+    frames.length = 0;
     await pa.pause('silence');
-    out['relay_play_pause'] = frame('calling.play.pause', last('calling.play.pause'));
+    out['relay_play_pause'] = emit(frames);
   }
   // relay_record_resume
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     const ra = await c.record({ format: 'mp3' } as any, { controlId: CID });
+    frames.length = 0;
     await ra.resume();
-    out['relay_record_resume'] = frame('calling.record.resume', last('calling.record.resume'));
+    out['relay_record_resume'] = emit(frames);
   }
   // relay_play_volume
   {
-    const c = newCall();
+    const [c, frames] = newCall();
     const pa = await c.play([{ type: 'audio', params: { url: 'https://x/a.mp3' } }], {
       controlId: CID,
     });
+    frames.length = 0;
     await pa.volume(3.5);
-    out['relay_play_volume'] = frame('calling.play.volume', last('calling.play.volume'));
+    out['relay_play_volume'] = emit(frames);
   }
 
   // ────────────────────────────────────────────────────────────────

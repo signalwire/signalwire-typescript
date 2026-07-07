@@ -143,6 +143,31 @@ async function main(): Promise<void> {
     out['swml_add_pronunciation'] = extract(render(a), 'ai.pronounce');
   }
 
+  // swml_define_tool_complete_schema: define_tool with a COMPLETE
+  // {type,properties,required} schema must render ai.SWAIG.functions[?fn=lookup]
+  // .parameters as that schema FLAT (pass-through), NOT double-wrapped.
+  {
+    const a = newAgent();
+    a.defineTool({
+      name: 'lookup',
+      description: 'Look up a thing',
+      parameters: { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] },
+      handler: () => ({}),
+    });
+    const funcs = extract(render(a), 'ai.SWAIG.functions');
+    let params: unknown = null;
+    if (Array.isArray(funcs)) {
+      const match = funcs.find(
+        (f) =>
+          f && typeof f === 'object' && (f as Record<string, unknown>)['function'] === 'lookup',
+      );
+      if (match && typeof match === 'object') {
+        params = (match as Record<string, unknown>)['parameters'];
+      }
+    }
+    out['swml_define_tool_complete_schema'] = params;
+  }
+
   process.stdout.write(JSON.stringify(out) + '\n');
 }
 
