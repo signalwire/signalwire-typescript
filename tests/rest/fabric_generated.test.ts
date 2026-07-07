@@ -52,7 +52,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('aiAgents_create success', async () => {
-    await client.fabric.aiAgents.create({ prompt: { text: 'x' }, agent_id: 'x', name: 'x' });
+    await client.fabric.aiAgents.create({ prompt: { text: 'x' }, name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_ai_agent');
@@ -61,7 +61,7 @@ describe('fabric wire (generated)', () => {
   it('aiAgents_create error', async () => {
     await mock.pushScenario('fabric.create_ai_agent', 500, { error: 'x' });
     await expect(
-      client.fabric.aiAgents.create({ prompt: { text: 'x' }, agent_id: 'x', name: 'x' }),
+      client.fabric.aiAgents.create({ prompt: { text: 'x' }, name: 'x' }),
     ).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
@@ -849,7 +849,6 @@ describe('fabric wire (generated)', () => {
 
   it('sipEndpoints_create success', async () => {
     await client.fabric.sipEndpoints.create({
-      id: 'x',
       username: 'x',
       caller_id: 'x',
       send_as: 'x',
@@ -868,7 +867,6 @@ describe('fabric wire (generated)', () => {
     await mock.pushScenario('fabric.create_sip_endpoint', 500, { error: 'x' });
     await expect(
       client.fabric.sipEndpoints.create({
-        id: 'x',
         username: 'x',
         caller_id: 'x',
         send_as: 'x',

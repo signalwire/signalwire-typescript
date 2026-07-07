@@ -74,7 +74,7 @@ export interface AIAgentCreateRequest {
   /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
   SWAIG?: SWAIG;
   /** Unique ID of an AI Agent. */
-  agent_id: uuid;
+  agent_id?: uuid;
   /** Name of the AI Agent. */
   name: string;
 }
@@ -4280,7 +4280,7 @@ export interface SipEndpointAddressPaginationResponse {
 
 export interface SipEndpointCreateRequest {
   /** The id of the Sip Endpoint */
-  id: uuid;
+  id?: uuid;
   /** The username of the Sip Endpoint */
   username: string;
   /** The caller ID that will showup when dialing from this Sip Endpoint */
