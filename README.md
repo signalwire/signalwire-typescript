@@ -40,6 +40,7 @@ npm install @signalwire/sdk
 
 Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig-reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
 
+<!-- include: examples/quickstart-agent.ts#construct -->
 ```typescript
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
@@ -109,6 +110,7 @@ See [examples/README.md](examples/README.md) for the full list organized by cate
 
 Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you imperative, async control over live phone calls and SMS/MMS.
 
+<!-- include: examples/quickstart-relay.ts#construct -->
 ```typescript
 import { RelayClient, Call } from '@signalwire/sdk';
 
@@ -118,9 +120,7 @@ const client = new RelayClient({
 
 client.onCall(async (call: Call) => {
   await call.answer();
-  const action = await call.play([
-    { type: 'tts', text: 'Welcome to SignalWire!' },
-  ]);
+  const action = await call.play([{ type: 'tts', text: 'Welcome to SignalWire!' }]);
   await action.wait();
   await call.hangup();
 });
@@ -141,6 +141,7 @@ See the **[RELAY documentation](relay/README.md)** for the full guide, API refer
 
 Typed HTTP client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required -- just standard `fetch` requests.
 
+<!-- include: examples/quickstart-rest.ts#construct -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -151,9 +152,9 @@ const client = new RestClient({
 });
 
 await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
-await client.calling.play(callId, { play: [{ type: 'tts', text: 'Hello!' }] });
-await client.phoneNumbers.search({ areaCode: '512' });
-await client.datasphere.documents.search({ query_string: 'billing policy' });
+await client.calling.play(callId, [{ type: 'tts', text: 'Hello!' }]);
+await client.phoneNumbers.search({ area_code: '512' });
+await client.datasphere.documents.search('billing policy');
 ```
 
 - 21 namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more

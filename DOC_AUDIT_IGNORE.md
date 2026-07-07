@@ -24,6 +24,7 @@ line to add here. This file is for **external** identifiers only:
 
 toISOString: Date.prototype.toISOString() — JavaScript built-in
 toLocaleString: Date.prototype.toLocaleString() — JavaScript built-in
+toLocaleTimeString: Date.prototype.toLocaleTimeString() — JavaScript built-in
 toLowerCase: String.prototype.toLowerCase() — JavaScript built-in
 toUpperCase: String.prototype.toUpperCase() — JavaScript built-in
 trim: String.prototype.trim() — JavaScript built-in
