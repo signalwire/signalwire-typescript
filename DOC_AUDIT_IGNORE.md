@@ -38,10 +38,12 @@ exit: process.exit() — Node.js built-in
 uptime: process.uptime() — Node.js built-in
 memoryUsage: process.memoryUsage() — Node.js built-in
 createServer: https.createServer() / http.createServer() — Node.js built-in
+cwd: process.cwd() — Node.js built-in (ConfigLoader.search doc lists CWD as a search path)
 
 ## Hono (HTTP framework)
 
 use: Hono app.use(middleware) — Hono framework method; not on SDK classes
+fetch: Hono app.fetch(request) — Hono framework request entry point; not on SDK classes
 
 ## Wire-level snake_case identifiers referenced in docs
 
