@@ -456,9 +456,15 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
-      // CONTRACT: returns within ~deadline + slack despite the hung fetch.
+      // CONTRACT: the deadline ends the hung fetches — the handler RETURNS
+      // (the stub can never resolve on its own, so returning at all proves the
+      // deadline fired) and it doesn't return instantly (the deadline is real,
+      // not a synchronous bail). Wall-clock upper bounds here must be loose:
+      // on a loaded 2-core CI runner JS timers fire seconds late (matrix run
+      // 28939151975 measured 5019ms for the sequential sibling), so a tight
+      // bound asserts scheduler latency, not our logic.
       expect(elapsed).toBeGreaterThanOrEqual(900);
-      expect(elapsed).toBeLessThan(2500);
+      expect(elapsed).toBeLessThan(7000); // sanity: below the 8s test timeout
       // CONTRACT: non-empty snippet fallback (not the empty "no results" msg).
       expect(result.response).toContain('Snippet-only results');
       expect(result.response).toContain('First CSE snippet about widgets.');
@@ -470,19 +476,28 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
   }, 8000);
 
   it('overall_deadline is enforced in sequential mode too', async () => {
-    const restore = installStubFetch({ scrapeDelayMs: Number.POSITIVE_INFINITY });
+    let scrapeCalls = 0;
+    const restore = installStubFetch({
+      scrapeDelayMs: Number.POSITIVE_INFINITY,
+      onScrape: () => {
+        scrapeCalls++;
+      },
+    });
     try {
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: false });
-      const start = Date.now();
       const result = (await skill
         .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
-      const elapsed = Date.now() - start;
 
-      // Sequential: first page hangs until its per_page_timeout (default 2.0s)
-      // OR the deadline; the 1.0s deadline must win and stop the loop, so we
-      // never wait the full 2 pages × 2s.
-      expect(elapsed).toBeLessThan(2500);
+      // Sequential: page 1 starts before the 1.0s deadline and hangs until the
+      // deadline's shared AbortController (or its per_page_timeout) ends it;
+      // the loop's deadline check must then prevent page 2 from EVER starting.
+      // Assert that observable — the scrape-call count — rather than wall
+      // clock: under CI CPU starvation timers fire seconds late and an
+      // elapsed-ms bound flakes on scheduler latency while the deadline logic
+      // is perfectly correct (seen at 5019ms on a loaded runner, matrix run
+      // 28939151975).
+      expect(scrapeCalls).toBe(1);
       expect(result.response).toContain('Snippet-only results');
       expect(result.response).toContain('First CSE snippet about widgets.');
     } finally {
