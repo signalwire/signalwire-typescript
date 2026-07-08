@@ -16,3 +16,8 @@ __pycache__/
 
 # sw-verify repo-local scratch
 .sw-tmp/
+
+# Track the shared Claude Code permission set (rest of .claude/ stays local)
+!.claude/
+.claude/*
+!.claude/settings.json
