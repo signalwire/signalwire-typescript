@@ -32,7 +32,7 @@ const logger = getLogger('rest_client');
  * // Use namespaced resources
  * await client.fabric.aiAgents.list();
  * await client.calling.play(callId, { play: [...] });
- * await client.phoneNumbers.search({ areaCode: '512' });
+ * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
  * ```
  */

@@ -21,7 +21,7 @@ declare const httpClient: import('@signalwire/sdk').HttpClient;
 const agents = await client.fabric.aiAgents.list();
 
 // Search phone numbers
-const numbers = await client.phoneNumbers.search({ areaCode: '512' });
+const numbers = await client.phoneNumbers.search({ areacode: '512' });
 
 // Play audio into a call (the `play` array is positional)
 await client.calling.play('call-id', [{ type: 'audio', url: 'https://example.com/audio.mp3' }]);

@@ -18,7 +18,7 @@ let numbers = await client.phoneNumbers.list();
 numbers = await client.phoneNumbers.list({ name: 'Main' });
 
 // Search available numbers to purchase
-const available = await client.phoneNumbers.search({ areaCode: '512', numberType: 'local' });
+const available = await client.phoneNumbers.search({ areacode: '512', numberType: 'local' });
 
 // Purchase a number
 const number = await client.phoneNumbers.create({ number: '+15551234567' });
@@ -29,7 +29,7 @@ await client.phoneNumbers.update('pn-uuid', { name: 'Support Line' });
 await client.phoneNumbers.delete('pn-uuid');
 ```
 
-> Search filters are camelCase: use `areaCode`, not `area_code`.
+> Search filters use the WIRE parameter names verbatim: `areacode` (all lowercase, as in the REST spec) — `areaCode` and `area_code` are silently ignored by the server.
 
 ## Addresses
 

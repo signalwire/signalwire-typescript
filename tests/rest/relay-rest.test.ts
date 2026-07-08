@@ -27,9 +27,9 @@ describe('PhoneNumbersResource', () => {
   it('searches available numbers', async () => {
     const { http, getRequests } = makeHttp();
     const res = new PhoneNumbersResource(http);
-    await res.search({ areaCode: '512' });
+    await res.search({ areacode: '512' });
     expect(getRequests()[0]!.url).toContain('/api/relay/rest/phone_numbers/search');
-    expect(getRequests()[0]!.url).toContain('areaCode=512');
+    expect(getRequests()[0]!.url).toContain('areacode=512');
   });
 
   it('updates with PUT', async () => {

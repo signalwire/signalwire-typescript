@@ -165,7 +165,7 @@ const client = new RestClient({
 });
 
 await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
-await client.calling.play(callId, [{ type: 'tts', text: 'Hello!' }]);
+await client.calling.play(callId, [{ type: 'tts', params: { text: 'Hello!' } }]);
 await client.phoneNumbers.search({ area_code: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
