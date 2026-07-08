@@ -13,10 +13,10 @@ describe('parseFunctionParams', () => {
     };
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(2);
-    expect(params[0].name).toBe('city');
-    expect(params[0].defaultValue).toBeUndefined();
-    expect(params[1].name).toBe('count');
-    expect(params[1].defaultValue).toBe('5');
+    expect(params[0]!.name).toBe('city');
+    expect(params[0]!.defaultValue).toBeUndefined();
+    expect(params[1]!.name).toBe('count');
+    expect(params[1]!.defaultValue).toBe('5');
   });
 
   it('parses regular function', () => {
@@ -25,8 +25,8 @@ describe('parseFunctionParams', () => {
     }
     const params = parseFunctionParams(myFunc.toString());
     expect(params.length).toBe(2);
-    expect(params[0].name).toBe('city');
-    expect(params[1].name).toBe('count');
+    expect(params[0]!.name).toBe('city');
+    expect(params[1]!.name).toBe('count');
   });
 
   it('parses function with no params', () => {
@@ -39,17 +39,43 @@ describe('parseFunctionParams', () => {
     const fn = (name = 'world') => name;
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(1);
-    expect(params[0].name).toBe('name');
+    expect(params[0]!.name).toBe('name');
     // JS runtime may use single or double quotes in Function.toString()
-    expect(params[0].defaultValue).toMatch(/^['"]world['"]$/);
+    expect(params[0]!.defaultValue).toMatch(/^['"]world['"]$/);
   });
 
   it('parses function with boolean default', () => {
     const fn = (verbose = true) => verbose;
     const params = parseFunctionParams(fn.toString());
     expect(params.length).toBe(1);
-    expect(params[0].name).toBe('verbose');
-    expect(params[0].defaultValue).toBe('true');
+    expect(params[0]!.name).toBe('verbose');
+    expect(params[0]!.defaultValue).toBe('true');
+  });
+});
+
+describe('inferSchema — typed-handler → SWAIG param schema (oracle infer_schema idiom)', () => {
+  // The oracle's infer_schema returns a positional 5-tuple
+  // (properties, required, description, ...); TS returns the equivalent
+  // InferredSchema struct. Assert a typed tool handler maps to the same schema
+  // content: a properties map keyed by param name, a required list, and the
+  // rawData flag — the struct fields that correspond to the tuple positions.
+  it('builds a SWAIG parameter schema from a typed tool handler', () => {
+    const handler = (city: string, units = 'metric', includeForecast = false) => {
+      void [city, units, includeForecast];
+    };
+    const schema = inferSchema(handler);
+    expect(schema).not.toBeNull();
+    // properties (tuple[0])
+    expect(schema!.parameters).toEqual({
+      city: { type: 'string', description: 'The city parameter' },
+      units: { type: 'string', description: 'The units parameter' },
+      includeForecast: { type: 'boolean', description: 'The includeForecast parameter' },
+    });
+    // required (tuple[1]) — only params without a default
+    expect(schema!.required).toEqual(['city']);
+    // hasRawData flag (a static-port field with no positional-tuple slot)
+    expect(schema!.hasRawData).toBe(false);
+    expect(schema!.paramNames).toEqual(['city', 'units', 'includeForecast']);
   });
 });
 
@@ -61,9 +87,9 @@ describe('inferSchema', () => {
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
     expect(schema!.paramNames).toEqual(['city', 'count', 'verbose']);
-    expect(schema!.parameters['city'].type).toBe('string');
-    expect(schema!.parameters['count'].type).toBe('integer');
-    expect(schema!.parameters['verbose'].type).toBe('boolean');
+    expect(schema!.parameters['city']!.type).toBe('string');
+    expect(schema!.parameters['count']!.type).toBe('integer');
+    expect(schema!.parameters['verbose']!.type).toBe('boolean');
     expect(schema!.required).toEqual(['city']);
   });
 
@@ -116,7 +142,7 @@ describe('inferSchema', () => {
     const fn = (greeting = 'hello') => greeting;
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
-    expect(schema!.parameters['greeting'].type).toBe('string');
+    expect(schema!.parameters['greeting']!.type).toBe('string');
     expect(schema!.required).toEqual([]);
   });
 
@@ -124,7 +150,7 @@ describe('inferSchema', () => {
     const fn = (temp = 98.6) => temp;
     const schema = inferSchema(fn);
     expect(schema).not.toBeNull();
-    expect(schema!.parameters['temp'].type).toBe('number');
+    expect(schema!.parameters['temp']!.type).toBe('number');
   });
 
   it('params without defaults are required', () => {

@@ -5,7 +5,7 @@
  * shared secret. No server-side state is stored.
  */
 
-import { randomBytes, createHmac } from 'node:crypto';
+import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { getLogger } from './Logger.js';
 
 /** Decoded token debug info matching the Python SDK's nested return structure. */
@@ -72,7 +72,8 @@ export class SessionManager {
    */
   generateToken(functionName: string, callId: string): string {
     const expiry = Math.floor(Date.now() / 1000) + this.tokenExpirySecs;
-    const nonce = randomBytes(16).toString('hex');
+    // 8 random bytes -> 16 hex chars (parity with Python's secrets.token_hex(8)).
+    const nonce = randomBytes(8).toString('hex');
     const message = `${callId}:${functionName}:${expiry}:${nonce}`;
     const signature = createHmac('sha256', this.secretKey).update(message).digest('hex');
     const token = `${callId}.${functionName}.${expiry}.${nonce}.${signature}`;
@@ -83,7 +84,7 @@ export class SessionManager {
 
   /**
    * Generate a signed token. Equivalent to {@link generateToken} (same
-   * parameter order); both exist for Python parity (`SessionManager`
+   * parameter order); both exist to match the Python SDK (`SessionManager`
    * exposes `generate_token` and `create_tool_token`).
    * @param functionName - The SWAIG function name to bind.
    * @param callId - The call ID to bind.
@@ -134,7 +135,14 @@ export class SessionManager {
 
       const message = `${tokenCallId}:${tokenFunction}:${tokenExpiry}:${tokenNonce}`;
       const expectedSig = createHmac('sha256', this.secretKey).update(message).digest('hex');
-      if (tokenSignature !== expectedSig) {
+      // CONSTANT-TIME compare (parity with Python's hmac.compare_digest) — a
+      // plain `!==` short-circuits at the first mismatched character and leaks
+      // signature bytes via timing. A length mismatch is not secret (the HMAC
+      // hex digest is a fixed 64 chars) so guarding it before timingSafeEqual
+      // (which requires equal-length buffers) is safe.
+      const sigBuf = Buffer.from(tokenSignature, 'utf-8');
+      const expectedBuf = Buffer.from(expectedSig, 'utf-8');
+      if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
         this.log.warn('token_invalid', { function: functionName });
         return false;
       }
@@ -155,7 +163,7 @@ export class SessionManager {
    * Validate a token. Equivalent to {@link validateToken}, but **note the
    * different parameter order** — `validateToolToken(functionName, token,
    * callId)` vs `validateToken(callId, functionName, token)`. Both exist for
-   * Python parity (`SessionManager.validate_token` / `validate_tool_token`,
+   * matching the Python SDK (`SessionManager.validate_token` / `validate_tool_token`,
    * which use these exact orders). The forwarding maps the arguments to the
    * correct positions, so both produce identical validation for the same
    * logical token; just be careful not to pass arguments in the wrong order

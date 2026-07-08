@@ -38,8 +38,7 @@ async function main() {
   // 3. Generate a join token
   console.log('\nGenerating room token...');
   try {
-    const token = await client.video.roomTokens.create({
-      room_name: 'daily-standup',
+    const token = await client.video.roomTokens.create('daily-standup', {
       user_name: 'alice',
       permissions: ['room.self.audio_mute', 'room.self.video_mute'],
     });
@@ -132,9 +131,10 @@ async function main() {
   if (confId) {
     console.log('\nCreating stream on conference...');
     try {
-      const stream = await client.video.conferences.createStream(confId, {
-        url: 'rtmp://live.example.com/stream-key',
-      });
+      const stream = await client.video.conferences.createStream(
+        confId,
+        'rtmp://live.example.com/stream-key',
+      );
       streamId = stream.id;
       console.log(`  Created stream: ${streamId}`);
     } catch (err) {
@@ -151,7 +151,7 @@ async function main() {
       const sDetail = await client.video.streams.get(streamId);
       console.log(`  Stream URL: ${sDetail.url ?? 'N/A'}`);
 
-      await client.video.streams.update(streamId, { url: 'rtmp://backup.example.com/stream-key' });
+      await client.video.streams.update(streamId, 'rtmp://backup.example.com/stream-key');
       console.log('  Stream URL updated');
     } catch (err) {
       if (err instanceof RestError) {

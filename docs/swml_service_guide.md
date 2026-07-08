@@ -1,5 +1,15 @@
 # SignalWire SWML Service Guide
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const SWMLService: typeof import('@signalwire/sdk').SWMLService;
+  const SwmlBuilder: typeof import('@signalwire/sdk').SwmlBuilder;
+  const service: import('@signalwire/sdk').SWMLService;
+}
+```
+
 ## Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -86,6 +96,7 @@ Logging is configured globally by the SDK's `Logger` module.
 
 ### Using the Logger
 
+<!-- snippet: no-compile fragment from inside an SWMLService subclass method; uses `this.log` / `document` -->
 ```typescript
 // Basic logging
 this.log.info('service_started');
@@ -168,6 +179,7 @@ platform format):
 When you add a verb, the service validates it against the schema to ensure it has the
 correct structure and parameters. An invalid config throws an error:
 
+<!-- snippet: no-compile fragment from inside an SWMLService subclass method; uses `this.addVerb` -->
 ```typescript
 // This validates the configuration against the schema
 this.addVerb('play', { url: 'say:Hello, world!', volume: 5 });

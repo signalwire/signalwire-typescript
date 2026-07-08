@@ -9,7 +9,7 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { Hono } from 'hono';
 
-import { webhookValidationMiddleware } from '../src/WebhookMiddleware.js';
+import { webhookValidationMiddleware, validate } from '../src/WebhookMiddleware.js';
 
 const KEY = 'PSKtest1234567890abcdef';
 const RAW_BODY = '{"event":"call.state","params":{"call_id":"abc-123"}}';
@@ -131,7 +131,10 @@ describe('webhookValidationMiddleware', () => {
     let observedRawBody: string | undefined;
     app.use('/webhook', webhookValidationMiddleware({ signingKey: KEY }));
     app.post('/webhook', (c) => {
-      observedRawBody = c.get('rawBody') as string | undefined;
+      // `rawBody` is set by the validation middleware via c.set but isn't in
+      // this untyped Hono app's Variables map, so c.get rejects the key; read
+      // it through an untyped getter (the middleware guarantees it at runtime).
+      observedRawBody = (c.get as (key: string) => unknown)('rawBody') as string | undefined;
       return c.json({ ok: true });
     });
 
@@ -241,5 +244,61 @@ describe('webhookValidationMiddleware', () => {
     });
 
     expect(res.status).toBe(403);
+  });
+});
+
+/**
+ * The framework-free decomposed decision core. This is the cross-port contract
+ * (`signalwire.core.security.webhook_middleware.validate`): decomposed request
+ * primitives in, `null` (pass) or a `[status, headers, body]` rejection triple
+ * out — no Hono/framework objects involved.
+ */
+describe('validate (decomposed framework-free core)', () => {
+  const URL = 'http://localhost/webhook';
+
+  it('returns null (pass) for a valid Scheme-A signature', () => {
+    const sig = schemeASig(KEY, URL, RAW_BODY);
+    const result = validate('POST', URL, { 'X-SignalWire-Signature': sig }, RAW_BODY, KEY);
+    expect(result).toBeNull();
+  });
+
+  it('returns a [403, {}, body] rejection triple for a bad signature', () => {
+    const result = validate(
+      'POST',
+      URL,
+      { 'X-SignalWire-Signature': 'definitely-not-a-real-signature' },
+      RAW_BODY,
+      KEY,
+    );
+    expect(result).not.toBeNull();
+    const [status, headers, body] = result!;
+    expect(status).toBe(403);
+    expect(headers).toEqual({});
+    // Body carries no detail about which scheme/branch failed.
+    expect(body).toBe('Forbidden');
+  });
+
+  it('returns a 403 triple when the signature header is missing (never throws)', () => {
+    const result = validate('POST', URL, { 'Content-Type': 'application/json' }, RAW_BODY, KEY);
+    expect(result).not.toBeNull();
+    expect(result![0]).toBe(403);
+  });
+
+  it('honors the X-Twilio-Signature alias header', () => {
+    const sig = schemeASig(KEY, URL, RAW_BODY);
+    // Only the Twilio alias present, no X-SignalWire-Signature.
+    const result = validate('POST', URL, { 'X-Twilio-Signature': sig }, RAW_BODY, KEY);
+    expect(result).toBeNull();
+  });
+
+  it('looks up the signature header case-insensitively', () => {
+    const sig = schemeASig(KEY, URL, RAW_BODY);
+    const result = validate('POST', URL, { 'x-signalwire-signature': sig }, RAW_BODY, KEY);
+    expect(result).toBeNull();
+  });
+
+  it('throws when the signing key is missing (programming error, not a rejection)', () => {
+    const sig = schemeASig(KEY, URL, RAW_BODY);
+    expect(() => validate('POST', URL, { 'X-SignalWire-Signature': sig }, RAW_BODY, '')).toThrow();
   });
 });

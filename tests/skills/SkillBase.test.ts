@@ -49,7 +49,7 @@ describe('SkillBase', () => {
     const skill = new TestSkill();
     const tools = skill.getTools();
     expect(tools.length).toBe(1);
-    expect(tools[0].name).toBe('test_tool');
+    expect(tools[0]!.name).toBe('test_tool');
   });
 
   it('returns prompt sections', () => {

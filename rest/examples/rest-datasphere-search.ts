@@ -62,8 +62,7 @@ async function main() {
 
   // 4. Semantic search across all documents
   console.log('\nSearching Datasphere...');
-  const results = await client.datasphere.documents.search({
-    query_string: 'lorem ipsum dolor sit amet',
+  const results = await client.datasphere.documents.search('lorem ipsum dolor sit amet', {
     count: 3,
   });
   for (const chunk of results.chunks ?? []) {

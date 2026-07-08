@@ -130,7 +130,7 @@ describe('examples', () => {
       // Check the AI params contain temperature
       const sections = swml['sections'] as Record<string, SwmlVerb[]>;
       const main = sections['main'];
-      const aiVerb = main.find((v) => v['ai']) as {
+      const aiVerb = main!.find((v) => v['ai']) as {
         ai: { params: Record<string, unknown> };
       };
       expect(aiVerb).toBeDefined();
@@ -181,7 +181,7 @@ describe('examples', () => {
       expect(swml).toHaveProperty('version');
       const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
       // Should have pre-answer play verb
-      expect(main.some((v) => v['play'])).toBe(true);
+      expect(main!.some((v) => v['play'])).toBe(true);
     });
   });
 
@@ -201,9 +201,9 @@ describe('examples', () => {
       const doc = svc.renderSwml() as Record<string, unknown>;
       expect(doc).toHaveProperty('version', '1.0.0');
       const main = (doc['sections'] as Record<string, SwmlVerb[]>)['main'];
-      expect(main.length).toBeGreaterThan(0);
+      expect(main!.length).toBeGreaterThan(0);
       // No AI block in any verb
-      for (const verb of main) {
+      for (const verb of main!) {
         expect(verb).not.toHaveProperty('ai');
       }
     });

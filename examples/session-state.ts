@@ -7,7 +7,7 @@
  */
 
 import { AgentBase, FunctionResult } from '../src/index.js';
-import type { AgentOptions, PostPromptData } from '../src/index.js';
+import type { AgentOptions, PostPrompt, PostPromptData } from '../src/index.js';
 
 class OrderAgent extends AgentBase {
   static override PROMPT_SECTIONS = [
@@ -52,14 +52,10 @@ class OrderAgent extends AgentBase {
     });
   }
 
-  override async onSummary(
-    summary: Record<string, unknown> | null,
-    rawData: PostPromptData,
-  ): Promise<void> {
+  override async onSummary(summary: PostPromptData | null, rawData: PostPrompt): Promise<void> {
     console.log('=== Call Summary ===');
-    // call_id lives under params on the post-prompt body (PostPromptData),
-    // not at the top level.
-    console.log('Call ID:', rawData.params.call_id);
+    // call_id is a top-level field on the post-prompt payload (PostPrompt).
+    console.log('Call ID:', rawData.call_id);
     console.log('Summary:', JSON.stringify(summary, null, 2));
     console.log('===================');
   }

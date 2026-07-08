@@ -145,9 +145,37 @@ Options:
 `);
 }
 
-function parseArgs(argv: string[]): CliOptions {
+/**
+ * Detect the `--parse-only` (alias `--dry-run`) flag anywhere in the arg list
+ * and return a copy of `argv` with every occurrence stripped, plus whether it
+ * was present.
+ *
+ * Stripping is done FIRST — before the regular parser sees the tokens — for two
+ * reasons, mirroring the Python reference (signalwire/cli/test_swaig.py):
+ *   1. Position-independence. `--exec <name>` consumes the following token as
+ *      the function name, so a `--parse-only` trailing an `--exec foo` would
+ *      otherwise be eaten as a function argument. Removing it up front means it
+ *      is honored wherever it appears, including after `--exec`.
+ *   2. It is a boolean that takes no value, so removing it cannot desync the
+ *      value-consuming flags (`--arg`, `--env`, `--call-id`, …) around it.
+ */
+function stripParseOnly(argv: string[]): { argv: string[]; parseOnly: boolean } {
+  const parseOnly = argv.includes('--parse-only') || argv.includes('--dry-run');
+  if (!parseOnly) return { argv, parseOnly: false };
+  return {
+    argv: argv.filter((a) => a !== '--parse-only' && a !== '--dry-run'),
+    parseOnly: true,
+  };
+}
+
+function parseArgs(argv: string[], parseOnly = false): CliOptions {
   const args = argv.slice(2); // skip node + script
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+  // `--help`/`-h` prints usage and exits 0 regardless. A bare invocation with no
+  // args is also usage — but NOT when it is `--parse-only` alone: that is a
+  // missing-required-positional error, which must fall through to the
+  // `!opts.agentPath` path and exit non-zero (matching the Python reference's
+  // argparse exit 2), never print usage-and-exit-0.
+  if (args.includes('--help') || args.includes('-h') || (args.length === 0 && !parseOnly)) {
     printUsage();
     process.exit(0);
   }
@@ -169,10 +197,12 @@ function parseArgs(argv: string[]): CliOptions {
 
   let i = 0;
 
-  // First positional arg is the agent path
-  if (!args[0]!.startsWith('--')) {
-    // args.length === 0 returns above, so args[0] is present.
-    opts.agentPath = args[0]!;
+  // First positional arg is the agent path. `args` is normally non-empty here
+  // (the args.length===0 short-circuit above), but under `--parse-only` alone it
+  // can be empty (parse-only was stripped) — in which case agentPath stays unset
+  // and the `!opts.agentPath` check below reports the missing-positional error.
+  if (args[0] !== undefined && !args[0].startsWith('--')) {
+    opts.agentPath = args[0];
     i = 1;
   }
 
@@ -346,7 +376,19 @@ interface LoadedTarget {
 }
 
 async function main(): Promise<void> {
-  const opts = parseArgs(process.argv);
+  // Detect + strip --parse-only / --dry-run FIRST, so it is position-independent
+  // (honored even trailing an --exec) and cannot desync value-consuming flags.
+  const { argv, parseOnly } = stripParseOnly(process.argv);
+  const opts = parseArgs(argv, parseOnly);
+
+  // --parse-only / --dry-run: the invocation's arguments parsed cleanly (a bad
+  // arg would already have exited non-zero inside parseArgs). Report success and
+  // exit WITHOUT loading the agent, touching the filesystem, or hitting the
+  // network. This is the canonical cross-port contract mirrored by every port.
+  if (parseOnly) {
+    console.log('parse OK');
+    return;
+  }
 
   if (opts.raw) {
     suppressAllLogs(true);

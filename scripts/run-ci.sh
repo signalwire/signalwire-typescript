@@ -4,37 +4,32 @@
 # Same script invoked locally (`bash scripts/run-ci.sh`) AND by the
 # GitHub Actions workflow. No drift between local and CI behavior.
 #
-# Gates (in order, fail-fast):
-#   1. vitest run                         — language test runner
-#   2. signature regen                    — npx tsx scripts/enumerate-signatures.ts
-#   3. drift gate                         — porting-sdk diff_port_signatures.py
-#   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
-#                                           (regenerates port_surface.json in place via
-#                                            enumerate-surface.ts and fails if the
-#                                            committed copy is stale modulo the
-#                                            generated_from git-sha; closes the Layer-B-
-#                                            not-gated hole — DRIFT gates Layer A only,
-#                                            so port_surface.json silently rots)
-#  4b. gen-fresh gate                      — generate-rest-types.ts --check
-#                                           (regenerates the committed *.types.generated.ts
-#                                            from the canonical schemas and fails on any
-#                                            mismatch; the ONLY gate that validates the
-#                                            generated types' SHAPE — DRIFT can't, since
-#                                            ~40% of the Python reference is Dict[str,Any]
-#                                            and `any` matches any port type)
-#   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
-#   6. emission gate                      — porting-sdk diff_port_emission.py
-#                                           (byte-compares this port's FunctionResult
-#                                            serialisation vs Python's to_dict() over
-#                                            the shared 81-entry corpus; closes the
-#                                            drift-0 hole the surface gates can't see)
-#   7. fmt gate                           — prettier (local: auto-fix; CI: --check)
-#   8. lint gate                          — tsc --noEmit + eslint (.golangci-equiv)
-#   9. doc-audit gate                     — porting-sdk audit_docs.py
-#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
+# The FMT / LINT / TEST gates delegate to the canonical scripts under scripts/
+# (the single documented entry points; see RUN_LINT_FORMAT_SPEC in porting-sdk):
+#   FMT  → scripts/run-format.sh [--check]   (prettier)
+#   LINT → scripts/run-lint.sh               (tsc + eslint)
+#   TEST → scripts/run-tests.sh [filter]     (vitest)
+# They self-bootstrap their node toolchain (scripts/_env.sh) and run from any CWD.
 #
-# Each gate prints `[GATE-NAME] ... PASS` or `[GATE-NAME] ... FAIL: <reason>`
-# Final line: `==> CI PASS` or `==> CI FAIL (gates: <list>)`.
+# GATE SCHEDULING (porting-sdk/scripts/gate_scheduler.sh — CI_PERF S1 + S2):
+#   Gates no longer run strictly serially. They are registered with their DATA
+#   dependencies and run CONCURRENTLY up to a cap (SW_CI_JOBS, default nproc):
+#     * S2 concurrent wave: the pure-Python, side-effect-free gates (DRIFT, NO-CHEAT,
+#       SWAIG-COVERAGE, EMISSION, SKILL-CONTRACT, SURFACE-DIFF, DOC-AUDIT, SWAIG-CLI,
+#       GEN-FRESH) overlap — they share no mutable state.
+#     * S1 fail-fast: the heavy gates (TEST, LINT, FMT, REST-COVERAGE, SPEC-PARITY)
+#       are deferred behind the cheap wave, so a trivial cheap-gate failure surfaces
+#       in seconds. With --fail-fast it aborts the run before TEST even starts.
+#   HARD ordering is data-dependency ONLY:
+#     * DRIFT reads port_signatures.json that SIGNATURES writes → deps=SIGNATURES.
+#     * SURFACE-FRESH (regen+restore) and SURFACE-DIFF (reads) share port_surface.json
+#       → res=surface (mutually exclusive; a regen would clobber a concurrent read).
+#   Per-gate PASS/FAIL + the final FAILED_GATES tally are preserved exactly; each
+#   gate's output is captured and replayed atomically.
+#
+# Flags:
+#   --fail-fast   stop launching new gates at the first failure (local dev loop).
+#                 Default: run every gate for a full CI report.
 #
 # Exit codes:
 #   0  all gates passed
@@ -47,11 +42,14 @@ set -u
 set -o pipefail
 
 PORT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+mkdir -p "$PORT_ROOT/.sw-tmp"  # repo-local CI scratch (never /tmp)
 PORT_NAME="signalwire-typescript"
 
-# Ensure node 24 is on PATH for vitest/npx/tsx (matches CI image expectation).
-NODE_BIN="/home/devuser/.config/nvm/versions/node/v24.14.1/bin"
-if [ -d "$NODE_BIN" ]; then
+# Ensure the pinned node is on PATH for vitest/npx/tsx when the caller points
+# $SW_NODE_BIN at one (local-dev convenience). In CI, actions/setup-node already
+# puts node 24 on PATH, so $SW_NODE_BIN is unset and the existing PATH is used.
+NODE_BIN="${SW_NODE_BIN:-}"
+if [ -n "$NODE_BIN" ] && [ -d "$NODE_BIN" ]; then
     export PATH="$NODE_BIN:$PATH"
 fi
 
@@ -85,56 +83,44 @@ PORTING_SDK_DIR="$(resolve_porting_sdk)" || {
 export PORTING_SDK="$PORTING_SDK_DIR"
 export PORTING_SDK_PATH="$PORTING_SDK_DIR"
 
-FAILED_GATES=""
+# signalwire-python is the oracle source for the Layer-D BEHAVIORAL-* gates
+# (diff_port_<surface>.py build the oracle by importing signalwire-python's
+# package). Resolve it the same way diff_port_emission.py's _resolve_python_sdk
+# does: $PYTHON_SDK env wins, else adjacency next to this repo (CI checks it out
+# as a sibling; local dev has it at ~/src/signalwire-python == that same
+# adjacency). Passed explicitly via --python-sdk so the gate never depends on the
+# caller's ambient sys.path.
+if [ -n "${PYTHON_SDK:-}" ] && [ -d "$PYTHON_SDK/signalwire" ]; then
+    PYTHON_SDK_DIR="$PYTHON_SDK"
+elif [ -d "$PORT_ROOT/../signalwire-python/signalwire" ]; then
+    PYTHON_SDK_DIR="$(cd "$PORT_ROOT/../signalwire-python" && pwd)"
+else
+    PYTHON_SDK_DIR="$PORT_ROOT/../signalwire-python"
+fi
 
-run_gate() {
-    local name="$1"; shift
-    local description="$1"; shift
-    local logfile
-    logfile="$(mktemp)"
-    "$@" >"$logfile" 2>&1
-    local rc=$?
-    if [ "$rc" -eq 0 ]; then
-        echo "[$name] $description ... PASS"
-        rm -f "$logfile"
-        return 0
-    fi
-    echo "[$name] $description ... FAIL: exit $rc"
-    sed 's/^/    /' "$logfile" | tail -40
-    rm -f "$logfile"
-    FAILED_GATES="$FAILED_GATES $name"
-    return $rc
-}
+# The shared gate scheduler (concurrency + deps + fail-fast). Defines sched_init /
+# sched_gate / sched_run and the FAILED_GATES contract.
+# shellcheck source=/dev/null
+source "$PORTING_SDK_DIR/scripts/gate_scheduler.sh"
 
 cd "$PORT_ROOT"
 
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 
-# Gate 1: vitest
-run_gate "TEST" "npx vitest run" \
-    npx vitest run
+# ---- gate helper functions (unchanged bodies; run as --fn gates) -------------
 
-# Gate 2: signature regen
-run_gate "SIGNATURES" "regenerate port_signatures.json" \
-    npx tsx scripts/enumerate-signatures.ts
+pick_free_port() {
+    python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
+}
 
-# Gate 3: drift gate
-run_gate "DRIFT" "diff_port_signatures vs python reference" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_signatures.py" \
-        --reference "$PORTING_SDK_DIR/python_signatures.json" \
-        --port-signatures "$PORT_ROOT/port_signatures.json" \
-        --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
-        --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
-        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
-
-# Gate 4: surface-fresh — DRIFT only gates Layer A (signatures), so the committed
+# SURFACE-FRESH — DRIFT only gates Layer A (signatures), so the committed
 # port_surface.json can silently rot. Save the committed copy, regenerate in place
 # via the surface enumerator (enumerate-surface.ts writes port_surface.json directly,
 # like enumerate-signatures.ts — no redirect), compare modulo the generated_from
 # git-sha, then always restore the working tree.
 surface_fresh_gate() {
-    git show HEAD:port_surface.json > /tmp/committed_surface.json 2>/dev/null \
-        || cp "$PORT_ROOT/port_surface.json" /tmp/committed_surface.json
+    git show HEAD:port_surface.json > "$PORT_ROOT/.sw-tmp/committed_surface.json" 2>/dev/null \
+        || cp "$PORT_ROOT/port_surface.json" "$PORT_ROOT/.sw-tmp/committed_surface.json"
     npx tsx scripts/enumerate-surface.ts
     local rc=$?
     if [ "$rc" -ne 0 ]; then
@@ -142,56 +128,47 @@ surface_fresh_gate() {
         return "$rc"
     fi
     python3 "$PORTING_SDK_DIR/scripts/check_surface_freshness.py" \
-        --committed /tmp/committed_surface.json \
+        --committed "$PORT_ROOT/.sw-tmp/committed_surface.json" \
         --fresh "$PORT_ROOT/port_surface.json"
     rc=$?
     git checkout -- port_surface.json 2>/dev/null || true
     return "$rc"
 }
-run_gate "SURFACE-FRESH" "check_surface_freshness vs committed port_surface.json" \
-    surface_fresh_gate
 
-# Gate 4b: gen-fresh — the committed src/**/*.types.generated.ts (+ PlatformContracts
-# / relay protocol types) must still match what the canonical schemas produce. This
-# is the ONLY gate that validates the generated types' SHAPE: DRIFT can't, because
-# ~40% of the Python reference is `Dict[str, Any]` and the drift comparator treats
-# `any` as matching any port type — so a generated `Record→named-interface` upgrade
-# (or a hand-edit, or a spec change with stale output) sails through DRIFT unchecked.
-# Regenerating from the schema and requiring byte-equality is what proves the
-# committed types are faithful to their source. Read-only (--check never writes).
+# GEN-FRESH family — the committed generated modules must still match what the
+# canonical sources produce. The ONLY gates that validate the generated types'
+# SHAPE. Read-only (--check never writes). Five separate scripts mirror the other
+# ports' fixed 5-command generator contract (REST / RELAY / SWAIG / SWML surfaces).
 genfresh_gate() {
     PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
         npx tsx scripts/generate-rest-types.ts --check
 }
-run_gate "GEN-FRESH" "generated types match canonical schema (--check)" genfresh_gate
 
-# Gate 5: no-cheat
-run_gate "NO-CHEAT" "audit_no_cheat_tests" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
-
-# Gate 5b: REST-COVERAGE — every canonical REST route the SDK implements must be
-# exercised with BOTH a success (2xx) AND an error (4xx/5xx) response on the
-# correct on-the-wire path (parity). Measured by replaying the mock journal of a
-# REST-suite run through porting-sdk's rest_coverage checker. Accepted gaps —
-# routes with no SDK method, malformed canonical routes, mock-router collisions —
-# are allowlisted: the shared baseline (porting-sdk/REST_COVERAGE_BASELINE.md) +
-# this port's REST_COVERAGE_GAPS.md. A stale entry (route now actually covered)
-# fails the gate. Self-contained: spins its own mock, runs the rest suite serially
-# against it (MOCK_SIGNALWIRE_PORT so all traffic lands in one journal), then
-# checks that journal. Same shape as python's/java's gate.
-# Pick a free TCP port on 127.0.0.1 (bind :0, read the OS-assigned port,
-# release). Never reuse a hardcoded port — a leftover or concurrent mock
-# squatting a fixed port otherwise makes the gate hang on its health poll.
-pick_free_port() {
-    python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
+genfresh_relay_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-relay-protocol.ts --check
 }
+
+genfresh_swaig_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-swaig-payloads.ts --check
+}
+
+genfresh_swml_gate() {
+    PORTING_SDK="$PORTING_SDK_DIR" PORTING_SDK_PATH="$PORTING_SDK_DIR" \
+        npx tsx scripts/generate-swml-verbs.ts --check
+}
+
+# REST-COVERAGE — every implemented REST route covered success+error. Self-
+# contained: spins its own mock on a free port, runs the rest suite serially, then
+# checks the journal.
 rest_coverage_gate() {
     local port
     port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
     python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
-        >/tmp/rest_cov_mock.$$.log 2>&1 &
+        >"$PORT_ROOT/.sw-tmp/rest_cov_mock.$$.log" 2>&1 &
     local mock_pid=$!
     # shellcheck disable=SC2064
     trap "kill $mock_pid 2>/dev/null" RETURN
@@ -200,7 +177,7 @@ rest_coverage_gate() {
     for i in $(seq 1 60); do
         if ! kill -0 "$mock_pid" 2>/dev/null; then
             echo "mock_signalwire died on port $port — log:" >&2
-            cat "/tmp/rest_cov_mock.$$.log" >&2
+            cat "$PORT_ROOT/.sw-tmp/rest_cov_mock.$$.log" >&2
             return 1
         fi
         if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
@@ -222,18 +199,9 @@ rest_coverage_gate() {
         --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md" \
         --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md"
 }
-run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
-    rest_coverage_gate
 
-# Gate 5c: SPEC-PARITY — the routes the SDK actually IMPLEMENTS must equal the
-# canonical spec route set, modulo porting-sdk/SPEC_IMPLEMENTATION_GAPS.md. This
-# is the spec-first guard REST-COVERAGE can't give: REST-COVERAGE only proves
-# *tested* routes match the spec, so a route the SDK implements that the spec
-# doesn't define (or vice versa) would slip past it. Set B is built by
-# scripts/route-registry.ts — it drives the live RestClient through a recording
-# fetchImpl and captures every dispatched (method, path), so it sees every
-# implemented route whether or not it's tested (not an AST scrape, not the
-# journal). The shared porting-sdk diff consumes that JSON via --registry-json.
+# SPEC-PARITY — implemented routes == canonical spec. route-registry.ts drives the
+# live RestClient through a recording fetchImpl and captures every dispatched route.
 spec_parity_gate() {
     local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
     export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
@@ -250,93 +218,9 @@ spec_parity_gate() {
     rm -f "$registry"
     return $rc
 }
-run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
-    spec_parity_gate
 
-# Gate 6: emission — byte-compare FunctionResult serialisation vs the Python
-# to_dict() oracle over the shared corpus (scripts/emit-corpus.ts builds the
-# native dump). Pure serialisation: no mock servers, no network — just
-# signalwire-python adjacent (already required by the drift gate).
-run_gate "EMISSION" "diff_port_emission vs python oracle" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
-        --dump-cmd "npx tsx scripts/emit-corpus.ts" \
-        --port-repo "$PORT_ROOT"
-
-# Gate 6b: skill-contract — compare each built-in skill's SWAIG tool contract
-# (name/parameters/required/enum from getTools()) against the Python reference.
-# The sibling of EMISSION for SKILLS: drift/surface see signatures + symbol
-# names, EMISSION sees FunctionResult.to_dict(), but NONE saw a skill's tool
-# schema — so a wrong `required`, a renamed/retyped param, or an extra/missing
-# tool was drift-0 and invisible. scripts/emit-skills.ts builds the native dump;
-# dynamic skills (mcp_gateway/claude_skills/etc.) are excluded + logged by the
-# corpus. Same prereqs as EMISSION (signalwire-python adjacent; no network).
-run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
-        --dump-cmd "npx tsx scripts/emit-skills.ts" \
-        --port-repo "$PORT_ROOT"
-
-# Gate 7: FMT — the language format gate (ts: prettier, governed by .prettierrc.json:
-# printWidth 100, singleQuote, semi — the house style). Source-style only, proven
-# surface/emission-neutral (a reformat leaves port_signatures.json byte-identical).
-#   * LOCAL ($CI unset)  → `prettier --write`: reformats your working tree in place.
-#   * CI ($CI=true)      → `prettier --check`: read-only, FAILS on any unformatted file.
-fmt_gate() {
-    # Cover every source + example tree (scripts + all three example dirs), so a
-    # mis-formatted rest/examples file can't pass FMT locally and fail in CI.
-    local globs=(
-        "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
-        "examples/**/*.ts" "rest/examples/**/*.ts" "relay/examples/**/*.ts"
-    )
-    if [ -n "${CI:-}" ]; then
-        npx prettier --check "${globs[@]}"
-    else
-        npx prettier --write "${globs[@]}" >/dev/null
-        if ! git diff --quiet 2>/dev/null; then
-            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
-        fi
-    fi
-}
-run_gate "FMT" "prettier (local: auto-fix; CI: --check)" fmt_gate
-
-# Gate 8: LINT — the language lint gate (ts: tsc --noEmit type floor + eslint).
-# tsc proves the types compile (strict); eslint (.golangci-equivalent: eslint.config.mjs)
-# enforces the deeper rule set incl. no-explicit-any=error after the burndown to zero.
-# Both blocking. --max-warnings 0 so a warning can't slip through.
-#
-# tsc runs over BOTH tsconfigs: the default (src) AND tsconfig.examples.json — the
-# examples have their own config (the default tsconfig only includes src/**), and
-# without the second pass a type error in examples/ slips past LINT locally and
-# only fails in the separate doc-audit workflow. Folding it in keeps local==CI.
-lint_gate() {
-    npx tsc --noEmit || return 1
-    npx tsc --noEmit --project tsconfig.examples.json || return 1
-    # eslint must cover EVERY example tree (examples/, rest/examples/,
-    # relay/examples/), not just the top-level one — a file-level disable or `any`
-    # in rest/examples slipped past when only `examples` was linted.
-    npx eslint src tests examples rest/examples relay/examples --max-warnings 0 || return 1
-    # Honesty guard: a file-level `eslint-disable .../no-explicit-any` switches the
-    # rule OFF for the whole file, hiding every `any` from the gate (this exact
-    # blind spot once made a "no-explicit-any=0" claim false). Forbid the
-    # file-level form outright; only line-level `eslint-disable-next-line` on a
-    # justified site is allowed. Generated modules already carry zero disables.
-    # Cover EVERY tree eslint lints — not just src; the gap let file-disables hide
-    # in tests/ + examples/ (~50 `any`) undetected.
-    if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' \
-        src tests examples rest/examples relay/examples; then
-        echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
-        return 1
-    fi
-    # TS-idiom guards the type system can't enforce: no widened typed-callback
-    # params, no nested open index signatures in generated types, no dead
-    # defensive casts in example demos, generic safe<T> wrappers.
-    npx tsx scripts/check-ts-idioms.ts || return 1
-}
-run_gate "LINT" "tsc (src + examples) + eslint (lint gate)" lint_gate
-
-# Gate 9: DOC-AUDIT — every symbol referenced in docs/ + examples must resolve to a
-# real symbol in the doc-surface. Mirrors .github/workflows/doc-audit.yml; folded in
-# so local==CI. Regenerates docs_audit_surface.json then audits, restoring it after
-# (side-effect-free whether it passes or fails).
+# DOC-AUDIT — every symbol referenced in docs/ + examples resolves. Regenerates
+# docs_audit_surface.json then audits, restoring it after (side-effect-free).
 docaudit_gate() {
     trap 'git checkout -- docs_audit_surface.json 2>/dev/null' RETURN
     PORTING_SDK_PATH="$PORTING_SDK_DIR" npx tsx scripts/enumerate-doc-surface.ts || return 1
@@ -345,28 +229,128 @@ docaudit_gate() {
         --surface "$PORT_ROOT/docs_audit_surface.json" \
         --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
 }
-run_gate "DOC-AUDIT" "audit_docs vs docs_audit_surface.json" docaudit_gate
 
-# Gate 10: SURFACE-DIFF — diff the port surface against the Python reference
-# (omissions/additions in PORT_OMISSIONS.md / PORT_ADDITIONS.md). SURFACE-FRESH only
-# checks the committed surface matches a regen; this checks it MATCHES PYTHON.
-# Mirrors .github/workflows/surface-audit.yml.
-run_gate "SURFACE-DIFF" "diff_port_surface vs python_surface.json" \
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+# ARTIFACT-DENY — no porting-process artifact may ship inside the PUBLISHED
+# package. The git-ls-files proxy over-reports files that are tracked in-repo but
+# excluded from the npm package (via package.json "files"); this feeds the REAL
+# published listing to artifact_deny.py --listing -. `npm pack --dry-run --json`
+# emits the authoritative set the tarball would contain; we extract files[].path.
+dayone_artifact_deny() {
+    npm pack --dry-run --json 2>/dev/null \
+        | python3 -c 'import sys,json; [print(f["path"]) for f in json.load(sys.stdin)[0]["files"]]' \
+        | python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port typescript --listing -
+}
+
+# ---- register gates ----------------------------------------------------------
+sched_init "$@"
+
+# HEAVY (deferred behind the cheap wave for S1 fail-fast).
+sched_gate TEST defer=1 desc="scripts/run-tests.sh (vitest)" \
+    -- bash "$PORT_ROOT/scripts/run-tests.sh"
+
+# SIGNATURES writes port_signatures.json → DRIFT deps on it. Not deferred: it is a
+# writer the cheap DRIFT gate depends on (deferring it would stall the wave).
+sched_gate SIGNATURES desc="regenerate port_signatures.json" \
+    -- npx tsx scripts/enumerate-signatures.ts
+
+sched_gate DRIFT deps=SIGNATURES desc="diff_port_signatures vs python reference" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_signatures.py" \
+        --reference "$PORTING_SDK_DIR/python_signatures.json" \
+        --port-signatures "$PORT_ROOT/port_signatures.json" \
+        --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
+        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md" \
+        --numeric-monotype
+
+# SURFACE-FRESH + SURFACE-DIFF share port_surface.json → res=surface (mutex).
+sched_gate SURFACE-FRESH res=surface desc="check_surface_freshness vs committed port_surface.json" \
+    --fn surface_fresh_gate
+
+sched_gate GEN-FRESH desc="generated REST types match canonical schema (--check)" \
+    --fn genfresh_gate
+
+sched_gate GEN-FRESH-TESTS desc="generated REST wire tests match the canonical specs (--check)" \
+    -- npx tsx scripts/generate-rest-tests.ts --check
+
+sched_gate GEN-FRESH-RELAY desc="generated RELAY protocol types match canonical schemas (--check)" \
+    --fn genfresh_relay_gate
+
+sched_gate GEN-FRESH-SWAIG desc="generated SWAIG payloads match canonical engine specs (--check)" \
+    --fn genfresh_swaig_gate
+
+sched_gate GEN-FRESH-SWML desc="generated SWML verb config types match schema.json (--check)" \
+    --fn genfresh_swml_gate
+
+sched_gate SWAIG-COVERAGE desc="every engine SWAIG action emittable (modulo allowlist)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
+        --emission "$PORT_ROOT/src/FunctionResult.ts"
+
+sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
+    -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+sched_gate REST-COVERAGE defer=1 desc="every implemented REST route covered success+error (parity + allowlist)" \
+    --fn rest_coverage_gate
+
+sched_gate SPEC-PARITY defer=1 desc="implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
+    --fn spec_parity_gate
+
+sched_gate EMISSION desc="diff_port_emission vs python oracle" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
+        --dump-cmd "npx tsx scripts/emit-corpus.ts" \
+        --port-repo "$PORT_ROOT"
+
+# Layer-D BEHAVIORAL-* gates: each dump emits ONLY JSON on stdout; the surface
+# differ builds the python oracle (from $PYTHON_SDK_DIR) and compares. The dumps
+# need SIGNALWIRE_LOG_MODE=off to keep ts logs off stdout, so that env is baked
+# into each --dump-cmd (the gate must not depend on the caller's ambient env).
+sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/wire-dump.ts"
+
+sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/swml-dump.ts"
+
+sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/state-dump.ts"
+
+sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/http-dump.ts"
+
+sched_gate BEHAVIORAL-WIRE-RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
+        --port typescript --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx scripts/wire-relay-dump.ts"
+
+sched_gate SKILL-CONTRACT desc="diff_skill_contracts vs python reference" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "npx tsx scripts/emit-skills.ts" \
+        --port-repo "$PORT_ROOT"
+
+sched_gate FMT defer=1 desc="scripts/run-format.sh (local: auto-fix; CI: --check)" \
+    -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
+
+sched_gate LINT defer=1 desc="scripts/run-lint.sh (tsc src+examples+tests + eslint)" \
+    -- bash "$PORT_ROOT/scripts/run-lint.sh"
+
+sched_gate DOC-AUDIT res=surface desc="audit_docs vs docs_audit_surface.json" \
+    --fn docaudit_gate
+
+sched_gate SURFACE-DIFF res=surface desc="diff_port_surface vs python_surface.json" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
         --reference "$PORTING_SDK_DIR/python_surface.json" \
         --port-surface "$PORT_ROOT/port_surface.json" \
         --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
         --additions "$PORT_ROOT/PORT_ADDITIONS.md"
 
-# Gate 11: SWAIG-CLI — the lightweight shared swaig-test mini-contract (NOT
-# python parity; python's in-process simulator surface is reference-only). Black-
-# box: invokes this port's swaig-test --help + a couple golden invocations and
-# asserts (1) the shared verbs are documented, (2) an unknown --simulate-serverless
-# platform errors instead of silently falling back, (3) no-action errors instead
-# of a silent default. TS accepts --simulate-serverless (lambda/gcf/azure/cgi), so
-# the unknown-platform clause applies.
-run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
+sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
         --port typescript \
         --cmd "npx tsx $PORT_ROOT/src/cli/swaig-test.ts" \
         --default-action-argv 'AGENT_FILE_PLACEHOLDER' \
@@ -375,10 +359,41 @@ run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/d
         --agent-file-suffix '.ts' \
         --agent-file-content "import { AgentBase } from '$PORT_ROOT/src/AgentBase.ts'; const a = new AgentBase({ name: 'probe', route: '/' }); a.setPromptText('hi'); export default a;"
 
-if [ -z "$FAILED_GATES" ]; then
+# ---- Day-one deterministic gates (BLOCKING, non-report-only) -----------------
+sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port typescript --repo .
+sched_gate DOC-LINKS res=dayone desc="every relative markdown link resolves to a tracked file" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_links.py" --port typescript --repo .
+
+sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to their gate-compiled fixture regions" \
+    -- python3 "$PORTING_SDK_DIR/scripts/readme_include.py" --port typescript --repo .
+sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port typescript --repo .
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo .
+sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
+    -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port typescript --repo .
+sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
+    --fn dayone_artifact_deny
+
+# ---- Expansion gates (BLOCKING, non-report-only) -----------------------------
+# ROUTE-COLLISION is NOT wired: ts has no default route-registry command the gate
+# can consume (route_collision.py self-skips for typescript). Wiring it needs a
+# registry builder for the gate first — follow-up.
+sched_gate GEN-TYPE-DEGENERACY res=dayone desc="generated types are not degenerate (allowlist GEN_TYPE_DEGENERACY_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port typescript --repo .
+sched_gate PUBLIC-JARGON res=dayone desc="no porting-process jargon in public API surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port typescript --repo .
+sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (held to the same idiom bar)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port typescript --repo .
+sched_gate RELEASE-FRESH res=dayone desc="publish path is gated (gates run before publish)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port typescript --repo .
+
+sched_run
+rc=$?
+if [ "$rc" -eq 0 ]; then
     echo "==> CI PASS"
-    exit 0
 else
     echo "==> CI FAIL (gates:$FAILED_GATES )"
-    exit 1
 fi
+exit "$rc"

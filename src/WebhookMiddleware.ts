@@ -37,6 +37,97 @@ export const SIGNALWIRE_SIGNATURE_HEADER = 'x-signalwire-signature';
 export const TWILIO_COMPAT_SIGNATURE_HEADER = 'x-twilio-signature';
 
 /**
+ * A rejection response as a framework-free triple:
+ * ``[statusCode, responseHeaders, responseBody]``. Cross-port shape of the
+ * decomposed webhook-validation decision (Python's
+ * ``webhook_middleware.validate`` return, dotnet's
+ * ``WebhookValidationMiddleware.Validate``, Rack/PSGI ``[status, headers, body]``).
+ */
+export type WebhookRejection = [number, Record<string, string>, string];
+
+/**
+ * Look up a header value case-insensitively from a plain header map.
+ * SignalWire signs with ``X-SignalWire-Signature`` and (cXML-compat)
+ * ``X-Twilio-Signature``; incoming maps may spell the keys either case.
+ */
+function headerLookup(headers: Record<string, string>, name: string): string | undefined {
+  const want = name.toLowerCase();
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === want) return headers[key];
+  }
+  return undefined;
+}
+
+/**
+ * Framework-free webhook-validation decision core.
+ *
+ * This is the language-neutral heart every SignalWire SDK exposes at the same
+ * canonical path (``signalwire.core.security.webhook_middleware.validate``): it
+ * takes the decomposed request primitives (no framework Request/Response
+ * objects) and returns either ``null`` (the request is authentic — let it
+ * through) or a ``[status, headers, body]`` rejection triple the caller writes
+ * back verbatim. The {@link webhookValidationMiddleware} Hono adapter is a thin
+ * wrapper over this: it reads the raw body + headers off the Hono context, calls
+ * ``validate``, and turns a non-null triple into a ``c.text(...)`` response.
+ *
+ * Behavior mirrors the SignalWire webhook signature-validation contract:
+ *
+ *   - Missing ``X-SignalWire-Signature`` (or the ``X-Twilio-Signature`` alias)
+ *     → reject ``[403, {}, 'Forbidden']`` (never throws for a missing header).
+ *   - Bad signature → reject ``[403, {}, 'Forbidden']``.
+ *   - Valid signature → ``null`` (pass).
+ *   - Missing / empty ``signingKey`` → throws (a programming error, not a
+ *     validation failure — matches ``validateWebhookSignature``).
+ *
+ * The rejection body carries no detail about which scheme or branch failed —
+ * the validator MUST NOT leak that.
+ *
+ * @param method The HTTP method (informational; the signature does not cover it).
+ * @param url The full public URL SignalWire POSTed to (scheme, host, optional
+ *   port, path, query) — reconstruct proxy/tunnel URLs before calling.
+ * @param headers The request headers as a plain string→string map. Looked up
+ *   case-insensitively for the signature header.
+ * @param body The raw request body as a UTF-8 string, BEFORE any JSON/form parse.
+ * @param signingKey The customer's Signing Key from the Dashboard.
+ * @returns ``null`` when the request is authentic; a ``[status, headers, body]``
+ *   triple to send back when it is not.
+ * @throws Error when ``signingKey`` is missing / empty.
+ */
+export function validate(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  body: string,
+  signingKey: string,
+): WebhookRejection | null {
+  void method; // signature is over url + body, not the method
+  if (!signingKey || typeof signingKey !== 'string') {
+    throw new Error('signingKey is required');
+  }
+
+  const signature =
+    headerLookup(headers, SIGNALWIRE_SIGNATURE_HEADER) ??
+    headerLookup(headers, TWILIO_COMPAT_SIGNATURE_HEADER);
+
+  const reject: WebhookRejection = [403, {}, 'Forbidden'];
+
+  if (signature === undefined || signature === '') {
+    return reject;
+  }
+
+  let ok: boolean;
+  try {
+    ok = validateWebhookSignature(signingKey, signature, url, body);
+  } catch {
+    // Non-string body or other input error — treat as a rejection for the
+    // request without leaking which branch tripped.
+    return reject;
+  }
+
+  return ok ? null : reject;
+}
+
+/**
  * Options for {@link webhookValidationMiddleware}.
  */
 export interface WebhookValidationOptions {
@@ -142,23 +233,18 @@ export function webhookValidationMiddleware(opts: WebhookValidationOptions): Mid
     }
 
     const signature = extractSignatureHeader(c);
-    if (!signature) {
-      return c.text('Forbidden', 403);
-    }
-
     const url = reconstructUrl(c, { trustProxy });
 
-    let ok: boolean;
-    try {
-      ok = validateWebhookSignature(signingKey, signature, url, rawBody);
-    } catch {
-      // Programming error or non-string body — treat as invalid for the
-      // request without leaking which branch tripped.
-      return c.text('Forbidden', 403);
-    }
+    // Delegate the decision to the framework-free `validate` core so the Hono
+    // adapter and the decomposed cross-port contract share one implementation.
+    const headers: Record<string, string> = {};
+    if (signature !== null) headers[SIGNALWIRE_SIGNATURE_HEADER] = signature;
+    const rejection = validate(c.req.method, url, headers, rawBody, signingKey);
 
-    if (!ok) {
-      return c.text('Forbidden', 403);
+    if (rejection !== null) {
+      const [status, respHeaders, respBody] = rejection;
+      for (const [k, v] of Object.entries(respHeaders)) c.header(k, v);
+      return c.text(respBody, status as Parameters<typeof c.text>[1]);
     }
 
     // Valid — stash raw body for downstream handlers and continue.

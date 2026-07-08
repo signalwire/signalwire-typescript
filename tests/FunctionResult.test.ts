@@ -46,25 +46,25 @@ describe('FunctionResult', () => {
   it('connect builds correct SWML', () => {
     const r = new FunctionResult('transferring').connect('+15551234567');
     const act = (r.toDict().action as Record<string, unknown>[])[0];
-    expect(act['transfer']).toBe('true');
-    const swml = act['SWML'] as Record<string, unknown>;
+    expect(act!['transfer']).toBe('true');
+    const swml = act!['SWML'] as Record<string, unknown>;
     expect(swml['version']).toBe('1.0.0');
   });
 
   it('connect with from address', () => {
     const r = new FunctionResult('t').connect('+1555', false, '+1666');
     const act = (r.toDict().action as Record<string, unknown>[])[0];
-    expect(act['transfer']).toBe('false');
-    const swml = act['SWML'] as Record<string, unknown>;
+    expect(act!['transfer']).toBe('false');
+    const swml = act!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    const main = sections['main'][0] as Record<string, Record<string, string>>;
-    expect(main['connect']['from']).toBe('+1666');
+    const main = sections['main']![0] as Record<string, Record<string, string>>;
+    expect(main['connect']!['from']).toBe('+1666');
   });
 
   it('swmlTransfer', () => {
     const r = new FunctionResult('ok').swmlTransfer('https://example.com', 'bye', false);
     const act = (r.toDict().action as Record<string, unknown>[])[0];
-    expect(act['transfer']).toBe('false');
+    expect(act!['transfer']).toBe('false');
   });
 
   it('hangup / stop / hold', () => {
@@ -199,7 +199,7 @@ describe('FunctionResult', () => {
       body: 'hi',
     });
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     expect(swml['version']).toBe('1.0.0');
   });
 
@@ -233,9 +233,9 @@ describe('FunctionResult', () => {
   it('tap accepts a positive non-default rtpPtime (regression for the guard)', () => {
     const r = new FunctionResult('ok').tap({ uri: 'wss://example.com', rtpPtime: 40 });
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    const params = (sections['main'][0] as Record<string, unknown>)['tap'] as Record<
+    const params = (sections['main']![0] as Record<string, unknown>)['tap'] as Record<
       string,
       unknown
     >;
@@ -245,9 +245,9 @@ describe('FunctionResult', () => {
   it('joinRoom', () => {
     const r = new FunctionResult('ok').joinRoom('room1');
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    expect((sections['main'][0] as Record<string, unknown>)['join_room']).toEqual({
+    expect((sections['main']![0] as Record<string, unknown>)['join_room']).toEqual({
       name: 'room1',
     });
   });
@@ -255,9 +255,9 @@ describe('FunctionResult', () => {
   it('sipRefer', () => {
     const r = new FunctionResult('ok').sipRefer('sip:user@example.com');
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    expect((sections['main'][0] as Record<string, unknown>)['sip_refer']).toEqual({
+    expect((sections['main']![0] as Record<string, unknown>)['sip_refer']).toEqual({
       to_uri: 'sip:user@example.com',
     });
   });
@@ -265,17 +265,17 @@ describe('FunctionResult', () => {
   it('joinConference simple', () => {
     const r = new FunctionResult('ok').joinConference('conf1');
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    expect((sections['main'][0] as Record<string, unknown>)['join_conference']).toBe('conf1');
+    expect((sections['main']![0] as Record<string, unknown>)['join_conference']).toBe('conf1');
   });
 
   it('joinConference with options', () => {
     const r = new FunctionResult('ok').joinConference('conf1', { muted: true });
     const acts = r.toDict().action as Record<string, unknown>[];
-    const swml = acts[0]['SWML'] as Record<string, unknown>;
+    const swml = acts[0]!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    const params = (sections['main'][0] as Record<string, unknown>)['join_conference'] as Record<
+    const params = (sections['main']![0] as Record<string, unknown>)['join_conference'] as Record<
       string,
       unknown
     >;
@@ -315,9 +315,9 @@ describe('FunctionResult', () => {
   // Helper: dig the execute_rpc params object out of a single-action result.
   const rpcVerb = (r: FunctionResult): Record<string, unknown> => {
     const act = (r.toDict().action as Record<string, unknown>[])[0];
-    const swml = act['SWML'] as Record<string, unknown>;
+    const swml = act!['SWML'] as Record<string, unknown>;
     const sections = swml['sections'] as Record<string, unknown[]>;
-    return (sections['main'][0] as Record<string, unknown>)['execute_rpc'] as Record<
+    return (sections['main']![0] as Record<string, unknown>)['execute_rpc'] as Record<
       string,
       unknown
     >;
@@ -351,14 +351,14 @@ describe('FunctionResult', () => {
     const swml = JSON.stringify({ version: '1.0.0', sections: { main: [] } });
     const r = new FunctionResult('ok').executeSwml(swml, true);
     const acts = r.toDict().action as Record<string, unknown>[];
-    const action = acts[0]['SWML'] as Record<string, unknown>;
+    const action = acts[0]!['SWML'] as Record<string, unknown>;
     expect(action['transfer']).toBe('true');
   });
 
   it('executeSwml with valid object is unchanged (regression for the bad-type guard)', () => {
     const r = new FunctionResult('ok').executeSwml({ version: '1.0.0', sections: { main: [] } });
     const acts = r.toDict().action as Record<string, unknown>[];
-    const action = acts[0]['SWML'] as Record<string, unknown>;
+    const action = acts[0]!['SWML'] as Record<string, unknown>;
     expect(action['version']).toBe('1.0.0');
     expect(action['sections']).toEqual({ main: [] });
   });

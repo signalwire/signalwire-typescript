@@ -183,8 +183,8 @@ describe('RelayClient', () => {
       await new Promise((r) => setTimeout(r, 50));
 
       expect(receivedCalls).toHaveLength(1);
-      expect(receivedCalls[0].callId).toBe('c1');
-      expect(receivedCalls[0].direction).toBe('inbound');
+      expect(receivedCalls[0]!.callId).toBe('c1');
+      expect(receivedCalls[0]!.direction).toBe('inbound');
 
       // Should have ACKed the event
       const ackMsg = ws.getAllSent().find((m) => m.id === 'evt-1' && 'result' in m);
@@ -222,8 +222,8 @@ describe('RelayClient', () => {
       await new Promise((r) => setTimeout(r, 50));
 
       expect(receivedMessages).toHaveLength(1);
-      expect(receivedMessages[0].messageId).toBe('m1');
-      expect(receivedMessages[0].body).toBe('Hello');
+      expect(receivedMessages[0]!.messageId).toBe('m1');
+      expect(receivedMessages[0]!.body).toBe('Hello');
 
       await client.disconnect();
     });

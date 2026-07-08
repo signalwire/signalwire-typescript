@@ -10,7 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
+import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -217,7 +217,7 @@ export class ReceptionistAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: SwaigRequestData): CheckInSession {
+  private getSession(rawData: SwaigRequest): CheckInSession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -231,7 +231,7 @@ export class ReceptionistAgent extends AgentBase {
 
   /**
    * Register the `collect_caller_info` and `transfer_call` SWAIG tools
-   * (Python parity). When `checkInEnabled` is `true`, also registers the
+   * (matching the Python SDK). When `checkInEnabled` is `true`, also registers the
    * TS-specific `check_in_visitor` tool.
    */
   protected override defineTools(): void {
@@ -284,7 +284,7 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData: SwaigRequestData) => {
+      handler: (args, rawData: SwaigRequest) => {
         const departmentName = (args.department ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
@@ -330,7 +330,7 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args, rawData: SwaigRequestData) => {
+        handler: async (args, rawData: SwaigRequest) => {
           const visitorName = args.visitor_name;
           const purpose = args.purpose;
           const visiting = args.visiting;
@@ -377,7 +377,7 @@ export class ReceptionistAgent extends AgentBase {
    */
   override onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     // Intentional no-op pass-through; subclasses override to handle the summary.
   }

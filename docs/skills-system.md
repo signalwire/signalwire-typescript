@@ -4,6 +4,28 @@ Architectural reference for the Skills system in the SignalWire AI Agents TypeSc
 
 > **See also:** [skills-guide.md](skills-guide.md) for usage patterns and built-in skill details.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const SkillBase: typeof import('@signalwire/sdk').SkillBase;
+  const SkillRegistry: typeof import('@signalwire/sdk').SkillRegistry;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  // Illustrative custom skill classes referenced by the registry/usage examples.
+  // `any` because they are used both as a value to `register(...)` and constructed
+  // with `new` — the real concrete subclass is defined in the prose examples above.
+  const MySkill: any;
+  const StockPriceSkill: any;
+  // Real built-in skill classes referenced by the multi-instance / schema examples.
+  const DataSphereSkill: typeof import('@signalwire/sdk').DataSphereSkill;
+  const WebSearchSkill: typeof import('@signalwire/sdk').WebSearchSkill;
+  // Node globals (tsconfig sets types:[], so declare them here).
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ---
 
 ## Table of Contents
@@ -50,7 +72,12 @@ SkillRegistry (singleton)
 All skills extend `SkillBase`. The base class defines the contract:
 
 ```typescript
-import { SkillBase, SkillManifest, SkillToolRegistration } from '@signalwire/sdk';
+import {
+  SkillBase,
+  FunctionResult,
+  type SkillToolDefinition,
+  type SkillPromptSection,
+} from '@signalwire/sdk';
 
 class MySkill extends SkillBase {
   static override SKILL_NAME = 'my_skill';
@@ -65,7 +92,7 @@ class MySkill extends SkillBase {
         name: 'my_tool',
         description: 'Performs the action',
         parameters: { query: { type: 'string', description: 'Input' } },
-        handler: (args) => {
+        handler: (args: Record<string, unknown>) => {
           return new FunctionResult(`Result for ${args.query}`);
         },
       },
@@ -99,7 +126,7 @@ class MySkill extends SkillBase {
 | `getHints()` | `string[]` | Speech recognition hints for ASR accuracy |
 | `getPromptSections()` | `SkillPromptSection[]` | Prompt text injected into the agent's system prompt |
 | `getGlobalData()` | `Record<string, unknown>` | Key-value pairs merged into agent global data |
-| `setup()` | `Promise<void>` | Async initialization (API connections, file loading) |
+| `setup()` | `Promise<boolean>` | Async initialization (API connections, file loading); return `true` on success |
 | `cleanup()` | `Promise<void>` | Cleanup on agent shutdown |
 
 ---

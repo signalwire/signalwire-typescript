@@ -43,16 +43,16 @@ describe('DataSphereSkill', () => {
   it('should register a search_knowledge tool', () => {
     const tools = new DataSphereSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_knowledge');
+    expect(tools[0]!.name).toBe('search_knowledge');
     // Python passes no `required` (datasphere/skill.py:171), so the wire schema
     // has no `required` key — the TS port matches that.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
     const sections = new DataSphereSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('Knowledge Search');
+    expect(sections[0]!.title).toContain('Knowledge Search');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -82,7 +82,7 @@ describe('DataSphereSkill', () => {
     delete process.env['SIGNALWIRE_PROJECT_ID'];
     delete process.env['SIGNALWIRE_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
-    const handler = new DataSphereSkill().getTools()[0].handler;
+    const handler = new DataSphereSkill().getTools()[0]!.handler;
     const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
@@ -117,8 +117,8 @@ describe('DataSphereSkill', () => {
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
   });
 });

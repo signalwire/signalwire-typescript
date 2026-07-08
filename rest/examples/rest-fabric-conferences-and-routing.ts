@@ -17,7 +17,10 @@ const client = new RestClient();
 async function main() {
   // 1. Create a conference room
   console.log('Creating conference room...');
-  const room = await client.fabric.conferenceRooms.create({ name: 'team-standup' });
+  const room = await client.fabric.conferenceRooms.create({
+    name: 'team-standup',
+    enable_room_previews: true,
+  });
   const roomId = room.id;
   console.log(`  Created conference room: ${roomId}`);
 
@@ -79,9 +82,10 @@ async function main() {
   // 8. Assign a domain application (demo)
   console.log('\nAssigning domain application (demo)...');
   try {
-    await client.fabric.resources.assignDomainApplication(relayId, {
-      domain_application_id: 'da-00000000-0000-0000-0000-000000000000',
-    });
+    await client.fabric.resources.assignDomainApplication(
+      relayId,
+      'da-00000000-0000-0000-0000-000000000000',
+    );
     console.log('  Domain application assigned');
   } catch (err) {
     if (err instanceof RestError) {
@@ -92,7 +96,7 @@ async function main() {
   // 9. Generate tokens
   console.log('\nGenerating tokens...');
   try {
-    const guest = await client.fabric.tokens.createGuestToken({ allowed_addresses: [relayId] });
+    const guest = await client.fabric.tokens.createGuestToken([relayId]);
     console.log(`  Guest token: ${String(guest.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -101,7 +105,7 @@ async function main() {
   }
 
   try {
-    const invite = await client.fabric.tokens.createInviteToken({ address_id: relayId });
+    const invite = await client.fabric.tokens.createInviteToken(relayId);
     console.log(`  Invite token: ${String(invite.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
@@ -110,9 +114,9 @@ async function main() {
   }
 
   try {
-    const embed = await client.fabric.tokens.createEmbedToken({
-      token: 'click-to-call-token-from-guest-token',
-    });
+    const embed = await client.fabric.tokens.createEmbedToken(
+      'click-to-call-token-from-guest-token',
+    );
     console.log(`  Embed token: ${String(embed.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {

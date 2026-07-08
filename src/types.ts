@@ -2,7 +2,8 @@
  * Shared type definitions for SignalWire AI Agents SDK.
  */
 
-import type { PostPromptData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /** Configuration options for constructing an AgentBase instance. */
 export interface AgentOptions {
@@ -79,7 +80,7 @@ export interface AgentOptions {
    * omitted. When both are unset, signature validation is disabled and
    * the agent emits a one-time warning on startup so operators notice.
    *
-   * Per `porting-sdk/webhooks.md`: this MUST be treated as secret —
+   * Per SignalWire's webhook signing rules: this MUST be treated as secret —
    * never logged, never echoed to clients, never included in error
    * messages.
    */
@@ -106,6 +107,8 @@ export interface LanguageConfig {
   voice?: string;
   /** TTS engine identifier. */
   engine?: string;
+  /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */
+  model?: string;
   /** Filler phrases keyed by category for this language. */
   fillers?: Record<string, string[]>;
   /** Speech recognition model identifier. */
@@ -167,6 +170,6 @@ export type DynamicConfigCallback<TAgent = import('./AgentBase.js').AgentBase> =
  * @param rawData - The full raw post-prompt payload.
  */
 export type SummaryCallback = (
-  summary: Record<string, unknown> | null,
-  rawData: PostPromptData,
+  summary: PostPromptData | null,
+  rawData: PostPrompt,
 ) => void | Promise<void>;

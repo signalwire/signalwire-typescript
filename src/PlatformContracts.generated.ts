@@ -1,5 +1,5 @@
 // AUTO-GENERATED from porting-sdk/rest-apis/swml-webhooks/openapi.yaml — DO NOT EDIT.
-// Regenerate with: npx tsx scripts/generate-rest-types.ts
+// Regenerate with: npx tsx scripts/generate-swml-verbs.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
 // loose types). If the generator cannot emit a clean faithful type, fix the

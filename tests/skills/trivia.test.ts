@@ -27,7 +27,7 @@ describe('ApiNinjasTriviaSkill', () => {
   it('should register tools', () => {
     const tools = new ApiNinjasTriviaSkill().getTools();
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools[0]!.handler).toBeTypeOf('function');
   });
 
   it('should provide prompt sections', () => {
@@ -59,6 +59,6 @@ describe('ApiNinjasTriviaSkill', () => {
     // The api_ninjas_trivia skill exposes `api_key` (env_var-backed) and
     // `categories` (whitelist) per Python parity.
     expect(schema).toHaveProperty('api_key');
-    expect(schema['api_key'].env_var).toBe('API_NINJAS_KEY');
+    expect(schema['api_key']!.env_var).toBe('API_NINJAS_KEY');
   });
 });

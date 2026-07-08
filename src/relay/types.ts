@@ -23,9 +23,8 @@ export interface RelayClientOptions {
    * `SIGNALWIRE_RELAY_SCHEME` if not explicitly set; defaults to `'wss'`.
    *
    * Production deployments should never pass `'ws'` — the value exists
-   * solely so the porting-sdk's `audit_relay_handshake.py` can drive the
-   * real client against a plain-WS loopback fixture without standing up
-   * TLS termination.
+   * solely so tests can drive the real client against a plain-WS loopback
+   * fixture without standing up TLS termination.
    */
   scheme?: 'ws' | 'wss';
   /** Contexts (topics) to receive inbound calls/messages on. */

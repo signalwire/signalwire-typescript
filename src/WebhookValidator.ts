@@ -1,7 +1,7 @@
 /**
  * Webhook signature validation for SignalWire-signed HTTP requests.
  *
- * Implements both schemes from porting-sdk/webhooks.md:
+ * Implements both of SignalWire's webhook signature schemes:
  *
  * - Scheme A (RELAY/SWML/JSON): hex(HMAC-SHA1(key, url + rawBody))
  * - Scheme B (Compat/cXML form): base64(HMAC-SHA1(key, url + sortedFormParams))
@@ -289,7 +289,7 @@ function checkBodySha256(url: string, rawBody: string): boolean {
  *   without throwing.
  * @param url The full URL SignalWire POSTed to (scheme, host, optional port,
  *   path, query). Must match what the platform saw — see the URL reconstruction
- *   section of porting-sdk/webhooks.md.
+ *   rules in SignalWire's webhook signing documentation.
  * @param rawBody The raw request body bytes as a UTF-8 string, BEFORE any
  *   JSON / form parsing. Must be a string — passing a parsed object throws
  *   ``TypeError``.
@@ -358,7 +358,7 @@ export function validateWebhookSignature(
  *
  * The parameter type matches Python's
  * ``Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`` for
- * cross-language signature parity. ``Map<string, unknown>`` is also
+ * a consistent cross-SDK signature. ``Map<string, unknown>`` is also
  * accepted at runtime for ergonomic TS usage.
  *
  * @param signingKey Customer's Signing Key. Empty / null throws Error.

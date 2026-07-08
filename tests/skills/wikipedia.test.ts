@@ -28,15 +28,15 @@ describe('WikipediaSearchSkill', () => {
   it('should register a search_wiki tool', () => {
     const tools = new WikipediaSearchSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('search_wiki');
+    expect(tools[0]!.name).toBe('search_wiki');
     // Python passes no `required` (wikipedia_search/skill.py:87); TS matches.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
     const sections = new WikipediaSearchSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Wikipedia Search');
+    expect(sections[0]!.title).toBe('Wikipedia Search');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -56,20 +56,20 @@ describe('WikipediaSearchSkill', () => {
   });
 
   it('should reject empty query', async () => {
-    const handler = new WikipediaSearchSkill().getTools()[0].handler;
+    const handler = new WikipediaSearchSkill().getTools()[0]!.handler;
     const result = (await handler({ query: '' }, {})) as FunctionResult;
     expect(result.response).toContain('provide a search query');
   });
 
   it('should have a parameter schema', () => {
     const schema = WikipediaSearchSkill.getParameterSchema();
-    expect(schema['num_results'].type).toBe('integer');
-    expect(schema['num_results'].default).toBe(1);
-    expect(schema['num_results'].max).toBe(5);
-    expect(schema['no_results_message'].type).toBe('string');
+    expect(schema['num_results']!.type).toBe('integer');
+    expect(schema['num_results']!.default).toBe(1);
+    expect(schema['num_results']!.max).toBe(5);
+    expect(schema['no_results_message']!.type).toBe('string');
     expect(
-      typeof schema['no_results_message'].default === 'string' &&
-        (schema['no_results_message'].default as string).length > 0,
+      typeof schema['no_results_message']!.default === 'string' &&
+        (schema['no_results_message']!.default as string).length > 0,
     ).toBe(true);
   });
 });

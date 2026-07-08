@@ -29,6 +29,25 @@ describe('AgentBase', () => {
     expect(main[1].ai.prompt.text).toBe('You are a helpful assistant');
   });
 
+  it('setMultilingual emits a top-level multilingual object on the AI verb', () => {
+    const agent = createAgent();
+    agent.setPromptText('hi');
+    const ret = agent.setMultilingual({ languages: ['en', 'es'], start_language: 'en' });
+    expect(ret).toBe(agent); // fluent
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    expect(ai.multilingual).toEqual({ languages: ['en', 'es'], start_language: 'en' });
+  });
+
+  it('setMultilingual is a no-op on a non-object config', () => {
+    const agent = createAgent();
+    agent.setPromptText('hi');
+    agent.setMultilingual(undefined as unknown as Record<string, unknown>);
+    const swml = JSON.parse(agent.renderSwml());
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    expect(ai).not.toHaveProperty('multilingual');
+  });
+
   it('renders SWML without auto-answer', () => {
     const agent = new AgentBase({ name: 'test', route: '/test', autoAnswer: false });
     agent.setPromptText('hello');
@@ -326,6 +345,150 @@ describe('AgentBase', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
+  // ── asRouter (host-app mounting) ──────────────────────────────────
+
+  it('asRouter returns the same wired Hono app as getApp', () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const router = agent.asRouter();
+    // asRouter is the "embed my routes in a host app" handle; it is the same
+    // fully-wired Hono app getApp() builds (idempotent build), returned for
+    // mounting instead of serving.
+    expect(router).toBe(agent.getApp());
+    expect(typeof router.request).toBe('function');
+    expect(typeof router.route).toBe('function');
+  });
+
+  it('asRouter serves the agent SWML route when mounted into a host app', async () => {
+    const { Hono } = await import('hono');
+    const agent = new AgentBase({ name: 'mounted', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello from mounted agent');
+
+    // Mount the agent's router as a sub-app under /agent in a host application,
+    // exactly as Python's `host_app.include_router(agent.as_router())`.
+    const host = new Hono();
+    host.route('/agent', agent.asRouter());
+
+    // The agent's root SWML route (registered at the sub-app root) is reached at
+    // the mount path; the /swaig, /post_prompt sub-routes hang off it.
+    const res = await host.request('/agent', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    expect(res.status).toBe(200);
+    const swml = await res.json();
+    expect(swml).toHaveProperty('sections');
+
+    // The mounted sub-routes are reachable under the mount prefix too.
+    const swaigRes = await host.request('/agent/swaig', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: 'nope', argument: {} }),
+    });
+    expect(swaigRes.status).toBe(404); // route wired; function unknown
+  });
+
+  it('asRouter carries the /swaig and /post_prompt routes', async () => {
+    const agent = new AgentBase({ name: 'mounted', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    const router = agent.asRouter();
+
+    // /swaig dispatches SWAIG function calls; an unknown function is a 404 from
+    // the mounted route (proving the route exists and is wired, not a Hono miss).
+    const swaigRes = await router.request('/swaig', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ function: 'does_not_exist', argument: {} }),
+    });
+    expect(swaigRes.status).toBe(404);
+
+    // /post_prompt accepts the call summary callback.
+    const ppRes = await router.request('/post_prompt', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    });
+    expect(ppRes.status).toBe(200);
+  });
+
+  // ── Served-path routing (307 through handleRequest) ───────────────
+
+  it('served routing-callback path returns a real 307 redirect with Location (not a 200)', async () => {
+    // #61: serve()/asRouter() route through getApp(), whose routing-callback
+    // handler must return the same 307 the decomposed handleRequest core does —
+    // NOT a wrong-status 200 with an {action:redirect} body. Hit the actual
+    // served endpoint (the app getApp() builds, which serve()/asRouter() use).
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => '/other-agent', '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc', from: 'sip:alice@example.com' }),
+      // Do not auto-follow the redirect; we assert on the 307 itself.
+      redirect: 'manual',
+    });
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/other-agent');
+  });
+
+  it('served routing callback returning null falls through to 200 SWML', async () => {
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => undefined, '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:p'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc' }),
+    });
+
+    expect(res.status).toBe(200);
+    const swml = await res.json();
+    expect(swml).toHaveProperty('sections');
+  });
+
+  it('served routing-callback path rejects bad auth with 401', async () => {
+    const agent = new AgentBase({ name: 'router', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hello');
+    agent.registerRoutingCallback(() => '/other-agent', '/sip');
+
+    const app = agent.getApp();
+    const res = await app.request('/sip', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa('u:wrong'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ call_id: 'abc' }),
+    });
+
+    expect(res.status).toBe(401);
+  });
+
   // ── Debug events ──────────────────────────────────────────────────
 
   it('enableDebugEvents injects debug_webhook_url in SWML', () => {
@@ -383,8 +546,8 @@ describe('AgentBase', () => {
     });
     const tools = agent.getRegisteredTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('fn1');
-    expect(tools[1].name).toBe('fn2');
+    expect(tools[0]!.name).toBe('fn1');
+    expect(tools[1]!.name).toBe('fn2');
   });
 
   it('getTool returns a SwaigFunction', () => {
@@ -471,20 +634,20 @@ describe('AgentBase', () => {
     suppress(false); // reset before the test
     const captured: string[] = [];
     const origErr = process.stderr.write.bind(process.stderr);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (process.stderr as any).write = ((chunk: string | Uint8Array): boolean => {
+    // Swap the overloaded `write` via a typed view of stderr (the method is
+    // not writable through the public `WriteStream` type) rather than `any`.
+    const stderrWritable = process.stderr as unknown as { write: typeof process.stderr.write };
+    stderrWritable.write = ((chunk: string | Uint8Array): boolean => {
       captured.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
       return true;
     }) as typeof process.stderr.write;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new AgentBase({ name: 'test', route: '/test', suppressLogs: true } as any);
+      new AgentBase({ name: 'test', route: '/test', suppressLogs: true });
       const log = getLogger('agent_base_suppress_test');
       log.error('this-message-should-be-suppressed');
       expect(captured.join('')).not.toContain('this-message-should-be-suppressed');
     } finally {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (process.stderr as any).write = origErr;
+      stderrWritable.write = origErr;
       suppress(false); // restore
     }
   });
@@ -986,8 +1149,8 @@ describe('AgentBase', () => {
       name: 'arg_test',
       description: 'Test args',
       parameters: {},
-      handler: (_args, _params, _body) => {
-        captured.push(_args);
+      handler: (args) => {
+        captured.push(args as Record<string, unknown>);
         return new FunctionResult('ok');
       },
     });
@@ -1233,8 +1396,8 @@ describe('AgentBase', () => {
       const pom = agent.pom;
       expect(pom).toBeInstanceOf(PromptObjectModel);
       expect(pom!.sections.length).toBe(1);
-      expect(pom!.sections[0].title).toBe('Greeting');
-      expect(pom!.sections[0].body).toBe('Hello');
+      expect(pom!.sections[0]!.title).toBe('Greeting');
+      expect(pom!.sections[0]!.body).toBe('Hello');
     });
 
     it('returns a PromptObjectModel after addSection on PomBuilder via promptManager', async () => {
@@ -1244,8 +1407,8 @@ describe('AgentBase', () => {
       const pom = agent.pom;
       expect(pom).toBeInstanceOf(PromptObjectModel);
       expect(pom!.sections.length).toBe(1);
-      expect(pom!.sections[0].title).toBe('Topic');
-      expect(pom!.sections[0].body).toBe('Body text');
+      expect(pom!.sections[0]!.title).toBe('Topic');
+      expect(pom!.sections[0]!.body).toBe('Body text');
     });
 
     it('returns null when usePom is false', () => {
@@ -1258,13 +1421,13 @@ describe('AgentBase', () => {
       agent.setPromptPom([{ title: 'Original', body: 'Body' }]);
       const pom = agent.pom!;
       // Mutate the snapshot directly.
-      pom.sections.push(pom.sections[0]);
+      pom.sections.push(pom.sections[0]!);
       // Subsequent calls reflect agent state, not the mutated snapshot.
       agent.setPromptPom([{ title: 'New', body: 'Other' }]);
       const pom2 = agent.pom!;
       expect(pom2.sections.length).toBe(1);
-      expect(pom2.sections[0].title).toBe('New');
-      expect(pom2.sections[0].body).toBe('Other');
+      expect(pom2.sections[0]!.title).toBe('New');
+      expect(pom2.sections[0]!.body).toBe('Other');
     });
   });
 

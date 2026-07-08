@@ -183,7 +183,7 @@ describe('Inbound call — answer / hangup / pass', () => {
     await new Promise((r) => setTimeout(r, 100));
     const answers = await mock.journalRecv('calling.answer');
     expect(answers.length).toBeGreaterThan(0);
-    expect(answers[answers.length - 1]!.frame.params.call_id).toBe('c-ans');
+    expect(answers[answers.length - 1]!.frame.params!.call_id).toBe('c-ans');
   });
 
   it('test_answer_then_state_event_advances_call_state', async () => {
@@ -217,8 +217,8 @@ describe('Inbound call — answer / hangup / pass', () => {
     const ends = await mock.journalRecv('calling.end');
     expect(ends.length).toBeGreaterThan(0);
     const p = ends[ends.length - 1]!.frame.params;
-    expect(p.call_id).toBe('c-hangup');
-    expect(p.reason).toBe('busy');
+    expect(p!.call_id).toBe('c-hangup');
+    expect(p!.reason).toBe('busy');
   });
 
   it('test_pass_in_handler_journals_calling_pass', async () => {
@@ -234,7 +234,7 @@ describe('Inbound call — answer / hangup / pass', () => {
 
     const passes = await mock.journalRecv('calling.pass');
     expect(passes.length).toBeGreaterThan(0);
-    expect(passes[passes.length - 1]!.frame.params.call_id).toBe('c-pass');
+    expect(passes[passes.length - 1]!.frame.params!.call_id).toBe('c-pass');
   });
 });
 
@@ -416,9 +416,9 @@ describe('Inbound call — wire shape', () => {
 
     const sends = await mock.journalSend('calling.call.receive');
     expect(sends.length).toBeGreaterThan(0);
-    const inner = sends[sends.length - 1]!.frame.params.params;
-    expect(inner.call_id).toBe('c-wire');
-    expect(inner.direction).toBe('inbound');
+    const inner = sends[sends.length - 1]!.frame.params!.params;
+    expect(inner!.call_id).toBe('c-wire');
+    expect(inner!.direction).toBe('inbound');
   });
 });
 

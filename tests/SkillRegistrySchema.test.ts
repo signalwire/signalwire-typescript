@@ -67,16 +67,16 @@ describe('SkillRegistry Schema', () => {
 
   it('multi-instance skills report supportsMultipleInstances = true', () => {
     const allSchemas = registry.getAllSkillsSchema();
-    expect(allSchemas['datasphere'].supportsMultipleInstances).toBe(true);
-    expect(allSchemas['datasphere_serverless'].supportsMultipleInstances).toBe(true);
-    expect(allSchemas['native_vector_search'].supportsMultipleInstances).toBe(true);
+    expect(allSchemas['datasphere']!.supportsMultipleInstances).toBe(true);
+    expect(allSchemas['datasphere_serverless']!.supportsMultipleInstances).toBe(true);
+    expect(allSchemas['native_vector_search']!.supportsMultipleInstances).toBe(true);
   });
 
   it('single-instance skills report supportsMultipleInstances = false', () => {
     const allSchemas = registry.getAllSkillsSchema();
-    expect(allSchemas['datetime'].supportsMultipleInstances).toBe(false);
-    expect(allSchemas['math'].supportsMultipleInstances).toBe(false);
-    expect(allSchemas['weather_api'].supportsMultipleInstances).toBe(false);
+    expect(allSchemas['datetime']!.supportsMultipleInstances).toBe(false);
+    expect(allSchemas['math']!.supportsMultipleInstances).toBe(false);
+    expect(allSchemas['weather_api']!.supportsMultipleInstances).toBe(false);
   });
 
   it('listAllSkillSources groups skills by source', () => {
@@ -91,8 +91,8 @@ describe('SkillRegistry Schema', () => {
     const schema = registry.getSkillSchema('weather_api');
     expect(schema).toBeDefined();
     expect(schema!.parameters).toHaveProperty('api_key');
-    expect(schema!.parameters['api_key'].hidden).toBe(true);
-    expect(schema!.parameters['api_key'].env_var).toBe('WEATHER_API_KEY');
+    expect(schema!.parameters['api_key']!.hidden).toBe(true);
+    expect(schema!.parameters['api_key']!.env_var).toBe('WEATHER_API_KEY');
   });
 });
 

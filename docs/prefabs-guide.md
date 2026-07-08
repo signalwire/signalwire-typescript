@@ -2,6 +2,18 @@
 
 Complete guide to the pre-built Prefab agents included in the SignalWire AI Agents TypeScript SDK.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const InfoGathererAgent: typeof import('@signalwire/sdk').InfoGathererAgent;
+  const SurveyAgent: typeof import('@signalwire/sdk').SurveyAgent;
+  const FAQBotAgent: typeof import('@signalwire/sdk').FAQBotAgent;
+  const ConciergeAgent: typeof import('@signalwire/sdk').ConciergeAgent;
+  const ReceptionistAgent: typeof import('@signalwire/sdk').ReceptionistAgent;
+}
+```
+
 ---
 
 ## Table of Contents

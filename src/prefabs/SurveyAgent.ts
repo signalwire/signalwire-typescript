@@ -10,7 +10,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { SwaigRequestData, PostPromptData } from '../PlatformContracts.js';
+import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -289,7 +289,7 @@ export class SurveyAgent extends AgentBase {
 
   // ── Session helpers ───────────────────────────────────────────────────
 
-  private getSession(rawData: SwaigRequestData): SurveySession {
+  private getSession(rawData: Record<string, unknown>): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
     let session = this.sessions.get(callId);
     if (!session) {
@@ -408,7 +408,7 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * Register SWAIG tools:
-   *   - Python-parity tools: `validate_response`, `log_response`
+   *   - Tools matching the Python SDK: `validate_response`, `log_response`
    *   - TS-specific session tools: `answer_question`, `get_current_question`, `get_survey_progress`
    */
   protected override defineTools(): void {
@@ -429,19 +429,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args) => {
-        const questionId = args.question_id ?? '';
-        const response = args.response ?? '';
-
-        const question = this.questionMap.get(questionId);
-        if (!question) {
-          return new FunctionResult(`Error: Question with ID '${questionId}' not found.`);
-        }
-
-        const error = this.validateAnswer(question, response);
-        if (error) return new FunctionResult(error);
-        return new FunctionResult(`Response to '${questionId}' is valid.`);
-      },
+      handler: this.validateResponse.bind(this),
     });
 
     // Tool: log_response (Python parity — acknowledge recording)
@@ -461,21 +449,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData: SwaigRequestData) => {
-        const questionId = args.question_id ?? '';
-        const response = args.response ?? '';
-
-        const question = this.questionMap.get(questionId);
-        const questionText = question ? question.text : '';
-
-        // Record on the per-call session for observability.
-        const session = this.getSession(rawData);
-        if (question) {
-          session.responses[questionId] = this.normalizeAnswer(question, response);
-        }
-
-        return new FunctionResult(`Response to '${questionText}' has been recorded.`);
-      },
+      handler: this.logResponse.bind(this),
     });
 
     // Tool: answer_question (TS-specific atomic validate+record+advance)
@@ -497,7 +471,7 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args, rawData: SwaigRequestData) => {
+      handler: async (args, rawData: SwaigRequest) => {
         const questionId = args.question_id;
         const answer = args.answer;
 
@@ -570,7 +544,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequest) => {
         const session = this.getSession(rawData);
 
         if (session.completed) {
@@ -604,7 +578,7 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequestData) => {
+      handler: (_args, rawData: SwaigRequest) => {
         const session = this.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
         const totalCount = this.questions.length;
@@ -630,6 +604,49 @@ export class SurveyAgent extends AgentBase {
     });
   }
 
+  // ── SWAIG tool handlers (named methods, mirroring the Python prefab) ───
+
+  /**
+   * SWAIG handler for `validate_response`: check whether a response satisfies a
+   * question's type/constraints. Mirrors Python `SurveyAgent.validate_response`.
+   */
+  validateResponse(
+    args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
+  ): FunctionResult {
+    const questionId = (args['question_id'] as string) ?? '';
+    const response = (args['response'] as string) ?? '';
+
+    const question = this.questionMap.get(questionId);
+    if (!question) {
+      return new FunctionResult(`Error: Question with ID '${questionId}' not found.`);
+    }
+
+    const error = this.validateAnswer(question, response);
+    if (error) return new FunctionResult(error);
+    return new FunctionResult(`Response to '${questionId}' is valid.`);
+  }
+
+  /**
+   * SWAIG handler for `log_response`: record a validated response on the per-call
+   * session. Mirrors Python `SurveyAgent.log_response`.
+   */
+  logResponse(args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
+    const questionId = (args['question_id'] as string) ?? '';
+    const response = (args['response'] as string) ?? '';
+
+    const question = this.questionMap.get(questionId);
+    const questionText = question ? question.text : '';
+
+    // Record on the per-call session for observability.
+    const session = this.getSession(rawData);
+    if (question) {
+      session.responses[questionId] = this.normalizeAnswer(question, response);
+    }
+
+    return new FunctionResult(`Response to '${questionText}' has been recorded.`);
+  }
+
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
@@ -643,7 +660,7 @@ export class SurveyAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     if (summary) {
       try {

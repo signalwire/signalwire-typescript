@@ -82,7 +82,3 @@ export interface UpdateTokenRequest {
   /** The permissions you would like to enable for this token. Valid permissions are calling, chat, datasphere, fax, management, messaging, numbers, pubsub, storage, tasking, and video */
   permissions?: TokenPermission[];
 }
-
-export type CreateTokenResponse = TokenResponse;
-
-export type UpdateTokenResponse = TokenResponse;

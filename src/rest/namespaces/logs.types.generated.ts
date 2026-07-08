@@ -146,5 +146,3 @@ export interface VideoRoomSessionConference {
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type ListConferencesResponse = ConferencesResponse;

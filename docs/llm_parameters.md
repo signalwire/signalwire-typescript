@@ -2,6 +2,15 @@
 
 This guide explains how to customize Language Model (LLM) parameters in SignalWire AI Agents to fine-tune the AI's behavior for your specific use case.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const agent: import('@signalwire/sdk').AgentBase;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase; // used with `extends`
+}
+```
+
 ## Overview
 
 The SignalWire AI Agents TypeScript SDK provides methods to customize LLM parameters for both the main prompt and the post-prompt, giving precise control over the AI's response characteristics.

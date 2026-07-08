@@ -19,6 +19,7 @@ async function main() {
   console.log('Creating AI agent...');
   const agent = await client.fabric.aiAgents.create({
     name: 'Demo Support Bot',
+    agent_id: '00000000-0000-0000-0000-000000000000',
     prompt: { text: 'You are a friendly support agent for Acme Corp.' },
   });
   const agentId = agent.id;
@@ -41,9 +42,7 @@ async function main() {
   // 4. Place a test call (requires valid numbers)
   console.log('\nPlacing a test call...');
   try {
-    const result = await client.calling.dial({
-      from: '+15559876543',
-      to: '+15551234567',
+    const result = await client.calling.dial('+15559876543', '+15551234567', {
       url: 'https://example.com/call-handler',
     });
     console.log(`  Call initiated: ${JSON.stringify(result)}`);

@@ -10,12 +10,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    // Generated + build output are not hand-maintained source. NOTE: the REST
-    // *.types.generated.ts + PlatformContracts.generated.ts modules are NOT
-    // ignored — generated code gets no magic pass; it passes this gate as real
-    // source (0 disables, 0 any). Only the legacy verb-types generator output
-    // (different generator, not yet held to the bar) is excepted.
-    ignores: ['dist/**', 'node_modules/**', '**/*.js', 'src/SwmlVerbMethods.generated.ts'],
+    // Only build output + plain JS are ignored. ALL generated TypeScript —
+    // the REST *.types.generated.ts, PlatformContracts.generated.ts, AND the
+    // SWML verb-method augmentation (SwmlVerbMethods.generated.ts) — is linted
+    // as real source: generated code gets no magic pass; it passes this gate
+    // with 0 disables and 0 `any`, same as hand-written code.
+    ignores: ['dist/**', 'node_modules/**', '**/*.js'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -2,6 +2,15 @@
 
 The `WebService` class provides static file serving for the SignalWire AI Agents TypeScript SDK. It is a thin, security-conscious HTTP server built on [Hono](https://hono.dev/) that can run standalone or alongside your AI agents.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const WebService: typeof import('@signalwire/sdk').WebService;
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ## Table of Contents
 - [Overview](#overview)
 - [Installation](#installation)
@@ -346,6 +355,8 @@ await service.start(
 ### Multi-Environment Configuration
 
 ```typescript
+import { WebService } from '@signalwire/sdk';
+
 let service: WebService;
 
 if (process.env.NODE_ENV === 'production') {
@@ -487,6 +498,7 @@ server {
 
 ### WebService Class
 
+<!-- snippet: no-compile class API-signature reference (declaration-only, no bodies), not runnable -->
 ```typescript
 class WebService {
   constructor(options?: WebServiceOptions);

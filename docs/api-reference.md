@@ -2,6 +2,16 @@
 
 Complete reference for every exported class, interface, type, and function in the SignalWire AI Agents TypeScript SDK.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each runnable example as a module
+// Shared instances the runnable fragments below assume (constructed in the examples above).
+// Ambient import()-types avoid clashing with the per-section `import { ... }` blocks.
+declare const agent: import('@signalwire/sdk').AgentBase;
+declare const agent1: import('@signalwire/sdk').AgentBase;
+declare const agent2: import('@signalwire/sdk').AgentBase;
+```
+
 ---
 
 ## Table of Contents
@@ -104,6 +114,7 @@ Core agent class that composes an HTTP server, prompt management, session handli
 
 ### AgentBase Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts: AgentOptions)
 ```
@@ -112,13 +123,16 @@ Creates a new agent. See [AgentOptions](#agentoptions) for the full options tabl
 
 **Example:**
 ```ts
-const agent = new AgentBase({ name: 'MyAgent', route: '/agent' });
+import { AgentBase } from '@signalwire/sdk';
+
+const myAgent = new AgentBase({ name: 'MyAgent', route: '/agent' });
 ```
 
 ### AgentBase Static Properties
 
 #### `PROMPT_SECTIONS`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 static PROMPT_SECTIONS?: { title: string; body?: string; bullets?: string[]; numbered?: boolean }[]
 ```
@@ -127,6 +141,8 @@ Declarative prompt sections applied automatically by the constructor via `prompt
 
 **Example:**
 ```ts
+import { AgentBase } from '@signalwire/sdk';
+
 class MyAgent extends AgentBase {
   static override PROMPT_SECTIONS = [
     { title: 'Role', body: 'You are a helpful assistant.' },
@@ -149,6 +165,7 @@ class MyAgent extends AgentBase {
 
 #### `setPromptText(text)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setPromptText(text: string): this
 ```
@@ -157,6 +174,7 @@ Set the main system prompt text. Bypasses POM rendering when set.
 
 #### `setPostPrompt(text)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setPostPrompt(text: string): this
 ```
@@ -165,6 +183,7 @@ Set the post-prompt text evaluated after the call ends. Used for call summarizat
 
 #### `promptAddSection(title, opts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 promptAddSection(title: string, opts?: {
   body?: string;
@@ -179,6 +198,7 @@ Add a new section to the POM prompt. Sections render as Markdown headings with b
 
 #### `promptAddToSection(title, opts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 promptAddToSection(title: string, opts?: {
   body?: string;
@@ -191,6 +211,7 @@ Append content to an existing prompt section. Creates the section if it does not
 
 #### `promptAddSubsection(parentTitle, title, opts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 promptAddSubsection(parentTitle: string, title: string, opts?: {
   body?: string;
@@ -202,6 +223,7 @@ Add a subsection under an existing prompt section.
 
 #### `promptHasSection(title)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 promptHasSection(title: string): boolean
 ```
@@ -210,6 +232,7 @@ Check whether a prompt section with the given title exists.
 
 #### `getPrompt()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getPrompt(): string
 ```
@@ -218,6 +241,7 @@ Get the fully rendered main prompt text.
 
 #### `getPostPrompt()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getPostPrompt(): string | null
 ```
@@ -228,6 +252,7 @@ Get the post-prompt text, or `null` if not configured.
 
 #### `defineTool(opts)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 defineTool(opts: {
   name: string;
@@ -258,16 +283,19 @@ Register a SWAIG tool (function) the AI can invoke during a call.
 
 **Example:**
 ```ts
+import { FunctionResult } from '@signalwire/sdk';
+
 agent.defineTool({
   name: 'get_weather',
   description: 'Get current weather for a city',
   parameters: { city: { type: 'string', description: 'City name' } },
-  handler: async (args) => new FunctionResult(`Weather in ${args.city}: sunny`),
+  handler: async (args: Record<string, any>) => new FunctionResult(`Weather in ${args.city}: sunny`),
 });
 ```
 
 #### `getRegisteredTools()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getRegisteredTools(): { name: string; description: string; parameters: Record<string, unknown> }[]
 ```
@@ -276,6 +304,7 @@ Get a summary of all registered tools.
 
 #### `getTool(name)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getTool(name: string): SwaigFunction | undefined
 ```
@@ -284,6 +313,7 @@ Look up a registered SwaigFunction by name.
 
 #### `registerSwaigFunction(fn)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 registerSwaigFunction(fn: SwaigFunction | Record<string, unknown>): this
 ```
@@ -294,6 +324,7 @@ Register a pre-built SwaigFunction instance or a raw function descriptor (e.g., 
 
 #### `addHint(hint)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addHint(hint: string): this
 ```
@@ -302,6 +333,7 @@ Add a single speech-recognition hint word or phrase.
 
 #### `addHints(hints)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addHints(hints: string[]): this
 ```
@@ -310,6 +342,7 @@ Add multiple speech-recognition hints at once.
 
 #### `addPatternHint(opts)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPatternHint(opts: { pattern: string; replace: string; ignoreCase?: boolean }): this
 ```
@@ -318,6 +351,7 @@ Add a pattern-based speech-recognition hint with find-and-replace behavior.
 
 #### `addLanguage(config)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addLanguage(config: LanguageConfig): this
 ```
@@ -326,6 +360,7 @@ Add a supported language to the AI configuration. See [LanguageConfig](#language
 
 #### `setLanguages(languages)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setLanguages(languages: LanguageConfig[]): this
 ```
@@ -334,6 +369,7 @@ Replace all configured languages with a new list.
 
 #### `addPronunciation(rule)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPronunciation(rule: PronunciationRule): this
 ```
@@ -344,6 +380,7 @@ Add a pronunciation override rule for the TTS engine. See [PronunciationRule](#p
 
 #### `setParam(key, value)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setParam(key: string, value: unknown): this
 ```
@@ -352,6 +389,7 @@ Set a single AI parameter (e.g., `"temperature"`, `"top_p"`).
 
 #### `setParams(params)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setParams(params: Record<string, unknown>): this
 ```
@@ -360,6 +398,7 @@ Merge multiple AI parameters into the existing params object.
 
 #### `setGlobalData(data)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setGlobalData(data: Record<string, unknown>): this
 ```
@@ -368,6 +407,7 @@ Replace the entire `global_data` object passed into the AI configuration.
 
 #### `updateGlobalData(data)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 updateGlobalData(data: Record<string, unknown>): this
 ```
@@ -376,6 +416,7 @@ Merge additional entries into the existing `global_data` object.
 
 #### `setNativeFunctions(funcs)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setNativeFunctions(funcs: string[]): this
 ```
@@ -384,6 +425,7 @@ Set the list of native SWAIG function names (built-in platform functions).
 
 #### `addInternalFiller(functionName, languageCode, fillers)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addInternalFiller(functionName: string, languageCode: string, fillers: string[]): this
 ```
@@ -392,6 +434,7 @@ Add filler phrases spoken while a specific function is executing.
 
 #### `addFunctionInclude(url, functions, metaData?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addFunctionInclude(url: string, functions: string[], metaData?: Record<string, unknown>): this
 ```
@@ -400,6 +443,7 @@ Add a remote SWAIG function include reference.
 
 #### `setPromptLlmParams(params)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setPromptLlmParams(params: Record<string, unknown>): this
 ```
@@ -408,6 +452,7 @@ Merge LLM-specific parameters into the main prompt configuration (e.g., `model`,
 
 #### `setPostPromptLlmParams(params)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setPostPromptLlmParams(params: Record<string, unknown>): this
 ```
@@ -416,6 +461,7 @@ Merge LLM-specific parameters into the post-prompt configuration.
 
 #### `enableDebugEvents(level?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 enableDebugEvents(level?: number): this
 ```
@@ -434,6 +480,7 @@ The SWML document is rendered in 5 phases:
 
 #### `addPreAnswerVerb(verbName, config)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPreAnswerVerb(verbName: string, config: Record<string, unknown>): this
 ```
@@ -442,6 +489,7 @@ Add a SWML verb to execute before the answer phase (phase 1).
 
 #### `addAnswerVerb(config?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addAnswerVerb(config?: Record<string, unknown>): this
 ```
@@ -450,6 +498,7 @@ Configure the answer verb (phase 2).
 
 #### `addPostAnswerVerb(verbName, config)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPostAnswerVerb(verbName: string, config: Record<string, unknown>): this
 ```
@@ -458,6 +507,7 @@ Add a verb after the answer but before the AI verb (phase 3).
 
 #### `addPostAiVerb(verbName, config)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPostAiVerb(verbName: string, config: Record<string, unknown>): this
 ```
@@ -466,6 +516,7 @@ Add a verb after the AI verb (phase 5).
 
 #### `clearPreAnswerVerbs()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 clearPreAnswerVerbs(): this
 ```
@@ -474,6 +525,7 @@ Remove all pre-answer verbs.
 
 #### `clearPostAnswerVerbs()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 clearPostAnswerVerbs(): this
 ```
@@ -482,6 +534,7 @@ Remove all post-answer verbs.
 
 #### `clearPostAiVerbs()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 clearPostAiVerbs(): this
 ```
@@ -492,6 +545,7 @@ Remove all post-AI verbs.
 
 #### `defineContexts(contexts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder
 ```
@@ -502,6 +556,7 @@ Define or replace the contexts configuration for the AI verb. Returns the active
 
 #### `addSkill(skill)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async addSkill(skill: SkillBase): Promise<this>
 ```
@@ -510,6 +565,7 @@ Add a skill to this agent, registering its tools, prompt sections, hints, and gl
 
 #### `removeSkill(instanceId)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async removeSkill(instanceId: string): Promise<boolean>
 ```
@@ -518,6 +574,7 @@ Remove a previously added skill by its instance ID. Returns `true` if found and 
 
 #### `listSkills()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 listSkills(): { name: string; instanceId: string; initialized: boolean }[]
 ```
@@ -526,6 +583,7 @@ List all registered skills.
 
 #### `hasSkill(skillName)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 hasSkill(skillName: string): boolean
 ```
@@ -536,6 +594,7 @@ Check whether a skill with the given name is registered.
 
 #### `setDynamicConfigCallback(cb)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setDynamicConfigCallback(cb: DynamicConfigCallback): this
 ```
@@ -544,6 +603,7 @@ Set a callback invoked on each SWML request to dynamically modify an ephemeral a
 
 #### `addSwaigQueryParams(params)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addSwaigQueryParams(params: Record<string, string>): this
 ```
@@ -554,6 +614,7 @@ Add extra query parameters appended to all SWAIG webhook URLs.
 
 #### `manualSetProxyUrl(url)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 manualSetProxyUrl(url: string): this
 ```
@@ -562,6 +623,7 @@ Manually set the external-facing proxy base URL used for webhook URL generation.
 
 #### `setWebHookUrl(url)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setWebHookUrl(url: string): this
 ```
@@ -570,6 +632,7 @@ Override the default SWAIG webhook URL.
 
 #### `setPostPromptUrl(url)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setPostPromptUrl(url: string): this
 ```
@@ -578,6 +641,7 @@ Override the default post-prompt webhook URL.
 
 #### `getFullUrl(includeAuth?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getFullUrl(includeAuth?: boolean): string
 ```
@@ -588,6 +652,7 @@ Get the full external URL of this agent. When `includeAuth` is `true`, basic-aut
 
 #### `getApp()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getApp(): Hono
 ```
@@ -605,6 +670,7 @@ Get or lazily create the Hono HTTP application with all routes, middleware, auth
 
 #### `asRouter()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 asRouter(): Hono
 ```
@@ -613,6 +679,7 @@ Return this agent's Hono app for mounting as a sub-router in an AgentServer.
 
 #### `serve()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async serve(): Promise<void>
 ```
@@ -621,6 +688,7 @@ Start the HTTP server and begin listening for requests.
 
 #### `run()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async run(): Promise<void>
 ```
@@ -629,6 +697,7 @@ Alias for `serve()`.
 
 #### `renderSwml(callId?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 renderSwml(callId?: string): string
 ```
@@ -639,6 +708,7 @@ Render the complete SWML document as a JSON string. Assembles all 5 phases.
 
 #### `getName()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getName(): string
 ```
@@ -647,6 +717,7 @@ Get the agent's display name.
 
 #### `getBasicAuthCredentials(includeSource?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getBasicAuthCredentials(): [string, string]
 getBasicAuthCredentials(includeSource: true): [string, string, 'provided' | 'environment' | 'generated']
@@ -660,6 +731,7 @@ Override these in subclasses to customize agent behavior.
 
 #### `defineTools()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 protected defineTools(): void
 ```
@@ -668,6 +740,7 @@ Lifecycle method for subclasses to register tools. Called explicitly by subclass
 
 #### `onSummary(summary, rawData)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 onSummary(summary: Record<string, unknown> | null, rawData: Record<string, unknown>): void | Promise<void>
 ```
@@ -676,6 +749,7 @@ Called when a post-prompt summary is received at the end of a call.
 
 #### `onSwmlRequest(rawData)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 onSwmlRequest(rawData: Record<string, unknown>): void | Promise<void>
 ```
@@ -684,6 +758,7 @@ Called on every SWML request before rendering.
 
 #### `onDebugEvent(event)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 onDebugEvent(event: Record<string, unknown>): void | Promise<void>
 ```
@@ -692,6 +767,7 @@ Called when a debug event webhook is received.
 
 #### `validateBasicAuth(username, password)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 validateBasicAuth(username: string, password: string): boolean | Promise<boolean>
 ```
@@ -700,6 +776,7 @@ Override to add custom basic-auth validation logic. Return `true` to allow, `fal
 
 #### `onFunctionCall(name, args, rawData)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 onFunctionCall(name: string, args: Record<string, unknown>, rawData: Record<string, unknown>): void | Promise<void>
 ```
@@ -718,6 +795,7 @@ Multi-agent HTTP server that hosts multiple AgentBase instances on distinct rout
 
 ### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts?: { host?: string; port?: number })
 ```
@@ -731,6 +809,7 @@ constructor(opts?: { host?: string; port?: number })
 
 #### `register(agent, route?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 register(agent: AgentBase, route?: string): void
 ```
@@ -739,6 +818,7 @@ Register an agent at the given route prefix. Defaults to the agent's own route. 
 
 #### `unregister(route)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 unregister(route: string): void
 ```
@@ -747,6 +827,7 @@ Remove an agent registration by route.
 
 #### `getAgents()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getAgents(): Map<string, AgentBase>
 ```
@@ -755,6 +836,7 @@ Get all registered agents keyed by route prefix.
 
 #### `getAgent(route)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getAgent(route: string): AgentBase | undefined
 ```
@@ -763,6 +845,7 @@ Look up a registered agent by route prefix.
 
 #### `getApp()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getApp(): Hono
 ```
@@ -771,6 +854,7 @@ Build and return the Hono application with all registered agents and a root list
 
 #### `run(host?, port?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async run(host?: string, port?: number): Promise<void>
 ```
@@ -779,6 +863,8 @@ Start the HTTP server. Optional host/port overrides the constructor values.
 
 **Example:**
 ```ts
+import { AgentServer } from '@signalwire/sdk';
+
 const server = new AgentServer({ port: 8080 });
 server.register(agent1, '/sales');
 server.register(agent2, '/support');
@@ -797,6 +883,7 @@ Builder for SWAIG function responses. Carries response text and an ordered list 
 
 ### FunctionResult Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(response?: string, postProcess?: boolean)
 ```
@@ -912,6 +999,7 @@ constructor(response?: string, postProcess?: boolean)
 
 #### `pay(opts)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 pay(opts: {
   paymentConnectorUrl: string;
@@ -950,6 +1038,7 @@ Initiate a payment collection flow.
 
 #### `toDict()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toDict(): Record<string, unknown>
 ```
@@ -968,6 +1057,7 @@ Wraps a tool handler function with metadata for SWAIG registration.
 
 ### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts: SwaigFunctionOptions)
 ```
@@ -995,6 +1085,7 @@ See [SwaigFunctionOptions](#swaigfunctionoptions) for the options table.
 
 #### `execute(args, rawData?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 async execute(args: Record<string, unknown>, rawData?: Record<string, unknown>): Promise<Record<string, unknown>>
 ```
@@ -1003,6 +1094,7 @@ Invoke the handler and return a serialized result dictionary. On error, returns 
 
 #### `toSwaig(baseUrl, token?, callId?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toSwaig(baseUrl: string, token?: string, callId?: string): Record<string, unknown>
 ```
@@ -1021,6 +1113,7 @@ Fluent builder for SWAIG `data_map` configurations. Creates server-side tool def
 
 ### DataMap Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(functionName: string)
 ```
@@ -1033,6 +1126,7 @@ constructor(functionName: string)
 
 #### `enableEnvExpansion(enabled?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 enableEnvExpansion(enabled?: boolean): this
 ```
@@ -1041,6 +1135,7 @@ Enable `${ENV.*}` variable expansion in URLs, bodies, and outputs. Default `true
 
 #### `purpose(description)` / `description(description)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 purpose(description: string): this
 description(description: string): this  // alias
@@ -1050,6 +1145,7 @@ Set the tool description shown to the AI.
 
 #### `parameter(name, paramType, description, opts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 parameter(name: string, paramType: string, description: string, opts?: {
   required?: boolean;
@@ -1061,6 +1157,7 @@ Define a parameter for this data map tool.
 
 #### `expression(testValue, pattern, output, nomatchOutput?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 expression(
   testValue: string,
@@ -1076,6 +1173,7 @@ Add a pattern-matching expression that evaluates a test value against a regex.
 
 #### `webhook(method, url, opts?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 webhook(method: string, url: string, opts?: {
   headers?: Record<string, string>;
@@ -1089,6 +1187,7 @@ Add a webhook called when this data map tool is invoked.
 
 #### `webhookExpressions(expressions)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 webhookExpressions(expressions: Record<string, unknown>[]): this
 ```
@@ -1097,6 +1196,7 @@ Set expressions on the most recently added webhook.
 
 #### `body(data)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 body(data: Record<string, unknown>): this
 ```
@@ -1105,6 +1205,7 @@ Set the JSON body for the most recently added webhook.
 
 #### `params(data)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 params(data: Record<string, unknown>): this
 ```
@@ -1113,6 +1214,7 @@ Set query/form parameters for the most recently added webhook.
 
 #### `foreach(config)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 foreach(config: { input_key: string; output_key: string; append: string; max?: number }): this
 ```
@@ -1123,6 +1225,7 @@ Configure iteration over an array in the webhook response.
 
 #### `output(result)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 output(result: FunctionResult): this
 ```
@@ -1131,6 +1234,7 @@ Set the output template for the most recently added webhook.
 
 #### `fallbackOutput(result)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 fallbackOutput(result: FunctionResult): this
 ```
@@ -1139,6 +1243,7 @@ Set a fallback output used when no webhook or expression matches.
 
 #### `errorKeys(keys)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 errorKeys(keys: string[]): this
 ```
@@ -1147,6 +1252,7 @@ Set error keys on the most recently added webhook (or globally if no webhook exi
 
 #### `globalErrorKeys(keys)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 globalErrorKeys(keys: string[]): this
 ```
@@ -1157,6 +1263,7 @@ Set error keys at the top-level data map scope.
 
 #### `registerWithAgent(agent)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 registerWithAgent(agent: { registerSwaigFunction(fn: Record<string, unknown>): unknown }): this
 ```
@@ -1165,6 +1272,7 @@ Register this DataMap tool with an AgentBase instance.
 
 #### `toSwaigFunction()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toSwaigFunction(): Record<string, unknown>
 ```
@@ -1175,6 +1283,7 @@ Serialize to a SWAIG function definition object suitable for SWML.
 
 #### `createSimpleApiTool(opts)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 function createSimpleApiTool(opts: {
   name: string;
@@ -1192,6 +1301,7 @@ Create a DataMap tool that calls a single API endpoint and formats the response.
 
 #### `createExpressionTool(opts)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 function createExpressionTool(opts: {
   name: string;
@@ -1218,6 +1328,7 @@ Builds and validates a collection of named contexts for multi-step AI workflows.
 
 #### `addContext(name)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addContext(name: string): Context
 ```
@@ -1226,6 +1337,7 @@ Add a new named context. Returns the created Context for further configuration. 
 
 #### `getContext(name)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 getContext(name: string): Context | undefined
 ```
@@ -1234,6 +1346,7 @@ Retrieve a context by name.
 
 #### `validate()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 validate(): void
 ```
@@ -1242,6 +1355,7 @@ Validate all contexts: at least one must exist, single contexts must be named `'
 
 #### `toDict()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toDict(): Record<string, unknown>
 ```
@@ -1254,6 +1368,7 @@ A named context containing ordered steps, prompt configuration, and navigation r
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(name: string)
 ```
@@ -1311,6 +1426,7 @@ The `addStep` options shorthand:
 
 #### `toDict()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toDict(): Record<string, unknown>
 ```
@@ -1323,6 +1439,7 @@ A single step within a context.
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(name: string)
 ```
@@ -1366,6 +1483,7 @@ constructor(name: string)
 
 #### `toDict()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toDict(): Record<string, unknown>
 ```
@@ -1378,6 +1496,7 @@ Collects structured information through a series of questions.
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: string })
 ```
@@ -1396,6 +1515,7 @@ A single question within a gather operation.
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts: {
   key: string;
@@ -1420,6 +1540,7 @@ constructor(opts: {
 
 #### `toDict()`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 toDict(): Record<string, unknown>
 ```
@@ -1428,6 +1549,7 @@ toDict(): Record<string, unknown>
 
 #### `createSimpleContext(name?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 function createSimpleContext(name?: string): Context
 ```
@@ -1450,6 +1572,7 @@ A single section in a POM.
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts?: {
   title?: string | null;
@@ -1528,6 +1651,7 @@ Manages agent prompt text, supporting both raw text and structured POM-based pro
 
 ### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(usePom?: boolean)
 ```
@@ -1562,6 +1686,7 @@ Stateless HMAC-SHA256 token manager for SWAIG function call authentication and p
 
 ### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(tokenExpirySecs?: number, secretKey?: string)
 ```
@@ -1575,6 +1700,7 @@ constructor(tokenExpirySecs?: number, secretKey?: string)
 
 #### `createSession(callId?)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 createSession(callId?: string): string
 ```
@@ -1583,6 +1709,7 @@ Return the given callId or generate a new random session identifier.
 
 #### `generateToken(functionName, callId)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 generateToken(functionName: string, callId: string): string
 ```
@@ -1591,6 +1718,7 @@ Generate a signed, base64url-encoded token binding a function name to a call ID.
 
 #### `createToolToken(functionName, callId)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 createToolToken(functionName: string, callId: string): string
 ```
@@ -1599,6 +1727,7 @@ Alias for `generateToken()`.
 
 #### `validateToken(callId, functionName, token)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 validateToken(callId: string, functionName: string, token: string): boolean
 ```
@@ -1607,6 +1736,7 @@ Validate a token against the expected call ID and function name. Returns `true` 
 
 #### `validateToolToken(functionName, token, callId)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 validateToolToken(functionName: string, token: string, callId: string): boolean
 ```
@@ -1615,6 +1745,7 @@ Alias for `validateToken()` with reordered parameters.
 
 #### `debugToken(token)`
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 debugToken(token: string): {
   callId: string;
@@ -1650,6 +1781,7 @@ Abstract base class for agent skills. Skills are modular capabilities that provi
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(skillName: string, config?: SkillConfig)
 ```
@@ -1752,6 +1884,7 @@ Global singleton registry for discovering and instantiating skills. Supports the
 
 #### SkillFactory Type
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 type SkillFactory = (config?: SkillConfig) => SkillBase;
 ```
@@ -1939,6 +2072,7 @@ Multi-method authentication handler with timing-safe credential comparison. Supp
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(config: AuthConfig)
 ```
@@ -1965,6 +2099,7 @@ JSON configuration file loader with `${VAR|default}` environment variable interp
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(filePath?: string)
 ```
@@ -2008,6 +2143,7 @@ Structured logger configurable via environment variables.
 
 #### Logger Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(name: string, context?: Record<string, unknown>)
 ```
@@ -2052,6 +2188,7 @@ SSL/TLS configuration sourced from explicit options or environment variables.
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts?: SslOptions)
 ```
@@ -2090,6 +2227,7 @@ Validates SWML documents against structural rules with an LRU-style result cache
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number })
 ```
@@ -2117,6 +2255,7 @@ Adapts a Hono application for deployment on serverless platforms. Auto-detects p
 
 #### Constructor
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 constructor(platform?: ServerlessPlatform)
 ```
@@ -2144,8 +2283,10 @@ constructor(platform?: ServerlessPlatform)
 
 **Example (AWS Lambda):**
 ```ts
-const agent = new AgentBase({ name: 'MyAgent' });
-export const handler = ServerlessAdapter.createLambdaHandler(agent.getApp());
+import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
+
+const myAgent = new AgentBase({ name: 'MyAgent' });
+export const handler = ServerlessAdapter.createLambdaHandler(myAgent.getApp());
 ```
 
 ---
@@ -2154,6 +2295,7 @@ export const handler = ServerlessAdapter.createLambdaHandler(agent.getApp());
 
 ### AgentOptions
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface AgentOptions
 ```
@@ -2180,6 +2322,7 @@ Configuration options for constructing an AgentBase instance.
 
 ### LanguageConfig
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface LanguageConfig
 ```
@@ -2196,6 +2339,7 @@ interface LanguageConfig
 
 ### PronunciationRule
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface PronunciationRule
 ```
@@ -2208,6 +2352,7 @@ interface PronunciationRule
 
 ### FunctionInclude
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface FunctionInclude
 ```
@@ -2244,6 +2389,7 @@ Callback invoked when a post-prompt summary is received.
 
 ### SwaigHandler
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 type SwaigHandler = (
   args: Record<string, unknown>,
@@ -2259,6 +2405,7 @@ Handler function for a SWAIG tool invocation. Can return:
 
 ### SwaigFunctionOptions
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface SwaigFunctionOptions
 ```
@@ -2279,6 +2426,7 @@ interface SwaigFunctionOptions
 
 ### AuthConfig
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface AuthConfig
 ```
@@ -2292,6 +2440,7 @@ interface AuthConfig
 
 ### SslOptions
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface SslOptions
 ```
@@ -2307,6 +2456,7 @@ interface SslOptions
 
 ### ValidationResult
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface ValidationResult
 ```
@@ -2318,6 +2468,7 @@ interface ValidationResult
 
 ### ServerlessEvent
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface ServerlessEvent
 ```
@@ -2337,6 +2488,7 @@ Normalized incoming event from a serverless platform.
 
 ### ServerlessResponse
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface ServerlessResponse
 ```
@@ -2349,6 +2501,7 @@ interface ServerlessResponse
 
 ### PomSectionData
 
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 interface PomSectionData
 ```

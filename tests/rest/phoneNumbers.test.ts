@@ -91,7 +91,7 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
   describe('setCxmlWebhook', () => {
     it('minimal form: sets call_handler=laml_webhooks + call_request_url', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setCxmlWebhook('pn-1', { url: 'https://example.com/voice.xml' });
+      await phoneNumbers.setCxmlWebhook('pn-1', 'https://example.com/voice.xml');
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'laml_webhooks',
         call_request_url: 'https://example.com/voice.xml',
@@ -100,11 +100,12 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('includes fallbackUrl and statusCallbackUrl when supplied', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setCxmlWebhook('pn-1', {
-        url: 'https://example.com/voice.xml',
-        fallbackUrl: 'https://example.com/fallback.xml',
-        statusCallbackUrl: 'https://example.com/status',
-      });
+      await phoneNumbers.setCxmlWebhook(
+        'pn-1',
+        'https://example.com/voice.xml',
+        'https://example.com/fallback.xml',
+        'https://example.com/status',
+      );
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'laml_webhooks',
         call_request_url: 'https://example.com/voice.xml',
@@ -115,10 +116,15 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('passes through extra wire-level fields', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setCxmlWebhook('pn-1', {
-        url: 'https://example.com/voice.xml',
-        call_status_callback_method: 'POST',
-      });
+      await phoneNumbers.setCxmlWebhook(
+        'pn-1',
+        'https://example.com/voice.xml',
+        undefined,
+        undefined,
+        {
+          call_status_callback_method: 'POST',
+        },
+      );
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'laml_webhooks',
         call_request_url: 'https://example.com/voice.xml',
@@ -152,7 +158,7 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
   describe('setCallFlow', () => {
     it('minimal: sets call_handler=call_flow + call_flow_id', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setCallFlow('pn-1', { flowId: 'cf-1' });
+      await phoneNumbers.setCallFlow('pn-1', 'cf-1');
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'call_flow',
         call_flow_id: 'cf-1',
@@ -161,7 +167,7 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('includes call_flow_version when version specified', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setCallFlow('pn-1', { flowId: 'cf-1', version: 'current_deployed' });
+      await phoneNumbers.setCallFlow('pn-1', 'cf-1', 'current_deployed');
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'call_flow',
         call_flow_id: 'cf-1',
@@ -184,7 +190,7 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
   describe('setRelayTopic', () => {
     it('minimal: sets call_handler=relay_topic + call_relay_topic', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setRelayTopic('pn-1', { topic: 'office' });
+      await phoneNumbers.setRelayTopic('pn-1', 'office');
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'relay_topic',
         call_relay_topic: 'office',
@@ -193,10 +199,7 @@ describe('PhoneNumbersResource — typed binding helpers', () => {
 
     it('includes call_relay_topic_status_callback_url when supplied', async () => {
       const { phoneNumbers, getRequests } = setup();
-      await phoneNumbers.setRelayTopic('pn-1', {
-        topic: 'office',
-        statusCallbackUrl: 'https://example.com/status',
-      });
+      await phoneNumbers.setRelayTopic('pn-1', 'office', 'https://example.com/status');
       expect(getRequests()[0]?.body).toEqual({
         call_handler: 'relay_topic',
         call_relay_topic: 'office',

@@ -9,7 +9,7 @@
  *
  * This is the lower-level building block. Most agent code uses the higher-level
  * {@link PomBuilder} wrapper, but `PromptObjectModel` is exposed directly so
- * that callers can mirror Python parity (`agent.pom` is a `PromptObjectModel`)
+ * that callers can mirror the Python SDK (`agent.pom` is a `PromptObjectModel`)
  * and load/save POMs as JSON/YAML.
  */
 

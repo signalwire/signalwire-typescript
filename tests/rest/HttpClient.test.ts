@@ -1,6 +1,10 @@
+import { createRequire } from 'node:module';
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RestError } from '../../src/rest/RestError.js';
 import { createMockFetch, mockClientOptions } from './helpers.js';
+
+const pkgVersion = (createRequire(import.meta.url)('../../package.json') as { version: string })
+  .version;
 
 describe('HttpClient', () => {
   it('sends Basic Auth header', async () => {
@@ -12,7 +16,7 @@ describe('HttpClient', () => {
     const reqs = getRequests();
     expect(reqs).toHaveLength(1);
     const expected = 'Basic ' + Buffer.from('test-project:test-token').toString('base64');
-    expect(reqs[0].headers['Authorization']).toBe(expected);
+    expect(reqs[0]!.headers['Authorization']).toBe(expected);
   });
 
   it('sends Accept and User-Agent headers', async () => {
@@ -22,8 +26,10 @@ describe('HttpClient', () => {
     await http.get('/api/test');
 
     const reqs = getRequests();
-    expect(reqs[0].headers['Accept']).toBe('application/json');
-    expect(reqs[0].headers['User-Agent']).toContain('@signalwire/sdk-ts');
+    expect(reqs[0]!.headers['Accept']).toBe('application/json');
+    // Product token is stable; the version segment is derived from package.json
+    // at runtime so it can never drift from a hardcoded literal.
+    expect(reqs[0]!.headers['User-Agent']).toBe(`signalwire-typescript/${pkgVersion}`);
   });
 
   it('sends Content-Type for POST with body', async () => {
@@ -33,8 +39,8 @@ describe('HttpClient', () => {
     await http.post('/api/test', { name: 'foo' });
 
     const reqs = getRequests();
-    expect(reqs[0].headers['Content-Type']).toBe('application/json');
-    expect(reqs[0].body).toEqual({ name: 'foo' });
+    expect(reqs[0]!.headers['Content-Type']).toBe('application/json');
+    expect(reqs[0]!.body).toEqual({ name: 'foo' });
   });
 
   it('does not send Content-Type for GET', async () => {
@@ -44,7 +50,7 @@ describe('HttpClient', () => {
     await http.get('/api/test');
 
     const reqs = getRequests();
-    expect(reqs[0].headers['Content-Type']).toBeUndefined();
+    expect(reqs[0]!.headers['Content-Type']).toBeUndefined();
   });
 
   it('returns parsed JSON on success', async () => {
@@ -99,8 +105,8 @@ describe('HttpClient', () => {
     await http.get('/api/test', { page: 2, limit: 10 });
 
     const reqs = getRequests();
-    expect(reqs[0].url).toContain('page=2');
-    expect(reqs[0].url).toContain('limit=10');
+    expect(reqs[0]!.url).toContain('page=2');
+    expect(reqs[0]!.url).toContain('limit=10');
   });
 
   it('skips undefined query params', async () => {
@@ -110,8 +116,8 @@ describe('HttpClient', () => {
     await http.get('/api/test', { page: 1, filter: undefined });
 
     const reqs = getRequests();
-    expect(reqs[0].url).toContain('page=1');
-    expect(reqs[0].url).not.toContain('filter');
+    expect(reqs[0]!.url).toContain('page=1');
+    expect(reqs[0]!.url).not.toContain('filter');
   });
 
   it('PUT sends body correctly', async () => {
@@ -121,8 +127,8 @@ describe('HttpClient', () => {
     const result = await http.put('/api/test/123', { name: 'bar' });
 
     const reqs = getRequests();
-    expect(reqs[0].method).toBe('PUT');
-    expect(reqs[0].body).toEqual({ name: 'bar' });
+    expect(reqs[0]!.method).toBe('PUT');
+    expect(reqs[0]!.body).toEqual({ name: 'bar' });
     expect(result).toEqual({ updated: true });
   });
 
@@ -133,8 +139,8 @@ describe('HttpClient', () => {
     const result = await http.patch('/api/test/123', { name: 'baz' });
 
     const reqs = getRequests();
-    expect(reqs[0].method).toBe('PATCH');
-    expect(reqs[0].body).toEqual({ name: 'baz' });
+    expect(reqs[0]!.method).toBe('PATCH');
+    expect(reqs[0]!.body).toEqual({ name: 'baz' });
     expect(result).toEqual({ patched: true });
   });
 
@@ -146,7 +152,7 @@ describe('HttpClient', () => {
     await http.get('/api/test');
 
     const reqs = getRequests();
-    expect(reqs[0].url).toBe('https://test.signalwire.com/api/test');
+    expect(reqs[0]!.url).toBe('https://test.signalwire.com/api/test');
   });
 
   it('handles absolute URLs (for pagination)', async () => {
@@ -156,7 +162,7 @@ describe('HttpClient', () => {
     await http.get('https://other.signalwire.com/api/test?page=2');
 
     const reqs = getRequests();
-    expect(reqs[0].url).toBe('https://other.signalwire.com/api/test?page=2');
+    expect(reqs[0]!.url).toBe('https://other.signalwire.com/api/test?page=2');
   });
 
   it('accepts host option and prepends https://', async () => {
@@ -173,7 +179,7 @@ describe('HttpClient', () => {
     await http.get('/api/test');
 
     const reqs = getRequests();
-    expect(reqs[0].url).toBe('https://example.signalwire.com/api/test');
+    expect(reqs[0]!.url).toBe('https://example.signalwire.com/api/test');
   });
 
   it('host takes precedence over baseUrl when both are provided', () => {

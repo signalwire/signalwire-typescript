@@ -23,9 +23,13 @@ function mockCall(): CallLike & {
   const execCalls: Array<{ method: string; params?: Record<string, unknown> }> = [];
   return {
     execCalls,
-    async _execute(method: string, params?: Record<string, unknown>) {
+    async _execute<R extends object = Record<string, unknown>>(
+      method: string,
+      params?: Record<string, unknown>,
+    ): Promise<R> {
       execCalls.push({ method, params });
-      return { code: '200', message: 'OK' };
+      // Mock always returns the same generic OK result; cast to the caller's R.
+      return { code: '200', message: 'OK' } as unknown as R;
     },
   };
 }
@@ -127,11 +131,22 @@ describe('PlayAction', () => {
     await a.volume(-3.5);
 
     expect(call.execCalls).toHaveLength(4);
-    expect(call.execCalls[0].method).toBe('play.stop');
-    expect(call.execCalls[1].method).toBe('play.pause');
-    expect(call.execCalls[2].method).toBe('play.resume');
-    expect(call.execCalls[3].method).toBe('play.volume');
-    expect(call.execCalls[3].params).toEqual({ control_id: 'ctrl1', volume: -3.5 });
+    expect(call.execCalls[0]!.method).toBe('play.stop');
+    expect(call.execCalls[1]!.method).toBe('play.pause');
+    expect(call.execCalls[2]!.method).toBe('play.resume');
+    expect(call.execCalls[3]!.method).toBe('play.volume');
+    expect(call.execCalls[3]!.params).toEqual({ control_id: 'ctrl1', volume: -3.5 });
+  });
+
+  it('pause forwards the optional behavior when supplied and omits it otherwise', async () => {
+    const call = mockCall();
+    const a = new PlayAction(call, 'ctrl1');
+
+    await a.pause();
+    await a.pause('silence');
+
+    expect(call.execCalls[0]!.params).toEqual({ control_id: 'ctrl1' });
+    expect(call.execCalls[1]!.params).toEqual({ control_id: 'ctrl1', behavior: 'silence' });
   });
 
   it('resolves on finished', async () => {
@@ -158,10 +173,16 @@ describe('RecordAction', () => {
     await a.pause('silence');
     await a.resume();
 
-    expect(call.execCalls[0].method).toBe('record.stop');
-    expect(call.execCalls[1].method).toBe('record.pause');
-    expect(call.execCalls[1].params?.behavior).toBe('silence');
-    expect(call.execCalls[2].method).toBe('record.resume');
+    expect(call.execCalls[0]!.method).toBe('record.stop');
+    expect(call.execCalls[1]!.method).toBe('record.pause');
+    expect(call.execCalls[1]!.params?.behavior).toBe('silence');
+    expect(call.execCalls[2]!.method).toBe('record.resume');
+  });
+
+  it('exposes no volume control (record is pausable, not volume-adjustable)', () => {
+    const call = mockCall();
+    const a = new RecordAction(call, 'ctrl1');
+    expect((a as unknown as { volume?: unknown }).volume).toBeUndefined();
   });
 
   it('resolves on finished', () => {
@@ -214,7 +235,7 @@ describe('DetectAction', () => {
     const call = mockCall();
     const a = new DetectAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('detect.stop');
+    expect(call.execCalls[0]!.method).toBe('detect.stop');
   });
 });
 
@@ -249,17 +270,32 @@ describe('CollectAction', () => {
     expect(a.isDone).toBe(true);
   });
 
-  it('stop/volume/startInputTimers call correct methods', async () => {
+  it('stop/pause/resume/volume/startInputTimers call correct methods', async () => {
     const call = mockCall();
     const a = new CollectAction(call, 'ctrl1');
 
     await a.stop();
+    await a.pause();
+    await a.resume();
     await a.volume(-2);
     await a.startInputTimers();
 
-    expect(call.execCalls[0].method).toBe('play_and_collect.stop');
-    expect(call.execCalls[1].method).toBe('play_and_collect.volume');
-    expect(call.execCalls[2].method).toBe('collect.start_input_timers');
+    expect(call.execCalls[0]!.method).toBe('play_and_collect.stop');
+    expect(call.execCalls[1]!.method).toBe('play_and_collect.pause');
+    expect(call.execCalls[2]!.method).toBe('play_and_collect.resume');
+    expect(call.execCalls[3]!.method).toBe('play_and_collect.volume');
+    expect(call.execCalls[4]!.method).toBe('collect.start_input_timers');
+  });
+
+  it('pause forwards the optional behavior when supplied and omits it otherwise', async () => {
+    const call = mockCall();
+    const a = new CollectAction(call, 'ctrl1');
+
+    await a.pause();
+    await a.pause('silence');
+
+    expect(call.execCalls[0]!.params).toEqual({ control_id: 'ctrl1' });
+    expect(call.execCalls[1]!.params).toEqual({ control_id: 'ctrl1', behavior: 'silence' });
   });
 });
 
@@ -300,8 +336,8 @@ describe('StandaloneCollectAction', () => {
     await a.stop();
     await a.startInputTimers();
 
-    expect(call.execCalls[0].method).toBe('collect.stop');
-    expect(call.execCalls[1].method).toBe('collect.start_input_timers');
+    expect(call.execCalls[0]!.method).toBe('collect.stop');
+    expect(call.execCalls[1]!.method).toBe('collect.start_input_timers');
   });
 });
 
@@ -311,11 +347,11 @@ describe('FaxAction', () => {
 
     const sendFax = new FaxAction(call, 'ctrl1', 'send_fax');
     await sendFax.stop();
-    expect(call.execCalls[0].method).toBe('send_fax.stop');
+    expect(call.execCalls[0]!.method).toBe('send_fax.stop');
 
     const recvFax = new FaxAction(call, 'ctrl2', 'receive_fax');
     await recvFax.stop();
-    expect(call.execCalls[1].method).toBe('receive_fax.stop');
+    expect(call.execCalls[1]!.method).toBe('receive_fax.stop');
   });
 
   it('resolves on finished', () => {
@@ -331,7 +367,7 @@ describe('TapAction', () => {
     const call = mockCall();
     const a = new TapAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('tap.stop');
+    expect(call.execCalls[0]!.method).toBe('tap.stop');
   });
 
   it('resolves on finished', () => {
@@ -347,7 +383,7 @@ describe('StreamAction', () => {
     const call = mockCall();
     const a = new StreamAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('stream.stop');
+    expect(call.execCalls[0]!.method).toBe('stream.stop');
   });
 });
 
@@ -356,7 +392,7 @@ describe('PayAction', () => {
     const call = mockCall();
     const a = new PayAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('pay.stop');
+    expect(call.execCalls[0]!.method).toBe('pay.stop');
   });
 
   it('resolves on error', () => {
@@ -372,7 +408,7 @@ describe('TranscribeAction', () => {
     const call = mockCall();
     const a = new TranscribeAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('transcribe.stop');
+    expect(call.execCalls[0]!.method).toBe('transcribe.stop');
   });
 });
 
@@ -381,7 +417,7 @@ describe('AIAction', () => {
     const call = mockCall();
     const a = new AIAction(call, 'ctrl1');
     await a.stop();
-    expect(call.execCalls[0].method).toBe('ai.stop');
+    expect(call.execCalls[0]!.method).toBe('ai.stop');
   });
 
   it('resolves on finished', () => {

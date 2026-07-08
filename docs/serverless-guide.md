@@ -1,5 +1,17 @@
 # Serverless Deployment Guide
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const ServerlessAdapter: typeof import('@signalwire/sdk').ServerlessAdapter;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase;
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  const Buffer: any;
+  const readStdin: () => Promise<string>; // helper defined elsewhere in the CGI example
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -85,6 +97,7 @@ const adapter = new ServerlessAdapter('lambda');
 const agent = new AgentBase({ name: 'my-agent' });
 const app = agent.getApp();
 
+const event: any = {}; // the platform-specific event passed to your handler
 const response = await adapter.handleRequest(app, event);
 // response: { statusCode: 200, headers: {...}, body: '...' }
 ```
@@ -144,6 +157,7 @@ export const handler = ServerlessAdapter.createLambdaHandler(app);
 
 `createLambdaHandler()` creates a new `ServerlessAdapter` instance with `platform: 'lambda'` and returns a function with the signature:
 
+<!-- snippet: no-compile handler type signature shown for reference, not runnable code -->
 ```typescript
 (event: ServerlessEvent) => Promise<ServerlessResponse>
 ```

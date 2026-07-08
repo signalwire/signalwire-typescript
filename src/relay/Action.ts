@@ -27,6 +27,7 @@ import type {
   CallingCollectStopResult,
   CallingDetectStopResult,
   CallingPayStopResult,
+  CallingPlayAndCollectResult,
   CallingPlayAndCollectStopResult,
   CallingPlayAndCollectVolumeResult,
   CallingPlayPauseResult,
@@ -191,11 +192,15 @@ export class PlayAction extends Action {
   /**
    * Pause active playback (resumable with {@link resume}).
    *
+   * @param behavior - Optional behaviour hint controlling what plays in place
+   *   of the paused audio.
    * @returns The platform's pause response.
    * @throws {RelayError} When the pause command is rejected.
    */
-  async pause(): Promise<CallingPlayPauseResult> {
-    return this.call._execute<CallingPlayPauseResult>('play.pause', { control_id: this.controlId });
+  async pause(behavior?: string): Promise<CallingPlayPauseResult> {
+    const params: Record<string, unknown> = { control_id: this.controlId };
+    if (behavior) params.behavior = behavior;
+    return this.call._execute<CallingPlayPauseResult>('play.pause', params);
   }
 
   /**
@@ -332,6 +337,32 @@ export class CollectAction extends Action {
    */
   async stop(): Promise<CallingPlayAndCollectStopResult> {
     return this.call._execute<CallingPlayAndCollectStopResult>('play_and_collect.stop', {
+      control_id: this.controlId,
+    });
+  }
+
+  /**
+   * Pause the prompt playback mid-collect (resumable with {@link resume}).
+   *
+   * @param behavior - Optional behaviour hint controlling what plays in place
+   *   of the paused prompt audio.
+   * @returns The platform's pause response.
+   * @throws {RelayError} When the pause command is rejected.
+   */
+  async pause(behavior?: string): Promise<CallingPlayAndCollectResult> {
+    const params: Record<string, unknown> = { control_id: this.controlId };
+    if (behavior) params.behavior = behavior;
+    return this.call._execute<CallingPlayAndCollectResult>('play_and_collect.pause', params);
+  }
+
+  /**
+   * Resume prompt playback paused by {@link pause}.
+   *
+   * @returns The platform's resume response.
+   * @throws {RelayError} When the resume command is rejected.
+   */
+  async resume(): Promise<CallingPlayAndCollectResult> {
+    return this.call._execute<CallingPlayAndCollectResult>('play_and_collect.resume', {
       control_id: this.controlId,
     });
   }

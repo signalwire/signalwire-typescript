@@ -118,7 +118,16 @@ describe('Call methods emit nested wire shape', () => {
   it('connect() normalizes devices and ringback', async () => {
     const { client, last } = captureClient();
     await makeCall(client).connect([[{ type: 'phone', to: '+1', from: '+2' }]], {
-      ringback: [{ type: 'ringtone', name: 'us' }],
+      // This guard verifies the SDK normalizes the convenience-flat play item
+      // ({type, name}) into the nested {type, params:{name}} wire form (asserted
+      // below). The typed `ringback` param models the already-nested shape, so
+      // the flat convenience input is cast to exercise the normalization path.
+      ringback: [
+        { type: 'ringtone', name: 'us' } as unknown as {
+          type: string;
+          params: Record<string, unknown>;
+        },
+      ],
     });
     const sent = last()!;
     expect(sent.method).toBe('calling.connect');
@@ -142,7 +151,7 @@ describe('Call methods emit nested wire shape', () => {
   it('tap() normalizes the destination device', async () => {
     const { client, last } = captureClient();
     await makeCall(client).tap(
-      { type: 'audio', direction: 'listen' },
+      { type: 'audio', params: { direction: 'listen' } },
       { type: 'stream', url: 'wss://x' },
     );
     const sent = last()!;

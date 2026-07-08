@@ -104,16 +104,16 @@ describe('InfoGathererSkill — sequential question flow', () => {
     // After setup, getTools() must return sequential tools (not field tools).
     const tools = skill.getTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('start_questions');
-    expect(tools[1].name).toBe('submit_answer');
+    expect(tools[0]!.name).toBe('start_questions');
+    expect(tools[1]!.name).toBe('submit_answer');
   });
 
   it('setup() — uses prefix to derive tool names', async () => {
     const skill = new InfoGathererSkill({ questions: QUESTIONS, prefix: 'survey' });
     await skill.setup();
     const tools = skill.getTools();
-    expect(tools[0].name).toBe('survey_start_questions');
-    expect(tools[1].name).toBe('survey_submit_answer');
+    expect(tools[0]!.name).toBe('survey_start_questions');
+    expect(tools[1]!.name).toBe('survey_submit_answer');
   });
 
   it('setup() — applies custom completion_message', async () => {
@@ -126,7 +126,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     // Answer question 1
     let state: Record<string, unknown> = { questions: QUESTIONS, question_index: 0, answers: [] };
     let rawData = makeRawData(namespace, state);
-    submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData);
+    submitTool!.handler({ answer: 'Alice', confirmed_by_user: false }, rawData);
     // Advance state (simulate updateSkillData)
     state = {
       questions: QUESTIONS,
@@ -135,7 +135,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     // Answer question 2 (requires confirmation)
     rawData = makeRawData(namespace, state);
-    submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData);
+    submitTool!.handler({ answer: 'Smith', confirmed_by_user: true }, rawData);
     state = {
       questions: QUESTIONS,
       question_index: 2,
@@ -146,7 +146,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     // Answer question 3 — last question
     rawData = makeRawData(namespace, state);
-    const result = submitTool.handler(
+    const result = submitTool!.handler(
       { answer: 'Portland', confirmed_by_user: false },
       rawData,
     ) as {
@@ -236,14 +236,14 @@ describe('InfoGathererSkill — sequential question flow', () => {
     const skill = new InfoGathererSkill({ questions: QUESTIONS });
     await skill.setup();
     const startTool = skill.getTools()[0];
-    expect(startTool.name).toBe('start_questions');
+    expect(startTool!.name).toBe('start_questions');
 
     const namespace = skill.getSkillNamespace();
     const state = { questions: QUESTIONS, question_index: 0, answers: [] };
     const rawData = makeRawData(namespace, state);
 
-    const result = startTool.handler({}, rawData) as { response: string };
-    expect(result.response).toContain(QUESTIONS[0].question_text);
+    const result = startTool!.handler({}, rawData) as { response: string };
+    expect(result.response).toContain(QUESTIONS[0]!.question_text);
     expect(result.response).toContain('Question 1 of 3');
   });
 
@@ -257,7 +257,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
       question_index: 0,
       answers: [],
     });
-    const result = startTool.handler({}, rawData) as { response: string };
+    const result = startTool!.handler({}, rawData) as { response: string };
     expect(result.response).toContain('q_submit_answer');
   });
 
@@ -268,7 +268,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     const namespace = skill.getSkillNamespace();
     // State has empty questions array
     const rawData = makeRawData(namespace, { questions: [], question_index: 0, answers: [] });
-    const result = startTool.handler({}, rawData) as { response: string };
+    const result = startTool!.handler({}, rawData) as { response: string };
     expect(result.response).toContain("don't have any questions");
   });
 
@@ -283,12 +283,12 @@ describe('InfoGathererSkill — sequential question flow', () => {
     const state = { questions: QUESTIONS, question_index: 0, answers: [] };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as {
+    const result = submitTool!.handler({ answer: 'Alice', confirmed_by_user: false }, rawData) as {
       response: string;
       action: Record<string, unknown>[];
     };
     // Should return the second question instruction
-    expect(result.response).toContain(QUESTIONS[1].question_text);
+    expect(result.response).toContain(QUESTIONS[1]!.question_text);
     expect(result.response).toContain('Question 2 of 3');
   });
 
@@ -306,7 +306,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: false }, rawData) as {
+    const result = submitTool!.handler({ answer: 'Smith', confirmed_by_user: false }, rawData) as {
       response: string;
     };
     expect(result.response).toContain('must read the answer');
@@ -326,11 +326,11 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
+    const result = submitTool!.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
       response: string;
     };
     // Should proceed to question 3
-    expect(result.response).toContain(QUESTIONS[2].question_text);
+    expect(result.response).toContain(QUESTIONS[2]!.question_text);
     expect(result.response).toContain('Question 3 of 3');
   });
 
@@ -348,7 +348,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
     // Answer q2 with confirmation
-    const result = submitTool.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
+    const result = submitTool!.handler({ answer: 'Smith', confirmed_by_user: true }, rawData) as {
       response: string;
     };
     expect(result.response).toContain('City only, please.');
@@ -370,7 +370,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     };
     const rawData = makeRawData(namespace, state);
 
-    const result = submitTool.handler(
+    const result = submitTool!.handler(
       { answer: 'Portland', confirmed_by_user: false },
       rawData,
     ) as { response: string; action: Record<string, unknown>[] };
@@ -404,7 +404,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
       ],
     };
     const rawData = makeRawData(namespace, state);
-    const result = submitTool.handler(
+    const result = submitTool!.handler(
       { answer: 'Portland', confirmed_by_user: false },
       rawData,
     ) as { response: string; action: Record<string, unknown>[] };
@@ -433,7 +433,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
       ],
     };
     const rawData = makeRawData(namespace, state);
-    const result = submitTool.handler({ answer: 'extra', confirmed_by_user: false }, rawData) as {
+    const result = submitTool!.handler({ answer: 'extra', confirmed_by_user: false }, rawData) as {
       response: string;
     };
     expect(result.response).toBe('All questions have already been answered.');
@@ -446,7 +446,7 @@ describe('InfoGathererSkill — sequential question flow', () => {
     await skill.setup();
     const sections = skill.getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].body).toContain('start_questions');
-    expect(sections[0].body).toContain('submit_answer');
+    expect(sections[0]!.body).toContain('start_questions');
+    expect(sections[0]!.body).toContain('submit_answer');
   });
 });

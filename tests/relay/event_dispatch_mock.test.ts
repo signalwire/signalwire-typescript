@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import type { RelayEvent } from '../../src/relay/RelayEvent.js';
-import { newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
+import { frameStr, newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -89,8 +89,8 @@ describe('Event dispatch — sub-command journaling', () => {
     const pauses = await mock.journalRecv('calling.record.pause');
     expect(pauses.length).toBeGreaterThan(0);
     const p = pauses[pauses.length - 1]!.frame.params;
-    expect(p.control_id).toBe('ec-rec-pa-1');
-    expect(p.behavior).toBe('continuous');
+    expect(p!.control_id).toBe('ec-rec-pa-1');
+    expect(p!.behavior).toBe('continuous');
   });
 
   it('test_record_resume_journals_record_resume', async () => {
@@ -99,7 +99,7 @@ describe('Event dispatch — sub-command journaling', () => {
     await action.resume();
     const resumes = await mock.journalRecv('calling.record.resume');
     expect(resumes.length).toBeGreaterThan(0);
-    expect(resumes[resumes.length - 1]!.frame.params.control_id).toBe('ec-rec-re-1');
+    expect(resumes[resumes.length - 1]!.frame.params!.control_id).toBe('ec-rec-re-1');
   });
 
   it('test_collect_start_input_timers_journals_correctly', async () => {
@@ -112,7 +112,7 @@ describe('Event dispatch — sub-command journaling', () => {
     await action.startInputTimers();
     const starts = await mock.journalRecv('calling.collect.start_input_timers');
     expect(starts.length).toBeGreaterThan(0);
-    expect(starts[starts.length - 1]!.frame.params.control_id).toBe('ec-col-sit-1');
+    expect(starts[starts.length - 1]!.frame.params!.control_id).toBe('ec-col-sit-1');
   });
 
   it('test_play_volume_carries_negative_value', async () => {
@@ -123,7 +123,7 @@ describe('Event dispatch — sub-command journaling', () => {
     await action.volume(-5.5);
     const vol = await mock.journalRecv('calling.play.volume');
     expect(vol.length).toBeGreaterThan(0);
-    expect(vol[vol.length - 1]!.frame.params.volume).toBe(-5.5);
+    expect(vol[vol.length - 1]!.frame.params!.volume).toBe(-5.5);
   });
 });
 
@@ -219,7 +219,7 @@ describe('Event dispatch — event ACK', () => {
 
     const j = await mock.journal();
     const acks = j.filter(
-      (e) => e.direction === 'recv' && e.frame.id === evtId && 'result' in e.frame,
+      (e) => e.direction === 'recv' && frameStr(e.frame.id) === evtId && 'result' in e.frame,
     );
     expect(acks.length).toBeGreaterThan(0);
   });
@@ -262,9 +262,9 @@ describe('Event dispatch — tag-based dial routing', () => {
     // only call.call_id nested.
     const sends = await mock.journalSend('calling.call.dial');
     expect(sends.length).toBeGreaterThan(0);
-    const inner = sends[sends.length - 1]!.frame.params.params;
-    expect('call_id' in inner).toBe(false);
-    expect(inner.call.call_id).toBe('WINTAG');
+    const inner = sends[sends.length - 1]!.frame.params!.params;
+    expect('call_id' in inner!).toBe(false);
+    expect(inner!.call!.call_id).toBe('WINTAG');
   });
 });
 
@@ -285,7 +285,7 @@ describe('Event dispatch — server ping', () => {
 
     const j = await mock.journal();
     const pongs = j.filter(
-      (e) => e.direction === 'recv' && e.frame.id === pingId && 'result' in e.frame,
+      (e) => e.direction === 'recv' && frameStr(e.frame.id) === pingId && 'result' in e.frame,
     );
     expect(pongs.length).toBeGreaterThan(0);
   });
@@ -364,6 +364,6 @@ describe('Event dispatch — state events', () => {
       fired,
       new Promise((_, reject) => setTimeout(() => reject(new Error('listener timeout')), 2000)),
     ]);
-    expect(seen[0].eventType).toBe('calling.call.play');
+    expect(seen[0]!.eventType).toBe('calling.call.play');
   });
 });

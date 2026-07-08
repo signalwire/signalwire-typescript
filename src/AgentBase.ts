@@ -7,6 +7,8 @@
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { randomBytes } from 'node:crypto';
@@ -44,18 +46,22 @@ import type {
   FunctionInclude,
   DynamicConfigCallback,
 } from './types.js';
-import type { SwaigRequestData, PostPromptData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /**
  * Callback invoked at a registered routing endpoint to determine how to handle an
  * incoming request. Return a route string to redirect to that agent route, or
  * null / undefined to let normal SWML processing continue.
  *
- * Mirrors Python `web_mixin.register_routing_callback` callback signature (body-only
- * variant — Hono request object is not forwarded; use the parsed body instead).
+ * Mirrors Python `web_mixin.register_routing_callback` callback signature. Python
+ * decomposed the routing callback to `callback_fn(body, headers)` — the parsed body
+ * plus the request headers (the raw Hono request object is not forwarded). `headers`
+ * is optional so existing body-only callbacks keep working.
  */
 export type RoutingCallback = (
   body: SwmlRequestData,
+  headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
@@ -146,6 +152,7 @@ export class AgentBase extends SWMLService {
   // AI config
   private hints: string[] = [];
   private languages: LanguageConfig[] = [];
+  private multilingual: Record<string, unknown> = {};
   private pronounce: PronunciationRule[] = [];
   private params: Record<string, unknown> = {};
   private globalData: Record<string, unknown> = {};
@@ -456,7 +463,7 @@ export class AgentBase extends SWMLService {
   /**
    * Public accessor for the agent's POM as a {@link PromptObjectModel} instance.
    *
-   * Python parity: ``agent.pom`` instance attribute (agent_base.py line 209)
+   * Python equivalent: ``agent.pom`` instance attribute (agent_base.py line 209)
    * is a ``signalwire.pom.pom.PromptObjectModel`` when ``use_pom=True``,
    * or ``None`` otherwise. This getter returns the equivalent TypeScript
    * ``PromptObjectModel`` instance — callers can use ``addSection``,
@@ -774,10 +781,11 @@ export class AgentBase extends SWMLService {
     };
     if (config.voice) lang['voice'] = config.voice;
     if (config.engine) lang['engine'] = config.engine;
+    if (config.model) lang['model'] = config.model;
     if (config.fillers) lang['fillers'] = config.fillers;
     if (config.speechModel) lang['speech_model'] = config.speechModel;
     if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
-    // Per-language params — only emit the key when non-empty (Python parity:
+    // Per-language params — only emit the key when non-empty (Python equivalent:
     // `if params: language["params"] = params`).
     if (config.params && Object.keys(config.params).length > 0) {
       lang['params'] = config.params;
@@ -798,12 +806,32 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Configure ASR-driven multilingual mode (Mode B).
+   *
+   * Emits a top-level `multilingual` object on the AI verb. The recognizer runs
+   * in code-switching mode and the agent answers in whatever language the caller
+   * actually spoke — the model does not pick the language. Mutually exclusive
+   * with {@link setLanguages}; if both are set the server uses `multilingual` and
+   * ignores `languages`.
+   *
+   * @param config - The multilingual config object (languages, allowed,
+   *   start_language, min_switch_words, fillers, etc.).
+   * @returns This agent instance for chaining.
+   */
+  setMultilingual(config: Record<string, unknown>): this {
+    if (config && typeof config === 'object') {
+      this.multilingual = config;
+    }
+    return this;
+  }
+
+  /**
    * Set (or replace) the per-language `params` dict on an already-added
    * language. Useful when language entries are built up via {@link addLanguage}
    * first and engine-specific tuning is added later (e.g., from a config
    * loader).
    *
-   * Python parity: `set_language_params(code, params)`. Passing an empty
+   * Python equivalent: `set_language_params(code, params)`. Passing an empty
    * object removes the `params` key entirely. Unknown codes are a no-op.
    *
    * @param code - Language code as previously passed to {@link addLanguage} (e.g. `"en-US"`).
@@ -827,7 +855,7 @@ export class AgentBase extends SWMLService {
   /**
    * Read the per-language `params` dict for a previously-added language.
    *
-   * Python parity: `get_language_params(code)`. Returns `undefined` if the
+   * Python equivalent: `get_language_params(code)`. Returns `undefined` if the
    * code is unknown or the language has no params set — no exception path.
    *
    * @param code - Language code as previously passed to {@link addLanguage}.
@@ -1133,6 +1161,33 @@ export class AgentBase extends SWMLService {
   enableSipRouting(autoMap = true, path = '/sip'): this {
     this._sipRoutingEnabled = true;
     this._sipRoute = path;
+
+    // Register a routing callback at `path` that extracts the SIP username from
+    // the request body and consults this agent's registered usernames. Mirrors
+    // Python `enable_sip_routing` (core/agent_base.py:708-753): the callback is
+    // what makes `_sipUsernames` CONSULTED rather than stored-but-unconsulted.
+    //
+    // Framework-free `(body, headers)` shape; only the body is inspected. When
+    // the username is registered with THIS agent the callback returns null so
+    // the agent serves its own SWML (no redirect — it already handles that
+    // username). An unregistered username also returns null, letting an
+    // enclosing AgentServer's server-level callback (registered at the same
+    // path, checked first) decide the cross-agent redirect.
+    const sipRoutingCallback: RoutingCallback = (body) => {
+      const sipUsername = AgentBase.extractSipUsername(body);
+      if (sipUsername) {
+        this.log.info(`sip_username_extracted username=${sipUsername}`);
+        if (this._sipUsernames && this._sipUsernames.has(sipUsername.toLowerCase())) {
+          this.log.info(`sip_username_matched username=${sipUsername}`);
+          // Handled by this agent; no redirect needed.
+          return null;
+        }
+        this.log.info(`sip_username_not_matched username=${sipUsername}`);
+      }
+      return null;
+    };
+    this.registerRoutingCallback(sipRoutingCallback, path);
+
     if (autoMap) {
       this._sipAutoMap = true;
       this.autoMapSipUsernames();
@@ -1228,13 +1283,20 @@ export class AgentBase extends SWMLService {
     const call = requestBody?.['call'] as Record<string, unknown> | undefined;
     const callTo = call?.['to'] as string | undefined;
     if (callTo) {
-      let uri = callTo;
-      if (uri.startsWith('sip:') || uri.startsWith('sips:')) {
-        uri = uri.replace(/^sips?:/, '');
+      // SIP/SIPS URIs: strip the scheme, then the username is the part before '@'.
+      if (callTo.startsWith('sip:') || callTo.startsWith('sips:')) {
+        const uri = callTo.replace(/^sips?:/, '');
+        const atIdx = uri.indexOf('@');
+        if (atIdx > 0) return uri.substring(0, atIdx);
+        return uri;
       }
-      const atIdx = uri.indexOf('@');
-      if (atIdx > 0) return uri.substring(0, atIdx);
-      return uri;
+      // TEL URIs ("tel:+1234567890") — strip the scheme (parity with
+      // SWMLService.extractSipUsername / Python swml_service.extract_sip_username).
+      if (callTo.startsWith('tel:')) {
+        return callTo.substring(4);
+      }
+      // Otherwise return the whole 'to' field.
+      return callTo;
     }
     return null;
   }
@@ -1359,7 +1421,7 @@ export class AgentBase extends SWMLService {
         const rawData = {
           function: toolName,
           argument: { parsed: [args] },
-        } as unknown as SwaigRequestData;
+        } as unknown as SwaigRequest;
         const resultDict = await fn.execute(args, rawData, this._onError);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
@@ -1706,7 +1768,7 @@ export class AgentBase extends SWMLService {
    *
    * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
    * and a typo is a compile-time error; any other string is still accepted
-   * (custom skills / parity with Python's bare-`str` `has_skill`).
+   * (custom skills / matching Python's bare-`str` `has_skill`).
    *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.
@@ -1716,11 +1778,11 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Remove a skill by its name (Python parity).
+   * Remove a skill by its name (matches the Python SDK).
    *
    * Python's `remove_skill(skill_name)` removes by skill name.
    * The existing `removeSkill(instanceId)` removes by instance ID.
-   * This method provides name-based removal for cross-SDK parity.
+   * This method provides name-based removal to match the Python SDK.
    *
    * @param skillName - The skill name to remove.
    * @returns True if a skill with that name was found and removed.
@@ -1955,10 +2017,7 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(
-    _summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
-  ): void | Promise<void> {
+  onSummary(_summary: PostPromptData | null, _rawData: PostPrompt): void | Promise<void> {
     // Default no-op
   }
 
@@ -2009,6 +2068,123 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Framework-free request-dispatch core for AgentBase.
+   *
+   * Overrides {@link SWMLService.handleRequest} so the primitive dispatch surface
+   * renders SWML via AgentBase's {@link renderSwml} (mirroring the Hono root path)
+   * instead of the base `renderDocument`. Performs basic-auth, the routing-callback
+   * check `(body, headers)`, and `onSwmlRequest` modification over plain
+   * primitives, returning a `[status, headers, bodyString]` triple with the
+   * 401-auth and 307-redirect behavior preserved. Mirrors Python's
+   * `AgentBase.handle_request(method, url, headers, body)`.
+   *
+   * @param method  HTTP method, e.g. `"GET"` or `"POST"`.
+   * @param url     The full request URL.
+   * @param headers Request headers as a plain dict.
+   * @param body    The already-parsed JSON body for POST requests, or `undefined`.
+   * @returns A `[statusCode, responseHeaders, bodyString]` triple.
+   */
+  override async handleRequest(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: Record<string, unknown> | null,
+  ): Promise<[number, Record<string, string>, string]> {
+    const parsedBody: Record<string, unknown> = body ?? {};
+    const callbackPath = this._callbackPathForUrl(url);
+
+    // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
+    if (!this.checkAgentBasicAuth(headers)) {
+      return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
+    }
+
+    // call_id: from the body for POST, absent otherwise.
+    let callId: string | undefined;
+    if (method === 'POST' && Object.keys(parsedBody).length > 0) {
+      callId = (parsedBody['call_id'] as string | undefined) ?? undefined;
+      if (!callId && parsedBody['call'] && typeof parsedBody['call'] === 'object') {
+        callId = (parsedBody['call'] as Record<string, unknown>)['call_id'] as string | undefined;
+      }
+
+      // Routing callback: (body, headers) -> route | null.
+      if (callbackPath && this._routingCallbacks.has(callbackPath)) {
+        const callbackFn = this._routingCallbacks.get(callbackPath)!;
+        try {
+          const route = await callbackFn(parsedBody, headers);
+          if (route != null) {
+            this.log.info(`routing_request route=${route}`);
+            return [307, { Location: route }, ''];
+          }
+        } catch (err) {
+          this.log.error(
+            `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    // Subclass modification hook (primitive path passes no Hono context).
+    let modifications: Record<string, unknown> | void = undefined;
+    try {
+      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined);
+    } catch (err) {
+      this.log.error(
+        `error_in_request_modifier error=${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    // Per-request dynamic config: render from an ephemeral copy so the Hono and
+    // primitive paths produce identical SWML. Mirrors the Hono root handler and
+    // Python's _render_swml (which applies the dynamic-config callback inline).
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
+    let agentToUse: AgentBase = this;
+    if (this.dynamicConfigCallback) {
+      agentToUse = this.createEphemeralCopy();
+      const queryParams: Record<string, string> = {};
+      try {
+        new URL(url).searchParams.forEach((v, k) => {
+          queryParams[k] = v;
+        });
+      } catch {
+        /* bare path — no query params to extract */
+      }
+      try {
+        await this.dynamicConfigCallback(
+          queryParams,
+          parsedBody,
+          filterSensitiveHeaders(headers),
+          agentToUse,
+        );
+      } catch (err) {
+        this.log.error(
+          `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    const swml = agentToUse.renderSwml(callId, modifications || undefined);
+    return [200, {}, swml];
+  }
+
+  /** Validate basic-auth against AgentBase's `basicAuthCreds` from a plain
+   *  headers dict (the primitive analog of the Hono `basicAuth` middleware). */
+  private checkAgentBasicAuth(headers: Record<string, string>): boolean {
+    const [user, pass] = this.basicAuthCreds;
+    if (!user || !pass) return true;
+    const authHeader = headers['authorization'] ?? headers['Authorization'];
+    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    let decoded: string;
+    try {
+      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+    } catch {
+      return false;
+    }
+    const idx = decoded.indexOf(':');
+    if (idx < 0) return false;
+    return decoded.slice(0, idx) === user && decoded.slice(idx + 1) === pass;
+  }
+
+  /**
    * Lifecycle hook called when a debug event webhook is received. Override in subclasses.
    * @param _event - The debug event payload.
    */
@@ -2033,7 +2209,7 @@ export class AgentBase extends SWMLService {
    * — it retrieves and executes the function, returning the result. In TypeScript,
    * `fn.execute()` is called separately after this hook. However, if this method
    * returns a non-void value, it is used as the result and the default execution
-   * is skipped, enabling dispatch interception parity with Python.
+   * is skipped, enabling dispatch interception matching the Python SDK.
    *
    * @param _name - Name of the function about to execute.
    * @param _args - Parsed arguments for the function.
@@ -2159,19 +2335,25 @@ export class AgentBase extends SWMLService {
     // ── PHASE 4: AI verb ──
     const aiConfig: Record<string, unknown> = {};
 
-    // Prompt
+    // Prompt. Mirror Python (agent_base.py: `prompt_is_pom = isinstance(prompt, list)`;
+    // ai_config = {"prompt": {"text" if not prompt_is_pom else "pom": prompt}}):
+    // when the agent is in POM mode with at least one section AND no raw prompt
+    // string was set, the prompt renders as a structured `pom` array, not `text`.
+    // A raw prompt string (getRawPrompt) always wins, matching PromptManager.getPrompt.
+    const promptPom = this.getRawPrompt() === null ? this.getPromptPom() : null;
+    const buildPromptObj = (fallbackText: string): Record<string, unknown> => {
+      const obj: Record<string, unknown> = promptPom ? { pom: promptPom } : { text: fallbackText };
+      if (Object.keys(this.promptLlmParams).length) Object.assign(obj, this.promptLlmParams);
+      return obj;
+    };
     if (this.contextsBuilder) {
       const contextsDict = this.contextsBuilder.toDict();
-      const promptObj: Record<string, unknown> = {
-        text: prompt || `You are ${this.name}, a helpful AI assistant.`,
-      };
-      if (Object.keys(this.promptLlmParams).length) Object.assign(promptObj, this.promptLlmParams);
-      aiConfig['prompt'] = promptObj;
+      aiConfig['prompt'] = buildPromptObj(
+        prompt || `You are ${this.name}, a helpful AI assistant.`,
+      );
       aiConfig['contexts'] = contextsDict;
     } else {
-      const promptObj: Record<string, unknown> = { text: prompt };
-      if (Object.keys(this.promptLlmParams).length) Object.assign(promptObj, this.promptLlmParams);
-      aiConfig['prompt'] = promptObj;
+      aiConfig['prompt'] = buildPromptObj(prompt);
     }
 
     // Post-prompt
@@ -2189,6 +2371,8 @@ export class AgentBase extends SWMLService {
     // Additional config
     if (this.hints.length) aiConfig['hints'] = this.hints;
     if (this.languages.length) aiConfig['languages'] = this.languages;
+    // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
+    if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
     if (Object.keys(this.params).length) aiConfig['params'] = this.params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
@@ -2199,7 +2383,7 @@ export class AgentBase extends SWMLService {
       aiConfig['debug_webhook_level'] = this.debugEventsLevel;
     }
 
-    // Apply modifications from onSwmlRequest (Python parity: merge into AI verb config).
+    // Apply modifications from onSwmlRequest (Python equivalent: merge into AI verb config).
     // global_data is deep-merged; all other keys override AI config fields directly.
     if (modifications && typeof modifications === 'object') {
       if (modifications['global_data'] && typeof modifications['global_data'] === 'object') {
@@ -2240,6 +2424,7 @@ export class AgentBase extends SWMLService {
     copy.toolRegistry = new Map(this.toolRegistry);
     copy.hints = [...this.hints];
     copy.languages = [...this.languages];
+    copy.multilingual = { ...this.multilingual };
     copy.pronounce = [...this.pronounce];
     copy.params = { ...this.params };
     copy.globalData = { ...this.globalData };
@@ -2311,6 +2496,59 @@ export class AgentBase extends SWMLService {
   }
 
   // ── Hono HTTP app ───────────────────────────────────────────────────
+
+  /**
+   * Thin Hono adapter over the decomposed {@link handleRequest} core. Extracts
+   * `(method, url, headers, body)` primitives from the Hono `Context`, delegates
+   * the auth / routing-callback / render DECISION to `handleRequest`, and
+   * marshals the returned `[status, headers, body]` triple back into a Hono
+   * `Response` — including the routing-callback **307** (`Location`) and the
+   * **401** (`WWW-Authenticate`). This is what routes serve()/asRouter() through
+   * the same core the primitive path uses, instead of a parallel inline
+   * auth/render/redirect path (mirrors the rust/dotnet/php served path).
+   *
+   * Proxy detection stays here as framework plumbing (it needs the raw request);
+   * everything else comes from `handleRequest`.
+   */
+  private async serveViaHandleRequest(c: Context): Promise<Response> {
+    this.detectProxyFromRequest(c);
+
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = (await c.req.json()) as Record<string, unknown>;
+    } catch {
+      /* GET or no body */
+    }
+
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v: string, k: string) => {
+      headers[k] = v;
+    });
+
+    const [status, respHeaders, bodyStr] = await this.handleRequest(
+      c.req.method,
+      c.req.url,
+      headers,
+      body,
+    );
+
+    // 307 routing redirect — real redirect status + Location, empty body.
+    if (status === 307 && respHeaders['Location']) {
+      return c.redirect(respHeaders['Location'], 307);
+    }
+
+    // Marshal any remaining headers (e.g. WWW-Authenticate on a 401) and emit
+    // the body. The 200 SWML body is a JSON string; other statuses carry a JSON
+    // error string — both are already serialized, so pass through with a JSON
+    // content type and the exact status handleRequest chose.
+    for (const [k, v] of Object.entries(respHeaders)) {
+      c.header(k, v);
+    }
+    c.header('Content-Type', 'application/json');
+    // The 307 redirect returned above; every remaining status (200 SWML, 401,
+    // 4xx/5xx error JSON) carries a body, so it is a ContentfulStatusCode.
+    return c.body(bodyStr, status as ContentfulStatusCode);
+  }
 
   /**
    * Get or lazily create the Hono HTTP application with all routes, middleware, auth, and CORS.
@@ -2416,9 +2654,17 @@ export class AgentBase extends SWMLService {
       });
     }
 
-    // Auth middleware
+    // Auth middleware. The 401 challenge body must be the JSON envelope
+    // {"error":"Unauthorized"} to match Python's auth challenge
+    // (auth_mixin._send_lambda_auth_challenge / the primitive handleRequest 401);
+    // Hono's default basicAuth returns a plain "Unauthorized" text body, which
+    // diverges on the serverless dispatch path.
     const [user, pass] = this.basicAuthCreds;
-    const authMw = basicAuth({ username: user, password: pass });
+    const authMw = basicAuth({
+      username: user,
+      password: pass,
+      invalidUserMessage: JSON.stringify({ error: 'Unauthorized' }),
+    });
 
     // Webhook signature validation middleware — only mounted (and only on
     // POST routes) when a signing key is configured. Per
@@ -2435,57 +2681,14 @@ export class AgentBase extends SWMLService {
 
     const basePath = this.route === '/' ? '' : this.route;
 
-    // Root - returns SWML
-    const handleSwml = async (c: Context) => {
-      let reqLog = this.log.bind({ endpoint: this.route });
-      reqLog.debug('endpoint_called');
-
-      let body: SwmlRequestData = {};
-      try {
-        body = await c.req.json();
-      } catch {
-        /* GET or no body */
-      }
-
-      reqLog.debug('request_body_received', { body_size: JSON.stringify(body).length });
-
-      this.detectProxyFromRequest(c);
-      const callbackPath = (body['callback_path'] as string) ?? undefined;
-      let swmlMods: Record<string, unknown> | void = undefined;
-      try {
-        swmlMods = await this.onSwmlRequest(body, callbackPath, c);
-        if (swmlMods) reqLog.debug('on_swml_request_modifications_applied');
-      } catch (err) {
-        reqLog.error('error_in_on_swml_request', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-
-      const callId = (body['call_id'] as string) || undefined;
-      if (callId) reqLog = reqLog.bind({ call_id: callId });
-
-      // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
-      let agentToUse: AgentBase = this;
-      if (this.dynamicConfigCallback) {
-        agentToUse = this.createEphemeralCopy();
-        const queryParams: Record<string, string> = {};
-        const url = new URL(c.req.url);
-        url.searchParams.forEach((v: string, k: string) => {
-          queryParams[k] = v;
-        });
-        const rawHeaders: Record<string, string> = {};
-        c.req.raw.headers.forEach((v: string, k: string) => {
-          rawHeaders[k] = v;
-        });
-        const headers = filterSensitiveHeaders(rawHeaders);
-        await this.dynamicConfigCallback(queryParams, body, headers, agentToUse);
-        reqLog.debug('dynamic_config_complete');
-      }
-
-      const swml = agentToUse.renderSwml(callId, swmlMods || undefined);
-      reqLog.debug('swml_rendered', { swml_size: swml.length });
-      reqLog.info('request_successful');
-      return c.json(JSON.parse(swml));
+    // Root - returns SWML. Delegates the auth / routing-callback / dynamic-config
+    // / render DECISION to handleRequest (the decomposed core), then marshals the
+    // [status, headers, body] triple back — so serve()/asRouter() honor the
+    // routing-callback 307 on the root path too, through the same core the
+    // primitive path uses. Proxy detection stays in the thin adapter.
+    const handleSwml = async (c: Context): Promise<Response> => {
+      this.log.bind({ endpoint: this.route }).debug('endpoint_called');
+      return this.serveViaHandleRequest(c);
     };
 
     app.get(`${basePath}`, authMw, handleSwml);
@@ -2511,7 +2714,7 @@ export class AgentBase extends SWMLService {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always POSTs the full SWAIG payload,
       // and the parse-failure path below is rejected before any field is read.
-      let body: SwaigRequestData = {} as SwaigRequestData;
+      let body: SwaigRequest = {} as SwaigRequest;
       try {
         body = await c.req.json();
       } catch {
@@ -2601,7 +2804,7 @@ export class AgentBase extends SWMLService {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always POSTs the full post_prompt
       // payload, and the parse-failure path leaves an empty summary lookup.
-      let body: PostPromptData = {} as PostPromptData;
+      let body: PostPrompt = {} as PostPrompt;
       try {
         body = await c.req.json();
       } catch {
@@ -2707,36 +2910,16 @@ export class AgentBase extends SWMLService {
       app.post(`${basePath}/check_for_input`, authMw, handleCheckForInput);
     }
 
-    // Routing callbacks (registered via registerRoutingCallback)
-    for (const [callbackPath, callback] of this._routingCallbacks) {
+    // Routing callbacks (registered via registerRoutingCallback). The served
+    // path delegates to handleRequest, which runs the callback and returns a
+    // real 307 (Location) on a redirect — NOT a 200 {action:redirect} — with the
+    // same auth/render decision the primitive core makes. handleRequest resolves
+    // the matching callback from the request URL via _callbackPathForUrl.
+    for (const callbackPath of this._routingCallbacks.keys()) {
       const fullPath = basePath ? `${basePath}${callbackPath}` : callbackPath;
-      const handleRouting = async (c: Context) => {
-        const reqLog = this.log.bind({ endpoint: fullPath });
-        reqLog.debug('routing_callback_called');
-
-        let body: Record<string, unknown> = {};
-        try {
-          body = await c.req.json();
-        } catch {
-          /* GET or no body */
-        }
-
-        try {
-          const route = await callback(body);
-          if (route) {
-            reqLog.info('routing_callback_redirect', { route });
-            return c.json({ action: 'redirect', route });
-          }
-          // No redirect — return SWML for this agent
-          this.detectProxyFromRequest(c);
-          const swml = this.renderSwml();
-          return c.json(JSON.parse(swml));
-        } catch (err) {
-          reqLog.error('routing_callback_error', {
-            error: err instanceof Error ? err.message : String(err),
-          });
-          return c.json({ error: 'Routing callback failed' }, 500);
-        }
+      const handleRouting = async (c: Context): Promise<Response> => {
+        this.log.bind({ endpoint: fullPath }).debug('routing_callback_called');
+        return this.serveViaHandleRequest(c);
       };
 
       app.get(fullPath, authMw, handleRouting);
@@ -2753,10 +2936,17 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Return this agent's Hono app for mounting as a sub-router in an AgentServer.
-   * @returns The Hono application instance.
+   * Get a router to embed this agent's routes in a host web app.
+   *
+   * Returns the fully-wired Hono app (routes for `/`, `/swaig`, `/post_prompt`,
+   * plus any routing callbacks) as a mountable sub-app. The host mounts it with
+   * `hostApp.route(path, agent.asRouter())`. This is the TypeScript realization
+   * of Python's `as_router()`; the named {@link HostAppRouter} type is the
+   * cross-port "embed my routes in a host app" contract.
+   *
+   * @returns A mountable Hono sub-app carrying this agent's routes.
    */
-  asRouter(): Hono {
+  asRouter(): HostAppRouter {
     return this.getApp();
   }
 
@@ -2869,7 +3059,17 @@ export class AgentBase extends SWMLService {
     // Wrap Hono's fetch (which returns `Response | Promise<Response>`) into a plain
     // `Promise<Response>` so it satisfies ServerlessAdapter.handleRequest's type constraint.
     const fetchFn = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
-    return adapter.handleRequest({ fetch: fetchFn }, event);
+
+    // CGI has no event object — the request lives in the environment + stdin.
+    // When dispatched in CGI mode with no explicit event, reconstruct it from
+    // the CGI environment so the request routes through the same Hono path as
+    // the other platforms (mirrors Python serverless_mixin CGI mode).
+    let resolvedEvent = event;
+    if (adapter.getPlatform() === 'cgi' && (event == null || Object.keys(event).length === 0)) {
+      resolvedEvent = ServerlessAdapter.buildCgiEvent();
+    }
+
+    return adapter.handleRequest({ fetch: fetchFn }, resolvedEvent);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────
@@ -2902,7 +3102,7 @@ export class AgentBase extends SWMLService {
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
-  private findSummary(body: PostPromptData): Record<string, unknown> | null {
+  private findSummary(body: PostPrompt): Record<string, unknown> | null {
     if (!body) return null;
     if (body['summary']) return body['summary'] as Record<string, unknown>;
     const ppd = body['post_prompt_data'] as Record<string, unknown> | undefined;

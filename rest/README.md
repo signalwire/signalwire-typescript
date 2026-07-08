@@ -20,12 +20,10 @@ const agent = await client.fabric.aiAgents.create({
 });
 
 // Search for a phone number
-const results = await client.phoneNumbers.search({ area_code: '512' });
+const results = await client.phoneNumbers.search({ areaCode: '512' });
 
-// Place a call via REST
-await client.calling.dial({
-  from: '+15559876543',
-  to: '+15551234567',
+// Place a call via REST — from and to are positional
+await client.calling.dial('+15559876543', '+15551234567', {
   url: 'https://example.com/call-handler',
 });
 ```
@@ -53,7 +51,6 @@ await client.calling.dial({
 - [rest-datasphere-search.ts](examples/rest-datasphere-search.ts) — upload a document, semantic search
 - [rest-calling-play-and-record.ts](examples/rest-calling-play-and-record.ts) — play, record, transcribe, denoise
 - [rest-calling-ivr-and-ai.ts](examples/rest-calling-ivr-and-ai.ts) — IVR, detect, AI, tap, stream, SIP refer
-- [rest-compat-laml.ts](examples/rest-compat-laml.ts) — Twilio-compatible LAML migration
 - [rest-fabric-swml-and-callflows.ts](examples/rest-fabric-swml-and-callflows.ts) — SWML scripts, call flows, webhooks
 - [rest-fabric-subscribers-and-sip.ts](examples/rest-fabric-subscribers-and-sip.ts) — subscribers, SIP endpoints, gateways
 - [rest-fabric-conferences-and-routing.ts](examples/rest-fabric-conferences-and-routing.ts) — conferences, cXML, routing, tokens

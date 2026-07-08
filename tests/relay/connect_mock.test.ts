@@ -21,7 +21,13 @@ import {
   METHOD_SIGNALWIRE_CONNECT,
   PROTOCOL_VERSION,
 } from '../../src/relay/constants.js';
-import { getMockRelay, newRelayClient, sessionIdOf, type MockRelayHarness } from './mocktest.js';
+import {
+  frameStr,
+  getMockRelay,
+  newRelayClient,
+  sessionIdOf,
+  type MockRelayHarness,
+} from './mocktest.js';
 
 let client: RelayClient | null = null;
 let mock: MockRelayHarness;
@@ -68,16 +74,16 @@ describe('RelayClient.connect — happy path', () => {
     const r = await newRelayClient();
     client = r.client;
     const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    const auth = entry!.frame.params.authentication;
-    expect(auth.project).toBe('test_proj');
-    expect(auth.token).toBe('test_tok');
+    const auth = entry!.frame.params!.authentication;
+    expect(auth!.project).toBe('test_proj');
+    expect(auth!.token).toBe('test_tok');
   });
 
   it('test_connect_journal_carries_contexts', async () => {
     const r = await newRelayClient();
     client = r.client;
     const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    expect(entry!.frame.params.contexts).toEqual(['default']);
+    expect(entry!.frame.params!.contexts).toEqual(['default']);
   });
 
   it('test_connect_journal_carries_agent_and_version', async () => {
@@ -85,17 +91,17 @@ describe('RelayClient.connect — happy path', () => {
     client = r.client;
     const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
     const p = entry!.frame.params;
-    expect(p.agent).toBe(AGENT_STRING);
+    expect(p!.agent).toBe(AGENT_STRING);
     // PROTOCOL_VERSION is an object {major, minor, revision} in TS;
     // the Python const is the same object, so the wire shape matches.
-    expect(p.version).toEqual(PROTOCOL_VERSION);
+    expect(p!.version).toEqual(PROTOCOL_VERSION);
   });
 
   it('test_connect_journal_event_acks_true', async () => {
     const r = await newRelayClient();
     client = r.client;
     const [entry] = await r.mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    expect(entry!.frame.params.event_acks).toBe(true);
+    expect(entry!.frame.params!.event_acks).toBe(true);
   });
 });
 
@@ -132,7 +138,7 @@ describe('RelayClient.connect — reconnect with protocol', () => {
     await c2.disconnect();
 
     const connects = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    const resumed = connects.filter((e) => e.frame?.params?.protocol === issued);
+    const resumed = connects.filter((e) => frameStr(e.frame?.params?.protocol) === issued);
     expect(resumed.length).toBeGreaterThan(0);
   });
 
@@ -247,9 +253,9 @@ describe('RelayClient.connect — JWT', () => {
     await c.disconnect();
 
     const [entry] = await mock.journalRecv(METHOD_SIGNALWIRE_CONNECT);
-    const auth = entry!.frame.params.authentication;
-    expect(auth.jwt_token).toBe('fake-jwt-eyJ.AaaA.BbB');
+    const auth = entry!.frame.params!.authentication;
+    expect(auth!.jwt_token).toBe('fake-jwt-eyJ.AaaA.BbB');
     // JWT path doesn't include project/token.
-    expect(auth.token == null || auth.token === '').toBe(true);
+    expect(auth!.token == null || frameStr(auth!.token) === '').toBe(true);
   });
 });

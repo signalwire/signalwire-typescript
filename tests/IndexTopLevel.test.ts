@@ -42,7 +42,6 @@ describe('top-level index helpers', () => {
       // Namespaces are wired up: every required accessor is present.
       expect(client.fabric).toBeDefined();
       expect(client.calling).toBeDefined();
-      expect(client.compat).toBeDefined();
       expect(client.phoneNumbers).toBeDefined();
     });
 
@@ -86,7 +85,6 @@ describe('top-level index helpers', () => {
         host: 'legacy.signalwire.com',
       });
       expect(client).toBeInstanceOf(RestClient);
-      expect(client.compat).toBeDefined();
     });
   });
 
@@ -126,7 +124,7 @@ describe('top-level index helpers', () => {
         static override SKILL_VERSION = '0.0.1';
         static override REQUIRED_PACKAGES: string[] = [];
         static override REQUIRED_ENV_VARS: string[] = [];
-        static override SKILL_PARAMETERS = {
+        static SKILL_PARAMETERS = {
           enabled: {
             type: 'boolean' as const,
             default: true,
@@ -140,7 +138,7 @@ describe('top-level index helpers', () => {
       registerSkill(TopLevelDummySkill as never);
       const schema = listSkillsWithParams();
       expect(schema['top_level_dummy_skill_index']).toBeDefined();
-      expect(schema['top_level_dummy_skill_index'].name).toBe('top_level_dummy_skill_index');
+      expect(schema['top_level_dummy_skill_index']!.name).toBe('top_level_dummy_skill_index');
     });
   });
 });

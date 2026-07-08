@@ -362,9 +362,9 @@ export class SpiderSkill extends SkillBase {
   // ---------------------------------------------------------------------------
 
   /**
-   * Redirect a target URL through `SPIDER_BASE_URL` when set. Used by the
-   * porting-sdk's `audit_skills_dispatch.py` to point every outbound fetch
-   * at its loopback fixture without requiring the test URL to resolve.
+   * Redirect a target URL through `SPIDER_BASE_URL` when set. Used by tests
+   * to point every outbound fetch at a loopback fixture without requiring
+   * the test URL to resolve.
    * Preserves the path (and any query/fragment) from the original target.
    */
   private static _redirectForAudit(target: string): string {

@@ -2,6 +2,15 @@
 
 This guide explains the parameter schema system for SignalWire AI Agents TypeScript SDK skills, which enables GUI configuration tools and programmatic skill discovery.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Node globals (tsconfig sets types:[], so declare them here).
+  const process: { env: Record<string, string | undefined>; [k: string]: any };
+}
+```
+
 ## Overview
 
 The parameter schema system lets skills declare their configurable parameters with metadata including types, descriptions, default values, and security hints. This enables:
@@ -31,7 +40,7 @@ const schema = listSkillsWithParams();
 //     name: 'web_search',
 //     description: 'Search the web using Google Custom Search',
 //     version: '1.0.0',
-//     configSchema: {
+//     parameters: {
 //       api_key: {
 //         type: 'string',
 //         description: 'Google Custom Search API key',
@@ -60,7 +69,7 @@ const schema = listSkillsWithParams();
 //     name: 'datetime',
 //     description: 'Get current date, time, and timezone information',
 //     version: '1.0.0',
-//     configSchema: {
+//     parameters: {
 //       swaig_fields: {
 //         type: 'object',
 //         description: 'Additional SWAIG function metadata to merge into tool definitions',
@@ -120,8 +129,8 @@ function generateFormField(paramName: string, paramInfo: Record<string, unknown>
 }
 
 let form = '<form>\n';
-for (const [name, info] of Object.entries(webSearchSchema.configSchema)) {
-  form += generateFormField(name, info as Record<string, unknown>);
+for (const [name, info] of Object.entries(webSearchSchema.parameters)) {
+  form += generateFormField(name, info as unknown as Record<string, unknown>);
 }
 form += '</form>';
 ```
@@ -147,7 +156,7 @@ class MyAgent extends AgentBase {
     };
 
     // Validate required parameters against the declared schema
-    const webSearchSchema = schema['web_search'].configSchema;
+    const webSearchSchema = schema['web_search'].parameters;
     for (const [param, info] of Object.entries(webSearchSchema)) {
       if ((info as { required?: boolean }).required && !(param in webSearchParams)) {
         throw new Error(`Missing required parameter: ${param}`);
@@ -244,11 +253,12 @@ class MyCustomSkill extends SkillBase {
     };
   }
 
-  override async setup(): Promise<void> {
+  override async setup(): Promise<boolean> {
     // Access parameters via getConfig()
     this.apiEndpoint = this.getConfig<string>('api_endpoint', 'https://api.example.com');
     this.apiKey = this.getConfig<string>('api_key', '') || process.env['MY_API_KEY'];
     this.timeout = this.getConfig<number>('timeout', 30);
+    return true;
   }
 
   override getTools(): SkillToolDefinition[] {
@@ -263,6 +273,7 @@ class MyCustomSkill extends SkillBase {
 
 Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
+<!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
 api_key: {
   type: 'string',
@@ -277,6 +288,7 @@ api_key: {
 
 Use `min` and `max` to document valid ranges:
 
+<!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
 port: {
   type: 'integer',
@@ -292,6 +304,7 @@ port: {
 
 Use `enum` to restrict to specific values:
 
+<!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
 log_level: {
   type: 'string',
@@ -306,6 +319,7 @@ log_level: {
 
 Use boolean parameters for optional features:
 
+<!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
 enable_analytics: {
   type: 'boolean',
@@ -327,6 +341,7 @@ All skills inherit base parameters from `SkillBase` via `super.getParameterSchem
 
 Skills like `datetime` and `math` that don't need configuration just return the base schema:
 
+<!-- snippet: no-compile bare static-method fragment (class body context) -->
 ```typescript
 static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
   return super.getParameterSchema();
@@ -338,6 +353,7 @@ static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
 Skills like `web_search` with multiple configuration options spread the base schema and add
 their own:
 
+<!-- snippet: no-compile bare static-method fragment (class body context) -->
 ```typescript
 static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
   return {

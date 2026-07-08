@@ -6,6 +6,7 @@ This guide walks through converting an existing LiveKit voice agent (TypeScript 
 
 Replace all LiveKit agent imports with the LiveWire module:
 
+<!-- snippet: no-compile before/after import comparison; the "Before" half imports the external `@livekit/*` packages that this SDK does not depend on -->
 ```typescript
 // Before (LiveKit)
 import { defineAgent, type JobContext } from '@livekit/agents';
@@ -28,6 +29,7 @@ All types are in a single module. No separate plugin packages needed.
 
 Replace LiveKit type names with their LiveWire equivalents. In most cases the names are identical:
 
+<!-- snippet: no-compile before/after comparison fused in one fence; the "Before" half imports the external `@livekit/agents/voice` package and redeclares the same names as the "After" half -->
 ```typescript
 // Before (LiveKit)
 import { Agent } from '@livekit/agents/voice';
@@ -42,6 +44,7 @@ const agent = new Agent({ instructions: 'Hello' });
 
 LiveWire provides the same session options. STT, TTS, and VAD are accepted but are noops -- SignalWire's control plane handles the media pipeline. LLM model selection is honored.
 
+<!-- snippet: no-compile before/after comparison; the "Before" half uses LiveKit plugin classes (DeepgramSTT/ElevenLabsTTS/SileroVAD/OpenAILLM) from external packages and redeclares `session` -->
 ```typescript
 // Before (LiveKit)
 const session = new AgentSession({
@@ -64,6 +67,7 @@ const session = new AgentSession({
 
 LiveWire uses the same `tool()` function:
 
+<!-- snippet: no-compile before/after comparison; the "Before" half imports the external `@livekit/agents/llm` package plus Zod (`z`) and redeclares `getWeather` -->
 ```typescript
 // Before (LiveKit)
 import { tool } from '@livekit/agents/llm';
@@ -93,6 +97,7 @@ Note: LiveWire accepts both Zod schemas and plain JSON Schema objects for parame
 
 ## Step 5: Update the Entrypoint
 
+<!-- snippet: no-compile before/after comparison fused in one fence; two default exports and `defineAgent` is only imported in prose elsewhere -->
 ```typescript
 // Before (LiveKit)
 export default defineAgent({
@@ -155,6 +160,7 @@ Point your SignalWire phone number at the agent's URL and calls will flow throug
 
 ### Before (LiveKit)
 
+<!-- snippet: no-compile the "Before" LiveKit reference example; imports the external `@livekit/*` packages this SDK does not depend on -->
 ```typescript
 import { defineAgent, type JobContext } from '@livekit/agents';
 import { AgentSession } from '@livekit/agents/voice';
@@ -214,7 +220,7 @@ export default defineAgent({
     });
     const agent = new Agent({
       instructions: 'You are a helpful assistant.',
-      tools: { greet: { ...greet, name: 'greet' } },
+      tools: [{ ...greet, name: 'greet' }],
     });
     await session.start({ agent });
   },

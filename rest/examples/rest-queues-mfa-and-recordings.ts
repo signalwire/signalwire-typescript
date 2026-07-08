@@ -88,8 +88,7 @@ async function main() {
   console.log('\nSending MFA SMS code...');
   let requestId: string | null = null;
   try {
-    const smsResult = await client.mfa.sms({
-      to: '+15551234567',
+    const smsResult = await client.mfa.sms('+15551234567', {
       from: '+15559876543',
       message: 'Your code is {{code}}',
       token_length: 6,
@@ -105,8 +104,7 @@ async function main() {
   // 8. Send MFA via voice call
   console.log('\nSending MFA voice code...');
   try {
-    const voiceResult = await client.mfa.call({
-      to: '+15551234567',
+    const voiceResult = await client.mfa.call('+15551234567', {
       from: '+15559876543',
       message: 'Your verification code is {{code}}',
       token_length: 6,
@@ -122,7 +120,7 @@ async function main() {
   if (requestId) {
     console.log('\nVerifying MFA token...');
     try {
-      const verify = await client.mfa.verify(requestId, { token: '123456' });
+      const verify = await client.mfa.verify(requestId, '123456');
       console.log(`  Verification result: ${JSON.stringify(verify)}`);
     } catch (err) {
       if (err instanceof RestError) {

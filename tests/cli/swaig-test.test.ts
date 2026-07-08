@@ -74,6 +74,54 @@ describe('swaig-test CLI contract (subprocess)', () => {
     }
   }, 70_000);
 
+  it('--parse-only validates args, prints "parse OK", loads no agent, hits no network', async () => {
+    // A bogus, unreachable --url would hang/fail if the agent were loaded or a
+    // request were made; parse-only must return instantly with just "parse OK".
+    const { code, out } = await runCli([
+      'examples/does-not-exist.ts',
+      '--list-tools',
+      '--parse-only',
+    ]);
+    expect(code).toBe(0);
+    expect(out).toContain('parse OK');
+    // Never touches the world: no agent load, no SWML, no tool listing.
+    expect(out).not.toContain('SWML Document');
+    expect(out).not.toContain('Registered tools');
+  }, 70_000);
+
+  it('--dry-run is an exact alias for --parse-only', async () => {
+    const { code, out } = await runCli(['examples/does-not-exist.ts', '--dump-swml', '--dry-run']);
+    expect(code).toBe(0);
+    expect(out).toContain('parse OK');
+    expect(out).not.toContain('SWML Document');
+  }, 70_000);
+
+  it('--parse-only is position-independent, honored even trailing an --exec', async () => {
+    // --exec consumes the following token as the function name; a trailing
+    // --parse-only must still be recognized (stripped before the exec parser).
+    const { code, out } = await runCli([
+      '--parse-only',
+      '--exec',
+      'foo',
+      '--arg',
+      'bar=1',
+      'examples/does-not-exist.ts',
+    ]);
+    expect(code).toBe(0);
+    expect(out).toContain('parse OK');
+  }, 70_000);
+
+  it('--parse-only rejects an invalid invocation (exit non-zero, no "parse OK")', async () => {
+    // Unknown flag is a genuine argument error; parse-only must NOT paper over it.
+    const { code, out } = await runCli([
+      'examples/does-not-exist.ts',
+      '--parse-only',
+      '--no-such-flag',
+    ]);
+    expect(code).not.toBe(0);
+    expect(out).not.toContain('parse OK');
+  }, 70_000);
+
   it('errors when a target is given but no action flag (no silent dump-swml)', async () => {
     const { path, cleanup } = writeAgentFile();
     try {
@@ -113,10 +161,10 @@ describe('agent introspection', () => {
     const agent = createAgent();
     const tools = agent.getRegisteredTools();
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('greet');
-    expect(tools[0].description).toBe('Say hello');
-    expect(tools[0].parameters).toHaveProperty('name');
-    expect(tools[1].name).toBe('get_time');
+    expect(tools[0]!.name).toBe('greet');
+    expect(tools[0]!.description).toBe('Say hello');
+    expect(tools[0]!.parameters).toHaveProperty('name');
+    expect(tools[1]!.name).toBe('get_time');
   });
 
   it('getRegisteredTools returns empty for no tools', () => {

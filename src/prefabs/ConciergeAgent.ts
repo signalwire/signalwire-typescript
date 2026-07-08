@@ -9,7 +9,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { PostPromptData } from '../PlatformContracts.js';
+import type { PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -219,23 +219,7 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args) => {
-        const service = (args.service ?? '').toLowerCase();
-        const date = args.date ?? '';
-        const time = args.time ?? '';
-
-        // Simple availability simulation — in a real app this would hit a booking system.
-        const lowerServices = this.services.map((s) => s.toLowerCase());
-        if (lowerServices.includes(service)) {
-          return new FunctionResult(
-            `Yes, ${service} is available on ${date} at ${time}. Would you like to make a reservation?`,
-          );
-        }
-        return new FunctionResult(
-          `I'm sorry, we don't offer ${service} at ${this.venueName}. ` +
-            `Our available services are: ${this.services.join(', ')}.`,
-        );
-      },
+      handler: this.checkAvailability.bind(this),
     });
 
     // Tool: get_directions
@@ -251,23 +235,56 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: (args) => {
-        const location = (args.location ?? '').toLowerCase();
-
-        const amenity = this.amenities[location];
-        if (amenity && typeof amenity['location'] === 'string') {
-          const amenityLocation = amenity['location'];
-          return new FunctionResult(
-            `The ${location} is located at ${amenityLocation}. ` +
-              `From the main entrance, follow the signs to ${amenityLocation}.`,
-          );
-        }
-        return new FunctionResult(
-          `I don't have specific directions to ${location}. ` +
-            'You can ask our staff at the front desk for assistance.',
-        );
-      },
+      handler: this.getDirections.bind(this),
     });
+  }
+
+  // ── SWAIG tool handlers (named methods, mirroring the Python prefab) ───
+
+  /**
+   * SWAIG handler for `check_availability`: check whether a service is available
+   * on a given date/time. Mirrors Python `ConciergeAgent.check_availability`.
+   */
+  checkAvailability(
+    args: Record<string, unknown>,
+    _rawData: Record<string, unknown>,
+  ): FunctionResult {
+    const service = ((args['service'] as string) ?? '').toLowerCase();
+    const date = (args['date'] as string) ?? '';
+    const time = (args['time'] as string) ?? '';
+
+    // Simple availability simulation — in a real app this would hit a booking system.
+    const lowerServices = this.services.map((s) => s.toLowerCase());
+    if (lowerServices.includes(service)) {
+      return new FunctionResult(
+        `Yes, ${service} is available on ${date} at ${time}. Would you like to make a reservation?`,
+      );
+    }
+    return new FunctionResult(
+      `I'm sorry, we don't offer ${service} at ${this.venueName}. ` +
+        `Our available services are: ${this.services.join(', ')}.`,
+    );
+  }
+
+  /**
+   * SWAIG handler for `get_directions`: provide directions to a location or
+   * amenity. Mirrors Python `ConciergeAgent.get_directions`.
+   */
+  getDirections(args: Record<string, unknown>, _rawData: Record<string, unknown>): FunctionResult {
+    const location = ((args['location'] as string) ?? '').toLowerCase();
+
+    const amenity = this.amenities[location];
+    if (amenity && typeof amenity['location'] === 'string') {
+      const amenityLocation = amenity['location'];
+      return new FunctionResult(
+        `The ${location} is located at ${amenityLocation}. ` +
+          `From the main entrance, follow the signs to ${amenityLocation}.`,
+      );
+    }
+    return new FunctionResult(
+      `I don't have specific directions to ${location}. ` +
+        'You can ask our staff at the front desk for assistance.',
+    );
   }
 
   // ── Lifecycle hooks ───────────────────────────────────────────────────
@@ -278,7 +295,7 @@ export class ConciergeAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     if (summary) {
       try {

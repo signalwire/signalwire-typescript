@@ -33,15 +33,15 @@ describe('WebSearchSkill', () => {
   it('should register a web_search tool', () => {
     const tools = new WebSearchSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('web_search');
+    expect(tools[0]!.name).toBe('web_search');
     // Python passes no `required` (web_search/skill.py:707); TS matches.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
     const sections = new WebSearchSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toContain('Web Search');
+    expect(sections[0]!.title).toContain('Web Search');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -72,13 +72,13 @@ describe('WebSearchSkill', () => {
     delete process.env['GOOGLE_SEARCH_API_KEY'];
     delete process.env['GOOGLE_SEARCH_ENGINE_ID'];
     delete process.env['GOOGLE_SEARCH_CX'];
-    const handler = new WebSearchSkill().getTools()[0].handler;
+    const handler = new WebSearchSkill().getTools()[0]!.handler;
     const result = (await handler({ query: 'test' }, {})) as FunctionResult;
     expect(result.response).toContain('not configured');
   });
 
   it('should reject empty query', async () => {
-    const handler = new WebSearchSkill().getTools()[0].handler;
+    const handler = new WebSearchSkill().getTools()[0]!.handler;
     const result = (await handler({ query: '' }, {})) as FunctionResult;
     expect(result.response).toContain('provide a search query');
   });
@@ -110,24 +110,24 @@ describe('WebSearchSkill', () => {
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
     // safe_search is enum-typed.
-    expect(schema['safe_search'].enum).toContain('off');
-    expect(schema['safe_search'].enum).toContain('medium');
-    expect(schema['safe_search'].enum).toContain('high');
+    expect(schema['safe_search']!.enum).toContain('off');
+    expect(schema['safe_search']!.enum).toContain('medium');
+    expect(schema['safe_search']!.enum).toContain('high');
   });
 
   it('should expose response_prefix / response_postfix in parameter schema', () => {
     const schema = WebSearchSkill.getParameterSchema();
     // Python skill.py:587-595 ports — both keys must be documented string params.
     expect(schema['response_prefix']).toBeDefined();
-    expect(schema['response_prefix'].type).toBe('string');
-    expect(schema['response_prefix'].default).toBe('');
+    expect(schema['response_prefix']!.type).toBe('string');
+    expect(schema['response_prefix']!.default).toBe('');
     expect(schema['response_postfix']).toBeDefined();
-    expect(schema['response_postfix'].type).toBe('string');
-    expect(schema['response_postfix'].default).toBe('');
+    expect(schema['response_postfix']!.type).toBe('string');
+    expect(schema['response_postfix']!.default).toBe('');
   });
 });
 
@@ -192,7 +192,7 @@ describe('WebSearchSkill — response_prefix/response_postfix wrapping', () => {
         delay: 0,
         ...extraConfig,
       });
-      const handler = skill.getTools()[0].handler;
+      const handler = skill.getTools()[0]!.handler;
       const result = (await handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       return result.response;
     } finally {
@@ -243,7 +243,7 @@ describe('WebSearchSkill — response_prefix/response_postfix wrapping', () => {
       response_prefix: 'PRE',
       response_postfix: 'POST',
     });
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const result = (await handler({ query: 'widgets' }, {})) as FunctionResult;
     expect(result.response.startsWith('PRE')).toBe(false);
     expect(result.response.endsWith('POST')).toBe(false);
@@ -264,22 +264,22 @@ describe('WebSearchSkill — latency-control schema', () => {
     const schema = WebSearchSkill.getParameterSchema();
 
     expect(schema['per_page_timeout']).toBeDefined();
-    expect(schema['per_page_timeout'].type).toBe('number');
-    expect(schema['per_page_timeout'].default).toBe(2.0);
-    expect(schema['per_page_timeout'].required).toBe(false);
+    expect(schema['per_page_timeout']!.type).toBe('number');
+    expect(schema['per_page_timeout']!.default).toBe(2.0);
+    expect(schema['per_page_timeout']!.required).toBe(false);
 
     expect(schema['overall_deadline']).toBeDefined();
-    expect(schema['overall_deadline'].type).toBe('number');
-    expect(schema['overall_deadline'].default).toBe(10.0);
-    expect(schema['overall_deadline'].required).toBe(false);
+    expect(schema['overall_deadline']!.type).toBe('number');
+    expect(schema['overall_deadline']!.default).toBe(10.0);
+    expect(schema['overall_deadline']!.required).toBe(false);
 
     expect(schema['parallel_scrape']).toBeDefined();
-    expect(schema['parallel_scrape'].type).toBe('boolean');
-    expect(schema['parallel_scrape'].default).toBe(true);
+    expect(schema['parallel_scrape']!.type).toBe('boolean');
+    expect(schema['parallel_scrape']!.default).toBe(true);
 
     expect(schema['snippets_only']).toBeDefined();
-    expect(schema['snippets_only'].type).toBe('boolean');
-    expect(schema['snippets_only'].default).toBe(false);
+    expect(schema['snippets_only']!.type).toBe('boolean');
+    expect(schema['snippets_only']!.default).toBe(false);
   });
 
   it('advertises every setup-read param (drift guard, Python 295745b)', () => {
@@ -426,7 +426,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       const skill = makeSkill({ snippets_only: true });
       const start = Date.now();
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
@@ -452,7 +452,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: true });
       const start = Date.now();
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
@@ -475,7 +475,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: false });
       const start = Date.now();
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
@@ -502,7 +502,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       });
       const start = Date.now();
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
@@ -523,7 +523,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
     try {
       const skill = makeSkill({ overall_deadline: 10.0, parallel_scrape: true });
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
 
       expect(result.response.startsWith("Quality web search results for 'widgets gizmos':")).toBe(
@@ -549,7 +549,7 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
       const skill = makeSkill({ overall_deadline: 1.0, parallel_scrape: true });
       const start = Date.now();
       const result = (await skill
-        .getTools()[0]
+        .getTools()[0]!
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 

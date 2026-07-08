@@ -73,6 +73,17 @@ export interface JournalEntry {
 }
 
 /**
+ * A parsed wire request body for assertions: a recursively-indexable JSON object.
+ * Indexing yields a `WireValue` — a primitive OR another `WireBody` — so nested
+ * access (`body.params.id`) and comparisons (`.command === 'update'`) both type-check
+ * in a wire-assertion test without an `any`. Used by `MockTest.lastBody()`.
+ */
+export type WireValue = string | number | boolean | null | undefined | WireBody;
+export interface WireBody {
+  [key: string]: WireValue;
+}
+
+/**
  * Harness wraps the running mock server. It exposes journal accessors,
  * a helper to push scenario overrides, and a reset method tests call from
  * beforeEach.
@@ -140,6 +151,17 @@ export class MockHarness {
   }
 
   /**
+   * The parsed JSON body of the most recent request, typed as an indexable wire
+   * object for assertions. `JournalEntry.body` is deliberately `unknown` (arbitrary
+   * wire payload); a wire-assertion test knows the shape it sent, so this narrows to
+   * a recursively-indexable object — `(await mock.lastBody()).params.id` type-checks
+   * without an `any` per access site. The value is still the real parsed body.
+   */
+  async lastBody(): Promise<WireBody> {
+    return (await this.last()).body as WireBody;
+  }
+
+  /**
    * Clear journal + scenarios on the mock server. A scoped harness leaves the
    * shared journal alone (it only ever reads its own entries, identified by
    * auth header, so there is nothing to clear and a global wipe would race a
@@ -195,6 +217,43 @@ const state: ServerState = {
   startError: null,
   starting: null,
 };
+
+// A spawned mock server is `detached` + `unref()` so it survives across a test
+// binary's lifetime. Without an explicit teardown it ORPHANS on normal exit — and an
+// orphaned uvicorn/asyncio process can busy-spin its event loop on a dead fd, pegging
+// a core. Under file-parallelism that's one leaked, spinning server PER WORKER, which
+// can saturate the CPU. So: kill the child (its whole process group, since detached
+// makes it a group leader) when THIS worker process exits or is signalled. Idempotent
+// + registered once. When MOCK_SIGNALWIRE_PORT is set (CI pre-spawns a shared server)
+// we never spawn a child here, so there's nothing to clean up — the gate owns it.
+let cleanupRegistered = false;
+function registerChildCleanup(child: ChildProcess): void {
+  const killGroup = (): void => {
+    const pid = child.pid;
+    if (pid === undefined) return;
+    try {
+      // Negative pid => kill the process GROUP (the detached leader + any children).
+      process.kill(-pid, 'SIGKILL');
+    } catch {
+      try {
+        child.kill('SIGKILL');
+      } catch {
+        // already gone
+      }
+    }
+  };
+  if (cleanupRegistered) return;
+  cleanupRegistered = true;
+  process.once('exit', killGroup);
+  process.once('SIGINT', () => {
+    killGroup();
+    process.exit(130);
+  });
+  process.once('SIGTERM', () => {
+    killGroup();
+    process.exit(143);
+  });
+}
 
 // Ask the OS for a free loopback TCP port (listen on :0, read it, close).
 async function pickFreePort(): Promise<number> {
@@ -296,6 +355,7 @@ async function ensureServer(): Promise<MockHarness> {
     );
     child.unref();
     state.child = child;
+    registerChildCleanup(child);
 
     child.on('error', (err) => {
       state.startError = new Error(

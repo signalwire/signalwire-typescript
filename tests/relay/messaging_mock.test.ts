@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Message } from '../../src/relay/Message.js';
-import { newRelayClient, type MockRelayHarness } from './mocktest.js';
+import { frameStr, newRelayClient, type MockRelayHarness } from './mocktest.js';
 
 let client: RelayClient;
 let mock: MockRelayHarness;
@@ -53,10 +53,10 @@ describe('Messaging — outbound send', () => {
     expect(msg.body).toBe('hello');
     const [entry] = await mock.journalRecv('messaging.send');
     const p = entry!.frame.params;
-    expect(p.to_number).toBe('+15551112222');
-    expect(p.from_number).toBe('+15553334444');
-    expect(p.body).toBe('hello');
-    expect(p.tags).toEqual(['t1', 't2']);
+    expect(p!.to_number).toBe('+15551112222');
+    expect(p!.from_number).toBe('+15553334444');
+    expect(p!.body).toBe('hello');
+    expect(p!.tags).toEqual(['t1', 't2']);
   });
 
   it('test_send_message_with_media_only', async () => {
@@ -68,9 +68,9 @@ describe('Messaging — outbound send', () => {
     expect(msg).toBeInstanceOf(Message);
     const [entry] = await mock.journalRecv('messaging.send');
     const p = entry!.frame.params;
-    expect(p.media).toEqual(['https://media.example/cat.jpg']);
+    expect(p!.media).toEqual(['https://media.example/cat.jpg']);
     // The Python test allows either no body or empty body; check the same.
-    expect(p.body == null || p.body === '').toBe(true);
+    expect(p!.body == null || frameStr(p!.body) === '').toBe(true);
   });
 
   it('test_send_message_includes_context', async () => {
@@ -81,7 +81,7 @@ describe('Messaging — outbound send', () => {
       context: 'custom-ctx',
     });
     const [entry] = await mock.journalRecv('messaging.send');
-    expect(entry!.frame.params.context).toBe('custom-ctx');
+    expect(entry!.frame.params!.context).toBe('custom-ctx');
   });
 
   it('test_send_message_returns_initial_state_queued', async () => {

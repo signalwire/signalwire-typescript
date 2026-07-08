@@ -1,5 +1,19 @@
 # SignalWire AI Agents SDK: Why the SDK, Not Raw SWML
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const agent: import('@signalwire/sdk').AgentBase;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const MyAgent: any; // illustrative user-defined AgentBase subclass
+  const SalesAgent: any;
+  const SupportAgent: any;
+  const TriageAgent: any;
+  const loadTenantConfig: (tenant: string) => any;
+}
+```
+
 ## The Problem with Raw SWML
 
 SWML (SignalWire Markup Language) is a JSON document format that defines how an agent behaves during a call -- 30+ verbs, an AI verb with dozens of parameters, SWAIG (SignalWire AI Gateway) function definitions with JSON Schema, post-prompt URLs, webhook authentication, language arrays, pronunciation rules, hints, global data, contexts, steps, gather configs. Writing it by hand means constructing deeply nested JSON, manually building authenticated webhook URLs, hand-coding parameter schemas, and deploying separate webhook servers for your tools. Every agent becomes a bespoke JSON engineering project.
@@ -84,6 +98,7 @@ POM sections are rendered into a format the LLM understands with proper hierarch
 
 ### 1. `defineTool` (Local Execution)
 
+<!-- snippet: no-compile fragment from inside a subclass defineTools(); uses `this` and an illustrative `db` -->
 ```typescript
 this.defineTool({
   name: 'lookup_order',
@@ -116,7 +131,7 @@ import { DataMap, FunctionResult } from '@signalwire/sdk';
 
 const dataMap = new DataMap('check_stock')
   .purpose('Check product stock levels')
-  .parameter('sku', 'string', 'Product SKU', true)
+  .parameter('sku', 'string', 'Product SKU', { required: true })
   .webhook('GET', 'https://api.warehouse.com/stock/${args.sku}')
   .output(new FunctionResult('Stock for ${args.sku}: ${response.quantity} units'));
 
@@ -210,6 +225,7 @@ PGI is enforced through four layers of constraint, each operating independently.
 
 ### PGI in Practice: Blackjack
 
+<!-- snippet: no-compile illustrative step wiring with pseudo variables (betting/playing/lost/ctx) -->
 ```typescript
 ctx.addContext('default'); // contexts/steps omitted for brevity
 
@@ -224,6 +240,7 @@ The `you_lost` step has zero functions and zero valid transitions. The game is o
 
 The tool handler demonstrates execution authority -- the model has no idea a step change is about to happen:
 
+<!-- snippet: no-compile fragment from inside a subclass defineTools(); uses `this`, `GameState`, `calculateHand` -->
 ```typescript
 this.defineTool({
   name: 'hit',
@@ -375,8 +392,8 @@ agent.addLanguage({
   name: 'Spanish',
   code: 'es',
   voice: 'google.es-ES-Neural2-A',
-  fillers: ['Un momento...'],
-  functionFillers: ['Buscando...'],
+  fillers: { thinking: ['Un momento...'] },
+  functionFillers: { search: { es: ['Buscando...'] } },
 });
 
 // Speech recognition

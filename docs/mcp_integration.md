@@ -7,6 +7,17 @@ The SDK supports the [Model Context Protocol (MCP)](https://modelcontextprotocol
 
 These features are independent and can be used separately or together.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase;
+  const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+}
+```
+
 ## Adding External MCP Servers
 
 Use `addMcpServer()` to connect your agent to remote MCP servers. Tools are discovered at call start via the MCP protocol and added to the AI's tool list alongside your defined tools.
@@ -63,7 +74,7 @@ agent.defineTool({
   name: 'get_weather',
   description: 'Get weather for a location',
   parameters: { location: { type: 'string', description: 'City' } },
-  handler: (args) => new FunctionResult(`72F sunny in ${args.location}`),
+  handler: (args: Record<string, unknown>) => new FunctionResult(`72F sunny in ${args.location}`),
 });
 ```
 

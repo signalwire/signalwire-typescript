@@ -1,5 +1,17 @@
 # Configuration
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const ConfigLoader: typeof import('@signalwire/sdk').ConfigLoader;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase; // used with `extends`
+  const getLogger: typeof import('@signalwire/sdk').getLogger;
+  const app: any; // Hono app
+  const requestHeaders: Record<string, string>;
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -198,7 +210,7 @@ const config = new ConfigLoader('./config/agent.json');
 
 // Read nested values with optional defaults
 const port = config.get<number>('server.port', 3000);
-const name = config.get<string>('agent.name', 'default-agent');
+const agentName = config.get<string>('agent.name', 'default-agent');
 
 // Check existence
 if (config.has('auth.password')) {

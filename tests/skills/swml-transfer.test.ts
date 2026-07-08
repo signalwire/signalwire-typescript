@@ -32,8 +32,8 @@ describe('SwmlTransferSkill', () => {
     await skill.setup();
     const tools = skill.getTools();
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools[0].name).toBe('transfer_call');
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools[0]!.name).toBe('transfer_call');
+    expect(tools[0]!.handler).toBeTypeOf('function');
   });
 
   it('should use custom tool_name if provided', async () => {
@@ -42,7 +42,7 @@ describe('SwmlTransferSkill', () => {
       patterns: [{ name: 'sales', destination: '+15551112222' }],
     });
     await skill.setup();
-    expect(skill.getTools()[0].name).toBe('my_transfer');
+    expect(skill.getTools()[0]!.name).toBe('my_transfer');
   });
 
   it('should register list_transfer_destinations when patterns configured', async () => {
@@ -133,8 +133,8 @@ describe('SwmlTransferSkill', () => {
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
   });
 
@@ -143,7 +143,7 @@ describe('SwmlTransferSkill', () => {
       patterns: [{ name: 'sales', destination: '+15551112222' }],
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler({ transfer_type: 'sales' }, {})) as FunctionResult;
     expect(res.action.length).toBeGreaterThan(0);
   });
@@ -155,7 +155,7 @@ describe('SwmlTransferSkill', () => {
       default_message: 'I cannot transfer there.',
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler({ transfer_type: 'unknown' }, {})) as FunctionResult;
     expect(res.response).toContain('cannot transfer');
   });
@@ -167,7 +167,7 @@ describe('SwmlTransferSkill', () => {
       },
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler({ transfer_type: 'sales' }, {})) as FunctionResult;
     expect(res.action.length).toBeGreaterThan(0);
   });
@@ -178,7 +178,7 @@ describe('SwmlTransferSkill', () => {
       required_fields: { name: 'Caller name', reason: 'Reason for calling' },
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler(
       { transfer_type: 'support', name: 'Alice', reason: 'Billing issue' },
       {},

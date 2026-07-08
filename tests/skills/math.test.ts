@@ -25,17 +25,17 @@ describe('MathSkill', () => {
   it('should register a calculate tool', () => {
     const tools = new MathSkill().getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('calculate');
+    expect(tools[0]!.name).toBe('calculate');
     // Python's math skill passes no `required` (math/skill.py:33) and
     // SWAIGFunction omits the key when empty (swaig_function.py:128), so the
     // wire schema has no `required` — the TS port matches that.
-    expect(tools[0].required).toBeUndefined();
+    expect(tools[0]!.required).toBeUndefined();
   });
 
   it('should provide prompt sections', () => {
     const sections = new MathSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Mathematical Calculations');
+    expect(sections[0]!.title).toBe('Mathematical Calculations');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -55,13 +55,13 @@ describe('MathSkill', () => {
   });
 
   it('should evaluate a simple expression', () => {
-    const handler = new MathSkill().getTools()[0].handler;
+    const handler = new MathSkill().getTools()[0]!.handler;
     const result = handler({ expression: '2 + 3' }, {}) as FunctionResult;
     expect(result.response).toContain('5');
   });
 
   it('should reject invalid expressions', () => {
-    const handler = new MathSkill().getTools()[0].handler;
+    const handler = new MathSkill().getTools()[0]!.handler;
     const result = handler({ expression: 'DROP TABLE' }, {}) as FunctionResult;
     expect(result.response).toContain('Could not evaluate');
   });
@@ -70,8 +70,8 @@ describe('MathSkill', () => {
     const schema = MathSkill.getParameterSchema();
     const swaigEntry = schema['swaig_fields'];
     expect(swaigEntry).toBeDefined();
-    expect(swaigEntry.type).toBe('object');
-    expect(typeof swaigEntry.description === 'string' && swaigEntry.description.length > 0).toBe(
+    expect(swaigEntry!.type).toBe('object');
+    expect(typeof swaigEntry!.description === 'string' && swaigEntry!.description.length > 0).toBe(
       true,
     );
   });

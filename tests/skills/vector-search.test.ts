@@ -39,14 +39,14 @@ describe('NativeVectorSearchSkill', () => {
     await skill.setup();
     const tools = skill.getTools();
     expect(tools.length).toBe(1);
-    expect(tools[0].name).toBe('my_search');
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools[0]!.name).toBe('my_search');
+    expect(tools[0]!.handler).toBeTypeOf('function');
   });
 
   it('should default to search_knowledge tool name', async () => {
     const skill = new NativeVectorSearchSkill();
     await skill.setup();
-    expect(skill.getTools()[0].name).toBe('search_knowledge');
+    expect(skill.getTools()[0]!.name).toBe('search_knowledge');
   });
 
   it('should provide prompt sections', () => {
@@ -119,8 +119,8 @@ describe('NativeVectorSearchSkill', () => {
     for (const key of required) {
       const entry = schema[key];
       expect(entry, `schema.${key} missing`).toBeDefined();
-      expect(validTypes.has(entry.type), `schema.${key}.type invalid`).toBe(true);
-      expect(typeof entry.description === 'string' && entry.description.length > 0).toBe(true);
+      expect(validTypes.has(entry!.type), `schema.${key}.type invalid`).toBe(true);
+      expect(typeof entry!.description === 'string' && entry!.description.length > 0).toBe(true);
     }
   });
 
@@ -136,7 +136,7 @@ describe('NativeVectorSearchSkill', () => {
       documents: [{ id: 'd1', text: 'hello world' }],
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler({}, {})) as FunctionResult;
     expect(res.response).toMatch(/provide a search query/i);
   });
@@ -149,7 +149,7 @@ describe('NativeVectorSearchSkill', () => {
       ],
     });
     await skill.setup();
-    const handler = skill.getTools()[0].handler;
+    const handler = skill.getTools()[0]!.handler;
     const res = (await handler({ query: 'fox' }, {})) as FunctionResult;
     expect(res.response).toContain('Result 1');
     expect(res.response).toContain('doc1');

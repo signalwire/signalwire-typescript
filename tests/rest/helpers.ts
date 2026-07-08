@@ -2,6 +2,8 @@
  * Test utilities for REST client tests.
  */
 
+import type { WireBody } from './mocktest.js';
+
 export interface MockResponse {
   status?: number;
   body?: unknown;
@@ -12,7 +14,14 @@ interface RecordedRequest {
   url: string;
   method: string;
   headers: Record<string, string>;
-  body: unknown;
+  /**
+   * The recorded request body. SDK REST methods always send a JSON object, so
+   * this is typed as the recursively-indexable `WireBody` for wire assertions
+   * (`req.body.command`, `req.body.params.to`) without an `any` per access. On
+   * the rare non-JSON body the parse falls back to the raw string, which this
+   * assertion-oriented type still represents structurally.
+   */
+  body: WireBody;
 }
 
 /**
@@ -49,12 +58,12 @@ export function createMockFetch(
       }
     }
 
-    let body: unknown = undefined;
+    let body: WireBody = {};
     if (init?.body) {
       try {
-        body = JSON.parse(init.body as string);
+        body = JSON.parse(init.body as string) as WireBody;
       } catch {
-        body = init.body;
+        body = init.body as unknown as WireBody;
       }
     }
 

@@ -27,16 +27,16 @@ describe('JokeSkill', () => {
     expect(tools).toHaveLength(1);
     // Interface matches Python (joke/skill.py:68-77): name get_joke, required
     // `type` param, enum jokes|dadjokes. (Offline impl; Python uses API-Ninjas.)
-    expect(tools[0].name).toBe('get_joke');
-    expect(tools[0].required).toEqual(['type']);
-    const typeParam = (tools[0].parameters as Record<string, { enum?: string[] }>)['type'];
-    expect(typeParam.enum).toEqual(['jokes', 'dadjokes']);
+    expect(tools[0]!.name).toBe('get_joke');
+    expect(tools[0]!.required).toEqual(['type']);
+    const typeParam = (tools[0]!.parameters as Record<string, { enum?: string[] }>)['type'];
+    expect(typeParam!.enum).toEqual(['jokes', 'dadjokes']);
   });
 
   it('should provide prompt sections', () => {
     const sections = new JokeSkill().getPromptSections();
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0].title).toBe('Jokes');
+    expect(sections[0]!.title).toBe('Jokes');
   });
 
   it('should skip prompt sections when skip_prompt is set', () => {
@@ -53,7 +53,7 @@ describe('JokeSkill', () => {
     const skill = new JokeSkill({ tool_name: 'make_me_laugh' });
     const tools = skill.getTools();
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('make_me_laugh');
+    expect(tools[0]!.name).toBe('make_me_laugh');
   });
 
   it('should return correct manifest', () => {
@@ -63,7 +63,7 @@ describe('JokeSkill', () => {
   });
 
   it('should return a regular joke for type "jokes"', () => {
-    const handler = new JokeSkill().getTools()[0].handler;
+    const handler = new JokeSkill().getTools()[0]!.handler;
     const result = handler({ type: 'jokes' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     // A real joke from the collection: setup ... punchline.
@@ -73,7 +73,7 @@ describe('JokeSkill', () => {
   });
 
   it('should return a dad joke for type "dadjokes"', () => {
-    const handler = new JokeSkill().getTools()[0].handler;
+    const handler = new JokeSkill().getTools()[0]!.handler;
     const result = handler({ type: 'dadjokes' }, {}) as FunctionResult;
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('...');
@@ -87,6 +87,6 @@ describe('JokeSkill', () => {
     // `swaig_fields` is the SkillBase-inherited dict-shaped escape
     // hatch that lets agents pin SWAIG metadata. It must be declared
     // as type=object (not just present).
-    expect(swaigEntry.type).toBe('object');
+    expect(swaigEntry!.type).toBe('object');
   });
 });

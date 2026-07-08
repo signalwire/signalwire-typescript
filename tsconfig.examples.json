@@ -3,7 +3,10 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@signalwire/sdk": ["./src/index.ts"]
+    }
   },
   "include": [
     "src/**/*",

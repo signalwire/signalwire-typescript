@@ -36,9 +36,7 @@ async function main() {
   console.log('Dialing outbound call...');
   let callId = 'demo-call-id';
   try {
-    const call = await client.calling.dial({
-      from: '+15559876543',
-      to: '+15551234567',
+    const call = await client.calling.dial('+15559876543', '+15551234567', {
       url: 'https://example.com/call-handler',
     });
     callId = call.id ?? 'demo-call-id';
@@ -52,36 +50,37 @@ async function main() {
   // 2. Play TTS audio
   console.log('\nPlaying TTS on call...');
   await safe('Play', () =>
-    client.calling.play(callId, {
-      play: [{ type: 'tts', params: { text: 'Welcome to SignalWire.' } }],
-    }),
+    client.calling.play(callId, [{ type: 'tts', params: { text: 'Welcome to SignalWire.' } }]),
   );
 
   // 3. Pause, resume, adjust volume, stop playback
   console.log('\nControlling playback...');
-  await safe('Pause', () => client.calling.playPause(callId));
-  await safe('Resume', () => client.calling.playResume(callId));
-  await safe('Volume +2dB', () => client.calling.playVolume(callId, { volume: 2.0 }));
-  await safe('Stop', () => client.calling.playStop(callId));
+  await safe('Pause', () => client.calling.playPause(callId, 'play-1'));
+  await safe('Resume', () => client.calling.playResume(callId, 'play-1'));
+  await safe('Volume +2dB', () => client.calling.playVolume(callId, 'play-1', 2.0));
+  await safe('Stop', () => client.calling.playStop(callId, 'play-1'));
 
   // 4. Record the call
   console.log('\nRecording call...');
   await safe('Record', () =>
-    client.calling.record(callId, { audio: { beep: true, format: 'mp3' } }),
+    client.calling.record(callId, { control_id: 'record-1', audio: { beep: true, format: 'mp3' } }),
   );
 
   // 5. Pause, resume, stop recording
   console.log('\nControlling recording...');
-  await safe('Pause', () => client.calling.recordPause(callId));
-  await safe('Resume', () => client.calling.recordResume(callId));
-  await safe('Stop', () => client.calling.recordStop(callId));
+  await safe('Pause', () => client.calling.recordPause(callId, 'record-1'));
+  await safe('Resume', () => client.calling.recordResume(callId, 'record-1'));
+  await safe('Stop', () => client.calling.recordStop(callId, 'record-1'));
 
   // 6. Transcribe the call
   console.log('\nTranscribing call...');
   await safe('Transcribe', () =>
-    client.calling.transcribe(callId, { status_url: 'https://example.com/transcriptions' }),
+    client.calling.transcribe(callId, {
+      control_id: 'transcribe-1',
+      status_url: 'https://example.com/transcriptions',
+    }),
   );
-  await safe('Transcribe stop', () => client.calling.transcribeStop(callId));
+  await safe('Transcribe stop', () => client.calling.transcribeStop(callId, 'transcribe-1'));
 
   // 7. Denoise the call
   console.log('\nEnabling denoise...');

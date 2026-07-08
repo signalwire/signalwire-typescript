@@ -2,15 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module (top-level await)
+declare global {
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase; // used with `extends`
+}
+```
+
 ## Build & Test Commands
+
+Lint, format, and test go through the canonical scripts under `scripts/`. These
+are the single entry points — they self-bootstrap the node toolchain (install
+`node_modules` if absent, put `node_modules/.bin` on PATH) and run from ANY
+directory. Prefer them over calling `prettier` / `eslint` / `tsc` / `vitest`
+directly.
+
+```bash
+bash scripts/run-format.sh          # format the tree (prettier --write)
+bash scripts/run-format.sh --check  # verify-only (prettier --check); CI FMT gate
+bash scripts/run-lint.sh            # lint (tsc --noEmit + eslint)
+bash scripts/run-lint.sh --fix      # lint + eslint --fix (autofix where possible)
+bash scripts/run-tests.sh           # full test suite (vitest run)
+bash scripts/run-tests.sh AgentBase # run a subset (filter passed through to vitest)
+```
 
 ```bash
 npm run build          # TypeScript compilation (tsc → dist/)
-npm test               # Run all tests (vitest)
-npm test -- AgentBase  # Run tests matching a filename
-npm test -- -t "renders basic SWML"  # Run tests matching a description
-npm run test:watch     # Continuous test mode
 npm run dev            # TypeScript watch + rebuild
+npm run test:watch     # Continuous test mode (vitest watch)
 ```
 
 CLI tool for testing agents without a running server:
@@ -78,7 +98,7 @@ class MyAgent extends AgentBase {
   protected override defineTools(): void {
     /* register tools */
   }
-  async onSummary(summary, rawData) {
+  async onSummary(summary: any, rawData: any) {
     /* process call summary */
   }
 }

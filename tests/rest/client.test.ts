@@ -55,16 +55,16 @@ describe('RestClient', () => {
       ['project', 'project'],
       ['pubsub', 'pubsub'],
       ['chat', 'chat'],
-      ['compat', 'compat'],
     ];
     for (const [key, label] of expected) {
       const ns = client[key] as unknown;
       expect(ns, `client.${label} missing or wrong type`).toBeInstanceOf(Object);
       expect(typeof ns).toBe('object');
     }
-    // Sanity-check the count to lock in the documented 21-namespace
-    // contract. Adding a new namespace should require updating the test.
-    expect(expected).toHaveLength(21);
+    // Sanity-check the count to lock in the documented namespace contract.
+    // Adding a new namespace should require updating the test. (20 since the
+    // Twilio-compat namespace was removed, matching the Python reference.)
+    expect(expected).toHaveLength(20);
   });
 
   it('throws when project is missing', () => {
@@ -118,9 +118,9 @@ describe('RestClient', () => {
     await client.phoneNumbers.list();
     const reqs = getRequests();
     expect(reqs).toHaveLength(1);
-    expect(reqs[0].url).toContain('env.signalwire.com');
+    expect(reqs[0]!.url).toContain('env.signalwire.com');
     const expectedAuth = 'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
-    expect(reqs[0].headers['Authorization']).toBe(expectedAuth);
+    expect(reqs[0]!.headers['Authorization']).toBe(expectedAuth);
   });
 
   it('explicit options override env vars', () => {
@@ -141,9 +141,9 @@ describe('RestClient', () => {
     const reqs = getRequests();
     // Auth header should use explicit creds
     const expected = 'Basic ' + Buffer.from('explicit-proj:explicit-tok').toString('base64');
-    expect(reqs[0].headers['Authorization']).toBe(expected);
+    expect(reqs[0]!.headers['Authorization']).toBe(expected);
     // URL should use explicit host
-    expect(reqs[0].url).toContain('explicit.signalwire.com');
+    expect(reqs[0]!.url).toContain('explicit.signalwire.com');
   });
 
   it('normalizes host without https://', () => {
@@ -156,7 +156,7 @@ describe('RestClient', () => {
     });
 
     client.phoneNumbers.list();
-    expect(getRequests()[0].url).toMatch(/^https:\/\/my\.signalwire\.com/);
+    expect(getRequests()[0]!.url).toMatch(/^https:\/\/my\.signalwire\.com/);
   });
 
   it('preserves https:// if already present', () => {
@@ -169,21 +169,8 @@ describe('RestClient', () => {
     });
 
     client.phoneNumbers.list();
-    expect(getRequests()[0].url).toMatch(/^https:\/\/my\.signalwire\.com/);
-    expect(getRequests()[0].url).not.toContain('https://https://');
-  });
-
-  it('compat namespace is scoped to project ID', async () => {
-    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { calls: [] } }]);
-    const client = new RestClient({
-      project: 'proj-abc',
-      token: 'tok',
-      host: 'test.signalwire.com',
-      fetchImpl,
-    });
-
-    await client.compat.calls.list();
-    expect(getRequests()[0].url).toContain('/api/laml/2010-04-01/Accounts/proj-abc/Calls');
+    expect(getRequests()[0]!.url).toMatch(/^https:\/\/my\.signalwire\.com/);
+    expect(getRequests()[0]!.url).not.toContain('https://https://');
   });
 
   it('all namespaces route through same HttpClient', async () => {
@@ -201,7 +188,7 @@ describe('RestClient', () => {
     });
 
     await client.fabric.aiAgents.list();
-    await client.calling.dial({ to: '+1' });
+    await client.calling.dial('+15550000001', '+1');
     await client.phoneNumbers.list();
     await client.video.rooms.list();
 
@@ -209,15 +196,15 @@ describe('RestClient', () => {
     expect(reqs).toHaveLength(4);
 
     // All should use same auth
-    const auth = reqs[0].headers['Authorization'];
+    const auth = reqs[0]!.headers['Authorization'];
     for (const req of reqs) {
       expect(req.headers['Authorization']).toBe(auth);
     }
 
     // Verify different paths
-    expect(reqs[0].url).toContain('/api/fabric/resources/ai_agents');
-    expect(reqs[1].url).toContain('/api/calling/calls');
-    expect(reqs[2].url).toContain('/api/relay/rest/phone_numbers');
-    expect(reqs[3].url).toContain('/api/video/rooms');
+    expect(reqs[0]!.url).toContain('/api/fabric/resources/ai_agents');
+    expect(reqs[1]!.url).toContain('/api/calling/calls');
+    expect(reqs[2]!.url).toContain('/api/relay/rest/phone_numbers');
+    expect(reqs[3]!.url).toContain('/api/video/rooms');
   });
 });

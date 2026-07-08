@@ -58,6 +58,10 @@ const agents = await client.fabric.aiAgents.list();
 Most resources follow the same CRUD pattern:
 
 ```typescript
+import { RestClient } from '@signalwire/sdk';
+
+const client = new RestClient();
+
 // List
 const items = await client.fabric.aiAgents.list();
 
@@ -80,6 +84,9 @@ await client.fabric.aiAgents.delete('agent-uuid');
 Fabric resources also support listing addresses:
 
 ```typescript
+import { RestClient } from '@signalwire/sdk';
+
+const client = new RestClient();
 const addresses = await client.fabric.aiAgents.listAddresses('agent-uuid');
 ```
 

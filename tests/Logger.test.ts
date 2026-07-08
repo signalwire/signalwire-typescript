@@ -373,37 +373,27 @@ describe('Logger', () => {
   });
 
   it('getExecutionMode returns server by default', () => {
-    const [env, mode] = getExecutionMode();
-    expect(env).toBe('server');
-    expect(mode).toBe('default');
+    expect(getExecutionMode()).toBe('server');
   });
 
   it('getExecutionMode detects CGI', () => {
     process.env['GATEWAY_INTERFACE'] = 'CGI/1.1';
-    const [env, mode] = getExecutionMode();
-    expect(env).toBe('cgi');
-    expect(mode).toBe('off');
+    expect(getExecutionMode()).toBe('cgi');
   });
 
   it('getExecutionMode detects Lambda', () => {
     process.env['AWS_LAMBDA_FUNCTION_NAME'] = 'test-fn';
-    const [env, mode] = getExecutionMode();
-    expect(env).toBe('lambda');
-    expect(mode).toBe('stderr');
+    expect(getExecutionMode()).toBe('lambda');
   });
 
   it('getExecutionMode detects Google Cloud', () => {
     process.env['K_SERVICE'] = 'my-service';
-    const [env, mode] = getExecutionMode();
-    expect(env).toBe('google_cloud_function');
-    expect(mode).toBe('default');
+    expect(getExecutionMode()).toBe('google_cloud_function');
   });
 
   it('getExecutionMode detects Azure', () => {
     process.env['AZURE_FUNCTIONS_ENVIRONMENT'] = 'Production';
-    const [env, mode] = getExecutionMode();
-    expect(env).toBe('azure_function');
-    expect(mode).toBe('default');
+    expect(getExecutionMode()).toBe('azure_function');
   });
 
   it('stderr mode routes JSON output through console.error too', () => {

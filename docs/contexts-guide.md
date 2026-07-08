@@ -2,6 +2,21 @@
 
 Complete guide to building multi-step conversation workflows using the Contexts & Steps system in the SignalWire AI Agents TypeScript SDK.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+declare global {
+  // Shared context the fragments below assume (constructed in prose examples above).
+  const agent: import('@signalwire/sdk').AgentBase;
+  const AgentBase: typeof import('@signalwire/sdk').AgentBase;
+  const ContextBuilder: typeof import('@signalwire/sdk').ContextBuilder;
+  const createSimpleContext: typeof import('@signalwire/sdk').createSimpleContext;
+  const cb: import('@signalwire/sdk').ContextBuilder;
+  const ctx: import('@signalwire/sdk').Context;
+  const step: import('@signalwire/sdk').Step;
+}
+```
+
 ---
 
 ## Table of Contents
@@ -208,7 +223,7 @@ ctx.removeStep('greet');
 ctx.moveStep('verify', 0); // Move "verify" to the beginning
 
 // Clear all content from a step (sections + text)
-step.clearSections();
+step!.clearSections();
 ```
 
 ---
@@ -609,10 +624,8 @@ A complete customer service agent with three contexts: greeting, troubleshooting
 ```typescript
 import { AgentBase, ContextBuilder } from '@signalwire/sdk';
 
-const agent = new AgentBase({
-  name: 'customer-service',
-  prompt: { text: 'You are a helpful customer service agent for TechCo.' },
-});
+const agent = new AgentBase({ name: 'customer-service' });
+agent.setPromptText('You are a helpful customer service agent for TechCo.');
 
 // Define the tools
 agent.defineTool({

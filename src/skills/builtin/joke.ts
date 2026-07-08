@@ -94,7 +94,7 @@ const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
  * Tier 1 built-in skill with no external dependencies. The SWAIG tool
  * *interface* matches the Python reference (`get_joke` tool, required `type`
  * parameter with enum `jokes` / `dadjokes`); the implementation differs by
- * design — Python calls the API-Ninjas joke API, the TS port serves from a
+ * design — Python calls the API-Ninjas joke API, this SDK serves from a
  * built-in offline collection (so it needs no API key). `dadjokes` returns a
  * dad joke; `jokes` returns a general/programming joke.
  *
@@ -123,8 +123,8 @@ export class JokeSkill extends SkillBase {
   }
 
   /**
-   * Signal to the agent prompt that the joke skill is active. Python
-   * parity: `get_global_data` returns `{"joke_skill_enabled": true}`.
+   * Signal to the agent prompt that the joke skill is active. Matches the
+   * Python SDK: `get_global_data` returns `{"joke_skill_enabled": true}`.
    */
   override getGlobalData(): Record<string, unknown> {
     return { joke_skill_enabled: true };

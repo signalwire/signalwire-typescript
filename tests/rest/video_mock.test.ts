@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 let client: RestClient;
 let mock: MockHarness;
@@ -35,9 +35,7 @@ describe('VideoRooms streams', () => {
   });
 
   it('create_stream_posts_kwargs_in_body', async () => {
-    const body = await client.video.rooms.createStream('room-1', {
-      url: 'rtmp://example.com/live',
-    });
+    const body = await client.video.rooms.createStream('room-1', 'rtmp://example.com/live');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -46,7 +44,7 @@ describe('VideoRooms streams', () => {
     expect(last.path).toBe('/api/video/rooms/room-1/streams');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.url).toBe('rtmp://example.com/live');
+    expect((last.body as WireBody).url).toBe('rtmp://example.com/live');
   });
 });
 
@@ -221,9 +219,7 @@ describe('VideoStreams', () => {
   });
 
   it('update_uses_put_with_kwargs', async () => {
-    const body = await client.video.streams.update('stream-2', {
-      url: 'rtmp://example.com/new',
-    });
+    const body = await client.video.streams.update('stream-2', 'rtmp://example.com/new');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -232,7 +228,7 @@ describe('VideoStreams', () => {
     expect(last.path).toBe('/api/video/streams/stream-2');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.url).toBe('rtmp://example.com/new');
+    expect((last.body as WireBody).url).toBe('rtmp://example.com/new');
   });
 
   it('delete', async () => {

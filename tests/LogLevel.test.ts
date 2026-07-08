@@ -50,7 +50,7 @@ function realLogLevelUnion(): string {
   const src = readFileSync(LOGGER_SRC, 'utf-8');
   const m = src.match(/const LEVELS\s*=\s*\{([^}]*)\}/);
   if (!m) throw new Error('could not locate `const LEVELS = { ... }` in ' + LOGGER_SRC);
-  const keys = [...m[1].matchAll(/(\w+)\s*:/g)].map((k) => `'${k[1]}'`);
+  const keys = [...m[1]!.matchAll(/(\w+)\s*:/g)].map((k) => `'${k[1]}'`);
   if (keys.length === 0) throw new Error('no level keys parsed from LEVELS in ' + LOGGER_SRC);
   return keys.join(' | ');
 }

@@ -2,17 +2,27 @@
 
 The RELAY client provides real-time call and message control over a persistent WebSocket connection to SignalWire. Unlike the HTTP-based agent model (AgentBase), RELAY gives your application event-driven, bidirectional control of live calls and messages.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume (constructed in the examples above).
+declare const client: import('@signalwire/sdk').RelayClient;
+declare const call: import('@signalwire/sdk').Call;
+```
+
 ## Authentication
 
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
-const client = new RelayClient({
-  project: 'your-project-id',    // or env: SIGNALWIRE_PROJECT_ID
-  token: 'your-api-token',       // or env: SIGNALWIRE_TOKEN
-  host: 'your-space.signalwire.com', // or env: SIGNALWIRE_SPACE
-  contexts: ['office', 'support'],
-});
+function makeClient() {
+  return new RelayClient({
+    project: 'your-project-id',    // or env: SIGNALWIRE_PROJECT_ID
+    token: 'your-api-token',       // or env: SIGNALWIRE_TOKEN
+    host: 'your-space.signalwire.com', // or env: SIGNALWIRE_SPACE
+    contexts: ['office', 'support'],
+  });
+}
 ```
 
 All parameters can be provided via environment variables:
@@ -43,16 +53,18 @@ client.run();
 ## Making Outbound Calls
 
 ```typescript
-await client.connect();
+async function placeCall() {
+  await client.connect();
 
-const call = await client.dial(
-  [[{ type: 'phone', to: '+15551234567', from: '+15559876543' }]],
-  { dialTimeout: 30 }, // seconds
-);
+  const call = await client.dial(
+    [[{ type: 'phone', to: '+15551234567', from: '+15559876543' }]],
+    { dialTimeout: 30 }, // seconds
+  );
 
-console.log(`Call answered: ${call.callId}`);
-await call.play([{ type: 'tts', text: 'Hello from RELAY!' }]);
-await call.hangup();
+  console.log(`Call answered: ${call.callId}`);
+  await call.play([{ type: 'tts', text: 'Hello from RELAY!' }]);
+  await call.hangup();
+}
 ```
 
 ### Dial Gotcha
@@ -90,7 +102,7 @@ const action = await call.record({ format: 'mp3' });
 // ... later
 await action.stop();
 const event = await action.wait();
-console.log(`Recording URL: ${event.url}`);
+console.log(`Recording URL: ${event.params.url}`);
 ```
 
 ### Input Collection
@@ -104,7 +116,7 @@ const event = await action.wait();
 
 // Standalone collect (no media)
 const collectAction = await call.collect({
-  speech: { endSilenceTimeout: 2 },
+  speech: { end_silence_timeout: 2 },
 });
 ```
 
@@ -198,8 +210,8 @@ const endEvent = await call.waitForEnded(60_000);
 ```typescript
 // Send SMS
 const message = await client.sendMessage({
-  to: '+15551234567',
-  from: '+15559876543',
+  toNumber: '+15551234567',
+  fromNumber: '+15559876543',
   body: 'Hello from RELAY!',
 });
 

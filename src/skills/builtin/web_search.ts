@@ -97,8 +97,8 @@ const UNWANTED_PATTERNS = [
  *    {@link UNWANTED_PATTERNS} on either `class` or `id` (case-insensitive).
  * 5. Collapse whitespace and trim.
  *
- * Exported so `tests/skills/web-search-parity.test.ts` can verify byte-
- * identical behavior against Python BeautifulSoup fixtures; not re-exported
+ * Exported so the skill's test suite can verify byte-identical
+ * behavior against Python BeautifulSoup fixtures; not re-exported
  * from the skills barrel, so this stays internal to the skill module.
  *
  * @internal
@@ -764,7 +764,7 @@ export class WebSearchSkill extends SkillBase {
   /**
    * Format Google CSE snippets without fetching the underlying pages.
    *
-   * Python parity: `GoogleSearchScraper._format_snippet_results`
+   * Python equivalent: `GoogleSearchScraper._format_snippet_results`
    * (skill.py:416-437, commit 51101da). Used by the `snippets_only` fast path
    * and as the graceful fallback when page scraping is abandoned by the
    * `overall_deadline` or every page falls below the quality threshold. The
@@ -804,7 +804,7 @@ export class WebSearchSkill extends SkillBase {
   }
 
   /**
-   * Check whether the URL points at Reddit. Python parity: `is_reddit_url`
+   * Check whether the URL points at Reddit. Python equivalent: `is_reddit_url`
    * (skill.py:66).
    */
   private static _isRedditUrl(url: string): boolean {
@@ -820,7 +820,7 @@ export class WebSearchSkill extends SkillBase {
    * Fetch a Reddit URL via the `.json` endpoint and build a structured summary
    * of the post + top comments.
    *
-   * Python parity: `extract_reddit_content` (skill.py:71-190). Matches the
+   * Python equivalent: `extract_reddit_content` (skill.py:71-190). Matches the
    * post-title/author/score/comments assembly and the top-20 → valid → top-5
    * comment pipeline. Returns just the compiled text — Python's
    * `search_and_scrape_best` unconditionally overwrites Reddit's
@@ -946,7 +946,7 @@ export class WebSearchSkill extends SkillBase {
    * to match Python's `search_and_scrape_best` overwrite behavior
    * (skill.py:447-448).
    *
-   * Python parity: `extract_text_from_url` (skill.py:192-202). Returns `null`
+   * Python equivalent: `extract_text_from_url` (skill.py:192-202). Returns `null`
    * on any failure (network, non-200, parse error, or SSRF rejection).
    *
    * @param timeoutMs - Per-page fetch timeout (Python `per_page_timeout`).
@@ -1056,7 +1056,7 @@ export class WebSearchSkill extends SkillBase {
    * boilerplate penalty, sentence structure, domain reputation, and query
    * relevance.
    *
-   * Python parity: `_calculate_content_quality` (skill.py:284-414). Preserves
+   * Python equivalent: `_calculate_content_quality` (skill.py:284-414). Preserves
    * the weights (0.25/0.10/0.10/0.15/0.15/0.25), the 26-phrase boilerplate
    * list, the quality/low-quality domain lists, and the phrase-match bonus
    * on relevance. Also returns the same metric fields Python exposes

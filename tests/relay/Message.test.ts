@@ -103,7 +103,7 @@ describe('Message', () => {
     });
 
     expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb.mock.calls[0][0]).toBeInstanceOf(RelayEvent);
+    expect(cb.mock.calls[0]![0]).toBeInstanceOf(RelayEvent);
   });
 
   it('does not resolve twice', async () => {

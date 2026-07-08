@@ -11,7 +11,7 @@
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
-import type { PostPromptData } from '../PlatformContracts.js';
+import type { PostPrompt } from '../SwaigContracts.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -295,44 +295,7 @@ export class FAQBotAgent extends AgentBase {
           },
         },
       },
-      handler: (args) => {
-        const query = args.query ?? '';
-        const category = (args.category ?? '').toLowerCase().trim();
-        if (!query) {
-          return new FunctionResult('A query is required to search the FAQ.');
-        }
-
-        // Optionally filter by category
-        const pool = category
-          ? this.faqs.filter((faq) =>
-              (faq.categories ?? []).some((c) => c.toLowerCase().trim() === category),
-            )
-          : this.faqs;
-
-        if (pool.length === 0) {
-          return new FunctionResult('No matching FAQs found.');
-        }
-
-        // Score all FAQs in the (possibly filtered) pool
-        const scored = pool
-          .map((faq) => ({ faq, score: this.computeMatchScore(query, faq) }))
-          .filter((s) => s.score >= this.threshold)
-          .sort((a, b) => b.score - a.score);
-
-        if (scored.length === 0) {
-          return new FunctionResult('No matching FAQs found.');
-        }
-
-        // Match Python's response format: a numbered list of the top 3 matches'
-        // question text (faq_bot.py:276-283). The answer text is supplied to
-        // the AI via the prompt's "FAQ Database" section — the tool just
-        // indicates which FAQs matched. The `suggest_related` flag does not
-        // change the top-N here; it only toggles the prompt's "Related
-        // Questions" section and the extra instruction bullet (Python parity).
-        const top = scored.slice(0, 3);
-        const lines = top.map((s, i) => `${i + 1}. ${s.faq.question}`).join('\n');
-        return new FunctionResult(`Here are the most relevant FAQs:\n\n${lines}\n`);
-      },
+      handler: this.searchFaqs.bind(this),
     });
 
     // Tool: escalate (only if escalation number is configured)
@@ -362,6 +325,52 @@ export class FAQBotAgent extends AgentBase {
     }
   }
 
+  // ── SWAIG tool handlers (named methods, mirroring the Python prefab) ───
+
+  /**
+   * SWAIG handler for `search_faqs`: score the (optionally category-filtered)
+   * FAQ pool against the query and return the top matches. Mirrors Python
+   * `FAQBotAgent.search_faqs`.
+   */
+  searchFaqs(args: Record<string, unknown>, _rawData: Record<string, unknown>): FunctionResult {
+    const query = (args['query'] as string) ?? '';
+    const category = ((args['category'] as string) ?? '').toLowerCase().trim();
+    if (!query) {
+      return new FunctionResult('A query is required to search the FAQ.');
+    }
+
+    // Optionally filter by category
+    const pool = category
+      ? this.faqs.filter((faq) =>
+          (faq.categories ?? []).some((c) => c.toLowerCase().trim() === category),
+        )
+      : this.faqs;
+
+    if (pool.length === 0) {
+      return new FunctionResult('No matching FAQs found.');
+    }
+
+    // Score all FAQs in the (possibly filtered) pool
+    const scored = pool
+      .map((faq) => ({ faq, score: this.computeMatchScore(query, faq) }))
+      .filter((s) => s.score >= this.threshold)
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length === 0) {
+      return new FunctionResult('No matching FAQs found.');
+    }
+
+    // Match Python's response format: a numbered list of the top 3 matches'
+    // question text (faq_bot.py:276-283). The answer text is supplied to
+    // the AI via the prompt's "FAQ Database" section — the tool just
+    // indicates which FAQs matched. The `suggest_related` flag does not
+    // change the top-N here; it only toggles the prompt's "Related
+    // Questions" section and the extra instruction bullet (Python parity).
+    const top = scored.slice(0, 3);
+    const lines = top.map((s, i) => `${i + 1}. ${s.faq.question}`).join('\n');
+    return new FunctionResult(`Here are the most relevant FAQs:\n\n${lines}\n`);
+  }
+
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
@@ -370,7 +379,7 @@ export class FAQBotAgent extends AgentBase {
    */
   override onSummary(
     summary: Record<string, unknown> | null,
-    _rawData: PostPromptData,
+    _rawData: PostPrompt,
   ): void | Promise<void> {
     if (summary) {
       try {

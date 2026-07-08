@@ -9,6 +9,17 @@ import { getLogger } from './Logger.js';
 
 const log = getLogger('ServerlessAdapter');
 
+/** Reason phrases for the CGI `Status:` header on the responses this adapter emits. */
+const CGI_STATUS_TEXT: Record<number, string> = {
+  200: 'OK',
+  301: 'Moved Permanently',
+  307: 'Temporary Redirect',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  404: 'Not Found',
+  500: 'Internal Server Error',
+};
+
 /** Supported serverless platform identifiers, or 'auto' for environment-based detection. */
 export type ServerlessPlatform = 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto';
 
@@ -22,6 +33,8 @@ export interface ServerlessEvent {
   headers?: Record<string, string>;
   /** Request body, either raw JSON string or parsed object. */
   body?: string | Record<string, unknown>;
+  /** When true, `body` is base64-encoded (AWS API Gateway proxy integration). */
+  isBase64Encoded?: boolean;
   /** Request path. */
   path?: string;
   /** Raw request path (AWS API Gateway v2). */
@@ -150,10 +163,18 @@ export class ServerlessAdapter {
       if (qs) url += `?${qs}`;
     }
 
-    // Build body
+    // Build body. AWS API Gateway proxy events set isBase64Encoded=true and pass
+    // the body base64-encoded; decode it back to the raw payload before routing
+    // (mirrors Python serverless_mixin's base64 body handling).
     let body: string | undefined;
-    if (event.body) {
-      body = typeof event.body === 'string' ? event.body : JSON.stringify(event.body);
+    if (event.body != null) {
+      if (typeof event.body === 'string') {
+        body = event.isBase64Encoded
+          ? Buffer.from(event.body, 'base64').toString('utf-8')
+          : event.body;
+      } else {
+        body = JSON.stringify(event.body);
+      }
     }
 
     // Create Request
@@ -253,6 +274,107 @@ export class ServerlessAdapter {
       }
       res.send(response.body);
     };
+  }
+
+  /** Maximum CGI request body size (10MB), matching Python's `MAX_CGI_BODY_SIZE`. */
+  static readonly MAX_CGI_BODY_SIZE = 10 * 1024 * 1024;
+
+  /**
+   * Build a {@link ServerlessEvent} from a CGI environment + request body.
+   *
+   * CGI has no "event" object: the request is described by environment variables
+   * (`REQUEST_METHOD`, `PATH_INFO`, `QUERY_STRING`, `CONTENT_TYPE`, `HTTP_*`) and
+   * the body arrives on stdin. This reconstructs the normalized event so a CGI
+   * invocation dispatches through the same Hono routing as Lambda/GCF/Azure
+   * (mirrors Python `serverless_mixin` CGI mode: `PATH_INFO` + stdin body).
+   *
+   * @param env - The process environment (defaults to `process.env`).
+   * @param body - The already-read request body from stdin (optional).
+   * @returns A normalized serverless event.
+   */
+  static buildCgiEvent(env: NodeJS.ProcessEnv = process.env, body?: string): ServerlessEvent {
+    const headers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(env)) {
+      if (value == null) continue;
+      if (key.startsWith('HTTP_')) {
+        // HTTP_X_FOO -> x-foo
+        const name = key.slice(5).toLowerCase().replace(/_/g, '-');
+        headers[name] = value;
+      }
+    }
+    if (env['CONTENT_TYPE']) headers['content-type'] = env['CONTENT_TYPE'];
+
+    const pathInfo = env['PATH_INFO'] ?? env['SCRIPT_NAME'] ?? '/';
+    const path = pathInfo.startsWith('/') ? pathInfo : `/${pathInfo}`;
+
+    let queryStringParameters: Record<string, string> | undefined;
+    if (env['QUERY_STRING']) {
+      queryStringParameters = {};
+      for (const [k, v] of new URLSearchParams(env['QUERY_STRING'])) {
+        queryStringParameters[k] = v;
+      }
+    }
+
+    return {
+      method: env['REQUEST_METHOD'] ?? 'POST',
+      headers,
+      path,
+      body,
+      ...(queryStringParameters ? { queryStringParameters } : {}),
+    };
+  }
+
+  /**
+   * Create a CGI handler that reads the request from the CGI environment + stdin,
+   * routes it through the Hono app, and writes a CGI response (status line,
+   * headers, blank line, body) to stdout.
+   *
+   * @param app - A Hono-compatible application with a `fetch` method.
+   * @returns An async function that performs one CGI request/response cycle.
+   */
+  static createCgiHandler(app: {
+    fetch: (req: Request) => Response | Promise<Response>;
+  }): () => Promise<void> {
+    const adapter = new ServerlessAdapter('cgi');
+    return async () => {
+      const body = await adapter.readStdin();
+      const event = ServerlessAdapter.buildCgiEvent(process.env, body);
+      const response = await adapter.handleRequest(app, event);
+
+      const statusText = CGI_STATUS_TEXT[response.statusCode] ?? '';
+      const lines: string[] = [`Status: ${response.statusCode} ${statusText}`.trimEnd()];
+      for (const [k, v] of Object.entries(response.headers)) {
+        lines.push(`${k}: ${v}`);
+      }
+      lines.push('', response.body);
+      process.stdout.write(lines.join('\r\n'));
+    };
+  }
+
+  /** Read the request body from stdin, honoring `CONTENT_LENGTH` when present. */
+  private readStdin(): Promise<string | undefined> {
+    return new Promise((resolvePromise) => {
+      const contentLength = process.env['CONTENT_LENGTH'];
+      if (contentLength === undefined || contentLength === '' || contentLength === '0') {
+        resolvePromise(undefined);
+        return;
+      }
+      const expected = Number.parseInt(contentLength, 10);
+      if (!Number.isFinite(expected) || expected <= 0) {
+        resolvePromise(undefined);
+        return;
+      }
+      if (expected > ServerlessAdapter.MAX_CGI_BODY_SIZE) {
+        log.error('CGI request body exceeds MAX_CGI_BODY_SIZE', { contentLength: expected });
+        resolvePromise(undefined);
+        return;
+      }
+      const chunks: Buffer[] = [];
+      const stdin = process.stdin;
+      stdin.on('data', (chunk: Buffer) => chunks.push(chunk));
+      stdin.on('end', () => resolvePromise(Buffer.concat(chunks).toString('utf-8')));
+      stdin.on('error', () => resolvePromise(undefined));
+    });
   }
 
   /**

@@ -76,14 +76,15 @@ Every API surface is available as a namespace property on the client. There are 
 | `client.project` | API token management |
 | `client.pubsub` | PubSub token creation |
 | `client.chat` | Chat token creation |
-| `client.compat` | Twilio-compatible LAML API |
 
 > Namespaces are properties, not methods — access them as `client.fabric`, never `client.fabric()`.
 
 ## Error Handling
 
 ```typescript
-import { SignalWireRestError } from '@signalwire/sdk';
+import { RestClient, SignalWireRestError } from '@signalwire/sdk';
+
+const client = new RestClient();
 
 try {
   await client.fabric.aiAgents.get('bad-id');

@@ -10,7 +10,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { newMockClient } from './mocktest.js';
 import type { RestClient } from '../../src/rest/index.js';
-import type { MockHarness } from './mocktest.js';
+import type { MockHarness, WireBody } from './mocktest.js';
 
 let client: RestClient;
 let mock: MockHarness;
@@ -50,11 +50,12 @@ describe('FabricAddresses', () => {
 // ---- CxmlApplications.create — deliberate rejection --------------------
 
 describe('CxmlApplications.create', () => {
-  it('create_raises_not_implemented', async () => {
-    await expect(
-      // @ts-expect-error - create on this resource is overridden to throw
-      client.fabric.cxmlApplications.create({ name: 'never_built' }),
-    ).rejects.toThrow(/cXML applications cannot/);
+  it('create_not_a_route', async () => {
+    // cXML applications cannot be created via this route, so the oracle-faithful
+    // generated surface omits `create` entirely — the method is absent.
+    expect(
+      (client.fabric.cxmlApplications as unknown as { create?: unknown }).create,
+    ).toBeUndefined();
     // Nothing should have hit the wire.
     const journal = await mock.journal();
     expect(journal.length).toBe(0);
@@ -122,7 +123,7 @@ describe('Subscribers SIP endpoint ops', () => {
     expect(last.path).toBe('/api/fabric/resources/subscribers/sub-1/sip_endpoints/ep-1');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.username).toBe('renamed');
+    expect((last.body as WireBody).username).toBe('renamed');
   });
 
   it('delete_sip_endpoint', async () => {
@@ -141,8 +142,10 @@ describe('Subscribers SIP endpoint ops', () => {
 
 describe('FabricTokens', () => {
   it('create_invite_token', async () => {
-    const body = await client.fabric.tokens.createInviteToken({
-      email: 'invitee@example.com',
+    // `email` is not a typed param on the generated signature; pass it via the
+    // trailing `extras` escape hatch (address_id left undefined → dropped).
+    const body = await client.fabric.tokens.createInviteToken(undefined as unknown as string, {
+      extras: { email: 'invitee@example.com' },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -153,12 +156,14 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/subscriber/invites');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.email).toBe('invitee@example.com');
+    expect((last.body as WireBody).email).toBe('invitee@example.com');
   });
 
   it('create_embed_token', async () => {
-    const body = await client.fabric.tokens.createEmbedToken({
-      allowed_addresses: ['addr-1', 'addr-2'],
+    // `allowed_addresses` is not a typed param (the only typed field is
+    // `token`); pass it via the options object's `extras` escape hatch.
+    const body = await client.fabric.tokens.createEmbedToken(undefined as unknown as string, {
+      extras: { allowed_addresses: ['addr-1', 'addr-2'] },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -168,13 +173,11 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/embeds/tokens');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.allowed_addresses).toEqual(['addr-1', 'addr-2']);
+    expect((last.body as WireBody).allowed_addresses).toEqual(['addr-1', 'addr-2']);
   });
 
   it('refresh_subscriber_token', async () => {
-    const body = await client.fabric.tokens.refreshSubscriberToken({
-      refresh_token: 'abc-123',
-    });
+    const body = await client.fabric.tokens.refreshSubscriberToken('abc-123');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -183,7 +186,7 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/subscribers/tokens/refresh');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.refresh_token).toBe('abc-123');
+    expect((last.body as WireBody).refresh_token).toBe('abc-123');
   });
 });
 
@@ -237,9 +240,7 @@ describe('GenericResources', () => {
   });
 
   it('assign_domain_application', async () => {
-    const body = await client.fabric.resources.assignDomainApplication('res-4', {
-      domain_application_id: 'da-7',
-    });
+    const body = await client.fabric.resources.assignDomainApplication('res-4', 'da-7');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -248,6 +249,6 @@ describe('GenericResources', () => {
     expect(last.path).toBe('/api/fabric/resources/res-4/domain_applications');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect(last.body.domain_application_id).toBe('da-7');
+    expect((last.body as WireBody).domain_application_id).toBe('da-7');
   });
 });

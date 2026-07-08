@@ -138,7 +138,7 @@ export interface FunctionTool {
  * Mirrors a LiveKit `voice.Agent` — holds instructions and tool definitions.
  *
  * Pipeline options (`stt`, `tts`, `vad`, `llm`, `turnDetection`) are accepted
- * for API parity but are **no-ops** — SignalWire's control plane handles the
+ * for API compatibility but are **no-ops** — SignalWire's control plane handles the
  * entire AI pipeline server-side. Set instructions and tools; everything else
  * just logs once and continues.
  *
@@ -415,7 +415,7 @@ export class RunContext<UserData = unknown> {
  *
  * Call {@link AgentSession.start} with an `Agent` to construct an internal
  * {@link AgentBase} and begin serving SWML. Pipeline-related options are
- * accepted for API parity but are no-ops server-side.
+ * accepted for API compatibility but are no-ops server-side.
  */
 export class AgentSession<UserData = unknown> {
   private _llm: unknown;
@@ -795,7 +795,7 @@ export class JobProcess {
 /**
  * Stub `Room` — SignalWire does not use the LiveKit room abstraction.
  *
- * Present purely for API parity so LiveKit-shaped code compiles; its only
+ * Present purely for API compatibility so LiveKit-shaped code compiles; its only
  * meaningful attribute is the constant name.
  */
 export class Room {

@@ -32,9 +32,9 @@ describe('MCP Integration', () => {
     const result = resp['result'] as Record<string, unknown>;
     const tools = result['tools'] as Record<string, unknown>[];
     expect(tools).toHaveLength(1);
-    expect(tools[0]['name']).toBe('get_weather');
-    expect(tools[0]['description']).toBe('Get the weather for a location');
-    expect(tools[0]['inputSchema']).toBeDefined();
+    expect(tools[0]!['name']).toBe('get_weather');
+    expect(tools[0]!['description']).toBe('Get the weather for a location');
+    expect(tools[0]!['inputSchema']).toBeDefined();
   });
 
   // ── Initialize Handshake ───────────────────────────────────
@@ -89,8 +89,8 @@ describe('MCP Integration', () => {
     expect(result['isError']).toBe(false);
     const content = result['content'] as Record<string, unknown>[];
     expect(content).toHaveLength(1);
-    expect(content[0]['type']).toBe('text');
-    expect(content[0]['text'] as string).toContain('Orlando');
+    expect(content[0]!['type']).toBe('text');
+    expect(content[0]!['text'] as string).toContain('Orlando');
   });
 
   // ── Tools Call Unknown ─────────────────────────────────────
@@ -162,7 +162,7 @@ describe('MCP Integration', () => {
     const agent = new AgentBase({ name: 'test', route: '/test' });
     agent.addMcpServer('https://mcp.example.com/tools');
     expect(agent.getMcpServers()).toHaveLength(1);
-    expect(agent.getMcpServers()[0]['url']).toBe('https://mcp.example.com/tools');
+    expect(agent.getMcpServers()[0]!['url']).toBe('https://mcp.example.com/tools');
   });
 
   it('addMcpServer with headers', () => {
@@ -170,7 +170,7 @@ describe('MCP Integration', () => {
     agent.addMcpServer('https://mcp.example.com/tools', {
       headers: { Authorization: 'Bearer sk-xxx' },
     });
-    const headers = agent.getMcpServers()[0]['headers'] as Record<string, string>;
+    const headers = agent.getMcpServers()[0]!['headers'] as Record<string, string>;
     expect(headers['Authorization']).toBe('Bearer sk-xxx');
   });
 
@@ -180,8 +180,8 @@ describe('MCP Integration', () => {
       resources: true,
       resourceVars: { caller_id: '${caller_id_number}' },
     });
-    expect(agent.getMcpServers()[0]['resources']).toBe(true);
-    const vars = agent.getMcpServers()[0]['resource_vars'] as Record<string, string>;
+    expect(agent.getMcpServers()[0]!['resources']).toBe(true);
+    const vars = agent.getMcpServers()[0]!['resource_vars'] as Record<string, string>;
     expect(vars['caller_id']).toBe('${caller_id_number}');
   });
 
@@ -231,7 +231,7 @@ describe('MCP Integration', () => {
     )?.ai;
     expect(ai?.SWAIG?.mcp_servers).toBeDefined();
     expect(ai!.SWAIG!.mcp_servers).toHaveLength(1);
-    expect(ai!.SWAIG!.mcp_servers![0].url).toBe('https://mcp.example.com/tools');
+    expect(ai!.SWAIG!.mcp_servers![0]!.url).toBe('https://mcp.example.com/tools');
   });
 
   // ── MCP HTTP Endpoint ──────────────────────────────────────

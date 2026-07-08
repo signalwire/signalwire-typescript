@@ -6,7 +6,7 @@
  * A SWAIG tool's parameters are a JSON-Schema `object`: `{ type: 'object',
  * properties: { <name>: { type, description, enum? }, ... }, required: [...] }`.
  * The Python reference (`define_tool(parameters=...)`) takes that as a bare
- * `Dict[str, Any]`, and the TS port mirrors it on
+ * `Dict[str, Any]`, and this SDK mirrors it on
  * {@link ../AgentBase.AgentBase.defineTool} / `defineTypedTool` as
  * `parameters?: Record<string, unknown>` — a fully **untyped blob**. There are
  * two distinct ways a user supplies a tool's parameters in TS:

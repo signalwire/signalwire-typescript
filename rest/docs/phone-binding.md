@@ -2,6 +2,14 @@
 
 Routing an inbound phone number to something — an SWML webhook, a cXML app, an AI Agent, a call flow — is configured on the **phone number**, not on the Fabric resource. Fabric resources are *derived representations* of bindings configured on adjacent entities. Read this page before writing code that creates webhook/agent/flow resources manually; for the common cases, you don't need to.
 
+<!-- snippet-setup -->
+```ts
+export {}; // treat each example as a module so top-level `await` is allowed
+// Shared context the fragments below assume (constructed on the Getting Started page).
+declare const client: import('@signalwire/sdk').RestClient;
+declare const pnId: string; // a phone-number SID
+```
+
 ## The mental model
 
 A phone number has a `call_handler` field that chooses what to do with inbound calls. Setting `call_handler` (together with its handler-specific required field) triggers the server to materialize the appropriate Fabric resource automatically.
@@ -59,11 +67,13 @@ Every helper is a one-line wrapper over `phoneNumbers.update` with the right `ca
 await client.phoneNumbers.setSwmlWebhook(pnId, 'https://example.com/swml');
 
 // cXML / LAML webhook (Twilio-compat)
-await client.phoneNumbers.setCxmlWebhook(pnId, {
-  url: 'https://example.com/voice.xml',
-  fallbackUrl: 'https://example.com/fallback.xml',      // optional
-  statusCallbackUrl: 'https://example.com/status',      // optional
-});
+// url positional; fallback_url + status_callback_url are positional optionals (snake_case)
+await client.phoneNumbers.setCxmlWebhook(
+  pnId,
+  'https://example.com/voice.xml',
+  'https://example.com/fallback.xml',  // optional fallback_url
+  'https://example.com/status',        // optional status_callback_url
+);
 
 // Existing cXML application by ID
 await client.phoneNumbers.setCxmlApplication(pnId, 'app-uuid');
@@ -71,17 +81,14 @@ await client.phoneNumbers.setCxmlApplication(pnId, 'app-uuid');
 // AI Agent by ID (agent created via fabric.aiAgents or AgentBase)
 await client.phoneNumbers.setAiAgent(pnId, 'agent-uuid');
 
-// Call flow (optionally pin a version — default is current_deployed)
-await client.phoneNumbers.setCallFlow(pnId, {
-  flowId: 'flow-uuid',
-  version: 'current_deployed',
-});
+// Call flow (optionally pin a version — 'working_copy' or 'current_deployed')
+await client.phoneNumbers.setCallFlow(pnId, 'flow-uuid', 'current_deployed');
 
 // Relay application (named routing)
 await client.phoneNumbers.setRelayApplication(pnId, 'my-relay-app');
 
-// Relay topic (RELAY client subscription)
-await client.phoneNumbers.setRelayTopic(pnId, { topic: 'office' });
+// Relay topic (RELAY client subscription) — topic is positional
+await client.phoneNumbers.setRelayTopic(pnId, 'office');
 ```
 
 All helpers return the updated phone number representation. All are thin wrappers over the single underlying `phoneNumbers.update(sid, { call_handler, ... })` call; use the update form directly when you need an unusual combination.
@@ -89,6 +96,8 @@ All helpers return the updated phone number representation. All are thin wrapper
 The wire-level form is always available:
 
 ```ts
+import { PhoneCallHandler } from '@signalwire/sdk';
+
 await client.phoneNumbers.update(pnId, {
   call_handler: PhoneCallHandler.RELAY_SCRIPT, // or the raw string 'relay_script'
   call_relay_script_url: 'https://example.com/swml',
@@ -105,8 +114,9 @@ const webhook = await client.fabric.swmlWebhooks.create({
   name: 'my-webhook',
   primary_request_url: 'https://example.com/swml',
 });
-await client.fabric.resources.assignPhoneRoute(webhook.id, { phone_number_id: pnId });
-// ↑ returns 404 / 422 depending on body shape
+// assignPhoneRoute takes (resourceId, phone_route_id, handler) positionally
+await client.fabric.resources.assignPhoneRoute(webhook.id, pnId, 'calling');
+// ↑ returns 404 / 422 for swml_webhook — the derivation model above is the right way
 ```
 
 The `swmlWebhooks.create` and `cxmlWebhooks.create` endpoints exist historically but are not how you bind a number. The Fabric resource is materialized as a side-effect of `phoneNumbers.update`; there's nothing to attach.

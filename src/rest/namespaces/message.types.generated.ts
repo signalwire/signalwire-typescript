@@ -139,7 +139,3 @@ export interface Types_StatusCodes_StatusCode500 {
 
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type ListMessageLogsResponse = LogListResponse;
-
-export type GetMessageLogResponse = LogRetrieveResponse;

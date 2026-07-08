@@ -28,9 +28,9 @@ describe('McpGatewaySkill', () => {
   it('should register a placeholder tool when unconfigured', () => {
     const tools = new McpGatewaySkill().getTools();
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools[0].handler).toBeTypeOf('function');
+    expect(tools[0]!.handler).toBeTypeOf('function');
     // Placeholder handler should return a configuration-prompt message
-    const res = tools[0].handler({}, {}) as FunctionResult;
+    const res = tools[0]!.handler({}, {}) as FunctionResult;
     expect(res.response).toMatch(/not configured|configure/i);
   });
 

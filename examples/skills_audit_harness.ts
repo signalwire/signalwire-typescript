@@ -32,7 +32,7 @@ import { registerBuiltinSkills } from '../src/skills/builtin/index.js';
 import { SkillRegistry } from '../src/skills/SkillRegistry.js';
 import type { SkillBase, SkillConfig, SkillToolDefinition } from '../src/skills/SkillBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
-import type { SwaigRequestData } from '../src/PlatformContracts.js';
+import type { SwaigRequest } from '../src/SwaigContracts.js';
 
 function die(msg: string): never {
   process.stderr.write(`skills_audit_harness: ${msg}\n`);
@@ -202,7 +202,7 @@ async function dispatchHandler(
     // This audit harness invokes handlers directly with synthetic args and no
     // real webhook envelope; pass an empty rawData (handlers tolerate missing
     // fields here). Cast is compile-time only — runtime object is unchanged.
-    const result = await tool.handler(args, {} as SwaigRequestData);
+    const result = await tool.handler(args, {} as SwaigRequest);
     if (result instanceof FunctionResult) {
       return result.toDict();
     }

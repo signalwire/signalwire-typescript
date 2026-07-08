@@ -10,7 +10,6 @@ import { cors } from 'hono/cors';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
-import type { SwmlRequestData } from './PlatformContracts.js';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
 
 /** Common MIME types for static file serving. */
@@ -85,9 +84,7 @@ export class AgentServer {
   private _sipRoute: string | null = null;
   private _sipAutoMap = false;
   private _sipUsernameMapping: Map<string, string> = new Map();
-  private _sipRoutingCallback:
-    | ((req: Request, body: SwmlRequestData) => string | undefined)
-    | null = null;
+  private _sipRoutingCallback: RoutingCallback | null = null;
 
   // Global routing callbacks registered via registerGlobalRoutingCallback
   // Stored so they can be applied to agents registered after the call.
@@ -143,7 +140,30 @@ export class AgentServer {
 
     this.agents.set(r, agent);
 
-    // Mount the agent's Hono app at the route prefix
+    // Register routing callbacks on the agent BEFORE building/mounting its Hono
+    // app. `registerRoutingCallback` rebuilds the agent's app so its `/sip` (and
+    // any global) route is present; mounting via `app.route()` snapshots the
+    // sub-app's routes at mount time, so a callback registered AFTER the mount
+    // would be invisible on the served path.
+
+    // If SIP routing is enabled, configure the newly registered agent: map its
+    // usernames into the server mapping and register the unified server
+    // callback at the SIP route (mirrors Python register_agent:154-159).
+    if (this._sipRoutingEnabled && this._sipRoute) {
+      if (this._sipAutoMap) {
+        this._autoMapAgentSipUsernames(agent, r);
+      }
+      if (this._sipRoutingCallback) {
+        agent.registerRoutingCallback(this._sipRoutingCallback, this._sipRoute);
+      }
+    }
+
+    // Apply any global routing callbacks registered before this agent was added
+    for (const { callbackFn, path } of this._globalRoutingCallbacks) {
+      agent.registerRoutingCallback(callbackFn, path);
+    }
+
+    // Mount the agent's (now fully-wired) Hono app at the route prefix
     const agentApp = agent.getApp();
     if (r === '/') {
       this._app.route('/', agentApp);
@@ -152,19 +172,6 @@ export class AgentServer {
     }
 
     this.log.info(`Registered '${agent.name}' at ${r}`);
-
-    // If SIP routing is enabled, configure the newly registered agent
-    if (this._sipRoutingEnabled && this._sipRoute) {
-      if (this._sipAutoMap) {
-        this._autoMapAgentSipUsernames(agent, r);
-      }
-      agent.enableSipRouting(this._sipAutoMap, this._sipRoute);
-    }
-
-    // Apply any global routing callbacks registered before this agent was added
-    for (const { callbackFn, path } of this._globalRoutingCallbacks) {
-      agent.registerRoutingCallback(callbackFn, path);
-    }
   }
 
   /**
@@ -276,8 +283,13 @@ export class AgentServer {
       }
     }
 
-    // Create a unified routing callback
-    const serverSipRoutingCallback = (_req: Request, body: SwmlRequestData): string | undefined => {
+    // Create a unified routing callback that checks all registered usernames
+    // across every agent and returns the target agent's route on a match. The
+    // framework-free `(body, headers)` shape matches RoutingCallback; only the
+    // body is read. Mirrors Python `server_sip_routing_callback`
+    // (agent_server.py:195-214): a matched username returns the target route so
+    // handleRequest issues a real 307 redirect, cross-agent.
+    const serverSipRoutingCallback: RoutingCallback = (body) => {
       const sipUsername = AgentBase.extractSipUsername(body);
       if (sipUsername) {
         this.log.info(`Extracted SIP username: ${sipUsername}`);
@@ -288,14 +300,27 @@ export class AgentServer {
         }
         this.log.warn(`No route found for SIP username: ${sipUsername}`);
       }
-      return undefined;
+      // No routing needed (the addressed agent handles it itself).
+      return null;
     };
 
     this._sipRoutingCallback = serverSipRoutingCallback;
 
-    // Register this callback with each agent via enableSipRouting
-    for (const agent of this.agents.values()) {
-      agent.enableSipRouting(autoMap, r);
+    // Register this unified callback on every agent at the SIP route. Mirrors
+    // Python (agent_server.py:220-222) which registers the SERVER callback on
+    // each agent — NOT the per-agent enable_sip_routing callback — so a SIP
+    // request to any agent's /sip is redirected to whichever agent owns the
+    // username. registerRoutingCallback rebuilds each agent's Hono app to add
+    // the `/sip` route, so re-mount the (already-registered) agents' apps into
+    // the server so the new route is reachable on the served path.
+    for (const [agentRoute, agent] of this.agents) {
+      agent.registerRoutingCallback(serverSipRoutingCallback, r);
+      const agentApp = agent.getApp();
+      if (agentRoute === '/') {
+        this._app.route('/', agentApp);
+      } else {
+        this._app.route(agentRoute, agentApp);
+      }
     }
 
     this.log.info(`SIP routing enabled at ${r} on all agents`);

@@ -72,6 +72,16 @@ async function main() {
         description: 'Customer notifications and support messages',
         sample1: 'Your order #12345 has shipped.',
         sample2: 'Reply STOP to unsubscribe from Acme alerts.',
+        message_flow: 'Customers opt in at checkout to receive order and support updates.',
+        opt_out_message: 'You have been unsubscribed from Acme alerts. Reply START to rejoin.',
+        help_message: 'Acme alerts: reply STOP to unsubscribe. Msg&data rates may apply.',
+        number_pooling_required: false,
+        direct_lending: false,
+        embedded_link: false,
+        embedded_phone: false,
+        age_gated_content: false,
+        lead_generation: false,
+        terms_and_conditions: true,
       });
       campaignId = campaign.id;
       console.log(`  Created campaign: ${campaignId}`);
@@ -98,9 +108,7 @@ async function main() {
     console.log(`\nCampaign: ${campDetail.name ?? 'N/A'} (${campDetail.state ?? 'N/A'})`);
 
     try {
-      await client.registry.campaigns.update(campaignId, {
-        name: 'Acme Notifications (updated)',
-      });
+      await client.registry.campaigns.update(campaignId, { name: 'Acme Notifications (updated)' });
       console.log('  Campaign name updated');
     } catch (err) {
       if (err instanceof RestError) {

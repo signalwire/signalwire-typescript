@@ -76,7 +76,7 @@ function extractSkillNameUnion(): string {
   if (!m) throw new Error('could not locate `export type SkillName = ...;` in ' + SKILLNAME_DTS);
   // Flatten the (multi-line, leading-pipe) union onto ONE line so the inlined
   // alias is exactly file line 0 and the probed statements map to stable lines.
-  return m[1]
+  return m[1]!
     .replace(/\s+/g, ' ')
     .replace(/^\|\s*/, '')
     .trim();

@@ -8,6 +8,7 @@
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { randomBytes } from 'node:crypto';
@@ -19,7 +20,8 @@ import { getLogger, Logger } from './Logger.js';
 import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
 import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
-import type { SwaigRequestData, SwmlRequestData } from './PlatformContracts.js';
+import type { SwmlRequestData } from './PlatformContracts.js';
+import type { SwaigRequest } from './SwaigContracts.js';
 import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
@@ -79,6 +81,14 @@ export class SecurityConfig {
   basicAuthUser: string | null;
   /** Basic auth password from config, or null. */
   basicAuthPassword: string | null;
+  /** Allowed request hosts (`['*']` = allow all). */
+  allowedHosts: string[];
+  /** Allowed CORS origins. */
+  corsOrigins: string[];
+  /** Whether to emit an HSTS header on HTTPS responses. */
+  useHsts: boolean;
+  /** HSTS `max-age` in seconds. */
+  hstsMaxAge: number;
 
   private sslConfig: SslConfig;
 
@@ -90,13 +100,47 @@ export class SecurityConfig {
     this.sslKeyPath = this.sslConfig.keyPath;
     this.domain = this.sslConfig.domain;
 
-    // Auth defaults from env vars
+    // Auth + host/CORS/HSTS defaults from env vars
     this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] ?? null;
     this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] ?? null;
+    this.allowedHosts = ['*'];
+    this.corsOrigins = ['*'];
+    this.useHsts = true;
+    this.hstsMaxAge = 31536000;
+    this.loadFromEnv();
 
     // Load from config file if available
     if (opts?.configFile) {
       this.loadFromConfigFile(opts.configFile);
+    }
+  }
+
+  /** Split a comma-separated env value into a trimmed, non-empty list. */
+  private static parseList(value: string | undefined): string[] | null {
+    if (value === undefined) return null;
+    const items = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    return items.length > 0 ? items : null;
+  }
+
+  /**
+   * (Re)load host/CORS/HSTS settings from environment variables. Mirrors Python
+   * SDK's `SecurityConfig.load_from_env()`. SSL/auth are loaded in the constructor
+   * from their own env vars; this refreshes the network-policy fields.
+   */
+  loadFromEnv(): void {
+    const hosts = SecurityConfig.parseList(process.env['SWML_ALLOWED_HOSTS']);
+    if (hosts) this.allowedHosts = hosts;
+    const cors = SecurityConfig.parseList(process.env['SWML_CORS_ORIGINS']);
+    if (cors) this.corsOrigins = cors;
+    if (process.env['SWML_USE_HSTS'] !== undefined) {
+      this.useHsts = process.env['SWML_USE_HSTS'] === 'true';
+    }
+    const maxAge = process.env['SWML_HSTS_MAX_AGE'];
+    if (maxAge !== undefined && !Number.isNaN(Number(maxAge))) {
+      this.hstsMaxAge = Number(maxAge);
     }
   }
 
@@ -135,6 +179,88 @@ export class SecurityConfig {
     if (!this.sslKeyPath) return [false, 'SSL key path not configured'];
     return this.sslConfig.isConfigured() ? [true, null] : [false, 'SSL cert or key file not found'];
   }
+
+  /**
+   * Build the SSL parameters for the HTTPS server, as a plain dictionary of
+   * primitive filesystem paths. Mirrors Python's
+   * `SecurityConfig.get_ssl_context_kwargs()` verbatim: the reference targets
+   * uvicorn's `ssl_certfile`/`ssl_keyfile` kwargs, and this returns the exact
+   * same primitive path pair (the TS HTTPS server passes them to
+   * `node:https.createServer` / `readFileSync`). Returns an empty object when
+   * SSL is disabled or the cert/key files fail validation.
+   * @returns `{ ssl_certfile, ssl_keyfile }` path strings, or `{}` when unavailable.
+   */
+  getSslContextKwargs(): Record<string, string> {
+    if (!this.sslEnabled) return {};
+    const [isValid] = this.validateSslConfig();
+    if (!isValid) return {};
+    return {
+      ssl_certfile: this.sslCertPath as string,
+      ssl_keyfile: this.sslKeyPath as string,
+    };
+  }
+
+  /** Get the URL scheme based on SSL configuration. Mirrors Python's `get_url_scheme()`. */
+  getUrlScheme(): string {
+    return this.sslEnabled ? 'https' : 'http';
+  }
+
+  /**
+   * Check whether a host is allowed. Mirrors Python's `should_allow_host()`:
+   * a wildcard `*` in the allow-list permits any host.
+   */
+  shouldAllowHost(host: string): boolean {
+    if (this.allowedHosts.includes('*')) return true;
+    return this.allowedHosts.includes(host);
+  }
+
+  /**
+   * Get CORS configuration. Mirrors Python's `get_cors_config()`.
+   * @returns An object of CORS settings (origins, credentials, methods, headers).
+   */
+  getCorsConfig(): Record<string, unknown> {
+    return {
+      allow_origins: this.corsOrigins,
+      allow_credentials: true,
+      allow_methods: ['*'],
+      allow_headers: ['*'],
+    };
+  }
+
+  /**
+   * Get the security headers to add to responses. Mirrors Python's
+   * `get_security_headers()`; adds an HSTS header when the request is HTTPS and
+   * HSTS is enabled.
+   * @param isHttps - Whether the connection is over HTTPS.
+   */
+  getSecurityHeaders(isHttps = false): Record<string, string> {
+    const headers: Record<string, string> = {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    };
+    if (isHttps && this.useHsts) {
+      headers['Strict-Transport-Security'] = `max-age=${this.hstsMaxAge}; includeSubDomains`;
+    }
+    return headers;
+  }
+
+  /**
+   * Log the current security configuration. Mirrors Python's `log_config()`.
+   * @param serviceName - The service name to tag the log line with.
+   */
+  logConfig(serviceName: string): void {
+    getLogger('SecurityConfig').info('security_config_loaded', {
+      service: serviceName,
+      ssl_enabled: this.sslEnabled,
+      domain: this.domain,
+      allowed_hosts: this.allowedHosts,
+      cors_origins: this.corsOrigins,
+      use_hsts: this.useHsts,
+      has_basic_auth: !!(this.basicAuthUser && this.basicAuthPassword),
+    });
+  }
 }
 
 // ── Callback type ──────────────────────────────────────────────────────
@@ -147,9 +273,12 @@ export type OnRequestCallback = (
 ) => SwmlBuilder | Promise<SwmlBuilder>;
 
 // RoutingCallback is owned by AgentBase.ts; SWMLService uses a structurally
-// compatible local alias to avoid an import cycle and stay independent.
+// compatible local alias to avoid an import cycle and stay independent. Python
+// decomposed the callback to `callback_fn(body, headers)`; headers is optional
+// so body-only callbacks keep working.
 type RoutingCallback = (
   requestBody: SwmlRequestData,
+  headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -239,7 +368,7 @@ export class SWMLService {
   protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
 
   /** Validate provided basic-auth credentials against the configured ones
-   * using a constant-time comparison. (Python parity:
+   * using a constant-time comparison. (Python equivalent:
    * ``AuthMixin.validate_basic_auth(username, password)``.) */
   validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
     const [u, p] = this.authCredentials ?? ['', ''];
@@ -412,9 +541,9 @@ export class SWMLService {
       if (c.req.method === 'GET') {
         return handler(c);
       }
-      let payload: SwaigRequestData;
+      let payload: SwaigRequest;
       try {
-        payload = (await c.req.json()) as SwaigRequestData;
+        payload = (await c.req.json()) as SwaigRequest;
       } catch {
         return c.json({ error: 'Invalid JSON' }, 400);
       }
@@ -491,7 +620,7 @@ export class SWMLService {
       required?: R;
       handler: (
         args: ToolArgs<P, R>,
-        rawData: SwaigRequestData,
+        rawData: SwaigRequest,
       ) =>
         | FunctionResult
         | Record<string, unknown>
@@ -534,7 +663,7 @@ export class SWMLService {
   onFunctionCall(
     name: string,
     args: Record<string, unknown>,
-    rawData: SwaigRequestData,
+    rawData: SwaigRequest,
   ):
     | FunctionResult
     | Record<string, unknown>
@@ -557,19 +686,19 @@ export class SWMLService {
   }
 
   /** Whether a SWAIG function with the given name is registered.
-   * (Python parity: ``ToolRegistry.has_function``.) */
+   * (Python equivalent: ``ToolRegistry.has_function``.) */
   hasFunction(name: string): boolean {
     return this.toolRegistry.has(name);
   }
 
   /** Get a registered SWAIG function entry, or undefined.
-   * (Python parity: ``ToolRegistry.get_function``.) */
+   * (Python equivalent: ``ToolRegistry.get_function``.) */
   getFunction(name: string): SwaigFunction | Record<string, unknown> | undefined {
     return this.toolRegistry.get(name);
   }
 
   /** Snapshot of all registered SWAIG functions keyed by name.
-   * (Python parity: ``ToolRegistry.get_all_functions``.) */
+   * (Python equivalent: ``ToolRegistry.get_all_functions``.) */
   getAllFunctions(): Record<string, SwaigFunction | Record<string, unknown>> {
     const out: Record<string, SwaigFunction | Record<string, unknown>> = {};
     for (const [name, fn] of this.toolRegistry) {
@@ -579,7 +708,7 @@ export class SWMLService {
   }
 
   /** Remove a registered SWAIG function. Returns true when removed,
-   * false when not found. (Python parity:
+   * false when not found. (Python equivalent:
    * ``ToolRegistry.remove_function``.) */
   removeFunction(name: string): boolean {
     return this.toolRegistry.delete(name);
@@ -638,7 +767,7 @@ export class SWMLService {
    * override to add session-token validation or ephemeral dynamic-config.
    */
   protected swaigPreDispatch(
-    _requestData: SwaigRequestData,
+    _requestData: SwaigRequest,
     _funcName: string,
   ): [SWMLService, unknown] {
     return [this, null];
@@ -763,6 +892,130 @@ export class SWMLService {
     return this.swmlBuilder.render();
   }
 
+  /**
+   * Framework-free request-dispatch core.
+   *
+   * The primitive dispatch surface the SDK ports share (mirrors Python's
+   * `SWMLService.handle_request(method, url, headers, body)` and, e.g., the
+   * dotnet `(int, Dictionary, string) HandleRequest(...)`). It performs the
+   * routing-callback check, `on_request` modification, and basic-auth exactly as
+   * the Hono handler path does, but over plain primitives instead of Hono
+   * `Context`/`Response` objects — so both paths produce identical responses.
+   *
+   * @param method  HTTP method, e.g. `"GET"` or `"POST"`.
+   * @param url     The full request URL (used to derive the callback path).
+   * @param headers Request headers as a plain dict.
+   * @param body    The already-parsed JSON body for POST requests, or `undefined`.
+   * @returns A `[status, responseHeaders, bodyString]` triple. For a routing
+   *   redirect the status is 307 with a `Location` header and an empty body; an
+   *   auth failure is 401 with `WWW-Authenticate: Basic`; otherwise 200 with the
+   *   SWML document as the body string.
+   */
+  async handleRequest(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: Record<string, unknown> | null,
+  ): Promise<[number, Record<string, string>, string]> {
+    const parsedBody: Record<string, unknown> = body ?? {};
+    const callbackPath = this._callbackPathForUrl(url);
+
+    // Auth check over primitives.
+    if (!(await this._checkBasicAuthHeaders(headers))) {
+      return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
+    }
+
+    // Routing callback: (body, headers) -> route | null. Only runs for a POST
+    // with a non-empty parsed body targeting a registered callback path.
+    if (
+      method === 'POST' &&
+      Object.keys(parsedBody).length > 0 &&
+      callbackPath &&
+      this._routingCallbacks.has(callbackPath)
+    ) {
+      const callbackFn = this._routingCallbacks.get(callbackPath)!;
+      try {
+        const route = await callbackFn(parsedBody, headers);
+        if (route != null) {
+          this.log.info(`routing_request route=${route}`);
+          return [307, { Location: route }, ''];
+        }
+      } catch (err) {
+        this.log.error(
+          `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    // Allow customized handling in subclasses (the SWML-builder hook analog of
+    // Python's on_request modification merge).
+    const queryParams: Record<string, string> = {};
+    try {
+      new URL(url).searchParams.forEach((v, k) => {
+        queryParams[k] = v;
+      });
+    } catch {
+      /* url may be a bare path — no query params to extract */
+    }
+    const hookResult = this.buildSwmlForRequest(
+      queryParams,
+      parsedBody,
+      headers,
+      callbackPath ?? undefined,
+    );
+    if (hookResult !== null) {
+      return [200, {}, JSON.stringify(hookResult.build())];
+    }
+
+    return [200, {}, this.renderDocument()];
+  }
+
+  /**
+   * Derive the registered routing-callback path (if any) a URL targets. Mirrors
+   * Python's `_callback_path_for_url` — the primitive `handleRequest` recovers
+   * the equivalent of the router's `request.state.callback_path` by matching the
+   * URL's normalized path against the registered callbacks.
+   */
+  protected _callbackPathForUrl(url: string): string | null {
+    if (this._routingCallbacks.size === 0) return null;
+    let path = url;
+    try {
+      path = new URL(url).pathname;
+    } catch {
+      /* bare path — use as-is */
+    }
+    const trimmed = path.replace(/^\/+|\/+$/g, '');
+    const normalized = trimmed ? `/${trimmed}` : path.replace(/\/+$/, '');
+    for (const cbPath of this._routingCallbacks.keys()) {
+      if (normalized === cbPath || normalized.endsWith(cbPath)) return cbPath;
+    }
+    return null;
+  }
+
+  /**
+   * Validate HTTP basic-auth from a plain headers dict (the primitive analog of
+   * the Hono `basicAuth` middleware). Returns true when auth is not enforced or
+   * the provided credentials match.
+   */
+  protected async _checkBasicAuthHeaders(headers: Record<string, string>): Promise<boolean> {
+    // Auth is only enforced when credentials were explicitly provided or came
+    // from the environment; auto-generated credentials are not enforced.
+    if (!this.authCredentials || this.authSource === 'generated') return true;
+    const authHeader = headers['authorization'] ?? headers['Authorization'];
+    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    let decoded: string;
+    try {
+      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+    } catch {
+      return false;
+    }
+    const idx = decoded.indexOf(':');
+    if (idx < 0) return false;
+    const user = decoded.slice(0, idx);
+    const pass = decoded.slice(idx + 1);
+    return await this.validateBasicAuth(user, pass);
+  }
+
   // ── Verb handler registration ────────────────────────────────────────
 
   /**
@@ -806,7 +1059,12 @@ export class SWMLService {
         }
       }
 
-      const route = callbackFn(body);
+      const cbHeaders: Record<string, string> = {};
+      c.req.raw.headers.forEach((v: string, k: string) => {
+        cbHeaders[k] = v;
+      });
+
+      const route = callbackFn(body, cbHeaders);
       // Preserve the original `route !== null` runtime guard exactly — a
       // types-only change must not alter behavior. The callback's declared
       // return includes undefined|Promise, which the pre-typing `c: any` code
@@ -954,12 +1212,16 @@ export class SWMLService {
   }
 
   /**
-   * Alias for `getApp()`. Provided for cross-SDK consistency with Python's
-   * `as_router()` method — allows Python callers porting to TypeScript to use
-   * the familiar name without changes.
-   * @returns The configured Hono app.
+   * Get a router to embed this service's routes in a host web app.
+   *
+   * Returns the fully-wired Hono app as a mountable sub-app; the host mounts it
+   * with `hostApp.route(path, service.asRouter())`. This is the TypeScript
+   * realization of Python's `as_router()`; the named {@link HostAppRouter} type
+   * is the cross-port "embed my routes in a host app" contract.
+   *
+   * @returns A mountable Hono sub-app carrying this service's routes.
    */
-  asRouter(): Hono {
+  asRouter(): HostAppRouter {
     return this.getApp();
   }
 

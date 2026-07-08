@@ -38,7 +38,7 @@ describe('DataMap', () => {
     const dm = new DataMap('fn').parameter('color', 'string', 'A color', { enum: ['red', 'blue'] });
     const params = dm.toSwaigFunction()['parameters'] as Record<string, unknown>;
     const props = params['properties'] as Record<string, Record<string, unknown>>;
-    expect(props['color']['enum']).toEqual(['red', 'blue']);
+    expect(props['color']!['enum']).toEqual(['red', 'blue']);
   });
 
   it('expression-based tool', () => {
@@ -52,8 +52,8 @@ describe('DataMap', () => {
     const dataMap = fn['data_map'] as Record<string, unknown>;
     const exprs = dataMap['expressions'] as Record<string, unknown>[];
     expect(exprs.length).toBe(2);
-    expect(exprs[0]['pattern']).toBe('start.*');
-    expect(exprs[1]['pattern']).toBe('stop');
+    expect(exprs[0]!['pattern']).toBe('start.*');
+    expect(exprs[1]!['pattern']).toBe('stop');
   });
 
   it('expression with nomatch output', () => {
@@ -68,7 +68,7 @@ describe('DataMap', () => {
       string,
       unknown
     >[];
-    expect(exprs[0]['nomatch-output']).toEqual({ response: 'no match' });
+    expect(exprs[0]!['nomatch-output']).toEqual({ response: 'no match' });
   });
 
   it('webhook with body and headers', () => {
@@ -85,9 +85,9 @@ describe('DataMap', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['method']).toBe('POST');
-    expect(webhooks[0]['headers']).toEqual({ Authorization: 'Bearer TOKEN' });
-    expect(webhooks[0]['body']).toEqual({ query: '${query}', limit: 3 });
+    expect(webhooks[0]!['method']).toBe('POST');
+    expect(webhooks[0]!['headers']).toEqual({ Authorization: 'Bearer TOKEN' });
+    expect(webhooks[0]!['body']).toEqual({ query: '${query}', limit: 3 });
   });
 
   it('webhook with params', () => {
@@ -98,7 +98,7 @@ describe('DataMap', () => {
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)[
       'webhooks'
     ] as Record<string, unknown>[];
-    expect(webhooks[0]['params']).toEqual({ key: 'val' });
+    expect(webhooks[0]!['params']).toEqual({ key: 'val' });
   });
 
   it('foreach', () => {
@@ -109,7 +109,7 @@ describe('DataMap', () => {
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)[
       'webhooks'
     ] as Record<string, unknown>[];
-    expect(webhooks[0]['foreach']).toEqual({
+    expect(webhooks[0]!['foreach']).toEqual({
       input_key: 'results',
       output_key: 'out',
       append: '${this.title}\n',
@@ -139,7 +139,7 @@ describe('DataMap', () => {
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)[
       'webhooks'
     ] as Record<string, unknown>[];
-    expect(webhooks[0]['error_keys']).toEqual(['error', 'message']);
+    expect(webhooks[0]!['error_keys']).toEqual(['error', 'message']);
   });
 
   it('global error keys', () => {
@@ -171,7 +171,7 @@ describe('DataMap', () => {
     ] as Record<string, unknown>[];
     // The full expression entry must round-trip — content shape, not just
     // existence — so a stub that wrote an empty array would still fail.
-    expect(webhooks[0]['expressions']).toEqual([
+    expect(webhooks[0]!['expressions']).toEqual([
       { string: '${response.status}', pattern: 'ok', output: { response: 'good' } },
     ]);
   });
@@ -187,9 +187,9 @@ describe('DataMap', () => {
     const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)[
       'webhooks'
     ] as Record<string, unknown>[];
-    expect(webhooks[0]['form_param']).toBe('data');
-    expect(webhooks[0]['input_args_as_params']).toBe(true);
-    expect(webhooks[0]['require_args']).toEqual(['query']);
+    expect(webhooks[0]!['form_param']).toBe('data');
+    expect(webhooks[0]!['input_args_as_params']).toBe(true);
+    expect(webhooks[0]!['require_args']).toEqual(['query']);
   });
 });
 
@@ -242,7 +242,7 @@ describe('DataMap - registerWithAgent', () => {
 
     dm.registerWithAgent(mockAgent);
     expect(registered.length).toBe(1);
-    expect(registered[0]['function']).toBe('my_tool');
+    expect(registered[0]!['function']).toBe('my_tool');
   });
 
   it('registerWithAgent returns this for chaining', () => {
@@ -269,7 +269,7 @@ describe('DataMap - ENV expansion', () => {
         string,
         unknown
       >[];
-      expect(webhooks[0]['url']).toBe('https://api.example.com?key=secret123');
+      expect(webhooks[0]!['url']).toBe('https://api.example.com?key=secret123');
     } finally {
       if (saved) process.env['SWML_TEST_API_KEY'] = saved;
       else delete process.env['SWML_TEST_API_KEY'];
@@ -287,7 +287,7 @@ describe('DataMap - ENV expansion', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://api.example.com?key=');
+    expect(webhooks[0]!['url']).toBe('https://api.example.com?key=');
   });
 
   it('no expansion when enableEnvExpansion not called', () => {
@@ -301,7 +301,7 @@ describe('DataMap - ENV expansion', () => {
         string,
         unknown
       >[];
-      expect(webhooks[0]['url']).toBe('https://api.example.com?key=${ENV.TEST_NO_EXPAND}');
+      expect(webhooks[0]!['url']).toBe('https://api.example.com?key=${ENV.TEST_NO_EXPAND}');
     } finally {
       delete process.env['TEST_NO_EXPAND'];
     }
@@ -349,7 +349,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?key=sw_value');
+    expect(webhooks[0]!['url']).toBe('https://example.com?key=sw_value');
   });
 
   it('SWML_ prefix expanded by default', () => {
@@ -363,7 +363,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?key=swml_value');
+    expect(webhooks[0]!['url']).toBe('https://example.com?key=swml_value');
   });
 
   it('DATABASE_URL not expanded by default', () => {
@@ -377,7 +377,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?db=');
+    expect(webhooks[0]!['url']).toBe('https://example.com?db=');
   });
 
   it('setAllowedEnvPrefixes overrides defaults', () => {
@@ -393,7 +393,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?db=postgres://host/db&sw=');
+    expect(webhooks[0]!['url']).toBe('https://example.com?db=postgres://host/db&sw=');
   });
 
   it('empty prefix list allows all vars', () => {
@@ -408,7 +408,7 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?key=mysecret');
+    expect(webhooks[0]!['url']).toBe('https://example.com?key=mysecret');
   });
 
   it('per-instance setAllowedEnvPrefixes overrides global', () => {
@@ -423,6 +423,6 @@ describe('DataMap - ENV prefix whitelist', () => {
       string,
       unknown
     >[];
-    expect(webhooks[0]['url']).toBe('https://example.com?db=postgres://host/db');
+    expect(webhooks[0]!['url']).toBe('https://example.com?db=postgres://host/db');
   });
 });
