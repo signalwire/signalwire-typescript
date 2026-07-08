@@ -76,7 +76,7 @@ await client.calling.disconnect(callId);
 Play audio, TTS, silence, or ringtone. The `play` array is positional.
 
 ```typescript
-await client.calling.play(callId, [{ type: 'tts', text: 'Hello!' }], {
+await client.calling.play(callId, [{ type: 'tts', params: { text: 'Hello!' } }], {
   volume: 5.0,
 });
 ```
