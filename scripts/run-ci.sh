@@ -364,8 +364,10 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
 # mapped) + DOC-CLI (probe documented swaig-test invocations against the real
 # CLI parser) are cheap → cheap wave, blocking. EXAMPLES-RUN loads/starts the
 # shipped examples against the mock (defer, blocking, modulo EXAMPLES_RUN_ALLOW.md).
-# SNIPPET-RUN is dynamic-ports-only; for typescript (compiled) it self-skips —
-# SNIPPET-COMPILE covers it — wired report-only so the self-skip never fails the run.
+# SNIPPET-RUN executes each runnable doc snippet via tsx against the shared mock;
+# non-program fragments auto-skip and server/live-network snippets carry a
+# `<!-- snippet: no-run -->` marker. Blocking (defer wave — it can run several
+# server snippets to their timeout).
 sched_gate SNIPPET-COMPILE desc="documented code snippets compile against the real SDK" \
     -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port typescript --repo "$PORT_ROOT"
 
@@ -375,8 +377,8 @@ sched_gate DOC-CLI desc="documented swaig-test invocations parse against the rea
 sched_gate EXAMPLES-RUN defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
 
-sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit (typescript: self-skips, SNIPPET-COMPILE covers it)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT" --report-only
+sched_gate SNIPPET-RUN defer=1 desc="documented doc snippets run to a zero exit against the mock (fragments auto-skip; server/live snippets are no-run)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT"
 
 # ---- §G anti-laundering ledger ----------------------------------------------
 sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \
