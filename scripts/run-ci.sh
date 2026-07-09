@@ -235,8 +235,13 @@ docaudit_gate() {
 # excluded from the npm package (via package.json "files"); this feeds the REAL
 # published listing to artifact_deny.py --listing -. `npm pack --dry-run --json`
 # emits the authoritative set the tarball would contain; we extract files[].path.
+# --ignore-scripts: skip the prepack build hook during the DRY-RUN listing. prepack
+# (npm run build) writes codegen progress to stdout, which would prepend non-JSON to
+# the --json output and break the parse below. The file listing derives from
+# package.json "files" (dist/**, README) and does not need dist rebuilt to enumerate
+# it; the real PACKAGE-SMOKE pack still runs prepack. (stdout must stay pure JSON.)
 dayone_artifact_deny() {
-    npm pack --dry-run --json 2>/dev/null \
+    npm pack --dry-run --ignore-scripts --json 2>/dev/null \
         | python3 -c 'import sys,json; [print(f["path"]) for f in json.load(sys.stdin)[0]["files"]]' \
         | python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port typescript --listing -
 }
