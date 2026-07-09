@@ -22,3 +22,7 @@ verify recipe) and the individual audit scripts.
 - docs_audit_surface.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
 - port_signatures.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
 - port_surface.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
+
+## Gate allowlist files (each read by its gate at repo root)
+
+- EXAMPLES_RUN_ALLOW.md — allowlist read by the examples_run (EXAMPLES-RUN) gate at repo root (approver: user, 2026-07-09)
