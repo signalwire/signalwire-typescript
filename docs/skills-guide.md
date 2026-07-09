@@ -15,7 +15,7 @@ declare global {
   // Illustrative custom skill class referenced by the registry examples.
   const MyCustomSkill: typeof import('@signalwire/sdk').SkillBase;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

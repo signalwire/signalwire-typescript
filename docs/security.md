@@ -14,7 +14,7 @@ declare global {
   const auth: any; // AuthHandler instance
   const app: any; // Hono app
   const cors: any; // Hono cors middleware
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

@@ -7,7 +7,7 @@ This guide explains the parameter schema system for SignalWire AI Agents TypeScr
 export {}; // treat each example as a module so top-level `await` is allowed
 declare global {
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

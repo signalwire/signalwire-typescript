@@ -16,7 +16,7 @@ declare global {
   // Illustrative third-party skill class defined in the prose examples above.
   const WeatherSkill: any;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

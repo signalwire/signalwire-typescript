@@ -22,7 +22,7 @@ declare global {
   const DataSphereSkill: typeof import('@signalwire/sdk').DataSphereSkill;
   const WebSearchSkill: typeof import('@signalwire/sdk').WebSearchSkill;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

@@ -63,7 +63,7 @@ declare global {
   const saveToDatabase: (summary: Record<string, unknown>) => Promise<void>;
   const lookupCustomer: (callerId: string) => Promise<{ name: string }>;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
+  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 
