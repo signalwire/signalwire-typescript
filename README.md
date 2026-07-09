@@ -54,7 +54,6 @@ npm install @signalwire/sdk
 Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig-reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
 
 <!-- include: examples/quickstart-agent.ts#construct -->
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
@@ -125,7 +124,6 @@ See [examples/README.md](examples/README.md) for the full list organized by cate
 Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you imperative, async control over live phone calls and SMS/MMS.
 
 <!-- include: examples/quickstart-relay.ts#construct -->
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { RelayClient, Call } from '@signalwire/sdk';
 
@@ -157,7 +155,6 @@ See the **[RELAY documentation](relay/README.md)** for the full guide, API refer
 Typed HTTP client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required -- just standard `fetch` requests.
 
 <!-- include: examples/quickstart-rest.ts#construct -->
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
