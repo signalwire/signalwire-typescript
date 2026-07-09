@@ -359,6 +359,33 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
         --agent-file-suffix '.ts' \
         --agent-file-content "import { AgentBase } from '$PORT_ROOT/src/AgentBase.ts'; const a = new AgentBase({ name: 'probe', route: '/' }); a.setPromptText('hi'); export default a;"
 
+# ---- §C1 doc/example/CLI execution gates ------------------------------------
+# SNIPPET-COMPILE (tsc --noEmit each doc code fence with the real SDK source
+# mapped) + DOC-CLI (probe documented swaig-test invocations against the real
+# CLI parser) are cheap → cheap wave, blocking. EXAMPLES-RUN loads/starts the
+# shipped examples against the mock (defer, blocking, modulo EXAMPLES_RUN_ALLOW.md).
+# SNIPPET-RUN is dynamic-ports-only; for typescript (compiled) it self-skips —
+# SNIPPET-COMPILE covers it — wired report-only so the self-skip never fails the run.
+sched_gate SNIPPET-COMPILE desc="documented code snippets compile against the real SDK" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate EXAMPLES-RUN defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit (typescript: self-skips, SNIPPET-COMPILE covers it)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT" --report-only
+
+# ---- §G anti-laundering ledger ----------------------------------------------
+sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port typescript --repo "$PORT_ROOT"
+
+# ---- §D1 packaging ----------------------------------------------------------
+sched_gate PACKAGE-SMOKE defer=1 desc="the real publishable package builds, installs, and imports from a clean env" \
+    -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port typescript --repo "$PORT_ROOT"
+
 # ---- Day-one deterministic gates (BLOCKING, non-report-only) -----------------
 sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port typescript --repo .
