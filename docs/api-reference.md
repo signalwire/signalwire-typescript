@@ -862,6 +862,7 @@ async run(host?: string, port?: number): Promise<void>
 Start the HTTP server. Optional host/port overrides the constructor values.
 
 **Example:**
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```ts
 import { AgentServer } from '@signalwire/sdk';
 

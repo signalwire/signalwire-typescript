@@ -51,6 +51,7 @@ It requires Node.js >= 22.
 
 Here's a simple SWML service that subclasses `SWMLService` and builds a static document:
 
+<!-- snippet: no-run starts a blocking HTTP server via service.serve() -->
 ```typescript
 import { SWMLService } from '@signalwire/sdk';
 
@@ -78,6 +79,7 @@ await service.serve();
 
 You can also build documents with the fluent `SwmlBuilder` returned by `getBuilder()`:
 
+<!-- snippet: no-run starts a blocking HTTP server via service.serve() -->
 ```typescript
 const service = new SWMLService({ name: 'greeter', route: '/', port: 3000 });
 service
@@ -196,6 +198,7 @@ Validation can be disabled via the `schemaValidation: false` constructor option 
 You can register custom verb handlers for specialized verb processing by implementing the
 `SWMLVerbHandler` interface and registering it via `registerVerbHandler()`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
 import { SWMLVerbHandler } from '@signalwire/sdk';
 
@@ -273,6 +276,7 @@ class DynamicService extends SWMLService {
 
 Alternatively, register a per-request callback:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
 service.setOnRequestCallback((queryParams, bodyParams, headers) => {
   const builder = new SwmlBuilder();
@@ -292,6 +296,7 @@ Use `registerRoutingCallback()` to register a function called when a request arr
 specific path. If it returns a string, the response is a 307 redirect to that route; if it
 returns `null`, normal SWML serving continues:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
 import type { SwmlRequestData } from '@signalwire/sdk';
 

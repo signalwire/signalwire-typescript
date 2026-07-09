@@ -748,6 +748,7 @@ Credentials are embedded in webhook URLs so that SignalWire can authenticate whe
 
 Controlled by `SWML_CORS_ORIGINS`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cors` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Default: allow all origins
 cors({ origin: '*', credentials: true })

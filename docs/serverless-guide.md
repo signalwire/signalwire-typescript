@@ -92,6 +92,7 @@ interface ServerlessResponse {
 
 The core method that processes any serverless event through a Hono app:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `ServerlessAdapter` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const adapter = new ServerlessAdapter('lambda');
 const agent = new AgentBase({ name: 'my-agent' });
@@ -321,6 +322,7 @@ func azure functionapp publish my-agent-app \
 
 For traditional CGI environments, use the `ServerlessAdapter` with `platform: 'cgi'`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `readStdin` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
@@ -477,6 +479,7 @@ npx tsx src/cli/swaig-test.ts handler.ts --exec get_status --arg system=producti
 
 For local development and testing before deploying to a serverless platform, run the agent as a standard HTTP server:
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 // local-dev.ts
 import { AgentBase } from '@signalwire/sdk';

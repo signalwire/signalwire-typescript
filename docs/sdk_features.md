@@ -40,6 +40,7 @@ Call ends → SignalWire POSTs analytics to agent's /post_prompt endpoint
 
 The agent auto-detects its own public URL -- including behind ngrok, load balancers, API Gateway, or any reverse proxy (via `X-Forwarded-Host`, `Forwarded` header, or the `SWML_PROXY_URL_BASE` env var). It embeds Basic Auth credentials directly into the webhook URLs. It generates per-call security tokens for each secure function. The developer writes none of this:
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
@@ -274,6 +275,7 @@ PGI produces a property that makes it fundamentally different from guardrails or
 
 ## Deployment: One `run()` Call
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 const agent = new MyAgent();
 await agent.run();
@@ -301,6 +303,7 @@ For standalone mode, the SDK provides:
 
 ## Multi-Agent Hosting
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentServer } from '@signalwire/sdk';
 
@@ -422,6 +425,7 @@ agent.addPostAiVerb('hangup', {});
 
 Call recording is configured via the constructor (`recordCall`, `recordFormat`, `recordStereo`):
 
+<!-- snippet: no-run illustrative fragment: references the assumed `MyAgent` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const agent = new MyAgent({ name: 'recorded', recordCall: true, recordFormat: 'wav', recordStereo: true });
 ```

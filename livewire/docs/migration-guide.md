@@ -194,6 +194,7 @@ export default defineAgent({
 
 ### After (LiveWire)
 
+<!-- snippet: no-run imports the @signalwire/sdk/livewire subpath which is not a resolvable package export standalone -->
 ```typescript
 import {
   defineAgent, JobContext, AgentSession, Agent, tool,

@@ -168,6 +168,7 @@ const schema = registry.getSkillSchema('web_search');
 
 Built-in skills are registered automatically by `registerBuiltinSkills()`. Custom skill classes must call `SkillRegistry.getInstance().register(cls)`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `SkillRegistry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 SkillRegistry.getInstance().register(MySkill);
 ```
@@ -251,6 +252,7 @@ export class StockPriceSkill extends SkillBase {
 
 2. **Register** the skill (optional, for name-based discovery):
 
+<!-- snippet: no-run illustrative fragment: references the assumed `StockPriceSkill` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 import { SkillRegistry } from '@signalwire/sdk';
 SkillRegistry.getInstance().register(StockPriceSkill);

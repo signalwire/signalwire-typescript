@@ -49,6 +49,7 @@ Alternatively, you can authenticate with a JWT token:
 
 ## Minimal Example
 
+<!-- snippet: no-run client.run() opens a live WebSocket to SIGNALWIRE_SPACE and blocks — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
@@ -78,6 +79,7 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
+<!-- snippet: no-run client.run() opens a live WebSocket to SIGNALWIRE_SPACE and blocks — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
@@ -95,6 +97,7 @@ client.run();
 
 Contexts are topics your client subscribes to for receiving inbound calls. When a call arrives on a context you're subscribed to, your `onCall` handler is invoked.
 
+<!-- snippet: no-run client.receive() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 
@@ -110,6 +113,7 @@ await client.unreceive(['sales']);
 
 Use `client.dial()` to place an outbound call:
 
+<!-- snippet: no-run client.dial() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 const client = new RelayClient({ contexts: ['default'] });
@@ -126,6 +130,7 @@ await call.hangup();
 
 The outer array represents serial attempts; the inner array represents parallel attempts. For example, to try two numbers simultaneously:
 
+<!-- snippet: no-run client.dial() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 const client = new RelayClient({ contexts: ['default'] });
@@ -139,6 +144,7 @@ const call = await client.dial([
 
 `dial()` accepts an options object as its second argument — `tag`, `maxDuration` (minutes), and `dialTimeout` (seconds, default 120):
 
+<!-- snippet: no-run client.dial() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 const client = new RelayClient({ contexts: ['default'] });
@@ -160,6 +166,7 @@ export SIGNALWIRE_LOG_LEVEL=debug
 
 For use within an existing async application, `RelayClient` is an async-disposable — it disconnects automatically when the scope exits:
 
+<!-- snippet: no-run client.connect()/dial() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 await using client = new RelayClient({ contexts: ['default'] });
@@ -173,6 +180,7 @@ await call.hangup();
 
 If your runtime doesn't support `await using`, use `try`/`finally`:
 
+<!-- snippet: no-run client.connect()/dial() opens a live WebSocket to SIGNALWIRE_SPACE — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient } from '@signalwire/sdk';
 const client = new RelayClient({ contexts: ['default'] });

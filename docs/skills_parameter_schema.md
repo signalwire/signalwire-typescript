@@ -86,7 +86,10 @@ const schema = listSkillsWithParams();
 Here's an example of using the schema to generate a configuration form:
 
 ```typescript
-import { listSkillsWithParams } from '@signalwire/sdk';
+import { listSkillsWithParams, registerBuiltinSkills } from '@signalwire/sdk';
+
+// Populate the registry with the built-in skills before introspecting it.
+await registerBuiltinSkills();
 
 const schema = listSkillsWithParams();
 const webSearchSchema = schema['web_search'];

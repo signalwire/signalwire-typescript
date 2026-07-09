@@ -105,6 +105,7 @@ const tool = new DataMap('get_weather');
 
 All subsequent configuration is done via fluent method chaining:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_weather')
   .purpose('Get current weather for a city')
@@ -363,6 +364,7 @@ expression(
 
 You can add multiple expressions. They are evaluated in order; the first match wins.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('validate_email')
   .purpose('Validate an email address format')
@@ -377,6 +379,7 @@ const tool = new DataMap('validate_email')
 
 Multiple expressions for different test values:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('classify_input')
   .purpose('Classify user input as a question or command')
@@ -415,6 +418,7 @@ output(result: FunctionResult): this
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_weather')
   .purpose('Get current weather')
@@ -432,6 +436,7 @@ const tool = new DataMap('get_weather')
 
 The `output()` method calls `toDict()` on the `FunctionResult`, so you can also include actions:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('urgent_alert')
   .purpose('Send an urgent alert')
@@ -463,6 +468,7 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('check_order_status')
   .purpose('Check the status of an order')
@@ -515,6 +521,7 @@ fallbackOutput(result: FunctionResult): this
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_price')
   .purpose('Get the price of a product')
@@ -545,6 +552,7 @@ errorKeys(keys: string[]): this
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('api_lookup')
   .purpose('Look up data from an API')
@@ -572,6 +580,7 @@ globalErrorKeys(keys: string[]): this
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('multi_api')
   .purpose('Call multiple APIs')
@@ -614,6 +623,7 @@ foreach(config: {
 
 The `append` template has access to the current item's fields. After iteration, the concatenated result is available via `${output_key}` in the output template.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('list_orders')
   .purpose('List recent orders for a customer')
@@ -674,6 +684,7 @@ enableEnvExpansion(enabled?: boolean): this
 
 This is useful for embedding API keys or configuration values without hardcoding them:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Set environment variables (typically via .env file or deployment config)
 // API_KEY=sk-abc123
@@ -716,6 +727,7 @@ registerWithAgent(agent: {
 
 **Returns:** `this` for chaining.
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -745,6 +757,7 @@ toSwaigFunction(): Record<string, unknown>
 
 **Returns:** A plain object with `function`, `description`, `parameters`, and `data_map` fields.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('echo')
   .purpose('Echo back the input')
@@ -970,6 +983,7 @@ The `${lc:...}` and `${uc:...}` prefixes can be applied to argument variables to
 
 ### Example 1: Weather lookup with DataMap builder
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -1001,6 +1015,7 @@ agent.run();
 
 ### Example 2: Expression-only tool (no HTTP)
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -1028,6 +1043,7 @@ agent.run();
 
 ### Example 3: API tool with POST body and error handling
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -1076,6 +1092,7 @@ agent.run();
 
 ### Example 4: Iteration over array responses
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -1110,6 +1127,7 @@ agent.run();
 
 ### Example 5: Quick setup with createSimpleApiTool
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, createSimpleApiTool } from '@signalwire/sdk';
 
@@ -1141,6 +1159,7 @@ agent.run();
 
 ### Example 6: Expression tool with createExpressionTool
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import {
   AgentBase,

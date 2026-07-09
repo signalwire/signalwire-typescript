@@ -148,6 +148,7 @@ The `ConfigLoader` class (`src/ConfigLoader.ts`) provides JSON configuration fil
 
 ### Loading a Config File
 
+<!-- snippet: no-run reads a config file that isn't present in the repo (illustrative ConfigLoader usage) -->
 ```typescript
 import { ConfigLoader } from '@signalwire/sdk';
 
@@ -205,6 +206,7 @@ if (config) {
 
 Use dot-separated paths to read and write nested values:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `ConfigLoader` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const config = new ConfigLoader('./config/agent.json');
 
@@ -280,6 +282,7 @@ class MyAgent extends AgentBase {
 
 The `AuthHandler` class (`src/AuthHandler.ts`) supports multiple authentication methods with constant-time (timing-safe) credential comparison:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `app` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 import { AuthHandler } from '@signalwire/sdk';
 
@@ -366,6 +369,7 @@ Set `SIGNALWIRE_LOG_FORMAT=json` for structured output:
 
 Create child loggers with additional context fields merged into every log entry:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `getLogger` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const log = getLogger('Handler');
 

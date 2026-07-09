@@ -4,6 +4,7 @@ Typed HTTP client for managing SignalWire resources, controlling live calls, and
 
 ## Quick Start
 
+<!-- snippet: no-run makes live REST calls to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 

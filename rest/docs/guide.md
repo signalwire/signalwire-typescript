@@ -13,6 +13,7 @@ declare const httpClient: import('@signalwire/sdk').HttpClient;
 
 ## Quick Start
 
+<!-- snippet: no-run makes live REST calls to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // `client` is a constructed RestClient (see the setup above / Getting Started):
 //   const client = new RestClient({ project, token, host });
@@ -52,6 +53,7 @@ The client organizes all APIs into namespaces:
 
 Resource management for the SignalWire Fabric platform.
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // AI Agents (PATCH updates) — create requires both `name` and `prompt`
 await client.fabric.aiAgents.list();
@@ -85,6 +87,7 @@ await client.fabric.tokens.createGuestToken(['address-uuid']);
 
 REST-based call control — all 37 commands dispatched via POST.
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // Dial — from and to are positional
 await client.calling.dial('+15559876543', '+15551234567');
@@ -109,6 +112,7 @@ await client.calling.end('call-id');
 
 ### Phone Numbers (`client.phoneNumbers`)
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 await client.phoneNumbers.list();
 await client.phoneNumbers.search({ area_code: '512' });
@@ -121,6 +125,7 @@ await client.phoneNumbers.delete('id'); // Release
 
 Document management and semantic search.
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // Documents — create takes a document URL (chunked server-side)
 await client.datasphere.documents.list();
@@ -140,6 +145,7 @@ await client.datasphere.documents.deleteChunk('doc-id', 'chunk-id');
 
 ### Video (`client.video.*`)
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // Rooms — update uses `max_members`
 await client.video.rooms.list();
@@ -163,6 +169,7 @@ await client.video.conferences.listConferenceTokens('conf-id');
 
 ### Other Namespaces
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```ts
 // Addresses — create takes the address fields positionally
 await client.addresses.list();
@@ -243,6 +250,7 @@ The client provides two pagination utilities that work with both standard (`link
 
 ### Async Generator
 
+<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
 ```ts
 import { paginate } from '@signalwire/sdk';
 
@@ -258,6 +266,7 @@ for await (const number of paginate<{ id: string; number: string }>(
 
 ### Collect All
 
+<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
 ```ts
 import { paginateAll } from '@signalwire/sdk';
 
@@ -269,6 +278,7 @@ void allNumbers.length;
 
 Some APIs use different keys for the data array. Use the `dataKey` parameter:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
 ```ts
 import { paginateAll } from '@signalwire/sdk';
 

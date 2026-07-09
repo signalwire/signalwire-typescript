@@ -126,6 +126,7 @@ const auth = new AuthHandler({
 
 **Using as Hono middleware:**
 
+<!-- snippet: no-run illustrative fragment: references the assumed `Hono` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const app = new Hono();
 app.use('/api/*', auth.middleware());
@@ -182,6 +183,7 @@ Environment variables are used as fallbacks when constructor options are not pro
 
 ### Verification and Usage
 
+<!-- snippet: no-run illustrative fragment: references the assumed `ssl` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Check if SSL is fully configured (enabled + cert + key exist on disk)
 if (ssl.isConfigured()) {
@@ -199,6 +201,7 @@ const hsts = ssl.getHstsHeader();
 
 Apply HSTS headers to all responses via Hono middleware:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `SslConfig` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const ssl = new SslConfig({ enabled: true, certPath: '...', keyPath: '...' });
 app.use('*', ssl.hstsMiddleware());
@@ -240,6 +243,7 @@ When set, only requests from the listed origins will receive CORS headers. All o
 
 CORS is applied via Hono's built-in `cors()` middleware with `credentials: true`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `app` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Internal implementation in AgentBase.getApp()
 const corsOrigins = process.env['SWML_CORS_ORIGINS'];

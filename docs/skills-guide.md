@@ -62,6 +62,7 @@ The skills system is built on three core classes:
 
 The primary way to add a skill to an agent. This is an async operation because skills may perform setup work (API connections, config validation, etc.):
 
+<!-- snippet: no-run instantiating the `web_search` builtin requires live credentials/network at setup — cannot run standalone -->
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
 import { DateTimeSkill, WebSearchSkill } from '@signalwire/sdk';
@@ -449,12 +450,14 @@ Register a custom skill class. `register()` takes the `SkillBase` subclass itsel
 (keyed by its static `SKILL_NAME`); it validates that the class defines `SKILL_NAME`
 and a working `getParameterSchema()`:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `registry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 registry.register(MyCustomSkill);
 ```
 
 ### Creating Instances by Name
 
+<!-- snippet: no-run illustrative fragment: references the assumed `registry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const skill = registry.create('datetime');
 if (skill) {
@@ -469,6 +472,7 @@ Returns `null` if the skill name is not registered.
 
 ### Querying the Registry
 
+<!-- snippet: no-run illustrative fragment: references the assumed `registry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Check if a skill is registered
 registry.has('datetime'); // true
@@ -492,6 +496,7 @@ const count = registry.size;
 
 The registry can auto-discover skills from filesystem directories:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `registry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Add a search path
 registry.addSearchPath('/path/to/my/skills');
@@ -516,6 +521,7 @@ export SIGNALWIRE_SKILL_PATHS="/app/skills:/shared/skills"
 
 ### Cleanup
 
+<!-- snippet: no-run illustrative fragment: references the assumed `registry` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 // Unregister a single skill
 registry.unregister('my_skill');
