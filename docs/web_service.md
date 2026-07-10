@@ -7,7 +7,6 @@ The `WebService` class provides static file serving for the SignalWire AI Agents
 export {}; // treat each example as a module (top-level await)
 declare global {
   const WebService: typeof import('@signalwire/sdk').WebService;
-  var process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 

@@ -6,8 +6,6 @@ export {}; // treat each example as a module (top-level await)
 declare global {
   const ServerlessAdapter: typeof import('@signalwire/sdk').ServerlessAdapter;
   const AgentBase: typeof import('@signalwire/sdk').AgentBase;
-  var process: { env: Record<string, string | undefined>; [k: string]: any };
-  var Buffer: any;
   const readStdin: () => Promise<string>; // helper defined elsewhere in the CGI example
 }
 ```
