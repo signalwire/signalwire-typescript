@@ -2190,6 +2190,20 @@
               ],
               "returns": "any"
             },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_initial_step": {
               "params": [
                 {
@@ -2652,6 +2666,20 @@
                   "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
+                  "type": "string",
+                  "required": true
                 }
               ],
               "returns": "any"

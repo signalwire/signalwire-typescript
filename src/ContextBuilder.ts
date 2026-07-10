@@ -9,6 +9,31 @@ const MAX_CONTEXTS = 50;
 const MAX_STEPS_PER_CONTEXT = 100;
 
 /**
+ * Valid values for a step's or context's `history` visibility mode.
+ *
+ * - `keep`: nothing is cleared — every prior step's instructions *and*
+ *   dialogue stay in the model's context.
+ * - `default`: prior step instructions are hidden; the dialogue is kept.
+ *   This is the behavior when `history` is unset.
+ * - `hide`: prior instructions hidden **and** the prior dialogue pulled
+ *   out of the model's context. The only way back in is an explicit
+ *   `${step_history.*}` reference in the new prompt.
+ */
+export const HISTORY_MODES = ['keep', 'default', 'hide'] as const;
+
+/** One of the three valid `history` visibility modes. */
+export type HistoryMode = (typeof HISTORY_MODES)[number];
+
+function validateHistory(mode: string): HistoryMode {
+  if (!(HISTORY_MODES as readonly string[]).includes(mode)) {
+    throw new Error(
+      `history must be one of ${JSON.stringify(HISTORY_MODES)}, got ${JSON.stringify(mode)}`,
+    );
+  }
+  return mode as HistoryMode;
+}
+
+/**
  * Reserved tool names auto-injected by the runtime when contexts/steps are
  * present. User-defined SWAIG tools must not collide with these names.
  *
@@ -68,6 +93,8 @@ export interface StepDict {
   skip_user_turn?: boolean;
   /** Present (true) when the runtime advances to the next step automatically. */
   skip_to_next_step?: boolean;
+  /** Optional history visibility mode; present only when explicitly set. */
+  history?: HistoryMode;
   /** Optional prompt-reset directives for this step. */
   reset?: {
     system_prompt?: string;
@@ -109,6 +136,8 @@ export interface ContextDict {
   enter_fillers?: Record<string, string[]>;
   /** Optional exit-fillers keyed by language. */
   exit_fillers?: Record<string, string[]>;
+  /** Optional history visibility mode; present only when explicitly set. */
+  history?: HistoryMode;
 }
 
 // ── GatherQuestion ──────────────────────────────────────────────────
@@ -274,6 +303,7 @@ export class Step {
   private resetUserPrompt: string | null = null;
   private resetConsolidate = false;
   private resetFullReset = false;
+  private _history: HistoryMode | null = null;
 
   /**
    * Creates a new Step.
@@ -553,6 +583,29 @@ export class Step {
     return this;
   }
 
+  /**
+   * Control what the model still sees when this step is entered.
+   *
+   * The mode applies at the moment this step is entered and governs
+   * everything that came before it. It does not affect this step's own
+   * turns, which accumulate fresh. Nothing is deleted from the call log.
+   *
+   * @param history - One of:
+   *   - `"keep"`: clear nothing. Every prior step's instructions and
+   *     dialogue stay visible to the model.
+   *   - `"default"`: hide the prior step *instructions*, keep the
+   *     user/assistant dialogue. This is the default when unset.
+   *   - `"hide"`: hide the prior instructions *and* pull the prior dialogue
+   *     out of the model's context. Pair it with a `${step_history.*}`
+   *     reference in this step's text to choose exactly what comes back.
+   * @returns This step for chaining.
+   * @throws {Error} If `history` is not one of the three modes.
+   */
+  setHistory(history: string): this {
+    this._history = validateHistory(history);
+    return this;
+  }
+
   private renderText(): string {
     if (this.text !== null) return this.text;
     if (!this.sections.length)
@@ -583,6 +636,7 @@ export class Step {
     if (this._end) d.end = true;
     if (this.skipUserTurn) d.skip_user_turn = true;
     if (this._skipToNextStep) d.skip_to_next_step = true;
+    if (this._history !== null) d.history = this._history;
 
     const reset: NonNullable<StepDict['reset']> = {};
     if (this.resetSystemPrompt !== null) reset.system_prompt = this.resetSystemPrompt;
@@ -626,6 +680,7 @@ export class Context {
   private _initialStep: string | null = null;
   private _enterFillers: Record<string, string[]> | null = null;
   private _exitFillers: Record<string, string[]> | null = null;
+  private _history: HistoryMode | null = null;
 
   /**
    * Creates a new Context.
@@ -924,6 +979,21 @@ export class Context {
     return this;
   }
 
+  /**
+   * Set the default history visibility mode for every step in this context.
+   *
+   * A step's own `setHistory()` overrides this. See {@link Step.setHistory}
+   * for what each mode does.
+   *
+   * @param history - One of `"keep"`, `"default"`, or `"hide"`.
+   * @returns This context for chaining.
+   * @throws {Error} If `history` is not one of the three modes.
+   */
+  setHistory(history: string): this {
+    this._history = validateHistory(history);
+    return this;
+  }
+
   /** @internal */
   getSteps(): Map<string, Step> {
     return this.steps;
@@ -993,6 +1063,7 @@ export class Context {
     }
     if (this._enterFillers) d.enter_fillers = this._enterFillers;
     if (this._exitFillers) d.exit_fillers = this._exitFillers;
+    if (this._history !== null) d.history = this._history;
     return d;
   }
 

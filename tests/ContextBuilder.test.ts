@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ContextBuilder, GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
+import {
+  ContextBuilder,
+  Context,
+  Step,
+  GatherInfo,
+  GatherQuestion,
+} from '../src/ContextBuilder.js';
 
 describe('ContextBuilder', () => {
   it('addContext throws when exceeding MAX_CONTEXTS (50)', () => {
@@ -114,5 +120,51 @@ describe('ContextBuilder', () => {
     expect(d.question).toBe('How old are you?');
     expect(d.type).toBe('number');
     expect(d.confirm).toBe(true);
+  });
+
+  describe('setHistory (Step + Context)', () => {
+    it('Step.setHistory emits "history" only when set, for each mode', () => {
+      for (const mode of ['keep', 'default', 'hide'] as const) {
+        const step = new Step('s').setText('do a thing').setHistory(mode);
+        expect(step.toDict().history).toBe(mode);
+      }
+    });
+
+    it('Step omits "history" when unset', () => {
+      const d = new Step('s').setText('do a thing').toDict();
+      expect('history' in d).toBe(false);
+    });
+
+    it('Step.setHistory is fluent (returns the step)', () => {
+      const step = new Step('s');
+      expect(step.setHistory('keep')).toBe(step);
+    });
+
+    it('Step.setHistory rejects an invalid mode', () => {
+      expect(() => new Step('s').setHistory('nope')).toThrow(/history must be one of/);
+    });
+
+    it('Context.setHistory emits "history" only when set, for each mode', () => {
+      for (const mode of ['keep', 'default', 'hide'] as const) {
+        const ctx = new Context('default').setHistory(mode);
+        ctx.addStep('s', { task: 'do a thing' });
+        expect(ctx.toDict().history).toBe(mode);
+      }
+    });
+
+    it('Context omits "history" when unset', () => {
+      const ctx = new Context('default');
+      ctx.addStep('s', { task: 'do a thing' });
+      expect('history' in ctx.toDict()).toBe(false);
+    });
+
+    it('Context.setHistory is fluent (returns the context)', () => {
+      const ctx = new Context('default');
+      expect(ctx.setHistory('hide')).toBe(ctx);
+    });
+
+    it('Context.setHistory rejects an invalid mode', () => {
+      expect(() => new Context('default').setHistory('bogus')).toThrow(/history must be one of/);
+    });
   });
 });

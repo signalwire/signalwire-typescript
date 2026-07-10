@@ -135,7 +135,9 @@ export {
   GatherInfo,
   GatherQuestion,
   createSimpleContext,
+  HISTORY_MODES,
 } from './ContextBuilder.js';
+export type { HistoryMode } from './ContextBuilder.js';
 
 // Security
 export { SessionManager } from './SessionManager.js';
