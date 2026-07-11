@@ -16,7 +16,6 @@ declare global {
   // Illustrative third-party skill class defined in the prose examples above.
   const WeatherSkill: any;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 
@@ -130,6 +129,7 @@ export function createSkill(config?: SkillConfig): WeatherSkill {
 
 Register the skill class with the global registry, then add it to any agent by name:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `WeatherSkill` class defined in the surrounding prose -->
 ```typescript
 import { AgentBase, registerSkill } from '@signalwire/sdk';
 // import { WeatherSkill } from './my-weather-skill/skill.js';

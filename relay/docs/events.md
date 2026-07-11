@@ -73,6 +73,7 @@ All event-type constants are importable from `@signalwire/sdk`:
 
 Raw events are always a `RelayEvent` with a `params` object. For convenience, typed event classes provide named (camelCase) properties:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `rawPayload` object established by the surrounding handler example -->
 ```typescript
 import { CallStateEvent, PlayEvent, RecordEvent, parseEvent } from '@signalwire/sdk';
 

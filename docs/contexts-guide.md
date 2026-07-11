@@ -105,6 +105,7 @@ Context names must be unique within a builder. Adding a duplicate name throws an
 
 ### Retrieving a Context
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const ctx = cb.getContext('intake');
 if (ctx) {
@@ -146,6 +147,7 @@ Steps are the building blocks of a context. They are ordered -- the AI processes
 
 ### Adding a Step
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const ctx = cb.addContext('intake');
 
@@ -264,6 +266,7 @@ The AI uses this text to judge when it should advance to the next step.
 
 Contexts themselves can also define navigation rules:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const billing = cb.addContext('billing');
 billing.setValidContexts(['technical_support', 'farewell']);
@@ -422,6 +425,7 @@ Contexts have their own prompt layer, separate from step-level prompts. Like ste
 
 **Raw prompt text:**
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const ctx = cb.addContext('billing');
 ctx.setPrompt('You are handling a billing inquiry. Be precise with numbers.');
@@ -488,6 +492,7 @@ These settings control how conversation history is handled when switching betwee
 
 When `true`, this context does not share conversation history with other contexts. The AI starts fresh when entering this context:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const secureCtx = cb.addContext('payment');
 secureCtx.setIsolated(true);
@@ -621,6 +626,7 @@ const swml = cb.toDict(); // calls validate() internally
 
 A complete customer service agent with three contexts: greeting, troubleshooting, and resolution.
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, ContextBuilder } from '@signalwire/sdk';
 

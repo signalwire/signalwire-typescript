@@ -7,7 +7,6 @@ This guide explains the parameter schema system for SignalWire AI Agents TypeScr
 export {}; // treat each example as a module so top-level `await` is allowed
 declare global {
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 
@@ -86,7 +85,10 @@ const schema = listSkillsWithParams();
 Here's an example of using the schema to generate a configuration form:
 
 ```typescript
-import { listSkillsWithParams } from '@signalwire/sdk';
+import { listSkillsWithParams, registerBuiltinSkills } from '@signalwire/sdk';
+
+// Populate the registry with the built-in skills before introspecting it.
+await registerBuiltinSkills();
 
 const schema = listSkillsWithParams();
 const webSearchSchema = schema['web_search'];

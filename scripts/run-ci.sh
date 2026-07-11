@@ -235,8 +235,13 @@ docaudit_gate() {
 # excluded from the npm package (via package.json "files"); this feeds the REAL
 # published listing to artifact_deny.py --listing -. `npm pack --dry-run --json`
 # emits the authoritative set the tarball would contain; we extract files[].path.
+# --ignore-scripts: skip the prepack build hook during the DRY-RUN listing. prepack
+# (npm run build) writes codegen progress to stdout, which would prepend non-JSON to
+# the --json output and break the parse below. The file listing derives from
+# package.json "files" (dist/**, README) and does not need dist rebuilt to enumerate
+# it; the real PACKAGE-SMOKE pack still runs prepack. (stdout must stay pure JSON.)
 dayone_artifact_deny() {
-    npm pack --dry-run --json 2>/dev/null \
+    npm pack --dry-run --ignore-scripts --json 2>/dev/null \
         | python3 -c 'import sys,json; [print(f["path"]) for f in json.load(sys.stdin)[0]["files"]]' \
         | python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port typescript --listing -
 }
@@ -358,6 +363,39 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
         --serverless-argv 'AGENT_FILE_PLACEHOLDER|--simulate-serverless|bogus-platform-xyz' \
         --agent-file-suffix '.ts' \
         --agent-file-content "import { AgentBase } from '$PORT_ROOT/src/AgentBase.ts'; const a = new AgentBase({ name: 'probe', route: '/' }); a.setPromptText('hi'); export default a;"
+
+# ---- §C1 doc/example/CLI execution gates ------------------------------------
+# SNIPPET-COMPILE (tsc --noEmit each doc code fence with the real SDK source
+# mapped) + DOC-CLI (probe documented swaig-test invocations against the real
+# CLI parser) are cheap → cheap wave, blocking. EXAMPLES-RUN loads/starts the
+# shipped examples against the mock (defer, blocking, modulo EXAMPLES_RUN_ALLOW.md).
+# SNIPPET-RUN executes each runnable doc snippet via tsx against the shared mock;
+# non-program fragments auto-skip and server/live-network snippets carry a
+# `<!-- snippet: no-run -->` marker. Blocking (defer wave — it can run several
+# server snippets to their timeout).
+# SNIPPET-COMPILE / SNIPPET-RUN / EXAMPLES-RUN are the HEAVY doc-execution gates —
+# tier=nightly: skipped on per-PR run-ci (they dominate wall time), run blocking by
+# the nightly workflow (and by a per-PR run when the diff touches docs/examples, via
+# SW_CI_TIER=nightly). DOC-CLI stays per-PR (cheap CLI-parse probe).
+sched_gate SNIPPET-COMPILE tier=nightly defer=1 desc="documented code snippets compile against the real SDK" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate SNIPPET-RUN tier=nightly defer=1 desc="documented doc snippets run to a zero exit against the mock (fragments auto-skip; server/live snippets are no-run)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT"
+
+# ---- §G anti-laundering ledger ----------------------------------------------
+sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port typescript --repo "$PORT_ROOT"
+
+# ---- §D1 packaging ----------------------------------------------------------
+sched_gate PACKAGE-SMOKE defer=1 desc="the real publishable package builds, installs, and imports from a clean env" \
+    -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port typescript --repo "$PORT_ROOT"
 
 # ---- Day-one deterministic gates (BLOCKING, non-report-only) -----------------
 sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \

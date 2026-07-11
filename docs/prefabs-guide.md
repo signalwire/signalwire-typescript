@@ -155,6 +155,7 @@ The callback runs on every SWML request, and its return value populates `global_
 
 ### InfoGatherer Example
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { InfoGathererAgent } from '@signalwire/sdk';
 
@@ -311,6 +312,7 @@ Returns the current progress of the survey.
 
 ### Survey Example
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { SurveyAgent } from '@signalwire/sdk';
 
@@ -440,6 +442,7 @@ Transfers the caller to a live agent. **Only registered when `escalationNumber` 
 
 ### FAQBot Example
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { FAQBotAgent } from '@signalwire/sdk';
 
@@ -534,6 +537,7 @@ Looks up directions for an amenity by name.
 
 ### Concierge Example
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { ConciergeAgent } from '@signalwire/sdk';
 
@@ -629,6 +633,7 @@ Only registered when `checkInEnabled` is `true`. Records a visitor in the per-ca
 
 ### Receptionist Example
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { ReceptionistAgent } from '@signalwire/sdk';
 
@@ -687,6 +692,7 @@ Each prefab provides a factory function that creates and returns a new instance.
 
 Factory functions accept the same config type as their corresponding class constructors.
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { SurveyAgent } from '@signalwire/sdk';
 

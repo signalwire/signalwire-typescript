@@ -187,6 +187,7 @@ spiritual successor to the Compatibility API's `RestClient.validateRequest()` /
 top-level export, so you do not need the separate `@signalwire/compatibility-api`
 package.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `signingKey` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 import { validateRequest } from '@signalwire/sdk';
 

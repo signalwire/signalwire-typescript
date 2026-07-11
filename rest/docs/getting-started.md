@@ -24,6 +24,7 @@ You need three things to connect:
 
 ## Minimal Example
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -46,6 +47,7 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -57,6 +59,7 @@ const agents = await client.fabric.aiAgents.list();
 
 Most resources follow the same CRUD pattern:
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -83,6 +86,7 @@ await client.fabric.aiAgents.delete('agent-uuid');
 
 Fabric resources also support listing addresses:
 
+<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 

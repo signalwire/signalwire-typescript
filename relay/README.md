@@ -4,6 +4,7 @@ Real-time call control and messaging over WebSocket using TypeScript. The RELAY 
 
 ## Quick Start
 
+<!-- snippet: no-run client.run() opens a live WebSocket to SIGNALWIRE_SPACE and blocks — cannot reach the loopback mock standalone -->
 ```typescript
 import { RelayClient, Call } from '@signalwire/sdk';
 

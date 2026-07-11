@@ -39,6 +39,7 @@ if (message.reason) {
 
 `wait()` accepts an optional timeout in **seconds**:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `message` object established earlier on the page -->
 ```typescript
 declare const message: import('@signalwire/sdk').Message;
 await message.wait(30); // throws if no terminal state within 30s

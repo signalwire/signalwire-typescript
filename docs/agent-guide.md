@@ -63,7 +63,6 @@ declare global {
   const saveToDatabase: (summary: Record<string, unknown>) => Promise<void>;
   const lookupCustomer: (callerId: string) => Promise<{ name: string }>;
   // Node globals (tsconfig sets types:[], so declare them here).
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 
@@ -75,6 +74,7 @@ npm install @signalwire/sdk
 
 ### Quick Start
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
@@ -739,6 +739,7 @@ agent.setPostPromptLlmParams({
 
 `AgentServer` hosts multiple `AgentBase` instances on a single HTTP server, each mounted at its own route prefix:
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, AgentServer } from '@signalwire/sdk';
 

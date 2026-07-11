@@ -35,6 +35,7 @@ npm install @signalwire/sdk
 
 Add it to an agent like any other built-in skill:
 
+<!-- snippet: no-run instantiating the `mcp_gateway` builtin requires live credentials/network at setup — cannot run standalone -->
 ```typescript
 import { AgentBase, McpGatewaySkill } from '@signalwire/sdk';
 
@@ -273,6 +274,7 @@ npx tsx src/cli/swaig-test.ts test/test-agent.ts --dump-swml
 
 ### End-to-End Test Agent
 
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
 ```typescript
 // test/test-agent.ts
 import { AgentBase, McpGatewaySkill } from '@signalwire/sdk';

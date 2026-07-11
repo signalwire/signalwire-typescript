@@ -195,6 +195,7 @@ Both platforms support HTTP Basic Authentication. Credentials are resolved from 
 constructor `basicAuth` option or the `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`
 environment variables:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `MyAgent` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const agent = new MyAgent(); // reads SWML_BASIC_AUTH_* from the environment
 ```
@@ -291,6 +292,7 @@ console.log(`Detected mode: ${mode}`);
 
 ### URL Generation
 
+<!-- snippet: no-run illustrative fragment: references the assumed `MyAgent` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const agent = new MyAgent();
 console.log(`Base URL: ${agent.getFullUrl()}`);

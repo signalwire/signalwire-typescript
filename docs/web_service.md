@@ -7,7 +7,6 @@ The `WebService` class provides static file serving for the SignalWire AI Agents
 export {}; // treat each example as a module (top-level await)
 declare global {
   const WebService: typeof import('@signalwire/sdk').WebService;
-  const process: { env: Record<string, string | undefined>; [k: string]: any };
 }
 ```
 
@@ -52,6 +51,7 @@ It requires Node.js >= 22.
 
 ## Quick Start
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { WebService } from '@signalwire/sdk';
 
@@ -201,6 +201,7 @@ export SWML_SSL_KEY="/path/to/key.pem"
 
 ### Method 2: Constructor `ssl` option
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({
   directories: { '/docs': './docs' },
@@ -214,6 +215,7 @@ await service.start();
 
 Pass the cert and key paths directly to `start(host, port, sslCert, sslKey)`:
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({ directories: { '/docs': './docs' } });
 await service.start('0.0.0.0', 8002, '/path/to/cert.pem', '/path/to/key.pem');
@@ -271,6 +273,7 @@ Serve files from mounted directories.
 
 ### Basic File Serving
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { WebService } from '@signalwire/sdk';
 
@@ -290,6 +293,7 @@ await service.start();
 
 ### With Directory Browsing
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({
   directories: { '/files': './public' },
@@ -313,6 +317,7 @@ const service = new WebService({
 
 ### Dynamic Directory Management
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService();
 
@@ -328,6 +333,7 @@ await service.start();
 
 ### With Custom Authentication
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({
   directories: { '/private': './sensitive-docs' },
@@ -338,6 +344,7 @@ await service.start();
 
 ### HTTPS with Let's Encrypt
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 // Assuming you have Let's Encrypt certificates
 const service = new WebService({
@@ -354,6 +361,7 @@ await service.start(
 
 ### Multi-Environment Configuration
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { WebService } from '@signalwire/sdk';
 
@@ -387,6 +395,7 @@ await service.start();
 
 Run WebService as a dedicated static file server (`web-server.ts`):
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { WebService } from '@signalwire/sdk';
 
@@ -406,6 +415,7 @@ await service.start();
 
 Run WebService alongside your AI agent on a different port (`main.ts`):
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { AgentBase, WebService } from '@signalwire/sdk';
 
@@ -539,6 +549,7 @@ class WebService {
 
 WebService complements AI agents by serving static assets:
 
+<!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 import { AgentBase, FunctionResult, WebService } from '@signalwire/sdk';
 
