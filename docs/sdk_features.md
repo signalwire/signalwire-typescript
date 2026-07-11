@@ -167,7 +167,7 @@ Skills are self-contained modules that package tools, prompts, hints, and config
 - Can contribute global data via `getGlobalData()`
 - Can support multiple instances with different configs (e.g., two search skills)
 
-The SDK ships with **19 built-in skills**: `DateTimeSkill`, `MathSkill`, `JokeSkill`, `WeatherApiSkill`, `PlayBackgroundFileSkill`, `SwmlTransferSkill`, `ApiNinjasTriviaSkill`, `InfoGathererSkill`, `CustomSkillsSkill`, `WebSearchSkill`, `WikipediaSearchSkill`, `GoogleMapsSkill`, `DataSphereSkill`, `DataSphereServerlessSkill`, `NativeVectorSearchSkill`, `SpiderSkill`, `ClaudeSkillsSkill`, `AskClaudeSkill`, and `McpGatewaySkill`.
+The SDK ships with **17 built-in skills** (matching the Python reference set): `DateTimeSkill`, `MathSkill`, `JokeSkill`, `WeatherApiSkill`, `PlayBackgroundFileSkill`, `SwmlTransferSkill`, `ApiNinjasTriviaSkill`, `InfoGathererSkill`, `WebSearchSkill`, `WikipediaSearchSkill`, `GoogleMapsSkill`, `DataSphereSkill`, `DataSphereServerlessSkill`, `NativeVectorSearchSkill`, `SpiderSkill`, `ClaudeSkillsSkill`, and `McpGatewaySkill`. Two additional TS-specific helper skills — `CustomSkillsSkill` and `AskClaudeSkill` — are also registered (see `PORT_ADDITIONS.md`).
 
 The elegance is composability: skills don't know about each other, but they all register cleanly into the same agent. A single agent can combine web search, datetime, a custom booking tool, and a DataMap stock checker -- all declared up front, all generating correct SWML, all routed to the right handler. See the [Skills System Guide](skills-guide.md) for the full reference.
 

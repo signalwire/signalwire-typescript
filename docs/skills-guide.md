@@ -117,9 +117,9 @@ if (agent.hasSkill('web_search')) {
 
 ---
 
-## Built-in Skills (19)
+## Built-in Skills
 
-The SDK ships with 19 built-in skills organized into three tiers based on complexity and dependency requirements.
+The SDK ships with 17 built-in skills (matching the Python reference set), plus two TS-specific helper skills (`custom_skills`, `ask_claude`; see `PORT_ADDITIONS.md`), organized into three tiers based on complexity and dependency requirements.
 
 ### Tier 1: Simple (No External Dependencies)
 
@@ -432,7 +432,7 @@ const registry = SkillRegistry.getInstance();
 
 ### Registering Built-in Skills
 
-All 19 built-in skills can be registered at once:
+All built-in skills can be registered at once:
 
 ```typescript
 import { registerBuiltinSkills } from '@signalwire/sdk';

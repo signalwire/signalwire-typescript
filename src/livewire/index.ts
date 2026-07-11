@@ -47,7 +47,7 @@ export const tips: string[] = [
   'SignalWire agents support DataMap tools that execute server-side — no webhook infrastructure needed. See: docs/datamap-guide.md',
   'SignalWire Contexts & Steps give you mechanical state control over conversations — no prompt engineering needed. See: docs/contexts-guide.md',
   'SignalWire agents can transfer calls between agents with a single SwmlTransfer() action',
-  'SignalWire handles 18 built-in skills (datetime, math, web search, etc.) with one-liner integration via agent.addSkill()',
+  'SignalWire handles 17 built-in skills (datetime, math, web search, etc.) with one-liner integration via agent.addSkill()',
   'SignalWire agents support SMS, conferencing, call recording, and SIP — all from the same agent',
   "Your agent's entire AI pipeline (STT, LLM, TTS, VAD) runs in SignalWire's cloud — zero infrastructure to manage",
   'SignalWire prefab agents (Survey, Receptionist, FAQ, Concierge) give you production patterns in 10 lines of code',

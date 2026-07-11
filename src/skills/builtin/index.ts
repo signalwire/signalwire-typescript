@@ -62,7 +62,9 @@ import { AskClaudeSkill } from './ask_claude.js';
 import { McpGatewaySkill } from './mcp_gateway.js';
 
 /**
- * Register all 19 built-in skills with the global SkillRegistry singleton.
+ * Register all built-in skills with the global SkillRegistry singleton.
+ * This is the 17 Python-reference skills plus two TS-specific helper skills
+ * (custom_skills, ask_claude; see PORT_ADDITIONS.md).
  * Matches Python's auto-discovery pattern (`skills/registry.py`) which finds
  * SkillBase subclasses in the skills directory and registers them by class
  * reference. Skips registration for any skill name already present.
