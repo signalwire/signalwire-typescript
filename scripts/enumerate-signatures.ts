@@ -1775,6 +1775,33 @@ function main(): number {
     }
   }
 
+  // paginate() inheritance projection. Python's `ReadResource.paginate()` is
+  // inherited by every read-only resource that extends it; the griffe oracle
+  // records it not only on `ReadResource` but on each concrete read-only subclass
+  // (FabricAddresses / FaxLogs / MessageLogs / VideoRoomSessions / VoiceLogs).
+  // The TS enumerator walks only OWN members, so a generated subclass that
+  // `extends ReadResource` (crud_base.base === 'ReadResource') has the method at
+  // runtime but not in its own-member list. Mirror the reference: inject the
+  // canonical `paginate` signature onto every class whose crud_base binds
+  // `ReadResource`, so the inherited method compares equal. (Writable CRUD
+  // resources — crud_base.base of CrudResource/CrudWithAddresses/FabricResource —
+  // do NOT get it: the oracle records paginate only on the read-only leaves.)
+  {
+    const readBaseEntry =
+      doc.modules['signalwire.rest._base']?.classes?.ReadResource?.methods?.paginate;
+    if (readBaseEntry) {
+      for (const me of Object.values(doc.modules)) {
+        for (const ce of Object.values(me.classes ?? {})) {
+          if (ce.crud_base?.base === 'ReadResource' && ce.methods.paginate === undefined) {
+            ce.methods = Object.fromEntries(
+              Object.entries({ ...ce.methods, paginate: readBaseEntry }).sort(),
+            );
+          }
+        }
+      }
+    }
+  }
+
   // Sort modules + functions deterministically
   const sortedModules: Record<string, ModuleEntry> = {};
   for (const k of Object.keys(doc.modules).sort()) {

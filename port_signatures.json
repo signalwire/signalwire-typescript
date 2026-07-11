@@ -14699,6 +14699,21 @@
                 }
               ],
               "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           }
         },
@@ -17812,6 +17827,21 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           },
           "crud_base": {
@@ -19098,6 +19128,21 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           },
           "crud_base": {
@@ -19165,6 +19210,21 @@
                 }
               ],
               "returns": "void"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           },
           "crud_base": {
@@ -21656,6 +21716,21 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.video_types_generated.ListRoomSessionRecordingsResponse"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           },
           "crud_base": {
@@ -22102,6 +22177,21 @@
                 }
               ],
               "returns": "class:signalwire.rest.namespaces.voice_types_generated.LogEventsListResponse"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           },
           "crud_base": {
