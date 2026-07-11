@@ -133,7 +133,7 @@ class MyAgent extends AgentBase {
 
 - `src/` — TypeScript source (compiled to `dist/`)
 - `src/cli/` — CLI tool for offline agent testing (swaig-test)
-- `src/skills/` — Skills framework + 18 built-in skills in `builtin/`
+- `src/skills/` — Skills framework + 17 built-in skills in `builtin/`
 - `src/prefabs/` — 5 pre-built agent types (InfoGatherer, Survey, FAQ, Concierge, Receptionist)
 - `tests/` — Vitest test files mirroring src/ structure
 - `examples/` — Runnable example agents (`npx tsx examples/simple-agent.ts`)

@@ -197,7 +197,7 @@ environment variables:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `MyAgent` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
-const agent = new MyAgent(); // reads SWML_BASIC_AUTH_* from the environment
+const agent = new MyAgent(); // reads SWML_BASIC_AUTH_USER / SWML_BASIC_AUTH_PASSWORD from the environment
 ```
 
 ### Authentication Flow
@@ -272,7 +272,7 @@ curl -u username:password \
 ### Security
 - Always use HTTPS endpoints.
 - Use environment variables (or cloud secret management) for sensitive data.
-- Set explicit `SWML_BASIC_AUTH_*` credentials in production.
+- Set explicit `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD` credentials in production.
 
 ### Monitoring
 - Enable cloud platform logging.

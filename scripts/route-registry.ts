@@ -43,6 +43,18 @@ const REGISTRY_SKIP: Record<string, string> = {
   'fabric.cxmlApplications.create': 'no create route — unsupported by design',
 };
 
+// Method names that are client-side HELPERS on every resource that carries them:
+// they issue no HTTP request at call time (they wrap another verb / return a lazy
+// iterator), so they are not distinct wire routes. `paginate()` returns a lazy
+// paginator that follows the cursor via the already-covered `list` route on
+// iteration — its coverage is `list`'s, not a new route. Mirrors the python
+// reference's SKIP_METHODS in porting-sdk/scripts/python_route_registry.py.
+const SKIP_METHODS: Record<string, string> = {
+  paginate:
+    'client-side pagination helper — returns a lazy paginator that follows the ' +
+    'cursor via the already-covered list route; issues no HTTP request itself',
+};
+
 interface RouteRec {
   method: string;
   path_template: string;
@@ -103,7 +115,10 @@ function subResources(ns: object): Array<[string, object]> {
 function skipReason(key: string): string | undefined {
   if (key in REGISTRY_SKIP) return REGISTRY_SKIP[key];
   const wildcard = key.slice(0, key.lastIndexOf('.')) + '.*';
-  return REGISTRY_SKIP[wildcard];
+  if (wildcard in REGISTRY_SKIP) return REGISTRY_SKIP[wildcard];
+  // global client-side-helper method names (e.g. paginate), skipped on any resource
+  const method = key.slice(key.lastIndexOf('.') + 1);
+  return SKIP_METHODS[method];
 }
 
 async function invokeAndCapture(fn: (...a: unknown[]) => unknown): Promise<void> {

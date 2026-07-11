@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 172a88402c15d958b55bd2a42644e34ff853a4fd",
+  "generated_from": "signalwire-typescript @ 096b5fda2a8fe0518d96b22a1199de50007c3855",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1657,7 +1657,8 @@
         "FabricResourcePUT": [],
         "ReadResource": [
           "get",
-          "list"
+          "list",
+          "paginate"
         ]
       },
       "functions": []

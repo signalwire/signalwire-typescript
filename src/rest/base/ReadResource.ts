@@ -3,6 +3,7 @@
  */
 
 import type { HttpClient } from '../HttpClient.js';
+import { paginate } from '../pagination.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from './BaseResource.js';
 
@@ -31,6 +32,32 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    */
   async list(params?: QueryParams): Promise<TList> {
     return this._http.get<TList>(this._basePath, params);
+  }
+
+  /**
+   * Iterate every item across all pages of this resource's list endpoint.
+   *
+   * `list()` returns a single raw page (the server's first response).
+   * `paginate()` walks every page transparently, following the server's
+   * `links.next` / `next_page_uri` cursor, and yields one item at a time — so
+   * callers no longer hand-build the page-token loop:
+   *
+   * ```typescript
+   * for await (const address of client.fabric.addresses.paginate()) {
+   *   // ...
+   * }
+   * ```
+   *
+   * The TS analogue of Python's `ReadResource.paginate()` /
+   * `PaginatedIterator`: an async iterator wired to the shared {@link paginate}
+   * generator, reading items from `resp["data"]`.
+   *
+   * @param params - Query parameters applied to the FIRST request only;
+   *   subsequent pages follow the server-supplied next-page URL.
+   * @returns An async iterator yielding each `TItem` across all pages.
+   */
+  paginate(params?: QueryParams): AsyncGenerator<TItem, void, undefined> {
+    return paginate<TItem>(this._http, this._basePath, params, 'data');
   }
 
   /**
