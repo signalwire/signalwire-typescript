@@ -105,8 +105,8 @@ export SWML_BASIC_AUTH_PASSWORD="secretpassword"
 
 # SSL/HTTPS configuration (via SslConfig)
 export SWML_SSL_ENABLED=true
-export SWML_SSL_CERT="/path/to/cert.pem"
-export SWML_SSL_KEY="/path/to/key.pem"
+export SWML_SSL_CERT_PATH="/path/to/cert.pem"
+export SWML_SSL_KEY_PATH="/path/to/key.pem"
 
 # CORS origins (comma-separated; defaults to *)
 export SWML_CORS_ORIGINS="https://app.example.com"
@@ -195,8 +195,8 @@ SSL configuration is read from the environment via `SslConfig`:
 
 ```bash
 export SWML_SSL_ENABLED=true
-export SWML_SSL_CERT="/path/to/cert.pem"
-export SWML_SSL_KEY="/path/to/key.pem"
+export SWML_SSL_CERT_PATH="/path/to/cert.pem"
+export SWML_SSL_KEY_PATH="/path/to/key.pem"
 ```
 
 ### Method 2: Constructor `ssl` option
@@ -232,8 +232,8 @@ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem \
 
 # Use with WebService
 export SWML_SSL_ENABLED=true
-export SWML_SSL_CERT="cert.pem"
-export SWML_SSL_KEY="key.pem"
+export SWML_SSL_CERT_PATH="cert.pem"
+export SWML_SSL_KEY_PATH="key.pem"
 ```
 
 ## API Endpoints

@@ -92,6 +92,7 @@ The SDK reads the following environment variables at startup. All are optional.
 |---|---|---|---|
 | `SWML_BASIC_AUTH_USER` | `string` | -- | Basic-auth username. Used when no `basicAuth` constructor option is provided. |
 | `SWML_BASIC_AUTH_PASSWORD` | `string` | -- | Basic-auth password. Both `_USER` and `_PASSWORD` must be set for env-based auth. |
+| `SIGNALWIRE_SIGNING_KEY` | `string` | -- | Webhook-verification signing key. Falls back to this env var when no `signingKey` constructor option is given; when set, inbound SWML/SWAIG/status webhooks are signature-verified. |
 
 ### Proxy Detection
 
@@ -117,7 +118,12 @@ The SDK reads the following environment variables at startup. All are optional.
 | `SWML_ALLOWED_HOSTS` | `string` | -- (disabled) | Comma-separated allowlist of hostnames. Requests with a `Host` header not in this list receive a 403 response. |
 | `SWML_MAX_REQUEST_SIZE` | `number` | `1048576` (1 MB) | Maximum allowed `Content-Length` in bytes. Requests exceeding this limit receive a 413 response. |
 | `SWML_RATE_LIMIT` | `number` | -- (disabled) | Maximum requests per minute per IP address. When exceeded, the client receives a 429 response. |
-| `SWML_REQUEST_TIMEOUT` | `number` | `30000` (30 sec) | Request timeout in milliseconds. |
+| `SWML_CSRF_PROTECTION` | `"true"` | `false` (disabled) | When `"true"`, enables CSRF protection on state-changing routes. |
+| `SWML_ENFORCE_HTTPS` | `"true"` | `false` (disabled) | When `"true"`, rejects plaintext-HTTP requests (requires HTTPS / a TLS-terminating proxy). |
+| `SWML_TRUST_PROXY_HEADERS` | `"true"` | `false` (disabled) | When `"true"`, trusts `X-Forwarded-*` proxy headers for the client's scheme/host/IP. Enable only behind a trusted reverse proxy. |
+| `SWML_USE_HSTS` | `"true" \| "false"` | on when SSL enabled | Overrides whether the `Strict-Transport-Security` (HSTS) response header is emitted. |
+| `SWML_HSTS_MAX_AGE` | `number` | SDK default | `max-age` (seconds) for the `Strict-Transport-Security` header when HSTS is active. |
+| `SWML_ALLOW_PRIVATE_URLS` | `"true"` | `false` (blocked) | When `"true"`, allows the SDK (SSRF guard, spider skill) to fetch private / loopback / link-local URLs. Leave unset in production. |
 
 ### SSL/TLS
 
@@ -133,6 +139,8 @@ The SDK reads the following environment variables at startup. All are optional.
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | `SIGNALWIRE_SKILL_PATHS` | `string` | -- | Colon-separated list of directories to scan for skill modules. |
+| `SWML_SKILL_DISCOVERY_ENABLED` | `"true"` | `false` (disabled) | When `"true"`, enables filesystem discovery of skill modules on the skill search paths. |
+| `SWML_ALLOW_CUSTOM_HANDLER_CODE` | `"true"` | `false` (blocked) | When `"true"`, permits skills to register custom handler code strings. Leave unset unless you fully trust the skill source. |
 
 ### Schema Validation
 
@@ -433,6 +441,6 @@ Specific resolution examples:
 | **Log level** | `SIGNALWIRE_LOG_LEVEL` env var > programmatic `setGlobalLogLevel()` > `"info"` |
 | **CORS origins** | `SWML_CORS_ORIGINS` env var > `"*"` (permissive default) |
 | **Proxy URL** | `SWML_PROXY_URL_BASE` env var > `manualSetProxyUrl()` > header-based detection > local URL |
-| **SSL** | `SslOptions` constructor > `SWML_SSL_*` env vars > disabled |
+| **SSL** | `SslOptions` constructor > `SWML_SSL_ENABLED` / `SWML_SSL_CERT_PATH` / `SWML_SSL_KEY_PATH` env vars > disabled |
 
 Note that basic auth is an exception: the constructor option takes precedence over environment variables. For most other settings, environment variables override constructor options to support container-based deployment patterns where env vars are the primary configuration mechanism.

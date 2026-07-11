@@ -41,7 +41,7 @@ declare global {
 |-----------|-------------|------------|
 | **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
 | **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
-| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 21 API namespaces | [REST docs](rest/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and the full set of REST API namespaces | [REST docs](rest/README.md) |
 
 ```bash
 npm install @signalwire/sdk
@@ -170,7 +170,7 @@ await client.phoneNumbers.search({ area_code: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
-- 21 namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
 - Uses Node's built-in `fetch` -- no HTTP client dependency
 - Dict returns -- raw JSON, no wrapper objects
 

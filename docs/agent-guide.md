@@ -893,6 +893,5 @@ Each agent exposes the following HTTP endpoints (all relative to the agent's `ro
 | `SWML_ALLOWED_HOSTS` | *(none)* | Comma-separated list of allowed `Host` header values. Requests from other hosts receive 403. |
 | `SWML_MAX_REQUEST_SIZE` | `1048576` | Maximum request body size in bytes (default 1 MB). Requests exceeding this receive 413. |
 | `SWML_RATE_LIMIT` | *(none)* | Maximum requests per minute per IP address. When exceeded, requests receive 429. |
-| `SWML_REQUEST_TIMEOUT` | `30000` | Request timeout in milliseconds. |
 | `SIGNALWIRE_LOG_LEVEL` | `"info"` | Logging level: `"debug"`, `"info"`, `"warn"`, `"error"`. |
 | `SIGNALWIRE_LOG_MODE` | `"pretty"` | Log output format: `"pretty"` for human-readable, `"json"` for structured JSON. |
