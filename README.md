@@ -262,7 +262,6 @@ Guides are also available in the [`docs/`](docs/) directory:
 - [Web Service](docs/web_service.md) -- HTTP server and endpoint details
 - [Skills Parameter Schema](docs/skills_parameter_schema.md) -- skill parameter definitions
 - [Prefabs Guide](docs/prefabs-guide.md) -- pre-built agents: InfoGatherer, Survey, FAQ, Concierge, Receptionist
-- [Migration Guide](docs/MIGRATION-2.0.md) -- upgrading to SDK 2.0
 
 ## Environment Variables
 
