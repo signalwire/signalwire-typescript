@@ -423,8 +423,8 @@ sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to
     -- python3 "$PORTING_SDK_DIR/scripts/readme_include.py" --port typescript --repo .
 sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port typescript --repo .
-sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
-    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo .
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries + all entries structured (reason/approver/date)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo . --require-fields
 sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
     -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port typescript --repo .
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
@@ -442,6 +442,13 @@ sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (held 
     -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port typescript --repo .
 sched_gate RELEASE-FRESH res=dayone desc="publish path is gated (gates run before publish)" \
     -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port typescript --repo .
+
+# SEMVER-DIFF — the version bump must match the public-API surface change since
+# the release floor. Reads port_signatures.json (SIGNATURES writes it) and diffs
+# it against the committed port_signatures.baseline.json floor. deps=SIGNATURES so
+# it compares the freshly-regenerated surface, not a stale on-disk copy.
+sched_gate SEMVER-DIFF deps=SIGNATURES desc="version bump matches API surface change vs port_signatures.baseline.json floor" \
+    -- python3 "$PORTING_SDK_DIR/scripts/semver_diff.py" --port typescript --repo "$PORT_ROOT"
 
 sched_run
 rc=$?

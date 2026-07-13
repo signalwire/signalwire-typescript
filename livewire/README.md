@@ -14,7 +14,7 @@ LiveWire lets you run LiveKit-style voice agents on SignalWire's infrastructure 
 
 ## Quick Start
 
-<!-- snippet: no-run imports the @signalwire/sdk/livewire subpath which is not a resolvable package export standalone -->
+<!-- snippet: no-run imports the @signalwire/sdk/livewire subpath, which resolves only from the built+installed package, not from the source tree -->
 ```typescript
 import {
   Agent, AgentSession, tool, RunContext,

@@ -40,8 +40,8 @@ cwd: process.cwd() — Node.js built-in (ConfigLoader.search doc lists CWD as a 
 
 ## Hono (HTTP framework)
 
-use: Hono app.use(middleware) — Hono framework method; not on SDK classes
-fetch: Hono app.fetch(request) — Hono framework request entry point; not on SDK classes
+use: Hono app.use(middleware) — Hono framework method, not an SDK surface symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+fetch: Hono app.fetch(request) — Hono framework request entry point, not an SDK surface symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 
 ## Wire-level snake_case identifiers referenced in docs
 
@@ -55,9 +55,9 @@ would otherwise flag it.
 
 ## README/sub-doc audit (example-local user code, not SDK surface)
 
-buildDocument: example-local method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API
-buildVoicemailDocument: example-local helper defined within the swml_service_guide voicemail sample, not SDK API
-registerCustomerRoute: example-local helper in the swml_service_guide routing sample, not SDK API
-registerProductRoute: example-local helper in the swml_service_guide routing sample, not SDK API
-handleWeather: example-local handler function in the third_party_skills sample, not SDK API
-http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol
+buildDocument: reader-authored doc example — method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+buildVoicemailDocument: reader-authored doc example — helper defined within the swml_service_guide voicemail sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+registerCustomerRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+registerProductRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+handleWeather: reader-authored doc example — handler function in the third_party_skills sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
