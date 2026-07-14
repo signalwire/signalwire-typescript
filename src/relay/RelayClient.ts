@@ -172,8 +172,7 @@ export class RelayClient {
   // for calls the harness never originated). Production users prefer
   // `onCall` / `onMessage` for typed delivery.
   private _onAnyEventHandler:
-    | ((eventType: string, params: Record<string, unknown>) => void | Promise<void>)
-    | null = null;
+    ((eventType: string, params: Record<string, unknown>) => void | Promise<void>) | null = null;
 
   private _connected = false;
   private _closing = false;
