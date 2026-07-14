@@ -98,13 +98,7 @@ export type DialState = 'dialing' | 'answered' | 'failed';
  * NOTE: distinct from {@link CallState} and {@link DialState}.
  */
 export type MessageState =
-  | 'queued'
-  | 'initiated'
-  | 'sent'
-  | 'delivered'
-  | 'undelivered'
-  | 'failed'
-  | 'received';
+  'queued' | 'initiated' | 'sent' | 'delivered' | 'undelivered' | 'failed' | 'received';
 
 // The terminal subsets, frozen so callers can iterate/inspect them. Kept as
 // `readonly` tuples typed with the *literal* members (not widened to string)

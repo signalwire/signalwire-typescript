@@ -1144,8 +1144,7 @@ export interface CallFlowVersionDeployByVersionId {
 }
 
 export type CallFlowVersionDeployRequest =
-  | CallFlowVersionDeployByDocumentVersion
-  | CallFlowVersionDeployByVersionId;
+  CallFlowVersionDeployByDocumentVersion | CallFlowVersionDeployByVersionId;
 
 export interface CallFlowVersionDeployResponse {
   /** The unique identifier of the deployed Call Flow Version. */
@@ -1397,10 +1396,7 @@ export interface ConferenceRoomUpdateStatusCode422 {
 export interface Connect {
   /** Connect to a phone number, SIP URI, Call Fabric resource, queue, or WebSocket stream. */
   connect:
-    | ConnectDeviceSingle
-    | ConnectDeviceSerial
-    | ConnectDeviceParallel
-    | ConnectDeviceSerialParallel;
+    ConnectDeviceSingle | ConnectDeviceSerial | ConnectDeviceParallel | ConnectDeviceSerialParallel;
 }
 
 export interface ConnectDeviceParallel {
@@ -2916,15 +2912,7 @@ export interface JoinConferenceObject {
   coach?: string;
   /** The events to listen for and send to the status callback URL. Default not set */
   status_callback_event?:
-    | 'start'
-    | 'end'
-    | 'join'
-    | 'leave'
-    | 'mute'
-    | 'hold'
-    | 'modify'
-    | 'speaker'
-    | 'announcement';
+    'start' | 'end' | 'join' | 'leave' | 'mute' | 'hold' | 'modify' | 'speaker' | 'announcement';
   /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
   status_callback?: string;
   /** The HTTP method to use when sending status events to the status callback URL. Default `"POST"`. */
@@ -3963,10 +3951,7 @@ export interface SWAIGInternalFillerUpdate {
 }
 
 export type SWAIGNativeFunction =
-  | 'check_time'
-  | 'wait_seconds'
-  | 'wait_for_user'
-  | 'adjust_response_latency';
+  'check_time' | 'wait_seconds' | 'wait_for_user' | 'adjust_response_latency';
 
 export interface SWAIGUpdate {
   /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */

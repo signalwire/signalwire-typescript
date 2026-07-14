@@ -665,8 +665,7 @@ export class AgentBase extends SWMLService {
         numbered: section['numbered'] as boolean | undefined,
         numberedBullets: section['numberedBullets'] as boolean | undefined,
         subsections: section['subsections'] as
-          | { title: string; body?: string; bullets?: string[] }[]
-          | undefined,
+          { title: string; body?: string; bullets?: string[] }[] | undefined,
       });
     }
     return this;

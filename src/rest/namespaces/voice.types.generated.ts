@@ -152,10 +152,7 @@ export interface RelayVoiceLog {
 }
 
 export type RelayVoiceType =
-  | 'laml_call'
-  | 'relay_pstn_call'
-  | 'relay_sip_call'
-  | 'relay_webrtc_call';
+  'laml_call' | 'relay_pstn_call' | 'relay_sip_call' | 'relay_webrtc_call';
 
 /** Details about a specific error. */
 export interface Types_StatusCodes_RestApiErrorItem {
@@ -233,11 +230,7 @@ export type VoiceDirection = 'inbound' | 'outbound' | 'outbound-api' | 'outbound
 
 /** A voice log entry. The specific fields present depend on the `type` value. Discarded logs return only `id`, `discarded_at`, and `created_at`. */
 export type VoiceLog =
-  | RelayVoiceLog
-  | VideoRoomVoiceLog
-  | DialogflowVoiceLog
-  | FabricVoiceLog
-  | DiscardedVoiceLog;
+  RelayVoiceLog | VideoRoomVoiceLog | DialogflowVoiceLog | FabricVoiceLog | DiscardedVoiceLog;
 
 export type VoiceLogStatus =
   | 'queued'

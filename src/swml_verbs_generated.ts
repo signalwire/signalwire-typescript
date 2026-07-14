@@ -91,10 +91,7 @@ export interface Cond {
 export interface Connect {
   /** Dial a SIP URI or phone number. */
   connect?:
-    | ConnectDeviceSingle
-    | ConnectDeviceSerial
-    | ConnectDeviceParallel
-    | ConnectDeviceSerialParallel;
+    ConnectDeviceSingle | ConnectDeviceSerial | ConnectDeviceParallel | ConnectDeviceSerialParallel;
   [key: string]: unknown;
 }
 
@@ -974,15 +971,7 @@ export interface JoinConferenceObject {
   coach?: string;
   /** The events to listen for and send to the status callback URL. Default not set */
   status_callback_event?:
-    | 'start'
-    | 'end'
-    | 'join'
-    | 'leave'
-    | 'mute'
-    | 'hold'
-    | 'modify'
-    | 'speaker'
-    | 'announcement';
+    'start' | 'end' | 'join' | 'leave' | 'mute' | 'hold' | 'modify' | 'speaker' | 'announcement';
   /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
   status_callback?: string;
   /** The HTTP method to use when sending status events to the status callback URL. Default `"POST"`. */
@@ -1673,10 +1662,7 @@ export interface SWAIGDefaults {
 }
 
 export type SWAIGNativeFunction =
-  | 'check_time'
-  | 'wait_seconds'
-  | 'wait_for_user'
-  | 'adjust_response_latency';
+  'check_time' | 'wait_seconds' | 'wait_for_user' | 'adjust_response_latency';
 
 export interface SWAIGIncludes {
   /** Remote functions to fetch and include in your AI application. */

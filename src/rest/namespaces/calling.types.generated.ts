@@ -1402,10 +1402,7 @@ export interface CondReg {
 export interface Connect {
   /** Connect to a phone number, SIP URI, Call Fabric resource, queue, or WebSocket stream. */
   connect:
-    | ConnectDeviceSingle
-    | ConnectDeviceSerial
-    | ConnectDeviceParallel
-    | ConnectDeviceSerialParallel;
+    ConnectDeviceSingle | ConnectDeviceSerial | ConnectDeviceParallel | ConnectDeviceSerialParallel;
 }
 
 export interface ConnectDeviceParallel {
@@ -2204,15 +2201,7 @@ export interface JoinConferenceObject {
   coach?: string;
   /** The events to listen for and send to the status callback URL. Default not set */
   status_callback_event?:
-    | 'start'
-    | 'end'
-    | 'join'
-    | 'leave'
-    | 'mute'
-    | 'hold'
-    | 'modify'
-    | 'speaker'
-    | 'announcement';
+    'start' | 'end' | 'join' | 'leave' | 'mute' | 'hold' | 'modify' | 'speaker' | 'announcement';
   /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
   status_callback?: string;
   /** The HTTP method to use when sending status events to the status callback URL. Default `"POST"`. */
@@ -2861,10 +2850,7 @@ export interface SWAIGInternalFiller {
 }
 
 export type SWAIGNativeFunction =
-  | 'check_time'
-  | 'wait_seconds'
-  | 'wait_for_user'
-  | 'adjust_response_latency';
+  'check_time' | 'wait_seconds' | 'wait_for_user' | 'adjust_response_latency';
 
 export interface SWMLAction {
   /** A SWML object to be executed. */

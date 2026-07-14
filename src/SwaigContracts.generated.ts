@@ -264,16 +264,7 @@ export interface PostPromptTimesEntry {
 
 export interface PostPromptEntity {
   type?:
-    | 'phone'
-    | 'email'
-    | 'ssn'
-    | 'card'
-    | 'uuid'
-    | 'url'
-    | 'money'
-    | 'time'
-    | 'date'
-    | 'ordinal';
+    'phone' | 'email' | 'ssn' | 'card' | 'uuid' | 'url' | 'money' | 'time' | 'date' | 'ordinal';
   value?: string;
   valid?: boolean;
   [key: string]: unknown;

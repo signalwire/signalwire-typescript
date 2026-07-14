@@ -152,8 +152,7 @@ async function executeDataMap(
   // by string key off an index view of the tool.
   const toolRecord = tool as unknown as Record<string, unknown>;
   const dataMap = (toolRecord['data_map'] ?? toolRecord['dataMap']) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!dataMap) return null;
   const webhooks = (dataMap['webhooks'] ?? []) as Record<string, unknown>[];
   if (webhooks.length === 0) return null;

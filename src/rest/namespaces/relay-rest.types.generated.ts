@@ -1242,11 +1242,7 @@ export interface PhoneNumberLookupResponse {
 
 /** Message handler type for phone numbers. */
 export type PhoneNumberMessageHandler =
-  | 'relay_context'
-  | 'relay_topic'
-  | 'relay_application'
-  | 'laml_webhooks'
-  | 'laml_application';
+  'relay_context' | 'relay_topic' | 'relay_application' | 'laml_webhooks' | 'laml_application';
 
 /** Response containing a single phone number. */
 export interface PhoneNumberResponse {
