@@ -1039,6 +1039,43 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
   return decls.length + ops.length;
 }
 
+/**
+ * Discover the REST namespace spec dirs to generate, by SCANNING
+ * `<psdk>/rest-apis/*` — no hardcoded list. A dir is a generate-target when its
+ * `openapi.yaml` carries at least one `x-sdk-resource` block (a RESOURCE
+ * namespace). The result is sorted so the per-spec pass — and thus the client
+ * tree (RULES §8) — emits in a stable, byte-identical order.
+ *
+ * This is the TS analog of the Python reference's `spec_dirs` discovery
+ * (generate_python_rest_types.py). It deliberately keys on `x-sdk-resource`
+ * markup rather than "any dir with components/schemas": in TS the REST-types
+ * generator owns exactly the resource-bearing namespaces, while non-resource
+ * spec dirs (e.g. `swml-webhooks`, the staged `projects`) whose schemas surface
+ * through OTHER generators are not consumed here. Scanning for the markup the
+ * generator actually acts on reproduces the former hardcoded 12-entry map from
+ * the specs themselves, so a newly-marked-up namespace is picked up with no code
+ * change, and an unmarked one is never spuriously generated.
+ *
+ * The module/output leaf is the dir name verbatim (the hyphen in `relay-rest` is
+ * preserved — `relay-rest.types.generated.ts` — matching the committed tree).
+ */
+function discoverSpecDirs(psdk: string): string[] {
+  const restApis = path.join(psdk, 'rest-apis');
+  const dirs = fs
+    .readdirSync(restApis, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(restApis, d.name, 'openapi.yaml')))
+    .map((d) => d.name)
+    .sort();
+  const hasResourceMarkup = (specPath: string): boolean => {
+    const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
+    for (const ops of Object.values(doc.paths ?? {})) {
+      if (ops && typeof ops === 'object' && 'x-sdk-resource' in ops) return true;
+    }
+    return false;
+  };
+  return dirs.filter((d) => hasResourceMarkup(path.join(restApis, d, 'openapi.yaml')));
+}
+
 async function main(): Promise<void> {
   const psdk = resolvePortingSdk();
   // Fail-soft: this runs in prebuild, but porting-sdk is only adjacent in dev/CI
@@ -1062,38 +1099,13 @@ async function main(): Promise<void> {
     );
     return;
   }
-  // spec dir (under rest-apis/) → output .generated.ts path
-  const map: Record<string, string> = {
-    // REST namespace specs → one generated module per spec. A namespace .ts file
-    // imports the named schema/operation types it needs from its spec's module;
-    // some specs back several namespace files (fabric → addresses/registry/…).
-    calling: 'src/rest/namespaces/calling.types.generated.ts',
-    chat: 'src/rest/namespaces/chat.types.generated.ts',
-    datasphere: 'src/rest/namespaces/datasphere.types.generated.ts',
-    fabric: 'src/rest/namespaces/fabric.types.generated.ts',
-    fax: 'src/rest/namespaces/fax.types.generated.ts',
-    logs: 'src/rest/namespaces/logs.types.generated.ts',
-    message: 'src/rest/namespaces/message.types.generated.ts',
-    project: 'src/rest/namespaces/project.types.generated.ts',
-    pubsub: 'src/rest/namespaces/pubsub.types.generated.ts',
-    'relay-rest': 'src/rest/namespaces/relay-rest.types.generated.ts',
-    video: 'src/rest/namespaces/video.types.generated.ts',
-    voice: 'src/rest/namespaces/voice.types.generated.ts',
-  };
   const verb = CHECK ? 'checked' : 'generated';
   // Accumulate the resource-bearing docs so the client tree (RULES §8) can resolve
   // placement across ALL specs after the per-spec pass.
   const resourceDocs: Record<string, OpenApiDoc> = {};
-  for (const [specDir, outPath] of Object.entries(map)) {
+  for (const specDir of discoverSpecDirs(psdk)) {
+    const outPath = `src/rest/namespaces/${specDir}.types.generated.ts`;
     const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
-    // Spec-dir discovery is dynamic (mirrors the Python generator's
-    // ``spec_dirs``): a mapped spec whose dir is absent from the resolved
-    // porting-sdk is skipped, leaving its committed *.types.generated.ts in
-    // place — rather than throwing and breaking the whole prebuild.
-    if (!fs.existsSync(specPath)) {
-      console.log(`skipped ${specDir} (no spec at ${specPath}; using committed output)`);
-      continue;
-    }
     const n = await generateForSpec(specPath, outPath, specDir);
     console.log(`${verb} ${outPath} (${n} types)`);
 
