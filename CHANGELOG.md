@@ -3,6 +3,18 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.1.0
+
+Adds the plural **Projects** REST resource.
+
+### Added
+
+- `client.projects` — full-CRUD `Projects` resource bound to `/api/projects`
+  (list, get, create, update, delete) plus `rotateSigningKey` (POST
+  `/{id}/signing-key/rotate`). Generated from `porting-sdk/rest-apis/projects`
+  via the spec-discovery REST generator. Distinct from the singular
+  `project` token namespace (`/api/project/tokens`).
+
 ## 3.0.2
 
 Release-readiness milestone for the TypeScript SDK.

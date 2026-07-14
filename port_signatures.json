@@ -19357,6 +19357,112 @@
         }
       }
     },
+    "signalwire.rest.namespaces.projects_resources_generated": {
+      "classes": {
+        "Projects": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.projects_types_generated.ProjectCreate",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.projects_types_generated.Project"
+            },
+            "rotate_signing_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "class:signalwire.signalwire-typescript.src.rest.namespaces.projects.types.generated.ProjectWithSigningKey"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "class:signalwire.signalwire-typescript.src.rest.namespaces.projects_types_generated.ProjectUpdate",
+                  "required": true
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.projects_types_generated.Project"
+            }
+          },
+          "crud_base": {
+            "base": "CrudResource",
+            "bind": [
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.projects.resources.generated.ProjectList",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.projects.resources.generated.Project",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.projects.resources.generated.ProjectCreate",
+              "class:signalwire.signalwire-typescript.src.rest.namespaces.projects.resources.generated.ProjectUpdate"
+            ]
+          }
+        }
+      }
+    },
     "signalwire.rest.namespaces.pubsub_resources_generated": {
       "classes": {
         "PubSub": {
