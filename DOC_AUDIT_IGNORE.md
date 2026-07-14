@@ -27,11 +27,9 @@ toLocaleString: Date.prototype.toLocaleString() — JavaScript built-in
 toLocaleTimeString: Date.prototype.toLocaleTimeString() — JavaScript built-in
 toLowerCase: String.prototype.toLowerCase() — JavaScript built-in
 toUpperCase: String.prototype.toUpperCase() — JavaScript built-in
-trim: String.prototype.trim() — JavaScript built-in
 floor: Math.floor() — JavaScript built-in
 round: Math.round() — JavaScript built-in
 random: Math.random() — JavaScript built-in
-includes: Array.prototype.includes() / String.prototype.includes() — JavaScript built-in
 entries: Object.entries() / Map.prototype.entries() — JavaScript built-in
 digest: SubtleCrypto.digest() — Web Crypto API built-in
 exit: process.exit() — Node.js built-in
@@ -42,8 +40,8 @@ cwd: process.cwd() — Node.js built-in (ConfigLoader.search doc lists CWD as a 
 
 ## Hono (HTTP framework)
 
-use: Hono app.use(middleware) — Hono framework method; not on SDK classes
-fetch: Hono app.fetch(request) — Hono framework request entry point; not on SDK classes
+use: Hono app.use(middleware) — Hono framework method, not an SDK surface symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+fetch: Hono app.fetch(request) — Hono framework request entry point, not an SDK surface symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 
 ## Wire-level snake_case identifiers referenced in docs
 
@@ -54,25 +52,12 @@ reference tables and wire-shape examples. They are not TypeScript SDK API calls
 (the SDK exposes the camelCase form); the auditor sees the wire spelling and
 would otherwise flag it.
 
-ai_hold: RELAY RPC method `calling.ai_hold` (TS API: aiHold) — referenced in a wire/reference table
-ai_message: Python snake_case form of aiMessage — referenced in python-syntax doc block
-ai_unhold: Python snake_case form of aiUnhold — referenced in python-syntax doc block
-bind_digit: Python snake_case form of bindDigit — referenced in python-syntax doc block
-clear_digit_bindings: Python snake_case form of clearDigitBindings — referenced in python-syntax doc block
-leave_conference: Python snake_case form of leaveConference — referenced in python-syntax doc block
-leave_room: Python snake_case form of leaveRoom — referenced in python-syntax doc block
-list_orders: Python snake_case form of listOrders — referenced in python-syntax doc block
-phone_number: Python snake_case form of phoneNumber — referenced in python-syntax doc block
-play_and_collect: Python snake_case form of playAndCollect — referenced in python-syntax doc block
-send_message: Python snake_case form of sendMessage — referenced in python-syntax doc block
-set_global_data: Python snake_case form of setGlobalData — referenced in python-syntax doc block
-start_recording: Python snake_case form of startRecording — referenced in python-syntax doc block
 
 ## README/sub-doc audit (example-local user code, not SDK surface)
 
-buildDocument: example-local method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API
-buildVoicemailDocument: example-local helper defined within the swml_service_guide voicemail sample, not SDK API
-registerCustomerRoute: example-local helper in the swml_service_guide routing sample, not SDK API
-registerProductRoute: example-local helper in the swml_service_guide routing sample, not SDK API
-handleWeather: example-local handler function in the third_party_skills sample, not SDK API
-http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol
+buildDocument: reader-authored doc example — method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+buildVoicemailDocument: reader-authored doc example — helper defined within the swml_service_guide voicemail sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+registerCustomerRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+registerProductRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+handleWeather: reader-authored doc example — handler function in the third_party_skills sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13

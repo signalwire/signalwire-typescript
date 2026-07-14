@@ -383,6 +383,22 @@ sched_gate SNIPPET-COMPILE tier=nightly defer=1 desc="documented code snippets c
 sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port typescript --repo "$PORT_ROOT"
 
+# Wave-3 doc/API-truth gates — deterministic source/doc analysis (no build, no
+# mock, ~1.3s for all six). Per-PR tier: cheap enough to catch doc/API drift at
+# PR time rather than a day later in nightly.
+sched_gate ERROR-ENVELOPE desc="REST error carries the full (status,body,url,method) envelope + raised on >=400" \
+    -- python3 "$PORTING_SDK_DIR/scripts/error_envelope.py" --port typescript --repo "$PORT_ROOT"
+sched_gate DEAD-PUBLIC-ERROR desc="exported error types are raised/caught/user-signalled (no dead error surface)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/dead_public_error.py" --port typescript --repo "$PORT_ROOT"
+sched_gate PAGINATION-WIRED desc="shipped iterator-protocol paginator is wired into list()" \
+    -- python3 "$PORTING_SDK_DIR/scripts/pagination_wired.py" --port typescript --repo "$PORT_ROOT"
+sched_gate DOC-ENV desc="documented SIGNALWIRE_*/SWML_* env vars <=> code-read vars agree" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_env.py" --port typescript --repo "$PORT_ROOT"
+sched_gate COUNT-CLAIM desc="numeric doc claims (skills/namespaces) match reality" \
+    -- python3 "$PORTING_SDK_DIR/scripts/count_claim.py" --port typescript --repo "$PORT_ROOT"
+sched_gate ACCESSOR-TRUTH desc="documented backtick method() refs exist in source" \
+    -- python3 "$PORTING_SDK_DIR/scripts/accessor_truth.py" --port typescript --repo "$PORT_ROOT"
+
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
 
@@ -407,8 +423,8 @@ sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to
     -- python3 "$PORTING_SDK_DIR/scripts/readme_include.py" --port typescript --repo .
 sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port typescript --repo .
-sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
-    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo .
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries + all entries structured (reason/approver/date)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo . --require-fields
 sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
     -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port typescript --repo .
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
@@ -426,6 +442,13 @@ sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (held 
     -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port typescript --repo .
 sched_gate RELEASE-FRESH res=dayone desc="publish path is gated (gates run before publish)" \
     -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port typescript --repo .
+
+# SEMVER-DIFF — the version bump must match the public-API surface change since
+# the release floor. Reads port_signatures.json (SIGNATURES writes it) and diffs
+# it against the committed port_signatures.baseline.json floor. deps=SIGNATURES so
+# it compares the freshly-regenerated surface, not a stale on-disk copy.
+sched_gate SEMVER-DIFF deps=SIGNATURES desc="version bump matches API surface change vs port_signatures.baseline.json floor" \
+    -- python3 "$PORTING_SDK_DIR/scripts/semver_diff.py" --port typescript --repo "$PORT_ROOT"
 
 sched_run
 rc=$?

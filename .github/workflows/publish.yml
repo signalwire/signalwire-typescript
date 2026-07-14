@@ -27,6 +27,12 @@ jobs:
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
+      - name: Checkout signalwire-python (Layer-D oracle source)
+        uses: actions/checkout@v6
+        with:
+          repository: signalwire/signalwire-python
+          path: signalwire-python
+
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -47,9 +53,17 @@ jobs:
         working-directory: signalwire-typescript
         run: npm ci
 
-      - name: npm test
+      # Run the FULL CI gate battery before releasing, so a release is gated on
+      # the same checks a PR is. run-ci.sh resolves the adjacent porting-sdk
+      # checkout above and runs every gate; a red gate fails the job and blocks
+      # the release step below.
+      - name: Run CI gates (blocking)
         working-directory: signalwire-typescript
-        run: npm test
+        env:
+          CI: "true"
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+          PORTING_SDK_PATH: ${{ github.workspace }}/porting-sdk
+        run: bash scripts/run-ci.sh
 
       - name: npm publish
         working-directory: signalwire-typescript

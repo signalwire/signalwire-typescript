@@ -21,6 +21,7 @@ verify recipe) and the individual audit scripts.
 - audit_coverage_baseline.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
 - docs_audit_surface.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
 - port_signatures.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
+- port_signatures.baseline.json — release-floor artifact read at repo root by porting-sdk semver_diff.py (SEMVER-DIFF gate) (mike@signalwire.com, 2026-07-13)
 - port_surface.json — required audit-artifact file read by porting-sdk audit scripts (orchestrator, 2026-07-06)
 
 ## Gate allowlist files (each read by its gate at repo root)
