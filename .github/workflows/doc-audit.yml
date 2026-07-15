@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout TypeScript SDK
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: typescript-sdk
 
       - name: Checkout porting-sdk (contains audit_docs.py)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk

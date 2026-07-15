@@ -16,19 +16,19 @@ jobs:
       id-token: write
     steps:
       - name: Checkout signalwire-typescript
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: signalwire-typescript
 
       - name: Checkout porting-sdk (mock_relay test harness)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       - name: Checkout signalwire-python (Layer-D oracle source)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: signalwire/signalwire-python
           path: signalwire-python
