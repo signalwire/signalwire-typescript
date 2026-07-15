@@ -59,7 +59,7 @@ jobs:
       # triple. A HIT means these three SHAs already passed the heavy gates.
       - name: Probe last-green marker
         id: probe
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .nightly-green-marker
           key: ${{ steps.fp.outputs.cache_key }}
@@ -145,7 +145,7 @@ jobs:
       - name: Record green marker for this input triple
         run: 'echo "$GITHUB_SHA green $(date -u +%FT%TZ)" > .nightly-green-marker'
         working-directory: ${{ github.workspace }}
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         with:
           path: .nightly-green-marker
           key: ${{ needs.guard.outputs.cache_key }}
