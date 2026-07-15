@@ -323,6 +323,21 @@ function renderOptionsObject(opt: ParamSpec[], extras: boolean): string {
 }
 
 /**
+ * The local variable name for the assembled request-body object, chosen to NOT
+ * collide with any emitted parameter. Normally `body`; but a spec field literally
+ * named `body` (e.g. the Messages create/update bodies) becomes a `body` param —
+ * reusing `body` for the object then redeclares it (TS `Duplicate identifier`).
+ * Fall back to `body_` (then `body__` …) until free. Mirrors the Python
+ * generator's `_body_var`.
+ */
+function bodyVar(bodyParams: ParamSpec[]): string {
+  const names = new Set(bodyParams.map((p) => p.name));
+  let name = 'body';
+  while (names.has(name)) name += '_';
+  return name;
+}
+
+/**
  * Assemble the runtime body/params object: REQUIRED fields are read from their
  * leading positional params; OPTIONAL fields are read from `options?.<name>`
  * (sent only when defined — the server applies its own default for unset
@@ -443,8 +458,9 @@ function emitOperationMethod(
       bodyParams.push({ name, ann, required: flat.required.includes(key) });
     }
     sig = renderSignature(pathArgs, bodyParams, { extras: true, query: false });
-    preamble = renderBodyAssembly(bodyParams, true);
-    bodyExpr = 'body';
+    const bvar = bodyVar(bodyParams);
+    preamble = renderBodyAssembly(bodyParams, true, bvar);
+    bodyExpr = bvar;
   } else {
     const query = httpVerb === 'get';
     sig = renderSignature(pathArgs, [], { extras: false, query });

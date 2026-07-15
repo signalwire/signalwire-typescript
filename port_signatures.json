@@ -19237,6 +19237,132 @@
         }
       }
     },
+    "signalwire.rest.namespaces.messages_resources_generated": {
+      "classes": {
+        "Messages": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "class:signalwire.rest._base.HttpClient",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "to",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "from",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "body",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "media",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "send_as_mms",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "custom_variables",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.messages_types_generated.Message"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "message_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "extras",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "class:signalwire.rest.namespaces.messages_types_generated.Message"
+            }
+          }
+        }
+      }
+    },
     "signalwire.rest.namespaces.project_resources_generated": {
       "classes": {
         "ProjectTokens": {
