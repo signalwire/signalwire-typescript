@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 096b5fda2a8fe0518d96b22a1199de50007c3855",
+  "generated_from": "signalwire-typescript @ 9c7e8410e0ed1f3d6341aa03617083ba82bf5daa",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -2462,6 +2462,28 @@
         "TokenResponse": [],
         "TokenStatusCode422": [],
         "UpdateTokenRequest": []
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.projects_resources_generated": {
+      "classes": {
+        "Projects": [
+          "__init__",
+          "create",
+          "rotate_signing_key",
+          "update"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.projects_types_generated": {
+      "classes": {
+        "Project": [],
+        "ProjectWithSigningKey": [],
+        "ProjectCreate": [],
+        "ProjectUpdate": [],
+        "ProjectList": [],
+        "ProjectStatusCode422": []
       },
       "functions": []
     },
