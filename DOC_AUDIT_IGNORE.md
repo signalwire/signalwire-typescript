@@ -37,6 +37,8 @@ uptime: process.uptime() — Node.js built-in
 memoryUsage: process.memoryUsage() — Node.js built-in
 createServer: https.createServer() / http.createServer() — Node.js built-in
 cwd: process.cwd() — Node.js built-in (ConfigLoader.search doc lists CWD as a search path)
+Date: new Date() — JavaScript built-in constructor (README quick-start tool handler)
+randomUUID: crypto.randomUUID() — Web Crypto API built-in (RELAY guide internal-dial sketch)
 
 ## Hono (HTTP framework)
 
@@ -61,3 +63,9 @@ registerCustomerRoute: reader-authored doc example — helper in the swml_servic
 registerProductRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 handleWeather: reader-authored doc example — handler function in the third_party_skills sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
+
+## Third-party / cross-language / internal-sketch identifiers (widened doc perimeter)
+
+object: Zod z.object(...) schema builder in the livewire migration-guide examples, not a SignalWire symbol; reason: third-party (Zod) API referenced in migration examples, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-15
+dispatchEvent: internal RELAY dispatch loop sketch (call.dispatchEvent(payload)) in RELAY_IMPLEMENTATION_GUIDE, an SDK-implementation illustration not part of the public API; reason: internal-implementation sketch (marked no-compile) absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-15
+contains: illustrative pseudo-code err.contains(...) in CHECKLIST rule #7 describing a BANNED stub-test assertion pattern, not a call the SDK makes; reason: illustrative/prose identifier absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-15

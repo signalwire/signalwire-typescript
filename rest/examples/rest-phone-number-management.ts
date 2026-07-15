@@ -17,7 +17,7 @@ const client = new RestClient();
 async function main() {
   // 1. Search for available phone numbers
   console.log('Searching available numbers...');
-  const available = await client.phoneNumbers.search({ area_code: '512', max_results: 3 });
+  const available = await client.phoneNumbers.search({ areacode: '512', max_results: 3 });
   for (const num of available.data ?? []) {
     console.log(`  - ${num.number ?? 'unknown'}`);
   }
