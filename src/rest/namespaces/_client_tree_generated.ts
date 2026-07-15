@@ -30,6 +30,7 @@ import {
 import { FaxLogs } from './fax.resources.generated.js';
 import { ConferenceLogs } from './logs.resources.generated.js';
 import { MessageLogs } from './message.resources.generated.js';
+import { Messages } from './messages.resources.generated.js';
 import { ProjectTokens } from './project.resources.generated.js';
 import { Projects } from './projects.resources.generated.js';
 import { PubSub } from './pubsub.resources.generated.js';
@@ -181,6 +182,7 @@ export class _GeneratedResourceTree {
   chat!: Chat;
   importedNumbers!: ImportedNumbers;
   lookup!: Lookup;
+  messages!: Messages;
   mfa!: Mfa;
   numberGroups!: NumberGroups;
   phoneNumbers!: PhoneNumbers;
@@ -204,6 +206,7 @@ export class _GeneratedResourceTree {
     this.chat = new Chat(http);
     this.importedNumbers = new ImportedNumbers(http);
     this.lookup = new Lookup(http);
+    this.messages = new Messages(http);
     this.mfa = new Mfa(http);
     this.numberGroups = new NumberGroups(http);
     this.phoneNumbers = new PhoneNumbers(http);

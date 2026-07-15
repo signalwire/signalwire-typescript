@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 9c7e8410e0ed1f3d6341aa03617083ba82bf5daa",
+  "generated_from": "signalwire-typescript @ 7bae8607071f0164854222dc38c460b7862879b5",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -2441,6 +2441,29 @@
         "MessageLog": [],
         "MessageLogShowStatusCode422": [],
         "MessageLogsListStatusCode422": []
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.messages_resources_generated": {
+      "classes": {
+        "Messages": [
+          "__init__",
+          "create",
+          "update"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.messages_types_generated": {
+      "classes": {
+        "CreateMessageRequest": [],
+        "UpdateMessageRequest": [],
+        "Message": [],
+        "MessageStatus": [],
+        "MessageDirection": [],
+        "MessageKind": [],
+        "MessagesCreateStatusCode422": [],
+        "MessagesUpdateStatusCode422": []
       },
       "functions": []
     },
