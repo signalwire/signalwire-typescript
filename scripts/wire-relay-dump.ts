@@ -249,7 +249,8 @@ async function main(): Promise<void> {
     const dialPromise = client
       .dial([[{ type: 'phone', params: { to_number: '+15551112222' } }]] as any, {
         tag: 'dial-1',
-        maxDuration: 600,
+        region: 'us',
+        maxPricePerMinute: 0.05,
         dialTimeout: 2,
       })
       .catch(() => undefined);
