@@ -271,6 +271,8 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |
+| `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`; default `wss`). Precedence: `scheme` option > `SIGNALWIRE_RELAY_SCHEME` > `wss`; any value other than `ws`/`wss` falls back to `wss`. |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
 | `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |
 | `SWML_PROXY_URL_BASE` | Agents | Base URL when behind a reverse proxy |
