@@ -445,7 +445,7 @@ sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressi
     -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port typescript --repo "$PORT_ROOT"
 
 # ---- §D1 packaging ----------------------------------------------------------
-sched_gate PACKAGE-SMOKE defer=1 desc="the real publishable package builds, installs, and imports from a clean env" \
+sched_gate PACKAGE-SMOKE tier=nightly defer=1 desc="the real publishable package builds, installs, and imports from a clean env" \
     -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port typescript --repo "$PORT_ROOT"
 
 # ---- Day-one deterministic gates (BLOCKING, non-report-only) -----------------
@@ -460,7 +460,7 @@ sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at rep
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port typescript --repo .
 sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries + all entries structured (reason/approver/date)" \
     -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port typescript --repo . --require-fields
-sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
+sched_gate META-CONSISTENT tier=nightly res=dayone desc="package metadata consistency" \
     -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port typescript --repo .
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
     --fn dayone_artifact_deny
