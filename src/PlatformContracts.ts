@@ -22,4 +22,6 @@ export type {
   SwmlRequestData,
   SwmlRequestCall,
   SignalWireErrorBody,
+  PostPromptConversationTurn,
+  PostPromptFunctionCall,
 } from './PlatformContracts.generated.js';

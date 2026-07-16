@@ -209,6 +209,15 @@ sched_gate PACKAGE-SMOKE-DUAL tier=nightly defer=1 desc="packed tarball loads vi
     -- bash "$PORT_ROOT/scripts/package-smoke-dual.sh"
 
 # ---- gates that stay standalone (native toolchains + singletons) -------------
+# GEN-FRESH-PUBLIC: the public re-export barrels (src/{rest,relay}/types.public.generated.ts)
+# must still match the committed generated type files they re-export. It belongs to the
+# GEN-FRESH family by name but not by engine: the generator is repo-local and reads only
+# the committed *.types.generated.ts, with no porting-sdk involvement, so it stays out of
+# the GEN suite above and runs standalone. Relative paths are safe here, run-ci.sh does
+# `cd "$PORT_ROOT"` before registering any gate.
+sched_gate GEN-FRESH-PUBLIC desc="public type barrels match the committed generated DTOs (--check)" \
+    -- npx tsx scripts/generate-public-types.ts --check
+
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
