@@ -14439,35 +14439,6 @@
               ],
               "returns": "any"
             },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
             "update": {
               "params": [
                 {

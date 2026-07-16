@@ -119,7 +119,7 @@ if (agent.hasSkill('web_search')) {
 
 ## Built-in Skills
 
-The SDK ships with 17 built-in skills (matching the Python reference set), plus two TS-specific helper skills (`custom_skills`, `ask_claude`; see `PORT_ADDITIONS.md`), organized into three tiers based on complexity and dependency requirements.
+The SDK ships with 19 built-in skills — 17 matching the Python reference set, plus two TS-specific helper skills (`custom_skills`, `ask_claude`; see `PORT_ADDITIONS.md`) — organized into three tiers based on complexity and dependency requirements.
 
 ### Tier 1: Simple (No External Dependencies)
 

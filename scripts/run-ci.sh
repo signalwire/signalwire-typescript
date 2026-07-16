@@ -105,7 +105,13 @@ source "$PORTING_SDK_DIR/scripts/gate_scheduler.sh"
 
 cd "$PORT_ROOT"
 
+# Gate-enforcement plan (Part D): typescript's Wave-A red list is burned, so its
+# widened (wave-A) gate findings BLOCK rather than report-only. Default OFF here;
+# a caller may still set SW_WAVE_A_REPORT_ONLY=1 to inspect the report-only view.
+export SW_WAVE_A_REPORT_ONLY="${SW_WAVE_A_REPORT_ONLY:-0}"
+
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
+echo "==> wave-A gate findings are ${SW_WAVE_A_REPORT_ONLY:+BLOCKING (SW_WAVE_A_REPORT_ONLY=$SW_WAVE_A_REPORT_ONLY)}"
 
 # ---- gate helper functions (unchanged bodies; run as --fn gates) -------------
 
@@ -399,11 +405,40 @@ sched_gate COUNT-CLAIM desc="numeric doc claims (skills/namespaces) match realit
 sched_gate ACCESSOR-TRUTH desc="documented backtick method() refs exist in source" \
     -- python3 "$PORTING_SDK_DIR/scripts/accessor_truth.py" --port typescript --repo "$PORT_ROOT"
 
-sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
+# DOC-WIRE (§2.1) — the documented REST doc fixtures put the SPEC wire shape on the
+# wire (areacode not area_code, number_type not numberType, nested params:{text}).
+# doc_wire_runner.ts replays the documented REST calls against a strict-flag mock
+# that journals wire_violations; the gate fails on any. Cheap (per-PR).
+sched_gate DOC-WIRE desc="documented REST doc fixtures put the spec wire shape on the wire (areacode/number_type/params:{text})" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_wire.py" --port typescript --repo "$PORT_ROOT" \
+        --runner "npx tsx $PORT_ROOT/scripts/doc_wire_runner.ts"
 
-sched_gate SNIPPET-RUN tier=nightly defer=1 desc="documented doc snippets run to a zero exit against the mock (fragments auto-skip; server/live snippets are no-run)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT"
+# STATUS-CLAIM (§2.3) — no false capability/status claims in docs (e.g. "not
+# implemented" / "transport pending" for surface that exists). Cheap (per-PR).
+sched_gate STATUS-CLAIM desc="doc status/capability claims match the shipped surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/status_claim.py" --port typescript --repo "$PORT_ROOT" \
+        --surface "$PORT_ROOT/port_surface.json"
+
+# STRICT-MOCKS: MOCK_RELAY_STRICT=1 makes the mock REJECT an off-contract wire
+# frame instead of silently tolerating it, so a doc/example that puts the wrong
+# shape on the wire fails loud. Applied to the nightly execution gates.
+sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate SNIPPET-RUN tier=nightly defer=1 desc="documented doc snippets run to a zero exit against the mock (fragments auto-skip; server/live snippets are no-run; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port typescript --repo "$PORT_ROOT"
+
+# WAIT-LIVENESS (§2.4) — the RELAY Action.wait() liveness contract: wait() BLOCKS
+# until the deferred completing event arrives, then returns with the finished state
+# (never a no-op that returns at t~=0, never a hang). scripts/wait-liveness-dump.ts
+# drives the play/record corpus against a real mock_relay with the completing event
+# armed as a delay_ms scenario and prints the classification per case; the differ
+# builds the python golden and structurally compares. Nightly (spawns a dump program;
+# timing-sensitive).
+sched_gate WAIT-LIVENESS tier=nightly defer=1 desc="RELAY Action.wait() blocks-until-event liveness matches the python golden" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wait_liveness.py" --port typescript \
+        --python-sdk "$PYTHON_SDK_DIR" \
+        --dump-cmd "SIGNALWIRE_LOG_MODE=off npx tsx $PORT_ROOT/scripts/wait-liveness-dump.ts"
 
 # ---- §G anti-laundering ledger ----------------------------------------------
 sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions" \

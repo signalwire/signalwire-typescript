@@ -33,12 +33,12 @@ await client.calling.dial('+15559876543', '+15551234567', {
 
 - Single `RestClient` with namespaced sub-objects for every API
 - All 37 calling commands: dial, play, record, collect, detect, tap, stream, AI, transcribe, and more
-- Full Fabric API: 17 resource types with CRUD + addresses, tokens, and generic resources
+- Full Fabric API: 16 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
 - Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
-- Zero dependencies — uses built-in `fetch` (Node 18+)
+- Uses the platform's built-in `fetch` (Node 22+); a small set of runtime dependencies (`hono`, `@hono/node-server`, `ajv`, `js-yaml`, `ws`) power the agent/server layer
 - Injectable `fetchImpl` for testing
 
 ## Documentation
@@ -83,7 +83,7 @@ src/rest/
         CrudResource.ts      # list/create/get/update/delete with generics
         CrudWithAddresses.ts # CrudResource + listAddresses()
     namespaces/
-        fabric.ts        # 17 resource types + generic resources + addresses + tokens
+        fabric.ts        # 13 resource types + generic resources + addresses + tokens
         calling.ts       # 37 command dispatch methods via single POST
         phone-numbers.ts # Search, purchase, update, release
         compat.ts        # Twilio-compatible LAML API (12 sub-resources)

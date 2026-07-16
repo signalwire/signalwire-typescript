@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 7bae8607071f0164854222dc38c460b7862879b5",
+  "generated_from": "signalwire-typescript @ eef48962a88fcc2522c7c3e9d5be12d65521fcbc",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1646,8 +1646,6 @@
         "CrudResource": [
           "create",
           "delete",
-          "get",
-          "list",
           "update"
         ],
         "CrudWithAddresses": [

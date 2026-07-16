@@ -115,7 +115,7 @@ await client.calling.end('call-id');
 <!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
 await client.phoneNumbers.list();
-await client.phoneNumbers.search({ area_code: '512' });
+await client.phoneNumbers.search({ areacode: '512' });
 await client.phoneNumbers.create({ number: '+15551234567' }); // Purchase
 await client.phoneNumbers.update('id', { name: 'Main Line' });
 await client.phoneNumbers.delete('id'); // Release

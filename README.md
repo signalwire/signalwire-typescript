@@ -166,7 +166,7 @@ const client = new RestClient({
 
 await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
 await client.calling.play(callId, [{ type: 'tts', params: { text: 'Hello!' } }]);
-await client.phoneNumbers.search({ area_code: '512' });
+await client.phoneNumbers.search({ areacode: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
@@ -191,12 +191,13 @@ package.
 ```typescript
 import { validateRequest } from '@signalwire/sdk';
 
-// Parsed form params (classic cXML/Compat webhooks) —
-// the equivalent of RestClient.validateRequest():
+// Parsed form params (classic cXML/Compat webhooks) — this one call replaces
+// the two Python-SDK entry points (validateRequest for parsed params and
+// validateRequestWithBody for raw bodies): TS unifies both behind validateRequest.
 const ok = validateRequest(signingKey, signatureHeader, fullUrl, requestParams);
 
 // Raw request body (JSON/SWML, or cXML form bodies that carry bodySHA256) —
-// the equivalent of RestClient.validateRequestWithBody():
+// same unified function, passed the raw body string instead of parsed params.
 const okBody = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
 ```
 

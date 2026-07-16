@@ -3,16 +3,21 @@
  */
 
 import type { HttpClient } from '../HttpClient.js';
-import type { QueryParams } from '../types.js';
-import { BaseResource } from './BaseResource.js';
+import { ReadResource } from './ReadResource.js';
 
 /**
  * Generic CRUD resource with configurable update method.
  *
- * Provides `list()`, `create()`, `get()`, `update()`, and `delete()` out of the
- * box — most namespace resources extend this and narrow the generic types.
- * `_updateMethod` may be overridden to `'PUT'` for APIs that replace instead
- * of patch.
+ * Provides `list()`, `paginate()`, `get()`, `create()`, `update()`, and
+ * `delete()` out of the box — most namespace resources extend this and narrow
+ * the generic types. `_updateMethod` may be overridden to `'PUT'` for APIs that
+ * replace instead of patch.
+ *
+ * Extends {@link ReadResource} (mirroring Python's `CrudResource(ReadResource)`)
+ * so every CRUD resource inherits the `list()`/`get()`/`paginate()` read surface
+ * — in particular the async-iterator `paginate()`. A prior version extended
+ * `BaseResource` directly and re-declared `list()`/`get()`, which silently left
+ * `paginate()` OFF every CRUD resource (a real runtime gap the hierarchy now closes).
  *
  * @typeParam TList - Type of the paginated list response.
  * @typeParam TItem - Type of a single resource item.
@@ -24,23 +29,12 @@ export class CrudResource<
   TItem = unknown,
   TCreate = unknown,
   TUpdate = unknown,
-> extends BaseResource {
+> extends ReadResource<TList, TItem> {
   /** Override to 'PUT' for resources that use PUT instead of PATCH. */
   protected _updateMethod: 'PATCH' | 'PUT' = 'PATCH';
 
   constructor(http: HttpClient, basePath: string) {
     super(http, basePath);
-  }
-
-  /**
-   * List resources with optional query parameters.
-   *
-   * @param params - Optional filter / pagination query parameters.
-   * @returns The paginated list response.
-   * @throws {RestError} On any non-2xx HTTP response.
-   */
-  async list(params?: QueryParams): Promise<TList> {
-    return this._http.get<TList>(this._basePath, params);
   }
 
   /**
@@ -52,17 +46,6 @@ export class CrudResource<
    */
   async create(body: TCreate): Promise<TItem> {
     return this._http.post<TItem>(this._basePath, body);
-  }
-
-  /**
-   * Fetch a single resource by ID.
-   *
-   * @param resourceId - Unique identifier of the resource.
-   * @returns The resource record.
-   * @throws {RestError} On any non-2xx HTTP response (including `404`).
-   */
-  async get(resourceId: string): Promise<TItem> {
-    return this._http.get<TItem>(this._path(resourceId));
   }
 
   /**
