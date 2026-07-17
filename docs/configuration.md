@@ -86,6 +86,15 @@ The SDK reads the following environment variables at startup. All are optional.
 |---|---|---|---|
 | `PORT` | `number` | `3000` | HTTP server port. Overridden by the constructor `port` option. |
 
+### RELAY Connection
+
+Read by the `RelayClient` constructor. Credentials (`SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_JWT_TOKEN`, `SIGNALWIRE_SPACE`) fall back to these env vars when the corresponding constructor option is omitted; the two below override the RELAY WebSocket endpoint itself.
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `SIGNALWIRE_RELAY_HOST` | `string` | -- | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |
+| `SIGNALWIRE_RELAY_SCHEME` | `"ws" \| "wss"` | `"wss"` | Override the RELAY WebSocket scheme (`ws`/`wss`; default `wss`). Precedence: `scheme` option > `SIGNALWIRE_RELAY_SCHEME` > `wss`; any value other than `ws`/`wss` falls back to `wss`. |
+
 ### Authentication
 
 | Variable | Type | Default | Description |
