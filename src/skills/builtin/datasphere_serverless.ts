@@ -76,7 +76,7 @@ export class DataSphereServerlessSkill extends SkillBase {
         description: 'SignalWire API token',
         required: true,
         hidden: true,
-        env_var: 'SIGNALWIRE_TOKEN',
+        env_var: 'SIGNALWIRE_API_TOKEN',
       },
       document_id: {
         type: 'string',

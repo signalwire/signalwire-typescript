@@ -5,7 +5,7 @@
  * variables, showing best practices for production deployment.
  *
  * Required env vars:
- *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN,
+ *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
  *   DATASPHERE_DOCUMENT_ID
  *
  * Optional env vars:
@@ -21,7 +21,7 @@ function requireEnv(name: string): string {
   if (!value) {
     console.error(`Error: Required environment variable ${name} is not set.`);
     console.error(
-      'Required: SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, DATASPHERE_DOCUMENT_ID',
+      'Required: SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, DATASPHERE_DOCUMENT_ID',
     );
     process.exit(1);
   }

@@ -3,7 +3,7 @@
  *
  * Tier 3 built-in skill matching the Python SDK. All credentials (`space_name`,
  * `project_id`, `token`) and `document_id` are supplied via skill params. Env
- * var fallbacks (`SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE`)
+ * var fallbacks (`SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE`)
  * are honored when the corresponding param is not set.
  */
 
@@ -55,7 +55,7 @@ interface DataSphereResponse {
  * Searches SignalWire DataSphere for knowledge base content using semantic search.
  *
  * Tier 3 built-in skill. Credentials can be supplied via params or fall back to
- * `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, and `SIGNALWIRE_SPACE` environment
+ * `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, and `SIGNALWIRE_SPACE` environment
  * variables. Supports `count`, `distance`, `tags`, `language`, `pos_to_expand`,
  * `max_synonyms`, and `no_results_message` config options.
  *
@@ -103,7 +103,7 @@ export class DataSphereSkill extends SkillBase {
         description: 'SignalWire API token',
         required: true,
         hidden: true,
-        env_var: 'SIGNALWIRE_TOKEN',
+        env_var: 'SIGNALWIRE_API_TOKEN',
       },
       document_id: {
         type: 'string',
@@ -198,7 +198,7 @@ export class DataSphereSkill extends SkillBase {
       this.getConfig<string | undefined>('project_id', undefined) ??
       process.env['SIGNALWIRE_PROJECT_ID'];
     const token =
-      this.getConfig<string | undefined>('token', undefined) ?? process.env['SIGNALWIRE_TOKEN'];
+      this.getConfig<string | undefined>('token', undefined) ?? process.env['SIGNALWIRE_API_TOKEN'];
     const documentId = this.getConfig<string | undefined>('document_id', undefined);
     const missing: string[] = [];
     if (!spaceName) missing.push('space_name');
@@ -262,14 +262,14 @@ export class DataSphereSkill extends SkillBase {
             process.env['SIGNALWIRE_PROJECT_ID'];
           const token =
             this.getConfig<string | undefined>('token', undefined) ??
-            process.env['SIGNALWIRE_TOKEN'];
+            process.env['SIGNALWIRE_API_TOKEN'];
           const space =
             this.getConfig<string | undefined>('space_name', undefined) ??
             process.env['SIGNALWIRE_SPACE'];
 
           if (!projectId || !token || !space) {
             return new FunctionResult(
-              'DataSphere is not configured. The SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, and SIGNALWIRE_SPACE environment variables (or equivalent config params) are required.',
+              'DataSphere is not configured. The SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables (or equivalent config params) are required.',
             );
           }
 

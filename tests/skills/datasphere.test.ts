@@ -80,7 +80,7 @@ describe('DataSphereSkill', () => {
 
   it('should return error when credentials are missing', async () => {
     delete process.env['SIGNALWIRE_PROJECT_ID'];
-    delete process.env['SIGNALWIRE_TOKEN'];
+    delete process.env['SIGNALWIRE_API_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
     const handler = new DataSphereSkill().getTools()[0]!.handler;
     const result = (await handler({ query: 'test' }, {})) as FunctionResult;

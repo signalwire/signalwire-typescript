@@ -254,8 +254,8 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 | `web_search` | `WebSearchSkill` | Google Custom Search | `web_search` | `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID` | `num_results`, `tool_name`, `no_results_message`, `safe_search`, `delay`, `max_content_length`, `oversample_factor`, `min_quality_score` |
 | `wikipedia_search` | `WikipediaSearchSkill` | Wikipedia article summaries | `search_wiki` | None | `num_results`, `no_results_message`, `language`, `max_content_length` |
 | `google_maps` | `GoogleMapsSkill` | Address geocoding + coordinate routing | `lookup_address`, `compute_route` | `GOOGLE_MAPS_API_KEY` | `lookup_tool_name`, `route_tool_name` |
-| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
-| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
+| `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
+| `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
 | `spider` | `SpiderSkill` | Web page scraping via Spider API | `scrape_url` | `SPIDER_API_KEY` | `max_content_length` |
 | `claude_skills` | `ClaudeSkillsSkill` | Load Claude SKILL.md files as tools | (dynamic) | None | `skills_path`, `include`, `exclude`, `tool_prefix` |
@@ -879,7 +879,7 @@ This two-layer approach (warn at registration, error at call time) allows agents
 | `GOOGLE_SEARCH_ENGINE_ID` | `web_search` |
 | `GOOGLE_MAPS_API_KEY` | `google_maps` |
 | `SIGNALWIRE_PROJECT_ID` | `datasphere`, `datasphere_serverless` |
-| `SIGNALWIRE_TOKEN` | `datasphere`, `datasphere_serverless` |
+| `SIGNALWIRE_API_TOKEN` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_SPACE` | `datasphere`, `datasphere_serverless` |
 | `SPIDER_API_KEY` | `spider` |
 | `ANTHROPIC_API_KEY` | `ask_claude` |

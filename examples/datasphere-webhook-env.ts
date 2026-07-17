@@ -5,7 +5,7 @@
  * configuration. Compare with datasphere-serverless-env.ts for the serverless approach.
  *
  * Required env vars:
- *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN,
+ *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN,
  *   DATASPHERE_DOCUMENT_ID
  *
  * Run: npx tsx examples/datasphere-webhook-env.ts
