@@ -11,7 +11,7 @@ Format: `- <path> — <reason>` (date).
 ## Skill examples requiring real provider credentials / config
 
 - examples/datasphere.ts — DataSphereSkill.setup() fails-loud on missing required params (space_name, project_id, token, document_id); needs a real SignalWire DataSphere knowledge base (2026-07-09).
-- examples/datasphere-serverless-env.ts — requires SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, DATASPHERE_DOCUMENT_ID env vars for a real DataSphere document (2026-07-09).
+- examples/datasphere-serverless-env.ts — requires SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, DATASPHERE_DOCUMENT_ID env vars for a real DataSphere document (2026-07-09).
 - examples/datasphere-webhook-env.ts — same real-DataSphere env-var requirement as datasphere-serverless-env.ts (2026-07-09).
 - examples/web-search.ts — WebSearchSkill requires GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_ENGINE_ID (real Google Programmable Search creds) (2026-07-09).
 - examples/web-search-multi-instance.ts — same `GOOGLE_SEARCH_*` real-creds requirement as web-search.ts (2026-07-09).

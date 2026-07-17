@@ -744,10 +744,10 @@ describe('DataSphereSkill', () => {
 
   it('should return error when env vars are not set', async () => {
     const origPid = process.env['SIGNALWIRE_PROJECT_ID'];
-    const origToken = process.env['SIGNALWIRE_TOKEN'];
+    const origToken = process.env['SIGNALWIRE_API_TOKEN'];
     const origSpace = process.env['SIGNALWIRE_SPACE'];
     delete process.env['SIGNALWIRE_PROJECT_ID'];
-    delete process.env['SIGNALWIRE_TOKEN'];
+    delete process.env['SIGNALWIRE_API_TOKEN'];
     delete process.env['SIGNALWIRE_SPACE'];
     const skill = createDataSphereSkill();
     const handler = skill.getTools()[0]!.handler;
@@ -756,7 +756,7 @@ describe('DataSphereSkill', () => {
     expect(result.response).toContain('not configured');
     expect(result.response).toContain('SIGNALWIRE_PROJECT_ID');
     if (origPid !== undefined) process.env['SIGNALWIRE_PROJECT_ID'] = origPid;
-    if (origToken !== undefined) process.env['SIGNALWIRE_TOKEN'] = origToken;
+    if (origToken !== undefined) process.env['SIGNALWIRE_API_TOKEN'] = origToken;
     if (origSpace !== undefined) process.env['SIGNALWIRE_SPACE'] = origSpace;
   });
 });
