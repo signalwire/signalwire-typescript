@@ -306,7 +306,11 @@ import { SkillRegistry as _SkillRegistry } from './skills/SkillRegistry.js';
 import type { SkillSchemaInfo as _SkillSchemaInfo } from './skills/SkillRegistry.js';
 import type { SkillBase as _SkillBase } from './skills/SkillBase.js';
 import { RestClient as _RestClient } from './rest/index.js';
-import type { ClientOptions as _ClientOptions } from './rest/types.js';
+import type {
+  ClientCredentials as _ClientCredentials,
+  ClientOptions as _ClientOptions,
+  ClientTransportOptions as _ClientTransportOptions,
+} from './rest/types.js';
 
 /**
  * Construct a {@link _RestClient | RestClient} instance.
@@ -345,6 +349,10 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
  * ```
  */
 
+export function restClient(opts?: _ClientTransportOptions): _RestClient;
+export function restClient(
+  opts: _ClientCredentials & _ClientTransportOptions,
+): _RestClient;
 export function restClient(opts?: _ClientOptions): _RestClient {
   // Runtime back-compat: tolerate the legacy ``restClient([], { ...opts })``
   // shape (a leading positional array, with the real options as the second
