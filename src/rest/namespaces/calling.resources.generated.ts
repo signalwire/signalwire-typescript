@@ -144,7 +144,7 @@ export class Calling extends BaseResource {
       role?: 'system' | 'user' | 'assistant';
       message_text?: string;
       reset?: CallAIMessageResetParams;
-      global_data?: Record<string, Record<string, unknown>>;
+      global_data?: Record<string, unknown>;
       extras?: Record<string, unknown>;
     },
   ): Promise<CallResponse> {
@@ -225,7 +225,7 @@ export class Calling extends BaseResource {
 
   async userEvent(
     callId: string,
-    event: Record<string, Record<string, unknown>>,
+    event: Record<string, unknown>,
     options?: { extras?: Record<string, unknown> },
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};

@@ -65,7 +65,7 @@ export interface Answer {
     username?: string;
     /** Password to use for SIP authentication. */
     password?: string;
-    [key: string]: Record<string, unknown> | number | SWMLVar | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -98,7 +98,7 @@ export interface Connect {
 export interface Denoise {
   /** Start noise reduction. You can stop it at any time using `stop_denoise`. */
   denoise?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -116,26 +116,17 @@ export interface Execute {
     dest: string;
     /** Named parameters to send to section or URL */
     params?: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
     /** User-defined metadata, ignored by SignalWire */
     meta?: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
     /** The list of SWML instructions to be executed when the executed section or URL returns */
     on_return?: SWMLMethod[];
     /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
     result?: ExecuteSwitch | CondParams[];
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | {
-          [key: string]: Record<string, unknown>;
-        }
-      | SWMLMethod[]
-      | ExecuteSwitch
-      | CondParams[]
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -149,7 +140,7 @@ export interface Goto {
     when?: string;
     /** The maximum number of times to perform the jump. Must be a number between 1 and 100. Default `100`. */
     max?: number | SWMLVar;
-    [key: string]: Record<string, unknown> | string | number | SWMLVar | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -165,7 +156,7 @@ export interface LiveTranscribe {
   live_transcribe?: {
     /** The action to perform during live transcription. */
     action: TranscribeAction;
-    [key: string]: Record<string, unknown> | TranscribeAction;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -175,7 +166,7 @@ export interface LiveTranslate {
   live_translate?: {
     /** The action to perform during live translation. */
     action: TranslateAction;
-    [key: string]: Record<string, unknown> | TranslateAction;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -185,7 +176,7 @@ export interface Hangup {
   hangup?: {
     /** The reason for hanging up the call. */
     reason?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -195,7 +186,7 @@ export interface JoinRoom {
   join_room?: {
     /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
     name: string;
-    [key: string]: Record<string, unknown> | string;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -245,21 +236,7 @@ export interface Prompt {
     speech_engine?: string;
     /** http or https URL to deliver prompt status events */
     status_url?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | play_url
-      | play_url[]
-      | SWMLVar
-      | SWMLVar[]
-      | number
-      | string
-      | 'male'
-      | 'female'
-      | number
-      | SWMLVar
-      | string[]
-      | SWMLVar[]
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -269,7 +246,7 @@ export interface ReceiveFax {
   receive_fax?: {
     /** http or https URL to deliver receive_fax status events */
     status_url?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -297,19 +274,7 @@ export interface Record_ {
     max_length?: number | SWMLVar;
     /** URL to send recording status events to. */
     status_url?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | boolean
-      | SWMLVar
-      | 'wav'
-      | 'mp3'
-      | 'mp4'
-      | 'speak'
-      | 'listen'
-      | string
-      | number
-      | SWMLVar
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -339,20 +304,7 @@ export interface RecordCall {
     max_length?: number | SWMLVar;
     /** http or https URL to deliver record_call status events */
     status_url?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | boolean
-      | SWMLVar
-      | 'wav'
-      | 'mp3'
-      | 'mp4'
-      | 'speak'
-      | 'listen'
-      | 'both'
-      | number
-      | SWMLVar
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -366,13 +318,13 @@ export interface Request {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
     /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
     headers?: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
     /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type */
     body?:
       | string
       | {
-          [key: string]: Record<string, unknown>;
+          [key: string]: unknown;
         };
     /** Maximum time in seconds to wait for a response. */
     timeout?: number | SWMLVar;
@@ -380,25 +332,7 @@ export interface Request {
     connect_timeout?: number | SWMLVar;
     /** Store parsed JSON response as variables. */
     save_variables?: boolean | SWMLVar;
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | 'GET'
-      | 'POST'
-      | 'PUT'
-      | 'DELETE'
-      | {
-          [key: string]: Record<string, unknown>;
-        }
-      | string
-      | {
-          [key: string]: Record<string, unknown>;
-        }
-      | number
-      | SWMLVar
-      | boolean
-      | SWMLVar
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -414,7 +348,7 @@ export interface SendDigits {
   send_digits?: {
     /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
     digits: string;
-    [key: string]: Record<string, unknown> | string;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -430,7 +364,7 @@ export interface SendFax {
     identity?: string;
     /** http or https URL to deliver send_fax status events */
     status_url?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -444,7 +378,7 @@ export interface SendSMS {
 export interface Set_ {
   /** Set script variables to the specified values. */
   set?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -455,7 +389,7 @@ export interface Sleep {
     | {
         /** The amount of time to sleep in milliseconds. */
         duration: number | SWMLVar;
-        [key: string]: Record<string, unknown> | number | SWMLVar;
+        [key: string]: unknown;
       }
     | number
     | SWMLVar;
@@ -473,7 +407,7 @@ export interface SIPRefer {
     username?: string;
     /** Password to use for SIP authentication. */
     password?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -481,7 +415,7 @@ export interface SIPRefer {
 export interface StopDenoise {
   /** Stop noise reduction that was started with denoise. */
   stop_denoise?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -491,7 +425,7 @@ export interface StopRecordCall {
   stop_record_call?: {
     /** Identifier for the recording to stop. */
     control_id?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -501,7 +435,7 @@ export interface StopTap {
   stop_tap?: {
     /** ID of the tap to stop. */
     control_id?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -517,14 +451,7 @@ export interface Switch {
     };
     /** Array of SWML methods to execute if no cases match. */
     default?: SWMLMethod[];
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | {
-          [key: string]: SWMLMethod[];
-        }
-      | SWMLMethod[]
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -544,17 +471,7 @@ export interface Tap {
     rtp_ptime?: number | SWMLVar;
     /** http or https URL to deliver tap status events */
     status_url?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | 'speak'
-      | 'listen'
-      | 'both'
-      | 'PCMU'
-      | 'PCMA'
-      | number
-      | SWMLVar
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -566,19 +483,13 @@ export interface Transfer {
     dest: string;
     /** Named parameters to send to transfer destination. */
     params?: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
     /** User data, ignored by SignalWire. */
     meta?: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | {
-          [key: string]: Record<string, unknown>;
-        }
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -628,22 +539,7 @@ export interface Pay {
     valid_card_types?: string;
     /** Text-to-speech voice to use. Please refer to https://developer.signalwire.com/voice/getting-started/voice-and-languages for more information. */
     voice?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | 'dtmf'
-      | number
-      | SWMLVar
-      | PayParameters[]
-      | 'credit-card'
-      | boolean
-      | string
-      | PayPrompts[]
-      | boolean
-      | SWMLVar
-      | 'one-time'
-      | 'reusable'
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -673,16 +569,7 @@ export interface DetectMachine {
     tone?: 'CED' | 'CNG';
     /** If false, the detector will run asynchronously and status_url must be set. */
     wait?: boolean | SWMLVar;
-    [key: string]:
-      | Record<string, unknown>
-      | boolean
-      | SWMLVar
-      | string
-      | number
-      | SWMLVar
-      | 'CED'
-      | 'CNG'
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -691,13 +578,9 @@ export interface UserEvent {
   /** Allows the user to set and send events to the connected client on the call. */
   user_event?: {
     event: {
-      [key: string]: Record<string, unknown>;
+      [key: string]: unknown;
     };
-    [key: string]:
-      | Record<string, unknown>
-      | {
-          [key: string]: Record<string, unknown>;
-        };
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -708,7 +591,7 @@ export type SWMLVar = string;
 export interface AIObject {
   /** A key-value object for storing data that persists throughout the AI session. */
   global_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
   hints?: (string | Hint)[];
@@ -732,7 +615,7 @@ export interface AIObject {
 export interface AmazonBedrockObject {
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script */
   global_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** A JSON object containing parameters as key-value pairs. */
   params?: BedrockParams;
@@ -993,14 +876,7 @@ export interface JoinConferenceObject {
         };
         /** Array of SWML methods to execute if no cases match. */
         default?: SWMLMethod[];
-        [key: string]:
-          | Record<string, unknown>
-          | string
-          | {
-              [key: string]: SWMLMethod[];
-            }
-          | SWMLMethod[]
-          | undefined;
+        [key: string]: unknown;
       }
     | CondParams[];
   [key: string]: unknown;
@@ -1435,16 +1311,7 @@ export interface TranscribeStartAction {
     speech_engine?: SpeechEngine;
     /** The AI prompt that instructs how to summarize the conversation when `ai_summary` is enabled. */
     ai_summary_prompt?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | boolean
-      | SWMLVar
-      | string
-      | number
-      | SWMLVar
-      | TranscribeDirection[]
-      | SpeechEngine
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1486,18 +1353,7 @@ export interface StartAction {
     speech_engine?: SpeechEngine;
     /** The AI prompt that instructs how to summarize the conversation when `ai_summary` is enabled. */
     ai_summary_prompt?: string;
-    [key: string]:
-      | Record<string, unknown>
-      | string
-      | TranslationFilterPreset
-      | CustomTranslationFilter
-      | boolean
-      | SWMLVar
-      | number
-      | SWMLVar
-      | TranslateDirection[]
-      | SpeechEngine
-      | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1511,7 +1367,7 @@ export interface InjectAction {
     message: string;
     /** The direction of the message. */
     direction: TranslateDirection;
-    [key: string]: Record<string, unknown> | string | TranslateDirection;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1671,7 +1527,7 @@ export interface SWAIGIncludes {
   url?: string;
   /** User-defined metadata to pass with the remote function request. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1800,7 +1656,7 @@ export interface TranscribeSummarizeAction {
     webhook?: string;
     /** The prompt for summarization. */
     prompt?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1820,7 +1676,7 @@ export interface SummarizeAction {
     webhook?: string;
     /** The AI prompt that instructs how to summarize the conversation. */
     prompt?: string;
-    [key: string]: Record<string, unknown> | string | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -1875,7 +1731,7 @@ export interface UserSWAIGFunction {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -1911,7 +1767,7 @@ export interface StartUpHookSWAIGFunction {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -1947,7 +1803,7 @@ export interface HangUpHookSWAIGFunction {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -1984,7 +1840,7 @@ export interface SummarizeConversationSWAIGFunction {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -2010,277 +1866,277 @@ export type FunctionFillers =
   | {
       /** Default language set by the user */
       default: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Bulgarian */
       bg: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Catalan */
       ca: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Simplified) */
       zh: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Simplified, China) */
       'zh-CN': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Simplified Han) */
       'zh-Hans': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Traditional, Taiwan) */
       'zh-TW': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Traditional Han) */
       'zh-Hant': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Chinese (Traditional, Hong Kong) */
       'zh-HK': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Czech */
       cs: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Danish */
       da: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Danish (Denmark) */
       'da-DK': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Dutch */
       nl: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English */
       en: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English (United States) */
       'en-US': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English (United Kingdom) */
       'en-GB': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English (New Zealand) */
       'en-NZ': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English (India) */
       'en-IN': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** English (Australia) */
       'en-AU': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Estonian */
       et: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Finnish */
       fi: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Flemish (Belgian Dutch) */
       'nl-BE': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** French */
       fr: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** French (Canada) */
       'fr-CA': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** German */
       de: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** German (Switzerland) */
       'de-CH': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Greek */
       el: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Hindi */
       hi: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Hungarian */
       hu: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Indonesian */
       id: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Italian */
       it: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Japanese */
       ja: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Korean */
       ko: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Korean (South Korea) */
       'ko-KR': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Latvian */
       lv: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Lithuanian */
       lt: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Malay */
       ms: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Multilingual (Spanish + English) */
       multi: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Norwegian */
       no: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Polish */
       pl: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Portuguese */
       pt: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Portuguese (Brazil) */
       'pt-BR': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Portuguese (Portugal) */
       'pt-PT': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Romanian */
       ro: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Russian */
       ru: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Slovak */
       sk: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Spanish */
       es: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Spanish (Latin America) */
       'es-419': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Swedish */
       sv: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Swedish (Sweden) */
       'sv-SE': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Thai */
       th: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Thai (Thailand) */
       'th-TH': string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Turkish */
       tr: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Ukrainian */
       uk: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     }
   | {
       /** Vietnamese */
       vi: string[];
-      [key: string]: Record<string, unknown> | string[];
+      [key: string]: unknown;
     };
 
 /** The template for picking properties. */
@@ -2293,7 +2149,7 @@ export interface PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -2316,7 +2172,7 @@ export interface PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps 
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -2339,7 +2195,7 @@ export interface PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps {
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -2362,7 +2218,7 @@ export interface PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunc
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
   meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
@@ -2509,11 +2365,11 @@ export interface Webhook {
     max?: number | SWMLVar;
     /** The values to append to the output_key. */
     append: string;
-    [key: string]: Record<string, unknown> | string | number | SWMLVar | undefined;
+    [key: string]: unknown;
   };
   /** Any necessary headers for the API call. */
   headers?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** The HTTP method (GET, POST, etc.) for the API call. */
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -2521,7 +2377,7 @@ export interface Webhook {
   input_args_as_params?: boolean | SWMLVar;
   /** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
   params?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** A string or array of strings that represent the `arguments` that are required to make the webhook request. */
   require_args?: string | string[];
@@ -2619,7 +2475,7 @@ export interface ObjectProperty {
   type?: 'object';
   /** The default object value */
   default?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Nested properties */
   properties?: {
@@ -2759,7 +2615,7 @@ export interface ContextSwitchAction {
     consolidate?: boolean | SWMLVar;
     /** A string serving as simulated user input for the AI Agent. */
     user_prompt?: string;
-    [key: string]: Record<string, unknown> | string | boolean | SWMLVar | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -2778,7 +2634,7 @@ export interface HoldAction {
     | {
         /** The duration to hold the caller in seconds. Can be a number or an object with timeout property. */
         timeout?: number | SWMLVar;
-        [key: string]: Record<string, unknown> | number | SWMLVar | undefined;
+        [key: string]: unknown;
       };
   [key: string]: unknown;
 }
@@ -2790,7 +2646,7 @@ export interface PlaybackBGAction {
     file: string;
     /** Whether to wait for the audio file to finish playing before continuing. Default is `false`. */
     wait?: boolean | SWMLVar;
-    [key: string]: Record<string, unknown> | string | boolean | SWMLVar | undefined;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -2804,7 +2660,7 @@ export interface SayAction {
 export interface SetGlobalDataAction {
   /** A JSON object containing any global data, as a key-value map. This action sets the data in the `global_data` to be globally referenced. */
   set_global_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -2812,7 +2668,7 @@ export interface SetGlobalDataAction {
 export interface SetMetaDataAction {
   /** A JSON object containing any metadata, as a key-value map. This action sets the data in the `meta_data` to be referenced locally in the function. */
   set_meta_data?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -2836,7 +2692,7 @@ export interface ToggleFunctionsAction {
     active: boolean | SWMLVar;
     /** The function names to toggle. */
     function: string | string[];
-    [key: string]: Record<string, unknown> | boolean | SWMLVar | string | string[];
+    [key: string]: unknown;
   }[];
   [key: string]: unknown;
 }
@@ -2846,7 +2702,7 @@ export interface UnsetGlobalDataAction {
   unset_global_data?:
     | string
     | {
-        [key: string]: Record<string, unknown>;
+        [key: string]: unknown;
       };
   [key: string]: unknown;
 }
@@ -2856,7 +2712,7 @@ export interface UnsetMetaDataAction {
   unset_meta_data?:
     | string
     | {
-        [key: string]: Record<string, unknown>;
+        [key: string]: unknown;
       };
   [key: string]: unknown;
 }
@@ -2921,11 +2777,11 @@ export interface ExecuteConfig {
   dest?: string;
   /** Named parameters to send to section or URL */
   params?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** User-defined metadata, ignored by SignalWire */
   meta?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** The list of SWML instructions to be executed when the executed section or URL returns */
   on_return?: SWMLMethod[];
@@ -3068,13 +2924,13 @@ export interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
   headers?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type */
   body?:
     | string
     | {
-        [key: string]: Record<string, unknown>;
+        [key: string]: unknown;
       };
   /** Maximum time in seconds to wait for a response. */
   timeout?: number | SWMLVar;
@@ -3168,11 +3024,11 @@ export interface TransferConfig {
   dest?: string;
   /** Named parameters to send to transfer destination. */
   params?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   /** User data, ignored by SignalWire. */
   meta?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
@@ -3248,7 +3104,7 @@ export interface DetectMachineConfig {
 /** Allows the user to set and send events to the connected client on the call. */
 export interface UserEventConfig {
   event?: {
-    [key: string]: Record<string, unknown>;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 }
