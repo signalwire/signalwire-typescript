@@ -7,7 +7,7 @@
 
 import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
-import { RestError } from './RestError.js';
+import { RestError, RestTransportError } from './RestError.js';
 import type { SignalWireErrorBody } from '../PlatformContracts.js';
 import type { HttpClientOptions, QueryParams } from './types.js';
 
@@ -101,11 +101,21 @@ export class HttpClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const resp = await this._fetch(url, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    let resp: Response;
+    try {
+      resp = await this._fetch(url, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (err) {
+      // Transport failure (connection refused / DNS / reset / TLS): fetch rejects
+      // (typically a TypeError) and the request never produced a response. Wrap it
+      // in the typed error family so a caller catching RestError handles it too,
+      // instead of a bare fetch TypeError leaking out.
+      const message = err instanceof Error ? err.message : String(err);
+      throw new RestTransportError(message, url, method);
+    }
 
     if (!resp.ok) {
       const text = await resp.text();
