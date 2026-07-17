@@ -167,7 +167,9 @@ genfresh_swml_gate() {
 
 # REST-COVERAGE — every implemented REST route covered success+error. Self-
 # contained: spins its own mock on a free port, runs the rest suite serially, then
-# checks the journal.
+# checks the journal for BOTH coverage AND wire-truth (STRICT-MOCKS §2.2a: any
+# journaled wire_violation reds the gate afterward — respelling-proof, since it
+# reads the mock's own spec-vs-wire judgement rather than re-deriving it).
 rest_coverage_gate() {
     local port
     port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
@@ -197,13 +199,27 @@ rest_coverage_gate() {
         return 1
     fi
     python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
-    MOCK_SIGNALWIRE_PORT="$port" npx vitest run tests/rest --no-file-parallelism || return 1
+    # --exclude "**/.claude/**": a concurrent agent's sibling git worktree
+    # (.claude/worktrees/<name>/) can sit inside this repo tree; vitest's default
+    # glob would otherwise pick up ITS copy of tests/rest/*.test.ts too and
+    # journal its (possibly unrelated, possibly stale) requests into the SAME
+    # shared mock this gate reads afterward -- a false wire_violation attributed
+    # to this repo's own tree. Scope the run to this checkout only.
+    MOCK_SIGNALWIRE_PORT="$port" npx vitest run tests/rest --no-file-parallelism \
+        --exclude "**/.claude/**" || return 1
     python3 -m mock_signalwire.rest_coverage \
         --mock-url "http://127.0.0.1:$port" \
         --spec-root "$PORTING_SDK_DIR/rest-apis" \
         --allowlist "$PORTING_SDK_DIR/REST_COVERAGE_BASELINE.md" \
         --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md" \
-        --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md"
+        --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md" || return 1
+    # STRICT-MOCKS §2.2a — fail the gate on ANY journaled wire_violation. The shared
+    # helper reads the same live mock journal and exits non-zero on any offender (see
+    # porting-sdk/scripts/assert_no_wire_violations.py). WIRE_VIOLATIONS_ALLOW.md holds
+    # ONLY owner-signed spec-gap parks, never a convenience silence.
+    python3 "$PORTING_SDK_DIR/scripts/assert_no_wire_violations.py" \
+        --rest-mock-url "http://127.0.0.1:$port" \
+        --allowlist "$PORT_ROOT/WIRE_VIOLATIONS_ALLOW.md"
 }
 
 # SPEC-PARITY — implemented routes == canonical spec. route-registry.ts drives the
@@ -256,8 +272,11 @@ dayone_artifact_deny() {
 sched_init "$@"
 
 # HEAVY (deferred behind the cheap wave for S1 fail-fast).
-sched_gate TEST defer=1 desc="scripts/run-tests.sh (vitest)" \
-    -- bash "$PORT_ROOT/scripts/run-tests.sh"
+# STRICT-MOCKS §2.2b — MOCK_RELAY_STRICT=1 makes mock_relay reject an unknown
+# top-level frame field / duplicate command id instead of silently tolerating it,
+# so a wrong RELAY wire shape fails the unit suite rather than being masked.
+sched_gate TEST defer=1 desc="scripts/run-tests.sh (vitest) (STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 bash "$PORT_ROOT/scripts/run-tests.sh"
 
 # SIGNATURES writes port_signatures.json → DRIFT deps on it. Not deferred: it is a
 # writer the cheap DRIFT gate depends on (deferring it would stall the wave).
