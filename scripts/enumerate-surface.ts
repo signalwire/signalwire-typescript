@@ -261,6 +261,8 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   // from the standard library; TS shortens to ``RestError`` since it's
   // already namespaced under the rest module.
   RestError: 'SignalWireRestError',
+  // Same rationale as RestError above, for the transport-failure subclass.
+  RestTransportError: 'SignalWireRestTransportError',
 };
 
 /** Method-name aliases for known TS↔Python naming mismatches that are one-off

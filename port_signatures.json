@@ -14698,7 +14698,7 @@
                 },
                 {
                   "name": "status_code",
-                  "type": "float",
+                  "type": "optional<float>",
                   "required": true
                 },
                 {
@@ -14728,6 +14728,35 @@
                 }
               ],
               "returns": "union<string,class:signalwire.platform_contracts.generated.SignalWireErrorBody>"
+            }
+          }
+        },
+        "SignalWireRestTransportError": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": "GET"
+                }
+              ],
+              "returns": "void"
             }
           }
         }

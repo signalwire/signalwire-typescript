@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ eef48962a88fcc2522c7c3e9d5be12d65521fcbc",
+  "generated_from": "signalwire-typescript @ 84a1b2b508c503bd4fe1b22bdcd551a95a9d09c0",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1638,6 +1638,9 @@
           "put"
         ],
         "SignalWireRestError": [
+          "__init__"
+        ],
+        "SignalWireRestTransportError": [
           "__init__"
         ],
         "BaseResource": [
