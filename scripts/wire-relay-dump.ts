@@ -172,6 +172,21 @@ async function main(): Promise<void> {
     });
     out['relay_send_fax'] = emit(frames);
   }
+  // relay_live_transcribe -- params.action MUST be wrapped, not forwarded flat.
+  {
+    const [c, frames] = newCall();
+    await c.liveTranscribe({ start: { lang: 'en' } });
+    out['relay_live_transcribe'] = emit(frames);
+  }
+  // relay_live_translate -- params.action wrapped + status_url sibling param.
+  {
+    const [c, frames] = newCall();
+    await c.liveTranslate(
+      { start: { from_lang: 'en', to_lang: 'es' } },
+      { statusUrl: 'https://x/cb' },
+    );
+    out['relay_live_translate'] = emit(frames);
+  }
 
   // ---- control-ops (Action methods) ----
   // The oracle clears the verb's own frame before the action, so we observe
