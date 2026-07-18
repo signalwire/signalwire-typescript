@@ -29,3 +29,4 @@ verify recipe) and the individual audit scripts.
 - EXAMPLES_RUN_ALLOW.md — allowlist read by the examples_run (EXAMPLES-RUN) gate at repo root (approver: user, 2026-07-09)
 - SNIPPET_RUN_ALLOW.md — allowlist read by the snippet_run (SNIPPET-RUN) gate at repo root (approver: user, 2026-07-09)
 - SEMVER_DIFF_ALLOW.md — allowlist read by the semver_diff (SEMVER-DIFF) gate at repo root (approver: mike@signalwire.com, 2026-07-15)
+- WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (approver: mike@signalwire.com, 2026-07-18)
