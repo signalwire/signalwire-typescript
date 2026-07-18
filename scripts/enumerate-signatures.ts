@@ -138,6 +138,8 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   // from the standard library; TS shortens to ``RestError`` since it's
   // already namespaced under the rest module.
   RestError: 'SignalWireRestError',
+  // Same rationale as RestError above, for the transport-failure subclass.
+  RestTransportError: 'SignalWireRestTransportError',
 };
 
 /** Per-class canonical-module overrides (by post-alias class name). A TS file may

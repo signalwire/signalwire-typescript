@@ -86,7 +86,12 @@ export class RestClient extends _GeneratedResourceTree {
 
 // Client
 export { HttpClient } from './HttpClient.js';
-export { RestError, SignalWireRestError } from './RestError.js';
+export {
+  RestError,
+  RestTransportError,
+  SignalWireRestError,
+  SignalWireRestTransportError,
+} from './RestError.js';
 export { paginate, paginateAll } from './pagination.js';
 
 // Types

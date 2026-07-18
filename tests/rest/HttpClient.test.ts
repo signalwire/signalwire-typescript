@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { HttpClient } from '../../src/rest/HttpClient.js';
-import { RestError } from '../../src/rest/RestError.js';
+import { RestError, RestTransportError } from '../../src/rest/RestError.js';
 import { createMockFetch, mockClientOptions } from './helpers.js';
 
 const pkgVersion = (createRequire(import.meta.url)('../../package.json') as { version: string })
@@ -246,5 +246,70 @@ describe('HttpClient', () => {
       expect(typeof err.body).toBe('string');
       expect(err.body).toBe('Internal Server Error');
     }
+  });
+  it('wraps a transport failure (fetch rejection) in a typed RestTransportError', async () => {
+    // A connection refused / DNS / reset / TLS failure makes fetch REJECT
+    // (typically a TypeError) rather than resolve with a response. The client
+    // must surface its typed transport error, not leak the bare fetch error.
+    const http = new HttpClient({
+      baseUrl: 'https://test.signalwire.com',
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl: async () => {
+        throw new TypeError('fetch failed');
+      },
+    });
+
+    await expect(http.get('/api/test')).rejects.toThrow(RestTransportError);
+  });
+
+  it('RestTransportError is a member of the RestError family with statusCode null', async () => {
+    const http = new HttpClient({
+      baseUrl: 'https://test.signalwire.com',
+      project: 'test-project',
+      token: 'test-token',
+      fetchImpl: async () => {
+        // Node's undici throws an Aggregate('ECONNREFUSED')-shaped TypeError.
+        throw new TypeError('fetch failed: connect ECONNREFUSED 127.0.0.1:1');
+      },
+    });
+
+    try {
+      await http.get('/api/addresses');
+      throw new Error('Should have thrown');
+    } catch (e) {
+      // instanceof RestError still holds -> one catch handles HTTP + transport.
+      expect(e).toBeInstanceOf(RestError);
+      expect(e).toBeInstanceOf(RestTransportError);
+      const err = e as RestTransportError;
+      expect(err.statusCode).toBeNull();
+      expect(err.method).toBe('GET');
+      expect(err.url).toBe('https://test.signalwire.com/api/addresses');
+      // The transport message is carried in body (and the error message).
+      expect(String(err.body)).toContain('ECONNREFUSED');
+    }
+  });
+
+  it('a real connection-refused GET raises the typed transport error (not a bare fetch error)', async () => {
+    // No fetchImpl -> the real global fetch. Point at a port with nothing
+    // listening so the OS refuses the connection.
+    const { createServer } = await import('node:net');
+    const deadPort = await new Promise<number>((resolve, reject) => {
+      const srv = createServer();
+      srv.once('error', reject);
+      srv.listen(0, '127.0.0.1', () => {
+        const addr = srv.address();
+        const port = addr && typeof addr === 'object' ? addr.port : 0;
+        srv.close(() => (port > 0 ? resolve(port) : reject(new Error('no free port'))));
+      });
+    });
+
+    const http = new HttpClient({
+      baseUrl: `http://127.0.0.1:${deadPort}`,
+      project: 'test-project',
+      token: 'test-token',
+    });
+
+    await expect(http.get('/api/fabric/addresses')).rejects.toThrow(RestTransportError);
   });
 });

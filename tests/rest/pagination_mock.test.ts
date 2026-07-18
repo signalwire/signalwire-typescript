@@ -64,13 +64,16 @@ describe('paginate (async generator)', () => {
   });
 
   it('walks_pages_through_all_items_following_links_next', async () => {
-    // Page 1 — has next cursor.
+    // Page 1 — has a next page. The server's links.next carries the real wire
+    // param the fabric list endpoint round-trips: `page_token` (a cursor token
+    // that starts with PA/PB), NOT a `cursor` param (which no SignalWire REST
+    // endpoint accepts — see rest-apis/fabric/openapi.yaml ListFabricAddressesQuery).
     await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, {
       data: [
         { id: 'addr-1', name: 'first' },
         { id: 'addr-2', name: 'second' },
       ],
-      links: { next: 'http://example.com/api/fabric/addresses?cursor=page2' },
+      links: { next: 'http://example.com/api/fabric/addresses?page_token=PA_page2' },
     });
     // Page 2 — terminal (no next cursor).
     await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, {
@@ -86,7 +89,7 @@ describe('paginate (async generator)', () => {
         { id: 'addr-1', name: 'first' },
         { id: 'addr-2', name: 'second' },
       ],
-      links: { next: 'http://example.com/api/fabric/addresses?cursor=page2' },
+      links: { next: 'http://example.com/api/fabric/addresses?page_token=PA_page2' },
     });
     await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, {
       data: [{ id: 'addr-3', name: 'third' }],
@@ -109,9 +112,9 @@ describe('paginate (async generator)', () => {
     const journal = await mock.journal();
     const gets = journal.filter((e) => e.path === FABRIC_ADDRESSES_PATH);
     expect(gets.length).toBe(2);
-    // The second fetch carries `cursor=page2` parsed from the first
-    // response's `links.next`.
-    expect(gets[1]!.query_params['cursor']).toEqual(['page2']);
+    // The second fetch carries the `page_token` param parsed from the first
+    // response's `links.next` — the real wire token the server round-trips.
+    expect(gets[1]!.query_params['page_token']).toEqual(['PA_page2']);
   });
 
   it('returns_done_when_terminal_page_exhausted', async () => {
