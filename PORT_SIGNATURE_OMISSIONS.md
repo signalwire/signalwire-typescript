@@ -141,6 +141,7 @@ signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature fo
 signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
 
 ## Idiom: TS fluent API returns this
 
@@ -254,6 +255,14 @@ signalwire.relay.call.Call.amazon_bedrock: TS amazonBedrock(options) types the c
 signalwire.relay.call.Call.on: TS on(event, handler) types handler as the plain callback (event) => void; Python wraps it in an EventHandler class. Same subscription; EventHandler is a Python-internal wrapper.
 signalwire.relay.client.RelayClient.on_call: TS onCall(handler) types handler as (call) => void and returns void; Python's CallHandler is a Python-internal wrapper class returned for decorator use. Same registration.
 signalwire.relay.client.RelayClient.on_message: TS onMessage(handler) types handler as (message) => void and returns void; Python's MessageHandler is a Python-internal wrapper. Same registration.
+signalwire.rest._base.HttpClient.get: ts-options-object: the request_options param is typed as RequestOptionsInit (the plain-object init shape of the RequestOptions value class) so a call site passes an object literal; the reference types it as the RequestOptions class. Identical field set and resolved values; the retry/backoff behavior is wire-proven by the ERROR-ENVELOPE differ.
+signalwire.rest._base.HttpClient.post: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
+signalwire.rest._base.HttpClient.put: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
+signalwire.rest._base.HttpClient.patch: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
+signalwire.rest._base.HttpClient.delete: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
+signalwire.rest._request_options.RequestOptions.merge: ts-options-object: the override param is typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) so a caller passes a plain object; the reference types it as RequestOptions. Same shallow-merge semantics over an identical field set.
+signalwire.rest._request_options.resolve: ts-options-object: the client_default/per_request params are typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions; identical fields, identical resolve-over-default semantics.
+signalwire.rest._request_options.RequestOptions.abort_signal: field-vs-accessor idiom: the reference dataclass surfaces abort_signal as a read accessor; TS carries it as a public readonly field on the RequestOptions value object (RequestOptions.abortSignal). Same value, read the same way — a TS field is the idiomatic analog of a Python dataclass field.
 
 ## Reference-oracle gap: signalwire.livewire not in the signatures oracle
 

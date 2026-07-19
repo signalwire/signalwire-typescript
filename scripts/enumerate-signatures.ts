@@ -83,6 +83,10 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/rest/index.ts': 'signalwire.rest.client',
   'src/rest/HttpClient.ts': 'signalwire.rest._base',
   'src/rest/RestError.ts': 'signalwire.rest._base',
+  // RequestOptions envelope (plan 4.2): the reference keeps it in its own module
+  // signalwire/rest/_request_options.py; map the TS file so RequestOptions +
+  // resolve/status_is_retryable compare 1:1 with the oracle.
+  'src/rest/RequestOptions.ts': 'signalwire.rest._request_options',
   // Base resource classes — Python keeps these under signalwire.rest._base.
   'src/rest/base/BaseResource.ts': 'signalwire.rest._base',
   'src/rest/base/CrudResource.ts': 'signalwire.rest._base',

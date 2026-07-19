@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 84a1b2b508c503bd4fe1b22bdcd551a95a9d09c0",
+  "generated_from": "signalwire-typescript @ a76ed3e3cea57d2f5e40d80e9efa6c0d6ad190c1",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1669,6 +1669,17 @@
       "functions": [
         "paginate",
         "paginate_all"
+      ]
+    },
+    "signalwire.rest._request_options": {
+      "classes": {
+        "RequestOptions": [
+          "merge"
+        ]
+      },
+      "functions": [
+        "resolve",
+        "status_is_retryable"
       ]
     },
     "signalwire.rest.client": {
