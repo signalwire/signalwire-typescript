@@ -250,7 +250,7 @@ sched_gate PUBLIC-JARGON res=dayone desc="no porting-process jargon in public AP
 # present in THIS run-ci; the checker greps for each and fails loud on a missing one,
 # so a future merge can't silently drop a wired mode and ship a green-but-vacuous gate.
 sched_gate WIRED-MODES res=dayone desc="load-bearing run-ci modes (WIRED_MODES.md) present — merge-race guard" \
-    -- python3 "$PORTING_SDK_DIR/scripts/check_wired_modes.py" --port typescript --repo .
+    -- bash -c 'if [ -f "$1/scripts/check_wired_modes.py" ]; then python3 "$1/scripts/check_wired_modes.py" --port typescript --repo "$2"; else echo "[wired-modes] check_wired_modes.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
 
 # DOC-SURFACE (plan 6.3): TSDoc coverage floor on the public API surface. Report-only —
 # it prints the current coverage and ratchets against the committed .doc_surface_floor
