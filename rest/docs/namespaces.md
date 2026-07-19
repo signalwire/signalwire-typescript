@@ -1,6 +1,6 @@
 # All Namespaces
 
-Reference for every namespace beyond Fabric, Calling, and Compat (which have their own pages). All methods are async — `await` them.
+Reference for every namespace beyond Fabric and Calling (which have their own pages). All methods are async — `await` them.
 
 <!-- snippet-setup -->
 ```ts

@@ -1,0 +1,76 @@
+name: Live smoke (real SignalWire platform)
+
+# Plan 6.5 — the real-server smoke lane. Opt-in and creds-gated: it runs a tiny
+# smoke against the REAL SignalWire platform — auth + one REST list + one SWML
+# render + one RELAY connect — which is the only check that catches mock↔production
+# drift the mock servers haven't closed yet. It is NOT part of per-PR CI (no
+# secrets on forks/PRs) and SKIPS cleanly when the credentials are absent, so it
+# never reds a contributor's PR.
+#
+# Enable per-run via workflow_dispatch, or on the nightly cron. Requires three
+# repo secrets: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE.
+# The convention env is SWSDK_LIVE_TESTS=1 (set by this workflow when creds exist).
+
+on:
+  schedule:
+    - cron: '11 9 * * *'      # 09:11 UTC daily
+  workflow_dispatch: {}
+
+concurrency:
+  group: live-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      # Gate on secrets FIRST: if the platform creds are not configured, skip the
+      # rest of the job cleanly (a success, not a red) — forks/PRs get no secrets.
+      - name: Check for platform credentials
+        id: creds
+        env:
+          PID: ${{ secrets.SIGNALWIRE_PROJECT_ID }}
+          TOK: ${{ secrets.SIGNALWIRE_API_TOKEN }}
+          SPACE: ${{ secrets.SIGNALWIRE_SPACE }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PID" ] && [ -n "$TOK" ] && [ -n "$SPACE" ]; then
+            echo "have_creds=true" >> "$GITHUB_OUTPUT"
+            echo "platform credentials present → running live smoke"
+          else
+            echo "have_creds=false" >> "$GITHUB_OUTPUT"
+            echo "no SIGNALWIRE_* secrets configured → skipping live smoke (not a failure)"
+          fi
+
+      - name: Checkout signalwire-typescript
+        if: steps.creds.outputs.have_creds == 'true'
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        if: steps.creds.outputs.have_creds == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: npm ci
+        if: steps.creds.outputs.have_creds == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.creds.outputs.have_creds == 'true'
+        run: npm run build
+
+      - name: Live smoke — auth + REST list + SWML render + RELAY connect
+        if: steps.creds.outputs.have_creds == 'true'
+        env:
+          SWSDK_LIVE_TESTS: '1'
+          SIGNALWIRE_PROJECT_ID: ${{ secrets.SIGNALWIRE_PROJECT_ID }}
+          SIGNALWIRE_API_TOKEN: ${{ secrets.SIGNALWIRE_API_TOKEN }}
+          SIGNALWIRE_SPACE: ${{ secrets.SIGNALWIRE_SPACE }}
+        run: node scripts/live-smoke.mjs

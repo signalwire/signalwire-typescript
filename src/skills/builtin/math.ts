@@ -69,6 +69,8 @@ function safeEvaluate(expr: string): number {
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('math');
  * ```
  */

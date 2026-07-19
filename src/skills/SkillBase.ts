@@ -73,20 +73,31 @@ export interface SkillToolDefinition {
  *
  * @example
  * ```ts
- * override getTools(): SkillToolDefinition[] {
- *   return [
- *     defineSkillTool({
- *       name: 'search_wiki',
- *       description: 'Search Wikipedia for a topic',
- *       parameters: { query: { type: 'string', description: 'The search term' } },
- *       required: ['query'],
- *       handler: async (args) => {
- *         // args.query is `string` (required) — no cast needed
- *         if (!args.query.trim()) return new FunctionResult('Provide a query.');
- *         return new FunctionResult(await this.searchWiki(args.query.trim()));
- *       },
- *     }),
- *   ];
+ * import { SkillBase, defineSkillTool, FunctionResult, type SkillToolDefinition } from '@signalwire/sdk';
+ *
+ * class WikiSkill extends SkillBase {
+ *   static override SKILL_NAME = 'wiki';
+ *   static override SKILL_DESCRIPTION = 'Search Wikipedia.';
+ *
+ *   override getTools(): SkillToolDefinition[] {
+ *     return [
+ *       defineSkillTool({
+ *         name: 'search_wiki',
+ *         description: 'Search Wikipedia for a topic',
+ *         parameters: { query: { type: 'string', description: 'The search term' } },
+ *         required: ['query'],
+ *         handler: async (args) => {
+ *           // args.query is `string` (required) — no cast needed
+ *           if (!args.query.trim()) return new FunctionResult('Provide a query.');
+ *           return new FunctionResult(await this.searchWiki(args.query.trim()));
+ *         },
+ *       }),
+ *     ];
+ *   }
+ *
+ *   private async searchWiki(query: string): Promise<string> {
+ *     return `results for ${query}`;
+ *   }
  * }
  * ```
  */
@@ -171,7 +182,7 @@ export interface ParameterSchemaEntry {
  *
  * @example Custom skill
  * ```ts
- * import { SkillBase, FunctionResult, type SkillToolDefinition } from '@signalwire/sdk';
+ * import { AgentBase, SkillBase, FunctionResult, type SkillToolDefinition } from '@signalwire/sdk';
  *
  * export class GreetingSkill extends SkillBase {
  *   static override SKILL_NAME = 'greeting';
@@ -188,6 +199,7 @@ export interface ParameterSchemaEntry {
  * }
  *
  * // In your agent:
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
  * ```
  *

@@ -49,6 +49,8 @@ interface WikipediaActionExtractsResponse {
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('wikipedia_search', { num_results: 2 });
  * ```
  */

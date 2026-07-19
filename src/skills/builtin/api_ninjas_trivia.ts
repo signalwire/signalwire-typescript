@@ -53,6 +53,8 @@ const VALID_CATEGORIES = [
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('api_ninjas_trivia', { default_category: 'sciencenature' });
  * ```
  */

@@ -8,6 +8,8 @@
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ * const client = new RestClient();
  * const agents = await client.fabric.aiAgents.list();
  * const flow = await client.fabric.callFlows.create({ name: 'main-ivr' });
  * const token = await client.fabric.tokens.createSubscriberToken({ subscriber_id: 'sub_123' });

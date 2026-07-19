@@ -30,8 +30,9 @@ const logger = getLogger('rest_client');
  * const client = new RestClient();
  *
  * // Use namespaced resources
+ * const callId = 'call-uuid';
  * await client.fabric.aiAgents.list();
- * await client.calling.play(callId, { play: [...] });
+ * await client.calling.play(callId, [{ type: 'audio', params: { url: 'https://cdn.example.com/greeting.mp3' } }]);
  * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
  * ```

@@ -235,6 +235,17 @@ export class SkillManager {
    *
    * @example
    * ```ts
+   * import { SkillManager, SkillBase, type SkillToolDefinition } from '@signalwire/sdk';
+   *
+   * class MyCustomSkill extends SkillBase {
+   *   static override SKILL_NAME = 'my_custom';
+   *   static override SKILL_DESCRIPTION = 'Example custom skill.';
+   *   override getTools(): SkillToolDefinition[] {
+   *     return [];
+   *   }
+   * }
+   *
+   * const manager = new SkillManager();
    * const [ok, err] = await manager.loadSkill(MyCustomSkill, { api_key: 'secret' });
    * if (!ok) console.error(err);
    * ```

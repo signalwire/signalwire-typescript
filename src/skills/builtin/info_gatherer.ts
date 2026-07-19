@@ -50,6 +50,8 @@ interface QuestionDefinition {
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('info_gatherer', {
  *   questions: [
  *     { key_name: 'name', question_text: 'What is your name?' },

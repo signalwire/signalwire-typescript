@@ -25,6 +25,8 @@ const logger = getLogger('relay_message');
  *
  * @example Wait for delivery confirmation
  * ```ts
+ * import { RelayClient } from '@signalwire/sdk';
+ * const client = new RelayClient();
  * const msg = await client.sendMessage({
  *   to: '+15551234567',
  *   from: '+15557654321',

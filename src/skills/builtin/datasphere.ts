@@ -61,6 +61,8 @@ interface DataSphereResponse {
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('datasphere', {
  *   document_id: 'doc_abc123',
  *   count: 3,

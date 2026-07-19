@@ -186,7 +186,13 @@ export class HttpClient {
         } catch {
           // Response was not valid JSON — keep as plain string.
         }
-        throw new RestError(resp.status, errBody, url, method);
+        // §6.6 error-observability: capture the response header map so RestError
+        // can surface the platform request id (x-request-id etc.) — no wire change.
+        const respHeaders: Record<string, string> = {};
+        resp.headers.forEach((v, k) => {
+          respHeaders[k] = v;
+        });
+        throw new RestError(resp.status, errBody, url, method, respHeaders);
       }
 
       if (resp.status === 204) {

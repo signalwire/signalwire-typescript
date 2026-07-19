@@ -328,10 +328,11 @@ This follows the same pattern as the RELAY client's `_wsFactory` injection.
 ```
 RestClient
   ├── HttpClient (fetch + Basic Auth)
-  ├── fabric: FabricNamespace (17 sub-resources)
+  ├── fabric: FabricNamespace (16 sub-resources)
   ├── calling: CallingNamespace (37 commands)
   ├── phoneNumbers: PhoneNumbersResource (CRUD + search)
   ├── addresses: AddressesResource
+  ├── messages: MessagesResource
   ├── queues: QueuesResource (CRUD + members)
   ├── recordings: RecordingsResource
   ├── numberGroups: NumberGroupsResource (CRUD + membership)
@@ -342,13 +343,13 @@ RestClient
   ├── importedNumbers: ImportedNumbersResource
   ├── mfa: MfaResource
   ├── registry: RegistryNamespace (brands, campaigns, orders, numbers)
-  ├── datasphere: DatasphereNamespace (documents + chunks + search)
-  ├── video: VideoNamespace (rooms, sessions, recordings, conferences, streams)
+  ├── datasphere: DatasphereNamespace (documents)
+  ├── video: VideoNamespace (rooms, sessions, recordings, conferences, tokens, streams)
   ├── logs: LogsNamespace (messages, voice, fax, conferences)
   ├── project: ProjectNamespace (tokens)
+  ├── projects: ProjectsResource
   ├── pubsub: PubSubResource
-  ├── chat: ChatResource
-  └── compat: CompatNamespace (Twilio-compatible, 12 sub-resources)
+  └── chat: ChatResource
 ```
 
 The base class hierarchy:

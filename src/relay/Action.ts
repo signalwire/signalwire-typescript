@@ -67,10 +67,14 @@ export interface CallLike {
  *
  * @example
  * ```ts
- * const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
- * // do other work while the greeting plays...
- * const event = await play.wait(10); // seconds
- * console.log('Playback finished with state', event.params.state);
+ * import { RelayClient } from '@signalwire/sdk';
+ * const client = new RelayClient();
+ * client.onCall(async (call) => {
+ *   const play = await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
+ *   // do other work while the greeting plays...
+ *   const result = await play.wait(10); // seconds
+ *   console.log('Playback finished with state', result.params.state);
+ * });
  * ```
  */
 export class Action {

@@ -23,6 +23,8 @@ import { FunctionResult } from '../../FunctionResult.js';
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * agent.addSkill('datetime');
  * ```
  */
