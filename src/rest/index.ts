@@ -73,6 +73,7 @@ export class RestClient extends _GeneratedResourceTree {
       project,
       token,
       fetchImpl: options.fetchImpl,
+      requestOptions: options.requestOptions,
     });
 
     logger.info('RestClient initialized', { host });
@@ -93,6 +94,10 @@ export {
   SignalWireRestTransportError,
 } from './RestError.js';
 export { paginate, paginateAll } from './pagination.js';
+
+// Request-options transport envelope (plan 4.2): timeout / retry / abort.
+export { RequestOptions } from './RequestOptions.js';
+export type { RequestOptionsInit } from './RequestOptions.js';
 
 // Types
 export type {

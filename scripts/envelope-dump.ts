@@ -22,6 +22,9 @@
  *
  * The corpus below is the TS-native mirror of porting-sdk/scripts/envelope_corpus.py
  * (the single source of truth). When that corpus grows, add the new case here.
+ * As of plan 4.2 it also covers the RequestOptions envelope: request_options
+ * (retries / retry_backoff / timeout), scenario_repeat (arm the SAME override N
+ * times FIFO), and POST cases (a call.method/body + a distinct endpoint/path).
  *
  * Run from the signalwire-typescript repo root (the mock is discovered via the
  * porting-sdk adjacency walk, or reused via MOCK_SIGNALWIRE_PORT):
@@ -45,6 +48,7 @@ import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HttpClient as HttpClientType } from '../src/rest/HttpClient.js';
+import type { RequestOptionsInit } from '../src/rest/RequestOptions.js';
 
 const { HttpClient } = await import('../src/rest/HttpClient.js');
 const { RestError } = await import('../src/rest/RestError.js');
@@ -55,10 +59,13 @@ const PROJECT = 'envelope_proj';
 const TOKEN = 'envelope_tok';
 const AUTH_HEADER = 'Basic ' + Buffer.from(`${PROJECT}:${TOKEN}`).toString('base64');
 
-// The endpoint every case targets: fabric.list_fabric_addresses -> GET
-// /api/fabric/addresses (a list route present in every port's client).
+// The default endpoint every GET case targets: fabric.list_fabric_addresses ->
+// GET /api/fabric/addresses (a list route present in every port's client).
 const ENDPOINT = 'fabric.list_fabric_addresses';
 const PATH = '/api/fabric/addresses';
+// A POST route present in every port — for the idempotency-asymmetry cases.
+const CREATE_ENDPOINT = 'relay-rest.create_address';
+const CREATE_PATH = '/api/relay/rest/addresses';
 
 interface Scenario {
   status: number;
@@ -67,17 +74,40 @@ interface Scenario {
   delay_ms?: number;
 }
 
+interface CaseCall {
+  method: string;
+  path: string;
+  body?: unknown;
+}
+
+interface CaseRequestOptions {
+  retries?: number;
+  retry_backoff?: number;
+  timeout?: number;
+}
+
 interface Case {
   id: string;
+  endpoint: string;
+  call: CaseCall;
   scenario: Scenario | null;
+  /** Arm the SAME scenario override N times (FIFO). Default 1. */
+  scenarioRepeat?: number;
+  /** RequestOptions to pass for this call (absent => port default, retries 0). */
+  requestOptions?: CaseRequestOptions;
   transport?: boolean;
 }
 
 // Mirror of porting-sdk/scripts/envelope_corpus.py CORPUS.
+const GET_CALL: CaseCall = { method: 'GET', path: PATH };
+const CREATE_CALL: CaseCall = { method: 'POST', path: CREATE_PATH, body: { label: 'x' } };
+
 const CORPUS: Case[] = [
-  { id: 'envelope_200_success', scenario: null },
+  { id: 'envelope_200_success', endpoint: ENDPOINT, call: GET_CALL, scenario: null },
   {
     id: 'envelope_404_typed',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: {
       status: 404,
       response: { errors: [{ code: 'NOT_FOUND', message: 'no such address' }] },
@@ -85,6 +115,8 @@ const CORPUS: Case[] = [
   },
   {
     id: 'envelope_429_retry_after',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: {
       status: 429,
       response: { errors: [{ code: 'RATE_LIMITED', message: 'slow down' }] },
@@ -93,6 +125,8 @@ const CORPUS: Case[] = [
   },
   {
     id: 'envelope_503_unavailable',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: {
       status: 503,
       response: { errors: [{ code: 'UNAVAILABLE', message: 'maintenance' }] },
@@ -100,10 +134,14 @@ const CORPUS: Case[] = [
   },
   {
     id: 'envelope_500_malformed_body',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: { status: 500, response: 'not-json-at-all <garbage' },
   },
   {
     id: 'envelope_200_with_error_body',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: {
       status: 200,
       response: { errors: [{ code: 'SOFT_FAIL', message: 'ignored on 2xx' }] },
@@ -111,13 +149,65 @@ const CORPUS: Case[] = [
   },
   {
     id: 'envelope_503_delayed',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
     scenario: {
       status: 503,
       response: { errors: [{ code: 'UNAVAILABLE', message: 'slow-fail' }] },
       delay_ms: 200,
     },
   },
-  { id: 'envelope_transport_refused', scenario: null, transport: true },
+  {
+    id: 'envelope_transport_refused',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: null,
+    transport: true,
+  },
+
+  // ---- RequestOptions envelope — opt-in retry (plan 4.2). retry_backoff=0 so
+  // the differ never waits on wall-clock; the observable is the attempt COUNT.
+  {
+    id: 'envelope_get_retry_once_succeeds',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: {
+      status: 503,
+      response: { errors: [{ code: 'UNAVAILABLE', message: 'transient' }] },
+    },
+    requestOptions: { retries: 1, retry_backoff: 0 },
+  },
+  {
+    id: 'envelope_get_retry_exhausted',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: {
+      status: 503,
+      response: { errors: [{ code: 'UNAVAILABLE', message: 'down' }] },
+    },
+    requestOptions: { retries: 1, retry_backoff: 0 },
+    scenarioRepeat: 2,
+  },
+  {
+    id: 'envelope_post_500_not_retried',
+    endpoint: CREATE_ENDPOINT,
+    call: CREATE_CALL,
+    scenario: {
+      status: 500,
+      response: { errors: [{ code: 'SERVER_ERROR', message: 'boom' }] },
+    },
+    requestOptions: { retries: 2, retry_backoff: 0 },
+  },
+  {
+    id: 'envelope_post_503_retried',
+    endpoint: CREATE_ENDPOINT,
+    call: CREATE_CALL,
+    scenario: {
+      status: 503,
+      response: { errors: [{ code: 'UNAVAILABLE', message: 'throttled' }] },
+    },
+    requestOptions: { retries: 1, retry_backoff: 0 },
+  },
 ];
 
 interface Artifact {
@@ -279,13 +369,23 @@ interface JournalEntry {
   path: string;
 }
 
-async function journalCount(baseUrl: string): Promise<number> {
+async function journalCount(baseUrl: string, path: string): Promise<number> {
   const resp = await fetch(
     `${baseUrl}/__mock__/journal?session_id=${encodeURIComponent(AUTH_HEADER)}`,
   );
   const data = (await resp.json()) as JournalEntry[] | { entries?: JournalEntry[] };
   const entries = Array.isArray(data) ? data : (data.entries ?? []);
-  return entries.filter((e) => e.path === PATH).length;
+  return entries.filter((e) => e.path === path).length;
+}
+
+/** Translate a corpus request_options spec into the SDK's RequestOptions. */
+function toRequestOptions(spec: CaseRequestOptions | undefined): RequestOptionsInit | undefined {
+  if (!spec) return undefined;
+  const opts: RequestOptionsInit = {};
+  if (spec.retries !== undefined) opts.retries = spec.retries;
+  if (spec.retry_backoff !== undefined) opts.retryBackoff = spec.retry_backoff;
+  if (spec.timeout !== undefined) opts.timeout = spec.timeout;
+  return opts;
 }
 
 async function runCase(server: MockServer, c: Case): Promise<Artifact> {
@@ -294,10 +394,15 @@ async function runCase(server: MockServer, c: Case): Promise<Artifact> {
   await post(`${server.url}/__mock__/scenarios/reset`);
 
   if (c.scenario !== null) {
-    await post(
-      `${server.url}/__mock__/scenarios/${ENDPOINT}?session_id=${encodeURIComponent(AUTH_HEADER)}`,
-      c.scenario,
-    );
+    // scenarioRepeat arms the SAME override N times (FIFO) so a retry-armed
+    // case sees the failure on every attempt.
+    const repeat = c.scenarioRepeat ?? 1;
+    for (let i = 0; i < repeat; i++) {
+      await post(
+        `${server.url}/__mock__/scenarios/${c.endpoint}?session_id=${encodeURIComponent(AUTH_HEADER)}`,
+        c.scenario,
+      );
+    }
   }
 
   // A transport case points the client at a DEAD port (bind a free port then
@@ -309,6 +414,7 @@ async function runCase(server: MockServer, c: Case): Promise<Artifact> {
   }
 
   const client: HttpClientType = new HttpClient({ baseUrl, project: PROJECT, token: TOKEN });
+  const reqOpts = toRequestOptions(c.requestOptions);
 
   const artifact: Artifact = {
     raised: false,
@@ -319,7 +425,11 @@ async function runCase(server: MockServer, c: Case): Promise<Artifact> {
   };
 
   try {
-    await client.get(PATH);
+    if (c.call.method === 'POST') {
+      await client.post(c.call.path, c.call.body, undefined, reqOpts);
+    } else {
+      await client.get(c.call.path, undefined, reqOpts);
+    }
   } catch (e) {
     artifact.raised = true;
     if (e instanceof RestError) {
@@ -337,7 +447,7 @@ async function runCase(server: MockServer, c: Case): Promise<Artifact> {
     }
   }
 
-  artifact.request_count = c.transport ? 0 : await journalCount(server.url);
+  artifact.request_count = c.transport ? 0 : await journalCount(server.url, c.call.path);
   return artifact;
 }
 
