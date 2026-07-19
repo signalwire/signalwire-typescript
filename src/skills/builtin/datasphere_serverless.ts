@@ -38,7 +38,7 @@ const DEFAULT_NO_RESULTS_MESSAGE =
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('datasphere_serverless', {
+ * agent.addSkillByName('datasphere_serverless', {
  *   document_id: 'doc_abc123',
  *   count: 3,
  * });

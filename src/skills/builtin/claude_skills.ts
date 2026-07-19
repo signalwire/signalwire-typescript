@@ -86,7 +86,7 @@ interface ParsedSkill {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('claude_skills', { skills_dir: './claude-skills' });
+ * agent.addSkillByName('claude_skills', { skills_dir: './claude-skills' });
  * ```
  */
 export class ClaudeSkillsSkill extends SkillBase {

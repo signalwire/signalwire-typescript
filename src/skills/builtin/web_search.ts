@@ -203,7 +203,7 @@ interface GoogleSearchResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('web_search', {
+ * agent.addSkillByName('web_search', {
  *   api_key: process.env.GOOGLE_SEARCH_API_KEY,
  *   search_engine_id: process.env.GOOGLE_CSE_ID,
  *   num_results: 3,

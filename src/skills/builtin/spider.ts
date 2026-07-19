@@ -52,7 +52,7 @@ const WHITESPACE_REGEX = /\s+/g;
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('spider', { max_pages: 5, max_depth: 2 });
+ * agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
  * ```
  */
 export class SpiderSkill extends SkillBase {

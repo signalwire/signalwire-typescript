@@ -242,7 +242,7 @@ function scoreTfIdf(
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('native_vector_search', {
+ * agent.addSkillByName('native_vector_search', {
  *   tool_name: 'search_docs',
  *   index_file: './data/support-docs.json',
  *   count: 3,

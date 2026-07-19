@@ -20,14 +20,16 @@ const logger = getLogger('rest_client');
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ *
  * const client = new RestClient({
  *   project: 'your-project-id',
  *   token: 'your-api-token',
  *   host: 'your-space.signalwire.com',
  * });
  *
- * // Or use env vars: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
- * const client = new RestClient();
+ * // Or use env vars (SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE):
+ * //   const client = new RestClient();
  *
  * // Use namespaced resources
  * const callId = 'call-uuid';

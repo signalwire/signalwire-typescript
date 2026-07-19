@@ -66,7 +66,7 @@ interface AnthropicResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('ask_claude', { model: 'claude-sonnet-4-6', max_tokens: 512 });
+ * agent.addSkillByName('ask_claude', { model: 'claude-sonnet-4-6', max_tokens: 512 });
  * ```
  */
 export class AskClaudeSkill extends SkillBase {

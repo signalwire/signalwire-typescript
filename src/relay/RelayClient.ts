@@ -128,10 +128,10 @@ type WsLike = {
  * import { RelayClient } from '@signalwire/sdk';
  * const client = new RelayClient();
  * await client.connect();
- * const call = await client.dial({
- *   devices: [[{ type: 'phone', to: '+15551234567', from: '+15557654321' }]],
- * });
- * await client.sendMessage({ to: '+15551234567', from: '+15557654321', body: 'Hi!' });
+ * const call = await client.dial([
+ *   [{ type: 'phone', to: '+15551234567', from: '+15557654321' }],
+ * ]);
+ * await client.sendMessage({ toNumber: '+15551234567', fromNumber: '+15557654321', body: 'Hi!' });
  * ```
  *
  * @see {@link Call}
@@ -264,6 +264,7 @@ export class RelayClient {
    *
    * Enables usage with `await using`:
    * ```ts
+   * import { RelayClient } from '@signalwire/sdk';
    * await using client = new RelayClient({ project: 'p', token: 't', host: 'example.signalwire.com' });
    * await client.connect();
    * // automatically disconnects when scope exits
@@ -271,6 +272,7 @@ export class RelayClient {
    *
    * For environments without `await using`, use try/finally:
    * ```ts
+   * import { RelayClient } from '@signalwire/sdk';
    * const client = new RelayClient({ project: 'p', token: 't', host: 'example.signalwire.com' });
    * try {
    *   await client.connect();

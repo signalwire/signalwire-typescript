@@ -62,9 +62,9 @@ interface WeatherApiResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill('weather_api', { units: 'imperial' });
+ * agent.addSkillByName('weather_api', { units: 'imperial' });
  * // or pass the key explicitly:
- * agent.addSkill('weather_api', { api_key: process.env.WEATHER_API_KEY });
+ * agent.addSkillByName('weather_api', { api_key: process.env.WEATHER_API_KEY });
  * ```
  */
 export class WeatherApiSkill extends SkillBase {
