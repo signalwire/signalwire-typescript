@@ -25,22 +25,6 @@ import { Agent as UndiciAgent } from 'undici';
 
 const log = getLogger('McpGatewaySkill');
 
-/**
- * The TLS refactor's two-key decision (owner-ruled REFACTOR, not allowlist):
- * outbound TLS certificate verification stays ON unless the operator BOTH sets
- * `verify_ssl=false` AND explicitly opts in with `allow_insecure_tls=true`.
- * Returns the `rejectUnauthorized` value (true = verify; the secure default) —
- * a computed value, never a hardcoded off, so a stray `verify_ssl=false` (a
- * copied config, a typo) can never silently disable verification.
- *
- * @param verifySsl - the `verify_ssl` config (default true).
- * @param allowInsecureTls - the `allow_insecure_tls` explicit opt-in (default false).
- * @returns whether to reject unauthorized certs (verification stays on).
- */
-export function mcpTlsRejectUnauthorized(verifySsl: boolean, allowInsecureTls: boolean): boolean {
-  return verifySsl || !allowInsecureTls;
-}
-
 /** Configuration entry for a single MCP service to expose. */
 interface McpServiceConfig {
   /** Service name as registered on the gateway. */
@@ -276,7 +260,9 @@ export class McpGatewaySkill extends SkillBase {
     // rejectUnauthorized value is a computed variable (never a hardcoded off),
     // mirroring the python reference's `verify=self.verify_ssl` config-gated
     // form; the secure default is preserved.
-    const tlsRejectUnauthorized = mcpTlsRejectUnauthorized(this.verifySsl, this.allowInsecureTls);
+    // Two-key decision: verification stays ON (rejectUnauthorized=true, the
+    // secure default) unless BOTH verify_ssl=false AND allow_insecure_tls=true.
+    const tlsRejectUnauthorized = this.verifySsl || !this.allowInsecureTls;
     if (!this.verifySsl && !this.allowInsecureTls) {
       log.warn(
         'mcp_gateway: verify_ssl=false ignored — TLS verification stays ON. ' +
