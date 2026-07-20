@@ -109,9 +109,11 @@ export interface RelayClientLike {
  *
  * @example Inside an onCall handler
  * ```ts
+ * import { RelayClient } from '@signalwire/sdk';
+ * const client = new RelayClient();
  * client.onCall(async (call) => {
  *   await call.answer();
- *   const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
+ *   const play = await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
  *   await play.wait();
  *   await call.hangup();
  * });

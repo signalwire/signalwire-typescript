@@ -98,6 +98,73 @@ describe('HttpClient', () => {
     }
   });
 
+  it('RestError captures response headers and requestId from x-request-id', async () => {
+    // §6.6 error-observability: a failed HTTP response carries the platform
+    // request id in an `x-request-id` header; RestError must surface it as
+    // `requestId` and expose the full header map (client-side observability,
+    // no wire-contract change) — mirrors the python reference SignalWireRestError.
+    const { options } = mockClientOptions([
+      {
+        status: 500,
+        body: { error: 'boom' },
+        headers: { 'x-request-id': 'req-abc-123' },
+      },
+    ]);
+    const http = new HttpClient(options);
+
+    try {
+      await http.get('/api/test/boom');
+      throw new Error('Should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RestError);
+      const err = e as RestError;
+      expect(err.requestId).toBe('req-abc-123');
+      expect(err.headers?.['x-request-id']).toBe('req-abc-123');
+      // the request id is folded into the human-readable message for logs
+      expect(err.message).toContain('req-abc-123');
+    }
+  });
+
+  it('RestError requestId honors header precedence and case-insensitivity', async () => {
+    // Precedence order: x-request-id > x-signalwire-request-id > request-id >
+    // x-amzn-requestid. Here only x-signalwire-request-id is present (mixed case).
+    const { options } = mockClientOptions([
+      {
+        status: 503,
+        body: { error: 'unavailable' },
+        headers: { 'X-SignalWire-Request-Id': 'sw-req-777' },
+      },
+    ]);
+    const http = new HttpClient(options);
+
+    try {
+      await http.get('/api/test/unavailable');
+      throw new Error('Should have thrown');
+    } catch (e) {
+      const err = e as RestError;
+      expect(err.requestId).toBe('sw-req-777');
+    }
+  });
+
+  it('RestError requestId is null when no request-id header is present', async () => {
+    const { options } = mockClientOptions([{ status: 400, body: { error: 'bad' } }]);
+    const http = new HttpClient(options);
+
+    try {
+      await http.get('/api/test/bad');
+      throw new Error('Should have thrown');
+    } catch (e) {
+      const err = e as RestError;
+      expect(err.requestId).toBeNull();
+    }
+  });
+
+  it('RestTransportError has null headers and requestId', () => {
+    const err = new RestTransportError('connection refused', 'https://x/api', 'GET');
+    expect(err.headers).toBeNull();
+    expect(err.requestId).toBeNull();
+  });
+
   it('appends query params to URL', async () => {
     const { options, getRequests } = mockClientOptions([{ status: 200, body: { data: [] } }]);
     const http = new HttpClient(options);

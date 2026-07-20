@@ -20,18 +20,21 @@ const logger = getLogger('rest_client');
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ *
  * const client = new RestClient({
  *   project: 'your-project-id',
  *   token: 'your-api-token',
  *   host: 'your-space.signalwire.com',
  * });
  *
- * // Or use env vars: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
- * const client = new RestClient();
+ * // Or use env vars (SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE):
+ * //   const client = new RestClient();
  *
  * // Use namespaced resources
+ * const callId = 'call-uuid';
  * await client.fabric.aiAgents.list();
- * await client.calling.play(callId, { play: [...] });
+ * await client.calling.play(callId, [{ type: 'audio', params: { url: 'https://cdn.example.com/greeting.mp3' } }]);
  * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
  * ```

@@ -79,7 +79,9 @@ interface McpToolDefinition {
  *
  * @example
  * ```ts
- * agent.addSkill('mcp_gateway', {
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('mcp_gateway', {
  *   gateway_url: 'https://mcp-gateway.example.com',
  *   tool_prefix: 'mcp_',
  * });

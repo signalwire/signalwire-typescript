@@ -56,7 +56,9 @@ interface RoutesV2Response {
  *
  * @example
  * ```ts
- * agent.addSkill('google_maps', { default_mode: 'driving' });
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('google_maps', { default_mode: 'driving' });
  * ```
  */
 export class GoogleMapsSkill extends SkillBase {

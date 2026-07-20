@@ -62,7 +62,9 @@ interface TransferConfig {
  *
  * @example
  * ```ts
- * agent.addSkill('swml_transfer', {
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('swml_transfer', {
  *   patterns: [
  *     { name: 'sales', pattern: /sales|pricing|buy/i, to: '+15551112222' },
  *     { name: 'support', pattern: /help|support|broken/i, to: '+15553334444' },

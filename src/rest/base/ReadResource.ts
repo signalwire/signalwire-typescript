@@ -43,8 +43,10 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    * callers no longer hand-build the page-token loop:
    *
    * ```typescript
+   * import { RestClient } from '@signalwire/sdk';
+   * const client = new RestClient();
    * for await (const address of client.fabric.addresses.paginate()) {
-   *   // ...
+   *   console.log(address);
    * }
    * ```
    *

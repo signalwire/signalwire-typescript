@@ -36,7 +36,6 @@ await client.calling.dial('+15559876543', '+15551234567', {
 - Full Fabric API: 16 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
-- Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
 - Uses the platform's built-in `fetch` (Node 22+); a small set of runtime dependencies (`hono`, `@hono/node-server`, `ajv`, `js-yaml`, `ws`) power the agent/server layer
 - Injectable `fetchImpl` for testing
@@ -75,7 +74,7 @@ await client.calling.dial('+15559876543', '+15551234567', {
 src/rest/
     index.ts             # RestClient + public exports
     HttpClient.ts        # fetch-based HTTP with Basic Auth
-    RestError.ts         # Error class: statusCode, body, url, method
+    RestError.ts         # Error class: statusCode, body, url, method, headers, requestId
     pagination.ts        # paginate<T>() async generator + paginateAll()
     types.ts             # ClientOptions, PaginatedResponse, QueryParams
     base/
@@ -83,11 +82,10 @@ src/rest/
         CrudResource.ts      # list/create/get/update/delete with generics
         CrudWithAddresses.ts # CrudResource + listAddresses()
     namespaces/
-        fabric.ts        # 13 resource types + generic resources + addresses + tokens
+        fabric.ts        # 16 resource types incl. generic resources + addresses + tokens
         calling.ts       # 37 command dispatch methods via single POST
         phone-numbers.ts # Search, purchase, update, release
-        compat.ts        # Twilio-compatible LAML API (12 sub-resources)
-        video.ts         # Rooms, sessions, recordings, conferences, streams
-        datasphere.ts    # Documents, search, chunks
-        ... and 15 more
+        video.ts         # Rooms, sessions, recordings, conferences, tokens, streams
+        datasphere.ts    # Documents
+        ... and more
 ```
