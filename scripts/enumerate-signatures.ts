@@ -389,6 +389,14 @@ const KWARGS_TAIL_ONLY: Set<string> = new Set([
   'signalwire.core.agent_base.AgentBase.set_post_prompt_llm_params',
   // SWMLVerbHandler base contract — Python `def build_config(self, **kwargs)`.
   'signalwire.core.swml_handler.SWMLVerbHandler.build_config',
+  // REST base read verbs — Python `def list/paginate/list_addresses(self, *,
+  // request_options=None, **params)`: the query params are the `**params`
+  // variadic (oracle-stripped), so the port's trailing `params?: QueryParams`
+  // dict is the var_keyword tail. (`request_options` is hoisted before it by
+  // hoistRequestOptionsBeforeVarKeyword so it aligns with the reference.)
+  'signalwire.rest._base.ReadResource.list',
+  'signalwire.rest._base.ReadResource.paginate',
+  'signalwire.rest._base.CrudWithAddresses.list_addresses',
 ]);
 
 // TS `static` factory methods that mirror a Python `@classmethod` (whose first
@@ -1465,6 +1473,25 @@ function signatureFromMethod(
     if (!p.name || !ts.isIdentifier(p.name)) continue;
     const native = p.name.text;
     const snake = camelToSnake(native);
+    // The per-request transport-envelope param (plan 4.2 / PY-7). Every REST
+    // resource verb — base ReadResource/CrudResource + every generated verb —
+    // ends in `requestOptions?: RequestOptionsInit`. The Python reference records
+    // this as a keyword-only `request_options: Optional[RequestOptions]` in its own
+    // `_request_options` module. TS's `RequestOptionsInit` is the plain-object
+    // initializer for the same value object (same file → same reference module);
+    // record it with the reference's canonical class-ref + keyword kind so the
+    // drift gate matches. Bypasses the generated-resource var_keyword reclassify
+    // (a trailing keyword, not a `**params`/`extras` tail).
+    if (native === 'requestOptions') {
+      params.push({
+        name: 'request_options',
+        kind: 'keyword',
+        type: 'optional<class:signalwire.rest._request_options.RequestOptions>',
+        required: false,
+        default: null,
+      });
+      continue;
+    }
     // General options-object unfold (allowlisted methods): a trailing inline
     // `options`/`opts`/`config` type-literal → its members as `keyword` params.
     if (
@@ -1619,7 +1646,51 @@ function signatureFromMethod(
   if (genResource && !isCtor) {
     reclassifyGeneratedResourceParams(sig, keywordFieldNames(m));
   }
+  hoistRequestOptionsBeforeVarKeyword(sig);
   return sig;
+}
+
+/**
+ * Move a `request_options` param to sit immediately BEFORE any trailing
+ * `var_keyword` tail (the synthetic `**params` / `**kwargs` the generated-resource
+ * reclassify appends, or a GET's `params` query bag). The Python reference declares
+ * `def m(self, …, *, request_options=None, **params)` — request_options is a
+ * keyword-only param BEFORE the `**params` variadic, and the oracle STRIPS that
+ * trailing variadic, so the recorded reference ends at `request_options`. The TS
+ * generator emits `requestOptions` as the LAST arg (after `params?` / the synthetic
+ * kwargs), so without this hoist the port would read `…, params(var_keyword),
+ * request_options` — a position mismatch against the reference's `…, request_options`.
+ * Hoisting request_options ahead of the trailing var_keyword makes it align by
+ * position; the leftover trailing var_keyword is the diff-excused variadic tail.
+ */
+function hoistRequestOptionsBeforeVarKeyword(sig: CanonicalSignature): void {
+  const ps = sig.params;
+  const roIdx = ps.findIndex((p) => p.name === 'request_options');
+  if (roIdx === -1) return;
+  const ro = ps[roIdx];
+  const rest = [...ps.slice(0, roIdx), ...ps.slice(roIdx + 1)];
+
+  // A SINGLE-BODY operation method — a positional `body` param carrying the whole
+  // typed request (`m(self, id, body, *, request_options=None)` in the reference).
+  // Its reference has NO `extras`; the TS generator still emits a typed `extras?`
+  // escape door, so `extras` sits at the reference's `request_options` position.
+  // For these, hoist `request_options` past the trailing `extras` keyword too so it
+  // lands at the reference position (the leftover `extras` is a diff-excused extra).
+  // Exploded-body methods (keyword fields + `extras`) must KEEP `extras` before
+  // `request_options` (the reference has `…, extras, request_options`), so hoist
+  // only past the `**kwargs` var_keyword tail there.
+  const singleBody = rest.some((p) => p.name === 'body' && p.kind !== 'var_keyword');
+
+  let insertAt = rest.length;
+  for (let i = rest.length - 1; i >= 0; i--) {
+    const p = rest[i];
+    const isTrailer =
+      p.kind === 'var_keyword' || (singleBody && p.kind === 'keyword' && p.name === 'extras');
+    if (isTrailer) insertAt = i;
+    else break;
+  }
+  rest.splice(insertAt, 0, ro);
+  sig.params = rest;
 }
 
 // ---------------------------------------------------------------------------

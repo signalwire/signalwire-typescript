@@ -5,6 +5,7 @@
  */
 
 import type { HttpClient } from './HttpClient.js';
+import type { RequestOptionsInit } from './RequestOptions.js';
 import type { QueryParams } from './types.js';
 
 /**
@@ -32,6 +33,9 @@ interface PageEnvelope {
  *   Subsequent pages use the server-supplied next-page URL unchanged.
  * @param dataKey - Key on each response containing the array of items.
  *   Defaults to `"data"`.
+ * @param requestOptions - Per-request transport envelope forwarded to EVERY
+ *   page fetch (mirrors Python's `_pagination.py`, which forwards
+ *   `request_options` on each page). Timeout/retry/abort apply to every page.
  * @returns An async iterable that yields one `T` per call until exhausted.
  */
 export async function* paginate<T>(
@@ -39,6 +43,7 @@ export async function* paginate<T>(
   path: string,
   params?: QueryParams,
   dataKey = 'data',
+  requestOptions?: RequestOptionsInit,
 ): AsyncGenerator<T, void, undefined> {
   let currentPath: string | null = path;
   let currentParams: QueryParams | undefined = params;
@@ -52,7 +57,11 @@ export async function* paginate<T>(
   const seenNext = new Set<string>();
 
   while (currentPath) {
-    const resp: PageEnvelope = await http.get<PageEnvelope>(currentPath, currentParams);
+    const resp: PageEnvelope = await http.get<PageEnvelope>(
+      currentPath,
+      currentParams,
+      requestOptions,
+    );
 
     // Extract items from the response using the data key
     const items = (resp[dataKey] as T[] | undefined) ?? [];
@@ -71,8 +80,7 @@ export async function* paginate<T>(
     }
 
     if (rawNext === null) {
-      // No more pages
-      currentPath = null;
+      // No more pages — `break` exits the loop; no need to null `currentPath`.
       break;
     }
 
@@ -89,7 +97,7 @@ export async function* paginate<T>(
     // Cycle guard: a next cursor we have already followed (or the page we just
     // fetched) means the server is looping — terminate instead of spinning.
     if (nextPath === currentPath || seenNext.has(nextPath)) {
-      currentPath = null;
+      // Cursor loop detected — `break` terminates; no need to null `currentPath`.
       break;
     }
     seenNext.add(nextPath);

@@ -120,6 +120,12 @@ const PLAIN_BASES = new Set(['BaseResource']);
 // Bases bound by the read-only 2-tuple [TList, TItem] rather than the CRUD 4-tuple.
 const READONLY_BASES = new Set(['ReadResource']);
 
+// The trailing per-request transport-envelope param every generated verb accepts
+// (plan 4.2 / PY-7). Threaded to the HttpClient verb's requestOptions slot; NEVER
+// folded into the wire body. The enumerator maps it to the reference's keyword
+// `request_options: Optional[RequestOptions]`.
+const REQUEST_OPTIONS_SIG = 'requestOptions?: RequestOptionsInit';
+
 interface XSdkResource {
   name: string;
   base: string;
@@ -447,6 +453,7 @@ function emitOperationMethod(
     const parts = pathArgs.map((a) => `${a}: string`);
     parts.push(`body: ${bodyT}`);
     parts.push('extras?: Record<string, unknown>');
+    parts.push(REQUEST_OPTIONS_SIG);
     sig = parts.join(', ');
     bodyExpr = '{ ...body, ...extras }';
   } else if (Object.keys(flat.props).length) {
@@ -457,13 +464,16 @@ function emitOperationMethod(
       for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
       bodyParams.push({ name, ann, required: flat.required.includes(key) });
     }
-    sig = renderSignature(pathArgs, bodyParams, { extras: true, query: false });
+    sig =
+      renderSignature(pathArgs, bodyParams, { extras: true, query: false }) +
+      `, ${REQUEST_OPTIONS_SIG}`;
     const bvar = bodyVar(bodyParams);
     preamble = renderBodyAssembly(bodyParams, true, bvar);
     bodyExpr = bvar;
   } else {
     const query = httpVerb === 'get';
-    sig = renderSignature(pathArgs, [], { extras: false, query });
+    const base = renderSignature(pathArgs, [], { extras: false, query });
+    sig = base ? `${base}, ${REQUEST_OPTIONS_SIG}` : REQUEST_OPTIONS_SIG;
   }
 
   // Call target.
@@ -476,14 +486,26 @@ function emitOperationMethod(
       : JSON.stringify(prefix + '/' + absParts.join('/'));
   }
 
+  // requestOptions goes into the HttpClient verb's trailing options slot. `post`
+  // has a `params` slot BEFORE it (`post(path, body, params?, requestOptions?)`),
+  // so a body POST needs an explicit `undefined` params placeholder; `put`/`patch`
+  // (`(path, body, requestOptions?)`), `get` (`(path, params?, requestOptions?)`),
+  // and `delete` (`(path, requestOptions?)`) take it directly after their args.
   let call: string;
   const needsQuery = httpVerb === 'get' && !hasBody;
   if (hasBody) {
-    call = `this._http.${httpVerb}<${returnT}>(${target}, ${bodyExpr})`;
+    call =
+      httpVerb === 'post'
+        ? `this._http.post<${returnT}>(${target}, ${bodyExpr}, undefined, requestOptions)`
+        : `this._http.${httpVerb}<${returnT}>(${target}, ${bodyExpr}, requestOptions)`;
   } else if (httpVerb === 'get') {
-    call = `this._http.get<${returnT}>(${target}, params)`;
+    call = `this._http.get<${returnT}>(${target}, params, requestOptions)`;
+  } else if (httpVerb === 'delete') {
+    call = `this._http.delete<${returnT}>(${target}, requestOptions)`;
+  } else if (httpVerb === 'post') {
+    call = `this._http.post<${returnT}>(${target}, undefined, undefined, requestOptions)`;
   } else {
-    call = `this._http.${httpVerb}<${returnT}>(${target})`;
+    call = `this._http.${httpVerb}<${returnT}>(${target}, undefined, requestOptions)`;
   }
 
   const src =
@@ -510,16 +532,16 @@ function emitCrudMethod(
   if (isCreate) {
     const src =
       `  /** Create — typed request body plus an \`extras\` escape hatch for fields not yet typed. */\n` +
-      `  override async create(body: ${bodyT}, extras?: Record<string, unknown>): Promise<${itemT}> {\n` +
-      `    return this._http.post<${itemT}>(this._basePath, { ...body, ...extras });\n` +
+      `  override async create(body: ${bodyT}, extras?: Record<string, unknown>, requestOptions?: RequestOptionsInit): Promise<${itemT}> {\n` +
+      `    return this._http.post<${itemT}>(this._basePath, { ...body, ...extras }, undefined, requestOptions);\n` +
       `  }`;
     return { src, refs };
   }
   const httpVerb = verb === 'PUT' ? 'put' : 'patch';
   const src =
     `  /** Update — typed request body plus an \`extras\` escape hatch. */\n` +
-    `  override async update(${idName}: string, body: ${bodyT}, extras?: Record<string, unknown>): Promise<${itemT}> {\n` +
-    `    return this._http.${httpVerb}<${itemT}>(this._path(${idName}), { ...body, ...extras });\n` +
+    `  override async update(${idName}: string, body: ${bodyT}, extras?: Record<string, unknown>, requestOptions?: RequestOptionsInit): Promise<${itemT}> {\n` +
+    `    return this._http.${httpVerb}<${itemT}>(this._path(${idName}), { ...body, ...extras }, requestOptions);\n` +
     `  }`;
   return { src, refs };
 }
@@ -574,12 +596,13 @@ function emitCommandDispatch(
     for (const p of reqP) parts.push(`${p.name}: ${p.ann}`);
     const optsObj = renderOptionsObject(optP, true);
     if (optsObj) parts.push(optsObj);
+    parts.push(REQUEST_OPTIONS_SIG);
     let src = `  async ${camelCase(methodName)}(${parts.join(', ')}): Promise<${returnT}> {\n`;
     src += renderBodyAssembly(bodyParams, true, 'params');
     const wire = hasId
       ? `{ command: ${JSON.stringify(command)}, params, id: callId }`
       : `{ command: ${JSON.stringify(command)}, params }`;
-    src += `    return this._http.post<${returnT}>(this._basePath, ${wire});\n  }`;
+    src += `    return this._http.post<${returnT}>(this._basePath, ${wire}, undefined, requestOptions);\n  }`;
     srcs.push(src);
   }
   return { srcs, refs };
@@ -622,13 +645,18 @@ function emitSetMethods(
     for (const a of reqArgs) params.push(`${a.arg}: ${a.ann}`);
     for (const a of optArgs) params.push(`${a.arg}?: ${a.ann}`);
     params.push('extra?: Record<string, unknown>');
+    params.push(REQUEST_OPTIONS_SIG);
     let src = `  async ${camelCase(name)}(${params.join(', ')}): Promise<${itemT}> {\n`;
     src += `    const body: Record<string, unknown> = { call_handler: ${JSON.stringify(handler)} };\n`;
     for (const a of reqArgs) src += `    body[${JSON.stringify(a.field)}] = ${a.arg};\n`;
     for (const a of optArgs)
       src += `    if (${a.arg} !== undefined) body[${JSON.stringify(a.field)}] = ${a.arg};\n`;
     src += '    if (extra) Object.assign(body, extra);\n';
-    src += `    return this.update(resourceId, body as ${leafName(updateReqRef)});\n  }`;
+    // The resource's generated `update` override is `(id, body, extras?,
+    // requestOptions?)` — pass `undefined` for the extras slot (the set_method's
+    // `extra` bag is already merged into `body`) so requestOptions lands in the
+    // right slot.
+    src += `    return this.update(resourceId, body as ${leafName(updateReqRef)}, undefined, requestOptions);\n  }`;
     srcs.push(src);
   }
   return { srcs, refs };
@@ -708,6 +736,11 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
   const usedTypes = new Set<string>();
   const basesUsed = new Set<string>();
   let needsQuery = false;
+  // True once any class emits its own method body (CRUD override / operation /
+  // command-dispatch / set_method) — those all carry a trailing `requestOptions`.
+  // A module whose resources are ALL base-inherited (e.g. read-only FaxLogs) emits
+  // no method bodies, so it must NOT import RequestOptionsInit (unused-import lint).
+  let usesRequestOptions = false;
 
   for (const { coll: anchorPath, x } of targets) {
     const collection = x.collection ?? anchorPath;
@@ -823,6 +856,7 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
         : '';
     const ctor = `  constructor(http: HttpClient) {\n    super(http, ${JSON.stringify(basePath)});\n  }`;
     const bodyMethods = [...crudSrcs, ...subSrcs];
+    if (bodyMethods.length > 0) usesRequestOptions = true;
     const body = verbAttr + [ctor, ...bodyMethods].join('\n\n');
     let cls = `export class ${resourceName} extends ${bindClause} {\n${body}\n}`;
     for (const alias of x.aliases ?? []) cls += `\n\nexport const ${alias} = ${resourceName};`;
@@ -844,9 +878,15 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
   const typeImport = typeNames.length
     ? `import type {\n  ${typeNames.join(',\n  ')},\n} from './${ns}.types.generated.js';\n`
     : '';
+  // Every generated verb takes a trailing `requestOptions?: RequestOptionsInit`
+  // (plan 4.2 / PY-7), so a module that emits any verb body imports the type. A
+  // module of only base-inherited resources (no emitted body) does not.
+  const roImport = usesRequestOptions
+    ? `import type { RequestOptionsInit } from '../RequestOptions.js';\n`
+    : '';
   const httpImports = needsQuery
-    ? `import type { HttpClient } from '../HttpClient.js';\nimport type { QueryParams } from '../types.js';\n`
-    : `import type { HttpClient } from '../HttpClient.js';\n`;
+    ? `import type { HttpClient } from '../HttpClient.js';\n${roImport}import type { QueryParams } from '../types.js';\n`
+    : `import type { HttpClient } from '../HttpClient.js';\n${roImport}`;
   const header =
     `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.yaml — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +

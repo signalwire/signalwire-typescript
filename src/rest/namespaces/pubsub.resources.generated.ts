@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type { PubSubChannels, PubSubState, PubSubToken } from './pubsub.types.generated.js';
 
@@ -19,6 +20,7 @@ export class PubSub extends BaseResource {
     ttl: number,
     channels: PubSubChannels,
     options?: { member_id?: string; state?: PubSubState; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<PubSubToken> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -29,6 +31,6 @@ export class PubSub extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<PubSubToken>(this._basePath, body);
+    return this._http.post<PubSubToken>(this._basePath, body, undefined, requestOptions);
   }
 }
