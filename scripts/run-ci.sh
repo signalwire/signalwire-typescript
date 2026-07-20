@@ -191,6 +191,14 @@ sched_gate PACKAGE-NIGHTLY tier=nightly defer=1 desc="package suite, nightly rul
     -- python3 "$PORTING_SDK_DIR/scripts/suites/package.py" --port typescript --repo "$PORT_ROOT" \
         --rules PACKAGE-SMOKE,META-CONSISTENT
 
+# PACKAGE-SMOKE-DUAL (TS-2 / r5 B1+G1): the packed tarball must load in BOTH
+# module systems — ESM `import` AND CJS `require`. The CJS leg is the B1
+# regression guard (the exports map used to lack a require/default condition, so
+# require() hard-failed with ERR_PACKAGE_PATH_NOT_EXPORTED). Builds dist (heavy)
+# → nightly-tier like PACKAGE-SMOKE for ts/cpp.
+sched_gate PACKAGE-SMOKE-DUAL tier=nightly defer=1 desc="packed tarball loads via BOTH import (ESM) and require (CJS)" \
+    -- bash "$PORT_ROOT/scripts/package-smoke-dual.sh"
+
 # ---- gates that stay standalone (native toolchains + singletons) -------------
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"

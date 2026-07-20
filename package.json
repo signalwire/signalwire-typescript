@@ -27,11 +27,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./livewire": {
       "types": "./dist/livewire/index.d.ts",
-      "import": "./dist/livewire/index.js"
+      "import": "./dist/livewire/index.js",
+      "default": "./dist/livewire/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -69,7 +71,7 @@
     "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "license": "MIT",
   "dependencies": {
