@@ -30,6 +30,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
+          # CI-PIN (Wave 1): the SEMVER/SURFACE oracle + PY-7 request_options gate
+          # scripts live on porting-sdk wave/1-aplus, not yet on main.
+          # REVERT this ref back to main (default) when porting-sdk wave/1-aplus merges.
+          ref: wave/1-aplus
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
@@ -42,7 +46,10 @@ jobs:
         with:
           repository: signalwire/signalwire-python
           path: signalwire-python
-          ref: main
+          # CI-PIN (Wave 1): the reference's Wave-1 changes (PY-1..9, incl PY-7
+          # request_options) live on signalwire-python wave/1-aplus (PR #67), not
+          # yet on main. REVERT to main when signalwire-python wave/1-aplus merges.
+          ref: wave/1-aplus
 
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
