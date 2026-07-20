@@ -853,6 +853,11 @@ export class Call {
   /**
    * Bridge the call to one or more destinations.
    *
+   * Each device is a {@link PhoneDevice}, {@link SipDevice}, or
+   * {@link FabricDevice} (dial a Fabric address / Subscriber directly — the
+   * platform fans out to the subscriber's push/WebRTC/SIP registrations, no
+   * intermediate SIP address required).
+   *
    * @param devices - Serial/parallel dial plan — outer array of serial groups,
    *   inner arrays dialled in parallel.
    * @param options - Connect behaviour.

@@ -90,8 +90,24 @@ export interface SipDevice {
   headers?: Record<string, string>[];
 }
 
+/**
+ * Fabric device specification for dial/connect — dials a Fabric address
+ * (a Subscriber) directly. The platform resolves the address to the subscriber's
+ * live registrations and fans out in parallel (push + WebRTC + SIP), so the
+ * caller reaches the person without provisioning an intermediate SIP address
+ * (and without paying for the extra SIP leg). `to` is the Fabric address.
+ */
+export interface FabricDevice {
+  type: 'fabric';
+  /** The Fabric address (Subscriber) to dial. */
+  to: string;
+  /** Caller ID / from. Optional — defaults are applied by the platform. */
+  from?: string;
+  timeout?: number;
+}
+
 /** Any device specification. */
-export type Device = PhoneDevice | SipDevice | Record<string, unknown>;
+export type Device = PhoneDevice | SipDevice | FabricDevice | Record<string, unknown>;
 
 /** Options for the dial() method. */
 export interface DialOptions {
