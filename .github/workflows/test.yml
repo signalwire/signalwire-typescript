@@ -77,6 +77,15 @@ jobs:
             pip install ./signalwire-python
           fi
 
+      # The SWAIG-HTTP-INVOKE gate (porting-sdk diff_port_swaig_http.py) builds its
+      # oracle via starlette.testclient.TestClient, whose HTTP backend is httpx.
+      # On py3.14 httpx is NOT pulled in transitively, so TestClient errors with
+      # "requires the httpx2 package". Installing httpx satisfies it (starlette 1.x
+      # accepts httpx with a deprecation warning — the same combo that runs green
+      # locally). Relax/drop when the gate scripts adopt httpx2 fleet-wide.
+      - name: Install SWAIG-HTTP gate backend (starlette TestClient needs httpx)
+        run: pip install httpx
+
       - name: npm ci
         working-directory: signalwire-typescript
         run: npm ci
