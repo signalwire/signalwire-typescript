@@ -43,6 +43,14 @@ export async function* paginate<T>(
   let currentPath: string | null = path;
   let currentParams: QueryParams | undefined = params;
 
+  // Repeating-cursor guard: a degraded/buggy server can return the SAME next
+  // cursor twice (or a cursor pointing at a page already walked). Terminating
+  // only on an ABSENT next link would loop FOREVER re-fetching the same page —
+  // an unbounded HTTP + memory hot-loop with credentials attached (the fleet's
+  // "repeating-cursor" pagination defect). Track every next-page path already
+  // followed; if the server hands back one we have seen, stop.
+  const seenNext = new Set<string>();
+
   while (currentPath) {
     const resp: PageEnvelope = await http.get<PageEnvelope>(currentPath, currentParams);
 
@@ -54,28 +62,40 @@ export async function* paginate<T>(
 
     // Determine next page URL
     // Style 1: links.next (relay REST)
-    if (resp.links?.next) {
-      const nextUrl = resp.links.next;
-      // If it's a full URL, extract path + query
-      if (nextUrl.startsWith('http')) {
-        const parsed = new URL(nextUrl);
-        currentPath = parsed.pathname + parsed.search;
-      } else {
-        currentPath = nextUrl;
-      }
-      currentParams = undefined; // params are in the URL already
-      continue;
-    }
-
     // Style 2: next_page_uri (LAML/compat)
-    if (resp.next_page_uri) {
-      currentPath = resp.next_page_uri as string;
-      currentParams = undefined;
-      continue;
+    let rawNext: string | null = null;
+    if (resp.links?.next) {
+      rawNext = resp.links.next;
+    } else if (resp.next_page_uri) {
+      rawNext = resp.next_page_uri;
     }
 
-    // No more pages
-    currentPath = null;
+    if (rawNext === null) {
+      // No more pages
+      currentPath = null;
+      break;
+    }
+
+    // Normalize a full URL down to path+query so the cycle key is stable
+    // regardless of whether the server echoes an absolute or relative next.
+    let nextPath: string;
+    if (rawNext.startsWith('http')) {
+      const parsed = new URL(rawNext);
+      nextPath = parsed.pathname + parsed.search;
+    } else {
+      nextPath = rawNext;
+    }
+
+    // Cycle guard: a next cursor we have already followed (or the page we just
+    // fetched) means the server is looping — terminate instead of spinning.
+    if (nextPath === currentPath || seenNext.has(nextPath)) {
+      currentPath = null;
+      break;
+    }
+    seenNext.add(nextPath);
+
+    currentPath = nextPath;
+    currentParams = undefined; // params are in the URL already
   }
 }
 

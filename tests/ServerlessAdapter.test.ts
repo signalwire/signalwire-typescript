@@ -74,7 +74,10 @@ describe('ServerlessAdapter', () => {
         'content-type': 'application/json',
         authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
       },
-      body: JSON.stringify({ function: 'echo', argument: { msg: 'hi' } }),
+      // Platform-nested SWAIG shape: mod_openai POSTs args under
+      // argument.parsed[0] (not a flat argument object). See AgentBase
+      // extractSwaigArgs / SWAIG-HTTP-INVOKE (TS-6).
+      body: JSON.stringify({ function: 'echo', argument: { parsed: [{ msg: 'hi' }] } }),
     });
 
     expect(response.statusCode).toBe(200);

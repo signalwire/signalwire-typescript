@@ -27,7 +27,7 @@ import {
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
-import { getLogger, suppressAllLogs } from './Logger.js';
+import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
@@ -2224,6 +2224,55 @@ export class AgentBase extends SWMLService {
     // Default no-op
   }
 
+  /**
+   * Extract the tool-call arguments from a SWAIG request body.
+   *
+   * The real platform (mod_openai) POSTs a tool call with the args nested under
+   * the platform envelope `{"argument": {"parsed": [{...args...}], "raw": "..."}}`
+   * — NOT flat. Reading `body.argument` directly hands the handler the WHOLE
+   * envelope (`{parsed, raw}`) instead of the args, so a real platform call
+   * arrives with EMPTY args. This unwraps `argument.parsed[0]` first, falls back
+   * to parsing `argument.raw` JSON, and finally accepts the flat
+   * `{"arguments": {...}}` shape some external integrations send — matching the
+   * Python reference (`core/swml_service.py:836-851`).
+   *
+   * @param body - The parsed SWAIG request body.
+   * @param reqLog - Request-scoped logger for the raw-parse-error path.
+   * @returns The extracted argument object (empty object when none present).
+   */
+  private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
+    const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+      v !== null && typeof v === 'object' && !Array.isArray(v);
+
+    const argument = body['argument'];
+    if (isPlainObject(argument)) {
+      // Platform-nested shape: argument.parsed[0] holds the real args.
+      const parsed = argument['parsed'];
+      if (Array.isArray(parsed) && parsed.length > 0 && isPlainObject(parsed[0])) {
+        return parsed[0];
+      }
+      // Fallback: argument.raw is a JSON string of the args.
+      const raw = argument['raw'];
+      if (typeof raw === 'string' && raw.length > 0) {
+        try {
+          const decoded: unknown = JSON.parse(raw);
+          if (isPlainObject(decoded)) return decoded;
+        } catch (e) {
+          reqLog.error('error_parsing_raw_arguments', {
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+      return {};
+    }
+
+    // Flat shape used by some external integrations: {"arguments": {...}}.
+    const flat = body['arguments'];
+    if (isPlainObject(flat)) return flat;
+
+    return {};
+  }
+
   // ── 5-phase SWML rendering ─────────────────────────────────────────
 
   /**
@@ -2761,11 +2810,7 @@ export class AgentBase extends SWMLService {
         reqLog.debug('token_valid');
       }
 
-      const rawArgs: unknown = body['argument'];
-      const args: Record<string, unknown> =
-        rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
-          ? (rawArgs as Record<string, unknown>)
-          : {};
+      const args = this.extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
       const hookResult = await this.onFunctionCall(fnName, args, body);
 
