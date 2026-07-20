@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
 import { Call } from './Call.js';
 import { createDeferred, type Deferred } from './Deferred.js';
@@ -62,6 +63,31 @@ type WirePayload = Record<string, unknown>;
 (Symbol as { asyncDispose?: symbol }).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
 
 const logger = getLogger('relay_client');
+
+/**
+ * Extra `ws` connection options trusting a custom RELAY CA bundle, read from
+ * `SIGNALWIRE_RELAY_CA_FILE` (A5 fleet CA-var contract, hard-cut, no aliases).
+ * When the env var names a CA bundle it becomes the RELAY WebSocket transport's
+ * TLS trust root (`ws` forwards `ca` to the underlying `tls.connect`), the exact
+ * RELAY half of the fleet pair (`SIGNALWIRE_REST_CA_FILE` is the REST half).
+ * Unset → node's default trust store (`{}`). Mirrors the python reference
+ * (`relay/client.py:134` `_build_relay_ssl_context` → `websockets.connect(ssl=)`).
+ *
+ * Read at connect time (not module load) so a var set after import is honored,
+ * matching the REST half. Returns `{}` when unset or the file can't be read.
+ */
+function relayCaWsOptions(): { ca?: Buffer } {
+  const caFile = process.env['SIGNALWIRE_RELAY_CA_FILE'];
+  if (!caFile) return {};
+  try {
+    const require = createRequire(import.meta.url);
+    const { readFileSync } = require('node:fs') as { readFileSync: (p: string) => Buffer };
+    return { ca: readFileSync(caFile) };
+  } catch (err) {
+    logger.warn(`relay_ca_file_load_failed file=${caFile} error=${String(err)}`);
+    return {};
+  }
+}
 
 // Any 2xx code is considered success
 const SUCCESS_CODE_RE = /^2\d{2}$/;
@@ -404,7 +430,10 @@ export class RelayClient {
   private async _createWebSocket(uri: string): Promise<WsLike> {
     const wsModule = await import('ws');
     const WS = wsModule.default ?? wsModule;
-    const ws = new WS(uri, { maxPayload: 10 * 1024 * 1024 }) as unknown as WsLike;
+    const ws = new WS(uri, {
+      maxPayload: 10 * 1024 * 1024,
+      ...relayCaWsOptions(),
+    }) as unknown as WsLike;
     // Wait for the socket to finish the handshake before the caller tries to
     // send signalwire.connect — otherwise send() throws "readyState 0".
     await new Promise<void>((resolve, reject) => {

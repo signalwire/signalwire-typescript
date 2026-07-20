@@ -48,6 +48,46 @@ function buildUserAgent(): string {
 
 const USER_AGENT = buildUserAgent();
 
+/**
+ * Cached undici dispatcher trusting a custom REST CA bundle, built lazily on
+ * first use from `SIGNALWIRE_REST_CA_FILE` (A5 fleet CA-var contract, hard-cut,
+ * no aliases). When the env var names a CA bundle, it becomes the REST HTTP
+ * client's TLS trust root — the exact REST half of the fleet pair
+ * (`SIGNALWIRE_RELAY_CA_FILE` is the RELAY half). Unset → node's default trust
+ * store (no dispatcher attached). Mirrors the python reference
+ * (`rest/_base.py:163` — `session.verify = SIGNALWIRE_REST_CA_FILE`).
+ *
+ * The result is cached per resolved file path so repeated requests reuse one
+ * connection pool. Returns `undefined` when the env var is unset (or the file
+ * cannot be read — in which case node's default trust store applies and the
+ * platform cert still validates against the public roots).
+ */
+let _restCaDispatcher: { key: string; dispatcher: unknown } | undefined;
+function restCaDispatcher(): unknown {
+  const caFile = process.env['SIGNALWIRE_REST_CA_FILE'];
+  if (!caFile) return undefined;
+  if (_restCaDispatcher?.key === caFile) return _restCaDispatcher.dispatcher;
+  try {
+    // Imported lazily so environments without undici (or where the var is never
+    // set) pay nothing at module load.
+    const require = createRequire(import.meta.url);
+    const { Agent } = require('undici') as { Agent: new (opts: unknown) => unknown };
+    const { readFileSync } = require('node:fs') as {
+      readFileSync: (p: string) => Buffer;
+    };
+    const ca = readFileSync(caFile);
+    const dispatcher = new Agent({ connect: { ca } });
+    _restCaDispatcher = { key: caFile, dispatcher };
+    return dispatcher;
+  } catch (err) {
+    logger.warn('rest_ca_file_load_failed', {
+      file: caFile,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return undefined;
+  }
+}
+
 /** Backoff sleep between retries (a Promise-based delay). */
 function sleep(seconds: number): Promise<void> {
   if (seconds <= 0) return Promise.resolve();
@@ -149,12 +189,17 @@ export class HttpClient {
 
       let resp: Response;
       try {
-        resp = await this._fetch(url, {
+        // Attach the custom-CA dispatcher when SIGNALWIRE_REST_CA_FILE is set so
+        // the platform cert validates against the supplied trust bundle (A5).
+        const init: RequestInit & { dispatcher?: unknown } = {
           method,
           headers,
           body: encodedBody,
           signal: this._attemptSignal(opts),
-        });
+        };
+        const dispatcher = restCaDispatcher();
+        if (dispatcher !== undefined) init.dispatcher = dispatcher;
+        resp = await this._fetch(url, init as RequestInit);
       } catch (err) {
         // Transport failure (connection refused / DNS / reset / TLS / timeout /
         // abort): fetch rejects and the request never produced a response.

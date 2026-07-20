@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { McpGatewaySkill, createMcpGatewaySkill } from '../../src/skills/builtin/index.js';
+import { mcpTlsRejectUnauthorized } from '../../src/skills/builtin/mcp_gateway.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
@@ -83,6 +84,26 @@ describe('McpGatewaySkill', () => {
     expect(schema['retry_attempts']).toBeDefined();
     expect(schema['request_timeout']).toBeDefined();
     expect(schema['verify_ssl']).toBeDefined();
+    expect((schema['verify_ssl'] as { default?: unknown }).default).toBe(true);
+    // TS TLS refactor: the explicit opt-in required to actually disable TLS.
+    expect(schema['allow_insecure_tls']).toBeDefined();
+    expect((schema['allow_insecure_tls'] as { default?: unknown }).default).toBe(false);
+  });
+
+  // TLS refactor (owner-ruled REFACTOR, not allowlist): TLS verification stays
+  // ON unless the operator sets BOTH verify_ssl=false AND allow_insecure_tls=true.
+  // The two-key decision is a pure function so it is testable without a network.
+  describe('TLS opt-in gating (mcpTlsRejectUnauthorized)', () => {
+    it('verify_ssl=false ALONE keeps verification ON', () => {
+      expect(mcpTlsRejectUnauthorized(false, false)).toBe(true);
+    });
+    it('verify_ssl=false + allow_insecure_tls=true disables verification', () => {
+      expect(mcpTlsRejectUnauthorized(false, true)).toBe(false);
+    });
+    it('secure default (verify_ssl=true) keeps verification ON regardless of opt-in', () => {
+      expect(mcpTlsRejectUnauthorized(true, false)).toBe(true);
+      expect(mcpTlsRejectUnauthorized(true, true)).toBe(true);
+    });
   });
 
   it('should build prompt sections when services are configured', () => {
