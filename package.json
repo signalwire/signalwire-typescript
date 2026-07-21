@@ -71,7 +71,7 @@
     "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.0.0"
   },
   "license": "MIT",
   "dependencies": {

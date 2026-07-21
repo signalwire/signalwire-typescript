@@ -218,10 +218,17 @@ export class Call {
     try {
       return (await this._client.execute(rpcMethod, params)) as R;
     } catch (err: unknown) {
+      // A2 contract (RELAY-LIVENESS relay_contract fixture; mirrors the python
+      // reference `Call._execute`): a 404 or 410 means the call no longer exists,
+      // so the verb is a no-op and returns `{}` (the action can't proceed, but
+      // that isn't an error worth raising). EVERY OTHER non-2xx server error
+      // (500, auth, bad params, server faults) RAISES — the previous code
+      // swallowed ALL errors carrying a `code`, hiding real failures the
+      // developer must see.
       const code = (err as { code?: unknown } | null)?.code;
-      if (code !== undefined) {
+      if (code === 404 || code === 410) {
         logger.warn(
-          `Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`,
+          `Call ${this.callId} gone during ${method} (code=${String(code)}): ${String(err)}`,
         );
         return {} as R;
       }

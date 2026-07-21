@@ -89,6 +89,21 @@ function relayCaWsOptions(): { ca?: Buffer } {
   }
 }
 
+/**
+ * Read a positive numeric override from the environment, falling back to a
+ * default when unset, empty, or non-numeric. Used for the liveness-timing knobs
+ * (ping interval / max failures / request timeout / reconnect delays) so a
+ * bounded test window can exercise the half-open / black-hole / reconnect paths
+ * without changing production defaults. Mirrors the `RELAY_MAX_CONNECTIONS`
+ * env-read pattern already in this module.
+ */
+function _envNum(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 // Any 2xx code is considered success
 const SUCCESS_CODE_RE = /^2\d{2}$/;
 
@@ -213,6 +228,34 @@ export class RelayClient {
   private _pingFailures = 0;
   private _serverPingTimeout: ReturnType<typeof setTimeout> | null = null;
   private _maxActiveCalls = DEFAULT_MAX_ACTIVE_CALLS;
+
+  // Liveness timings. Default to the module constants; overridable via env so a
+  // half-open/black-hole/reconnect scenario can be exercised inside a bounded
+  // test window (RELAY-LIVENESS behavioral gate) — the exact analog of the
+  // python reference's monkeypatchable `_CLIENT_PING_INTERVAL` / `_EXECUTE_TIMEOUT`
+  // / `RECONNECT_MIN_DELAY` module constants and go's `WithPingWatchdog` /
+  // `WithExecuteTimeout` / `WithReconnectBackoff` options. Production behavior is
+  // unchanged when the env vars are unset.
+  private readonly _clientPingIntervalMs = _envNum(
+    'SIGNALWIRE_RELAY_PING_INTERVAL_MS',
+    CLIENT_PING_INTERVAL,
+  );
+  private readonly _clientPingMaxFailures = _envNum(
+    'SIGNALWIRE_RELAY_PING_MAX_FAILURES',
+    CLIENT_PING_MAX_FAILURES,
+  );
+  private readonly _requestTimeoutMs = _envNum(
+    'SIGNALWIRE_RELAY_REQUEST_TIMEOUT_MS',
+    REQUEST_TIMEOUT,
+  );
+  private readonly _reconnectMinDelay = _envNum(
+    'SIGNALWIRE_RELAY_RECONNECT_MIN_DELAY_S',
+    RECONNECT_MIN_DELAY,
+  );
+  private readonly _reconnectMaxDelay = _envNum(
+    'SIGNALWIRE_RELAY_RECONNECT_MAX_DELAY_S',
+    RECONNECT_MAX_DELAY,
+  );
 
   // For run() — resolves when shutdown requested
   private _shutdownDeferred: Deferred<void> | null = null;
@@ -408,7 +451,7 @@ export class RelayClient {
 
     this._ws = ws;
     this._connected = true;
-    this._reconnectDelay = RECONNECT_MIN_DELAY;
+    this._reconnectDelay = this._reconnectMinDelay;
 
     // Set up message handling
     this._setupWsListeners(ws);
@@ -880,7 +923,7 @@ export class RelayClient {
 
         this._reconnectDelay = Math.min(
           this._reconnectDelay * RECONNECT_BACKOFF_FACTOR,
-          RECONNECT_MAX_DELAY,
+          this._reconnectMaxDelay,
         );
       }
     } finally {
@@ -930,7 +973,7 @@ export class RelayClient {
           if (method !== METHOD_SIGNALWIRE_CONNECT) {
             this._forceClose();
           }
-        }, REQUEST_TIMEOUT);
+        }, this._requestTimeoutMs);
 
         deferred.promise.then(
           (v) => {
@@ -1329,18 +1372,18 @@ export class RelayClient {
       } catch {
         this._pingFailures++;
         const backoff = Math.min(
-          RECONNECT_MIN_DELAY * RECONNECT_BACKOFF_FACTOR ** this._pingFailures,
-          RECONNECT_MAX_DELAY,
+          this._reconnectMinDelay * RECONNECT_BACKOFF_FACTOR ** this._pingFailures,
+          this._reconnectMaxDelay,
         );
         logger.warn(
-          `Client ping failed (${this._pingFailures}/${CLIENT_PING_MAX_FAILURES}), backoff ${backoff.toFixed(1)}s`,
+          `Client ping failed (${this._pingFailures}/${this._clientPingMaxFailures}), backoff ${backoff.toFixed(1)}s`,
         );
-        if (this._pingFailures >= CLIENT_PING_MAX_FAILURES) {
+        if (this._pingFailures >= this._clientPingMaxFailures) {
           logger.error('Max ping failures reached, forcing reconnect');
           this._forceClose();
         }
       }
-    }, CLIENT_PING_INTERVAL);
+    }, this._clientPingIntervalMs);
   }
 
   private _stopPingLoop(): void {

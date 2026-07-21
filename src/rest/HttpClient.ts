@@ -25,6 +25,28 @@ import {
 const logger = getLogger('rest_client');
 
 /**
+ * True if `host` (bare host or host:port) is a local loopback address — a local
+ * mock/dev server that speaks plain HTTP. Used to pick `http://` vs `https://`
+ * so a shipped example runs verbatim against the local mock
+ * (SIGNALWIRE_SPACE=127.0.0.1:<port>) without a code change. A real SignalWire
+ * space (`<name>.signalwire.com`) is never loopback, so production is unaffected.
+ * Mirrors the python reference `rest/_base.py:_is_loopback_host`.
+ *
+ * Module-private (not exported) — an internal transport helper, not public API
+ * surface. RestClient reaches it by passing `host` to this HttpClient rather
+ * than pre-building the URL, so the scheme decision lives in one place here.
+ */
+function isLoopbackHost(host: string): boolean {
+  const hostname = host.includes(':') ? host.slice(0, host.lastIndexOf(':')) : host;
+  return (
+    hostname === '127.0.0.1' ||
+    hostname === 'localhost' ||
+    hostname === '::1' ||
+    hostname === '[::1]'
+  );
+}
+
+/**
  * REST client User-Agent, derived at runtime from the installed package version
  * so it can never drift from a hardcoded literal (the token used to be a stale
  * `@signalwire/sdk-ts/2.0.0` while the package moved on). The product token is
@@ -125,8 +147,12 @@ export class HttpClient {
     }
 
     // host takes precedence (matches Python's HttpClient(project, token, host) convention
-    // where a bare hostname is expected and https:// is prepended automatically).
-    const rawUrl = options.host ? `https://${options.host}` : options.baseUrl!;
+    // where a bare hostname is expected and the scheme is prepended automatically).
+    // A loopback host (127.0.0.1[:port] / localhost) is a local mock/dev server that
+    // speaks plain HTTP — use http:// for it; every other host uses https://.
+    const rawUrl = options.host
+      ? `${isLoopbackHost(options.host) ? 'http' : 'https'}://${options.host}`
+      : options.baseUrl!;
     this.baseUrl = rawUrl.replace(/\/+$/, '');
 
     this._authHeader =
