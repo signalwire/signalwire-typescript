@@ -29,5 +29,5 @@ Format: `- <path> — <reason>` (date).
 
 ## Live RELAY WebSocket examples (no mock_relay in the shared harness)
 
-- relay/examples/relay-outbound.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and dials a real number; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09).
-- relay/examples/relay-messaging.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and sends a real SMS; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09).
+- relay/examples/relay-outbound.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and dials a real number; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).
+- relay/examples/relay-messaging.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and sends a real SMS; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).
