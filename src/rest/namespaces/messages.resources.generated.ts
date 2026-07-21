@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type { Message } from './messages.types.generated.js';
 
@@ -26,6 +27,7 @@ export class Messages extends BaseResource {
       custom_variables?: Record<string, string>;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<Message> {
     const body_: Record<string, unknown> = {};
     const _fields = {
@@ -39,13 +41,14 @@ export class Messages extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body_[k] = v;
     if (options?.extras) Object.assign(body_, options.extras);
-    return this._http.post<Message>(this._basePath, body_);
+    return this._http.post<Message>(this._basePath, body_, undefined, requestOptions);
   }
 
   async update(
     message_id: string,
     body: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<Message> {
     const body_: Record<string, unknown> = {};
     const _fields = {
@@ -53,6 +56,6 @@ export class Messages extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body_[k] = v;
     if (options?.extras) Object.assign(body_, options.extras);
-    return this._http.patch<Message>(this._path(message_id), body_);
+    return this._http.patch<Message>(this._path(message_id), body_, requestOptions);
   }
 }

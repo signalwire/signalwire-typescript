@@ -1196,6 +1196,86 @@ describe('AgentBase', () => {
     }
   });
 
+  // ── SWAIG argument.parsed unwrap (TS-6 / SWAIG-HTTP-INVOKE) ───────────
+
+  it('unwraps platform-nested argument.parsed[0] so the handler sees real args', async () => {
+    // The real platform (mod_openai) POSTs a tool call as
+    // {function, argument: {parsed: [{...args}], raw: "..."}}. Reading
+    // body.argument directly would hand the handler {parsed, raw} — empty args.
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        function: 'lookup_order',
+        argument: {
+          parsed: [{ order_id: 'ORD-3007', customer: 'acme-42' }],
+          raw: '{"order_id":"ORD-3007","customer":"acme-42"}',
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'ORD-3007', customer: 'acme-42' });
+  });
+
+  it('falls back to argument.raw JSON when parsed is absent', async () => {
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        function: 'lookup_order',
+        argument: { raw: '{"order_id":"RAW-1"}' },
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'RAW-1' });
+  });
+
+  it('accepts the flat {arguments:{...}} fallback shape', async () => {
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ function: 'lookup_order', arguments: { order_id: 'FLAT-9911' } }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'FLAT-9911' });
+  });
+
   // ── defineTypedTool ─────────────────────────────────────────────────
 
   it('defineTypedTool registers tool with inferred schema', () => {

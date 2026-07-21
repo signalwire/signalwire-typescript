@@ -144,4 +144,73 @@ describe('paginate (async generator)', () => {
     expect(journal.length).toBe(0);
     await gen.return!(undefined);
   });
+
+  // ---- TS-3: PAGINATION-CORPUS behavioral contract (repeating-cursor guard +
+  // continue-past-empty). Mirrors porting-sdk/scripts/pagination_corpus.py.
+
+  it('continues_past_an_empty_page_that_carries_links_next', async () => {
+    // Page 1 is EMPTY but carries a next cursor; page 2 holds the real item.
+    // A naive `while data:` paginator STOPS on the empty page and drops page 2.
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, {
+      data: [],
+      links: { next: 'http://mock.test/api/fabric/addresses?page_token=EP_page2' },
+    });
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, {
+      data: [{ id: 'found-after-empty' }],
+      links: {},
+    });
+    const items: Record<string, unknown>[] = [];
+    for await (const item of paginate<Record<string, unknown>>(
+      http,
+      FABRIC_ADDRESSES_PATH,
+      undefined,
+      'data',
+    )) {
+      items.push(item);
+    }
+    expect(items.map((i) => i['id'])).toEqual(['found-after-empty']);
+  });
+
+  it('terminates_on_a_repeating_next_cursor_instead_of_looping_forever', async () => {
+    // Both pages point at the SAME next cursor (a server loop). A paginator that
+    // terminates only on an ABSENT next would re-fetch forever. It must detect
+    // the repeat and stop after consuming each page's item exactly once.
+    // Arm several copies so an UNGUARDED walk would keep finding a page to fetch
+    // (a guarded walk stops after page 2 regardless).
+    const loopBody = {
+      data: [{ id: 'loop-1' }],
+      links: { next: 'http://mock.test/api/fabric/addresses?page_token=LOOP' },
+    };
+    const loopBody2 = {
+      data: [{ id: 'loop-2' }],
+      links: { next: 'http://mock.test/api/fabric/addresses?page_token=LOOP' },
+    };
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, loopBody);
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, loopBody2);
+    // Extra armed copies: if the guard failed, the walk would consume these too
+    // (and then hang on the endless self-referential cursor).
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, loopBody2);
+    await mock.pushScenario(FABRIC_ADDRESSES_ENDPOINT_ID, 200, loopBody2);
+
+    const items: Record<string, unknown>[] = [];
+    // Bound the walk so a regression (infinite loop) fails the test instead of
+    // hanging the whole suite.
+    const walk = (async () => {
+      for await (const item of paginate<Record<string, unknown>>(
+        http,
+        FABRIC_ADDRESSES_PATH,
+        undefined,
+        'data',
+      )) {
+        items.push(item);
+        if (items.length > 50) throw new Error('paginate did not terminate on repeating cursor');
+      }
+    })();
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('paginate HUNG on repeating cursor')), 5000),
+    );
+    await Promise.race([walk, timeout]);
+
+    expect(items.map((i) => i['id'])).toEqual(['loop-1', 'loop-2']);
+  });
 });

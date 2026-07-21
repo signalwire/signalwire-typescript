@@ -164,13 +164,13 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 
 # BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
 # is the separate line below.
-sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/SWAIG-HTTP-INVOKE/TLS-VERIFY/CA-VAR/SECRET-SCRUB)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,SWAIG-HTTP-INVOKE,TLS-VERIFY,CA-VAR,SECRET-SCRUB
 
-sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS)" \
+sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
-        --rules WAIT-LIVENESS
+        --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
 
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/
 # ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE.
@@ -190,6 +190,14 @@ sched_gate PACKAGE res=dayone desc="package suite, per-PR rules (ARTIFACT-DENY/R
 sched_gate PACKAGE-NIGHTLY tier=nightly defer=1 desc="package suite, nightly rules (PACKAGE-SMOKE/META-CONSISTENT)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/package.py" --port typescript --repo "$PORT_ROOT" \
         --rules PACKAGE-SMOKE,META-CONSISTENT
+
+# PACKAGE-SMOKE-DUAL (TS-2 / r5 B1+G1): the packed tarball must load in BOTH
+# module systems — ESM `import` AND CJS `require`. The CJS leg is the B1
+# regression guard (the exports map used to lack a require/default condition, so
+# require() hard-failed with ERR_PACKAGE_PATH_NOT_EXPORTED). Builds dist (heavy)
+# → nightly-tier like PACKAGE-SMOKE for ts/cpp.
+sched_gate PACKAGE-SMOKE-DUAL tier=nightly defer=1 desc="packed tarball loads via BOTH import (ESM) and require (CJS)" \
+    -- bash "$PORT_ROOT/scripts/package-smoke-dual.sh"
 
 # ---- gates that stay standalone (native toolchains + singletons) -------------
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
