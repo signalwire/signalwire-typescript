@@ -1,5 +1,4 @@
-name: Nightly (multi-OS: macOS + Windows)
-
+name: "Nightly (multi-OS: macOS + Windows)"
 # Plan 6.4 — the multi-OS lane. ubuntu-only CI cannot certify a cross-platform
 # SDK, so this nightly runs the two OS-SENSITIVE suites — TEST (vitest) and
 # PACKAGE-SMOKE (npm pack → install the tarball → import + construct) — on
