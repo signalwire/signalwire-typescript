@@ -521,8 +521,15 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
       const elapsed = Date.now() - start;
 
-      // All page fetches aborted at ~0.3s; we never wait the 5s body delay.
-      expect(elapsed).toBeLessThan(2000);
+      // The snippet-fallback response below is the real proof the 5s body was
+      // never awaited (a completed scrape yields the full-content path, not
+      // "Snippet-only results"). The wall-clock check only guards against
+      // waiting the full 5000ms body, so bound it LOOSELY below that — a tight
+      // 2000ms bound asserts scheduler latency, not our logic: on a loaded
+      // 2-core CI runner timers fire seconds late (this line measured 2692ms
+      // with the deadline logic perfectly correct, matrix run 29854008467) —
+      // the same flaw already fixed in the two siblings above.
+      expect(elapsed).toBeLessThan(4500); // below the 5s body we prove we skip
       expect(result.response).toContain('Snippet-only results');
       expect(result.response).toContain('First CSE snippet about widgets.');
     } finally {
