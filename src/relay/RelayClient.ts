@@ -443,6 +443,29 @@ export class RelayClient {
     return ws;
   }
 
+  /**
+   * Return a log-safe repr of a raw RELAY frame with credential VALUES masked.
+   *
+   * SECRET-SCRUB (enterprise F3.1/F3.2): a `SIGNALWIRE_LOG_LEVEL=debug` session
+   * must never emit live credentials or the re-auth blob. Mirrors the python
+   * reference `_scrub_frame` (key-shape mask of "token"/"project"/"jwt_token"/
+   * "authorization_state" JSON values) composed with `_scrub_log` (verbatim
+   * masking of THIS connection's live credential values wherever they appear —
+   * e.g. a project value the server reflects into a non-credential `identity`
+   * field). Never a no-op: the raw frame + the identity diagnostic are the two
+   * enterprise-flagged leak sites.
+   */
+  private _scrubLog(text: string): string {
+    let out = text.replace(
+      /("(?:token|project|jwt_token|authorization_state)"\s*:\s*)"(?:\\.|[^"\\])*"/g,
+      '$1"***"',
+    );
+    for (const value of [this.project, this.token, this.jwtToken, this._authorizationState]) {
+      if (value) out = out.split(value).join('***');
+    }
+    return out;
+  }
+
   private _setupWsListeners(ws: WsLike): void {
     ws.on('message', (data: unknown) => {
       const raw = typeof data === 'string' ? data : (data as { toString(): string }).toString();
@@ -450,10 +473,10 @@ export class RelayClient {
       try {
         msg = JSON.parse(raw) as WirePayload;
       } catch {
-        logger.warn(`Invalid JSON received: ${raw}`);
+        logger.warn(`Invalid JSON received: ${this._scrubLog(raw)}`);
         return;
       }
-      logger.debug(`<< ${raw}`);
+      logger.debug(`<< ${this._scrubLog(raw)}`);
       this._handleMessage(msg).catch((err) => {
         logger.error(`Error handling message: ${err}`);
       });
@@ -517,7 +540,9 @@ export class RelayClient {
     this._relayProtocol = (result.protocol as string) ?? this._relayProtocol;
     this._identity = (result.identity as string) ?? this._identity;
     this._sessionId = (result.sessionid as string) ?? this._sessionId;
-    logger.debug(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`);
+    logger.debug(
+      this._scrubLog(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`),
+    );
   }
 
   /**
