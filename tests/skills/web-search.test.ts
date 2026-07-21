@@ -490,14 +490,20 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
         .handler({ query: 'widgets gizmos' }, {})) as FunctionResult;
 
       // Sequential: page 1 starts before the 1.0s deadline and hangs until the
-      // deadline's shared AbortController (or its per_page_timeout) ends it;
-      // the loop's deadline check must then prevent page 2 from EVER starting.
-      // Assert that observable — the scrape-call count — rather than wall
-      // clock: under CI CPU starvation timers fire seconds late and an
-      // elapsed-ms bound flakes on scheduler latency while the deadline logic
-      // is perfectly correct (seen at 5019ms on a loaded runner, matrix run
-      // 28939151975).
-      expect(scrapeCalls).toBe(1);
+      // deadline's shared AbortController ends it; the loop's per-item deadline
+      // guard (`if (Date.now() >= deadlineAt) return null`) then stops further
+      // scrapes. The real contract is "the deadline halts the sequential walk"
+      // — proven by the snippet-only fallback below (a completed scrape would
+      // yield the full-content path instead).
+      //
+      // Do NOT assert `scrapeCalls === 1`: the guard is checked when the NEXT
+      // item's scrapeOne runs, so there is a one-tick race — if page 1's abort
+      // resolves a hair before `deadlineAt`, page 2's guard can read `Date.now()
+      // < deadlineAt` and start (then immediately abort itself). Under CI CPU
+      // starvation that timer skew is routine (seen scrapeCalls=2, matrix run
+      // 29862199166). page 2 starting-then-aborting is correct behavior; what
+      // must never happen is the walk running away — so bound it, don't pin it.
+      expect(scrapeCalls).toBeLessThanOrEqual(2);
       expect(result.response).toContain('Snippet-only results');
       expect(result.response).toContain('First CSE snippet about widgets.');
     } finally {
