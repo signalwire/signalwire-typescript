@@ -34,7 +34,7 @@ jobs:
           # CI-PIN (Wave 1): the doc-truth gate scripts (doc_env.py CA-var set,
           # tracked_docs) this branch depends on live on porting-sdk wave/1-aplus.
           # REVERT this ref back to main (default) when porting-sdk wave/1-aplus merges.
-          ref: wave/1-aplus
+          ref: main
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
