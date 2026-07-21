@@ -68,11 +68,15 @@ export class RestClient extends _GeneratedResourceTree {
       );
     }
 
-    // Normalize host — ensure it has https:// prefix
-    const baseUrl = host.startsWith('http') ? host : `https://${host}`;
+    // Pass a fully-qualified host as baseUrl; otherwise pass the bare host and let
+    // HttpClient pick the scheme (http:// for a loopback mock/dev host, https://
+    // for a real *.signalwire.com space). This lets a shipped example run verbatim
+    // against the local mock via SIGNALWIRE_SPACE=127.0.0.1:<port>, with the
+    // scheme decision living in one place (HttpClient). Mirrors the python reference.
+    const httpOptions = host.startsWith('http') ? { baseUrl: host } : { host };
 
     const http = new HttpClient({
-      baseUrl,
+      ...httpOptions,
       project,
       token,
       fetchImpl: options.fetchImpl,
