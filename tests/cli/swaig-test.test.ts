@@ -42,12 +42,17 @@ function runCli(args: string[]): Promise<{ code: number; out: string }> {
 function writeAgentFile(): { path: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), 'swaig-cli-'));
   const path = join(dir, 'agent.ts');
+  // Embed the AgentBase import as a `file://` URL, NOT a filesystem path. On
+  // Windows `fileURLToPath` yields backslashes (`C:\...\src\AgentBase.ts`);
+  // baked into a single-quoted TS string literal, `\a`/`\s`/`\A`... collapse as
+  // escape sequences and the specifier is corrupted, so the generated agent
+  // fails to import AgentBase. An ESM `file:///...` URL uses forward slashes and
+  // imports correctly on every platform.
+  const agentBaseUrl = new URL('../../src/AgentBase.ts', import.meta.url).href;
   writeFileSync(
     path,
     [
-      "import { AgentBase } from '" +
-        fileURLToPath(new URL('../../src/AgentBase.ts', import.meta.url)) +
-        "';",
+      "import { AgentBase } from '" + agentBaseUrl + "';",
       "const agent = new AgentBase({ name: 'probe', route: '/' });",
       "agent.setPromptText('hi');",
       'export default agent;',
