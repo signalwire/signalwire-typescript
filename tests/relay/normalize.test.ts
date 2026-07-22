@@ -74,6 +74,15 @@ describe('normalize helpers', () => {
     });
   });
 
+  it('leaves fabric to/from alone (address, not a number)', () => {
+    expect(normalizeDevice({ type: 'fabric', to: 'fabric-address', from: '+15551112222' })).toEqual(
+      {
+        type: 'fabric',
+        params: { to: 'fabric-address', from: '+15551112222' },
+      },
+    );
+  });
+
   it('passes through already-nested device descriptors', () => {
     const nested = { type: 'phone', params: { to_number: '+1', from_number: '+2' } };
     expect(normalizeDevice(nested)).toBe(nested);

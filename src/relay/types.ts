@@ -100,9 +100,7 @@ export interface SipDevice {
  */
 export interface FabricDevice {
   type: 'fabric';
-  /** The Fabric address to dial. */
   to: string;
-  /** Caller ID / from. Optional — defaults are applied by the platform. */
   from?: string;
   timeout?: number;
 }
