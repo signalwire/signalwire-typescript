@@ -250,6 +250,7 @@ signalwire.core.contexts.GatherInfo.get_completion_action: TS ContextBuilder / C
 signalwire.core.contexts.GatherInfo.get_questions: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.GatherInfo.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
 signalwire.core.contexts.GatherQuestion.to_json: TS-native toJSON() serialization hook (delegates to to_dict) so JSON.stringify emits the wire shape; no Python counterpart
+signalwire.core.contexts.Step.get_functions: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_gather_info: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_step_valid_contexts: TS ContextBuilder / Context helper with additional navigation / builder methods
 signalwire.core.contexts.Step.get_valid_steps: TS ContextBuilder / Context helper with additional navigation / builder methods
