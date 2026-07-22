@@ -86,6 +86,16 @@ jobs:
       - name: Install SWAIG-HTTP gate backend (starlette TestClient needs httpx2)
         run: pip install httpx2
 
+      # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
+      # binary and fails LOUD when it is absent (never a silent skip), so install
+      # it before run-ci. Official installer drops the binary in the cwd; move it
+      # onto PATH.
+      - name: Install actionlint (ACTIONLINT gate)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
+
       - name: npm ci
         working-directory: signalwire-typescript
         run: npm ci

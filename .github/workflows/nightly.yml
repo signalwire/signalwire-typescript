@@ -132,6 +132,14 @@ jobs:
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: pip install -e signalwire-python || true
 
+      # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
+      # binary and fails LOUD when it is absent, so install it before run-ci.
+      - name: Install actionlint (ACTIONLINT gate)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
+
       - name: npm ci
         working-directory: signalwire-typescript
         run: npm ci
