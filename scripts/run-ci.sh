@@ -203,6 +203,9 @@ sched_gate PACKAGE-SMOKE-DUAL tier=nightly defer=1 desc="packed tarball loads vi
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
+sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on the PR (Coordinated-With: line or coordinated-pass label)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/coordinated_pass.py" --porting-sdk "$PORTING_SDK_DIR"
+
 sched_gate FMT defer=1 desc="scripts/run-format.sh (local: auto-fix; CI: --check)" \
     -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}
 
