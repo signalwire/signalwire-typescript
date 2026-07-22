@@ -287,6 +287,45 @@ const allCalls = await paginateAll(httpClient, '/api/laml/.../Calls', undefined,
 void allCalls;
 ```
 
+## Request Options (timeout, retries, abort)
+
+Every request accepts a `RequestOptions` envelope controlling per-request transport
+behavior. Set a client-wide default via the `requestOptions` constructor option, and
+override it per call by passing an options object as the final argument to any method.
+
+```typescript
+import { RestClient } from '@signalwire/sdk';
+
+// Client-wide defaults applied to every request:
+const client = new RestClient({
+  project: 'your-project-id',
+  token: 'your-api-token',
+  host: 'example.signalwire.com',
+  requestOptions: { timeout: 10, retries: 2 },
+});
+
+// Per-call override (shallow-merges over the client default):
+await client.phoneNumbers.list({ areacode: '512' }, { timeout: 5 });
+await client.fabric.aiAgents.get('agent-id', { retries: 3 });
+
+// Cancel an in-flight request:
+const controller = new AbortController();
+const p = client.calling.dial('+1555...', '+1555...', { url: '...' });
+// ...later: controller.abort();
+```
+
+Fields (all optional):
+
+| Field | Default | Meaning |
+|-------|---------|---------|
+| `timeout` | `30` | Max wall-clock **seconds per attempt**; on exceed the request raises a transport error. |
+| `retries` | `0` | RETRY attempts on a retryable failure (total attempts = `retries + 1`). Opt-in — the default is no retry. |
+| `retryOnStatus` | `{429,500,502,503,504}` | HTTP statuses that trigger a retry for an idempotent method. |
+| `retryBackoff` | `0.5` | Base seconds for exponential backoff (`backoff * 2 ** (attempt-1)`), honoring `Retry-After`. |
+| `abortSignal` | — | An `AbortSignal` for true in-flight cancellation; also checked before each attempt. |
+
+Retries are idempotency-aware: non-idempotent methods (POST/PATCH) retry only on `429`/`503`.
+
 ## Error Handling
 
 All HTTP errors throw `RestError` with status code, body, URL, and method:

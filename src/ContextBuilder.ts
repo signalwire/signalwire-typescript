@@ -534,6 +534,18 @@ export class Step {
   }
 
   /**
+   * Returns this step's function whitelist as an array of tool NAMES to
+   * validate, or null when there is nothing to validate. A string value
+   * (`'none'` and any other string) is a disable-all sentinel — NOT a tool
+   * name — so it yields null; only the array form is a real whitelist.
+   * @internal
+   */
+  getFunctions(): string[] | null {
+    if (this.functions === null) return null;
+    return Array.isArray(this.functions) ? this.functions : null;
+  }
+
+  /**
    * Removes all POM sections and raw text from this step.
    * @returns This step for chaining.
    */
@@ -1355,6 +1367,55 @@ export class ContextBuilder {
             `names [${reserved.join(', ')}] are reserved and cannot be used ` +
             `for user-defined SWAIG tools when contexts/steps are in use. ` +
             `Rename your tool(s) to avoid the collision.`,
+        );
+      }
+
+      // Validate step/question `functions` whitelists against the real tool
+      // registry: a name that is neither a registered SWAIG tool nor a reserved
+      // native tool is a DANGLING reference — the SWML would be emitted with a
+      // function restriction the LLM can never satisfy, silently (r5 dogfood F3:
+      // `functions: ['order_status', 'get_datetime']` where `get_datetime` was
+      // never registered — the wrong tool name shipped with no warning). Raise
+      // instead of silently dropping.
+      const known = new Set<string>(RESERVED_NATIVE_TOOL_NAMES);
+      for (const tool of registered) {
+        if (tool && typeof tool.name === 'string') known.add(tool.name);
+      }
+      const dangling: string[] = [];
+      const seenDangling = new Set<string>();
+      const recordRefs = (ctxName: string, stepName: string, where: string, refs: string[]) => {
+        for (const ref of refs) {
+          if (!known.has(ref)) {
+            const key = `${ctxName}/${stepName}/${where}/${ref}`;
+            if (!seenDangling.has(key)) {
+              seenDangling.add(key);
+              dangling.push(`'${ref}' (${where} of step '${stepName}' in context '${ctxName}')`);
+            }
+          }
+        }
+      };
+      for (const [ctxName, ctx] of this.contexts) {
+        for (const [stepName, step] of ctx.getSteps()) {
+          const stepFns = step.getFunctions();
+          if (stepFns) recordRefs(ctxName, stepName, 'functions', stepFns);
+          const gi = step.getGatherInfo();
+          if (gi) {
+            for (const q of gi.getQuestions()) {
+              if (q.functions)
+                recordRefs(ctxName, stepName, `question '${q.key}' functions`, q.functions);
+            }
+          }
+        }
+      }
+      if (dangling.length > 0) {
+        const knownNames = [...known].filter((n) => !RESERVED_NATIVE_TOOL_NAMES.has(n)).sort();
+        throw new Error(
+          `Context/step 'functions' whitelist references unknown SWAIG ` +
+            `function(s): ${dangling.join(', ')}. Every name in a step's or ` +
+            `question's 'functions' list must be a registered tool (define it ` +
+            `via defineTool/defineTools or a skill) or a reserved native tool. ` +
+            `Registered tools: [${knownNames.map((n) => `'${n}'`).join(', ')}]. ` +
+            `Fix the tool name or register the missing tool.`,
         );
       }
     }

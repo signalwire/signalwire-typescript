@@ -4,7 +4,7 @@ Typed HTTP client for managing SignalWire resources, controlling live calls, and
 
 ## Quick Start
 
-<!-- snippet: no-run makes live REST calls to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes live REST calls to a real SignalWire space; the loopback-mock override is documented in "Pointing at a non-default endpoint" below -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -28,6 +28,31 @@ await client.calling.dial('+15559876543', '+15551234567', {
   url: 'https://example.com/call-handler',
 });
 ```
+
+## Pointing at a non-default endpoint
+
+By default the client talks to your SignalWire space over `https://`. To point it at a
+local mock, a private space, or a proxy, use any of these (in precedence order):
+
+- **`host` option accepting a full URL** — pass a `http://`/`https://` URL as `host` and
+  the client uses it verbatim:
+  ```typescript
+  const client = new RestClient({
+    project: 'your-project-id',
+    token: 'your-api-token',
+    host: 'http://127.0.0.1:8933', // full URL → used as-is (plain HTTP for loopback)
+  });
+  ```
+- **`SIGNALWIRE_REST_BASE_URL` env var** — the fleet-wide base-url override (a full URL);
+  takes effect when `host` is not passed. Matches the other SignalWire SDKs.
+- **`SIGNALWIRE_SPACE` env var** — a bare host (e.g. `example.signalwire.com`); the client
+  prepends `https://` (or `http://` for a loopback host).
+
+A bare loopback host (`127.0.0.1:<port>` / `localhost:<port>`) is auto-detected and served
+over plain `http://`, so the client can reach a local mock standalone.
+
+Custom CA: set `SIGNALWIRE_REST_CA_FILE` to a PEM bundle to trust a private/self-signed
+certificate for HTTPS requests.
 
 ## Features
 
