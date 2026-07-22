@@ -91,15 +91,16 @@ export interface SipDevice {
 }
 
 /**
- * Fabric device specification for dial/connect — dials a Fabric address
- * (a Subscriber) directly. The platform resolves the address to the subscriber's
- * live registrations and fans out in parallel (push + WebRTC + SIP), so the
- * caller reaches the person without provisioning an intermediate SIP address
- * (and without paying for the extra SIP leg). `to` is the Fabric address.
+ * Fabric device specification for dial/connect — dials a Fabric address directly.
+ * The platform resolves the address to whatever it points to (a Subscriber, a
+ * Relay/LaML application, a video room, …) and builds the appropriate leg(s); the
+ * caller just names the address and never picks a transport. For a Subscriber
+ * this fans out in parallel to their live registrations (push + WebRTC + SIP),
+ * reaching the person without provisioning an intermediate SIP address.
  */
 export interface FabricDevice {
   type: 'fabric';
-  /** The Fabric address (Subscriber) to dial. */
+  /** The Fabric address to dial. */
   to: string;
   /** Caller ID / from. Optional — defaults are applied by the platform. */
   from?: string;
