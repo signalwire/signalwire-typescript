@@ -20,18 +20,21 @@ const logger = getLogger('rest_client');
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ *
  * const client = new RestClient({
  *   project: 'your-project-id',
  *   token: 'your-api-token',
  *   host: 'your-space.signalwire.com',
  * });
  *
- * // Or use env vars: SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
- * const client = new RestClient();
+ * // Or use env vars (SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE):
+ * //   const client = new RestClient();
  *
  * // Use namespaced resources
+ * const callId = 'call-uuid';
  * await client.fabric.aiAgents.list();
- * await client.calling.play(callId, { play: [...] });
+ * await client.calling.play(callId, [{ type: 'audio', params: { url: 'https://cdn.example.com/greeting.mp3' } }]);
  * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
  * ```
@@ -65,14 +68,19 @@ export class RestClient extends _GeneratedResourceTree {
       );
     }
 
-    // Normalize host — ensure it has https:// prefix
-    const baseUrl = host.startsWith('http') ? host : `https://${host}`;
+    // Pass a fully-qualified host as baseUrl; otherwise pass the bare host and let
+    // HttpClient pick the scheme (http:// for a loopback mock/dev host, https://
+    // for a real *.signalwire.com space). This lets a shipped example run verbatim
+    // against the local mock via SIGNALWIRE_SPACE=127.0.0.1:<port>, with the
+    // scheme decision living in one place (HttpClient). Mirrors the python reference.
+    const httpOptions = host.startsWith('http') ? { baseUrl: host } : { host };
 
     const http = new HttpClient({
-      baseUrl,
+      ...httpOptions,
       project,
       token,
       fetchImpl: options.fetchImpl,
+      requestOptions: options.requestOptions,
     });
 
     logger.info('RestClient initialized', { host });
@@ -86,8 +94,17 @@ export class RestClient extends _GeneratedResourceTree {
 
 // Client
 export { HttpClient } from './HttpClient.js';
-export { RestError, SignalWireRestError } from './RestError.js';
+export {
+  RestError,
+  RestTransportError,
+  SignalWireRestError,
+  SignalWireRestTransportError,
+} from './RestError.js';
 export { paginate, paginateAll } from './pagination.js';
+
+// Request-options transport envelope (plan 4.2): timeout / retry / abort.
+export { RequestOptions } from './RequestOptions.js';
+export type { RequestOptionsInit } from './RequestOptions.js';
 
 // Types
 export type {

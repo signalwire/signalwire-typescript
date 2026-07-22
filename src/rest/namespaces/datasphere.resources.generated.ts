@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from '../base/CrudResource.js';
 import type {
@@ -34,8 +35,14 @@ export class DatasphereDocuments extends CrudResource<
   override async create(
     body: DocumentCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Document> {
-    return this._http.post<Document>(this._basePath, { ...body, ...extras });
+    return this._http.post<Document>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -43,8 +50,9 @@ export class DatasphereDocuments extends CrudResource<
     id: string,
     body: DocumentUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Document> {
-    return this._http.patch<Document>(this._path(id), { ...body, ...extras });
+    return this._http.patch<Document>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
   async search(
@@ -59,6 +67,7 @@ export class DatasphereDocuments extends CrudResource<
       max_synonyms?: number;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SearchResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -73,22 +82,42 @@ export class DatasphereDocuments extends CrudResource<
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<SearchResponse>(this._path('search'), body);
+    return this._http.post<SearchResponse>(this._path('search'), body, undefined, requestOptions);
   }
 
-  async listChunks(document_id: string, params?: QueryParams): Promise<ChunkListResponse> {
-    return this._http.get<ChunkListResponse>(this._path(document_id, 'chunks'), params);
+  async listChunks(
+    document_id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ChunkListResponse> {
+    return this._http.get<ChunkListResponse>(
+      this._path(document_id, 'chunks'),
+      params,
+      requestOptions,
+    );
   }
 
   async getChunk(
     document_id: string,
     chunk_id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ChunkResponse> {
-    return this._http.get<ChunkResponse>(this._path(document_id, 'chunks', chunk_id), params);
+    return this._http.get<ChunkResponse>(
+      this._path(document_id, 'chunks', chunk_id),
+      params,
+      requestOptions,
+    );
   }
 
-  async deleteChunk(document_id: string, chunk_id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(document_id, 'chunks', chunk_id));
+  async deleteChunk(
+    document_id: string,
+    chunk_id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(
+      this._path(document_id, 'chunks', chunk_id),
+      requestOptions,
+    );
   }
 }

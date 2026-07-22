@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
@@ -63,8 +64,11 @@ export class Addresses extends BaseResource {
     super(http, '/api/relay/rest/addresses');
   }
 
-  async list(params?: QueryParams): Promise<AddressListResponse> {
-    return this._http.get<AddressListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AddressListResponse> {
+    return this._http.get<AddressListResponse>(this._basePath, params, requestOptions);
   }
 
   async create(
@@ -82,6 +86,7 @@ export class Addresses extends BaseResource {
       address_number?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<AddressResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -99,15 +104,19 @@ export class Addresses extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<AddressResponse>(this._basePath, body);
+    return this._http.post<AddressResponse>(this._basePath, body, undefined, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<AddressResponse> {
-    return this._http.get<AddressResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AddressResponse> {
+    return this._http.get<AddressResponse>(this._path(id), params, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 }
 
@@ -123,6 +132,7 @@ export class ImportedNumbers extends BaseResource {
       capabilities?: ('sms' | 'voice' | 'fax' | 'mms')[];
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -132,7 +142,7 @@ export class ImportedNumbers extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<PhoneNumberResponse>(this._basePath, body);
+    return this._http.post<PhoneNumberResponse>(this._basePath, body, undefined, requestOptions);
   }
 }
 
@@ -141,10 +151,15 @@ export class Lookup extends BaseResource {
     super(http, '/api/relay/rest/lookup');
   }
 
-  async phoneNumber(e164_number: string, params?: QueryParams): Promise<PhoneNumberLookupResponse> {
+  async phoneNumber(
+    e164_number: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberLookupResponse> {
     return this._http.get<PhoneNumberLookupResponse>(
       this._path('phone_number', e164_number),
       params,
+      requestOptions,
     );
   }
 }
@@ -165,6 +180,7 @@ export class Mfa extends BaseResource {
       allow_alphas?: boolean;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<MfaResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -178,7 +194,7 @@ export class Mfa extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<MfaResponse>(this._path('sms'), body);
+    return this._http.post<MfaResponse>(this._path('sms'), body, undefined, requestOptions);
   }
 
   async call(
@@ -192,6 +208,7 @@ export class Mfa extends BaseResource {
       allow_alphas?: boolean;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<MfaResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -205,13 +222,14 @@ export class Mfa extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<MfaResponse>(this._path('call'), body);
+    return this._http.post<MfaResponse>(this._path('call'), body, undefined, requestOptions);
   }
 
   async verify(
     mfa_request_id: string,
     token: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<MfaVerifyResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -219,7 +237,12 @@ export class Mfa extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<MfaVerifyResponse>(this._path(mfa_request_id, 'verify'), body);
+    return this._http.post<MfaVerifyResponse>(
+      this._path(mfa_request_id, 'verify'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 }
 
@@ -239,8 +262,14 @@ export class NumberGroups extends CrudResource<
   override async create(
     body: CreateNumberGroupRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<NumberGroupResponse> {
-    return this._http.post<NumberGroupResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<NumberGroupResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -248,17 +277,24 @@ export class NumberGroups extends CrudResource<
     id: string,
     body: UpdateNumberGroupRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<NumberGroupResponse> {
-    return this._http.put<NumberGroupResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<NumberGroupResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 
   async listMemberships(
     number_group_id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<NumberGroupMembershipListResponse> {
     return this._http.get<NumberGroupMembershipListResponse>(
       this._path(number_group_id, 'number_group_memberships'),
       params,
+      requestOptions,
     );
   }
 
@@ -266,6 +302,7 @@ export class NumberGroups extends CrudResource<
     number_group_id: string,
     phone_number_id: uuid,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<NumberGroupMembershipResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -276,19 +313,30 @@ export class NumberGroups extends CrudResource<
     return this._http.post<NumberGroupMembershipResponse>(
       this._path(number_group_id, 'number_group_memberships'),
       body,
+      undefined,
+      requestOptions,
     );
   }
 
-  async getMembership(id: string, params?: QueryParams): Promise<NumberGroupMembershipResponse> {
+  async getMembership(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<NumberGroupMembershipResponse> {
     return this._http.get<NumberGroupMembershipResponse>(
       `/api/relay/rest/number_group_memberships/${id}`,
       params,
+      requestOptions,
     );
   }
 
-  async deleteMembership(id: string): Promise<Record<string, unknown>> {
+  async deleteMembership(
+    id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Record<string, unknown>> {
     return this._http.delete<Record<string, unknown>>(
       `/api/relay/rest/number_group_memberships/${id}`,
+      requestOptions,
     );
   }
 }
@@ -309,8 +357,14 @@ export class PhoneNumbers extends CrudResource<
   override async create(
     body: PurchasePhoneNumberRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
-    return this._http.post<PhoneNumberResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<PhoneNumberResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -318,23 +372,36 @@ export class PhoneNumbers extends CrudResource<
     id: string,
     body: UpdatePhoneNumberRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
-    return this._http.put<PhoneNumberResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<PhoneNumberResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 
-  async search(params?: QueryParams): Promise<AvailablePhoneNumbersResponse> {
-    return this._http.get<AvailablePhoneNumbersResponse>(this._path('search'), params);
+  async search(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AvailablePhoneNumbersResponse> {
+    return this._http.get<AvailablePhoneNumbersResponse>(
+      this._path('search'),
+      params,
+      requestOptions,
+    );
   }
 
   async setSwmlWebhook(
     resourceId: string,
     url: string,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'relay_script' };
     body['call_relay_script_url'] = url;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setCxmlWebhook(
@@ -343,35 +410,38 @@ export class PhoneNumbers extends CrudResource<
     fallback_url?: string,
     status_callback_url?: string,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'laml_webhooks' };
     body['call_request_url'] = url;
     if (fallback_url !== undefined) body['call_fallback_url'] = fallback_url;
     if (status_callback_url !== undefined) body['call_status_callback_url'] = status_callback_url;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setCxmlApplication(
     resourceId: string,
     application_id: string,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'laml_application' };
     body['call_laml_application_id'] = application_id;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setAiAgent(
     resourceId: string,
     agent_id: uuid,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'ai_agent' };
     body['call_ai_agent_id'] = agent_id;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setCallFlow(
@@ -379,23 +449,25 @@ export class PhoneNumbers extends CrudResource<
     flow_id: uuid,
     version?: 'working_copy' | 'current_deployed',
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'call_flow' };
     body['call_flow_id'] = flow_id;
     if (version !== undefined) body['call_flow_version'] = version;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setRelayApplication(
     resourceId: string,
     name: string,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'relay_application' };
     body['call_relay_application'] = name;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 
   async setRelayTopic(
@@ -403,13 +475,14 @@ export class PhoneNumbers extends CrudResource<
     topic: string,
     status_callback_url?: string,
     extra?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneNumberResponse> {
     const body: Record<string, unknown> = { call_handler: 'relay_topic' };
     body['call_relay_topic'] = topic;
     if (status_callback_url !== undefined)
       body['call_relay_topic_status_callback_url'] = status_callback_url;
     if (extra) Object.assign(body, extra);
-    return this.update(resourceId, body as UpdatePhoneNumberRequest);
+    return this.update(resourceId, body as UpdatePhoneNumberRequest, undefined, requestOptions);
   }
 }
 
@@ -429,8 +502,14 @@ export class Queues extends CrudResource<
   override async create(
     body: CreateQueueRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<QueueResponse> {
-    return this._http.post<QueueResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<QueueResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -438,24 +517,46 @@ export class Queues extends CrudResource<
     id: string,
     body: UpdateQueueRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<QueueResponse> {
-    return this._http.put<QueueResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<QueueResponse>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
-  async listMembers(queue_id: string, params?: QueryParams): Promise<QueueMemberListResponse> {
-    return this._http.get<QueueMemberListResponse>(this._path(queue_id, 'members'), params);
+  async listMembers(
+    queue_id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<QueueMemberListResponse> {
+    return this._http.get<QueueMemberListResponse>(
+      this._path(queue_id, 'members'),
+      params,
+      requestOptions,
+    );
   }
 
-  async getNextMember(queue_id: string, params?: QueryParams): Promise<QueueMemberResponse> {
-    return this._http.get<QueueMemberResponse>(this._path(queue_id, 'members', 'next'), params);
+  async getNextMember(
+    queue_id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<QueueMemberResponse> {
+    return this._http.get<QueueMemberResponse>(
+      this._path(queue_id, 'members', 'next'),
+      params,
+      requestOptions,
+    );
   }
 
   async getMember(
     queue_id: string,
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<QueueMemberResponse> {
-    return this._http.get<QueueMemberResponse>(this._path(queue_id, 'members', id), params);
+    return this._http.get<QueueMemberResponse>(
+      this._path(queue_id, 'members', id),
+      params,
+      requestOptions,
+    );
   }
 }
 
@@ -464,16 +565,23 @@ export class Recordings extends BaseResource {
     super(http, '/api/relay/rest/recordings');
   }
 
-  async list(params?: QueryParams): Promise<RecordingListResponse> {
-    return this._http.get<RecordingListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<RecordingListResponse> {
+    return this._http.get<RecordingListResponse>(this._basePath, params, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<Record<string, unknown>> {
-    return this._http.get<Record<string, unknown>>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Record<string, unknown>> {
+    return this._http.get<Record<string, unknown>>(this._path(id), params, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 }
 
@@ -482,31 +590,58 @@ export class RegistryBrands extends BaseResource {
     super(http, '/api/relay/rest/registry/beta/brands');
   }
 
-  async list(params?: QueryParams): Promise<BrandListResponse> {
-    return this._http.get<BrandListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<BrandListResponse> {
+    return this._http.get<BrandListResponse>(this._basePath, params, requestOptions);
   }
 
   async create(
     body: CreateManagedBrandRequest | CreateCspBrandRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<BrandResponse> {
-    return this._http.post<BrandResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<BrandResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
-  async get(id: string, params?: QueryParams): Promise<BrandResponse> {
-    return this._http.get<BrandResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<BrandResponse> {
+    return this._http.get<BrandResponse>(this._path(id), params, requestOptions);
   }
 
-  async listCampaigns(id: string, params?: QueryParams): Promise<CampaignListResponse> {
-    return this._http.get<CampaignListResponse>(this._path(id, 'campaigns'), params);
+  async listCampaigns(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CampaignListResponse> {
+    return this._http.get<CampaignListResponse>(
+      this._path(id, 'campaigns'),
+      params,
+      requestOptions,
+    );
   }
 
   async createCampaign(
     id: string,
     body: CreateManagedCampaignRequest | CreatePartnerCampaignRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CampaignResponse> {
-    return this._http.post<CampaignResponse>(this._path(id, 'campaigns'), { ...body, ...extras });
+    return this._http.post<CampaignResponse>(
+      this._path(id, 'campaigns'),
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 }
 
@@ -515,13 +650,18 @@ export class RegistryCampaigns extends BaseResource {
     super(http, '/api/relay/rest/registry/beta/campaigns');
   }
 
-  async get(id: string, params?: QueryParams): Promise<CampaignResponse> {
-    return this._http.get<CampaignResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CampaignResponse> {
+    return this._http.get<CampaignResponse>(this._path(id), params, requestOptions);
   }
 
   async update(
     id: string,
     options?: { name?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CampaignResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -529,15 +669,27 @@ export class RegistryCampaigns extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<CampaignResponse>(this._path(id), body);
+    return this._http.put<CampaignResponse>(this._path(id), body, requestOptions);
   }
 
-  async listNumbers(id: string, params?: QueryParams): Promise<AssignedNumberListResponse> {
-    return this._http.get<AssignedNumberListResponse>(this._path(id, 'numbers'), params);
+  async listNumbers(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AssignedNumberListResponse> {
+    return this._http.get<AssignedNumberListResponse>(
+      this._path(id, 'numbers'),
+      params,
+      requestOptions,
+    );
   }
 
-  async listOrders(id: string, params?: QueryParams): Promise<OrderListResponse> {
-    return this._http.get<OrderListResponse>(this._path(id, 'orders'), params);
+  async listOrders(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<OrderListResponse> {
+    return this._http.get<OrderListResponse>(this._path(id, 'orders'), params, requestOptions);
   }
 
   async createOrder(
@@ -547,6 +699,7 @@ export class RegistryCampaigns extends BaseResource {
       status_callback_url?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<OrderResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -555,7 +708,12 @@ export class RegistryCampaigns extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<OrderResponse>(this._path(id, 'orders'), body);
+    return this._http.post<OrderResponse>(
+      this._path(id, 'orders'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 }
 
@@ -564,8 +722,8 @@ export class RegistryNumbers extends BaseResource {
     super(http, '/api/relay/rest/registry/beta/numbers');
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 }
 
@@ -574,8 +732,12 @@ export class RegistryOrders extends BaseResource {
     super(http, '/api/relay/rest/registry/beta/orders');
   }
 
-  async get(id: string, params?: QueryParams): Promise<OrderResponse> {
-    return this._http.get<OrderResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<OrderResponse> {
+    return this._http.get<OrderResponse>(this._path(id), params, requestOptions);
   }
 }
 
@@ -584,12 +746,19 @@ export class ShortCodes extends BaseResource {
     super(http, '/api/relay/rest/short_codes');
   }
 
-  async list(params?: QueryParams): Promise<ShortCodeListResponse> {
-    return this._http.get<ShortCodeListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ShortCodeListResponse> {
+    return this._http.get<ShortCodeListResponse>(this._basePath, params, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<ShortCodeResponse> {
-    return this._http.get<ShortCodeResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ShortCodeResponse> {
+    return this._http.get<ShortCodeResponse>(this._path(id), params, requestOptions);
   }
 
   async update(
@@ -605,6 +774,7 @@ export class ShortCodes extends BaseResource {
       message_relay_context?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<ShortCodeResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -619,7 +789,7 @@ export class ShortCodes extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<ShortCodeResponse>(this._path(id), body);
+    return this._http.put<ShortCodeResponse>(this._path(id), body, requestOptions);
   }
 }
 
@@ -628,18 +798,24 @@ export class SipProfile extends BaseResource {
     super(http, '/api/relay/rest/sip_profile');
   }
 
-  async get(params?: QueryParams): Promise<SipProfileResponse> {
-    return this._http.get<SipProfileResponse>(this._basePath, params);
+  async get(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<SipProfileResponse> {
+    return this._http.get<SipProfileResponse>(this._basePath, params, requestOptions);
   }
 
-  async update(options?: {
-    domain_identifier?: string;
-    default_codecs?: string[];
-    default_ciphers?: string[];
-    default_encryption?: 'required' | 'optional';
-    default_send_as?: string;
-    extras?: Record<string, unknown>;
-  }): Promise<SipProfileResponse> {
+  async update(
+    options?: {
+      domain_identifier?: string;
+      default_codecs?: string[];
+      default_ciphers?: string[];
+      default_encryption?: 'required' | 'optional';
+      default_send_as?: string;
+      extras?: Record<string, unknown>;
+    },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<SipProfileResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       domain_identifier: options?.domain_identifier,
@@ -650,7 +826,7 @@ export class SipProfile extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<SipProfileResponse>(this._basePath, body);
+    return this._http.put<SipProfileResponse>(this._basePath, body, requestOptions);
   }
 }
 
@@ -670,8 +846,14 @@ export class VerifiedCallers extends CrudResource<
   override async create(
     body: CreateVerifiedCallerIDRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<VerifiedCallerIDResponse> {
-    return this._http.post<VerifiedCallerIDResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<VerifiedCallerIDResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -679,18 +861,32 @@ export class VerifiedCallers extends CrudResource<
     id: string,
     body: UpdateVerifiedCallerIDRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<VerifiedCallerIDResponse> {
-    return this._http.put<VerifiedCallerIDResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<VerifiedCallerIDResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 
-  async redialVerification(id: string): Promise<VerifiedCallerIDResponse> {
-    return this._http.post<VerifiedCallerIDResponse>(this._path(id, 'verification'));
+  async redialVerification(
+    id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<VerifiedCallerIDResponse> {
+    return this._http.post<VerifiedCallerIDResponse>(
+      this._path(id, 'verification'),
+      undefined,
+      undefined,
+      requestOptions,
+    );
   }
 
   async submitVerification(
     id: string,
     verification_code: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<VerifiedCallerIDResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -698,6 +894,10 @@ export class VerifiedCallers extends CrudResource<
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<VerifiedCallerIDResponse>(this._path(id, 'verification'), body);
+    return this._http.put<VerifiedCallerIDResponse>(
+      this._path(id, 'verification'),
+      body,
+      requestOptions,
+    );
   }
 }

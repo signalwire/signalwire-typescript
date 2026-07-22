@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { ReadResource } from '../base/ReadResource.js';
 import type { LogEventsListResponse, LogListResponse, VoiceLog } from './voice.types.generated.js';
@@ -16,7 +17,11 @@ export class VoiceLogs extends ReadResource<LogListResponse, VoiceLog> {
     super(http, '/api/voice/logs');
   }
 
-  async listEvents(id: string, params?: QueryParams): Promise<LogEventsListResponse> {
-    return this._http.get<LogEventsListResponse>(this._path(id, 'events'), params);
+  async listEvents(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<LogEventsListResponse> {
+    return this._http.get<LogEventsListResponse>(this._path(id, 'events'), params, requestOptions);
   }
 }

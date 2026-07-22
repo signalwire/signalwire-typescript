@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { FabricResource } from '../base/FabricResource.js';
@@ -100,20 +101,35 @@ export class GenericResources extends BaseResource {
     super(http, '/api/fabric/resources');
   }
 
-  async list(params?: QueryParams): Promise<ResourceListResponse> {
-    return this._http.get<ResourceListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ResourceListResponse> {
+    return this._http.get<ResourceListResponse>(this._basePath, params, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<ResourceResponse> {
-    return this._http.get<ResourceResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ResourceResponse> {
+    return this._http.get<ResourceResponse>(this._path(id), params, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 
-  async listAddresses(id: string, params?: QueryParams): Promise<ResourceAddressListResponse> {
-    return this._http.get<ResourceAddressListResponse>(this._path(id, 'addresses'), params);
+  async listAddresses(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ResourceAddressListResponse> {
+    return this._http.get<ResourceAddressListResponse>(
+      this._path(id, 'addresses'),
+      params,
+      requestOptions,
+    );
   }
 
   async assignPhoneRoute(
@@ -121,6 +137,7 @@ export class GenericResources extends BaseResource {
     phone_route_id: uuid,
     handler: UsedForType,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<PhoneRouteResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -129,13 +146,19 @@ export class GenericResources extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<PhoneRouteResponse>(this._path(id, 'phone_routes'), body);
+    return this._http.post<PhoneRouteResponse>(
+      this._path(id, 'phone_routes'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 
   async assignDomainApplication(
     id: string,
     domain_application_id: uuid,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<DomainApplicationResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -143,7 +166,12 @@ export class GenericResources extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<DomainApplicationResponse>(this._path(id, 'domain_applications'), body);
+    return this._http.post<DomainApplicationResponse>(
+      this._path(id, 'domain_applications'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 }
 
@@ -161,8 +189,14 @@ export class AiAgents extends FabricResource<
   override async create(
     body: AIAgentCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<AIAgentResponse> {
-    return this._http.post<AIAgentResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<AIAgentResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -170,8 +204,13 @@ export class AiAgents extends FabricResource<
     id: string,
     body: AIAgentUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<AIAgentResponse> {
-    return this._http.patch<AIAgentResponse>(this._path(id), { ...body, ...extras });
+    return this._http.patch<AIAgentResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -191,8 +230,14 @@ export class CallFlows extends FabricResource<
   override async create(
     body: CallFlowCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowResponse> {
-    return this._http.post<CallFlowResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<CallFlowResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -200,21 +245,32 @@ export class CallFlows extends FabricResource<
     id: string,
     body: CallFlowUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowResponse> {
-    return this._http.put<CallFlowResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<CallFlowResponse>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
-  async listAddresses(id: string, params?: QueryParams): Promise<CallFlowAddressListResponse> {
+  async listAddresses(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CallFlowAddressListResponse> {
     return this._http.get<CallFlowAddressListResponse>(
       `/api/fabric/resources/call_flow/${id}/addresses`,
       params,
+      requestOptions,
     );
   }
 
-  async listVersions(id: string, params?: QueryParams): Promise<CallFlowVersionListResponse> {
+  async listVersions(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CallFlowVersionListResponse> {
     return this._http.get<CallFlowVersionListResponse>(
       `/api/fabric/resources/call_flow/${id}/versions`,
       params,
+      requestOptions,
     );
   }
 
@@ -222,10 +278,13 @@ export class CallFlows extends FabricResource<
     id: string,
     body: CallFlowVersionDeployRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowVersionDeployResponse> {
     return this._http.post<CallFlowVersionDeployResponse>(
       `/api/fabric/resources/call_flow/${id}/versions`,
       { ...body, ...extras },
+      undefined,
+      requestOptions,
     );
   }
 }
@@ -246,8 +305,14 @@ export class ConferenceRooms extends FabricResource<
   override async create(
     body: ConferenceRoomCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ConferenceRoomResponse> {
-    return this._http.post<ConferenceRoomResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<ConferenceRoomResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -255,17 +320,24 @@ export class ConferenceRooms extends FabricResource<
     id: string,
     body: ConferenceRoomUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ConferenceRoomResponse> {
-    return this._http.put<ConferenceRoomResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<ConferenceRoomResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 
   async listAddresses(
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ConferenceRoomAddressListResponse> {
     return this._http.get<ConferenceRoomAddressListResponse>(
       `/api/fabric/resources/conference_room/${id}/addresses`,
       params,
+      requestOptions,
     );
   }
 }
@@ -275,12 +347,19 @@ export class CxmlApplications extends BaseResource {
     super(http, '/api/fabric/resources/cxml_applications');
   }
 
-  async list(params?: QueryParams): Promise<CxmlApplicationListResponse> {
-    return this._http.get<CxmlApplicationListResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CxmlApplicationListResponse> {
+    return this._http.get<CxmlApplicationListResponse>(this._basePath, params, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<CxmlApplicationResponse> {
-    return this._http.get<CxmlApplicationResponse>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<CxmlApplicationResponse> {
+    return this._http.get<CxmlApplicationResponse>(this._path(id), params, requestOptions);
   }
 
   async update(
@@ -302,6 +381,7 @@ export class CxmlApplications extends BaseResource {
       sms_status_callback_method?: 'GET' | 'POST';
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CxmlApplicationResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -322,18 +402,23 @@ export class CxmlApplications extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<CxmlApplicationResponse>(this._path(id), body);
+    return this._http.put<CxmlApplicationResponse>(this._path(id), body, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 
   async listAddresses(
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CxmlApplicationAddressListResponse> {
-    return this._http.get<CxmlApplicationAddressListResponse>(this._path(id, 'addresses'), params);
+    return this._http.get<CxmlApplicationAddressListResponse>(
+      this._path(id, 'addresses'),
+      params,
+      requestOptions,
+    );
   }
 }
 
@@ -353,8 +438,14 @@ export class CxmlScripts extends FabricResource<
   override async create(
     body: CXMLScriptCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CXMLScriptResponse> {
-    return this._http.post<CXMLScriptResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<CXMLScriptResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -362,8 +453,13 @@ export class CxmlScripts extends FabricResource<
     id: string,
     body: CXMLScriptUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CXMLScriptResponse> {
-    return this._http.put<CXMLScriptResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<CXMLScriptResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -381,8 +477,14 @@ export class CxmlWebhooks extends FabricResource<
   override async create(
     body: CXMLWebhookCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CXMLWebhookResponse> {
-    return this._http.post<CXMLWebhookResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<CXMLWebhookResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -390,8 +492,13 @@ export class CxmlWebhooks extends FabricResource<
     id: string,
     body: CXMLWebhookUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<CXMLWebhookResponse> {
-    return this._http.patch<CXMLWebhookResponse>(this._path(id), { ...body, ...extras });
+    return this._http.patch<CXMLWebhookResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -411,8 +518,14 @@ export class FreeswitchConnectors extends FabricResource<
   override async create(
     body: FreeswitchConnectorCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<FreeswitchConnectorResponse> {
-    return this._http.post<FreeswitchConnectorResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<FreeswitchConnectorResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -420,8 +533,13 @@ export class FreeswitchConnectors extends FabricResource<
     id: string,
     body: FreeswitchConnectorUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<FreeswitchConnectorResponse> {
-    return this._http.put<FreeswitchConnectorResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<FreeswitchConnectorResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -441,8 +559,14 @@ export class RelayApplications extends FabricResource<
   override async create(
     body: RelayApplicationCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<RelayApplicationResponse> {
-    return this._http.post<RelayApplicationResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<RelayApplicationResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -450,8 +574,13 @@ export class RelayApplications extends FabricResource<
     id: string,
     body: RelayApplicationUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<RelayApplicationResponse> {
-    return this._http.put<RelayApplicationResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<RelayApplicationResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -471,8 +600,14 @@ export class SipEndpoints extends FabricResource<
   override async create(
     body: SipEndpointCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SipEndpointResponse> {
-    return this._http.post<SipEndpointResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<SipEndpointResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -480,8 +615,13 @@ export class SipEndpoints extends FabricResource<
     id: string,
     body: SipEndpointUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SipEndpointResponse> {
-    return this._http.put<SipEndpointResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<SipEndpointResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -499,8 +639,14 @@ export class SipGateways extends FabricResource<
   override async create(
     body: SipGatewayRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SipGatewayResponse> {
-    return this._http.post<SipGatewayResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<SipGatewayResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -508,8 +654,13 @@ export class SipGateways extends FabricResource<
     id: string,
     body: SipGatewayRequestUpdate,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SipGatewayResponse> {
-    return this._http.patch<SipGatewayResponse>(this._path(id), { ...body, ...extras });
+    return this._http.patch<SipGatewayResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -529,8 +680,14 @@ export class Subscribers extends FabricResource<
   override async create(
     body: SubscriberRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberResponse> {
-    return this._http.post<SubscriberResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<SubscriberResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -538,17 +695,24 @@ export class Subscribers extends FabricResource<
     id: string,
     body: SubscriberRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberResponse> {
-    return this._http.put<SubscriberResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<SubscriberResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 
   async listSipEndpoints(
     fabric_subscriber_id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberSipEndpointListResponse> {
     return this._http.get<SubscriberSipEndpointListResponse>(
       this._path(fabric_subscriber_id, 'sip_endpoints'),
       params,
+      requestOptions,
     );
   }
 
@@ -564,6 +728,7 @@ export class Subscribers extends FabricResource<
       encryption?: Encryption;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberSIPEndpoint> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -580,6 +745,8 @@ export class Subscribers extends FabricResource<
     return this._http.post<SubscriberSIPEndpoint>(
       this._path(fabric_subscriber_id, 'sip_endpoints'),
       body,
+      undefined,
+      requestOptions,
     );
   }
 
@@ -587,10 +754,12 @@ export class Subscribers extends FabricResource<
     fabric_subscriber_id: string,
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberSIPEndpoint> {
     return this._http.get<SubscriberSIPEndpoint>(
       this._path(fabric_subscriber_id, 'sip_endpoints', id),
       params,
+      requestOptions,
     );
   }
 
@@ -607,6 +776,7 @@ export class Subscribers extends FabricResource<
       encryption?: Encryption;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberSIPEndpoint> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -623,15 +793,18 @@ export class Subscribers extends FabricResource<
     return this._http.patch<SubscriberSIPEndpoint>(
       this._path(fabric_subscriber_id, 'sip_endpoints', id),
       body,
+      requestOptions,
     );
   }
 
   async deleteSipEndpoint(
     fabric_subscriber_id: string,
     id: string,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Record<string, unknown>> {
     return this._http.delete<Record<string, unknown>>(
       this._path(fabric_subscriber_id, 'sip_endpoints', id),
+      requestOptions,
     );
   }
 }
@@ -652,8 +825,14 @@ export class SwmlScripts extends FabricResource<
   override async create(
     body: SwmlScriptCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SwmlScriptResponse> {
-    return this._http.post<SwmlScriptResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<SwmlScriptResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -661,8 +840,13 @@ export class SwmlScripts extends FabricResource<
     id: string,
     body: SwmlScriptUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SwmlScriptResponse> {
-    return this._http.put<SwmlScriptResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<SwmlScriptResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -680,8 +864,14 @@ export class SwmlWebhooks extends FabricResource<
   override async create(
     body: SWMLWebhookCreateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SWMLWebhookResponse> {
-    return this._http.post<SWMLWebhookResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<SWMLWebhookResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -689,8 +879,13 @@ export class SwmlWebhooks extends FabricResource<
     id: string,
     body: SWMLWebhookUpdateRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<SWMLWebhookResponse> {
-    return this._http.patch<SWMLWebhookResponse>(this._path(id), { ...body, ...extras });
+    return this._http.patch<SWMLWebhookResponse>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
   }
 }
 
@@ -715,6 +910,7 @@ export class FabricTokens extends BaseResource {
       company_name?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -733,12 +929,18 @@ export class FabricTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<SubscriberTokenResponse>(this._path('subscribers', 'tokens'), body);
+    return this._http.post<SubscriberTokenResponse>(
+      this._path('subscribers', 'tokens'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 
   async refreshSubscriberToken(
     refresh_token: jwt,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberRefreshTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -749,12 +951,15 @@ export class FabricTokens extends BaseResource {
     return this._http.post<SubscriberRefreshTokenResponse>(
       this._path('subscribers', 'tokens', 'refresh'),
       body,
+      undefined,
+      requestOptions,
     );
   }
 
   async createInviteToken(
     address_id: uuid,
     options?: { expires_at?: number; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberInviteTokenCreateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -766,12 +971,15 @@ export class FabricTokens extends BaseResource {
     return this._http.post<SubscriberInviteTokenCreateResponse>(
       this._path('subscriber', 'invites'),
       body,
+      undefined,
+      requestOptions,
     );
   }
 
   async createGuestToken(
     allowed_addresses: uuid[],
     options?: { expire_at?: number; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberGuestTokenCreateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -783,12 +991,15 @@ export class FabricTokens extends BaseResource {
     return this._http.post<SubscriberGuestTokenCreateResponse>(
       this._path('guests', 'tokens'),
       body,
+      undefined,
+      requestOptions,
     );
   }
 
   async createEmbedToken(
     token: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<EmbedsTokensResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -796,6 +1007,11 @@ export class FabricTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<EmbedsTokensResponse>(this._path('embeds', 'tokens'), body);
+    return this._http.post<EmbedsTokensResponse>(
+      this._path('embeds', 'tokens'),
+      body,
+      undefined,
+      requestOptions,
+    );
   }
 }

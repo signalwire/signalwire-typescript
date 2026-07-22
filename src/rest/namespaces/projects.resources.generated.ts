@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { CrudResource } from '../base/CrudResource.js';
 import type {
   Project,
@@ -22,8 +23,17 @@ export class Projects extends CrudResource<ProjectList, Project, ProjectCreate, 
   }
 
   /** Create — typed request body plus an `extras` escape hatch for fields not yet typed. */
-  override async create(body: ProjectCreate, extras?: Record<string, unknown>): Promise<Project> {
-    return this._http.post<Project>(this._basePath, { ...body, ...extras });
+  override async create(
+    body: ProjectCreate,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Project> {
+    return this._http.post<Project>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -31,11 +41,20 @@ export class Projects extends CrudResource<ProjectList, Project, ProjectCreate, 
     id: string,
     body: ProjectUpdate,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Project> {
-    return this._http.patch<Project>(this._path(id), { ...body, ...extras });
+    return this._http.patch<Project>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
-  async rotateSigningKey(id: string): Promise<ProjectWithSigningKey> {
-    return this._http.post<ProjectWithSigningKey>(this._path(id, 'signing-key', 'rotate'));
+  async rotateSigningKey(
+    id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ProjectWithSigningKey> {
+    return this._http.post<ProjectWithSigningKey>(
+      this._path(id, 'signing-key', 'rotate'),
+      undefined,
+      undefined,
+      requestOptions,
+    );
   }
 }

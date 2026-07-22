@@ -170,7 +170,7 @@ await client.phoneNumbers.search({ areacode: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
-- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Uses Node's built-in `fetch` -- no HTTP client dependency
 - Dict returns -- raw JSON, no wrapper objects
 

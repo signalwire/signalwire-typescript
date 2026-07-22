@@ -4,6 +4,7 @@
 
 import type { HttpClient } from '../HttpClient.js';
 import { paginate } from '../pagination.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from './BaseResource.js';
 
@@ -30,8 +31,8 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    * @returns The paginated list response.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async list(params?: QueryParams): Promise<TList> {
-    return this._http.get<TList>(this._basePath, params);
+  async list(params?: QueryParams, requestOptions?: RequestOptionsInit): Promise<TList> {
+    return this._http.get<TList>(this._basePath, params, requestOptions);
   }
 
   /**
@@ -43,8 +44,10 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    * callers no longer hand-build the page-token loop:
    *
    * ```typescript
+   * import { RestClient } from '@signalwire/sdk';
+   * const client = new RestClient();
    * for await (const address of client.fabric.addresses.paginate()) {
-   *   // ...
+   *   console.log(address);
    * }
    * ```
    *
@@ -56,8 +59,11 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    *   subsequent pages follow the server-supplied next-page URL.
    * @returns An async iterator yielding each `TItem` across all pages.
    */
-  paginate(params?: QueryParams): AsyncGenerator<TItem, void, undefined> {
-    return paginate<TItem>(this._http, this._basePath, params, 'data');
+  paginate(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): AsyncGenerator<TItem, void, undefined> {
+    return paginate<TItem>(this._http, this._basePath, params, 'data', requestOptions);
   }
 
   /**
@@ -67,7 +73,7 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    * @returns The resource record.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async get(resourceId: string): Promise<TItem> {
-    return this._http.get<TItem>(this._path(resourceId));
+  async get(resourceId: string, requestOptions?: RequestOptionsInit): Promise<TItem> {
+    return this._http.get<TItem>(this._path(resourceId), undefined, requestOptions);
   }
 }

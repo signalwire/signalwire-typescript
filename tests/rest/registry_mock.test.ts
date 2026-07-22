@@ -57,15 +57,26 @@ describe('RegistryBrands', () => {
   });
 
   it('create_campaign_posts_to_brand_subpath', async () => {
-    // `usecase` is not a typed spec field (the spec field is sms_use_case), so
-    // like the campaigns.update test below, the arbitrary fields this wire test
-    // forwards travel through the `extras` escape hatch. The body arg is the
-    // required union; we send an empty typed body and let extras carry the wire.
-    const body = await client.registry.brands.createCampaign(
-      'brand-2',
-      {} as CreateManagedCampaignRequest,
-      { usecase: 'LOW_VOLUME', description: 'MFA' },
-    );
+    // create_campaign takes the full CreateManagedCampaignRequest body; the
+    // managed-campaign schema requires every field below.
+    const body = await client.registry.brands.createCampaign('brand-2', {
+      name: 'My Campaign',
+      brand_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      sms_use_case: 'MARKETING',
+      description: 'This campaign sends appointment reminders to opted-in patients.',
+      sample1: 'Hi John, your appointment is tomorrow. Reply STOP to unsubscribe.',
+      sample2: 'Your prescription is ready for pickup. Reply STOP to unsubscribe.',
+      message_flow: 'Users opt in via a written form and receive an opt-in message.',
+      opt_out_message: 'You have successfully been opted out. Reply START to opt back in.',
+      help_message: 'For help contact support@example.com. Reply STOP to unsubscribe.',
+      number_pooling_required: false,
+      direct_lending: false,
+      embedded_link: false,
+      embedded_phone: false,
+      age_gated_content: false,
+      lead_generation: false,
+      terms_and_conditions: true,
+    } as CreateManagedCampaignRequest);
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -74,8 +85,8 @@ describe('RegistryBrands', () => {
     expect(last.path).toBe(`${REG_BASE}/brands/brand-2/campaigns`);
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect((last.body as WireBody).usecase).toBe('LOW_VOLUME');
-    expect((last.body as WireBody).description).toBe('MFA');
+    expect((last.body as WireBody).sms_use_case).toBe('MARKETING');
+    expect((last.body as WireBody).name).toBe('My Campaign');
   });
 });
 
@@ -93,10 +104,9 @@ describe('RegistryCampaigns', () => {
   });
 
   it('update_uses_put', async () => {
-    // Generated update is update(id, options?: { name?; extras? }). `description`
-    // is not a typed spec field, so it travels via the extras escape hatch.
+    // UpdateCampaignRequest exposes only `name`.
     const body = await client.registry.campaigns.update('camp-2', {
-      extras: { description: 'Updated' },
+      name: 'Updated Campaign',
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -106,7 +116,7 @@ describe('RegistryCampaigns', () => {
     expect(last.path).toBe(`${REG_BASE}/campaigns/camp-2`);
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect((last.body as WireBody).description).toBe('Updated');
+    expect((last.body as WireBody).name).toBe('Updated Campaign');
   });
 
   it('list_numbers_uses_numbers_subpath', async () => {

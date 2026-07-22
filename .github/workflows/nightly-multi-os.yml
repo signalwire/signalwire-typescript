@@ -1,0 +1,152 @@
+name: "Nightly (multi-OS: macOS + Windows)"
+# Plan 6.4 — the multi-OS lane. ubuntu-only CI cannot certify a cross-platform
+# SDK, so this nightly runs the two OS-SENSITIVE suites — TEST (vitest) and
+# PACKAGE-SMOKE (npm pack → install the tarball → import + construct) — on
+# macOS and Windows. Documented Darwin/Win32 traps (path separators, line
+# endings, the shebang'd `swaig-test` bin, `npm pack` file-mode handling) surface
+# here and nowhere in the ubuntu lane.
+#
+# Skip-if-unchanged: same guard as nightly.yml — fingerprint the (port,
+# porting-sdk, python) HEAD-SHA triple into a cache key; a HIT means this exact
+# triple already passed the multi-OS lane, so the matrix is skipped. A no-op
+# nightly costs a cache probe, not two full OS runs.
+
+on:
+  schedule:
+    - cron: '43 8 * * *'      # 08:43 UTC daily (off the hour + off nightly.yml's slot)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Run even if nothing changed since the last successful multi-OS run'
+        type: boolean
+        default: false
+
+concurrency:
+  group: nightly-multi-os-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      cache_key: ${{ steps.fp.outputs.cache_key }}
+    steps:
+      - name: Fingerprint the three input HEAD SHAs (port + porting-sdk + python)
+        id: fp
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PSDK_TOKEN: ${{ secrets.PORTING_SDK_TOKEN }}
+        run: |
+          set -euo pipefail
+          port_sha='${{ github.sha }}'
+          psdk_sha=$(GH_TOKEN="$PSDK_TOKEN" gh api repos/signalwire/porting-sdk/commits/main --jq .sha)
+          py_sha=$(gh api repos/signalwire/signalwire-python/commits/main --jq .sha)
+          echo "cache_key=multi-os-green-v1-${port_sha}-${psdk_sha}-${py_sha}" >> "$GITHUB_OUTPUT"
+          echo "inputs → port=$port_sha psdk=$psdk_sha python=$py_sha"
+
+      - name: Probe last-green marker
+        id: probe
+        uses: actions/cache/restore@v6
+        with:
+          path: .multi-os-green-marker
+          key: ${{ steps.fp.outputs.cache_key }}
+          lookup-only: true
+
+      - name: Decide
+        id: check
+        env:
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          set -euo pipefail
+          if [ "$FORCE" = "true" ]; then
+            echo "force=true → running"; echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "${{ steps.probe.outputs.cache-hit }}" = "true" ]; then
+            echo "this (port, porting-sdk, python) triple already passed the multi-OS lane → skipping"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "input triple has not passed the multi-OS lane yet → running"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  multi-os:
+    needs: guard
+    if: needs.guard.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout signalwire-typescript
+        uses: actions/checkout@v7
+        with:
+          path: signalwire-typescript
+
+      - name: Checkout porting-sdk (mock servers + audit scripts)
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
+      - name: Checkout signalwire-python (oracle)
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/signalwire-python
+          path: signalwire-python
+          ref: main
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: signalwire-typescript/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e porting-sdk/test_harness/mock_relay -e porting-sdk/test_harness/mock_signalwire pytest pytest-timeout requests websockets
+
+      - name: npm ci
+        working-directory: signalwire-typescript
+        run: npm ci
+
+      # The two OS-sensitive suites, run directly (not the full run-ci gate set) so
+      # this lane stays fast and focused on what actually varies across OSes.
+      - name: TEST (vitest)
+        working-directory: signalwire-typescript
+        env:
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+        run: bash scripts/run-tests.sh
+
+      - name: PACKAGE-SMOKE (pack → install tarball → import + construct)
+        working-directory: signalwire-typescript
+        env:
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+        run: python3 ../porting-sdk/scripts/package_smoke.py --port typescript --repo .
+
+  record:
+    needs: [guard, multi-os]
+    if: needs.guard.outputs.changed == 'true' && needs.multi-os.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record green marker for this input triple
+        run: 'echo "$GITHUB_SHA green $(date -u +%FT%TZ)" > .multi-os-green-marker'
+      - uses: actions/cache/save@v6
+        with:
+          path: .multi-os-green-marker
+          key: ${{ needs.guard.outputs.cache_key }}

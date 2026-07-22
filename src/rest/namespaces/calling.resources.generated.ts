@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type {
   CallAIMessageResetParams,
@@ -42,6 +43,7 @@ export class Calling extends BaseResource {
       swml?: SWMLObject;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -58,7 +60,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, { command: 'dial', params });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'dial', params },
+      undefined,
+      requestOptions,
+    );
   }
 
   async update(
@@ -71,6 +78,7 @@ export class Calling extends BaseResource {
       swml?: SWMLObject;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -83,12 +91,18 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, { command: 'update', params });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'update', params },
+      undefined,
+      requestOptions,
+    );
   }
 
   async end(
     callId: string,
     options?: { reason?: HangupReason; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -96,16 +110,18 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.end',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.end', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async aiHold(
     callId: string,
     options?: { timeout?: number; prompt?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -114,16 +130,18 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.ai_hold',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.ai_hold', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async aiUnhold(
     callId: string,
     options?: { prompt?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -131,11 +149,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.ai_unhold',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.ai_unhold', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async aiMessage(
@@ -147,6 +166,7 @@ export class Calling extends BaseResource {
       global_data?: Record<string, Record<string, unknown>>;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -157,17 +177,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.ai_message',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.ai_message', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async liveTranscribe(
     callId: string,
     action: LiveTranscribeStartAction | LiveTranscribeSummarizeAction | LiveTranscribeStopAction,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -175,11 +197,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.live_transcribe',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.live_transcribe', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async liveTranslate(
@@ -190,6 +213,7 @@ export class Calling extends BaseResource {
       | LiveTranslateInjectAction
       | LiveTranslateStopAction,
     options?: { status_url?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -198,17 +222,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.live_translate',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.live_translate', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async transfer(
     callId: string,
     dest: string | SWMLObject,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -216,17 +242,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.transfer',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.transfer', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async userEvent(
     callId: string,
     event: Record<string, Record<string, unknown>>,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -234,23 +262,26 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.user_event',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.user_event', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async disconnect(
     callId: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = { ...options?.extras };
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.disconnect',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.disconnect', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async play(
@@ -264,6 +295,7 @@ export class Calling extends BaseResource {
       status_url?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -276,17 +308,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.play',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.play', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async playPause(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -294,17 +328,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.play.pause',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.play.pause', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async playResume(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -312,17 +348,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.play.resume',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.play.resume', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async playStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -330,11 +368,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.play.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.play.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async playVolume(
@@ -342,6 +381,7 @@ export class Calling extends BaseResource {
     control_id: string,
     volume: number,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -350,11 +390,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.play.volume',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.play.volume', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async record(
@@ -365,6 +406,7 @@ export class Calling extends BaseResource {
       status_url?: string;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -374,17 +416,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.record',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.record', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async recordPause(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -392,17 +436,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.record.pause',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.record.pause', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async recordResume(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -410,17 +456,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.record.resume',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.record.resume', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async recordStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -428,11 +476,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.record.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.record.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async collect(
@@ -446,6 +495,7 @@ export class Calling extends BaseResource {
       partial_results?: boolean;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -458,17 +508,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.collect',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.collect', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async collectStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -476,17 +528,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.collect.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.collect.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async collectStartInputTimers(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -494,17 +548,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.collect.start_input_timers',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.collect.start_input_timers', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async detect(
     callId: string,
     detect: Record<string, unknown>,
     options?: { control_id?: string; timeout?: number; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -514,17 +570,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.detect',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.detect', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async detectStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -532,11 +590,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.detect.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.detect.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async tap(
@@ -544,6 +603,7 @@ export class Calling extends BaseResource {
     tap: Record<string, unknown>,
     device: Record<string, unknown>,
     options?: { control_id?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -553,17 +613,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.tap',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.tap', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async tapStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -571,11 +633,12 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.tap.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.tap.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async stream(
@@ -589,6 +652,7 @@ export class Calling extends BaseResource {
       custom_parameters?: Record<string, unknown>;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -601,17 +665,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.stream',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.stream', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async streamStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -619,40 +685,46 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.stream.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.stream.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async denoise(
     callId: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = { ...options?.extras };
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.denoise',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.denoise', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async denoiseStop(
     callId: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = { ...options?.extras };
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.denoise.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.denoise.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async transcribe(
     callId: string,
     options?: { control_id?: string; status_url?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -661,17 +733,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.transcribe',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.transcribe', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async transcribeStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -679,17 +753,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.transcribe.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.transcribe.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async aiStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -697,17 +773,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.ai.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.ai.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async sendFaxStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -715,17 +793,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.send_fax.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.send_fax.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async receiveFaxStop(
     callId: string,
     control_id: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -733,17 +813,19 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.receive_fax.stop',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.receive_fax.stop', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 
   async refer(
     callId: string,
     device: Record<string, unknown>,
     options?: { status_url?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
@@ -752,10 +834,11 @@ export class Calling extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) params[k] = v;
     if (options?.extras) Object.assign(params, options.extras);
-    return this._http.post<CallResponse>(this._basePath, {
-      command: 'calling.refer',
-      params,
-      id: callId,
-    });
+    return this._http.post<CallResponse>(
+      this._basePath,
+      { command: 'calling.refer', params, id: callId },
+      undefined,
+      requestOptions,
+    );
   }
 }
