@@ -308,10 +308,10 @@ const client = new RestClient({
 await client.phoneNumbers.list({ areacode: '512' }, { timeout: 5 });
 await client.fabric.aiAgents.get('agent-id', { retries: 3 });
 
-// Cancel an in-flight request:
+// Cancel an in-flight request with an AbortSignal:
 const controller = new AbortController();
-const p = client.calling.dial('+1555...', '+1555...', { url: '...' });
-// ...later: controller.abort();
+const pending = client.phoneNumbers.list(undefined, { abortSignal: controller.signal });
+// ...later, call the controller's standard abort() to cancel `pending`.
 ```
 
 Fields (all optional):

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ a76ed3e3cea57d2f5e40d80e9efa6c0d6ad190c1",
+  "generated_from": "signalwire-typescript @ 25e1b06649cd9c5b8aaa212440a089d685e32287",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -218,6 +218,7 @@
           "add_gather_question",
           "add_section",
           "clear_sections",
+          "get_functions",
           "get_gather_info",
           "get_step_valid_contexts",
           "get_valid_steps",
