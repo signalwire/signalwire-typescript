@@ -49,7 +49,7 @@ jobs:
           # CI-PIN (Wave 1): the reference's Wave-1 changes (PY-1..9, incl PY-7
           # request_options) live on signalwire-python wave/1-aplus (PR #67), not
           # yet on main. REVERT to main when signalwire-python wave/1-aplus merges.
-          ref: main
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
