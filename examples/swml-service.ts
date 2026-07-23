@@ -25,7 +25,7 @@ agent.addVerb('play', {
 agent.addVerb('record', {
   stereo: true,
   format: 'mp3',
-  direction: 'both',
+  direction: 'listen',
   terminators: '#',
   beep: true,
 });

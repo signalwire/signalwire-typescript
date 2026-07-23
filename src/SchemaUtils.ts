@@ -7,6 +7,8 @@
  */
 
 import { createRequire } from 'module';
+import Ajv2020 from 'ajv/dist/2020.js';
+import type { ValidateFunction } from 'ajv';
 
 /** Result of validating a SWML document. */
 export interface ValidationResult {
@@ -39,6 +41,16 @@ export class SchemaUtils {
   private verbs: Map<string, VerbDefinition> = new Map();
   /** Path to the schema file, or null to use the bundled schema. */
   private schemaPath: string | null;
+  /** Per-verb lazily-compiled JSON-Schema (Draft 2020-12) validators, keyed by
+   *  verb name. Each validates a single verb's config against JUST that verb's
+   *  `$defs` definition (with the schema's `$defs` available for `$ref`s), the
+   *  closed-schema check that raises on unknown/misspelled top-level keys and
+   *  wrong-typed values — the TS mirror of Python's jsonschema-rs
+   *  `_validate_verb_full`, but scoped to one verb so compilation is cheap. A
+   *  `null` entry means a validator couldn't be built for that verb (fall back
+   *  to lightweight). Shared Ajv instance is created once. */
+  private verbValidators: Map<string, ValidateFunction | null> = new Map();
+  private ajv: { compile: (s: object) => ValidateFunction } | null | undefined = undefined;
 
   /**
    * Create a SchemaUtils instance.
@@ -62,6 +74,9 @@ export class SchemaUtils {
    * @returns The loaded schema object, or `null` if it could not be loaded.
    */
   loadSchema(): Record<string, unknown> | null {
+    // A (re)load may change the schema; drop any compiled verb validators.
+    this.verbValidators.clear();
+    this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this.schemaPath) {
       try {
@@ -216,14 +231,128 @@ export class SchemaUtils {
       return { valid: true, errors: [] };
     }
 
-    const errors: string[] = [];
-
-    // Check verb exists
+    // Check verb exists (fast, schema-independent).
     if (!this.verbs.has(verbName)) {
-      errors.push(`Unknown verb: '${verbName}'`);
-      return { valid: false, errors };
+      return { valid: false, errors: [`Unknown verb: '${verbName}'`] };
     }
 
+    // The `ai` verb is a HANDLER verb: its strict-render check is TOP-LEVEL keys
+    // ONLY (reject unknown/misspelled top-level keys like `temperatur`/`zzz`,
+    // require a `prompt`) — NOT the full deep schema. The SDK legitimately emits
+    // ai DEEP shapes the bundled JSON-schema does not fully accept (an empty
+    // `prompt.pom: []` for a promptless agent, SWAIG `defaults`/function
+    // `web_hook_url`/`__token`); full-deep-validating them would false-reject
+    // valid documents. `ai.params` stays OPEN. Mirrors the python reference's
+    // AIVerbHandler.validate_config + validate_verb_top_level_keys (caea077).
+    if (verbName === 'ai') {
+      return this.validateAiVerbStrict(config);
+    }
+
+    // FULL JSON-Schema validation against JUST THIS VERB's definition — this is
+    // what makes the strict-render contract hold: the schema closes each verb
+    // (`unevaluatedProperties`) so an unknown/misspelled top-level key or a
+    // wrong-typed value fails, while a deliberately-open sub-object (e.g.
+    // ai.params) still passes. Same outcomes as validating a whole minimal doc
+    // (mirrors Python's jsonschema-rs `_validate_verb_full`) but compiling only
+    // the one verb's `$defs` subtree — ~30x cheaper than compiling the entire
+    // 39-verb `anyOf` document schema, and it yields a clean per-verb error
+    // instead of an anyOf failure for every OTHER verb. Falls back to the
+    // lightweight required-props check when a validator can't be built.
+    const validate = this.getVerbValidator(verbName);
+    if (validate) {
+      // The verb def is shaped `{ properties: { <verb>: <config-schema> } }`, so
+      // validate the single-key object `{ <verb>: config }` against it.
+      if (validate({ [verbName]: config })) {
+        return { valid: true, errors: [] };
+      }
+      const errs = validate.errors ?? [];
+      const fmt = (e: (typeof errs)[number]): string => {
+        const path = e.instancePath || '/';
+        if (e.keyword === 'required') {
+          const mp = (e.params as { missingProperty?: string } | undefined)?.missingProperty;
+          if (mp) return `${path} missing required property '${mp}'`;
+        }
+        return `${path} ${e.message ?? ''}`.trim();
+      };
+      // Prefer a `required` diagnostic (the missing-key name is the most
+      // informative), else the first reported error.
+      const required = errs.filter((e) => e.keyword === 'required');
+      const picked = required.length ? required : errs;
+      const raw = picked.map(fmt).join('; ');
+      const msg = raw.length > 500 ? raw.slice(0, 500) + '...' : raw;
+      return {
+        valid: false,
+        errors: [`Schema validation error for '${verbName}': ${msg || 'invalid config'}`],
+      };
+    }
+
+    return this.validateVerbLightweight(verbName, config);
+  }
+
+  /**
+   * Get the shared Ajv (Draft 2020-12) instance, created on first use. Returns
+   * `null` when the schema isn't a full document schema (no `sections` property
+   * — a partial/mocked schema) so callers fall back to lightweight validation,
+   * the TS mirror of Python's `_validate_verb_full` guard.
+   */
+  private getAjv(): { compile: (s: object) => ValidateFunction } | null {
+    if (this.ajv !== undefined) return this.ajv;
+    const props = (this.schema?.['properties'] as Record<string, unknown> | undefined) ?? {};
+    if (!this.schema || !('sections' in props)) {
+      this.ajv = null;
+      return null;
+    }
+    // Draft 2020-12 (the SWML schema's `$schema`). `strict: false` so unknown
+    // formats like "uri" are tolerated rather than throwing at compile time;
+    // `logger: false` silences Ajv's per-unknown-format warnings (the SWML
+    // schema declares `format: "uri"` on ~40 fields — without this Ajv floods
+    // stderr with one warning per field). We validate structure/keys, not
+    // formats.
+    const AjvCtor = (Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ?? Ajv2020;
+    this.ajv = new (AjvCtor as new (o: object) => { compile: (s: object) => ValidateFunction })({
+      allErrors: true,
+      strict: false,
+      logger: false,
+    });
+    return this.ajv;
+  }
+
+  /**
+   * Get (compiling on first use, then cached) a validator for ONE verb's config,
+   * against just that verb's `$defs` definition with the schema's `$defs`
+   * available for `$ref` resolution. Returns `null` when a validator cannot be
+   * built (no full schema, verb not in schema, or an Ajv compile error) — the
+   * caller then falls back to lightweight validation. Scoping to one verb keeps
+   * compilation ~30x cheaper than compiling the entire document schema.
+   */
+  private getVerbValidator(verbName: string): ValidateFunction | null {
+    const cached = this.verbValidators.get(verbName);
+    if (cached !== undefined) return cached;
+    let built: ValidateFunction | null = null;
+    const ajv = this.getAjv();
+    const verb = this.verbs.get(verbName);
+    const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
+    if (ajv && verb && defs) {
+      try {
+        // Compile the verb's own definition (which is `{ properties: { <verb>:
+        // <config-schema> }, ... }`) with $defs present so cross-verb $refs
+        // resolve. Give it a fresh $id so repeat compiles never collide.
+        built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
+      } catch {
+        built = null;
+      }
+    }
+    this.verbValidators.set(verbName, built);
+    return built;
+  }
+
+  /**
+   * Lightweight validation (verb existence + required fields only). The fallback
+   * when the full validator can't be built. Mirrors Python's
+   * `_validate_verb_lightweight`.
+   */
+  private validateVerbLightweight(verbName: string, config: unknown): ValidationResult {
+    const errors: string[] = [];
     const innerSchema = this.getVerbProperties(verbName);
 
     // If the inner schema is not an object type (e.g. "label" takes a string,
@@ -254,6 +383,102 @@ export class SchemaUtils {
     }
 
     return { valid: errors.length === 0, errors };
+  }
+
+  /**
+   * Strict-render check for the `ai` handler verb: TOP-LEVEL keys only.
+   *
+   * Rejects unknown/misspelled top-level ai keys (e.g. `temperatur`, `zzz`) and
+   * requires a well-formed `prompt` (present, an object, with exactly one of
+   * `text`/`pom`), but does NOT deep-validate the ai sub-tree — the SDK emits
+   * legitimate deep ai shapes the bundled schema doesn't fully model (empty
+   * `prompt.pom: []`, SWAIG `defaults`/`web_hook_url`/`__token`). `ai.params`
+   * stays open (it is a known top-level key; its contents are never checked).
+   * Mirrors the python reference's AIVerbHandler.validate_config +
+   * validate_verb_top_level_keys.
+   */
+  private validateAiVerbStrict(config: unknown): ValidationResult {
+    // The ai verb's config must be an object.
+    if (typeof config !== 'object' || config === null || Array.isArray(config)) {
+      return { valid: false, errors: ["Verb 'ai' expects an object config"] };
+    }
+    const cfg = config as Record<string, unknown>;
+
+    // Handler check: a prompt is required and must carry exactly one base prompt.
+    if (!('prompt' in cfg)) {
+      return { valid: false, errors: ["Missing required field 'prompt' for verb 'ai'"] };
+    }
+    const prompt = cfg['prompt'];
+    if (typeof prompt !== 'object' || prompt === null || Array.isArray(prompt)) {
+      return { valid: false, errors: ["'prompt' must be an object"] };
+    }
+    const p = prompt as Record<string, unknown>;
+    const baseCount = ('text' in p ? 1 : 0) + ('pom' in p ? 1 : 0);
+    if (baseCount === 0) {
+      return {
+        valid: false,
+        errors: ["'prompt' must contain either 'text' or 'pom' as base prompt"],
+      };
+    }
+    if (baseCount > 1) {
+      return {
+        valid: false,
+        errors: ["'prompt' can only contain one of: 'text' or 'pom' (mutually exclusive)"],
+      };
+    }
+
+    // Shallow strict check: reject unknown/misspelled TOP-LEVEL keys against the
+    // ai verb's known property set (a no-op if the set isn't enumerable/closed).
+    const known = this.verbTopLevelPropertyNames('ai');
+    if (known) {
+      const unknown = Object.keys(cfg).filter((k) => !known.has(k));
+      if (unknown.length) {
+        return {
+          valid: false,
+          errors: [
+            `Unknown/misspelled key(s) ${JSON.stringify(unknown.sort())} for verb 'ai'. ` +
+              `Known keys: ${JSON.stringify([...known].sort())}`,
+          ],
+        };
+      }
+    }
+    return { valid: true, errors: [] };
+  }
+
+  /**
+   * Resolve the set of KNOWN top-level property names for a verb's config object,
+   * following a single `$ref` (e.g. AI -> AIObject). Returns `null` when the
+   * verb's config schema is not a CLOSED object-with-properties (so no shallow
+   * key check applies). Mirrors python's `_verb_top_level_property_names`.
+   */
+  private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
+    const verb = this.verbs.get(verbName);
+    if (!verb) return null;
+    const outerProps = verb.definition['properties'] as Record<string, unknown> | undefined;
+    let body = outerProps?.[verbName] as Record<string, unknown> | undefined;
+    if (!body || typeof body !== 'object') return null;
+    // Follow a single $ref (AI -> AIObject) to the object declaring the props.
+    const ref = body['$ref'];
+    if (typeof ref === 'string') {
+      const refName = ref.split('/').pop()!;
+      const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
+      body = defs?.[refName] as Record<string, unknown> | undefined;
+    }
+    if (!body || body['type'] !== 'object') return null;
+    const propMap = body['properties'];
+    if (!propMap || typeof propMap !== 'object') return null;
+    // Only a meaningful closed-key check when the schema closes the object.
+    const uneval = body['unevaluatedProperties'];
+    const closes =
+      body['additionalProperties'] === false ||
+      uneval === false ||
+      (typeof uneval === 'object' &&
+        uneval !== null &&
+        'not' in (uneval as Record<string, unknown>) &&
+        Object.keys((uneval as Record<string, unknown>)['not'] as Record<string, unknown>)
+          .length === 0);
+    if (!closes) return null;
+    return new Set(Object.keys(propMap as Record<string, unknown>));
   }
 
   /**
