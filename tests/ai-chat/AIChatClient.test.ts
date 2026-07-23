@@ -121,6 +121,19 @@ describe('AIChatClient', () => {
     });
   });
 
+  describe('lifecycle', () => {
+    it('close() is an idempotent no-op (no owned session to release)', async () => {
+      const c = new AIChatClient({ project: 'p', token: 't', url: 'http://local/api/ai/chat' });
+      await expect(c.close()).resolves.toBeUndefined();
+      await expect(c.close()).resolves.toBeUndefined();
+    });
+
+    it('Symbol.asyncDispose delegates to close() (await using)', async () => {
+      const c = new AIChatClient({ project: 'p', token: 't', url: 'http://local/api/ai/chat' });
+      await expect(c[Symbol.asyncDispose]()).resolves.toBeUndefined();
+    });
+  });
+
   describe('wire behavior', () => {
     it('sends HTTP Basic auth with the project as username; identity never in params', async () => {
       const { fetchImpl, requests } = stubFetch(mockResponder);

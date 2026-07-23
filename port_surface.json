@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 25e1b06649cd9c5b8aaa212440a089d685e32287",
+  "generated_from": "signalwire-typescript @ 2f7cae78eb6ab05815f57b23c4919f894226a5e6",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -48,6 +48,34 @@
       "functions": [
         "create_bedrock_agent"
       ]
+    },
+    "signalwire.ai_chat.client": {
+      "classes": {
+        "AIChatError": [
+          "__init__"
+        ],
+        "AuthenticationError": [],
+        "ConversationNotFoundError": [],
+        "RateLimitError": [],
+        "ChatInProgressError": [],
+        "SummaryError": [],
+        "AIChatClient": [
+          "__aenter__",
+          "__aexit__",
+          "__init__",
+          "chat",
+          "close",
+          "create_conversation",
+          "delete",
+          "end",
+          "log",
+          "summarize"
+        ],
+        "ConversationInfo": [],
+        "ChatResponse": [],
+        "ChatLog": []
+      },
+      "functions": []
     },
     "signalwire.cli.core.agent_loader": {
       "classes": {},

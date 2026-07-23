@@ -472,4 +472,29 @@ export class AIChatClient {
     const summary = result['summary'];
     return typeof summary === 'string' ? summary : summary === undefined ? '' : String(summary);
   }
+
+  // ── Lifecycle ────────────────────────────────────────────────────
+
+  /**
+   * Release any resources the client holds and complete its lifecycle.
+   *
+   * The client is stateless per request — it injects/uses `fetch` and holds no
+   * pooled socket or session of its own (unlike the python reference's owned
+   * `aiohttp.ClientSession`), so there is nothing to tear down; this is a no-op
+   * that fulfills the reference's `close()` lifecycle contract. Safe to call more
+   * than once. Prefer `await using` (below) where the runtime supports it.
+   */
+  async close(): Promise<void> {
+    // Nothing to release: no owned session / socket pool.
+  }
+
+  /**
+   * `Symbol.asyncDispose` — the TS/JS explicit-resource-management analogue of the
+   * python reference's `async with AIChatClient(...) as client:` context manager.
+   * `await using client = new AIChatClient(...)` calls this on scope exit,
+   * mirroring `__aenter__`/`__aexit__` → `close()`.
+   */
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.close();
+  }
 }
