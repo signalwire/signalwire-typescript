@@ -486,14 +486,14 @@
                 {
                   "name": "timeout",
                   "kind": "positional",
-                  "type": "optional<integer>",
+                  "type": "optional<int>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "reinit",
                   "kind": "positional",
-                  "type": "boolean",
+                  "type": "bool",
                   "required": false,
                   "default": false
                 }

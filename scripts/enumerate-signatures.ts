@@ -553,11 +553,11 @@ const AICHAT_METHOD_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
     {
       name: 'timeout',
       kind: 'positional',
-      type: 'optional<integer>',
+      type: 'optional<int>',
       required: false,
       default: null,
     },
-    { name: 'reinit', kind: 'positional', type: 'boolean', required: false, default: false },
+    { name: 'reinit', kind: 'positional', type: 'bool', required: false, default: false },
   ],
   // AIChatClient.create_conversation — reference (conversation_id, config_url,
   // user_message, timeout, user_metadata, reinit); the CreateConversationOptions
