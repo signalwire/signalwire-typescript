@@ -293,11 +293,11 @@ Every request accepts a `RequestOptions` envelope controlling per-request transp
 behavior. Set a client-wide default via the `requestOptions` constructor option, and
 override it per call by passing an options object as the final argument to any method.
 
+<!-- snippet: no-run makes live REST calls (phoneNumbers.list / fabric.aiAgents.get) to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
 ```typescript
-import { RestClient } from '@signalwire/sdk';
-
-// Client-wide defaults applied to every request:
-const client = new RestClient({
+// `RestClient` is imported in the shared setup above. Construct a client with
+// client-wide request defaults applied to every request:
+const tunedClient = new RestClient({
   project: 'your-project-id',
   token: 'your-api-token',
   host: 'example.signalwire.com',
@@ -305,12 +305,12 @@ const client = new RestClient({
 });
 
 // Per-call override (shallow-merges over the client default):
-await client.phoneNumbers.list({ areacode: '512' }, { timeout: 5 });
-await client.fabric.aiAgents.get('agent-id', { retries: 3 });
+await tunedClient.phoneNumbers.list({ areacode: '512' }, { timeout: 5 });
+await tunedClient.fabric.aiAgents.get('agent-id', { retries: 3 });
 
 // Cancel an in-flight request with an AbortSignal:
 const controller = new AbortController();
-const pending = client.phoneNumbers.list(undefined, { abortSignal: controller.signal });
+const pending = tunedClient.phoneNumbers.list(undefined, { abortSignal: controller.signal });
 // ...later, call the controller's standard abort() to cancel `pending`.
 ```
 

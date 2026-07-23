@@ -37,6 +37,8 @@ local mock, a private space, or a proxy, use any of these (in precedence order):
 - **`host` option accepting a full URL** — pass a `http://`/`https://` URL as `host` and
   the client uses it verbatim:
   ```typescript
+  import { RestClient } from '@signalwire/sdk';
+
   const client = new RestClient({
     project: 'your-project-id',
     token: 'your-api-token',

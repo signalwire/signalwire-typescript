@@ -132,6 +132,12 @@ jobs:
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: pip install -e signalwire-python || true
 
+      # SWAIG-HTTP-INVOKE differ drives the python reference through
+      # starlette.testclient.TestClient, which needs an httpx backend (newest
+      # starlette: httpx2; older: httpx). Install both so the import resolves.
+      - name: Install starlette TestClient HTTP backend (SWAIG-HTTP differ)
+        run: pip install httpx httpx2 || pip install httpx
+
       # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
       # binary and fails LOUD when it is absent, so install it before run-ci.
       - name: Install actionlint (ACTIONLINT gate)
