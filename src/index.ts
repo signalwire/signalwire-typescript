@@ -294,6 +294,9 @@ export * from './relay/index.js';
 // REST Client (typed HTTP access to all SignalWire platform APIs)
 export * from './rest/index.js';
 
+// AI Chat Client (async JSON-RPC client for the SignalWire AI Chat service)
+export * from './ai-chat/index.js';
+
 // LiveWire (LiveKit-compatible agents powered by SignalWire)
 export * as livewire from './livewire/index.js';
 
