@@ -166,7 +166,7 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 # is the separate line below.
 sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/SWAIG-HTTP-INVOKE/TLS-VERIFY/CA-VAR/SECRET-SCRUB)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,SWAIG-HTTP-INVOKE,TLS-VERIFY,CA-VAR,SECRET-SCRUB
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,SWAIG-HTTP-INVOKE,TLS-VERIFY,CA-VAR,SECRET-SCRUB
 
 sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
@@ -202,6 +202,18 @@ sched_gate PACKAGE-SMOKE-DUAL tier=nightly defer=1 desc="packed tarball loads vi
 # ---- gates that stay standalone (native toolchains + singletons) -------------
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on the PR (Coordinated-With: line or coordinated-pass label)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/coordinated_pass.py" --porting-sdk "$PORTING_SDK_DIR"
+
+sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + python oracle + matrix ports) uses PORTING_SDK_REF, not a literal ref" \
+    -- python3 "$PORTING_SDK_DIR/scripts/check_coordinated_refs.py" --repo "$PORT_ROOT"
+
+sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA env vars use the canonical A5 names" \
+    -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port typescript --repo "$PORT_ROOT"
+
+sched_gate ACTIONLINT desc="GitHub Actions workflows are valid (no step-level secrets.* in if:, etc.)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/actionlint_gate.py" --repo "$PORT_ROOT"
 
 sched_gate FMT defer=1 desc="scripts/run-format.sh (local: auto-fix; CI: --check)" \
     -- bash "$PORT_ROOT/scripts/run-format.sh" ${CI:+--check}

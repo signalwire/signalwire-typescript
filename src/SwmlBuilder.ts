@@ -183,15 +183,27 @@ export class SwmlBuilder {
    * Validates the verb config against the schema when validation is enabled.
    * @param verbName - The SWML verb name (e.g., "answer", "ai").
    * @param config - The verb's configuration payload.
+   * @param opts - When `opts.skipValidation` is true, the config is appended
+   *   WITHOUT schema validation. Used by AgentBase for the internally-assembled
+   *   `ai` verb, whose config is built from already-typed builder inputs and may
+   *   carry real, server-accepted SWML that the bundled schema does not yet model
+   *   (e.g. `multilingual`, `SWAIG.mcp_servers`, per-language engine/model/fillers,
+   *   `debug_webhook_url`). Validating it against the closed schema would raise on
+   *   those legitimate features — the strict-render contract is about rejecting
+   *   MISSHAPEN direct `addVerb` input (unknown verb, misspelled/unknown key,
+   *   wrong type), NOT about second-guessing trusted internal assembly. The
+   *   direct/public `addVerb` path stays fully strict.
    */
-  addVerb(verbName: string, config: unknown): void {
-    if (this.enableValidation) {
-      const schemaUtils = this.getSchemaUtils();
-      if (schemaUtils.hasVerb(verbName)) {
-        const result: ValidationResult = schemaUtils.validateVerb(verbName, config);
-        if (!result.valid) {
-          throw new Error(`SWML verb validation failed: ${result.errors.join('; ')}`);
-        }
+  addVerb(verbName: string, config: unknown, opts?: { skipValidation?: boolean }): void {
+    if (this.enableValidation && !opts?.skipValidation) {
+      // Validate unconditionally — an UNKNOWN verb must raise, not be appended
+      // silently (the strict-render contract). `validateVerb` returns
+      // "Unknown verb: '<name>'" for a name the schema doesn't define, matching
+      // the python reference's `add_verb`. (Previously this was gated on
+      // `hasVerb`, which let unknown verbs slip through.)
+      const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
+      if (!result.valid) {
+        throw new Error(`SWML verb validation failed: ${result.errors.join('; ')}`);
       }
     }
     // The default document factory always seeds a `main` section; preserve the

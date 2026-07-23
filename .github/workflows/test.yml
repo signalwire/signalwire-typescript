@@ -30,10 +30,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
-          # CI-PIN (Wave 1): the SEMVER/SURFACE oracle + PY-7 request_options gate
-          # scripts live on porting-sdk wave/1-aplus, not yet on main.
-          # REVERT this ref back to main (default) when porting-sdk wave/1-aplus merges.
-          ref: main
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
@@ -49,7 +49,7 @@ jobs:
           # CI-PIN (Wave 1): the reference's Wave-1 changes (PY-1..9, incl PY-7
           # request_options) live on signalwire-python wave/1-aplus (PR #67), not
           # yet on main. REVERT to main when signalwire-python wave/1-aplus merges.
-          ref: main
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
@@ -86,6 +86,16 @@ jobs:
       - name: Install SWAIG-HTTP gate backend (starlette TestClient needs httpx2)
         run: pip install httpx2
 
+      # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
+      # binary and fails LOUD when it is absent (never a silent skip), so install
+      # it before run-ci. Official installer drops the binary in the cwd; move it
+      # onto PATH.
+      - name: Install actionlint (ACTIONLINT gate)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
+
       - name: npm ci
         working-directory: signalwire-typescript
         run: npm ci
@@ -116,4 +126,7 @@ jobs:
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
           SW_CI_TIER: ${{ steps.tier.outputs.tier }}
+          # COORDINATED-PASS reads the live PR body/labels via 'gh api' to see a
+          # 'Coordinated-With:' declaration edited after the triggering push.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/run-ci.sh

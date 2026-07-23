@@ -58,21 +58,32 @@ export class RestClient extends _GeneratedResourceTree {
     super();
     const project = options.project || process.env['SIGNALWIRE_PROJECT_ID'] || '';
     const token = options.token || process.env['SIGNALWIRE_API_TOKEN'] || '';
-    const host = options.host || process.env['SIGNALWIRE_SPACE'] || '';
+    // Endpoint override, in precedence order (fleet convention, r5 F4):
+    //   1. explicit `host` option (may be a bare host OR a full http(s):// URL),
+    //   2. `SIGNALWIRE_REST_BASE_URL` env — the canonical fleet base-url override
+    //      (matches go's `SIGNALWIRE_REST_BASE_URL`); always a full URL,
+    //   3. `SIGNALWIRE_SPACE` env — the bare space host.
+    const host =
+      options.host ||
+      process.env['SIGNALWIRE_REST_BASE_URL'] ||
+      process.env['SIGNALWIRE_SPACE'] ||
+      '';
 
     if (!project || !token || !host) {
       throw new Error(
         'project, token, and host are required. ' +
           'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' +
-          'SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.',
+          'SIGNALWIRE_API_TOKEN, and (SIGNALWIRE_SPACE or SIGNALWIRE_REST_BASE_URL) ' +
+          'environment variables.',
       );
     }
 
     // Pass a fully-qualified host as baseUrl; otherwise pass the bare host and let
     // HttpClient pick the scheme (http:// for a loopback mock/dev host, https://
     // for a real *.signalwire.com space). This lets a shipped example run verbatim
-    // against the local mock via SIGNALWIRE_SPACE=127.0.0.1:<port>, with the
-    // scheme decision living in one place (HttpClient). Mirrors the python reference.
+    // against the local mock via SIGNALWIRE_REST_BASE_URL=http://127.0.0.1:<port>
+    // (or SIGNALWIRE_SPACE=127.0.0.1:<port>), with the scheme decision living in
+    // one place (HttpClient). Mirrors the python reference.
     const httpOptions = host.startsWith('http') ? { baseUrl: host } : { host };
 
     const http = new HttpClient({

@@ -127,11 +127,11 @@ These skills work out of the box with no API keys or configuration.
 
 | Skill Name | Class | Description | Tools | Required Env Vars | Config Options |
 |---|---|---|---|---|---|
-| `datetime` | `DateTimeSkill` | Current date/time with timezone support | `get_datetime` | None | None |
+| `datetime` | `DateTimeSkill` | Current date/time with timezone support | `get_current_time`, `get_current_date` | None | None |
 | `math` | `MathSkill` | Safe mathematical expression evaluation | `calculate` | None | None |
 | `joke` | `JokeSkill` | Random jokes from built-in collection | `get_joke` (`type`: jokes/dadjokes) | None | `tool_name` |
 
-**datetime** -- Provides the current date and time in any IANA timezone via the `get_datetime` tool. Uses the `Intl.DateTimeFormat` API.
+**datetime** -- Provides the current date and time in any IANA timezone via the `get_current_time` and `get_current_date` tools. Uses the `Intl.DateTimeFormat` API.
 
 ```typescript
 import { DateTimeSkill } from '@signalwire/sdk';

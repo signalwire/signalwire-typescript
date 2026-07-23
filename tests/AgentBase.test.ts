@@ -247,6 +247,43 @@ describe('AgentBase', () => {
     expect(ai.contexts.default.steps.length).toBe(2);
   });
 
+  it('contexts step functions whitelist rejects a dangling SWAIG ref', () => {
+    // r5 dogfood F3: a step's `functions` list naming a tool that was never
+    // registered must RAISE at render/validate time, not silently emit SWML
+    // with an unsatisfiable function restriction.
+    const agent = createAgent();
+    agent.setPromptText('You are an order bot');
+    agent.defineTool({
+      name: 'order_status',
+      description: 'look up an order',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+    const ctx = agent.defineContexts();
+    const def = ctx.addContext('default');
+    def
+      .addStep('lookup', { task: 'Look up the order' })
+      // 'get_datetime' was never registered (the real tools are
+      // get_current_time / get_current_date) — a dangling reference.
+      .setFunctions(['order_status', 'get_datetime']);
+    expect(() => agent.renderSwml()).toThrow(/unknown SWAIG function\(s\).*get_datetime/);
+  });
+
+  it('contexts step functions whitelist accepts a registered tool ref', () => {
+    const agent = createAgent();
+    agent.setPromptText('You are an order bot');
+    agent.defineTool({
+      name: 'order_status',
+      description: 'look up an order',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+    const ctx = agent.defineContexts();
+    const def = ctx.addContext('default');
+    def.addStep('lookup', { task: 'Look up the order' }).setFunctions(['order_status']);
+    expect(() => agent.renderSwml()).not.toThrow();
+  });
+
   it('getFullUrl returns correct URL', () => {
     const agent = new AgentBase({ name: 'test', route: '/myagent', port: 5000 });
     const url = agent.getFullUrl();

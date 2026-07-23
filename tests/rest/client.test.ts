@@ -6,7 +6,12 @@ describe('RestClient', () => {
 
   beforeEach(() => {
     // Save and clear REST-related env vars to prevent leaking between tests
-    for (const key of ['SIGNALWIRE_PROJECT_ID', 'SIGNALWIRE_API_TOKEN', 'SIGNALWIRE_SPACE']) {
+    for (const key of [
+      'SIGNALWIRE_PROJECT_ID',
+      'SIGNALWIRE_API_TOKEN',
+      'SIGNALWIRE_SPACE',
+      'SIGNALWIRE_REST_BASE_URL',
+    ]) {
       savedEnv[key] = process.env[key];
       delete process.env[key];
     }
@@ -121,6 +126,52 @@ describe('RestClient', () => {
     expect(reqs[0]!.url).toContain('env.signalwire.com');
     const expectedAuth = 'Basic ' + Buffer.from('env-proj:env-tok').toString('base64');
     expect(reqs[0]!.headers['Authorization']).toBe(expectedAuth);
+  });
+
+  it('honors SIGNALWIRE_REST_BASE_URL as a full-URL endpoint override', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
+    process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
+    process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
+    // No SIGNALWIRE_SPACE; the base-url override alone must be sufficient, and
+    // a full http:// URL must be used verbatim (plain HTTP, not https-forced).
+    process.env['SIGNALWIRE_REST_BASE_URL'] = 'http://127.0.0.1:8933';
+
+    const client = new RestClient({ fetchImpl });
+    await client.phoneNumbers.list();
+    const reqs = getRequests();
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0]!.url).toContain('http://127.0.0.1:8933');
+    expect(reqs[0]!.url.startsWith('http://')).toBe(true);
+  });
+
+  it('prefers explicit host over SIGNALWIRE_REST_BASE_URL over SIGNALWIRE_SPACE', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
+    process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
+    process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
+    process.env['SIGNALWIRE_SPACE'] = 'space.signalwire.com';
+    process.env['SIGNALWIRE_REST_BASE_URL'] = 'http://base-url-wins.example:9000';
+
+    // Explicit host beats both env vars.
+    const client = new RestClient({ host: 'explicit.signalwire.com', fetchImpl });
+    await client.phoneNumbers.list();
+    const reqs = getRequests();
+    expect(reqs[0]!.url).toContain('explicit.signalwire.com');
+    expect(reqs[0]!.url).not.toContain('base-url-wins');
+    expect(reqs[0]!.url).not.toContain('space.signalwire.com');
+  });
+
+  it('SIGNALWIRE_REST_BASE_URL takes precedence over SIGNALWIRE_SPACE', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
+    process.env['SIGNALWIRE_PROJECT_ID'] = 'env-proj';
+    process.env['SIGNALWIRE_API_TOKEN'] = 'env-tok';
+    process.env['SIGNALWIRE_SPACE'] = 'space.signalwire.com';
+    process.env['SIGNALWIRE_REST_BASE_URL'] = 'http://base-url-wins.example:9000';
+
+    const client = new RestClient({ fetchImpl });
+    await client.phoneNumbers.list();
+    const reqs = getRequests();
+    expect(reqs[0]!.url).toContain('base-url-wins.example:9000');
+    expect(reqs[0]!.url).not.toContain('space.signalwire.com');
   });
 
   it('explicit options override env vars', () => {

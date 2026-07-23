@@ -48,14 +48,12 @@ signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follo
 signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.security.session_manager.SessionManager.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.security_config.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.skill_manager.SkillManager.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.swaig_function.SWAIGFunction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.swml_builder.SWMLBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.swml_service.SWMLService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swml_service.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.Agent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentSession.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -93,52 +91,10 @@ signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as 
 signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.client.RelayClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.client.RelayError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.event.MessageReceiveEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.event.MessageStateEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.event.QueueEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.event.RecordEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.event.TranscribeEvent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.message.Message.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._base.HttpClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest.client.RestClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatApplications.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatCalls.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatConferences.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatFaxes.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatLamlBins.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatMessages.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatQueues.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatRecordings.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatTokens.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.compat.CompatTranscriptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.CallFlowsResource.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.ConferenceRoomsResource.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.CxmlApplicationsResource.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.FabricAddresses.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.FabricResource.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.FabricResourcePUT.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.GenericResources.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.fabric.SubscribersResource.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.logs.ConferenceLogs.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.logs.FaxLogs.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.logs.MessageLogs.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.logs.VoiceLogs.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.registry.RegistryBrands.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.registry.RegistryCampaigns.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.registry.RegistryNumbers.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.registry.RegistryOrders.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoConferenceTokens.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoConferences.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoRoomRecordings.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoRoomSessions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoRoomTokens.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoRooms.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.namespaces.video.VideoStreams.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
@@ -146,7 +102,6 @@ signalwire.rest._request_options.RequestOptions.__init__: TS constructor signatu
 ## Idiom: TS fluent API returns this
 
 signalwire.agent_server.AgentServer.get_agents: TS fluent API returns this for chaining
-signalwire.core.auth_handler.AuthHandler.get_auth_info: TS fluent API returns this for chaining
 signalwire.core.function_result.FunctionResult.create_payment_action: TS fluent API returns this for chaining
 signalwire.core.function_result.FunctionResult.create_payment_parameter: TS fluent API returns this for chaining
 signalwire.core.pom_builder.PomBuilder.get_section: TS fluent API returns this for chaining
@@ -246,7 +201,6 @@ signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, toke
 signalwire.core.swml_handler.AIVerbHandler.build_config: ts-options-object: buildConfig(opts) collapses Python's prompt_text/prompt_pom/contexts/post_prompt/post_prompt_url/swaig/**kwargs into one options object; same AI verb config emitted.
 signalwire.core.agent.tools.registry.ToolRegistry.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/wait_file/wait_file_loops/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
-signalwire.core.skill_base.SkillBase.get_parameter_schema: TS get_parameter_schema is a static accessor with no cls receiver; Python is a classmethod (cls). Same static schema, no cls param in the TS static form.
 signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: TS onSwmlRequest(rawData) receives the request payload; Python on_swml_request(request_data, callback_path, request) additionally threads FastAPI callback_path/Request which have no Hono/TS analog. Same dynamic-SWML hook.
 signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) omits Python's trailing **kwargs passthrough (no extra fields are forwarded to this relay method in TS); same clear-bindings wire command.
 signalwire.relay.call.Call.user_event: ts-options-object: userEvent(options) collapses Python's event + **kwargs into one options object; same user_event wire command.
@@ -255,11 +209,6 @@ signalwire.relay.call.Call.amazon_bedrock: TS amazonBedrock(options) types the c
 signalwire.relay.call.Call.on: TS on(event, handler) types handler as the plain callback (event) => void; Python wraps it in an EventHandler class. Same subscription; EventHandler is a Python-internal wrapper.
 signalwire.relay.client.RelayClient.on_call: TS onCall(handler) types handler as (call) => void and returns void; Python's CallHandler is a Python-internal wrapper class returned for decorator use. Same registration.
 signalwire.relay.client.RelayClient.on_message: TS onMessage(handler) types handler as (message) => void and returns void; Python's MessageHandler is a Python-internal wrapper. Same registration.
-signalwire.rest._base.HttpClient.get: ts-options-object: the request_options param is typed as RequestOptionsInit (the plain-object init shape of the RequestOptions value class) so a call site passes an object literal; the reference types it as the RequestOptions class. Identical field set and resolved values; the retry/backoff behavior is wire-proven by the ERROR-ENVELOPE differ.
-signalwire.rest._base.HttpClient.post: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
-signalwire.rest._base.HttpClient.put: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
-signalwire.rest._base.HttpClient.patch: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
-signalwire.rest._base.HttpClient.delete: ts-options-object: request_options typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions class; identical fields and resolved values, same wire.
 signalwire.rest._request_options.RequestOptions.merge: ts-options-object: the override param is typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) so a caller passes a plain object; the reference types it as RequestOptions. Same shallow-merge semantics over an identical field set.
 signalwire.rest._request_options.resolve: ts-options-object: the client_default/per_request params are typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions; identical fields, identical resolve-over-default semantics.
 signalwire.rest._request_options.RequestOptions.abort_signal: field-vs-accessor idiom: the reference dataclass surfaces abort_signal as a read accessor; TS carries it as a public readonly field on the RequestOptions value object (RequestOptions.abortSignal). Same value, read the same way — a TS field is the idiomatic analog of a Python dataclass field.
@@ -286,7 +235,6 @@ signalwire.livewire.tool: reference-oracle gap: signalwire.livewire is absent fr
 
 ## Reference-oracle gap: per-skill get_parameter_schema (no class in the oracle)
 
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: the oracle records MCPGatewaySkill.get_parameter_schema as a Python @classmethod (leading `cls`); TS's is a `static override getParameterSchema()` accessor with no cls receiver — same static schema, `self`≡`cls` receiver difference (identical to the SkillBase.get_parameter_schema entry above). No functional gap; the port returns the same secure-default verify_ssl schema.
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.datasphere.skill.DataSphereSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
@@ -338,8 +286,6 @@ inside `SWMLService.ts` rather than in a dedicated file like Python's
 `verb_registry` getters return the same conceptual class but the
 canonical path differs.
 
-signalwire.core.swml_service.SWMLService.security: TS declares `SecurityConfig` inside `SWMLService.ts`; getter returns `class:signalwire.core.swml_service.SecurityConfig` while Python returns `class:signalwire.core.security_config.SecurityConfig`
-signalwire.core.swml_service.SWMLService.verb_registry: TS declares `VerbHandlerRegistry` inside `SWMLService.ts`; getter returns `class:signalwire.core.swml_service.VerbHandlerRegistry` while Python returns `class:signalwire.core.swml_handler.VerbHandlerRegistry`
 
 ## TS-idiomatic return-type divergences
 
@@ -347,16 +293,12 @@ signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance
 
 ## TS-idiomatic params-object vs **kwargs
 
-signalwire.rest._base.CrudResource.create: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.
-signalwire.rest._base.CrudResource.update: TS REST resources accept a single `body: any` positional argument (matching their JSON request body); Python uses `**kwargs` which the audit reports as a `var_keyword`-vs-`positional` kind mismatch. Same call-site contract — a flat key/value bag.
 signalwire.pom.pom.PromptObjectModel.add_section: TS PromptObjectModel.addSection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 signalwire.pom.pom.Section.__init__: TS Section constructor takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 signalwire.pom.pom.Section.add_subsection: TS Section.addSubsection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 
 ## POM int vs float (TS has no integer type)
 
-signalwire.pom.pom.Section.render_markdown: TS `level` and `section_number` params resolve to `float` because TypeScript has a single `number` primitive — no separate int. Equivalent to Python's `int` for all valid inputs.
-signalwire.pom.pom.Section.render_xml: TS `indent` and `section_number` params resolve to `float` because TypeScript has a single `number` primitive — no separate int. Equivalent to Python's `int` for all valid inputs.
 
 ## POM SectionData vs dict<string,any>
 
@@ -393,8 +335,6 @@ union is associative + commutative, so both spellings accept the identical set o
 and POST the identical wire `params.action`. (Pre-existing since the foundation's
 command-dispatch emitter; not introduced by the client-tree roll.)
 
-signalwire.rest.namespaces.calling_resources_generated.Calling.live_transcribe: `action` param — flat `union<LiveTranscribeStartAction,LiveTranscribeSummarizeAction,LiveTranscribeStopAction>` vs the reference's right-nested griffe rendering of the same three-variant `anyOf`. Identical wire contract.
-signalwire.rest.namespaces.calling_resources_generated.Calling.live_translate: `action` param — flat union of the four LiveTranslate*Action variants vs the reference's right-nested griffe rendering of the same `anyOf`. Identical wire contract.
 
 ## Surface-reconciled symbols: signature-shape / projection divergences
 
@@ -427,9 +367,5 @@ have no reference signature to compare against (missing-reference). Excused here
 until the reference signatures oracle carries BedrockAgent.
 
 signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
-signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
-signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
-signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
-signalwire.agents.bedrock.BedrockAgent.set_voice: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare

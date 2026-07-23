@@ -2365,16 +2365,22 @@ export class AgentBase extends SWMLService {
     }
 
     // ── PHASE 2: Answer verb ──
+    // Internally-assembled trusted verb — skip the schema pass (its shape is
+    // fixed by the builder, and revalidating it on every render would pay the
+    // full-schema Ajv compile cost on the hot path). User-supplied verbs below
+    // still validate.
     if (this.autoAnswer) {
-      this.swmlBuilder.addVerb('answer', this.answerConfig);
+      this.swmlBuilder.addVerb('answer', this.answerConfig, { skipValidation: true });
     }
 
     // ── PHASE 3: Post-answer verbs ──
     if (this._recordCall) {
-      this.swmlBuilder.addVerb('record_call', {
-        format: this.recordFormat,
-        stereo: this.recordStereo,
-      });
+      // Internally-assembled trusted verb — skip the schema pass (see PHASE 2).
+      this.swmlBuilder.addVerb(
+        'record_call',
+        { format: this.recordFormat, stereo: this.recordStereo },
+        { skipValidation: true },
+      );
     }
     for (const [verb, config] of this.postAnswerVerbs) {
       this.swmlBuilder.addVerb(verb, config);
@@ -2447,7 +2453,12 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    this.swmlBuilder.addVerb('ai', aiConfig);
+    // The assembled ai verb may legitimately carry real SWML the bundled schema
+    // does not yet model (multilingual, SWAIG.mcp_servers, per-language
+    // engine/model/fillers, debug_webhook_url). It is built from typed builder
+    // inputs, not raw user config, so skip the closed-schema check here; the
+    // strict-render contract governs direct addVerb input, not trusted assembly.
+    this.swmlBuilder.addVerb('ai', aiConfig, { skipValidation: true });
 
     // ── PHASE 5: Post-AI verbs ──
     for (const [verb, config] of this.postAiVerbs) {

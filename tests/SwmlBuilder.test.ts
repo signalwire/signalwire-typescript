@@ -478,11 +478,22 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
   });
 
-  describe('hangup reason type widened to string', () => {
-    it('accepts arbitrary string reasons', () => {
-      builder.hangup({ reason: 'custom_reason' });
+  describe('hangup reason', () => {
+    // The `reason` param TYPE is widened to `string` for ergonomics, but at
+    // RUNTIME the SWML schema closes it to the documented enum
+    // (hangup/busy/decline) — the strict-render contract: the port matches the
+    // python reference, which raises on an off-enum reason. So a widened type is
+    // a compile-time convenience, not a licence to emit off-spec values.
+    it('accepts a documented enum reason', () => {
+      builder.hangup({ reason: 'busy' });
       const doc = builder.build() as { sections: { main: unknown[] } };
-      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
+      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'busy' } });
+    });
+
+    it('rejects an arbitrary off-enum reason at render (parity with python)', () => {
+      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(
+        'SWML verb validation failed',
+      );
     });
   });
 
