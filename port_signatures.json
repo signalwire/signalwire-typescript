@@ -440,13 +440,6 @@
                   "type": "optional<string>",
                   "required": false,
                   "default": null
-                },
-                {
-                  "name": "session",
-                  "kind": "positional",
-                  "type": "optional<class:aiohttp.ClientSession>",
-                  "required": false,
-                  "default": null
                 }
               ],
               "returns": "void"
@@ -489,6 +482,20 @@
                   "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "timeout",
+                  "kind": "positional",
+                  "type": "optional<integer>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "reinit",
+                  "kind": "positional",
+                  "type": "boolean",
+                  "required": false,
+                  "default": false
                 }
               ],
               "returns": "class:signalwire.ai_chat.client.ChatResponse"

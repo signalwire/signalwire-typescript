@@ -510,11 +510,10 @@ const FREE_FN_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
 const AICHAT_MODULE = 'signalwire.ai_chat.client';
 
 const AICHAT_METHOD_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
-  // AIChatClient.__init__ — reference (project, token, space, url, session).
-  // `session` is the HTTP-client injection seam; the TS client injects `fetchImpl`
-  // (its `fetch` seam), which maps onto it. Params 1-4 match verbatim; `session`
-  // carries the oracle type (aiohttp.ClientSession has no TS analogue — the seam,
-  // not the concrete class, is what ports).
+  // AIChatClient.__init__ — reference (project, token, space, url). The oracle
+  // dropped the Python-only `session: aiohttp.ClientSession` DI seam (porting-sdk
+  // @ ai-chat-client), so the TS constructor's four credential/URL options line up
+  // 1:1 with the reference and NO extra param remains to splice.
   'signalwire.ai_chat.client.AIChatClient.__init__': [
     { name: 'self', kind: 'self' },
     {
@@ -527,16 +526,11 @@ const AICHAT_METHOD_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
     { name: 'token', kind: 'positional', type: 'optional<string>', required: false, default: null },
     { name: 'space', kind: 'positional', type: 'optional<string>', required: false, default: null },
     { name: 'url', kind: 'positional', type: 'optional<string>', required: false, default: null },
-    {
-      name: 'session',
-      kind: 'positional',
-      type: 'optional<class:aiohttp.ClientSession>',
-      required: false,
-      default: null,
-    },
   ],
   // AIChatClient.chat — reference (conversation_id, message, role, config_url,
-  // user_metadata). role/config_url/user_metadata are the ChatOptions fields.
+  // user_metadata, timeout, reinit). role/config_url/user_metadata/timeout/reinit
+  // are the ChatOptions fields; the TS client sends timeout as `conversation_timeout`
+  // and reinit as `reinit` on the auto-create, matching the reference wire.
   'signalwire.ai_chat.client.AIChatClient.chat': [
     { name: 'self', kind: 'self' },
     { name: 'conversation_id', kind: 'positional', type: 'string', required: true },
@@ -556,6 +550,14 @@ const AICHAT_METHOD_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
       required: false,
       default: null,
     },
+    {
+      name: 'timeout',
+      kind: 'positional',
+      type: 'optional<integer>',
+      required: false,
+      default: null,
+    },
+    { name: 'reinit', kind: 'positional', type: 'boolean', required: false, default: false },
   ],
   // AIChatClient.create_conversation — reference (conversation_id, config_url,
   // user_message, timeout, user_metadata, reinit); the CreateConversationOptions
