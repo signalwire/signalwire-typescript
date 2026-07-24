@@ -160,7 +160,6 @@ signalwire.rest._pagination.paginate_all: TS port-only helper — functionality 
 signalwire.utils.is_private_ip: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.resolve_and_validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.safe_assign: TS port-only helper — functionality has no direct Python equivalent
-signalwire.utils.validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.web.web_service.WebService.get_app: TS port-only helper — functionality has no direct Python equivalent
 
 ## ParameterSchema — typed SWAIG tool-parameter builder (Tier-2 flagship, explicit-params path)
@@ -204,8 +203,6 @@ signalwire.core.agent_base.AgentBase.define_typed_tool: TS-native AgentBase acce
 signalwire.core.agent_base.AgentBase.extract_sip_username: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_mcp_servers: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.get_prompt_pom: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
-signalwire.core.agent_base.AgentBase.get_registered_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
-signalwire.core.agent_base.AgentBase.get_tool: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.handle_request: TS override of the framework-free dispatch core so the primitive path renders via AgentBase's renderSwml (mirrors Python's AgentBase.handle_request override of SWMLService.handle_request). The signatures oracle records the signature only once on the base SWMLService (it dedups the inherited override), so the AgentBase re-declaration reads as a signature-side addition; the surface oracle DOES list it on AgentBase, where it matches. Same pattern as the recorded AgentBase.render_swml addition.
 signalwire.core.agent_base.AgentBase.get_tools: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python
 signalwire.core.agent_base.AgentBase.on_error: TS-native agent-level SWAIG error hook (#19371) — Python has no programmatic error surface on tool dispatch; registers a callback invoked when a tool handler throws, for reporting + optional response control
@@ -347,7 +344,6 @@ signalwire.core.function_result.FunctionResult.to_json: TS-native toJSON() seria
 
 ## Relay port-specific
 
-signalwire.relay.call.Call.pass: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
 signalwire.relay.call.Call.to_string: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
 signalwire.relay.deferred.create_deferred: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
 signalwire.relay.deferred.with_timeout: TS Relay helper or utility (closures, typed events) that Python covers via async iterators / callables
@@ -421,9 +417,7 @@ signalwire.core.auth_handler.AuthHandler.validate: TS AuthHandler exposes Hono-m
 signalwire.utils.schema_utils.SchemaUtils.clear_cache: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
 signalwire.utils.schema_utils.SchemaUtils.get_cache_size: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
 signalwire.utils.schema_utils.SchemaUtils.get_verb_description: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
-signalwire.utils.schema_utils.SchemaUtils.get_verb_names: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
 signalwire.utils.schema_utils.SchemaUtils.has_verb: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
-signalwire.utils.schema_utils.SchemaUtils.validate: TS SchemaUtils helper built on top of Ajv; exposes predicate / accessor methods that Python does inline
 
 ## SWMLService port-specific
 
@@ -443,11 +437,6 @@ signalwire.core.swml_service.SWMLService.swaig_pre_dispatch: TS SWMLService exte
 
 ## REST namespace additions
 
-signalwire.rest.namespaces.fabric.AutoMaterializedWebhookResource: TS REST namespace exposes an additional helper or utility method on top of the Python surface
-signalwire.rest.namespaces.fabric.AutoMaterializedWebhookResource.__init__: TS REST namespace exposes an additional helper or utility method on top of the Python surface
-signalwire.rest.namespaces.fabric.AutoMaterializedWebhookResource.create: TS REST namespace exposes an additional helper or utility method on top of the Python surface
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.create: TS REST namespace exposes an additional helper or utility method on top of the Python surface
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.update: TS REST namespace exposes an additional helper or utility method on top of the Python surface
 
 ## CLI port-specific
 
@@ -469,8 +458,6 @@ signalwire.core.security.session_manager.SessionManager.delete_session_metadata:
 
 ## RestError port-specific
 
-signalwire.rest._base.RestError: TS RestError helper or status accessor
-signalwire.rest._base.RestError.__init__: TS RestError helper or status accessor
 
 ## RelayClient port-specific (audit-harness support)
 
@@ -484,19 +471,13 @@ several classes; the TS port surfaces the same logger as a `readonly log`
 getter so consumers and subclasses can access the structured Logger
 without going through the constructor argument.
 
-signalwire.core.agent_base.AgentBase.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
-signalwire.core.swml_service.SWMLService.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
 
 ## AgentBase additional port-specific accessors
 
 signalwire.core.agent_base.AgentBase.create_tool_token: TS public delegate to `SessionManager.createToolToken` exposed on AgentBase for convenience; Python keeps this only on SessionManager and accesses via `self.session_manager.create_tool_token(...)`
-signalwire.core.agent_base.AgentBase.prompt_sections: TS public getter returning the agent's POM-rendered prompt sections; Python uses methods on the prompt manager / mixin (`get_prompt_sections`) rather than a direct property
 
 ## AuthHandler / SkillBase / VerbHandler additional port-specific getters
 
-signalwire.core.auth_handler.AuthHandler.config: TS readonly `config` accessor exposes the AuthConfig passed to the constructor; Python keeps the equivalent as a private attribute and never re-exposes it as a method
-signalwire.core.skill_base.SkillBase.agent: TS readonly `agent` accessor exposes the parent agent reference; Python keeps the equivalent as a protected attribute that subclasses access directly
-signalwire.core.skill_base.SkillBase.config: TS readonly `config` accessor exposes the SkillConfig passed at construction; Python keeps the equivalent as a protected attribute that subclasses access directly
 signalwire.core.swml_handler.AIVerbHandler.validate_config: TS-emitted concrete override of the inherited abstract method from SWMLVerbHandler; Python only emits it on the parent class via the enumerator's declaration-only rule
 
 ## SWMLService additional port-specific surface
@@ -509,17 +490,10 @@ signalwire.core.swml_service.SWMLService.build_swml_for_request: TS extension ho
 signalwire.core.swml_service.SWMLService.get_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.get_function(...)`
 signalwire.core.swml_service.SWMLService.has_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.has_function(...)`
 signalwire.core.swml_service.SWMLService.remove_function: TS-port direct accessor on SWMLService for the underlying tool registry; Python keeps this on `ToolRegistry` and accesses via `agent.tool_registry.remove_function(...)`
-signalwire.core.swml_service.SWMLService.swml_builder: TS-port readonly accessor exposing the internal SwmlBuilder instance; Python keeps the equivalent as a private attribute used only inside the service
 signalwire.core.swml_service.SWMLService.validate_basic_auth: TS-port direct accessor on SWMLService for the auth-mixin functionality; Python keeps this on `AuthMixin` and accesses via the mixin chain
 
 ## LiveWire / prefabs additional port-specific accessors
 
-signalwire.livewire.AgentHandoff.agent: TS readonly accessor exposing the target agent on a handoff result; LiveKit-compat shim only exposed in TS
-signalwire.livewire.JobContext.proc: TS LiveKit-compat process placeholder accessor; SignalWire ignores this field but TS exposes it for type compatibility with @livekit/agents callers
-signalwire.livewire.JobContext.room: TS LiveKit-compat room placeholder accessor; SignalWire does not use the LiveKit room abstraction but TS exposes the field for type compatibility
-signalwire.livewire.RunContext.session: TS readonly accessor exposing the AgentSession instance from a tool-call run context; Python uses a plain attribute with no public getter
-signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS public `faqs` field exposed for inspection / extension; Python keeps the equivalent FAQ list as a constructor-only argument with no instance accessor
-signalwire.prefabs.survey.SurveyAgent.questions: TS public `questions` field exposed for inspection / extension; Python keeps the equivalent question list as a constructor-only argument with no instance accessor
 
 ## Relay Action / REST resource port-specific accessors
 
@@ -529,13 +503,6 @@ signalwire.prefabs.survey.SurveyAgent.questions: TS public `questions` field exp
 # RecordAction.stop/pause/resume, CollectAction.{...}, StandaloneCollectAction.start_input_timers/stop,
 # and stop on Detect/Fax/Pay/Stream/Transcribe/AI). TS's inlined concrete methods now MATCH
 # the reference surface — no additions to record.
-signalwire.relay.call.Action.call: TS readonly accessor exposing the parent Call instance from an Action; Python keeps the back-reference as a private attribute that callers don't need
-signalwire.rest._base.CrudResource.__init__: TS-port explicit constructor for the abstract CrudResource; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
-signalwire.rest._base.CrudResource.get: TS folds list/get onto the CrudResource base; Python splits them onto a separate ReadResource base, so the reference's CrudResource surfaces only create/update/delete
-signalwire.rest._base.CrudResource.list: TS folds list/get onto the CrudResource base; Python splits them onto a separate ReadResource base, so the reference's CrudResource surfaces only create/update/delete
-signalwire.rest._base.CrudWithAddresses.__init__: TS-port explicit constructor for the abstract CrudWithAddresses; Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
-signalwire.rest._base.ReadResource.__init__: TS-port explicit constructor for the abstract ReadResource (list/get base); Python inherits BaseResource's `__init__` implicitly so the enumerator only emits it on the base
-signalwire.rest.client.RestClient.compat: Twilio-compatible LAML namespace, hand-written in the TS port (no OpenAPI spec in this porting-sdk checkout, so it is NOT part of the generated client tree); the Python reference here has no compat namespace. The generated flat resources + namespace containers are wired by the `_GeneratedResourceTree` base (skipped by the enumerator, mirroring Python's private `_GeneratedResourceTree`), so `compat` is the only resource accessor RestClient itself declares.
 
 ## AgentBase / SWMLService / SkillRegistry surface additions
 
@@ -716,3 +683,64 @@ agentbase-family.generate_url: TS-native serverless URL-generation helper (accou
 agentbase-family.get_platform: TS-native serverless platform accessor; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
 agentbase-family.run_serverless: TS-native serverless one-shot dispatch entry point; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
 
+
+# --- livewire (port+TS only; oracle-excluded, see porting-sdk #42) ---
+signalwire.livewire.Agent: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.llm_node: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.on_enter: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.on_exit: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.on_user_turn_completed: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.session: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.stt_node: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.tts_node: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.update_instructions: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Agent.update_tools: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentHandoff: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentHandoff.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentServer: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentServer.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentServer.rtc_session: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.generate_reply: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.history: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.interrupt: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.say: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.start: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.update_agent: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.AgentSession.userdata: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.ChatContext: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.ChatContext.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.ChatContext.append: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceLLM: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceLLM.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceSTT: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceSTT.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceTTS: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.InferenceTTS.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobContext: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobContext.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobContext.connect: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobContext.wait_for_participant: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobProcess: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.JobProcess.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.Room: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.RunContext: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.RunContext.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.RunContext.userdata: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.StopResponse: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.ToolError: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.function_tool: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.CartesiaTTS: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.CartesiaTTS.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.DeepgramSTT: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.DeepgramSTT.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.ElevenLabsTTS: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.ElevenLabsTTS.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.OpenAILLM: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.OpenAILLM.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.SileroVAD: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.SileroVAD.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.plugins.SileroVAD.load: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+signalwire.livewire.run_app: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
