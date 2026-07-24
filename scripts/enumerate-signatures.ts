@@ -50,6 +50,11 @@ const PSDK =
 // ---------------------------------------------------------------------------
 
 const TS_MODULE_ALIASES: Record<string, string> = {
+  // AI Chat client — Python keeps AIChatClient + its errors + response models
+  // in signalwire/ai_chat/client.py; the TS file is AIChatClient.ts, so map it
+  // to the reference module ``signalwire.ai_chat.client`` (else it falls back
+  // to ``signalwire.ai_chat.ai_chat_client``).
+  'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -467,6 +472,174 @@ const FREE_FN_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
     { name: 'headers', kind: 'positional', type: 'dict<string,string>', required: true },
     { name: 'body', kind: 'positional', type: 'string', required: true },
     { name: 'signing_key', kind: 'keyword', type: 'string', required: true },
+  ],
+};
+
+// ── AI-Chat surface fold (signalwire.ai_chat.client) ────────────────────────
+//
+// The reference oracle (porting-sdk @ ai-chat-client) enumerates the AI-Chat
+// client under signalwire.ai_chat.client. The TS port expresses the same wire
+// client with idiomatic named option OBJECTS (AIChatClientOptions / ChatOptions
+// / CreateConversationOptions) instead of Python's exploded keyword arguments,
+// and its response models are `interface`s (structural records) rather than
+// dataclasses. These are pure idiom (AGENT_RULES §2) — the emitted JSON-RPC wire
+// body is proven byte-identical by the AI-CHAT behavioral gate — so they are
+// reconciled by EMISSION, matching the .NET port's fold (which reached ZERO
+// ai_chat allow-list entries). Three reconciliations, all scoped to this one
+// module so nothing else is touched (applied in a post-collection pass in main):
+//
+//   1. SPLICE the canonical oracle signature for the option-object methods
+//      (__init__ / chat / create_conversation): reflection sees the collapsed
+//      `options` object; the oracle records the flat kwargs. The client's fetch
+//      injection seam (`fetchImpl`) maps onto the reference `session` param (the
+//      aiohttp.ClientSession injection seam) — the .NET port mapped HttpClient
+//      onto it the same way, splicing the oracle type verbatim. summarize / end /
+//      delete / log already line up positionally and are left as enumerated.
+//   2. DROP the 5 typed error subclasses' `__init__`: each only forwards to
+//      `super(code, message)` (a JS/CLR language-required override), so griffe
+//      records no OWN `__init__` on the reference subclasses — they inherit
+//      AIChatError.__init__. AIChatError.__init__ itself is kept (it matches).
+//   3. SYNTHESIZE the dataclass auto-`__init__` for the three response models
+//      (ConversationInfo / ChatResponse / ChatLog), which are TS interfaces (not
+//      walked as classes). Their fields ARE the Python dataclass ctor params.
+//
+// Param kinds mirror the oracle's positional-or-keyword recording (`positional`);
+// the diff folds a reference `positional` onto a port `keyword`, and the option
+// fields are wire-neutral either way. Keyed by canonical `module.Class.method` /
+// class name — auditable and contained.
+const AICHAT_MODULE = 'signalwire.ai_chat.client';
+
+const AICHAT_METHOD_PARAM_OVERRIDES: Record<string, CanonicalParam[]> = {
+  // AIChatClient.__init__ — reference (project, token, space, url). The oracle
+  // dropped the Python-only `session: aiohttp.ClientSession` DI seam (porting-sdk
+  // @ ai-chat-client), so the TS constructor's four credential/URL options line up
+  // 1:1 with the reference and NO extra param remains to splice.
+  'signalwire.ai_chat.client.AIChatClient.__init__': [
+    { name: 'self', kind: 'self' },
+    {
+      name: 'project',
+      kind: 'positional',
+      type: 'optional<string>',
+      required: false,
+      default: null,
+    },
+    { name: 'token', kind: 'positional', type: 'optional<string>', required: false, default: null },
+    { name: 'space', kind: 'positional', type: 'optional<string>', required: false, default: null },
+    { name: 'url', kind: 'positional', type: 'optional<string>', required: false, default: null },
+  ],
+  // AIChatClient.chat — reference (conversation_id, message, role, config_url,
+  // user_metadata, timeout, reinit). role/config_url/user_metadata/timeout/reinit
+  // are the ChatOptions fields; the TS client sends timeout as `conversation_timeout`
+  // and reinit as `reinit` on the auto-create, matching the reference wire.
+  'signalwire.ai_chat.client.AIChatClient.chat': [
+    { name: 'self', kind: 'self' },
+    { name: 'conversation_id', kind: 'positional', type: 'string', required: true },
+    { name: 'message', kind: 'positional', type: 'string', required: true },
+    { name: 'role', kind: 'positional', type: 'string', required: false, default: 'user' },
+    {
+      name: 'config_url',
+      kind: 'positional',
+      type: 'optional<string>',
+      required: false,
+      default: null,
+    },
+    {
+      name: 'user_metadata',
+      kind: 'positional',
+      type: 'optional<dict<string,any>>',
+      required: false,
+      default: null,
+    },
+    {
+      name: 'timeout',
+      kind: 'positional',
+      type: 'optional<int>',
+      required: false,
+      default: null,
+    },
+    { name: 'reinit', kind: 'positional', type: 'bool', required: false, default: false },
+  ],
+  // AIChatClient.create_conversation — reference (conversation_id, config_url,
+  // user_message, timeout, user_metadata, reinit); the CreateConversationOptions
+  // fields unfold back into the flat kwargs.
+  'signalwire.ai_chat.client.AIChatClient.create_conversation': [
+    { name: 'self', kind: 'self' },
+    { name: 'conversation_id', kind: 'positional', type: 'string', required: true },
+    { name: 'config_url', kind: 'positional', type: 'string', required: true },
+    {
+      name: 'user_message',
+      kind: 'positional',
+      type: 'optional<string>',
+      required: false,
+      default: null,
+    },
+    { name: 'timeout', kind: 'positional', type: 'optional<int>', required: false, default: null },
+    {
+      name: 'user_metadata',
+      kind: 'positional',
+      type: 'optional<dict<string,any>>',
+      required: false,
+      default: null,
+    },
+    { name: 'reinit', kind: 'positional', type: 'bool', required: false, default: false },
+  ],
+};
+
+// Error subclasses whose `__init__` is a super()-forwarding language override —
+// dropped so they inherit AIChatError.__init__ like the reference (griffe records
+// no own __init__ on them). AIChatError itself keeps its __init__.
+const AICHAT_SUBCLASS_DROP_INIT: Set<string> = new Set([
+  'AuthenticationError',
+  'ConversationNotFoundError',
+  'RateLimitError',
+  'ChatInProgressError',
+  'SummaryError',
+]);
+
+// Response-model interfaces → their synthesized dataclass auto-`__init__` params
+// (the Python @dataclass ctor). Emitted as classes carrying only __init__,
+// mirroring the reference dataclasses' signature surface.
+const AICHAT_RESPONSE_MODEL_INIT: Record<string, CanonicalParam[]> = {
+  ConversationInfo: [
+    { name: 'self', kind: 'self' },
+    { name: 'id', kind: 'positional', type: 'string', required: true },
+    { name: 'status', kind: 'positional', type: 'string', required: true },
+    {
+      name: 'initial_message',
+      kind: 'positional',
+      type: 'optional<string>',
+      required: false,
+      default: null,
+    },
+  ],
+  ChatResponse: [
+    { name: 'self', kind: 'self' },
+    { name: 'text', kind: 'positional', type: 'string', required: true },
+    { name: 'conversation_id', kind: 'positional', type: 'string', required: true },
+    {
+      name: 'user_event',
+      kind: 'positional',
+      type: 'optional<dict<string,any>>',
+      required: false,
+      default: null,
+    },
+  ],
+  ChatLog: [
+    { name: 'self', kind: 'self' },
+    {
+      name: 'messages',
+      kind: 'positional',
+      type: 'list<dict<string,any>>',
+      required: false,
+      default: 'list()',
+    },
+    {
+      name: 'call_timeline',
+      kind: 'positional',
+      type: 'list<dict<string,any>>',
+      required: false,
+      default: 'list()',
+    },
   ],
 };
 
@@ -1875,6 +2048,36 @@ function main(): number {
             );
           }
         }
+      }
+    }
+  }
+
+  // AI-Chat surface reconciliation (signalwire.ai_chat.client). See the map
+  // definitions above for the rationale. Applied here as a contained post-pass so
+  // the walk stays untouched: (1) splice canonical option-object method sigs,
+  // (2) drop super()-forwarding error-subclass __init__, (3) synthesize the
+  // response-model dataclass __init__ (they are TS interfaces, not walked classes).
+  {
+    const aiChat = doc.modules[AICHAT_MODULE]?.classes;
+    if (aiChat) {
+      // (1) Splice the canonical oracle signatures onto AIChatClient's methods.
+      const client = aiChat['AIChatClient'];
+      if (client) {
+        for (const [key, params] of Object.entries(AICHAT_METHOD_PARAM_OVERRIDES)) {
+          const method = key.slice(`${AICHAT_MODULE}.AIChatClient.`.length);
+          if (client.methods[method]) {
+            client.methods[method] = { params, returns: client.methods[method].returns };
+          }
+        }
+      }
+      // (2) Drop the error subclasses' forwarding __init__.
+      for (const sub of AICHAT_SUBCLASS_DROP_INIT) {
+        if (aiChat[sub]) delete aiChat[sub].methods['__init__'];
+      }
+      // (3) Synthesize the response-model dataclass __init__ (TS interfaces).
+      for (const [model, params] of Object.entries(AICHAT_RESPONSE_MODEL_INIT)) {
+        if (!aiChat[model]) aiChat[model] = { methods: {} };
+        aiChat[model].methods = { __init__: { params, returns: 'void' } };
       }
     }
   }

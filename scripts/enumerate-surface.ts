@@ -168,6 +168,11 @@ function moduleMatchScore(pythonMod: string, tsFileRelPath: string): number {
  *  so port-only classes end up under a sensible dotted name. */
 const TS_MODULE_ALIASES: Record<string, string> = {
   // Top-level TS files that are "core" in Python.
+  // AI Chat client — Python keeps AIChatClient + its errors + response models
+  // in signalwire/ai_chat/client.py; the TS file is AIChatClient.ts, so map it
+  // to the reference module ``signalwire.ai_chat.client`` (else it falls back
+  // to ``signalwire.ai_chat.ai_chat_client``).
+  'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -1171,6 +1176,42 @@ function main(): void {
         const mod = 'signalwire.rest.namespaces.relay_rest_types_generated';
         const entry = ensureModule(mod);
         if (!entry.classes['PhoneCallHandler']) entry.classes['PhoneCallHandler'] = [];
+      }
+    }
+  }
+
+  // Reconcile: AI-Chat client lifecycle + response models (signalwire.ai_chat.client).
+  // The python reference exposes the async context-manager lifecycle on
+  // AIChatClient — `__aenter__`/`__aexit__` (`async with client:`). The TS port
+  // expresses the same lifecycle idiomatically: a real `close()` method (already
+  // enumerated) plus `Symbol.asyncDispose` (`await using client`, a computed-name
+  // member the identifier-only walk does not surface). Inject the two dunders so
+  // the lifecycle CAPABILITY compares equal — the same reconciliation the .NET port
+  // did mapping IDisposable onto `__aenter__`/`__aexit__`/`close`. Guarded on the
+  // client actually carrying `close` so a rename fails loud.
+  //
+  // The three response models (ConversationInfo / ChatResponse / ChatLog) are TS
+  // `interface`s (structural records), not classes, so the class walk does not emit
+  // them. The reference records each as a method-less dataclass surface; surface
+  // them as bare (empty) classes so they compare equal. Guarded on the source file
+  // actually declaring each interface so a rename fails loud.
+  {
+    const AICHAT_MOD = 'signalwire.ai_chat.client';
+    const clientEntry = modules[AICHAT_MOD]?.classes?.['AIChatClient'];
+    if (clientEntry && clientEntry.includes('close')) {
+      const withDunders = new Set(clientEntry);
+      withDunders.add('__aenter__');
+      withDunders.add('__aexit__');
+      modules[AICHAT_MOD]!.classes['AIChatClient'] = Array.from(withDunders).sort();
+    }
+    const aiChatSrc = path.join(srcDir, 'ai-chat', 'AIChatClient.ts');
+    if (fs.existsSync(aiChatSrc)) {
+      const src = fs.readFileSync(aiChatSrc, 'utf-8');
+      for (const model of ['ConversationInfo', 'ChatResponse', 'ChatLog']) {
+        if (new RegExp(`interface\\s+${model}\\b`).test(src)) {
+          const entry = ensureModule(AICHAT_MOD);
+          if (!entry.classes[model]) entry.classes[model] = [];
+        }
       }
     }
   }
