@@ -446,11 +446,9 @@ named accessors (`getApp()` and `log` getter respectively) so the Python
 attribute names appear missing from the TS surface.
 
 signalwire.agent_server.AgentServer.app: TS exposes the underlying Hono app via `getApp()` getter (see PORT_ADDITIONS.md AgentServer.get_app); the bare `app` attribute name is not used in TS
-signalwire.agent_server.AgentServer.logger: approved: ts-renamed-accessor — TS uses a `log` getter exposing the same logger instance (see PORT_ADDITIONS.md AgentServer.log); the Python `logger` attribute name is not used in TS. Pending API sign-off.
 signalwire.core.skill_manager.SkillManager.logger: impossible: ts-no-instance-logger-field — TS instantiates a per-call Logger via `getLogger()` directly inside methods rather than holding it as a public instance attribute; there is no `self.logger` field to surface (Python's pattern is `self.logger = logging.getLogger(...)`).
 signalwire.skills.registry.SkillRegistry.logger: impossible: ts-no-instance-logger-field — TS calls `getLogger('SkillRegistry')` inline rather than caching a logger attribute on the singleton; there is no public `logger` field to surface.
 signalwire.web.web_service.WebService.app: TS WebService exposes the Hono app via `getApp()` getter (see PORT_ADDITIONS.md WebService.get_app); the bare `app` attribute name is not used in TS
-signalwire.web.web_service.WebService.security: approved: ts-renamed-accessor — TS WebService exposes the SslConfig via an `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS. Pending API sign-off.
 
 # SWMLService.on_request is now RECONCILED: the enumerators (surface +
 # signatures, in lock-step) project TS's AgentBase.onRequest hook onto
@@ -478,7 +476,7 @@ signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: 
 
 ## AgentServer.agents (private field + accessor idiom)
 
-signalwire.agent_server.AgentServer.agents: approved: ts-private-field-plus-accessor — Python exposes `agents` as a public dict attribute; TS keeps the map private (`private agents: Map<string, AgentBase>`) and exposes it via the `getAgents()` accessor (idiomatic TS private-field + accessor). Same registry, not a public field. Pending API sign-off.
+signalwire.agent_server.AgentServer.agents: impossible: the reference AgentServer exposes TWO distinct members — `agents` (a public dict<string,AgentBase> attribute) AND `get_agents` (a method returning list<tuple<string,AgentBase>>). The TS port's `get_agents` accessor already matches the reference's `get_agents` by name+shape; there is no SECOND distinct TS member to map to the raw `agents` dict (TS keeps the map private and publishes only the get_agents/get_agent accessors). A rename get_agents→agents would ORPHAN the reference's get_agents. So the raw-dict `agents` attribute genuinely has no TS twin — not a foldable rename.
 
 ## A-mixin fold surface keys + envelope idiom (wave-2)
 

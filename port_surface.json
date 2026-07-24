@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ c049e700bed608309cb32616bc25e8d1efb87c7a",
+  "generated_from": "signalwire-typescript @ c20fdb528f0b6c24e9a3073f2b8332a6b5b58711",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -20,6 +20,7 @@
           "get_agent",
           "get_agents",
           "get_app",
+          "logger",
           "register",
           "register_global_routing_callback",
           "register_sip_username",
@@ -3526,7 +3527,7 @@
           "add_directory",
           "get_app",
           "remove_directory",
-          "ssl_config",
+          "security",
           "start",
           "stop"
         ]

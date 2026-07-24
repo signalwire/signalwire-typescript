@@ -417,3 +417,8 @@ until the reference signatures oracle carries BedrockAgent.
 signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+
+## Idiom: renamed composition accessor — reference class-name spelling differs
+
+signalwire.agent_server.AgentServer.logger: TS AgentServer.logger (renamed from the `log` field) returns a `Logger` instance from signalwire.core.logging_config.Logger; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path (identical disposition to SkillBase.logger).
+signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.

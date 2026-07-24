@@ -166,6 +166,11 @@ const CLASS_MODULE_OVERRIDES: Record<string, string> = {
  *  in signatures, else the drift gate sees a spurious missing-port/missing-reference). */
 const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.relay.call.Call': { pass: 'pass_' },
+  // AgentServer.log getter ≡ the reference's `logger` accessor (same exposed logger,
+  // different name → rename). Scoped to agent_server.AgentServer (not livewire's shim).
+  'signalwire.agent_server.AgentServer': { log: 'logger' },
+  // WebService.ssl_config accessor ≡ the reference's `security` accessor → rename.
+  'signalwire.web.web_service.WebService': { ssl_config: 'security' },
   'signalwire.utils.schema_utils.SchemaUtils': {
     get_verb_names: 'get_all_verb_names',
     validate: 'validate_document',
@@ -1038,6 +1043,8 @@ function collectClass(
     CLASS_MODULE_OVERRIDES[canonClass] ?? TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
 
   const methods: Record<string, CanonicalSignature> = {};
+  // Class-scoped method/property name aliases (renames), computed once for the class.
+  const methodAliases = METHOD_NAME_ALIASES[`${mod}.${canonClass}`];
 
   for (const m of cls.members) {
     if (ts.isConstructorDeclaration(m)) {
@@ -1069,7 +1076,10 @@ function collectClass(
       const propMods = ts.getCombinedModifierFlags(m as ts.Declaration);
       if (propMods & ts.ModifierFlags.Private) continue;
       const propIsStatic = !!(propMods & ts.ModifierFlags.Static);
-      const snakeProp = camelToSnake(nativeProp);
+      // Apply the class-scoped method-name alias to composition PROPERTIES too, so a
+      // renamed class-typed field (AgentServer `log` field ≡ the reference's `logger`)
+      // folds the same way a renamed getter does.
+      const snakeProp = methodAliases?.[camelToSnake(nativeProp)] ?? camelToSnake(nativeProp);
       if (methods[snakeProp] !== undefined) continue;
       try {
         const sig = signatureFromProperty(
@@ -1095,7 +1105,6 @@ function collectClass(
     if (mods & ts.ModifierFlags.Private) continue;
     const isStatic = !!(mods & ts.ModifierFlags.Static);
 
-    const methodAliases = METHOD_NAME_ALIASES[`${mod}.${canonClass}`];
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)

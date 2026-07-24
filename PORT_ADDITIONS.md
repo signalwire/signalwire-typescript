@@ -162,7 +162,6 @@ signalwire.utils.resolve_and_validate_url: TS port-only helper — functionality
 signalwire.utils.safe_assign: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.web.web_service.WebService.get_app: TS port-only helper — functionality has no direct Python equivalent
-signalwire.web.web_service.WebService.ssl_config: TS port-only helper — functionality has no direct Python equivalent
 
 ## ParameterSchema — typed SWAIG tool-parameter builder (Tier-2 flagship, explicit-params path)
 
@@ -485,7 +484,6 @@ several classes; the TS port surfaces the same logger as a `readonly log`
 getter so consumers and subclasses can access the structured Logger
 without going through the constructor argument.
 
-signalwire.agent_server.AgentServer.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
 signalwire.core.agent_base.AgentBase.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
 signalwire.core.swml_service.SWMLService.log: TS public `log` getter — Python keeps `self.log` as an instance attribute that the Python adapter excludes as state; TS emits as a class-typed accessor so it shows up in the surface
 

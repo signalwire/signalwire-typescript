@@ -102,7 +102,7 @@
               ],
               "returns": "any"
             },
-            "log": {
+            "logger": {
               "params": [
                 {
                   "name": "self",
@@ -29708,7 +29708,7 @@
               ],
               "returns": "void"
             },
-            "ssl_config": {
+            "security": {
               "params": [
                 {
                   "name": "self",

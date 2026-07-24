@@ -302,6 +302,16 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     validate: 'validate_document', // TS validate(doc) ~ Python validate_document
   },
 
+  // AgentServer: TS exposes the logger via a `log` getter; the reference names the
+  // same accessor `logger`. Different name for the SAME exposed member — a rename
+  // (keeps comparing), not an omission. Scoped to agent_server.AgentServer so the
+  // livewire.AgentServer shim is untouched.
+  'signalwire.agent_server.AgentServer': { log: 'logger' },
+
+  // WebService: TS exposes the SslConfig via an `ssl_config` accessor; the reference
+  // names it `security`. Same exposed member, different name → rename.
+  'signalwire.web.web_service.WebService': { ssl_config: 'security' },
+
   // SkillRegistry: TS singleton-style names map to Python methods.
   'signalwire.skills.registry.SkillRegistry': {
     register: 'register_skill', // TS register(cls) ~ Python register_skill
