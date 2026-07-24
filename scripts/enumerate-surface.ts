@@ -440,11 +440,39 @@ interface ClassInfo {
   name: string;
   methods: string[];
   extendsName?: string;
+  /** Public readonly/instance data FIELDS (PropertyDeclarations), snake_cased.
+   *  Kept separate from `methods` because a field is only surfaced when the
+   *  Python reference @dataclass declares it on the same class — otherwise it
+   *  would flood the surface with port-internal struct members. */
+  fields?: string[];
 }
 
 interface FileSurface {
   classes: ClassInfo[];
   functions: string[];
+}
+
+/** Parse a source file and return, per exported `interface`, its public property
+ *  member names (snake_cased). Used to surface @dataclass-style DTO fields the
+ *  reference records for a TS interface (the class walk skips interfaces).
+ *  Method signatures and index signatures are ignored — only data fields. */
+function collectInterfaceFields(file: string): Map<string, Set<string>> {
+  const text = fs.readFileSync(file, 'utf-8');
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, true);
+  const out = new Map<string, Set<string>>();
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isInterfaceDeclaration(node)) return;
+    const name = node.name.text;
+    const fields = new Set<string>();
+    for (const member of node.members) {
+      if (ts.isPropertySignature(member) && member.name && ts.isIdentifier(member.name)) {
+        const fName = member.name.text;
+        if (!fName.startsWith('_')) fields.add(camelToSnake(fName));
+      }
+    }
+    out.set(name, fields);
+  });
+  return out;
 }
 
 /** Walk a source file and collect exported classes (with their public methods)
@@ -468,7 +496,19 @@ function enumerateFile(file: string): FileSurface {
     // likewise absent from the reference surface).
     if (rawName.startsWith('_')) return;
     const methods = new Set<string>();
+    const fields = new Set<string>();
     for (const member of node.members) {
+      // Public data field (PropertyDeclaration) — e.g. a relay Event's
+      // `readonly callId: string`. Collected separately from methods; a
+      // reconcile pass later surfaces only the fields the Python reference
+      // @dataclass declares on the same class (camelCase → snake_case).
+      if (ts.isPropertyDeclaration(member) && member.name && ts.isIdentifier(member.name)) {
+        const fName = member.name.text;
+        if (!fName.startsWith('_')) {
+          const mods = ts.getCombinedModifierFlags(member);
+          if (!(mods & ts.ModifierFlags.Private)) fields.add(camelToSnake(fName));
+        }
+      }
       // Skip private/protected? No — filter only on leading underscore, per
       // Python convention. TS `private` keyword is orthogonal to public API.
       if (ts.isConstructorDeclaration(member)) {
@@ -513,7 +553,12 @@ function enumerateFile(file: string): FileSurface {
         }
       }
     }
-    classes.push({ name: rawName, methods: Array.from(methods).sort(), extendsName });
+    classes.push({
+      name: rawName,
+      methods: Array.from(methods).sort(),
+      extendsName,
+      fields: Array.from(fields).sort(),
+    });
   }
 
   // Generated type modules (`*.types.generated.ts`, the relay `protocol.types.generated.ts`,
@@ -915,6 +960,7 @@ function main(): void {
     name: string;
     methods: string[];
     extendsName?: string;
+    fields?: string[];
   }
   const rawClasses: RawClass[] = [];
   const rawFunctions: Array<{ fileRel: string; fns: string[] }> = [];
@@ -927,6 +973,7 @@ function main(): void {
         name: c.name,
         methods: c.methods,
         extendsName: c.extendsName,
+        fields: c.fields,
       });
     }
     if (fs2.functions.length > 0) rawFunctions.push({ fileRel: rel, fns: fs2.functions });
@@ -938,6 +985,18 @@ function main(): void {
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     if (!classMethods.has(cleanName)) classMethods.set(cleanName, new Set());
     for (const m of c.methods) classMethods.get(cleanName)!.add(m);
+  }
+
+  // Build a name → public-DATA-FIELD map (TS-class-name keyed, snake_cased). Used
+  // by the field-emission reconcile pass below to surface the relay Event
+  // @dataclass fields (and AI-Chat DTO / RequestOptions fields) the AST walk
+  // collected but that are gated on the reference declaring them.
+  const classFields = new Map<string, Set<string>>();
+  for (const c of rawClasses) {
+    if (!c.fields || c.fields.length === 0) continue;
+    const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
+    if (!classFields.has(cleanName)) classFields.set(cleanName, new Set());
+    for (const f of c.fields) classFields.get(cleanName)!.add(f);
   }
 
   function resolveInherited(name: string, seen = new Set<string>()): Set<string> {
@@ -1272,9 +1331,11 @@ function main(): void {
   //
   // The three response models (ConversationInfo / ChatResponse / ChatLog) are TS
   // `interface`s (structural records), not classes, so the class walk does not emit
-  // them. The reference records each as a method-less dataclass surface; surface
-  // them as bare (empty) classes so they compare equal. Guarded on the source file
-  // actually declaring each interface so a rename fails loud.
+  // them. The reference records each as a @dataclass whose public FIELDS are surface
+  // (`ChatResponse.text`/`conversation_id`/`user_event`, etc.). Surface each as a
+  // class carrying exactly the fields the reference declares (camelCase→snake_case),
+  // gated on the reference member set so a port-internal field never leaks. Guarded
+  // on the source file actually declaring each interface so a rename fails loud.
   {
     const AICHAT_MOD = 'signalwire.ai_chat.client';
     const clientEntry = modules[AICHAT_MOD]?.classes?.['AIChatClient'];
@@ -1286,12 +1347,43 @@ function main(): void {
     }
     const aiChatSrc = path.join(srcDir, 'ai-chat', 'AIChatClient.ts');
     if (fs.existsSync(aiChatSrc)) {
-      const src = fs.readFileSync(aiChatSrc, 'utf-8');
+      const ifaceFields = collectInterfaceFields(aiChatSrc);
       for (const model of ['ConversationInfo', 'ChatResponse', 'ChatLog']) {
-        if (new RegExp(`interface\\s+${model}\\b`).test(src)) {
-          const entry = ensureModule(AICHAT_MOD);
-          if (!entry.classes[model]) entry.classes[model] = [];
+        const declared = ifaceFields.get(model);
+        if (!declared) continue; // interface not present — rename fails loud.
+        const entry = ensureModule(AICHAT_MOD);
+        const refMembers = pythonMethodsByOwner.get(`${AICHAT_MOD}.${model}`);
+        const emit = new Set(entry.classes[model] ?? []);
+        for (const f of declared) {
+          if (!refMembers || refMembers.has(f)) emit.add(f);
         }
+        entry.classes[model] = Array.from(emit).sort();
+      }
+    }
+  }
+
+  // Public-data-FIELD emission (@dataclass parity). The AST walk collects each
+  // class's public data fields (relay Event structs carry the deserialized
+  // payload as `readonly callId`/`callState`/… ; AI-Chat DTOs + RequestOptions
+  // carry their record fields). The reference oracle now enumerates a
+  // @dataclass's public annotated fields as surface. Emit exactly the fields the
+  // reference declares on this (module, class) — gated on `pythonMethodsByOwner`
+  // so we surface the reference field set and never over-emit port-internal
+  // struct members. camelCase→snake_case already applied at collection. Only
+  // lands where the reference declares the class (a port-only class has no
+  // reference member set to gate on and is left untouched).
+  {
+    for (const [mod, entry] of Object.entries(modules)) {
+      for (const [cls, methods] of Object.entries(entry.classes)) {
+        const candFields = classFields.get(cls);
+        if (!candFields) continue;
+        const refMembers = pythonMethodsByOwner.get(`${mod}.${cls}`);
+        if (!refMembers) continue; // port-only class — no reference gate.
+        const merged = new Set(methods);
+        for (const f of candFields) {
+          if (refMembers.has(f)) merged.add(f);
+        }
+        entry.classes[cls] = Array.from(merged).sort();
       }
     }
   }

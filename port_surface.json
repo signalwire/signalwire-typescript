@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ c20fdb528f0b6c24e9a3073f2b8332a6b5b58711",
+  "generated_from": "signalwire-typescript @ f5c2b9f8974e0c116df7e4026cd81d38a5875a5c",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -72,9 +72,20 @@
           "log",
           "summarize"
         ],
-        "ConversationInfo": [],
-        "ChatResponse": [],
-        "ChatLog": []
+        "ConversationInfo": [
+          "id",
+          "initial_message",
+          "status"
+        ],
+        "ChatResponse": [
+          "conversation_id",
+          "text",
+          "user_event"
+        ],
+        "ChatLog": [
+          "call_timeline",
+          "messages"
+        ]
       },
       "functions": []
     },
@@ -1263,14 +1274,14 @@
           "update_agent",
           "userdata"
         ],
-        "AgentHandoff": [
+        "AgentHandoff": [],
+        "StopResponse": [
           "__init__"
         ],
-        "StopResponse": [],
-        "ToolError": [],
-        "JobProcess": [
+        "ToolError": [
           "__init__"
         ],
+        "JobProcess": [],
         "Room": [],
         "JobContext": [
           "__init__",
@@ -1283,19 +1294,6 @@
         "ServerOptions": [
           "__init__"
         ],
-        "AgentServer": [
-          "__init__",
-          "get_agent",
-          "get_agents",
-          "register",
-          "register_global_routing_callback",
-          "register_sip_username",
-          "rtc_session",
-          "run",
-          "serve_static_files",
-          "setup_sip_routing",
-          "unregister"
-        ],
         "InferenceSTT": [
           "__init__"
         ],
@@ -1306,7 +1304,6 @@
           "__init__"
         ],
         "ChatContext": [
-          "__init__",
           "append"
         ]
       },
@@ -1625,76 +1622,170 @@
     "signalwire.relay.event": {
       "classes": {
         "RelayEvent": [
-          "from_payload"
+          "call_id",
+          "event_type",
+          "from_payload",
+          "params",
+          "timestamp"
         ],
         "CallStateEvent": [
+          "call_state",
+          "device",
+          "direction",
+          "end_reason",
           "from_payload"
         ],
         "CallReceiveEvent": [
-          "from_payload"
+          "call_state",
+          "context",
+          "device",
+          "direction",
+          "from_payload",
+          "node_id",
+          "project_id",
+          "segment_id",
+          "tag"
         ],
         "PlayEvent": [
-          "from_payload"
+          "control_id",
+          "from_payload",
+          "state"
         ],
         "RecordEvent": [
-          "from_payload"
+          "control_id",
+          "duration",
+          "from_payload",
+          "record",
+          "size",
+          "state",
+          "url"
         ],
         "CollectEvent": [
-          "from_payload"
+          "control_id",
+          "final",
+          "from_payload",
+          "result",
+          "state"
         ],
         "ConnectEvent": [
-          "from_payload"
+          "connect_state",
+          "from_payload",
+          "peer"
         ],
         "DetectEvent": [
+          "control_id",
+          "detect",
           "from_payload"
         ],
         "FaxEvent": [
+          "control_id",
+          "fax",
           "from_payload"
         ],
         "TapEvent": [
-          "from_payload"
+          "control_id",
+          "device",
+          "from_payload",
+          "state",
+          "tap"
         ],
         "StreamEvent": [
-          "from_payload"
+          "control_id",
+          "from_payload",
+          "name",
+          "state",
+          "url"
         ],
         "SendDigitsEvent": [
-          "from_payload"
+          "control_id",
+          "from_payload",
+          "state"
         ],
         "DialEvent": [
-          "from_payload"
+          "call",
+          "dial_state",
+          "from_payload",
+          "tag"
         ],
         "ReferEvent": [
-          "from_payload"
+          "from_payload",
+          "sip_notify_response_code",
+          "sip_refer_response_code",
+          "sip_refer_to",
+          "state"
         ],
         "DenoiseEvent": [
+          "denoised",
           "from_payload"
         ],
         "PayEvent": [
-          "from_payload"
+          "control_id",
+          "from_payload",
+          "state"
         ],
         "QueueEvent": [
-          "from_payload"
+          "control_id",
+          "from_payload",
+          "position",
+          "queue_id",
+          "queue_name",
+          "size",
+          "status"
         ],
         "EchoEvent": [
-          "from_payload"
+          "from_payload",
+          "state"
         ],
         "TranscribeEvent": [
-          "from_payload"
+          "control_id",
+          "duration",
+          "from_payload",
+          "recording_id",
+          "size",
+          "state",
+          "url"
         ],
         "HoldEvent": [
-          "from_payload"
+          "from_payload",
+          "state"
         ],
         "ConferenceEvent": [
-          "from_payload"
+          "conference_id",
+          "from_payload",
+          "name",
+          "status"
         ],
         "CallingErrorEvent": [
-          "from_payload"
+          "code",
+          "from_payload",
+          "message"
         ],
         "MessageReceiveEvent": [
-          "from_payload"
+          "body",
+          "context",
+          "direction",
+          "from_number",
+          "from_payload",
+          "media",
+          "message_id",
+          "message_state",
+          "segments",
+          "tags",
+          "to_number"
         ],
         "MessageStateEvent": [
-          "from_payload"
+          "body",
+          "context",
+          "direction",
+          "from_number",
+          "from_payload",
+          "media",
+          "message_id",
+          "message_state",
+          "reason",
+          "segments",
+          "tags",
+          "to_number"
         ]
       },
       "functions": [
@@ -1902,7 +1993,12 @@
     "signalwire.rest._request_options": {
       "classes": {
         "RequestOptions": [
-          "merge"
+          "abort_signal",
+          "merge",
+          "retries",
+          "retry_backoff",
+          "retry_on_status",
+          "timeout"
         ]
       },
       "functions": [

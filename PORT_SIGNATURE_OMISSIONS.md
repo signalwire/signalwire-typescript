@@ -422,3 +422,36 @@ signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatur
 
 signalwire.agent_server.AgentServer.logger: TS AgentServer.logger (renamed from the `log` field) returns a `Logger` instance from signalwire.core.logging_config.Logger; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path (identical disposition to SkillBase.logger).
 signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.
+
+## Port-only typed composition getters + framework-app accessor (signature-side additions)
+
+# The HTTP-framework app accessor: the Python reference exposes the underlying
+# FastAPI app; TS builds on Hono, which has no FastAPI analog, so the accessor's
+# reference return type (`class:fastapi.FastAPI`) has no TS twin. The equivalent
+# TS capability (`getApp()`) is surfaced separately; this bare `app` property/return
+# is impossible to match one-for-one because the framework class differs.
+signalwire.agent_server.AgentServer.app: impossible: reference `app` returns `class:fastapi.FastAPI`; TS is built on Hono (no FastAPI). The equivalent app-accessor is the TS-idiom `getApp()`; the FastAPI-typed accessor has no TS twin.
+signalwire.web.web_service.WebService.app: impossible: reference `app` returns `optional<class:FastAPI>`; TS is built on Hono (no FastAPI). The framework app object has no FastAPI-typed TS counterpart.
+
+# Port-only typed composition getters: TS exposes these composed sub-objects as
+# typed `readonly` fields / getters (the static enumerator records each as a
+# `(self)→<SDK class>` accessor). Python composes the same state but as a plain
+# dynamically-set instance attribute the signatures oracle does not record — so
+# each reads "in port, not in reference". Same composed object, stronger TS typing.
+signalwire.core.agent_base.AgentBase.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets `self.log`/logger dynamically so the signatures oracle records no such accessor. Same logger object, TS-idiom typed accessor.
+signalwire.core.swml_service.SWMLService.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets it dynamically so the signatures oracle records no accessor. Same logger object, TS-idiom typed accessor.
+signalwire.core.swml_service.SWMLService.swml_builder: TS exposes the composed `SWMLBuilder` as a typed `swmlBuilder` getter; Python holds the builder as a dynamically-set attribute the signatures oracle does not record. Same builder object, stronger TS typing.
+signalwire.core.auth_handler.AuthHandler.config: TS exposes the `AuthConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
+signalwire.core.skill_base.SkillBase.agent: TS exposes the owning `AgentBase` back-reference as a typed `agent` getter; Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
+signalwire.core.skill_base.SkillBase.config: TS exposes the `SkillConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
+signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS exposes the loaded FAQ entries as a typed `faqs` getter (`list<FAQEntry>`); Python holds the same list as a dynamically-set attribute the signatures oracle does not record. Same data, stronger TS typing.
+signalwire.prefabs.survey.SurveyAgent.questions: TS exposes the survey questions as a typed `questions` getter (`list<SurveyQuestion>`); Python holds the same list as a dynamically-set attribute. Same data, stronger TS typing.
+signalwire.relay.call.Action.call: TS exposes the originating `Call` back-reference as a typed `call` getter (`CallLike`); Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
+
+# TS resource base constructors: the generated REST resource bases take
+# `(http, base_path)` to wire the client + collection path; the Python reference
+# base resources are constructed differently (no explicit `__init__` recorded on
+# these bases), so the ctor reads "in port, not in reference". Port-idiom wiring.
+signalwire.rest._base.CrudResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base (resources are constructed via the client tree). Port-idiom construction, no reference twin to compare.
+signalwire.rest._base.CrudWithAddresses.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.
+signalwire.rest._base.ReadResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.

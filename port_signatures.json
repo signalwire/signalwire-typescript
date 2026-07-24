@@ -675,6 +675,24 @@
                 }
               ],
               "returns": "void"
+            },
+            "call_timeline": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
+            "messages": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
             }
           }
         },
@@ -707,6 +725,33 @@
                 }
               ],
               "returns": "void"
+            },
+            "conversation_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "text": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "user_event": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "optional<dict<string,any>>"
             }
           }
         },
@@ -739,6 +784,33 @@
                 }
               ],
               "returns": "void"
+            },
+            "id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "initial_message": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "optional<string>"
+            },
+            "status": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13053,6 +13125,24 @@
               ],
               "returns": "void"
             },
+            "call_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,string,string,string,string>"
+            },
+            "context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "device": {
               "params": [
                 {
@@ -13061,6 +13151,15 @@
                 }
               ],
               "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+            },
+            "direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             },
             "from_payload": {
               "params": [
@@ -13075,6 +13174,42 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.CallReceiveEvent"
+            },
+            "node_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "project_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "segment_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "tag": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13129,6 +13264,15 @@
               ],
               "returns": "void"
             },
+            "call_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,string,string,string,string>"
+            },
             "device": {
               "params": [
                 {
@@ -13137,6 +13281,24 @@
                 }
               ],
               "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+            },
+            "direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "end_reason": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             },
             "from_payload": {
               "params": [
@@ -13195,6 +13357,15 @@
               ],
               "returns": "void"
             },
+            "code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13208,6 +13379,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.CallingErrorEvent"
+            },
+            "message": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13266,6 +13446,24 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "final": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13279,6 +13477,24 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.CollectEvent"
+            },
+            "result": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13328,6 +13544,15 @@
               ],
               "returns": "void"
             },
+            "conference_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13341,6 +13566,24 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.ConferenceEvent"
+            },
+            "name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "status": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13385,6 +13628,15 @@
               ],
               "returns": "void"
             },
+            "connect_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13398,6 +13650,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.ConnectEvent"
+            },
+            "peer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
             }
           }
         },
@@ -13436,6 +13697,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "denoised": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             },
             "from_payload": {
               "params": [
@@ -13493,6 +13763,24 @@
                 }
               ],
               "returns": "void"
+            },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "detect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
             },
             "from_payload": {
               "params": [
@@ -13556,6 +13844,24 @@
               ],
               "returns": "void"
             },
+            "call": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "dial_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,string,string>"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13569,6 +13875,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.DialEvent"
+            },
+            "tag": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13621,6 +13936,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.EchoEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13664,6 +13988,24 @@
                 }
               ],
               "returns": "void"
+            },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fax": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
             },
             "from_payload": {
               "params": [
@@ -13730,6 +14072,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.HoldEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13814,6 +14165,42 @@
               ],
               "returns": "void"
             },
+            "body": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "from_number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13827,6 +14214,60 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.MessageReceiveEvent"
+            },
+            "media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
+            "message_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "message_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "segments": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "tags": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
+            "to_number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13916,6 +14357,42 @@
               ],
               "returns": "void"
             },
+            "body": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "direction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "from_number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13929,6 +14406,69 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.MessageStateEvent"
+            },
+            "media": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
+            "message_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "message_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,string,string,string,string,string,string>"
+            },
+            "reason": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "segments": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "tags": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
+            "to_number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -13973,6 +14513,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -13986,6 +14535,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.PayEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14030,6 +14588,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14043,6 +14610,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.PlayEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14107,6 +14683,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14120,6 +14705,51 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.QueueEvent"
+            },
+            "position": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "queue_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "queue_name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "size": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "status": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14184,6 +14814,24 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14197,6 +14845,42 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.RecordEvent"
+            },
+            "record": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "size": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14264,6 +14948,42 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.ReferEvent"
+            },
+            "sip_notify_response_code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "sip_refer_response_code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "sip_refer_to": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14300,6 +15020,24 @@
               ],
               "returns": "void"
             },
+            "call_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "event_type": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14313,6 +15051,24 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.RelayEvent"
+            },
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "timestamp": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
             }
           }
         },
@@ -14357,6 +15113,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14370,6 +15135,15 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.SendDigitsEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14424,6 +15198,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14437,6 +15220,33 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.StreamEvent"
+            },
+            "name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         },
@@ -14491,6 +15301,15 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "device": {
               "params": [
                 {
@@ -14513,6 +15332,24 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.TapEvent"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "tap": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
             }
           }
         },
@@ -14577,6 +15414,24 @@
               ],
               "returns": "void"
             },
+            "control_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "duration": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
             "from_payload": {
               "params": [
                 {
@@ -14590,6 +15445,42 @@
                 }
               ],
               "returns": "class:signalwire.relay.event.TranscribeEvent"
+            },
+            "recording_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "size": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             }
           }
         }
@@ -15239,6 +16130,15 @@
               ],
               "returns": "void"
             },
+            "abort_signal": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "merge": {
               "params": [
                 {
@@ -15252,6 +16152,42 @@
                 }
               ],
               "returns": "class:signalwire.rest._request_options.RequestOptions"
+            },
+            "retries": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "retry_backoff": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "retry_on_status": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<float>"
+            },
+            "timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
             }
           }
         }

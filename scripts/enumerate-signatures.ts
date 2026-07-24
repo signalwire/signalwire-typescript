@@ -689,6 +689,44 @@ function loadAliases(): Record<string, string> {
   return doc.aliases.typescript;
 }
 
+/** Build `${mod}.${class}` → Set<member> of the reference's ZERO-ARG ACCESSOR
+ *  members (a `@dataclass` public field surfaces in the oracle as a `(self)→T`
+ *  accessor). Used to gate the emission of primitive-typed data fields (relay
+ *  Event structs, RequestOptions scalar fields): the AST walk only projects
+ *  class-typed composition fields, so a plain `readonly callState: string` is
+ *  emitted only where the reference declares that dataclass field accessor —
+ *  never a port-internal struct member. Empty map if the oracle is absent (the
+ *  gate then no-ops; signatures never hard-depend on it). */
+function loadReferenceFieldAccessors(): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const refPath = path.join(PSDK, 'python_signatures.json');
+  if (!fs.existsSync(refPath)) return out;
+  let data: {
+    modules?: Record<
+      string,
+      { classes?: Record<string, { methods?: Record<string, { params?: Array<unknown> }> }> }
+    >;
+  };
+  try {
+    data = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+  } catch {
+    return out;
+  }
+  for (const [mod, modEntry] of Object.entries(data.modules ?? {})) {
+    for (const [cls, clsEntry] of Object.entries(modEntry.classes ?? {})) {
+      const fields = new Set<string>();
+      for (const [member, sig] of Object.entries(clsEntry.methods ?? {})) {
+        if (member.startsWith('__')) continue;
+        const params = sig.params ?? [];
+        // A dataclass field accessor is exactly `(self)` — a single self param.
+        if (params.length === 1) fields.add(member);
+      }
+      if (fields.size > 0) out.set(`${mod}.${cls}`, fields);
+    }
+  }
+  return out;
+}
+
 /**
  * Translate a TypeScript type to canonical form. Uses the TypeChecker's
  * resolved type so that imported aliases, generics, etc. are normalized.
@@ -1023,6 +1061,7 @@ function collectClass(
   aliases: Record<string, string>,
   doc: SigDoc,
   failures: TypeTranslationError[],
+  refFieldAccessors: Map<string, Set<string>>,
 ): void {
   if (!cls.name) return;
   const className = cls.name.text;
@@ -1081,6 +1120,13 @@ function collectClass(
       // folds the same way a renamed getter does.
       const snakeProp = methodAliases?.[camelToSnake(nativeProp)] ?? camelToSnake(nativeProp);
       if (methods[snakeProp] !== undefined) continue;
+      // A primitive-typed data FIELD is emitted (as a `(self)→T` accessor) only
+      // when the reference declares it as a @dataclass field accessor on this
+      // exact class — the relay Event structs + RequestOptions scalar fields.
+      // Otherwise only class-typed composition fields project (the default rule).
+      const emitPrimitiveField = (refFieldAccessors.get(`${mod}.${canonClass}`) ?? new Set()).has(
+        snakeProp,
+      );
       try {
         const sig = signatureFromProperty(
           m,
@@ -1088,6 +1134,7 @@ function collectClass(
           aliases,
           propIsStatic,
           `${mod}.${canonClass}.${snakeProp}`,
+          emitPrimitiveField,
         );
         if (sig !== null) methods[snakeProp] = sig;
       } catch (e) {
@@ -1355,6 +1402,7 @@ function signatureFromProperty(
   aliases: Record<string, string>,
   isStatic: boolean,
   ctx: string,
+  emitPrimitiveField = false,
 ): CanonicalSignature | null {
   let propType: ts.Type;
   if (m.type) {
@@ -1363,9 +1411,11 @@ function signatureFromProperty(
     propType = checker.getTypeAtLocation(m);
   }
   const canon = translateType(propType, checker, aliases, ctx);
-  // Only project SDK class references; primitive-typed state fields
-  // are excluded (matches Python adapter's _is_sdk_class_type rule).
-  if (!isSdkClassRef(canon)) return null;
+  // Only project SDK class references by default; primitive-typed state fields
+  // are excluded (matches Python adapter's _is_sdk_class_type rule) — UNLESS the
+  // field is a reference-declared @dataclass field accessor (relay Event structs,
+  // RequestOptions scalar fields), in which case emit it verbatim.
+  if (!emitPrimitiveField && !isSdkClassRef(canon)) return null;
   const params: CanonicalParam[] = [];
   if (!isStatic) params.push({ name: 'self', kind: 'self' });
   return { params, returns: canon };
@@ -1933,6 +1983,7 @@ function main(): number {
     modules: {},
   };
   const failures: TypeTranslationError[] = [];
+  const refFieldAccessors = loadReferenceFieldAccessors();
 
   for (const sourceFile of program.getSourceFiles()) {
     if (sourceFile.fileName.includes('node_modules')) continue;
@@ -1943,7 +1994,7 @@ function main(): number {
       if (ts.isClassDeclaration(node) && node.name) {
         const mods = ts.getCombinedModifierFlags(node);
         if (mods & ts.ModifierFlags.Export) {
-          collectClass(node, rel, checker, aliases, doc, failures);
+          collectClass(node, rel, checker, aliases, doc, failures, refFieldAccessors);
         }
       } else if (
         ts.isInterfaceDeclaration(node) &&
@@ -2083,10 +2134,19 @@ function main(): number {
       for (const sub of AICHAT_SUBCLASS_DROP_INIT) {
         if (aiChat[sub]) delete aiChat[sub].methods['__init__'];
       }
-      // (3) Synthesize the response-model dataclass __init__ (TS interfaces).
+      // (3) Synthesize the response-model dataclass surface (TS interfaces): the
+      // auto-`__init__` PLUS each public field as a `(self)→T` accessor — the
+      // reference @dataclass surfaces both the ctor and every field accessor.
       for (const [model, params] of Object.entries(AICHAT_RESPONSE_MODEL_INIT)) {
         if (!aiChat[model]) aiChat[model] = { methods: {} };
-        aiChat[model].methods = { __init__: { params, returns: 'void' } };
+        const methods: Record<string, CanonicalSignature> = {
+          __init__: { params, returns: 'void' },
+        };
+        for (const p of params) {
+          if (p.kind === 'self') continue;
+          methods[p.name] = { params: [{ name: 'self', kind: 'self' }], returns: p.type ?? 'any' };
+        }
+        aiChat[model].methods = Object.fromEntries(Object.entries(methods).sort());
       }
     }
   }
