@@ -791,6 +791,76 @@ function resolvePythonSurfacePath(repoRoot: string): string {
   return sibling; // non-existent, will cause loadPythonReference to no-op.
 }
 
+// ---------------------------------------------------------------------------
+// Composition-attribute enrichment (surface class B1). The surface walker is
+// AST-only and records methods/getters/setters — it does NOT resolve a
+// class-typed FIELD (`readonly addresses: FabricAddresses`, an interface member
+// `params?: AIParams`) to the SDK class it holds. The griffe-typed SIGNATURE
+// oracle (`port_signatures.json`) already emits these as self-only members that
+// RETURN an SDK class, so we import them here — the exact mirror of the Python
+// reference's `enumerate_python._enrich_composition_attributes`, keeping the two
+// oracles consistent by construction. A member is a composition attribute iff its
+// signature is self-only (no non-self params) AND its return is an SDK class-ref
+// (`class:signalwire.…`), bare or wrapped in `optional<…>` / `list<…>`. A
+// `union<…>` return is EXCLUDED (those are the auto-vivified SWML verb SETTERS, a
+// different idiom class). Keyed by CLASS NAME (union across signature modules);
+// the enrich only lands an attr where the Python reference ALSO declares it on
+// that exact (module, class), so a re-declared method-less copy (calling/fabric
+// types) stays folded and never gains phantom members.
+// ---------------------------------------------------------------------------
+function resolvePortSignaturesPath(repoRoot: string): string {
+  const envPath = process.env['PORT_SIGNATURES_PATH'];
+  if (envPath && fs.existsSync(envPath)) return envPath;
+  return path.join(repoRoot, 'port_signatures.json');
+}
+
+interface PortSigMethodSig {
+  params?: Array<{ kind?: string }>;
+  returns?: unknown;
+}
+interface PortSigClass {
+  methods?: Record<string, PortSigMethodSig>;
+}
+interface PortSigModule {
+  classes?: Record<string, PortSigClass>;
+}
+
+/** Build `className -> Set<composition-attr member name>` from the signature
+ *  oracle, applying the same self-only + class-ref-return rule as Python's
+ *  `_is_composition_return`. Empty map if the oracle is absent (the enrich then
+ *  no-ops — surface never hard-depends on the signature oracle). */
+function loadCompositionAttrs(repoRoot: string): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const sigPath = resolvePortSignaturesPath(repoRoot);
+  if (!fs.existsSync(sigPath)) return out;
+  let data: { modules?: Record<string, PortSigModule> };
+  try {
+    data = JSON.parse(fs.readFileSync(sigPath, 'utf-8'));
+  } catch {
+    return out;
+  }
+  const isCompositionReturn = (ret: unknown): boolean => {
+    if (typeof ret !== 'string') return false;
+    if (ret.startsWith('union<')) return false; // verb-setter union — not composition.
+    return ret.includes('class:signalwire.');
+  };
+  for (const entry of Object.values(data.modules ?? {})) {
+    for (const [cls, cd] of Object.entries(entry.classes ?? {})) {
+      const methods = cd.methods;
+      if (!methods || typeof methods !== 'object') continue;
+      for (const [mn, sig] of Object.entries(methods)) {
+        if (!sig || typeof sig !== 'object') continue;
+        const nonSelf = (sig.params ?? []).filter((p) => p.kind !== 'self');
+        if (nonSelf.length !== 0) continue;
+        if (!isCompositionReturn(sig.returns)) continue;
+        if (!out.has(cls)) out.set(cls, new Set());
+        out.get(cls)!.add(mn);
+      }
+    }
+  }
+  return out;
+}
+
 function getGitSha(repoRoot: string): string {
   try {
     return execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
@@ -1211,6 +1281,30 @@ function main(): void {
         if (new RegExp(`interface\\s+${model}\\b`).test(src)) {
           const entry = ensureModule(AICHAT_MOD);
           if (!entry.classes[model]) entry.classes[model] = [];
+        }
+      }
+    }
+  }
+
+  // Composition-attribute enrichment (class B1): add class-typed FIELD members the
+  // AST walk missed, imported from the signature oracle. Only lands an attr where
+  // the Python reference ALSO declares it on this exact (module, class), so a
+  // method-less re-declared copy never gains phantom members. Mirrors the
+  // reference oracle's `_enrich_composition_attributes`.
+  {
+    const compositionAttrs = loadCompositionAttrs(repoRoot);
+    if (compositionAttrs.size > 0) {
+      for (const [mod, entry] of Object.entries(modules)) {
+        for (const [cls, methods] of Object.entries(entry.classes)) {
+          const cand = compositionAttrs.get(cls);
+          if (!cand) continue;
+          const refMembers = pythonMethodsByOwner.get(`${mod}.${cls}`);
+          if (!refMembers) continue; // port-only class — no reference member set to gate on.
+          const merged = new Set(methods);
+          for (const attr of cand) {
+            if (refMembers.has(attr)) merged.add(attr);
+          }
+          entry.classes[cls] = Array.from(merged).sort();
         }
       }
     }

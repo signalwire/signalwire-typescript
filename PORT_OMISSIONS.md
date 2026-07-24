@@ -1,5 +1,53 @@
 # PORT_OMISSIONS.md
 
+<!-- ═══════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+════════════════════════════════════════════════════════════════════ -->
+
+
 This file enumerates every public symbol from `signalwire-python` that the
 TypeScript port does NOT implement, with a one-line rationale per symbol.
 
@@ -398,11 +446,11 @@ named accessors (`getApp()` and `log` getter respectively) so the Python
 attribute names appear missing from the TS surface.
 
 signalwire.agent_server.AgentServer.app: TS exposes the underlying Hono app via `getApp()` getter (see PORT_ADDITIONS.md AgentServer.get_app); the bare `app` attribute name is not used in TS
-signalwire.agent_server.AgentServer.logger: TS uses `log` getter exposing the same logger instance (see PORT_ADDITIONS.md AgentServer.log); the Python `logger` attribute name is not used in TS
-signalwire.core.skill_manager.SkillManager.logger: TS instantiates a per-instance Logger via `getLogger()` directly inside methods rather than exposing it as a public instance attribute; Python's pattern is `self.logger = logging.getLogger(...)` which the adapter sees as a public attribute
-signalwire.skills.registry.SkillRegistry.logger: TS uses `getLogger('SkillRegistry')` calls inline rather than caching as a public attribute on the singleton; Python's adapter reports `self.logger` as a public state attribute
+signalwire.agent_server.AgentServer.logger: approved: ts-renamed-accessor — TS uses a `log` getter exposing the same logger instance (see PORT_ADDITIONS.md AgentServer.log); the Python `logger` attribute name is not used in TS. Pending API sign-off.
+signalwire.core.skill_manager.SkillManager.logger: impossible: ts-no-instance-logger-field — TS instantiates a per-call Logger via `getLogger()` directly inside methods rather than holding it as a public instance attribute; there is no `self.logger` field to surface (Python's pattern is `self.logger = logging.getLogger(...)`).
+signalwire.skills.registry.SkillRegistry.logger: impossible: ts-no-instance-logger-field — TS calls `getLogger('SkillRegistry')` inline rather than caching a logger attribute on the singleton; there is no public `logger` field to surface.
 signalwire.web.web_service.WebService.app: TS WebService exposes the Hono app via `getApp()` getter (see PORT_ADDITIONS.md WebService.get_app); the bare `app` attribute name is not used in TS
-signalwire.web.web_service.WebService.security: TS WebService exposes the SslConfig via `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS
+signalwire.web.web_service.WebService.security: approved: ts-renamed-accessor — TS WebService exposes the SslConfig via an `ssl_config` accessor (see PORT_ADDITIONS.md WebService.ssl_config); the Python `security` attribute name is not used in TS. Pending API sign-off.
 
 # SWMLService.on_request is now RECONCILED: the enumerators (surface +
 # signatures, in lock-step) project TS's AgentBase.onRequest hook onto
@@ -430,4 +478,10 @@ signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: 
 
 ## AgentServer.agents (private field + accessor idiom)
 
-signalwire.agent_server.AgentServer.agents: Python exposes `agents` as a public dict attribute; TS keeps the map private (`private agents: Map<string, AgentBase>`) and exposes it via the `getAgents()` accessor (idiomatic TS private-field + accessor). Same registry, not a public field.
+signalwire.agent_server.AgentServer.agents: approved: ts-private-field-plus-accessor — Python exposes `agents` as a public dict attribute; TS keeps the map private (`private agents: Map<string, AgentBase>`) and exposes it via the `getAgents()` accessor (idiomatic TS private-field + accessor). Same registry, not a public field. Pending API sign-off.
+
+## A-mixin fold surface keys + envelope idiom (wave-2)
+
+agentbase-family.tool: impossible: Python @tool class/instance decorator API (ToolMixin.tool); TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent. (A-mixin fold surface key; unfolded twin at signalwire.core.mixins.tool_mixin.ToolMixin.tool.)
+signalwire.rest._request_options.RequestOptions.abort_signal: impossible: Python's RequestOptions.abort_signal returns an SDK-class `_AbortSignal` accessor bound to asyncio cancellation; TS carries the field as the native platform `AbortSignal` (RequestOptions.abortSignal, passed straight to fetch), which is NOT projected as an SDK-class-returning accessor — so the reference's SDK-class `abort_signal` accessor has no matching TS surface member. SURFACE-oracle-invisible (only merge()/__init__ are in the TS surface oracle). Same disposition as go's abort_signal.
+

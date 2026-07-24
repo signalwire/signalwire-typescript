@@ -1,5 +1,53 @@
 # PORT_ADDITIONS.md
 
+<!-- ═══════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+════════════════════════════════════════════════════════════════════ -->
+
+
 This file enumerates every public symbol in the TypeScript port that has
 NO direct Python-reference equivalent.
 
@@ -632,3 +680,41 @@ gen-type.TranslateAction: TS names this discriminated/permission union type; the
 gen-type.TranslateDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
 gen-type.TranslationFilterPreset: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
 gen-type.ValidConfirmMethods: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
+
+## AgentBase mixin-flatten fold — agentbase-family surface keys
+
+The A-mixin fold (`diff_port_surface.flatten_symbols`) collapses AgentBase +
+its mixin family (incl. ServerlessAdapter) to the shared `agentbase-family`
+token on the SURFACE side. These are the genuine TS port-only members of that
+family (each has an unfolded `signalwire.core.*` twin above for the signature
+gate, which reads UNFOLDED per-class keys). Every one is real port-only surface
+with no reference twin — serverless entry-point factories (Node/TS deploy),
+the MCP gateway (Node/TS-only), the on_error/replace_global_data DX hooks, and
+the flattened composition accessors.
+
+agentbase-family.add_skill_by_name: TS-native AgentBase accessor / utility — aggregates state that is a private attribute or cross-mixin helper in Python. (A-mixin fold surface key; unfolded twin at signalwire.core.agent_base.AgentBase.add_skill_by_name kept for the signature gate.)
+agentbase-family.create_tool_token: TS public delegate to SessionManager.createToolToken exposed on AgentBase for convenience; Python keeps this only on SessionManager. (agentbase-family surface key for the A-mixin fold.)
+agentbase-family.define_typed_tool: TS-native typed-tool registration helper on AgentBase; Python registers via the @tool decorator / define path. (agentbase-family surface key.)
+agentbase-family.ensure_tools_defined: TS-native idempotent guard (#19370) — auto-invokes defineTools() once so a forgotten explicit call no longer yields a tool-less agent; Python has no separate define-tools lifecycle hook. (agentbase-family surface key.)
+agentbase-family.extract_sip_username: TS-native AgentBase helper that parses the SIP username from an inbound request; Python has no public equivalent. (agentbase-family surface key.)
+agentbase-family.get_mcp_servers: TS-native MCP-gateway accessor on AgentBase (Node/TS-only MCP surface); Python has no MCP server registry on AgentBase. (agentbase-family surface key.)
+agentbase-family.get_prompt_pom: TS-native accessor returning the agent's rendered POM; Python reaches this via the prompt manager. (agentbase-family surface key.)
+agentbase-family.get_tools: TS-native AgentBase accessor returning the registered tool list; Python aggregates via cross-mixin state. (agentbase-family surface key.)
+agentbase-family.handle_mcp_request: TS-native MCP request handler on AgentBase (Node/TS-only MCP surface); no Python twin. (agentbase-family surface key.)
+agentbase-family.is_mcp_server_enabled: TS-native MCP-gateway predicate on AgentBase (Node/TS-only MCP surface); no Python twin. (agentbase-family surface key.)
+agentbase-family.native_functions: TS-native AgentBase accessor exposing the native-function set; Python keeps this as private/cross-mixin state. (agentbase-family surface key.)
+agentbase-family.on_error: TS-native agent-level SWAIG error hook (#19371) — Python has no programmatic error surface on tool dispatch; registers a callback invoked when a tool handler throws. (agentbase-family surface key.)
+agentbase-family.prompt_manager: TS public getter exposing the composed PromptManager; Python holds it as a private composition attr. (agentbase-family surface key.)
+agentbase-family.remove_skill_by_name: TS-native AgentBase skill-removal helper; Python removes via the skill manager. (agentbase-family surface key.)
+agentbase-family.render_swml: TS AgentBase renderSwml() delegate flattened onto AgentBase; Python routes rendering through the SwmlRenderer helper. (agentbase-family surface key.)
+agentbase-family.replace_global_data: TS-native true-replace path (#19376) — Python's set_global_data only merges; this clears all prior keys and sets a fresh global_data. (agentbase-family surface key.)
+agentbase-family.build_cgi_event: TS-native serverless (ServerlessAdapter) helper that builds a CGI event envelope; a Node/TS serverless-deploy surface with no Python twin. (agentbase-family surface key; ServerlessAdapter is part of the AgentBase mixin family.)
+agentbase-family.create_azure_handler: TS-native serverless entry-point factory for Azure Functions; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.create_cgi_handler: TS-native serverless entry-point factory for CGI; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.create_gcf_handler: TS-native serverless entry-point factory for Google Cloud Functions; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.create_lambda_handler: TS-native serverless entry-point factory for AWS Lambda; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.detect_platform: TS-native serverless platform-detection helper; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.generate_url: TS-native serverless URL-generation helper (accounts for the deploy platform's URL scheme); no Python twin. (agentbase-family surface key.)
+agentbase-family.get_platform: TS-native serverless platform accessor; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+agentbase-family.run_serverless: TS-native serverless one-shot dispatch entry point; Node/TS serverless-deploy surface, no Python twin. (agentbase-family surface key.)
+
