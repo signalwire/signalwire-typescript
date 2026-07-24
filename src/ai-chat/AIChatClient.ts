@@ -22,7 +22,7 @@
  * import { AIChatClient } from '@signalwire/sdk';
  *
  * const client = new AIChatClient({ space: 'myspace' }); // env supplies creds
- * await client.createConversation('conv-1', { configUrl: CONFIG_URL });
+ * await client.createConversation('conv-1', { configUrl: 'https://example.com/agent.yaml' });
  * const reply = await client.chat('conv-1', 'hello');
  * console.log(reply.text);
  * ```
