@@ -862,6 +862,11 @@ export class Call {
   /**
    * Bridge the call to one or more destinations.
    *
+   * Each device is a {@link PhoneDevice}, {@link SipDevice}, or
+   * {@link FabricDevice} (dial a Fabric address directly — the platform resolves
+   * the address to whatever it points to: a Subscriber, a Relay/LaML app, a video
+   * room, …).
+   *
    * @param devices - Serial/parallel dial plan — outer array of serial groups,
    *   inner arrays dialled in parallel.
    * @param options - Connect behaviour.
