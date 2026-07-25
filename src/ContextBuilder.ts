@@ -71,6 +71,8 @@ export interface GatherInfoDict {
   output_key?: string;
   /** Optional action taken once gathering completes. */
   completion_action?: string;
+  /** Present (true) when every question in this gather defaults to isolated. */
+  isolated?: boolean;
 }
 
 /** Serialized form of a {@link Step} (`Step.toDict()`). */
@@ -156,10 +158,18 @@ export class GatherQuestion {
   prompt?: string;
   /** Optional list of SWAIG function names available during this question. */
   functions?: string[];
+  /**
+   * Overrides the gather's `isolated` default for this one question.
+   * Tri-state: `true` hides the sibling Q&A while this question is asked;
+   * `false` keeps it visible even inside an isolated gather; `undefined`
+   * (the default) inherits the gather's setting. `false` is NOT the same as
+   * unset — it is emitted to SWML so it can override an isolated gather.
+   */
+  isolated?: boolean;
 
   /**
    * Creates a new GatherQuestion.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
    */
   constructor(opts: {
     key: string;
@@ -168,6 +178,7 @@ export class GatherQuestion {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }) {
     this.key = opts.key;
     this.question = opts.question;
@@ -175,6 +186,9 @@ export class GatherQuestion {
     this.confirm = opts.confirm ?? false;
     this.prompt = opts.prompt;
     this.functions = opts.functions;
+    // Tri-state: undefined means "inherit the gather_info default". Do NOT
+    // collapse to a boolean — `false` must survive to the wire.
+    this.isolated = opts.isolated;
   }
 
   /**
@@ -187,6 +201,8 @@ export class GatherQuestion {
     if (this.confirm) d['confirm'] = true;
     if (this.prompt) d['prompt'] = this.prompt;
     if (this.functions) d['functions'] = this.functions;
+    // Emitted even when false, so it can override an isolated gather.
+    if (this.isolated !== undefined && this.isolated !== null) d['isolated'] = this.isolated;
     return d;
   }
 
@@ -207,20 +223,27 @@ export class GatherInfo {
   private outputKey?: string;
   private completionAction?: string;
   private prompt?: string;
+  private isolated: boolean;
 
   /**
    * Creates a new GatherInfo.
-   * @param opts - Optional output key, completion action, and prompt configuration.
+   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
    */
-  constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: string }) {
+  constructor(opts?: {
+    outputKey?: string;
+    completionAction?: string;
+    prompt?: string;
+    isolated?: boolean;
+  }) {
     this.outputKey = opts?.outputKey;
     this.completionAction = opts?.completionAction;
     this.prompt = opts?.prompt;
+    this.isolated = opts?.isolated ?? false;
   }
 
   /**
    * Adds a question to this gather operation.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
    * @returns This GatherInfo for chaining.
    */
   addQuestion(opts: {
@@ -230,6 +253,7 @@ export class GatherInfo {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }): this {
     this.questions.push(new GatherQuestion(opts));
     return this;
@@ -261,6 +285,7 @@ export class GatherInfo {
     if (this.prompt) d.prompt = this.prompt;
     if (this.outputKey) d.output_key = this.outputKey;
     if (this.completionAction) d.completion_action = this.completionAction;
+    if (this.isolated) d.isolated = true;
     return d;
   }
 
@@ -465,10 +490,21 @@ export class Step {
 
   /**
    * Initializes a gather info operation on this step for collecting structured data.
-   * @param opts - Optional output key, completion action, and prompt configuration.
+   *
+   * `isolated` is the default for every question in this gather. When true, a
+   * question is asked with the sibling Q&A hidden from the model, so it must ask
+   * rather than derive the answer from an earlier one. A question's own
+   * `isolated` overrides this. The hidden turns remain in the call log.
+   *
+   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
    * @returns This step for chaining.
    */
-  setGatherInfo(opts?: { outputKey?: string; completionAction?: string; prompt?: string }): this {
+  setGatherInfo(opts?: {
+    outputKey?: string;
+    completionAction?: string;
+    prompt?: string;
+    isolated?: boolean;
+  }): this {
     this.gatherInfo = new GatherInfo(opts);
     return this;
   }
@@ -493,7 +529,10 @@ export class Step {
    *   geocode a ZIP), list that tool name in this question's `functions`.
    *   Functions listed here are active ONLY for this question.
    *
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional
+   *   type/confirm/prompt/functions/isolated. `isolated` overrides the gather's default
+   *   for this one question: true hides the sibling Q&A while it is asked, false keeps
+   *   it visible even in an isolated gather, omitted inherits the gather's setting.
    * @returns This step for chaining.
    */
   addGatherQuestion(opts: {
@@ -503,6 +542,7 @@ export class Step {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }): this {
     if (!this.gatherInfo) throw new Error('Must call setGatherInfo() before addGatherQuestion()');
     this.gatherInfo.addQuestion(opts);

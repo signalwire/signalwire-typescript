@@ -108,12 +108,12 @@ export class CallStateEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    callState: CallState,
-    endReason: string,
-    direction: string,
-    device: Device,
+    callId: string = '',
+    timestamp: number = 0,
+    callState: CallState = '' as CallState,
+    endReason: string = '',
+    direction: string = '',
+    device: Device = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.callState = callState;
@@ -152,16 +152,16 @@ export class CallReceiveEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    callState: CallState,
-    direction: string,
-    device: Device,
-    nodeId: string,
-    projectId: string,
-    context: string,
-    segmentId: string,
-    tag: string,
+    callId: string = '',
+    timestamp: number = 0,
+    callState: CallState = '' as CallState,
+    direction: string = '',
+    device: Device = {},
+    nodeId: string = '',
+    projectId: string = '',
+    context: string = '',
+    segmentId: string = '',
+    tag: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.callState = callState;
@@ -201,10 +201,10 @@ export class PlayEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -236,14 +236,14 @@ export class RecordEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
-    url: string,
-    duration: number,
-    size: number,
-    record: EventPayload,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
+    url: string = '',
+    duration: number = 0,
+    size: number = 0,
+    record: EventPayload = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -282,8 +282,8 @@ export class CollectEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
+    callId: string = '',
+    timestamp: number = 0,
     controlId: string = '',
     state: string = '',
     result: EventPayload = {},
@@ -319,10 +319,10 @@ export class ConnectEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    connectState: string,
-    peer: EventPayload,
+    callId: string = '',
+    timestamp: number = 0,
+    connectState: string = '',
+    peer: EventPayload = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.connectState = connectState;
@@ -350,10 +350,10 @@ export class DetectEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    detect: EventPayload,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    detect: EventPayload = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -381,10 +381,10 @@ export class FaxEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    fax: EventPayload,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    fax: EventPayload = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -414,12 +414,12 @@ export class TapEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
-    tap: EventPayload,
-    device: Device,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
+    tap: EventPayload = {},
+    device: Device = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -453,12 +453,12 @@ export class StreamEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
-    url: string,
-    name: string,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
+    url: string = '',
+    name: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -490,10 +490,10 @@ export class SendDigitsEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -528,11 +528,11 @@ export class DialEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    tag: string,
-    dialState: DialState,
-    call: EventPayload,
+    callId: string = '',
+    timestamp: number = 0,
+    tag: string = '',
+    dialState: DialState = '' as DialState,
+    call: EventPayload = {},
   ) {
     super(eventType, params, callId, timestamp);
     this.tag = tag;
@@ -564,12 +564,12 @@ export class ReferEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    state: string,
-    sipReferTo: string,
-    sipReferResponseCode: string,
-    sipNotifyResponseCode: string,
+    callId: string = '',
+    timestamp: number = 0,
+    state: string = '',
+    sipReferTo: string = '',
+    sipReferResponseCode: string = '',
+    sipNotifyResponseCode: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.state = state;
@@ -600,9 +600,9 @@ export class DenoiseEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    denoised: boolean,
+    callId: string = '',
+    timestamp: number = 0,
+    denoised: boolean = false,
   ) {
     super(eventType, params, callId, timestamp);
     this.denoised = denoised;
@@ -628,10 +628,10 @@ export class PayEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -663,14 +663,14 @@ export class QueueEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    status: string,
-    queueId: string,
-    queueName: string,
-    position: number,
-    size: number,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    status: string = '',
+    queueId: string = '',
+    queueName: string = '',
+    position: number = 0,
+    size: number = 0,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -705,9 +705,9 @@ export class EchoEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    state: string,
+    callId: string = '',
+    timestamp: number = 0,
+    state: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.state = state;
@@ -731,14 +731,14 @@ export class TranscribeEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    controlId: string,
-    state: string,
-    url: string,
-    recordingId: string,
-    duration: number,
-    size: number,
+    callId: string = '',
+    timestamp: number = 0,
+    controlId: string = '',
+    state: string = '',
+    url: string = '',
+    recordingId: string = '',
+    duration: number = 0,
+    size: number = 0,
   ) {
     super(eventType, params, callId, timestamp);
     this.controlId = controlId;
@@ -773,9 +773,9 @@ export class HoldEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    state: string,
+    callId: string = '',
+    timestamp: number = 0,
+    state: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.state = state;
@@ -796,11 +796,11 @@ export class ConferenceEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    conferenceId: string,
-    name: string,
-    status: string,
+    callId: string = '',
+    timestamp: number = 0,
+    conferenceId: string = '',
+    name: string = '',
+    status: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.conferenceId = conferenceId;
@@ -830,10 +830,10 @@ export class CallingErrorEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    code: string,
-    message: string,
+    callId: string = '',
+    timestamp: number = 0,
+    code: string = '',
+    message: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.code = code;
@@ -871,18 +871,18 @@ export class MessageReceiveEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    messageId: string,
-    context: string,
-    direction: string,
-    fromNumber: string,
-    toNumber: string,
-    body: string,
-    media: string[],
-    segments: number,
-    messageState: string,
-    tags: string[],
+    callId: string = '',
+    timestamp: number = 0,
+    messageId: string = '',
+    context: string = '',
+    direction: string = '',
+    fromNumber: string = '',
+    toNumber: string = '',
+    body: string = '',
+    media: string[] = [],
+    segments: number = 0,
+    messageState: string = '',
+    tags: string[] = [],
   ) {
     super(eventType, params, callId, timestamp);
     this.messageId = messageId;
@@ -943,19 +943,19 @@ export class MessageStateEvent extends RelayEvent {
   constructor(
     eventType: string,
     params: EventPayload,
-    callId: string,
-    timestamp: number,
-    messageId: string,
-    context: string,
-    direction: string,
-    fromNumber: string,
-    toNumber: string,
-    body: string,
-    media: string[],
-    segments: number,
-    messageState: MessageState,
-    reason: string,
-    tags: string[],
+    callId: string = '',
+    timestamp: number = 0,
+    messageId: string = '',
+    context: string = '',
+    direction: string = '',
+    fromNumber: string = '',
+    toNumber: string = '',
+    body: string = '',
+    media: string[] = [],
+    segments: number = 0,
+    messageState: MessageState = '' as MessageState,
+    reason: string = '',
+    tags: string[] = [],
   ) {
     super(eventType, params, callId, timestamp);
     this.messageId = messageId;

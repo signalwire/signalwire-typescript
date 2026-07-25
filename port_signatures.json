@@ -12885,53 +12885,63 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "call_state",
                   "type": "union<string,string,string,string,string>",
-                  "required": true
+                  "required": false,
+                  "default": "'' as CallState"
                 },
                 {
                   "name": "direction",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "device",
                   "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 },
                 {
                   "name": "node_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "project_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "context",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "segment_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "tag",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -13044,33 +13054,39 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "call_state",
                   "type": "union<string,string,string,string,string>",
-                  "required": true
+                  "required": false,
+                  "default": "'' as CallState"
                 },
                 {
                   "name": "end_reason",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "direction",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "device",
                   "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -13147,23 +13163,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "code",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "message",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -13222,13 +13242,15 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
@@ -13329,28 +13351,33 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "conference_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "name",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "status",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -13418,23 +13445,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "connect_state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "peer",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -13493,18 +13524,21 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "denoised",
-                  "type": "bool",
-                  "required": true
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -13554,23 +13588,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "detect",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -13629,28 +13667,33 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "tag",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "dial_state",
                   "type": "union<string,string,string>",
-                  "required": true
+                  "required": false,
+                  "default": "'' as DialState"
                 },
                 {
                   "name": "call",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -13718,18 +13761,21 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -13779,23 +13825,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "fax",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -13854,18 +13904,21 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -13915,63 +13968,75 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "message_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "context",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "direction",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "from_number",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "to_number",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "body",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "media",
-                  "type": "list<string>",
-                  "required": true
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": []
                 },
                 {
                   "name": "segments",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "message_state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "tags",
-                  "type": "list<string>",
-                  "required": true
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": []
                 }
               ],
               "returns": "void"
@@ -14102,68 +14167,81 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "message_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "context",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "direction",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "from_number",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "to_number",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "body",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "media",
-                  "type": "list<string>",
-                  "required": true
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": []
                 },
                 {
                   "name": "segments",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "message_state",
                   "type": "union<string,string,string,string,string,string,string>",
-                  "required": true
+                  "required": false,
+                  "default": "'' as MessageState"
                 },
                 {
                   "name": "reason",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "tags",
-                  "type": "list<string>",
-                  "required": true
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": []
                 }
               ],
               "returns": "void"
@@ -14303,23 +14381,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -14378,23 +14460,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -14453,43 +14539,51 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "status",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "queue_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "queue_name",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "position",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "size",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 }
               ],
               "returns": "void"
@@ -14584,43 +14678,51 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "url",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "duration",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "size",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "record",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -14715,33 +14817,39 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "sip_refer_to",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "sip_refer_response_code",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "sip_notify_response_code",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -14903,23 +15011,27 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -14978,33 +15090,39 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "url",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "name",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -15081,33 +15199,39 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "tap",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 },
                 {
                   "name": "device",
                   "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-                  "required": true
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -15184,43 +15308,51 @@
                 },
                 {
                   "name": "call_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "control_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "state",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "url",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "recording_id",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 },
                 {
                   "name": "duration",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 },
                 {
                   "name": "size",
-                  "type": "float",
-                  "required": true
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": 0
                 }
               ],
               "returns": "void"
@@ -30774,6 +30906,10 @@
           "type": "optional<string>",
           "required": false
         },
+        "isolated": {
+          "type": "optional<bool>",
+          "required": false
+        },
         "output_key": {
           "type": "optional<string>",
           "required": false
@@ -30792,6 +30928,10 @@
         },
         "functions": {
           "type": "optional<list<string>>",
+          "required": false
+        },
+        "isolated": {
+          "type": "optional<bool>",
           "required": false
         },
         "key": {
@@ -31655,76 +31795,76 @@
     "signalwire.relay.event.CallReceiveEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "call_state": {
           "type": "union<string,string,string,string,string>",
-          "required": true
+          "required": false
         },
         "context": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "device": {
           "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-          "required": true
+          "required": false
         },
         "direction": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "node_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "project_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "segment_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "tag": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.CallStateEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "call_state": {
           "type": "union<string,string,string,string,string>",
-          "required": true
+          "required": false
         },
         "device": {
           "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-          "required": true
+          "required": false
         },
         "direction": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "end_reason": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31735,44 +31875,44 @@
           "required": true
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.CallingErrorEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "code": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "message": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.CollectEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
           "type": "optional<string>",
@@ -31799,52 +31939,52 @@
           "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.ConferenceEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "conference_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "name": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "status": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.ConnectEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "connect_state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31856,23 +31996,23 @@
         },
         "peer": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.DenoiseEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "denoised": {
-          "type": "bool",
-          "required": true
+          "type": "optional<bool>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31883,24 +32023,24 @@
           "required": true
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.DetectEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "detect": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31911,8 +32051,8 @@
           "required": true
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
@@ -31920,15 +32060,15 @@
       "params": {
         "call": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "dial_state": {
           "type": "union<string,string,string>",
-          "required": true
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31939,20 +32079,20 @@
           "required": true
         },
         "tag": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.EchoEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31963,24 +32103,24 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.FaxEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -31988,23 +32128,23 @@
         },
         "fax": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.HoldEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32015,148 +32155,148 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.MessageReceiveEvent": {
       "params": {
         "body": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "context": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "direction": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "from_number": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "media": {
-          "type": "list<string>",
-          "required": true
+          "type": "optional<list<string>>",
+          "required": false
         },
         "message_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "message_state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "segments": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "tags": {
-          "type": "list<string>",
-          "required": true
+          "type": "optional<list<string>>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "to_number": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.MessageStateEvent": {
       "params": {
         "body": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "context": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "direction": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "from_number": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "media": {
-          "type": "list<string>",
-          "required": true
+          "type": "optional<list<string>>",
+          "required": false
         },
         "message_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "message_state": {
           "type": "union<string,string,string,string,string,string,string>",
-          "required": true
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "reason": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "segments": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "tags": {
-          "type": "list<string>",
-          "required": true
+          "type": "optional<list<string>>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "to_number": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.PayEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32167,24 +32307,24 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.PlayEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32195,24 +32335,24 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.QueueEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32223,44 +32363,44 @@
           "required": true
         },
         "position": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "queue_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "queue_name": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "size": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "status": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.RecordEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "duration": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32272,31 +32412,31 @@
         },
         "record": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "size": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "url": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.ReferEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32307,24 +32447,24 @@
           "required": true
         },
         "sip_notify_response_code": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "sip_refer_response_code": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "sip_refer_to": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
@@ -32351,12 +32491,12 @@
     "signalwire.relay.event.SendDigitsEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32367,64 +32507,64 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.StreamEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "event_type": {
           "type": "string",
           "required": true
         },
         "name": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "params": {
           "type": "dict<string,any>",
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "url": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.TapEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "device": {
           "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
-          "required": true
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32435,32 +32575,32 @@
           "required": true
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "tap": {
           "type": "dict<string,any>",
-          "required": true
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         }
       }
     },
     "signalwire.relay.event.TranscribeEvent": {
       "params": {
         "call_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "control_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "duration": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "event_type": {
           "type": "string",
@@ -32471,24 +32611,24 @@
           "required": true
         },
         "recording_id": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "size": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "state": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         },
         "timestamp": {
-          "type": "float",
-          "required": true
+          "type": "optional<float>",
+          "required": false
         },
         "url": {
-          "type": "string",
-          "required": true
+          "type": "optional<string>",
+          "required": false
         }
       }
     },
