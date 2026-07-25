@@ -482,7 +482,12 @@ const PER_INSTANCE_LOGGER_MEMBERS: Record<string, string[]> = {
   'signalwire.core.skill_base.SkillBase': ['logger', 'log'],
   'signalwire.core.skill_manager.SkillManager': ['logger', 'log'],
   'signalwire.skills.registry.SkillRegistry': ['logger', 'log'],
-  'signalwire.ai_chat.client.AIChatClient': ['logger', 'log'],
+  // NOTE deliberately NOT `signalwire.ai_chat.client.AIChatClient` — see the same
+  // note in enumerate-surface.ts. `AIChatClient.log` takes `conversation_id` and
+  // returns `ChatLog` (chat-history retrieval), a real capability recorded by BOTH
+  // oracles; only the per-instance LOGGER attribute was excluded. The porting-sdk
+  // exclusion keys on return type + zero-arity precisely so a name match cannot
+  // delete it. Removed 2026-07-25.
 };
 
 /** Reference free functions + class members, loaded from the SIGNATURE oracle

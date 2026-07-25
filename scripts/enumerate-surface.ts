@@ -459,7 +459,16 @@ const PER_INSTANCE_LOGGER_MEMBERS: Record<string, string[]> = {
   'signalwire.core.skill_base.SkillBase': ['logger', 'log'],
   'signalwire.core.skill_manager.SkillManager': ['logger', 'log'],
   'signalwire.skills.registry.SkillRegistry': ['logger', 'log'],
-  'signalwire.ai_chat.client.AIChatClient': ['logger', 'log'],
+  // NOTE deliberately NOT `signalwire.ai_chat.client.AIChatClient`. Despite the
+  // name, `AIChatClient.log` is NOT a logger: it takes `conversation_id` and
+  // returns `ChatLog` — chat-history retrieval, a real capability recorded by BOTH
+  // oracles. The owner ruling covers the per-instance LOGGER attribute only. This
+  // is why the porting-sdk exclusion keys on the return type + zero-arity rather
+  // than the member NAME (see enumerate_python.py::_enrich_composition_attributes);
+  // a name-keyed drop would delete the capability. Listing it here was inert only
+  // because TS does not currently emit the member and the per-member guard
+  // suppresses the drop while the oracle declares it — i.e. a latent trap that
+  // would fire the moment TS implements `log()`. Removed 2026-07-25.
 };
 
 /** Per-symbol module overrides for free functions. ``src/SecurityUtils.ts`` is a
