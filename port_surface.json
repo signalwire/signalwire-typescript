@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ f5c2b9f8974e0c116df7e4026cd81d38a5875a5c",
+  "generated_from": "signalwire-typescript @ bb61778420a310f8243fe2d8238324cad25aa1a3",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -20,7 +20,6 @@
           "get_agent",
           "get_agents",
           "get_app",
-          "logger",
           "register",
           "register_global_routing_callback",
           "register_sip_username",
@@ -415,27 +414,13 @@
       "functions": []
     },
     "signalwire.core.logging_config": {
-      "classes": {
-        "Logger": [
-          "__init__",
-          "bind",
-          "debug",
-          "error",
-          "info",
-          "warn"
-        ]
-      },
+      "classes": {},
       "functions": [
         "configure_logging",
         "get_execution_mode",
         "get_logger",
         "reset_logging_configuration",
-        "set_global_log_color",
-        "set_global_log_format",
-        "set_global_log_level",
-        "set_global_log_stream",
-        "strip_control_chars",
-        "suppress_all_logs"
+        "strip_control_chars"
       ]
     },
     "signalwire.core.mixins.ai_config_mixin": {
@@ -722,7 +707,6 @@
           "has_all_env_vars",
           "has_all_packages",
           "is_initialized",
-          "logger",
           "mark_initialized",
           "register_tools",
           "set_agent",

@@ -227,20 +227,16 @@ signalwire.livewire.WorkerOptions.__init__: LiveKit-compat helper exposed by the
 signalwire.livewire.define_agent: LiveKit-compat helper exposed by the TS LiveWire shim (extra compatibility surface for @livekit/agents callers)
 signalwire.livewire.handoff: LiveKit-compat helper exposed by the TS LiveWire shim (extra compatibility surface for @livekit/agents callers)
 
-## Logger (TS-native logging helpers)
-
-signalwire.core.logging_config.Logger: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.__init__: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.bind: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.debug: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.error: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.info: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.Logger.warn: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.set_global_log_color: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.set_global_log_format: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.set_global_log_level: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.set_global_log_stream: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
-signalwire.core.logging_config.suppress_all_logs: TS Logger module exposes stream / color / level setters that are function-local configuration in Python
+# Logger (TS-native logging helpers): RESOLVED 2026-07-25, 12 entries DELETED.
+# Owner ruling (ALLOWLIST_DISCIPLINE §8): logging is a MODULE-LEVEL capability and
+# the contract is exactly the 5 reference free functions in
+# `signalwire.core.logging_config`. The `Logger` CLASS is the object `get_logger()`
+# RETURNS (Python's is structlog's BoundLogger, a third-party type the oracle does
+# not enumerate as SDK surface), and the `setGlobalLog*` / `suppressAllLogs` setters
+# are the per-knob split of exactly the state Python's env-driven
+# `configure_logging()` sets. Both are §7 idiom → folded at the enumerator
+# (LOGGING_CLASS_FOLDS / LOGGING_FUNCTION_FOLDS, lock-step in
+# enumerate-surface.ts + enumerate-signatures.ts). Not additions.
 
 ## SkillManager port-specific additions
 
@@ -455,12 +451,12 @@ signalwire.core.security.session_manager.SessionManager.delete_session_metadata:
 signalwire.relay.client.RelayClient.notify: TS-only fire-and-forget JSON-RPC send used by the porting-sdk audit harness to emit a method-bearing `signalwire.event` echo frame the audit fixture watches for; production users prefer `execute()` to keep the response code check
 signalwire.relay.client.RelayClient.on_event: TS-only low-level event observer that fires before typed `onCall` / `onMessage` routing; used by the audit harness to react to platform-pushed events that don't correspond to a tracked Call / Message
 
-## Logger getters (TS public `log` accessor)
-
-Python exposes `self.log` as an instance attribute (set in __init__) on
-several classes; the TS port surfaces the same logger as a `readonly log`
-getter so consumers and subclasses can access the structured Logger
-without going through the constructor argument.
+# Logger getters (TS public `log` accessor): RESOLVED 2026-07-25.
+# Per the same owner ruling, the per-instance logger member is NOT contract on
+# either side. The reference dropped it as a marked exclusion; the TS mirror is
+# now dropped symmetrically at the enumerator (PER_INSTANCE_LOGGER_MEMBERS), so
+# it is neither an addition nor an omission. The `log` -> `logger` rename that
+# used to reconcile it was removed from both METHOD_NAME_ALIASES tables.
 
 
 ## AgentBase additional port-specific accessors

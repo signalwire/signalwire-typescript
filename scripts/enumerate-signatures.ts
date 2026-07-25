@@ -166,9 +166,10 @@ const CLASS_MODULE_OVERRIDES: Record<string, string> = {
  *  in signatures, else the drift gate sees a spurious missing-port/missing-reference). */
 const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.relay.call.Call': { pass: 'pass_' },
-  // AgentServer.log getter ≡ the reference's `logger` accessor (same exposed logger,
-  // different name → rename). Scoped to agent_server.AgentServer (not livewire's shim).
-  'signalwire.agent_server.AgentServer': { log: 'logger' },
+  // (AgentServer `log` → `logger` rename REMOVED 2026-07-25 — lock-step with
+  // enumerate-surface.ts. The reference no longer records the per-instance `logger`
+  // accessor; logging is a MODULE-LEVEL capability (ALLOWLIST_DISCIPLINE §8 owner
+  // ruling). PER_INSTANCE_LOGGER_MEMBERS below drops the port's mirror.)
   // WebService.ssl_config accessor ≡ the reference's `security` accessor → rename.
   'signalwire.web.web_service.WebService': { ssl_config: 'security' },
   'signalwire.utils.schema_utils.SchemaUtils': {
@@ -442,6 +443,89 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   // to that canonical module (kept in sync with enumerate-surface.ts).
   validate_url: 'signalwire.utils.url_validator',
 };
+
+/** ── Logging idiom fold — lock-step with enumerate-surface.ts ─────────────────
+ *  Owner ruling 2026-07-24 (ALLOWLIST_DISCIPLINE §8): logging is a MODULE-LEVEL
+ *  capability; the contract is the five free functions the reference records in
+ *  `signalwire.core.logging_config`. See the long rationale block in
+ *  enumerate-surface.ts. The three tables must stay identical across both
+ *  enumerators, else the drift gate sees a spurious missing-port/missing-ref. */
+const LOGGING_CONFIG_MOD = 'signalwire.core.logging_config';
+
+/** Port-only `logging_config` CLASS → the reference free function whose capability
+ *  it expresses. `Logger` is the object `get_logger()` returns; Python's is
+ *  structlog's BoundLogger, a third-party type the oracle does not enumerate. */
+const LOGGING_CLASS_FOLDS: Record<string, string> = { Logger: 'get_logger' };
+
+/** Port-only `logging_config` FREE FUNCTION → reference free function. The
+ *  set_global_* / suppressAllLogs setters are the per-knob split of exactly the
+ *  state Python's env-driven `configure_logging()` sets (§7 typed-split row). */
+const LOGGING_FUNCTION_FOLDS: Record<string, string> = {
+  set_global_log_level: 'configure_logging',
+  set_global_log_format: 'configure_logging',
+  set_global_log_color: 'configure_logging',
+  set_global_log_stream: 'configure_logging',
+  suppress_all_logs: 'configure_logging',
+};
+
+/** Per-instance logger members dropped on BOTH sides — the reference removed them
+ *  as a marked, curated exclusion, so the port's mirror goes too (neither an
+ *  addition nor an omission). Key: `${mod}.${Class}`.
+ *
+ *  The drop is per-member GUARDED on the signature oracle: as of 2026-07-25 the
+ *  surface oracle had dropped all five while the signature oracle still recorded
+ *  them, so on THIS side only `AIChatClient.logger` (never recorded) actually
+ *  drops today. The table is complete and self-activating — each entry starts
+ *  folding the moment the signature oracle stops recording it, with no edit here. */
+const PER_INSTANCE_LOGGER_MEMBERS: Record<string, string[]> = {
+  'signalwire.agent_server.AgentServer': ['logger', 'log'],
+  'signalwire.core.skill_base.SkillBase': ['logger', 'log'],
+  'signalwire.core.skill_manager.SkillManager': ['logger', 'log'],
+  'signalwire.skills.registry.SkillRegistry': ['logger', 'log'],
+  'signalwire.ai_chat.client.AIChatClient': ['logger', 'log'],
+};
+
+/** Reference free functions + class members, loaded from the SIGNATURE oracle
+ *  (`python_signatures.json`) so every fold below is GUARDED on its target
+ *  actually existing in the oracle THIS enumerator's gate compares against — a
+ *  rename fails loud instead of silently dropping the port symbol.
+ *
+ *  ⚠️ Deliberately NOT `python_surface.json`: the two oracles can disagree
+ *  mid-rollout (measured 2026-07-25 — the surface oracle had already dropped the
+ *  per-instance `logger` members while the signature oracle still recorded them).
+ *  Guarding the signature emission on the surface oracle would drop a member the
+ *  signature gate still demands → `missing-port`. Each enumerator guards on its
+ *  own gate's authority. Empty maps if the oracle is absent (fold no-ops). */
+function loadReferenceSignatureIndex(): {
+  refFunctions: Map<string, Set<string>>;
+  refMembers: Map<string, Set<string>>;
+} {
+  const refFunctions = new Map<string, Set<string>>();
+  const refMembers = new Map<string, Set<string>>();
+  const refPath = path.join(PSDK, 'python_signatures.json');
+  if (!fs.existsSync(refPath)) return { refFunctions, refMembers };
+  let data: {
+    modules?: Record<
+      string,
+      {
+        classes?: Record<string, { methods?: Record<string, unknown> }>;
+        functions?: Record<string, unknown>;
+      }
+    >;
+  };
+  try {
+    data = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+  } catch {
+    return { refFunctions, refMembers };
+  }
+  for (const [mod, entry] of Object.entries(data.modules ?? {})) {
+    refFunctions.set(mod, new Set(Object.keys(entry.functions ?? {})));
+    for (const [cls, clsEntry] of Object.entries(entry.classes ?? {})) {
+      refMembers.set(`${mod}.${cls}`, new Set(Object.keys(clsEntry.methods ?? {})));
+    }
+  }
+  return { refFunctions, refMembers };
+}
 
 // Per-symbol free-function PARAM-shape overrides (teach-the-checker, scoped to a
 // single symbol — does NOT relax the comparison globally).
@@ -2147,6 +2231,43 @@ function main(): number {
           methods[p.name] = { params: [{ name: 'self', kind: 'self' }], returns: p.type ?? 'any' };
         }
         aiChat[model].methods = Object.fromEntries(Object.entries(methods).sort());
+      }
+    }
+  }
+
+  // Logging idiom fold — lock-step with enumerate-surface.ts. See the table
+  // definitions above for the ruling and the evidence. Every fold is guarded on
+  // its reference target so a rename on either side fails LOUD.
+  {
+    const { refFunctions, refMembers } = loadReferenceSignatureIndex();
+    const logMod = doc.modules[LOGGING_CONFIG_MOD];
+    if (logMod) {
+      const refFns = refFunctions.get(LOGGING_CONFIG_MOD) ?? new Set<string>();
+      const haveFns = new Set(Object.keys(logMod.functions ?? {}));
+      const foldable = (target: string): boolean => refFns.has(target) && haveFns.has(target);
+
+      for (const [cls, target] of Object.entries(LOGGING_CLASS_FOLDS)) {
+        if (logMod.classes?.[cls] && foldable(target)) delete logMod.classes[cls];
+      }
+      if (logMod.functions) {
+        for (const [fn, target] of Object.entries(LOGGING_FUNCTION_FOLDS)) {
+          if (logMod.functions[fn] && foldable(target)) delete logMod.functions[fn];
+        }
+      }
+    }
+
+    for (const [key, members] of Object.entries(PER_INSTANCE_LOGGER_MEMBERS)) {
+      const idx = key.lastIndexOf('.');
+      const mod = key.slice(0, idx);
+      const cls = key.slice(idx + 1);
+      const clsEntry = doc.modules[mod]?.classes?.[cls];
+      if (!clsEntry) continue;
+      const declared = refMembers.get(key);
+      for (const m of members) {
+        // Guard: only drop while the reference does NOT declare it. If the oracle
+        // records it again, keep the port copy so the two compare.
+        if (declared?.has(m)) continue;
+        if (clsEntry.methods[m]) delete clsEntry.methods[m];
       }
     }
   }

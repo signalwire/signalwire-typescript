@@ -177,15 +177,14 @@ signalwire.utils.schema_utils.SchemaValidationError.__init__: impossible: TS ret
 ## ToolMixin / ToolRegistry (Python uses mixin pattern — TS uses direct methods on SWMLService)
 
 
-## Hono `app` accessor / Python `logger` instance attributes
-
-Python exposes `self.app` (a Flask/FastAPI WSGI app) and `self.logger`
-as public instance attributes; the TS port surfaces both via differently
-named accessors (`getApp()` and `log` getter respectively) so the Python
-attribute names appear missing from the TS surface.
-
-signalwire.core.skill_manager.SkillManager.logger: impossible: ts-no-instance-logger-field — TS instantiates a per-call Logger via `getLogger()` directly inside methods rather than holding it as a public instance attribute; there is no `self.logger` field to surface (Python's pattern is `self.logger = logging.getLogger(...)`).
-signalwire.skills.registry.SkillRegistry.logger: impossible: ts-no-instance-logger-field — TS calls `getLogger('SkillRegistry')` inline rather than caching a logger attribute on the singleton; there is no public `logger` field to surface.
+# Per-instance `logger` attributes: RESOLVED 2026-07-25, entries DELETED.
+# Owner ruling (ALLOWLIST_DISCIPLINE §8, 2026-07-24): logging is a MODULE-LEVEL
+# capability ports may reach however their language does; the per-instance
+# `logger`/`log` attribute is NOT contract. The reference dropped it from the
+# oracle as a marked, curated exclusion, so the two `impossible:` omissions here
+# (SkillManager.logger / SkillRegistry.logger) went DEAD and the TS mirror is now
+# dropped symmetrically at the enumerator (PER_INSTANCE_LOGGER_MEMBERS in
+# enumerate-surface.ts + enumerate-signatures.ts). Neither ledger carries it.
 
 # SWMLService.on_request is now RECONCILED: the enumerators (surface +
 # signatures, in lock-step) project TS's AgentBase.onRequest hook onto

@@ -102,15 +102,6 @@
               ],
               "returns": "any"
             },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.core.logging_config.Logger"
-            },
             "register": {
               "params": [
                 {
@@ -4422,126 +4413,6 @@
       }
     },
     "signalwire.core.logging_config": {
-      "classes": {
-        "Logger": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "context",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "bind": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "context",
-                  "type": "dict<string,any>",
-                  "required": true
-                }
-              ],
-              "returns": "class:signalwire.core.logging_config.Logger"
-            },
-            "debug": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "msg",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "data",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "error": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "msg",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "data",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "info": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "msg",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "data",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "warn": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "msg",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "data",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            }
-          }
-        }
-      },
       "functions": {
         "configure_logging": {
           "params": [],
@@ -4565,46 +4436,6 @@
           "params": [],
           "returns": "void"
         },
-        "set_global_log_color": {
-          "params": [
-            {
-              "name": "enabled",
-              "type": "bool",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
-        "set_global_log_format": {
-          "params": [
-            {
-              "name": "format",
-              "type": "union<string,string>",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
-        "set_global_log_level": {
-          "params": [
-            {
-              "name": "level",
-              "type": "union<string,string,string,string>",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
-        "set_global_log_stream": {
-          "params": [
-            {
-              "name": "stream",
-              "type": "union<string,string>",
-              "required": true
-            }
-          ],
-          "returns": "void"
-        },
         "strip_control_chars": {
           "params": [
             {
@@ -4614,17 +4445,6 @@
             }
           ],
           "returns": "any"
-        },
-        "suppress_all_logs": {
-          "params": [
-            {
-              "name": "suppress",
-              "type": "bool",
-              "required": false,
-              "default": true
-            }
-          ],
-          "returns": "void"
         }
       }
     },
@@ -6757,15 +6577,6 @@
                 }
               ],
               "returns": "bool"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "class:signalwire.core.logging_config.Logger"
             },
             "mark_initialized": {
               "params": [
