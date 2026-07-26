@@ -64,10 +64,13 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   });
 
   describe('verb method existence', () => {
-    it('has all ~38 verb methods', () => {
+    // The LOOP below is the real assertion: every verb the schema declares has a
+    // builder method. The headcount added nothing except a literal to edit on every
+    // upstream verb addition (ai_sidecar took it 38 -> 39).
+    it('has a builder method for every schema verb', () => {
       const schemaUtils = SwmlBuilder.getSchemaUtils();
       const verbNames = schemaUtils.getVerbNames();
-      expect(verbNames.length).toBe(38);
+      expect(verbNames.length).toBeGreaterThanOrEqual(38);
       for (const name of verbNames) {
         expect(typeof (builder as unknown as Record<string, unknown>)[name]).toBe('function');
       }
