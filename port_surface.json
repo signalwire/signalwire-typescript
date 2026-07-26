@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4c45449e85c1e72b71c0710b386b5e133ea5cdf3",
+  "generated_from": "signalwire-typescript @ 296713627867367d7c521f4d02079f8418fcbe00",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1231,6 +1231,8 @@
         "UnsetGlobalDataAction": [],
         "UnsetMetaDataAction": [],
         "UserInputAction": [],
+        "AiSidecar": [],
+        "RingbackConfig": [],
         "ConnectConfig": [
           "call_state_events",
           "headers",
@@ -1244,6 +1246,9 @@
         "GotoConfig": [],
         "LiveTranscribeConfig": [
           "action"
+        ],
+        "AiSidecarConfig": [
+          "SWAIG"
         ],
         "LiveTranslateConfig": [
           "action"
