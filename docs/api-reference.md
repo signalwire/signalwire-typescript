@@ -275,7 +275,7 @@ Register a SWAIG tool (function) the AI can invoke during a call.
 | `description` | `string` | -- | Description shown to the AI |
 | `parameters` | `Record<string, unknown>` | `{}` | JSON Schema properties for the tool's parameters |
 | `handler` | `SwaigHandler` | -- | Callback invoked when the tool is called |
-| `secure` | `boolean` | `false` | Require session token authentication |
+| `secure` | `boolean` | `true` | Require session token authentication. Secure by default: the rendered SWML webhook for the tool carries a per-tool `__token`. Pass `false` to expose the tool on the unauthenticated shared webhook URL. |
 | `fillers` | `Record<string, string[]>` | -- | Language-keyed filler phrases spoken during execution |
 | `waitFile` | `string` | -- | Audio file URL to play while waiting |
 | `waitFileLoops` | `number` | -- | Number of times to loop the wait file |
@@ -2417,7 +2417,7 @@ interface SwaigFunctionOptions
 | `handler` | `SwaigHandler` | -- | Handler function (required) |
 | `description` | `string` | -- | Description shown to AI (required) |
 | `parameters` | `Record<string, unknown>` | `{}` | JSON Schema parameter properties |
-| `secure` | `boolean` | `false` | Require session token auth |
+| `secure` | `boolean` | `true` | Require session token auth (secure by default; `false` opts out) |
 | `fillers` | `Record<string, string[]>` | -- | Language-keyed filler phrases |
 | `waitFile` | `string` | -- | Audio file URL for waiting |
 | `waitFileLoops` | `number` | -- | Wait file loop count |

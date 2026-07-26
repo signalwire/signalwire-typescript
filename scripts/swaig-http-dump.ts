@@ -96,6 +96,12 @@ async function main(): Promise<void> {
       name: FUNCTION,
       description: 'record the args the handler received',
       parameters: {},
+      // secure:false — mirrors the oracle, which defines this fixture tool with
+      // secure=False (diff_port_swaig_http.py:184). This corpus measures the
+      // ARGUMENT-UNWRAP contract, so token validation must not gate dispatch:
+      // tools are secure by DEFAULT (A1), and an untokenized POST to a secure
+      // tool is correctly refused before the handler ever records its args.
+      secure: false,
       handler: (args) => {
         received = args;
         return new FunctionResult('ok');

@@ -61,6 +61,9 @@ describe('ServerlessAdapter', () => {
       name: 'echo',
       description: 'Echo back',
       parameters: { msg: { type: 'string' } },
+      // secure:false — this test exercises POST-body passthrough, not token
+      // validation (tools are secure by default).
+      secure: false,
       handler: (args) => new FunctionResult(`Echo: ${args['msg']}`),
     });
     const app = agent.getApp();

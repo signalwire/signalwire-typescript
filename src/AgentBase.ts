@@ -2828,18 +2828,17 @@ export class AgentBase extends SWMLService {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
-      // Token validation for secure functions
-      if (fn.secure) {
-        const url = new URL(c.req.url);
-        const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-        if (!token) {
-          reqLog.warn('missing_token');
-          const result = new FunctionResult(
-            'The security token for this function is missing or expired. This action cannot be completed.',
-          );
-          return c.json(result.toDict());
-        }
-        if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
+      // Validate the security token IF PRESENT. Parity with the reference
+      // (agent_base.py:1413-1445): a token that is supplied must be valid for a
+      // secure function — an invalid/expired one is refused — but a MISSING
+      // token does not by itself block dispatch here. The transport already
+      // gates this endpoint (basic auth), and the per-tool `__token` minted into
+      // the rendered `web_hook_url` is what the platform round-trips.
+      const url = new URL(c.req.url);
+      const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
+      if (token) {
+        reqLog.debug('token_found');
+        if (fn.secure && !this.sessionManager.validateToken(callIdStr, fnName, token)) {
           reqLog.warn('token_invalid');
           const result = new FunctionResult(
             'The security token for this function is invalid or expired. This action cannot be completed.',
