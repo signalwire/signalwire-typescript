@@ -310,8 +310,12 @@ export abstract class SkillBase {
    * constructor.  In the TypeScript SDK the SkillManager always calls
    * `setAgent()` before `setup()`, so subclasses can rely on `getAgent()` being
    * safe to call inside `setup()` and any method invoked after it.
+   *
+   * Readable by anyone holding the skill, so a test or an introspection tool can
+   * check which agent a skill was bound to. Subclasses that need a guaranteed
+   * non-null agent should still prefer the asserting {@link getAgent}.
    */
-  protected agent?: AgentBase;
+  agent?: AgentBase;
   /**
    * Logger scoped to this skill. Python equivalent: `self.logger = get_logger(...)`
    * set in `SkillBase.__init__` so every subclass can call `self.logger.info(...)`.
@@ -353,6 +357,19 @@ export abstract class SkillBase {
       );
     }
     return this.agent;
+  }
+
+  /**
+   * The configuration this skill was constructed with — the reference's public
+   * `self.params` (`core/skill_base.py:40`), read-only.
+   *
+   * `swaig_fields` is absent: the constructor pops it into {@link swaigFields},
+   * mirroring the reference's `self.swaig_fields = self.params.pop(...)`
+   * (`core/skill_base.py:44`). Use {@link getConfig} for a single typed key; this
+   * returns the whole map, which is what the reference attribute exposes.
+   */
+  get params(): Readonly<SkillConfig> {
+    return this.config;
   }
 
   /**

@@ -148,7 +148,7 @@ export { SslConfig } from './SslConfig.js';
 export type { SslOptions } from './SslConfig.js';
 
 // Schema Validation
-export { SchemaUtils } from './SchemaUtils.js';
+export { SchemaUtils, SchemaValidationError } from './SchemaUtils.js';
 export type { ValidationResult } from './SchemaUtils.js';
 
 // Auth

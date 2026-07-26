@@ -8,7 +8,7 @@
  * fluent chaining and call `addVerb()` internally.
  */
 
-import { SchemaUtils } from './SchemaUtils.js';
+import { SchemaUtils, SchemaValidationError } from './SchemaUtils.js';
 import type { ValidationResult } from './SchemaUtils.js';
 import type { TtsGender } from './relay/closedSets.js';
 
@@ -28,6 +28,27 @@ export interface SwmlBuilderOptions {
    *  a per-instance SchemaUtils loaded from this path instead of the bundled schema.
    *  Mirrors Python's `schema_path` constructor parameter on `SWMLService`/`AgentBase`. */
   schemaPath?: string;
+  /** The `SWMLService` this builder belongs to, kept as a public back-reference
+   *  ({@link SwmlBuilder.service}). The reference's `SWMLBuilder(service)` takes it as
+   *  its sole constructor argument and keeps it as public `self.service`. Omit for a
+   *  standalone builder (the common case — a builder used to hand-craft SWML has no
+   *  service). */
+  service?: SWMLServiceLike;
+}
+
+/**
+ * The `SWMLService` shape a builder holds a back-reference to.
+ *
+ * Structural (rather than a direct `SWMLService` import) because `SWMLService`
+ * constructs a `SwmlBuilder`; a value import here would close an initialization
+ * cycle. Only the identity of the service matters to the back-reference, so the
+ * members named are the ones a holder of the reference can rely on.
+ */
+export interface SWMLServiceLike {
+  /** The service's name. */
+  readonly name: string;
+  /** The route the service is mounted at. */
+  readonly route: string;
 }
 
 /**
@@ -62,6 +83,18 @@ export class SwmlBuilder {
   /** Per-instance SchemaUtils used when a custom `schemaPath` was supplied. */
   private _instanceSchemaUtils: SchemaUtils | null = null;
   private enableValidation: boolean;
+  /**
+   * The `SWMLService` this builder belongs to — the reference's public
+   * `self.service` (`core/swml_builder.py:57`) — or `undefined` for a standalone
+   * builder.
+   *
+   * In the reference the builder DELEGATES document construction to the service, so
+   * the service is a required constructor argument. TS inverts the ownership (the
+   * builder holds its own document and `SWMLService` holds the builder), which is why
+   * it is optional here. The read-back is the same: a caller holding the builder can
+   * reach the service that owns it.
+   */
+  readonly service?: SWMLServiceLike;
 
   /**
    * Creates a new SwmlBuilder.
@@ -87,6 +120,7 @@ export class SwmlBuilder {
     if (opts?.schemaPath) {
       this._instanceSchemaUtils = new SchemaUtils({ schemaPath: opts.schemaPath });
     }
+    this.service = opts?.service;
     this._installVerbMethods();
   }
 
@@ -98,8 +132,10 @@ export class SwmlBuilder {
 
   /**
    * Public read-only accessor for the underlying SWML document.
-   * Provides direct access to the document, equivalent to the Python SDK's
-   * `service` property on `SWMLBuilder`.
+   *
+   * (Not the reference's `service` — that is the SWMLService back-reference, exposed
+   * as {@link service}. This is the document the builder is assembling, which the
+   * reference reaches through `self.service`.)
    */
   get document(): { version: string; sections: Record<string, unknown[]> } {
     return this._document;
@@ -203,7 +239,7 @@ export class SwmlBuilder {
       // `hasVerb`, which let unknown verbs slip through.)
       const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
       if (!result.valid) {
-        throw new Error(`SWML verb validation failed: ${result.errors.join('; ')}`);
+        throw new SchemaValidationError(verbName, result.errors);
       }
     }
     // The default document factory always seeds a `main` section; preserve the
@@ -213,11 +249,32 @@ export class SwmlBuilder {
 
   /**
    * Appends a verb to a named section, creating the section if it does not exist.
+   *
+   * Validates exactly as {@link addVerb} does. The reference validates at BOTH
+   * add-verb sites (`core/swml_service.py:558` and `:635`, each raising
+   * `SchemaValidationError`); this path previously appended without validating, so a
+   * misshapen or unknown verb reached a non-main section silently.
+   *
    * @param sectionName - The target section name.
    * @param verbName - The SWML verb name.
    * @param config - The verb's configuration payload.
+   * @param opts - When `opts.skipValidation` is true, append without validating
+   *   (same trusted-internal-assembly escape hatch as {@link addVerb}).
+   * @throws {SchemaValidationError} When validation is enabled and the config does
+   *   not satisfy the verb's schema (or the verb is unknown).
    */
-  addVerbToSection(sectionName: string, verbName: string, config: unknown): void {
+  addVerbToSection(
+    sectionName: string,
+    verbName: string,
+    config: unknown,
+    opts?: { skipValidation?: boolean },
+  ): void {
+    if (this.enableValidation && !opts?.skipValidation) {
+      const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
+      if (!result.valid) {
+        throw new SchemaValidationError(verbName, result.errors);
+      }
+    }
     if (!this._document.sections[sectionName]) {
       this._document.sections[sectionName] = [];
     }

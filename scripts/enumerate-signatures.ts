@@ -191,6 +191,30 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     list_skills: 'discover_skills',
     register: 'register_skill',
   },
+  // POM Section's `numberedBullets` is a WIRE KEY, recorded camelCase VERBATIM by the
+  // reference oracle (it round-trips through the POM dict, `pom.py:345,361,371`).
+  // `camelToSnake` at collection turns the identically-spelled TS field into
+  // `numbered_bullets`; undo it. Lock-step with enumerate-surface.ts.
+  'signalwire.pom.pom.Section': { numbered_bullets: 'numberedBullets' },
+  // AIChatError / RelayError: the RAW, undecorated server message — the reference's
+  // public `self.message` (`ai_chat/client.py:68`, `relay/client.py:1332`), set
+  // alongside a DECORATED `super().__init__(...)`. In JS the `message` property is
+  // owned by `Error` and holds that decorated string, so the undecorated value lives
+  // under `serverMessage` and folds onto the reference's `message`. Same precedent as
+  // java's `getServerMessage()`. Lock-step with enumerate-surface.ts.
+  'signalwire.ai_chat.client.AIChatError': { server_message: 'message' },
+  'signalwire.relay.client.RelayError': { server_message: 'message' },
+  // AuthHandler: TS `readonly config: AuthConfig` is the reference's public
+  // `self.security_config` (`core/auth_handler.py:63`) — one value object naming the
+  // configured auth methods, passed whole at construction and readable back in both.
+  // Matches CONSTRUCTION_PARAM_RENAMES for the same class, and enumerate-surface.ts.
+  'signalwire.core.auth_handler.AuthHandler': { config: 'security_config' },
+  // SWAIGFunction: TS `extraFields` is the reference's public `self.extra_swaig_fields`
+  // (`core/swaig_function.py:108`) — the additional SWAIG-only fields merged verbatim
+  // into the serialized definition (`:279`). TS shortens the name because the class is
+  // already SWAIG-scoped; same slot, same wire effect. Recorded by the SIGNATURE oracle
+  // only (the surface oracle does not carry it), so this rename lives here alone.
+  'signalwire.core.swaig_function.SWAIGFunction': { extra_fields: 'extra_swaig_fields' },
 };
 
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
@@ -2463,6 +2487,35 @@ function main(): number {
       Object.assign(doc.modules[targetMod].classes![targetCls].methods, present);
       Object.keys(present).forEach((m) => projected.add(m));
     }
+    // `ToolRegistry.agent` — the reference constructs the registry with a
+    // back-reference to its owning agent (`ToolRegistry(self)`, stored as public
+    // `self.agent`, `core/agent/tools/registry.py:32`). TS does not extract the
+    // registry as a separate OBJECT: its methods are declared directly on
+    // SWMLService (a `toolRegistry` Map field), which is what the projection above
+    // encodes. When the registry and its agent are the SAME object, the
+    // back-reference is `this` — as reachable in TS as in Python, simply already in
+    // hand. Same fold cpp applies for the same reason, and lock-step with
+    // enumerate-surface.ts.
+    //
+    // Gated on the projection having produced the class, so this can never emit a
+    // member for a class the port does not present. `PromptManager` is NOT folded
+    // here: TS ships it as a real distinct class carrying a real `agent` field,
+    // collected by the ordinary property walk.
+    {
+      const regMod = 'signalwire.core.agent.tools.registry';
+      const regCls = doc.modules[regMod]?.classes?.['ToolRegistry'];
+      if (regCls && Object.keys(regCls.methods).length > 0 && !regCls.methods['agent']) {
+        // The reference annotates it `agent: Any` → `returns: 'any'`; match that
+        // rather than narrowing, so the two sides compare equal.
+        regCls.methods = Object.fromEntries(
+          Object.entries({
+            ...regCls.methods,
+            agent: { params: [{ name: 'self', kind: 'self' }], returns: 'any' },
+          }).sort(),
+        ) as Record<string, CanonicalSignature>;
+      }
+    }
+
     // Drop projected methods only from AgentBase (SWMLService keeps its own).
     if (abEntry) {
       for (const m of projected) delete abEntry.methods[m];

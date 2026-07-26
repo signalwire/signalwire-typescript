@@ -171,8 +171,22 @@ signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_prompt_sections: approve
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.setup: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
-signalwire.utils.schema_utils.SchemaValidationError: impossible: TS returns a ValidationResult (SchemaUtils.validate → { valid, errors }), no exception class
-signalwire.utils.schema_utils.SchemaValidationError.__init__: impossible: TS returns a ValidationResult (SchemaUtils.validate → { valid, errors }), no exception class to construct
+# SchemaValidationError: RESOLVED 2026-07-26, entries DELETED — the capability was
+# IMPLEMENTED, not excused (ALLOWLIST_DISCIPLINE §8 disposition 1).
+#
+# The retired `impossible:` rationale claimed "TS returns a ValidationResult, no
+# exception class". That was wrong on its own terms: `SwmlBuilder.addVerb` DID throw
+# on a failed validation — it threw a bare `Error` whose only content was the joined
+# message string, so `verbName` and the individual `errors` were unrecoverable
+# without parsing prose. java / cpp / dotnet / ruby all ship the class with both
+# fields, which settles that no language limitation was involved.
+#
+# `SchemaValidationError(verbName, errors)` now exists in `src/SchemaUtils.ts` with
+# both construction params readable back, is exported from the package root, and is
+# thrown from BOTH add-verb paths the reference throws from
+# (`core/swml_service.py:558` and `:635`). `addVerbToSection` previously appended
+# without validating at all — a misshapen or unknown verb reached a non-main section
+# silently; it now validates exactly as `addVerb` does.
 
 ## ToolMixin / ToolRegistry (Python uses mixin pattern — TS uses direct methods on SWMLService)
 

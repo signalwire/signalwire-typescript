@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
+import { SchemaValidationError } from '../src/SchemaUtils.js';
 import type { TtsGender } from '../src/relay/closedSets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -225,7 +226,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     it('rejects missing required properties', () => {
       expect(() => {
         builder.tap({} as Parameters<typeof builder.tap>[0]);
-      }).toThrow('SWML verb validation failed');
+      }).toThrow(SchemaValidationError);
     });
 
     it('rejects missing required properties with detail', () => {
@@ -491,9 +492,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
 
     it('rejects an arbitrary off-enum reason at render (parity with python)', () => {
-      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(
-        'SWML verb validation failed',
-      );
+      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(SchemaValidationError);
     });
   });
 

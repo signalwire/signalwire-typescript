@@ -299,6 +299,36 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   // reserved word; TS has no keyword clash and spells it `pass`. Same verb.
   'signalwire.relay.call.Call': { pass: 'pass_' },
 
+  // Section: `numberedBullets` is a WIRE KEY, not a Python name — it round-trips
+  // through the POM dict verbatim (reference `pom.py:345,361,371`), so the oracle
+  // records the camelCase spelling as-is. The TS field is spelled identically in
+  // source; `camelToSnake` at collection turns it into `numbered_bullets`, so undo
+  // that here. Same member, same wire key. (Measured fleet-wide: only four
+  // camelCase members exist in the whole oracle and all four are wire keys.)
+  'signalwire.pom.pom.Section': { numbered_bullets: 'numberedBullets' },
+
+  // AuthHandler: TS `readonly config: AuthConfig` is the reference's public
+  // `self.security_config` (`core/auth_handler.py:63`) — one value object naming the
+  // configured auth methods, passed whole at construction in both and readable back
+  // in both. Pure spelling of the same slot; matches the signature enumerator's
+  // CONSTRUCTION_PARAM_RENAMES entry for the same class.
+  'signalwire.core.auth_handler.AuthHandler': { config: 'security_config' },
+
+  // (SkillBase `config`→`params` is NOT a surface rename: SkillBase now ships a
+  // public `params` GETTER returning the whole config map under the reference's own
+  // spelling, so the member is collected verbatim by the accessor walk. The
+  // signature enumerator still renames the CONSTRUCTION PARAM, where the TS ctor
+  // argument really is spelled `config`.)
+
+  // AIChatError / RelayError: the RAW, undecorated server message — the
+  // reference's public `self.message` (ai_chat/client.py:68, relay/client.py:1332)
+  // set alongside a DECORATED `super().__init__(f"[{code}] {message}")`. In JS the
+  // `message` property is owned by `Error` and holds that decorated string, so the
+  // undecorated value is stored under `serverMessage` and folded onto the
+  // reference's `message` here. Same precedent as java's `getServerMessage()`.
+  'signalwire.ai_chat.client.AIChatError': { server_message: 'message' },
+  'signalwire.relay.client.RelayError': { server_message: 'message' },
+
   // SchemaUtils: TS idiom names map to the reference's spelling. The
   // capability is identical (schema verb introspection / document validation);
   // only the method name differs.
@@ -1065,16 +1095,25 @@ function main(): void {
     for (const m of c.methods) classMethods.get(cleanName)!.add(m);
   }
 
-  // Build a name → public-DATA-FIELD map (TS-class-name keyed, snake_cased). Used
-  // by the field-emission reconcile pass below to surface the relay Event
-  // @dataclass fields (and AI-Chat DTO / RequestOptions fields) the AST walk
-  // collected but that are gated on the reference declaring them.
+  // Build a name → public-DATA-FIELD map, snake_cased. Used by the
+  // field-emission reconcile pass below to surface the relay Event @dataclass
+  // fields (and AI-Chat DTO / RequestOptions fields) the AST walk collected but
+  // that are gated on the reference declaring them.
+  //
+  // KEYED BY THE **EMITTED** (alias-resolved) CLASS NAME, not the raw TS name.
+  // The reconcile pass iterates the emitted `modules` tree, so its lookup key is
+  // the canonical reference spelling. Keying this map by the TS spelling silently
+  // dropped every public field of a class whose name is aliased —
+  // `SwaigFunction`→`SWAIGFunction` (11 fields) and `RestError`→
+  // `SignalWireRestError` (5) never emitted, which read as 16 construction params
+  // a TS caller could set but not read back (CONSTRUCTION-READBACK).
   const classFields = new Map<string, Set<string>>();
   for (const c of rawClasses) {
     if (!c.fields || c.fields.length === 0) continue;
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
-    if (!classFields.has(cleanName)) classFields.set(cleanName, new Set());
-    for (const f of c.fields) classFields.get(cleanName)!.add(f);
+    const emitKey = CLASS_NAME_ALIASES[cleanName] ?? cleanName;
+    if (!classFields.has(emitKey)) classFields.set(emitKey, new Set());
+    for (const f of c.fields) classFields.get(emitKey)!.add(f);
   }
 
   function resolveInherited(name: string, seen = new Set<string>()): Set<string> {
@@ -1272,6 +1311,30 @@ function main(): void {
       for (const m of present) existing.add(m);
       entry.classes[targetCls] = Array.from(existing).sort();
     }
+
+    // `ToolRegistry.agent` — the reference constructs the registry with a
+    // back-reference to its owning agent (`ToolRegistry(self)`, stored as public
+    // `self.agent`, `core/agent/tools/registry.py:32`; a ctor param the oracle's
+    // class-B2 rule records, so CONSTRUCTION-READBACK demands it).
+    //
+    // TS does not extract the registry as a separate OBJECT at all: its methods are
+    // declared directly on SWMLService (a `toolRegistry` Map field), which is exactly
+    // what the projection above encodes. When the registry and its agent are the SAME
+    // object the back-reference is `this` — reaching the agent from the registry is as
+    // available in TS as in Python, it is simply already in hand. Same fold cpp
+    // applies for the same reason (`signalwire-cpp/scripts/enumerate_surface.py`).
+    //
+    // Gated on the projection having actually produced members, so this can never
+    // surface a member for a class the port does not present. `PromptManager` is NOT
+    // in this list: TS ships it as a real distinct class and it carries a real `agent`
+    // back-reference field, collected by the ordinary walk.
+    {
+      const key = 'signalwire.core.agent.tools.registry';
+      const members = modules[key]?.classes?.['ToolRegistry'];
+      if (members && members.length > 0) {
+        modules[key]!.classes['ToolRegistry'] = Array.from(new Set([...members, 'agent'])).sort();
+      }
+    }
   }
 
   // Reconcile: skill `register_tools`. TS skills use the declarative getTools()
@@ -1450,6 +1513,15 @@ function main(): void {
   // struct members. camelCase→snake_case already applied at collection. Only
   // lands where the reference declares the class (a port-only class has no
   // reference member set to gate on and is left untouched).
+  //
+  // METHOD_NAME_ALIASES applies to FIELDS too, for the same reason it applies to
+  // methods: a field is a member, and a member whose TS spelling differs from the
+  // reference's is a RENAME (ALLOWLIST_DISCIPLINE §7 row 2), never a divergence.
+  // Two live cases: `Section.numbered_bullets` (the reference records the WIRE KEY
+  // `numberedBullets` verbatim — it round-trips through the POM dict, so
+  // camelToSnake must be undone) and `AIChatError.server_message` (the raw
+  // undecorated server text; the `message` spelling is taken by JS `Error.message`,
+  // which carries the DECORATED string).
   {
     for (const [mod, entry] of Object.entries(modules)) {
       for (const [cls, methods] of Object.entries(entry.classes)) {
@@ -1457,9 +1529,11 @@ function main(): void {
         if (!candFields) continue;
         const refMembers = pythonMethodsByOwner.get(`${mod}.${cls}`);
         if (!refMembers) continue; // port-only class — no reference gate.
+        const fieldAliases = METHOD_NAME_ALIASES[`${mod}.${cls}`] ?? {};
         const merged = new Set(methods);
         for (const f of candFields) {
-          if (refMembers.has(f)) merged.add(f);
+          const canon = fieldAliases[f] ?? f;
+          if (refMembers.has(canon)) merged.add(canon);
         }
         entry.classes[cls] = Array.from(merged).sort();
       }

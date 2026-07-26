@@ -5,6 +5,7 @@
  */
 
 import { PomBuilder } from './PomBuilder.js';
+import type { AgentBase } from './AgentBase.js';
 
 /** Manages agent prompt text, supporting both raw text and structured POM-based prompts. */
 export class PromptManager {
@@ -12,13 +13,25 @@ export class PromptManager {
   private postPrompt: string | null = null;
   private pom: PomBuilder | null = null;
   private usePom: boolean;
+  /**
+   * The agent this manager belongs to (the reference's public `self.agent`,
+   * `core/agent/prompt/manager.py:32`), or `undefined` for standalone use.
+   *
+   * The reference takes the parent agent as its sole constructor argument and keeps
+   * it as a public back-reference. A caller holding the manager can therefore walk
+   * back to its owner; this is the read-back of that same value.
+   */
+  readonly agent?: AgentBase;
 
   /**
    * Creates a new PromptManager.
    * @param usePom - Whether to use structured POM sections (default true).
+   * @param agent - Optional parent agent, kept as a public back-reference
+   *   (the reference's `PromptManager(agent)`). Omit for standalone use.
    */
-  constructor(usePom = true) {
+  constructor(usePom = true, agent?: AgentBase) {
     this.usePom = usePom;
+    this.agent = agent;
     if (usePom) {
       this.pom = new PomBuilder();
     }

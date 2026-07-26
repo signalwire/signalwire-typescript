@@ -143,11 +143,22 @@ describe('SWMLService SWAIG hosting', () => {
 
       // 1. Build the SWML — answer + ai_sidecar verb config.
       svc.addVerb('answer', {});
-      svc.addVerbToSection('main', 'ai_sidecar', {
-        prompt: 'real-time copilot',
-        lang: 'en-US',
-        direction: ['remote-caller', 'local-caller'],
-      });
+      // `ai_sidecar` is a real, server-accepted verb the BUNDLED schema does not yet
+      // model (porting-sdk task #34 — schema refresh). Both public add-verb paths now
+      // validate, exactly as the reference does at `core/swml_service.py:558` and
+      // `:635` (an unknown verb raises there too), so this test drives the builder's
+      // trusted-internal `skipValidation` escape hatch rather than the service's
+      // validating wrapper. Drop the option once the verb is in the schema.
+      svc.getBuilder().addVerbToSection(
+        'main',
+        'ai_sidecar',
+        {
+          prompt: 'real-time copilot',
+          lang: 'en-US',
+          direction: ['remote-caller', 'local-caller'],
+        },
+        { skipValidation: true },
+      );
       const rendered = svc.renderSwml();
       const main = ((rendered as Record<string, unknown>)['sections'] as Record<string, unknown[]>)[
         'main'
