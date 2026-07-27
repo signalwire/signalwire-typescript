@@ -18,6 +18,36 @@ export interface ValidationResult {
   errors: string[];
 }
 
+/**
+ * Thrown when schema validation of a SWML verb config fails.
+ *
+ * Mirrors the reference `signalwire.utils.schema_utils.SchemaValidationError`
+ * (`SchemaValidationError(verb_name, errors)`, `utils/schema_utils.py:25`) and the
+ * same class in java / cpp / dotnet / ruby.
+ *
+ * Both construction arguments are readable back, so a caller can branch on WHICH
+ * verb failed and enumerate the individual messages programmatically. Previously
+ * `addVerb` threw a bare `Error` whose only content was a joined string, which meant
+ * neither piece was recoverable without parsing the message text.
+ */
+export class SchemaValidationError extends Error {
+  /** The verb whose config failed validation. */
+  readonly verbName: string;
+  /** The individual human-readable validation error messages. */
+  readonly errors: readonly string[];
+
+  /**
+   * @param verbName - The verb whose config failed validation.
+   * @param errors - The individual validation error messages.
+   */
+  constructor(verbName: string, errors: string[]) {
+    super(`Schema validation failed for '${verbName}': ${errors.join('; ')}`);
+    this.name = 'SchemaValidationError';
+    this.verbName = verbName;
+    this.errors = Object.freeze([...errors]);
+  }
+}
+
 /** A verb definition extracted from the schema. */
 export interface VerbDefinition {
   /** The verb name as used in SWML (e.g. "answer", "hangup", "sip_refer"). */
@@ -40,7 +70,7 @@ export class SchemaUtils {
   private schema: Record<string, unknown> | null = null;
   private verbs: Map<string, VerbDefinition> = new Map();
   /** Path to the schema file, or null to use the bundled schema. */
-  private schemaPath: string | null;
+  private _schemaPath: string | null;
   /** Per-verb lazily-compiled JSON-Schema (Draft 2020-12) validators, keyed by
    *  verb name. Each validates a single verb's config against JUST that verb's
    *  `$defs` definition (with the schema's `$defs` available for `$ref`s), the
@@ -60,8 +90,22 @@ export class SchemaUtils {
     this.skipValidation =
       opts?.skipValidation ?? process.env['SWML_SKIP_SCHEMA_VALIDATION'] === 'true';
     this.maxCacheSize = opts?.maxCacheSize ?? 100;
-    this.schemaPath = opts?.schemaPath ?? null;
+    this._schemaPath = opts?.schemaPath ?? null;
     this.loadSchema();
+  }
+
+  /**
+   * The schema file path in effect — the reference's public `self.schema_path`
+   * (`utils/schema_utils.py:69`), or `null` when the bundled schema is in use.
+   *
+   * A caller who passes `schemaPath` at construction can read back which schema the
+   * instance actually resolved. The reference additionally rewrites the attribute to
+   * the resolved DEFAULT path when none was supplied (line 71); TS keeps `null` for
+   * "bundled", which is the same information without hardcoding a filesystem path
+   * into the surface — the bundled schema is imported, not read from disk.
+   */
+  get schemaPath(): string | null {
+    return this._schemaPath;
   }
 
   /**
@@ -78,10 +122,10 @@ export class SchemaUtils {
     this.verbValidators.clear();
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
-    if (this.schemaPath) {
+    if (this._schemaPath) {
       try {
         const require = createRequire(import.meta.url);
-        this.schema = require(this.schemaPath) as Record<string, unknown>;
+        this.schema = require(this._schemaPath) as Record<string, unknown>;
         this.verbs = this.extractVerbDefinitions();
         return this.schema;
       } catch {

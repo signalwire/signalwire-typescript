@@ -84,6 +84,25 @@ declare module './SwmlBuilder.js' {
       /** The action to perform during live transcription. */
       action: unknown;
     }): this;
+    /** Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top. */
+    ai_sidecar(config: {
+      /** Operator prompt — POM object, plain string, or {file: path}. */
+      prompt: Record<string, unknown>; /** BCP-47 conversation language. Required. */
+      lang: string; /** LLM model for sidecar tick + close-time summaries. */
+      model?: string; /** Both legs are required for sidecar mode. */
+      direction?: string[]; /** Which leg is the customer (turn-end trigger source). */
+      customer_role?: string; /** Webhook URL for transcribe events AND sidecar events. */
+      url?: string; /** SWAIG functions and MCP servers. */
+      SWAIG?: unknown; /** SWAIG permission overrides — pass-through to mod_openai. */
+      permissions?: Record<string, unknown>; /** Initial sidecar global_data. */
+      global_data?: Record<
+        string,
+        unknown
+      >; /** Speech-recognition hints biasing ASR toward specific terms. */
+      hints?: string[]; /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here. */
+      params?: Record<string, unknown>; /** Reserved for future runtime sub-actions. */
+      action?: unknown;
+    }): this;
     /** Start live translation of the call. The translation will be sent to the specified webhook URL. */
     live_translate(config: {
       /** The action to perform during live translation. */

@@ -166,6 +166,12 @@ const CLASS_MODULE_OVERRIDES: Record<string, string> = {
  *  in signatures, else the drift gate sees a spurious missing-port/missing-reference). */
 const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.relay.call.Call': { pass: 'pass_' },
+  // (AgentServer `log` → `logger` rename REMOVED 2026-07-25 — lock-step with
+  // enumerate-surface.ts. The reference no longer records the per-instance `logger`
+  // accessor; logging is a MODULE-LEVEL capability (ALLOWLIST_DISCIPLINE §8 owner
+  // ruling). PER_INSTANCE_LOGGER_MEMBERS below drops the port's mirror.)
+  // WebService.ssl_config accessor ≡ the reference's `security` accessor → rename.
+  'signalwire.web.web_service.WebService': { ssl_config: 'security' },
   'signalwire.utils.schema_utils.SchemaUtils': {
     get_verb_names: 'get_all_verb_names',
     validate: 'validate_document',
@@ -185,6 +191,30 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     list_skills: 'discover_skills',
     register: 'register_skill',
   },
+  // POM Section's `numberedBullets` is a WIRE KEY, recorded camelCase VERBATIM by the
+  // reference oracle (it round-trips through the POM dict, `pom.py:345,361,371`).
+  // `camelToSnake` at collection turns the identically-spelled TS field into
+  // `numbered_bullets`; undo it. Lock-step with enumerate-surface.ts.
+  'signalwire.pom.pom.Section': { numbered_bullets: 'numberedBullets' },
+  // AIChatError / RelayError: the RAW, undecorated server message — the reference's
+  // public `self.message` (`ai_chat/client.py:68`, `relay/client.py:1332`), set
+  // alongside a DECORATED `super().__init__(...)`. In JS the `message` property is
+  // owned by `Error` and holds that decorated string, so the undecorated value lives
+  // under `serverMessage` and folds onto the reference's `message`. Same precedent as
+  // java's `getServerMessage()`. Lock-step with enumerate-surface.ts.
+  'signalwire.ai_chat.client.AIChatError': { server_message: 'message' },
+  'signalwire.relay.client.RelayError': { server_message: 'message' },
+  // AuthHandler: TS `readonly config: AuthConfig` is the reference's public
+  // `self.security_config` (`core/auth_handler.py:63`) — one value object naming the
+  // configured auth methods, passed whole at construction and readable back in both.
+  // Matches CONSTRUCTION_PARAM_RENAMES for the same class, and enumerate-surface.ts.
+  'signalwire.core.auth_handler.AuthHandler': { config: 'security_config' },
+  // SWAIGFunction: TS `extraFields` is the reference's public `self.extra_swaig_fields`
+  // (`core/swaig_function.py:108`) — the additional SWAIG-only fields merged verbatim
+  // into the serialized definition (`:279`). TS shortens the name because the class is
+  // already SWAIG-scoped; same slot, same wire effect. Recorded by the SIGNATURE oracle
+  // only (the surface oracle does not carry it), so this rename lives here alone.
+  'signalwire.core.swaig_function.SWAIGFunction': { extra_fields: 'extra_swaig_fields' },
 };
 
 // MIXIN_PROJECTIONS: TS flattens AgentBase mixins via TS class extends.
@@ -438,6 +468,94 @@ const FREE_FN_MODULE_OVERRIDES: Record<string, string> = {
   validate_url: 'signalwire.utils.url_validator',
 };
 
+/** ── Logging idiom fold — lock-step with enumerate-surface.ts ─────────────────
+ *  Owner ruling 2026-07-24 (ALLOWLIST_DISCIPLINE §8): logging is a MODULE-LEVEL
+ *  capability; the contract is the five free functions the reference records in
+ *  `signalwire.core.logging_config`. See the long rationale block in
+ *  enumerate-surface.ts. The three tables must stay identical across both
+ *  enumerators, else the drift gate sees a spurious missing-port/missing-ref. */
+const LOGGING_CONFIG_MOD = 'signalwire.core.logging_config';
+
+/** Port-only `logging_config` CLASS → the reference free function whose capability
+ *  it expresses. `Logger` is the object `get_logger()` returns; Python's is
+ *  structlog's BoundLogger, a third-party type the oracle does not enumerate. */
+const LOGGING_CLASS_FOLDS: Record<string, string> = { Logger: 'get_logger' };
+
+/** Port-only `logging_config` FREE FUNCTION → reference free function. The
+ *  set_global_* / suppressAllLogs setters are the per-knob split of exactly the
+ *  state Python's env-driven `configure_logging()` sets (§7 typed-split row). */
+const LOGGING_FUNCTION_FOLDS: Record<string, string> = {
+  set_global_log_level: 'configure_logging',
+  set_global_log_format: 'configure_logging',
+  set_global_log_color: 'configure_logging',
+  set_global_log_stream: 'configure_logging',
+  suppress_all_logs: 'configure_logging',
+};
+
+/** Per-instance logger members dropped on BOTH sides — the reference removed them
+ *  as a marked, curated exclusion, so the port's mirror goes too (neither an
+ *  addition nor an omission). Key: `${mod}.${Class}`.
+ *
+ *  The drop is per-member GUARDED on the signature oracle: as of 2026-07-25 the
+ *  surface oracle had dropped all five while the signature oracle still recorded
+ *  them, so on THIS side only `AIChatClient.logger` (never recorded) actually
+ *  drops today. The table is complete and self-activating — each entry starts
+ *  folding the moment the signature oracle stops recording it, with no edit here. */
+const PER_INSTANCE_LOGGER_MEMBERS: Record<string, string[]> = {
+  'signalwire.agent_server.AgentServer': ['logger', 'log'],
+  'signalwire.core.skill_base.SkillBase': ['logger', 'log'],
+  'signalwire.core.skill_manager.SkillManager': ['logger', 'log'],
+  'signalwire.skills.registry.SkillRegistry': ['logger', 'log'],
+  // NOTE deliberately NOT `signalwire.ai_chat.client.AIChatClient` — see the same
+  // note in enumerate-surface.ts. `AIChatClient.log` takes `conversation_id` and
+  // returns `ChatLog` (chat-history retrieval), a real capability recorded by BOTH
+  // oracles; only the per-instance LOGGER attribute was excluded. The porting-sdk
+  // exclusion keys on return type + zero-arity precisely so a name match cannot
+  // delete it. Removed 2026-07-25.
+};
+
+/** Reference free functions + class members, loaded from the SIGNATURE oracle
+ *  (`python_signatures.json`) so every fold below is GUARDED on its target
+ *  actually existing in the oracle THIS enumerator's gate compares against — a
+ *  rename fails loud instead of silently dropping the port symbol.
+ *
+ *  ⚠️ Deliberately NOT `python_surface.json`: the two oracles can disagree
+ *  mid-rollout (measured 2026-07-25 — the surface oracle had already dropped the
+ *  per-instance `logger` members while the signature oracle still recorded them).
+ *  Guarding the signature emission on the surface oracle would drop a member the
+ *  signature gate still demands → `missing-port`. Each enumerator guards on its
+ *  own gate's authority. Empty maps if the oracle is absent (fold no-ops). */
+function loadReferenceSignatureIndex(): {
+  refFunctions: Map<string, Set<string>>;
+  refMembers: Map<string, Set<string>>;
+} {
+  const refFunctions = new Map<string, Set<string>>();
+  const refMembers = new Map<string, Set<string>>();
+  const refPath = path.join(PSDK, 'python_signatures.json');
+  if (!fs.existsSync(refPath)) return { refFunctions, refMembers };
+  let data: {
+    modules?: Record<
+      string,
+      {
+        classes?: Record<string, { methods?: Record<string, unknown> }>;
+        functions?: Record<string, unknown>;
+      }
+    >;
+  };
+  try {
+    data = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+  } catch {
+    return { refFunctions, refMembers };
+  }
+  for (const [mod, entry] of Object.entries(data.modules ?? {})) {
+    refFunctions.set(mod, new Set(Object.keys(entry.functions ?? {})));
+    for (const [cls, clsEntry] of Object.entries(entry.classes ?? {})) {
+      refMembers.set(`${mod}.${cls}`, new Set(Object.keys(clsEntry.methods ?? {})));
+    }
+  }
+  return { refFunctions, refMembers };
+}
+
 // Per-symbol free-function PARAM-shape overrides (teach-the-checker, scoped to a
 // single symbol — does NOT relax the comparison globally).
 //
@@ -682,6 +800,44 @@ function loadAliases(): Record<string, string> {
   const raw = fs.readFileSync(path.join(PSDK, 'type_aliases.yaml'), 'utf-8');
   const doc = yaml.load(raw) as { aliases: { typescript: Record<string, string> } };
   return doc.aliases.typescript;
+}
+
+/** Build `${mod}.${class}` → Set<member> of the reference's ZERO-ARG ACCESSOR
+ *  members (a `@dataclass` public field surfaces in the oracle as a `(self)→T`
+ *  accessor). Used to gate the emission of primitive-typed data fields (relay
+ *  Event structs, RequestOptions scalar fields): the AST walk only projects
+ *  class-typed composition fields, so a plain `readonly callState: string` is
+ *  emitted only where the reference declares that dataclass field accessor —
+ *  never a port-internal struct member. Empty map if the oracle is absent (the
+ *  gate then no-ops; signatures never hard-depend on it). */
+function loadReferenceFieldAccessors(): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const refPath = path.join(PSDK, 'python_signatures.json');
+  if (!fs.existsSync(refPath)) return out;
+  let data: {
+    modules?: Record<
+      string,
+      { classes?: Record<string, { methods?: Record<string, { params?: Array<unknown> }> }> }
+    >;
+  };
+  try {
+    data = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+  } catch {
+    return out;
+  }
+  for (const [mod, modEntry] of Object.entries(data.modules ?? {})) {
+    for (const [cls, clsEntry] of Object.entries(modEntry.classes ?? {})) {
+      const fields = new Set<string>();
+      for (const [member, sig] of Object.entries(clsEntry.methods ?? {})) {
+        if (member.startsWith('__')) continue;
+        const params = sig.params ?? [];
+        // A dataclass field accessor is exactly `(self)` — a single self param.
+        if (params.length === 1) fields.add(member);
+      }
+      if (fields.size > 0) out.set(`${mod}.${cls}`, fields);
+    }
+  }
+  return out;
 }
 
 /**
@@ -988,6 +1144,10 @@ interface SigDoc {
   version: '2';
   generated_from: string;
   modules: Record<string, ModuleEntry>;
+  /** The CONSTRUCTION CONTRACT (porting-sdk ALLOWLIST_DISCIPLINE.md §10) — a
+   *  name-keyed, unordered set of configurables per class, compared by NAME
+   *  (order/arity/mechanism are idiom). Emitted last so it reads after `modules`. */
+  construction?: Record<string, { params: Record<string, ConstructionParam> }>;
 }
 
 function inferParamKind(p: ts.ParameterDeclaration): CanonicalParam['kind'] {
@@ -1018,6 +1178,7 @@ function collectClass(
   aliases: Record<string, string>,
   doc: SigDoc,
   failures: TypeTranslationError[],
+  refFieldAccessors: Map<string, Set<string>>,
 ): void {
   if (!cls.name) return;
   const className = cls.name.text;
@@ -1038,6 +1199,8 @@ function collectClass(
     CLASS_MODULE_OVERRIDES[canonClass] ?? TS_MODULE_ALIASES[rel] ?? fallbackModuleName(rel);
 
   const methods: Record<string, CanonicalSignature> = {};
+  // Class-scoped method/property name aliases (renames), computed once for the class.
+  const methodAliases = METHOD_NAME_ALIASES[`${mod}.${canonClass}`];
 
   for (const m of cls.members) {
     if (ts.isConstructorDeclaration(m)) {
@@ -1051,6 +1214,17 @@ function collectClass(
           `${mod}.${canonClass}.__init__`,
           false,
         );
+      } catch (e) {
+        if (e instanceof TypeTranslationError) failures.push(e);
+        else throw e;
+      }
+      // CONSTRUCTION CONTRACT (porting-sdk ALLOWLIST_DISCIPLINE.md §10): record the
+      // ctor's NAME-KEYED configurable set, with any options-object bag EXPANDED to
+      // its members. Done here, at the ctor's AST node, because the bag's members
+      // are only reachable from the type — the flat `__init__` signature above has
+      // already collapsed them into one `opts: AgentOptions` param.
+      try {
+        collectConstruction(m, checker, aliases, `${mod}.${canonClass}`);
       } catch (e) {
         if (e instanceof TypeTranslationError) failures.push(e);
         else throw e;
@@ -1069,8 +1243,18 @@ function collectClass(
       const propMods = ts.getCombinedModifierFlags(m as ts.Declaration);
       if (propMods & ts.ModifierFlags.Private) continue;
       const propIsStatic = !!(propMods & ts.ModifierFlags.Static);
-      const snakeProp = camelToSnake(nativeProp);
+      // Apply the class-scoped method-name alias to composition PROPERTIES too, so a
+      // renamed class-typed field (AgentServer `log` field ≡ the reference's `logger`)
+      // folds the same way a renamed getter does.
+      const snakeProp = methodAliases?.[camelToSnake(nativeProp)] ?? camelToSnake(nativeProp);
       if (methods[snakeProp] !== undefined) continue;
+      // A primitive-typed data FIELD is emitted (as a `(self)→T` accessor) only
+      // when the reference declares it as a @dataclass field accessor on this
+      // exact class — the relay Event structs + RequestOptions scalar fields.
+      // Otherwise only class-typed composition fields project (the default rule).
+      const emitPrimitiveField = (refFieldAccessors.get(`${mod}.${canonClass}`) ?? new Set()).has(
+        snakeProp,
+      );
       try {
         const sig = signatureFromProperty(
           m,
@@ -1078,6 +1262,7 @@ function collectClass(
           aliases,
           propIsStatic,
           `${mod}.${canonClass}.${snakeProp}`,
+          emitPrimitiveField,
         );
         if (sig !== null) methods[snakeProp] = sig;
       } catch (e) {
@@ -1095,7 +1280,6 @@ function collectClass(
     if (mods & ts.ModifierFlags.Private) continue;
     const isStatic = !!(mods & ts.ModifierFlags.Static);
 
-    const methodAliases = METHOD_NAME_ALIASES[`${mod}.${canonClass}`];
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
@@ -1346,6 +1530,7 @@ function signatureFromProperty(
   aliases: Record<string, string>,
   isStatic: boolean,
   ctx: string,
+  emitPrimitiveField = false,
 ): CanonicalSignature | null {
   let propType: ts.Type;
   if (m.type) {
@@ -1354,9 +1539,11 @@ function signatureFromProperty(
     propType = checker.getTypeAtLocation(m);
   }
   const canon = translateType(propType, checker, aliases, ctx);
-  // Only project SDK class references; primitive-typed state fields
-  // are excluded (matches Python adapter's _is_sdk_class_type rule).
-  if (!isSdkClassRef(canon)) return null;
+  // Only project SDK class references by default; primitive-typed state fields
+  // are excluded (matches Python adapter's _is_sdk_class_type rule) — UNLESS the
+  // field is a reference-declared @dataclass field accessor (relay Event structs,
+  // RequestOptions scalar fields), in which case emit it verbatim.
+  if (!emitPrimitiveField && !isSdkClassRef(canon)) return null;
   const params: CanonicalParam[] = [];
   if (!isStatic) params.push({ name: 'self', kind: 'self' });
   return { params, returns: canon };
@@ -1555,6 +1742,292 @@ function generatedAliasFromNode(
  * undefined` from a `?`); for an options-object member (no `param`) we resolve the
  * written type node and add the `optional<…>` wrap ourselves.
  */
+// ---------------------------------------------------------------------------
+// Construction contract (porting-sdk ALLOWLIST_DISCIPLINE.md §10)
+// ---------------------------------------------------------------------------
+
+/**
+ * TypeScript expresses a wide many-optional-arg constructor as an OPTIONS OBJECT:
+ * the reference's `AgentBase.__init__(name, route, host, port, …)` becomes
+ * `new AgentBase({ name, route, host, port, … })` where the bag is a named
+ * interface (`AgentOptions`) or an inline type literal. The bag's MEMBERS are the
+ * construction parameter set — same capability, different spelling — so they
+ * satisfy the construction contract rather than being one blanket `__init__`
+ * signature omission that stops comparing all 22 params at once.
+ *
+ * Keyed `module.Class` → `{name: {type, required}}`, name-keyed and unordered:
+ * order/arity/mechanism are idiom, the named SET is the capability.
+ */
+const CONSTRUCTION: Record<string, Record<string, ConstructionParam>> = {};
+
+interface ConstructionParam {
+  type: string;
+  required: boolean;
+}
+
+/** Ctor parameter names that hold an options BAG rather than a single value.
+ *  A param with one of these names whose type resolves to an object with
+ *  properties is a CANDIDATE for expansion; whether it actually expands is decided
+ *  against the reference (see `collectConstruction`). */
+const OPTIONS_BAG_PARAM_NAMES = new Set(['opts', 'options', 'config', 'init', 'cfg']);
+
+/**
+ * The reference's construction contract, indexed `module.Class` → param names.
+ *
+ * Used to GUARD the options-bag expansion. Not every ctor param that is spelled
+ * `config` is an options bag: `AuthHandler(config: AuthConfig)` passes a domain
+ * VALUE OBJECT the reference also passes whole (`AuthHandler(security_config:
+ * SecurityConfig)`), so expanding it would invent six configurables the reference
+ * does not offer and lose the one it does. A bag expands only when its members
+ * actually land in the reference's named set for that class — otherwise it stays a
+ * single configurable. Guarding on the oracle also makes the fold fail LOUD: if the
+ * reference renames a param, the expansion stops matching and the drift surfaces
+ * instead of being silently absorbed.
+ */
+function loadReferenceConstruction(): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const refPath = path.join(PSDK, 'python_signatures.json');
+  if (!fs.existsSync(refPath)) return out;
+  let data: { construction?: Record<string, { params?: Record<string, unknown> }> };
+  try {
+    data = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+  } catch {
+    return out;
+  }
+  for (const [cls, entry] of Object.entries(data.construction ?? {})) {
+    out.set(cls, new Set(Object.keys(entry.params ?? {})));
+  }
+  return out;
+}
+
+const REF_CONSTRUCTION = loadReferenceConstruction();
+
+/** Options-bag members that are the `**kwargs` SUPER-PASSTHROUGH TAIL, not a
+ *  configurable. See the use site in `optionsBagMembers`. */
+const VAR_KEYWORD_BAG_MEMBERS = new Set(['agentOptions']);
+
+/**
+ * STRUCTURAL-ALIAS type folds for construction params.
+ *
+ * TS avoids a circular `Call.ts` ⇄ `Action.ts` import by declaring a structural
+ * subset interface and typing the param with it: `CallLike` is the one method of
+ * `Call` an Action needs (`_execute`), `RelayClientLike` the one method of
+ * `RelayClient` a Call needs (`execute`). The VALUE passed is always the real
+ * `Call` / `RelayClient` — the alias is a module-graph workaround, not a different
+ * configurable — so the construction contract records the class the reference does.
+ * Keyed by the canonical `class:` ref the alias resolves TO.
+ */
+const CONSTRUCTION_STRUCTURAL_ALIASES: Record<string, string> = {
+  'class:signalwire.relay.call.CallLike': 'class:signalwire.relay.call.Call',
+  'class:signalwire.relay.call.RelayClientLike': 'class:signalwire.relay.client.RelayClient',
+  // `RequestOptionsInit` is the plain-object initializer for `RequestOptions` — the
+  // same transport-envelope value in the same module, exactly as the method-param
+  // path already records it (see the `requestOptions` case in signatureFromMethod).
+  'class:signalwire.rest._request_options.RequestOptionsInit':
+    'class:signalwire.rest._request_options.RequestOptions',
+  // `SkillConfig` is an index-signature-only interface (`[key: string]: unknown`) —
+  // the TS spelling of Python's open `dict[str, Any]` per-skill parameter bag, not a
+  // closed shape. Record the dict the reference records.
+  'class:signalwire.core.skill_base.SkillConfig': 'dict<string,any>',
+};
+
+/** Apply the structural-alias fold to a construction param type, inside any
+ *  `optional<…>` / `list<…>` wrapper. */
+function foldConstructionType(t: string): string {
+  for (const [alias, real] of Object.entries(CONSTRUCTION_STRUCTURAL_ALIASES)) {
+    if (t === alias) return real;
+    if (t.includes(alias)) t = t.split(alias).join(real);
+  }
+  return t;
+}
+
+/**
+ * Construction-parameter RENAME table (ADAPTER_CONTRACT rule 3: translate names to
+ * Python-canonical form at adapter time). Name-keyed matching gives names weight
+ * they did not carry under position-matching, so a genuine port rename must be
+ * declared here rather than left to read as a missing param + an extra one.
+ *
+ * Keyed `module.Class` → `{ port-canonical (post camelToSnake) : reference name }`.
+ */
+const CONSTRUCTION_PARAM_RENAMES: Record<string, Record<string, string>> = {
+  // TS `new ConfigLoader(filePaths)` is Python's `ConfigLoader(config_paths)` —
+  // the same ordered list of config files to search. Pure spelling.
+  'signalwire.core.config_loader.ConfigLoader': { file_paths: 'config_paths' },
+  // `final` is a reserved-ish word in the TS/JS ecosystem tooling and collides with
+  // the class-field escape used elsewhere in the event models; the port spells it
+  // `final_` exactly as Python's own trailing-underscore escape convention. Same
+  // wire field (`final`).
+  'signalwire.relay.event.CollectEvent': { final_: 'final' },
+  // POM Section's bag member is written `numberedBullets`; the reference records
+  // the camelCase spelling verbatim (it is a Python kwarg spelled in camelCase),
+  // so undo camelToSnake for this one member.
+  'signalwire.pom.pom.Section': { numbered_bullets: 'numberedBullets' },
+  // TS `new AuthHandler(config: AuthConfig)` is Python's
+  // `AuthHandler(security_config: SecurityConfig)` — one value object naming the
+  // configured auth methods, passed whole in both. Pure spelling of the same slot.
+  'signalwire.core.auth_handler.AuthHandler': { config: 'security_config' },
+  // TS `webhookTrustProxy` is Python's `trust_proxy_for_signature`: same flag, same
+  // default (false), same effect — honor X-Forwarded-Proto / X-Forwarded-Host when
+  // reconstructing the public URL for webhook signature validation.
+  'signalwire.core.agent_base.AgentBase': { webhook_trust_proxy: 'trust_proxy_for_signature' },
+  // TS `new SkillBase(config?: SkillConfig)` — `SkillConfig` is an
+  // index-signature-only interface (`[key: string]: unknown`), i.e. the TS spelling
+  // of Python's `params: dict[str, Any] | None`. Same open per-skill parameter bag.
+  'signalwire.core.skill_base.SkillBase': { config: 'params' },
+};
+
+/**
+ * Record one class's construction contract from its constructor declaration.
+ *
+ * Two shapes, handled uniformly: leading positional params contribute themselves,
+ * and a param named `opts`/`options`/`config`/`init` whose type has properties
+ * contributes its MEMBERS (recursing one level is not needed — the SDK's bags are
+ * flat). Member optionality (`?` / a `| undefined` union) maps to `required:false`;
+ * a positional with `?` or an initializer likewise.
+ */
+function collectConstruction(
+  ctor: ts.ConstructorDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  key: string,
+): void {
+  const renames = CONSTRUCTION_PARAM_RENAMES[key] ?? {};
+  const params: Record<string, ConstructionParam> = CONSTRUCTION[key] ?? {};
+
+  const add = (name: string, type: string, required: boolean): void => {
+    if (!name || name.startsWith('_')) return;
+    const canon = renames[name] ?? name;
+    // An overload/second ctor must not downgrade a param already recorded as
+    // required; first writer wins on `required`, mirroring java's setdefault.
+    if (params[canon] === undefined) params[canon] = { type: foldConstructionType(type), required };
+  };
+
+  for (const p of ctor.parameters) {
+    if (!p.name || !ts.isIdentifier(p.name)) continue;
+    const native = p.name.text;
+    const snake = camelToSnake(native);
+    const optional = !!(p.questionToken || p.initializer);
+
+    if (OPTIONS_BAG_PARAM_NAMES.has(native)) {
+      const members = optionsBagMembers(p, checker, aliases, key);
+      // Expand only when the members land in the reference's named set for this
+      // class — see REF_CONSTRUCTION. A `config: AuthConfig` value object whose
+      // members are nowhere in the reference's set is NOT a bag; it falls through
+      // and is recorded as the single configurable it is.
+      const refNames = REF_CONSTRUCTION.get(key);
+      if (
+        members !== null &&
+        (refNames === undefined || members.some((m) => refNames.has(m.name)))
+      ) {
+        for (const m of members) add(m.name, m.type, m.required);
+        continue;
+      }
+      // Not an object-with-properties (e.g. `config: string`) — fall through and
+      // record it as an ordinary configurable rather than silently dropping it.
+    }
+
+    add(
+      snake,
+      canonForParamNode(p.type, optional, checker, aliases, `${key}[${snake}]`, p),
+      !optional,
+    );
+  }
+
+  if (Object.keys(params).length > 0) CONSTRUCTION[key] = params;
+}
+
+/**
+ * Expand an options-bag parameter to its members, or return null when the
+ * parameter's type is not an object with properties (so the caller can fall back
+ * to recording it as an ordinary param).
+ *
+ * Resolved through the CHECKER rather than the syntax tree so a named interface
+ * (`AgentOptions`), an inline type literal (`{ tag?: string; … }`), an intersection,
+ * and an interface that `extends` a base all expand identically — the mechanism is
+ * idiom, the member set is the capability.
+ */
+function optionsBagMembers(
+  p: ts.ParameterDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  key: string,
+): { name: string; type: string; required: boolean }[] | null {
+  const renames = CONSTRUCTION_PARAM_RENAMES[key] ?? {};
+  // Strip the `| undefined` an optional bag carries so `getPropertiesOfType` sees
+  // the object side of the union rather than an empty intersection.
+  let t = p.type ? checker.getTypeFromTypeNode(p.type) : checker.getTypeAtLocation(p);
+  if (t.isUnion()) {
+    const objects = t.types.filter(
+      (x) => !(x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)),
+    );
+    if (objects.length !== 1) return null;
+    t = objects[0];
+  }
+  // `Record<string, unknown>` / `dict<string,any>`-shaped bags have an index
+  // signature and NO declared properties: there is no named set to contribute, so
+  // they are not an expansion (the class simply has an untyped bag).
+  const props = checker.getPropertiesOfType(t);
+  if (props.length === 0) return null;
+  // A class/primitive typed param that happens to be named `config` is not a bag.
+  if (t.flags & (ts.TypeFlags.StringLike | ts.TypeFlags.NumberLike | ts.TypeFlags.BooleanLike)) {
+    return null;
+  }
+
+  const out: { name: string; type: string; required: boolean }[] = [];
+  for (const sym of props) {
+    const native = sym.getName();
+    if (native.startsWith('_')) continue;
+    // The `**kwargs` super-passthrough tail. Every TS prefab config carries
+    // `agentOptions?: Partial<AgentOptions>` — "additional AgentBase options
+    // forwarded to super()" — which is exactly the reference prefab ctor's
+    // trailing `**kwargs: Any` (verified: SurveyAgent/FAQBotAgent/… all end in
+    // `**kwargs`). The oracle's build_construction skips `var_keyword` params
+    // (_CONSTRUCTION_SKIP_KINDS), so this member is the same tail and is skipped
+    // here too — it is a mechanism for forwarding the set, not a member of it.
+    if (VAR_KEYWORD_BAG_MEMBERS.has(native)) continue;
+    const decl = sym.declarations?.[0];
+    // Only property/field members are configurables; a method on the bag type
+    // (possible when the bag is a class) is behavior, not a construction param.
+    if (
+      decl &&
+      !ts.isPropertySignature(decl) &&
+      !ts.isPropertyDeclaration(decl) &&
+      !ts.isPropertyAssignment(decl)
+    ) {
+      continue;
+    }
+    const snake = camelToSnake(native);
+    const canon = renames[snake] ?? snake;
+    const optional =
+      !!(sym.flags & ts.SymbolFlags.Optional) ||
+      (decl !== undefined &&
+        (ts.isPropertySignature(decl) || ts.isPropertyDeclaration(decl)) &&
+        !!decl.questionToken);
+    const typeNode =
+      decl && (ts.isPropertySignature(decl) || ts.isPropertyDeclaration(decl))
+        ? decl.type
+        : undefined;
+    out.push({
+      name: canon,
+      type: canonForParamNode(typeNode, optional, checker, aliases, `${key}[${canon}]`),
+      required: !optional,
+    });
+  }
+  return out;
+}
+
+/** Emit the `construction` node: name-keyed, sorted for byte-stable output. */
+function renderConstruction(): Record<string, { params: Record<string, ConstructionParam> }> {
+  const out: Record<string, { params: Record<string, ConstructionParam> }> = {};
+  for (const key of Object.keys(CONSTRUCTION).sort()) {
+    const params = CONSTRUCTION[key];
+    const sorted: Record<string, ConstructionParam> = {};
+    for (const n of Object.keys(params).sort()) sorted[n] = params[n];
+    out[key] = { params: sorted };
+  }
+  return out;
+}
+
 function canonForParamNode(
   typeNode: ts.TypeNode | undefined,
   optional: boolean,
@@ -1924,6 +2397,7 @@ function main(): number {
     modules: {},
   };
   const failures: TypeTranslationError[] = [];
+  const refFieldAccessors = loadReferenceFieldAccessors();
 
   for (const sourceFile of program.getSourceFiles()) {
     if (sourceFile.fileName.includes('node_modules')) continue;
@@ -1934,7 +2408,7 @@ function main(): number {
       if (ts.isClassDeclaration(node) && node.name) {
         const mods = ts.getCombinedModifierFlags(node);
         if (mods & ts.ModifierFlags.Export) {
-          collectClass(node, rel, checker, aliases, doc, failures);
+          collectClass(node, rel, checker, aliases, doc, failures, refFieldAccessors);
         }
       } else if (
         ts.isInterfaceDeclaration(node) &&
@@ -2013,6 +2487,35 @@ function main(): number {
       Object.assign(doc.modules[targetMod].classes![targetCls].methods, present);
       Object.keys(present).forEach((m) => projected.add(m));
     }
+    // `ToolRegistry.agent` — the reference constructs the registry with a
+    // back-reference to its owning agent (`ToolRegistry(self)`, stored as public
+    // `self.agent`, `core/agent/tools/registry.py:32`). TS does not extract the
+    // registry as a separate OBJECT: its methods are declared directly on
+    // SWMLService (a `toolRegistry` Map field), which is what the projection above
+    // encodes. When the registry and its agent are the SAME object, the
+    // back-reference is `this` — as reachable in TS as in Python, simply already in
+    // hand. Same fold cpp applies for the same reason, and lock-step with
+    // enumerate-surface.ts.
+    //
+    // Gated on the projection having produced the class, so this can never emit a
+    // member for a class the port does not present. `PromptManager` is NOT folded
+    // here: TS ships it as a real distinct class carrying a real `agent` field,
+    // collected by the ordinary property walk.
+    {
+      const regMod = 'signalwire.core.agent.tools.registry';
+      const regCls = doc.modules[regMod]?.classes?.['ToolRegistry'];
+      if (regCls && Object.keys(regCls.methods).length > 0 && !regCls.methods['agent']) {
+        // The reference annotates it `agent: Any` → `returns: 'any'`; match that
+        // rather than narrowing, so the two sides compare equal.
+        regCls.methods = Object.fromEntries(
+          Object.entries({
+            ...regCls.methods,
+            agent: { params: [{ name: 'self', kind: 'self' }], returns: 'any' },
+          }).sort(),
+        ) as Record<string, CanonicalSignature>;
+      }
+    }
+
     // Drop projected methods only from AgentBase (SWMLService keeps its own).
     if (abEntry) {
       for (const m of projected) delete abEntry.methods[m];
@@ -2074,10 +2577,56 @@ function main(): number {
       for (const sub of AICHAT_SUBCLASS_DROP_INIT) {
         if (aiChat[sub]) delete aiChat[sub].methods['__init__'];
       }
-      // (3) Synthesize the response-model dataclass __init__ (TS interfaces).
+      // (3) Synthesize the response-model dataclass surface (TS interfaces): the
+      // auto-`__init__` PLUS each public field as a `(self)→T` accessor — the
+      // reference @dataclass surfaces both the ctor and every field accessor.
       for (const [model, params] of Object.entries(AICHAT_RESPONSE_MODEL_INIT)) {
         if (!aiChat[model]) aiChat[model] = { methods: {} };
-        aiChat[model].methods = { __init__: { params, returns: 'void' } };
+        const methods: Record<string, CanonicalSignature> = {
+          __init__: { params, returns: 'void' },
+        };
+        for (const p of params) {
+          if (p.kind === 'self') continue;
+          methods[p.name] = { params: [{ name: 'self', kind: 'self' }], returns: p.type ?? 'any' };
+        }
+        aiChat[model].methods = Object.fromEntries(Object.entries(methods).sort());
+      }
+    }
+  }
+
+  // Logging idiom fold — lock-step with enumerate-surface.ts. See the table
+  // definitions above for the ruling and the evidence. Every fold is guarded on
+  // its reference target so a rename on either side fails LOUD.
+  {
+    const { refFunctions, refMembers } = loadReferenceSignatureIndex();
+    const logMod = doc.modules[LOGGING_CONFIG_MOD];
+    if (logMod) {
+      const refFns = refFunctions.get(LOGGING_CONFIG_MOD) ?? new Set<string>();
+      const haveFns = new Set(Object.keys(logMod.functions ?? {}));
+      const foldable = (target: string): boolean => refFns.has(target) && haveFns.has(target);
+
+      for (const [cls, target] of Object.entries(LOGGING_CLASS_FOLDS)) {
+        if (logMod.classes?.[cls] && foldable(target)) delete logMod.classes[cls];
+      }
+      if (logMod.functions) {
+        for (const [fn, target] of Object.entries(LOGGING_FUNCTION_FOLDS)) {
+          if (logMod.functions[fn] && foldable(target)) delete logMod.functions[fn];
+        }
+      }
+    }
+
+    for (const [key, members] of Object.entries(PER_INSTANCE_LOGGER_MEMBERS)) {
+      const idx = key.lastIndexOf('.');
+      const mod = key.slice(0, idx);
+      const cls = key.slice(idx + 1);
+      const clsEntry = doc.modules[mod]?.classes?.[cls];
+      if (!clsEntry) continue;
+      const declared = refMembers.get(key);
+      for (const m of members) {
+        // Guard: only drop while the reference does NOT declare it. If the oracle
+        // records it again, keep the port copy so the two compare.
+        if (declared?.has(m)) continue;
+        if (clsEntry.methods[m]) delete clsEntry.methods[m];
       }
     }
   }
@@ -2096,6 +2645,26 @@ function main(): number {
     sortedModules[k] = out;
   }
   doc.modules = sortedModules;
+
+  // CONSTRUCTION CONTRACT (§10) — emitted AFTER the post-passes so it stays in
+  // lockstep with the `__init__` set they leave behind: a class whose ctor was
+  // dropped (the AI-Chat error subclasses inherit AIChatError's) must not keep a
+  // construction entry, and a class whose `__init__` was SYNTHESIZED (the response
+  // models are TS interfaces, never walked as classes) must gain one.
+  for (const key of Object.keys(CONSTRUCTION)) {
+    const idx = key.lastIndexOf('.');
+    const cls = doc.modules[key.slice(0, idx)]?.classes?.[key.slice(idx + 1)];
+    if (!cls || !cls.methods['__init__']) delete CONSTRUCTION[key];
+  }
+  for (const [model, params] of Object.entries(AICHAT_RESPONSE_MODEL_INIT)) {
+    const entry: Record<string, ConstructionParam> = {};
+    for (const p of params) {
+      if (p.kind === 'self' || !p.name) continue;
+      entry[p.name] = { type: p.type ?? 'any', required: p.required !== false };
+    }
+    if (Object.keys(entry).length > 0) CONSTRUCTION[`${AICHAT_MODULE}.${model}`] = entry;
+  }
+  doc.construction = renderConstruction();
 
   if (failures.length > 0) {
     console.error(`enumerate-signatures: ${failures.length} translation failure(s)`);

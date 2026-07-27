@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SWMLService } from '../src/SWMLService.js';
+import { SchemaValidationError } from '../src/SchemaUtils.js';
 import { AgentBase } from '../src/AgentBase.js';
 
 /**
@@ -46,12 +47,12 @@ describe('SWML strict-render — misspelled/unknown key on a closed verb', () =>
     ['prompt', { txt: 'hi' }], // misspelled text
   ];
   it.each(badCases)('rejects %s with %o', (verb, config) => {
-    expect(() => strictService().addVerb(verb, config)).toThrow('SWML verb validation failed');
+    expect(() => strictService().addVerb(verb, config)).toThrow(SchemaValidationError);
   });
 
   it('rejects a wrong-typed config', () => {
     expect(() => strictService().addVerb('answer', { max_duration: 'notanumber' })).toThrow(
-      'SWML verb validation failed',
+      SchemaValidationError,
     );
   });
 });
@@ -72,18 +73,18 @@ describe('SWML strict-render — ai verb strict top-level keys (GAP1)', () => {
   it('rejects a misspelled top-level ai key (temperatur)', () => {
     expect(() =>
       strictService().addVerb('ai', { prompt: { text: 'hi' }, temperatur: 0.5 }),
-    ).toThrow('SWML verb validation failed');
+    ).toThrow(SchemaValidationError);
   });
 
   it('rejects an unknown top-level ai key (zzz)', () => {
     expect(() => strictService().addVerb('ai', { prompt: { text: 'hi' }, zzz: 1 })).toThrow(
-      'SWML verb validation failed',
+      SchemaValidationError,
     );
   });
 
   it('rejects an ai config missing the required prompt', () => {
     expect(() => strictService().addVerb('ai', { post_prompt: { text: 'bye' } })).toThrow(
-      'SWML verb validation failed',
+      SchemaValidationError,
     );
   });
 

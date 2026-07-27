@@ -202,8 +202,10 @@ export class AgentBase extends SWMLService {
    * SWMLService logger with an AgentBase-tagged one. */
   override log = getLogger('AgentBase');
 
-  // Skills
-  private _skillManager = new SkillManager();
+  // Skills. The manager takes `this` as its public back-reference (the
+  // reference's `SkillManager(agent)`); a field initializer runs after `super()`
+  // so `this` is already bound.
+  private _skillManager = new SkillManager(this);
 
   // New constructor params (P1 gaps)
   private _enablePostPromptOverride = false;
@@ -219,9 +221,30 @@ export class AgentBase extends SWMLService {
    * ``SIGNALWIRE_SIGNING_KEY``. When ``null``, signature validation is
    * disabled.
    *
-   * NEVER logged. NEVER serialized. NEVER returned from any public method.
+   * NEVER logged. NEVER serialized. Not included in any SWML/SWAIG render or
+   * state dump.
+   *
+   * READABLE, matching the reference's public `self.signing_key`
+   * (`core/agent_base.py:253`) and java's `getSigningKey()`. The value came FROM the
+   * caller (an explicit `signingKey` option or `SIGNALWIRE_SIGNING_KEY`), so a
+   * caller who supplied it must be able to read back which key the agent resolved —
+   * the same posture as `getBasicAuthCredentials()`, which already returns the auth
+   * secret. Withholding it hides configuration from its own owner without hiding it
+   * from anything else (the process already holds it).
    */
   private _signingKey: string | null = null;
+
+  /**
+   * The resolved SignalWire Signing Key, or `null` when signature validation is
+   * disabled — the reference's public `self.signing_key`.
+   *
+   * Read-only: the resolution order (explicit option → `SIGNALWIRE_SIGNING_KEY` →
+   * `null`) runs once at construction and the middleware is mounted against it, so a
+   * post-construction write would not take effect.
+   */
+  get signingKey(): string | null {
+    return this._signingKey;
+  }
   /** Whether to honor X-Forwarded-* headers when reconstructing the URL. */
   private _webhookTrustProxy = false;
 
@@ -319,7 +342,7 @@ export class AgentBase extends SWMLService {
       suppressAllLogs(true);
     }
 
-    this._promptManager = new PromptManager(opts.usePom ?? true);
+    this._promptManager = new PromptManager(opts.usePom ?? true, this);
     this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
     // swmlBuilder is inherited from SWMLService (initialized via super()).
 
@@ -2474,7 +2497,10 @@ export class AgentBase extends SWMLService {
     const copy = Object.create(Object.getPrototypeOf(this)) as AgentBase;
     Object.assign(copy, this);
     // Deep-copy mutable state
-    copy._promptManager = new PromptManager(true);
+    // The back-reference must point at the COPY, not `this` — an ephemeral
+    // per-request clone whose manager still pointed at the original would read
+    // back the wrong agent (the clone-drops-configuration defect class).
+    copy._promptManager = new PromptManager(true, copy);
     // Carry over the current prompt
     const p = this.getPrompt();
     if (p) copy._promptManager.setPromptText(p);
@@ -2490,10 +2516,12 @@ export class AgentBase extends SWMLService {
     copy.preAnswerVerbs = [...this.preAnswerVerbs];
     copy.postAnswerVerbs = [...this.postAnswerVerbs];
     copy.postAiVerbs = [...this.postAiVerbs];
-    copy.swmlBuilder = new SwmlBuilder();
+    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    copy.swmlBuilder = new SwmlBuilder({ service: copy });
 
     // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
-    copy._skillManager = new SkillManager();
+    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    copy._skillManager = new SkillManager(copy);
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
         // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
@@ -2800,18 +2828,17 @@ export class AgentBase extends SWMLService {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
-      // Token validation for secure functions
-      if (fn.secure) {
-        const url = new URL(c.req.url);
-        const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-        if (!token) {
-          reqLog.warn('missing_token');
-          const result = new FunctionResult(
-            'The security token for this function is missing or expired. This action cannot be completed.',
-          );
-          return c.json(result.toDict());
-        }
-        if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
+      // Validate the security token IF PRESENT. Parity with the reference
+      // (agent_base.py:1413-1445): a token that is supplied must be valid for a
+      // secure function — an invalid/expired one is refused — but a MISSING
+      // token does not by itself block dispatch here. The transport already
+      // gates this endpoint (basic auth), and the per-tool `__token` minted into
+      // the rendered `web_hook_url` is what the platform round-trips.
+      const url = new URL(c.req.url);
+      const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
+      if (token) {
+        reqLog.debug('token_found');
+        if (fn.secure && !this.sessionManager.validateToken(callIdStr, fnName, token)) {
           reqLog.warn('token_invalid');
           const result = new FunctionResult(
             'The security token for this function is invalid or expired. This action cannot be completed.',

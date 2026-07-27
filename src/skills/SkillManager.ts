@@ -8,6 +8,7 @@
 import { SkillBase, type SkillConfig } from './SkillBase.js';
 import { SkillRegistry } from './SkillRegistry.js';
 import { getLogger } from '../Logger.js';
+import type { AgentBase } from '../AgentBase.js';
 
 const log = getLogger('SkillManager');
 
@@ -34,17 +35,34 @@ interface SkillMetaEntry {
  * immediately calls `agent.add_hints()`, `agent.update_global_data()`, and
  * `agent.prompt_add_section()` to inject skill data into the agent.
  *
- * This TypeScript implementation uses a **pull model** instead: `SkillManager`
- * has no agent reference and no constructor. `AgentBase` owns the manager and
- * calls `getAllHints()`, `getMergedGlobalData()`, and `getAllPromptSections()`
- * at render time. Both approaches produce the same observable behavior at the
- * SWML / SWAIG level. The pull model avoids circular-reference issues between
- * `AgentBase` and `SkillManager` and is better suited to TypeScript's
- * import-graph constraints.
+ * This TypeScript implementation uses a **pull model** for INJECTION: `AgentBase`
+ * owns the manager and calls `getAllHints()`, `getMergedGlobalData()`, and
+ * `getAllPromptSections()` at render time rather than the manager pushing into the
+ * agent. Both approaches produce the same observable behavior at the SWML / SWAIG
+ * level.
+ *
+ * The owning agent is still kept as a public back-reference ({@link agent}) — the
+ * reference's `self.agent` (`core/skill_manager.py:22`) is READABLE state, and a
+ * caller holding the manager can walk back to its owner in Python. Only the
+ * direction of the data flow differs; the read-back does not.
  */
 export class SkillManager {
   private skills: Map<string, SkillBase> = new Map();
   private skillMeta: Map<string, SkillMetaEntry> = new Map();
+  /**
+   * The agent this manager belongs to (the reference's public `self.agent`), or
+   * `undefined` when the manager is used standalone (a bare `new SkillManager()`,
+   * as in tests and the doc examples).
+   */
+  readonly agent?: AgentBase;
+
+  /**
+   * @param agent - Optional owning agent, kept as a public back-reference
+   *   (the reference's `SkillManager(agent)`). Omit for standalone use.
+   */
+  constructor(agent?: AgentBase) {
+    this.agent = agent;
+  }
 
   /**
    * Public read-only view of all loaded skill instances, keyed by instance key.

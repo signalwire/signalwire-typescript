@@ -856,6 +856,10 @@ describe('AgentBase', () => {
       name: 'test_fn',
       description: 'Test',
       parameters: {},
+      // secure:false — this test exercises the onFunctionCall hook, not token
+      // validation; tools are secure by default so an untokenized POST would
+      // be rejected before dispatch.
+      secure: false,
       handler: () => new FunctionResult('ok'),
     });
     const app = agent.getApp();
@@ -1031,6 +1035,9 @@ describe('AgentBase', () => {
       name: 'crash_fn',
       description: 'Will crash',
       parameters: {},
+      // secure:false — this test exercises handler-error redaction, not token
+      // validation (tools are secure by default).
+      secure: false,
       handler: () => {
         throw new Error('secret internal error details');
       },
@@ -1113,7 +1120,11 @@ describe('AgentBase', () => {
     });
     const app = agent.getApp();
 
-    // Missing token
+    // Missing token: dispatch proceeds. Parity with the reference
+    // (agent_base.py:1413 `if token:`) — a token is validated only when one is
+    // supplied; absence alone does not refuse the call, since basic auth already
+    // gates this endpoint. The per-tool `__token` is minted into the rendered
+    // web_hook_url for the platform to round-trip (see Contract 9).
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
@@ -1124,9 +1135,10 @@ describe('AgentBase', () => {
     });
     expect(res1.status).toBe(200);
     const body1 = await res1.json();
-    expect(body1.response).toContain('security token');
+    expect(body1.response).toBe('ok');
 
-    // Invalid token
+    // Invalid token — a SUPPLIED token must be valid: refused, but as a 200
+    // FunctionResult (not a 403), which is what this test pins.
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
       headers: {
@@ -1186,6 +1198,9 @@ describe('AgentBase', () => {
       name: 'arg_test',
       description: 'Test args',
       parameters: {},
+      // secure:false — this test exercises argument coercion, not token
+      // validation (tools are secure by default).
+      secure: false,
       handler: (args) => {
         captured.push(args as Record<string, unknown>);
         return new FunctionResult('ok');
@@ -1245,6 +1260,9 @@ describe('AgentBase', () => {
       name: 'lookup_order',
       description: 'record args',
       parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
       handler: (args) => {
         received = args as Record<string, unknown>;
         return new FunctionResult('ok');
@@ -1273,6 +1291,9 @@ describe('AgentBase', () => {
       name: 'lookup_order',
       description: 'record args',
       parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
       handler: (args) => {
         received = args as Record<string, unknown>;
         return new FunctionResult('ok');
@@ -1298,6 +1319,9 @@ describe('AgentBase', () => {
       name: 'lookup_order',
       description: 'record args',
       parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
       handler: (args) => {
         received = args as Record<string, unknown>;
         return new FunctionResult('ok');

@@ -95,6 +95,7 @@ function loadPythonReference(pythonSurfacePath: string): {
   pythonModules: Set<string>;
   pythonClasses: Map<string, { mod: string; cls: string }[]>;
   pythonMethodsByOwner: Map<string, Set<string>>; // key: `${mod}.${cls}`
+  pythonFunctionsByModule: Map<string, Set<string>>; // module → free-function names
 } {
   if (!fs.existsSync(pythonSurfacePath)) {
     return {
@@ -103,6 +104,7 @@ function loadPythonReference(pythonSurfacePath: string): {
       pythonModules: new Set(),
       pythonClasses: new Map(),
       pythonMethodsByOwner: new Map(),
+      pythonFunctionsByModule: new Map(),
     };
   }
   const data: PythonSurface = JSON.parse(fs.readFileSync(pythonSurfacePath, 'utf-8'));
@@ -111,8 +113,10 @@ function loadPythonReference(pythonSurfacePath: string): {
   const pythonModules = new Set<string>();
   const pythonClasses = new Map<string, { mod: string; cls: string }[]>();
   const pythonMethodsByOwner = new Map<string, Set<string>>();
+  const pythonFunctionsByModule = new Map<string, Set<string>>();
   for (const [mod, entry] of Object.entries(data.modules)) {
     pythonModules.add(mod);
+    pythonFunctionsByModule.set(mod, new Set(entry.functions ?? []));
     for (const [cls, methods] of Object.entries(entry.classes ?? {})) {
       if (!classToModules.has(cls)) classToModules.set(cls, []);
       classToModules.get(cls)!.push(mod);
@@ -134,6 +138,7 @@ function loadPythonReference(pythonSurfacePath: string): {
     pythonModules,
     pythonClasses,
     pythonMethodsByOwner,
+    pythonFunctionsByModule,
   };
 }
 
@@ -294,6 +299,36 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   // reserved word; TS has no keyword clash and spells it `pass`. Same verb.
   'signalwire.relay.call.Call': { pass: 'pass_' },
 
+  // Section: `numberedBullets` is a WIRE KEY, not a Python name — it round-trips
+  // through the POM dict verbatim (reference `pom.py:345,361,371`), so the oracle
+  // records the camelCase spelling as-is. The TS field is spelled identically in
+  // source; `camelToSnake` at collection turns it into `numbered_bullets`, so undo
+  // that here. Same member, same wire key. (Measured fleet-wide: only four
+  // camelCase members exist in the whole oracle and all four are wire keys.)
+  'signalwire.pom.pom.Section': { numbered_bullets: 'numberedBullets' },
+
+  // AuthHandler: TS `readonly config: AuthConfig` is the reference's public
+  // `self.security_config` (`core/auth_handler.py:63`) — one value object naming the
+  // configured auth methods, passed whole at construction in both and readable back
+  // in both. Pure spelling of the same slot; matches the signature enumerator's
+  // CONSTRUCTION_PARAM_RENAMES entry for the same class.
+  'signalwire.core.auth_handler.AuthHandler': { config: 'security_config' },
+
+  // (SkillBase `config`→`params` is NOT a surface rename: SkillBase now ships a
+  // public `params` GETTER returning the whole config map under the reference's own
+  // spelling, so the member is collected verbatim by the accessor walk. The
+  // signature enumerator still renames the CONSTRUCTION PARAM, where the TS ctor
+  // argument really is spelled `config`.)
+
+  // AIChatError / RelayError: the RAW, undecorated server message — the
+  // reference's public `self.message` (ai_chat/client.py:68, relay/client.py:1332)
+  // set alongside a DECORATED `super().__init__(f"[{code}] {message}")`. In JS the
+  // `message` property is owned by `Error` and holds that decorated string, so the
+  // undecorated value is stored under `serverMessage` and folded onto the
+  // reference's `message` here. Same precedent as java's `getServerMessage()`.
+  'signalwire.ai_chat.client.AIChatError': { server_message: 'message' },
+  'signalwire.relay.client.RelayError': { server_message: 'message' },
+
   // SchemaUtils: TS idiom names map to the reference's spelling. The
   // capability is identical (schema verb introspection / document validation);
   // only the method name differs.
@@ -301,6 +336,15 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
     get_verb_names: 'get_all_verb_names', // TS getVerbNames ~ Python get_all_verb_names
     validate: 'validate_document', // TS validate(doc) ~ Python validate_document
   },
+
+  // (AgentServer `log` → `logger` rename REMOVED 2026-07-25: the reference no longer
+  // records the per-instance `logger` accessor at all. Logging is a MODULE-LEVEL
+  // capability — see PER_INSTANCE_LOGGER_MEMBERS below, which drops the port's mirror
+  // so neither side carries it.)
+
+  // WebService: TS exposes the SslConfig via an `ssl_config` accessor; the reference
+  // names it `security`. Same exposed member, different name → rename.
+  'signalwire.web.web_service.WebService': { ssl_config: 'security' },
 
   // SkillRegistry: TS singleton-style names map to Python methods.
   'signalwire.skills.registry.SkillRegistry': {
@@ -383,6 +427,80 @@ const FUNCTION_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.livewire': { tool: 'function_tool' },
 };
 
+/** ── Logging idiom fold (owner ruling 2026-07-24, ALLOWLIST_DISCIPLINE §8) ──────
+ *
+ *  "Logging is a MODULE-LEVEL capability that ports may reach however their
+ *  language does." The contract is exactly the five free functions the reference
+ *  records in `signalwire.core.logging_config`: get_logger, configure_logging,
+ *  get_execution_mode, reset_logging_configuration, strip_control_chars.
+ *
+ *  TS reaches the SAME capability with a different SHAPE, so it folds at the
+ *  emitter (§0: idiom is never an addition) rather than being ledgered:
+ *
+ *  1. The `Logger` CLASS is the object `get_logger(name)` RETURNS. Python's is
+ *     structlog's `BoundLogger` — a third-party type the oracle does not enumerate
+ *     as SDK surface. TS has no structlog, so the SDK must declare the returned
+ *     type itself; `bind`/`debug`/`info`/`warn`/`error` are exactly structlog's
+ *     bound-logger verbs. Same capability, port-owned return type → fold onto
+ *     `get_logger` and drop the class.
+ *
+ *  2. `setGlobalLogLevel` / `setGlobalLogFormat` / `setGlobalLogColor` /
+ *     `setGlobalLogStream` / `suppressAllLogs` are the individual setters for
+ *     exactly the state Python's `configure_logging()` derives from the env vars
+ *     SIGNALWIRE_LOG_MODE / _LEVEL / _FORMAT (verified: python
+ *     logging_config.configure_logging reads those three and dispatches to
+ *     _configure_off_mode / _configure_stderr_mode / _configure_default_mode;
+ *     TS resetLoggingConfiguration reads the same three). This is the §7
+ *     "one flagged method split into typed methods" row — the split exists
+ *     because TS wants a programmatic knob per setting. Fold onto
+ *     `configure_logging` and drop the setters.
+ */
+const LOGGING_CONFIG_MOD = 'signalwire.core.logging_config';
+
+/** Port-only classes in `logging_config` that fold onto a reference free function.
+ *  Keyed class → the reference function whose capability it expresses. */
+const LOGGING_CLASS_FOLDS: Record<string, string> = { Logger: 'get_logger' };
+
+/** Port-only free functions in `logging_config` that fold onto a reference free
+ *  function. Keyed (snake_case) port name → reference function. */
+const LOGGING_FUNCTION_FOLDS: Record<string, string> = {
+  set_global_log_level: 'configure_logging',
+  set_global_log_format: 'configure_logging',
+  set_global_log_color: 'configure_logging',
+  set_global_log_stream: 'configure_logging',
+  suppress_all_logs: 'configure_logging',
+};
+
+/** Per-instance logger MEMBERS the port mirrors from Python's structlog idiom.
+ *  The owner ruling (ALLOWLIST_DISCIPLINE §8, 2026-07-24) removed these from the
+ *  reference as a marked, curated exclusion: the per-instance `logger`/`log`
+ *  attribute is NOT contract on either side — it is Python's structlog idiom
+ *  leaking into the enumerated surface. Drop the port's mirror symmetrically so
+ *  neither ledger carries it. `${mod}.${Class}` → member names to drop.
+ *
+ *  Per-member GUARDED on the reference: a member is dropped only while the SURFACE
+ *  oracle does not declare it. (The two oracles can disagree mid-rollout — measured
+ *  2026-07-25, the signature oracle still recorded these five — so each enumerator
+ *  guards on its OWN gate's authority; see loadReferenceSignatureIndex in
+ *  enumerate-signatures.ts.) If the oracle records one again, the port keeps its
+ *  copy and the gate resumes comparing them. */
+const PER_INSTANCE_LOGGER_MEMBERS: Record<string, string[]> = {
+  'signalwire.agent_server.AgentServer': ['logger', 'log'],
+  'signalwire.core.skill_base.SkillBase': ['logger', 'log'],
+  'signalwire.core.skill_manager.SkillManager': ['logger', 'log'],
+  'signalwire.skills.registry.SkillRegistry': ['logger', 'log'],
+  // NOTE deliberately NOT `signalwire.ai_chat.client.AIChatClient`. Despite the
+  // name, `AIChatClient.log` is NOT a logger: it takes `conversation_id` and
+  // returns `ChatLog` — chat-history retrieval, a real capability recorded by BOTH
+  // oracles. The owner ruling covers the per-instance LOGGER attribute only. This
+  // is why the porting-sdk exclusion keys on the return type + zero-arity rather
+  // than the member NAME (see enumerate_python.py::_enrich_composition_attributes);
+  // a name-keyed drop would delete the capability. Listing it here was inert only
+  // because TS does not currently emit the member and the per-member guard
+  // suppresses the drop while the oracle declares it — i.e. a latent trap that
+  // would fire the moment TS implements `log()`. Removed 2026-07-25.
+};
+
 /** Per-symbol module overrides for free functions. ``src/SecurityUtils.ts`` is a
  *  single TS file whose exports map to TWO canonical Python modules: the three
  *  credential-hygiene helpers were extracted into Python's
@@ -430,11 +548,39 @@ interface ClassInfo {
   name: string;
   methods: string[];
   extendsName?: string;
+  /** Public readonly/instance data FIELDS (PropertyDeclarations), snake_cased.
+   *  Kept separate from `methods` because a field is only surfaced when the
+   *  Python reference @dataclass declares it on the same class — otherwise it
+   *  would flood the surface with port-internal struct members. */
+  fields?: string[];
 }
 
 interface FileSurface {
   classes: ClassInfo[];
   functions: string[];
+}
+
+/** Parse a source file and return, per exported `interface`, its public property
+ *  member names (snake_cased). Used to surface @dataclass-style DTO fields the
+ *  reference records for a TS interface (the class walk skips interfaces).
+ *  Method signatures and index signatures are ignored — only data fields. */
+function collectInterfaceFields(file: string): Map<string, Set<string>> {
+  const text = fs.readFileSync(file, 'utf-8');
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, true);
+  const out = new Map<string, Set<string>>();
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isInterfaceDeclaration(node)) return;
+    const name = node.name.text;
+    const fields = new Set<string>();
+    for (const member of node.members) {
+      if (ts.isPropertySignature(member) && member.name && ts.isIdentifier(member.name)) {
+        const fName = member.name.text;
+        if (!fName.startsWith('_')) fields.add(camelToSnake(fName));
+      }
+    }
+    out.set(name, fields);
+  });
+  return out;
 }
 
 /** Walk a source file and collect exported classes (with their public methods)
@@ -458,7 +604,19 @@ function enumerateFile(file: string): FileSurface {
     // likewise absent from the reference surface).
     if (rawName.startsWith('_')) return;
     const methods = new Set<string>();
+    const fields = new Set<string>();
     for (const member of node.members) {
+      // Public data field (PropertyDeclaration) — e.g. a relay Event's
+      // `readonly callId: string`. Collected separately from methods; a
+      // reconcile pass later surfaces only the fields the Python reference
+      // @dataclass declares on the same class (camelCase → snake_case).
+      if (ts.isPropertyDeclaration(member) && member.name && ts.isIdentifier(member.name)) {
+        const fName = member.name.text;
+        if (!fName.startsWith('_')) {
+          const mods = ts.getCombinedModifierFlags(member);
+          if (!(mods & ts.ModifierFlags.Private)) fields.add(camelToSnake(fName));
+        }
+      }
       // Skip private/protected? No — filter only on leading underscore, per
       // Python convention. TS `private` keyword is orthogonal to public API.
       if (ts.isConstructorDeclaration(member)) {
@@ -503,7 +661,12 @@ function enumerateFile(file: string): FileSurface {
         }
       }
     }
-    classes.push({ name: rawName, methods: Array.from(methods).sort(), extendsName });
+    classes.push({
+      name: rawName,
+      methods: Array.from(methods).sort(),
+      extendsName,
+      fields: Array.from(fields).sort(),
+    });
   }
 
   // Generated type modules (`*.types.generated.ts`, the relay `protocol.types.generated.ts`,
@@ -791,6 +954,76 @@ function resolvePythonSurfacePath(repoRoot: string): string {
   return sibling; // non-existent, will cause loadPythonReference to no-op.
 }
 
+// ---------------------------------------------------------------------------
+// Composition-attribute enrichment (surface class B1). The surface walker is
+// AST-only and records methods/getters/setters — it does NOT resolve a
+// class-typed FIELD (`readonly addresses: FabricAddresses`, an interface member
+// `params?: AIParams`) to the SDK class it holds. The griffe-typed SIGNATURE
+// oracle (`port_signatures.json`) already emits these as self-only members that
+// RETURN an SDK class, so we import them here — the exact mirror of the Python
+// reference's `enumerate_python._enrich_composition_attributes`, keeping the two
+// oracles consistent by construction. A member is a composition attribute iff its
+// signature is self-only (no non-self params) AND its return is an SDK class-ref
+// (`class:signalwire.…`), bare or wrapped in `optional<…>` / `list<…>`. A
+// `union<…>` return is EXCLUDED (those are the auto-vivified SWML verb SETTERS, a
+// different idiom class). Keyed by CLASS NAME (union across signature modules);
+// the enrich only lands an attr where the Python reference ALSO declares it on
+// that exact (module, class), so a re-declared method-less copy (calling/fabric
+// types) stays folded and never gains phantom members.
+// ---------------------------------------------------------------------------
+function resolvePortSignaturesPath(repoRoot: string): string {
+  const envPath = process.env['PORT_SIGNATURES_PATH'];
+  if (envPath && fs.existsSync(envPath)) return envPath;
+  return path.join(repoRoot, 'port_signatures.json');
+}
+
+interface PortSigMethodSig {
+  params?: Array<{ kind?: string }>;
+  returns?: unknown;
+}
+interface PortSigClass {
+  methods?: Record<string, PortSigMethodSig>;
+}
+interface PortSigModule {
+  classes?: Record<string, PortSigClass>;
+}
+
+/** Build `className -> Set<composition-attr member name>` from the signature
+ *  oracle, applying the same self-only + class-ref-return rule as Python's
+ *  `_is_composition_return`. Empty map if the oracle is absent (the enrich then
+ *  no-ops — surface never hard-depends on the signature oracle). */
+function loadCompositionAttrs(repoRoot: string): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const sigPath = resolvePortSignaturesPath(repoRoot);
+  if (!fs.existsSync(sigPath)) return out;
+  let data: { modules?: Record<string, PortSigModule> };
+  try {
+    data = JSON.parse(fs.readFileSync(sigPath, 'utf-8'));
+  } catch {
+    return out;
+  }
+  const isCompositionReturn = (ret: unknown): boolean => {
+    if (typeof ret !== 'string') return false;
+    if (ret.startsWith('union<')) return false; // verb-setter union — not composition.
+    return ret.includes('class:signalwire.');
+  };
+  for (const entry of Object.values(data.modules ?? {})) {
+    for (const [cls, cd] of Object.entries(entry.classes ?? {})) {
+      const methods = cd.methods;
+      if (!methods || typeof methods !== 'object') continue;
+      for (const [mn, sig] of Object.entries(methods)) {
+        if (!sig || typeof sig !== 'object') continue;
+        const nonSelf = (sig.params ?? []).filter((p) => p.kind !== 'self');
+        if (nonSelf.length !== 0) continue;
+        if (!isCompositionReturn(sig.returns)) continue;
+        if (!out.has(cls)) out.set(cls, new Set());
+        out.get(cls)!.add(mn);
+      }
+    }
+  }
+  return out;
+}
+
 function getGitSha(repoRoot: string): string {
   try {
     return execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
@@ -819,7 +1052,7 @@ function main(): void {
   const files = findSourceFiles(srcDir);
 
   const pythonSurfacePath = resolvePythonSurfacePath(repoRoot);
-  const { classToModules, methodToOwners, pythonMethodsByOwner } =
+  const { classToModules, methodToOwners, pythonMethodsByOwner, pythonFunctionsByModule } =
     loadPythonReference(pythonSurfacePath);
 
   interface ModuleEntry {
@@ -835,6 +1068,7 @@ function main(): void {
     name: string;
     methods: string[];
     extendsName?: string;
+    fields?: string[];
   }
   const rawClasses: RawClass[] = [];
   const rawFunctions: Array<{ fileRel: string; fns: string[] }> = [];
@@ -847,6 +1081,7 @@ function main(): void {
         name: c.name,
         methods: c.methods,
         extendsName: c.extendsName,
+        fields: c.fields,
       });
     }
     if (fs2.functions.length > 0) rawFunctions.push({ fileRel: rel, fns: fs2.functions });
@@ -858,6 +1093,27 @@ function main(): void {
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     if (!classMethods.has(cleanName)) classMethods.set(cleanName, new Set());
     for (const m of c.methods) classMethods.get(cleanName)!.add(m);
+  }
+
+  // Build a name → public-DATA-FIELD map, snake_cased. Used by the
+  // field-emission reconcile pass below to surface the relay Event @dataclass
+  // fields (and AI-Chat DTO / RequestOptions fields) the AST walk collected but
+  // that are gated on the reference declaring them.
+  //
+  // KEYED BY THE **EMITTED** (alias-resolved) CLASS NAME, not the raw TS name.
+  // The reconcile pass iterates the emitted `modules` tree, so its lookup key is
+  // the canonical reference spelling. Keying this map by the TS spelling silently
+  // dropped every public field of a class whose name is aliased —
+  // `SwaigFunction`→`SWAIGFunction` (11 fields) and `RestError`→
+  // `SignalWireRestError` (5) never emitted, which read as 16 construction params
+  // a TS caller could set but not read back (CONSTRUCTION-READBACK).
+  const classFields = new Map<string, Set<string>>();
+  for (const c of rawClasses) {
+    if (!c.fields || c.fields.length === 0) continue;
+    const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
+    const emitKey = CLASS_NAME_ALIASES[cleanName] ?? cleanName;
+    if (!classFields.has(emitKey)) classFields.set(emitKey, new Set());
+    for (const f of c.fields) classFields.get(emitKey)!.add(f);
   }
 
   function resolveInherited(name: string, seen = new Set<string>()): Set<string> {
@@ -1055,6 +1311,30 @@ function main(): void {
       for (const m of present) existing.add(m);
       entry.classes[targetCls] = Array.from(existing).sort();
     }
+
+    // `ToolRegistry.agent` — the reference constructs the registry with a
+    // back-reference to its owning agent (`ToolRegistry(self)`, stored as public
+    // `self.agent`, `core/agent/tools/registry.py:32`; a ctor param the oracle's
+    // class-B2 rule records, so CONSTRUCTION-READBACK demands it).
+    //
+    // TS does not extract the registry as a separate OBJECT at all: its methods are
+    // declared directly on SWMLService (a `toolRegistry` Map field), which is exactly
+    // what the projection above encodes. When the registry and its agent are the SAME
+    // object the back-reference is `this` — reaching the agent from the registry is as
+    // available in TS as in Python, it is simply already in hand. Same fold cpp
+    // applies for the same reason (`signalwire-cpp/scripts/enumerate_surface.py`).
+    //
+    // Gated on the projection having actually produced members, so this can never
+    // surface a member for a class the port does not present. `PromptManager` is NOT
+    // in this list: TS ships it as a real distinct class and it carries a real `agent`
+    // back-reference field, collected by the ordinary walk.
+    {
+      const key = 'signalwire.core.agent.tools.registry';
+      const members = modules[key]?.classes?.['ToolRegistry'];
+      if (members && members.length > 0) {
+        modules[key]!.classes['ToolRegistry'] = Array.from(new Set([...members, 'agent'])).sort();
+      }
+    }
   }
 
   // Reconcile: skill `register_tools`. TS skills use the declarative getTools()
@@ -1192,9 +1472,11 @@ function main(): void {
   //
   // The three response models (ConversationInfo / ChatResponse / ChatLog) are TS
   // `interface`s (structural records), not classes, so the class walk does not emit
-  // them. The reference records each as a method-less dataclass surface; surface
-  // them as bare (empty) classes so they compare equal. Guarded on the source file
-  // actually declaring each interface so a rename fails loud.
+  // them. The reference records each as a @dataclass whose public FIELDS are surface
+  // (`ChatResponse.text`/`conversation_id`/`user_event`, etc.). Surface each as a
+  // class carrying exactly the fields the reference declares (camelCase→snake_case),
+  // gated on the reference member set so a port-internal field never leaks. Guarded
+  // on the source file actually declaring each interface so a rename fails loud.
   {
     const AICHAT_MOD = 'signalwire.ai_chat.client';
     const clientEntry = modules[AICHAT_MOD]?.classes?.['AIChatClient'];
@@ -1206,13 +1488,125 @@ function main(): void {
     }
     const aiChatSrc = path.join(srcDir, 'ai-chat', 'AIChatClient.ts');
     if (fs.existsSync(aiChatSrc)) {
-      const src = fs.readFileSync(aiChatSrc, 'utf-8');
+      const ifaceFields = collectInterfaceFields(aiChatSrc);
       for (const model of ['ConversationInfo', 'ChatResponse', 'ChatLog']) {
-        if (new RegExp(`interface\\s+${model}\\b`).test(src)) {
-          const entry = ensureModule(AICHAT_MOD);
-          if (!entry.classes[model]) entry.classes[model] = [];
+        const declared = ifaceFields.get(model);
+        if (!declared) continue; // interface not present — rename fails loud.
+        const entry = ensureModule(AICHAT_MOD);
+        const refMembers = pythonMethodsByOwner.get(`${AICHAT_MOD}.${model}`);
+        const emit = new Set(entry.classes[model] ?? []);
+        for (const f of declared) {
+          if (!refMembers || refMembers.has(f)) emit.add(f);
+        }
+        entry.classes[model] = Array.from(emit).sort();
+      }
+    }
+  }
+
+  // Public-data-FIELD emission (@dataclass parity). The AST walk collects each
+  // class's public data fields (relay Event structs carry the deserialized
+  // payload as `readonly callId`/`callState`/… ; AI-Chat DTOs + RequestOptions
+  // carry their record fields). The reference oracle now enumerates a
+  // @dataclass's public annotated fields as surface. Emit exactly the fields the
+  // reference declares on this (module, class) — gated on `pythonMethodsByOwner`
+  // so we surface the reference field set and never over-emit port-internal
+  // struct members. camelCase→snake_case already applied at collection. Only
+  // lands where the reference declares the class (a port-only class has no
+  // reference member set to gate on and is left untouched).
+  //
+  // METHOD_NAME_ALIASES applies to FIELDS too, for the same reason it applies to
+  // methods: a field is a member, and a member whose TS spelling differs from the
+  // reference's is a RENAME (ALLOWLIST_DISCIPLINE §7 row 2), never a divergence.
+  // Two live cases: `Section.numbered_bullets` (the reference records the WIRE KEY
+  // `numberedBullets` verbatim — it round-trips through the POM dict, so
+  // camelToSnake must be undone) and `AIChatError.server_message` (the raw
+  // undecorated server text; the `message` spelling is taken by JS `Error.message`,
+  // which carries the DECORATED string).
+  {
+    for (const [mod, entry] of Object.entries(modules)) {
+      for (const [cls, methods] of Object.entries(entry.classes)) {
+        const candFields = classFields.get(cls);
+        if (!candFields) continue;
+        const refMembers = pythonMethodsByOwner.get(`${mod}.${cls}`);
+        if (!refMembers) continue; // port-only class — no reference gate.
+        const fieldAliases = METHOD_NAME_ALIASES[`${mod}.${cls}`] ?? {};
+        const merged = new Set(methods);
+        for (const f of candFields) {
+          const canon = fieldAliases[f] ?? f;
+          if (refMembers.has(canon)) merged.add(canon);
+        }
+        entry.classes[cls] = Array.from(merged).sort();
+      }
+    }
+  }
+
+  // Composition-attribute enrichment (class B1): add class-typed FIELD members the
+  // AST walk missed, imported from the signature oracle. Only lands an attr where
+  // the Python reference ALSO declares it on this exact (module, class), so a
+  // method-less re-declared copy never gains phantom members. Mirrors the
+  // reference oracle's `_enrich_composition_attributes`.
+  {
+    const compositionAttrs = loadCompositionAttrs(repoRoot);
+    if (compositionAttrs.size > 0) {
+      for (const [mod, entry] of Object.entries(modules)) {
+        for (const [cls, methods] of Object.entries(entry.classes)) {
+          const cand = compositionAttrs.get(cls);
+          if (!cand) continue;
+          const refMembers = pythonMethodsByOwner.get(`${mod}.${cls}`);
+          if (!refMembers) continue; // port-only class — no reference member set to gate on.
+          const merged = new Set(methods);
+          for (const attr of cand) {
+            if (refMembers.has(attr)) merged.add(attr);
+          }
+          entry.classes[cls] = Array.from(merged).sort();
         }
       }
+    }
+  }
+
+  // Reconcile: the LOGGING idiom fold (see LOGGING_CLASS_FOLDS /
+  // LOGGING_FUNCTION_FOLDS / PER_INSTANCE_LOGGER_MEMBERS above for the ruling and
+  // the evidence). Each fold is GUARDED on its reference target actually being
+  // present, so a rename on either side fails LOUD (the port symbol stays and the
+  // gate flags it) rather than silently vanishing.
+  {
+    const logEntry = modules[LOGGING_CONFIG_MOD];
+    if (logEntry) {
+      const refFns = new Set(pythonFunctionsByModule.get(LOGGING_CONFIG_MOD) ?? []);
+      const haveFns = new Set(logEntry.functions);
+
+      // 1. Port-only classes fold onto their reference free function.
+      for (const [cls, target] of Object.entries(LOGGING_CLASS_FOLDS)) {
+        if (!logEntry.classes[cls]) continue;
+        // Fold only if the reference declares the target AND the port emits it.
+        if (!refFns.has(target) || !haveFns.has(target)) continue;
+        delete logEntry.classes[cls];
+      }
+
+      // 2. Port-only setters fold onto their reference free function.
+      const keptFns = logEntry.functions.filter((fn) => {
+        const target = LOGGING_FUNCTION_FOLDS[fn];
+        if (target === undefined) return true;
+        if (!refFns.has(target) || !haveFns.has(target)) return true; // fail loud
+        return false;
+      });
+      logEntry.functions = keptFns.sort();
+    }
+
+    // 3. Per-instance logger members: dropped on BOTH sides per the owner ruling.
+    //    Guarded on the reference NOT declaring the member — if the oracle ever
+    //    records it again, the port keeps its copy and the gate compares them.
+    for (const [key, members] of Object.entries(PER_INSTANCE_LOGGER_MEMBERS)) {
+      const idx = key.lastIndexOf('.');
+      const mod = key.slice(0, idx);
+      const cls = key.slice(idx + 1);
+      const entry = modules[mod];
+      const current = entry?.classes?.[cls];
+      if (!entry || !current) continue;
+      const refMembers = pythonMethodsByOwner.get(key);
+      const drop = new Set(members.filter((m) => !(refMembers?.has(m) ?? false)));
+      if (drop.size === 0) continue;
+      entry.classes[cls] = current.filter((m) => !drop.has(m));
     }
   }
 

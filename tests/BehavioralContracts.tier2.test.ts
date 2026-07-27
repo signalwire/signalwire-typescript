@@ -535,3 +535,127 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
     expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
   });
 });
+
+// ── Contract 9: defineTool is SECURE BY DEFAULT (A1 / PSDK-4a) ───────────────
+//
+// The reference defaults `secure=True` on every user-facing define_tool entry
+// point (tool_mixin.py:37, agent/tools/registry.py:42, agent/tools/decorator.py:95)
+// — only the low-level SWAIGFunction constructor is False. TS collapses both
+// layers into one SwaigFunction class, so the user-facing default lives there.
+//
+// The DEFECT this pins: `secure: opts.secure ?? false` shipped every tool
+// registered without an explicit `secure` as INSECURE — its rendered webhook
+// carried no `__token`, so the platform performed no token validation on the
+// callback. Cross-port gate: SECURE-DEFAULT (diff_port_secure_default.py).
+describe('Contract 9 — defineTool defaults to secure, and the wire reflects it', () => {
+  const CALL_ID = 'call-secure-default-fixture';
+
+  /** The rendered SWAIG function entries, keyed by function name. */
+  function swaigFunctionsByName(agent: AgentBase): Record<string, Record<string, unknown>> {
+    const doc = JSON.parse(agent.renderSwml(CALL_ID)) as Record<string, unknown>;
+    const sections = doc['sections'] as Record<string, unknown>;
+    const main = sections['main'] as Array<Record<string, unknown>>;
+    const ai = main.find((v) => 'ai' in v)!['ai'] as Record<string, unknown>;
+    const swaig = ai['SWAIG'] as Record<string, unknown>;
+    const fns = swaig['functions'] as Array<Record<string, unknown>>;
+    const byName: Record<string, Record<string, unknown>> = {};
+    for (const fn of fns) byName[fn['function'] as string] = fn;
+    return byName;
+  }
+
+  function fixtureAgent(): AgentBase {
+    const agent = new AgentBase({ name: 'secure-default', route: '/sd', basicAuth: ['u', 'p'] });
+    agent.setPromptText('secure default contract');
+    agent.defineTool({
+      name: 'sd_default_secure',
+      description: 'no explicit secure',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+    agent.defineTool({
+      name: 'sd_explicit_insecure',
+      description: 'explicit secure:false',
+      parameters: {},
+      secure: false,
+      handler: () => new FunctionResult('ok'),
+    });
+    return agent;
+  }
+
+  it('records secure=true for a tool defined without an explicit secure', () => {
+    const agent = fixtureAgent();
+    // The recorded flag — false under the defect.
+    expect(agent.getTool('sd_default_secure')!.secure).toBe(true);
+    // The other direction: an explicit secure:false is still honored.
+    expect(agent.getTool('sd_explicit_insecure')!.secure).toBe(false);
+  });
+
+  it('emits a per-tool __token on the default tool and none on the insecure tool', () => {
+    const byName = swaigFunctionsByName(fixtureAgent());
+    // The WIRE manifestation of `secure`: a token iff the tool is secure.
+    expect(byName['sd_default_secure']!['web_hook_url']).toContain('__token=');
+    const insecureUrl = (byName['sd_explicit_insecure']!['web_hook_url'] as string) ?? '';
+    expect(insecureUrl).not.toContain('__token=');
+  });
+
+  it('defineTypedTool is secure by default too (both registration paths)', () => {
+    const agent = new AgentBase({ name: 'typed-sd', route: '/tsd', basicAuth: ['u', 'p'] });
+    agent.setPromptText('typed secure default');
+    agent.defineTypedTool({
+      name: 'typed_default',
+      description: 'typed, no explicit secure',
+      handler: (city: string) => new FunctionResult(`ok ${city}`),
+    });
+    expect(agent.getTool('typed_default')!.secure).toBe(true);
+  });
+
+  it('refuses an INVALID token on a default-secure tool (valid one dispatches)', async () => {
+    // route:'/' so the SWAIG endpoint is served at '/swaig' (the fixture agent
+    // above is routed at '/sd', where it would be '/sd/swaig').
+    //
+    // Parity with the reference (agent_base.py:1413-1445): a token that IS
+    // supplied must be valid for a secure function; a missing token does not by
+    // itself block dispatch (basic auth already gates the endpoint).
+    function agentFor(): AgentBase {
+      const a = new AgentBase({ name: 'secure-dispatch', route: '/', basicAuth: ['u', 'p'] });
+      a.setPromptText('secure default dispatch');
+      a.defineTool({
+        name: 'sd_default_secure',
+        description: 'no explicit secure',
+        parameters: {},
+        handler: () => new FunctionResult('dispatched'),
+      });
+      return a;
+    }
+    const post = (a: AgentBase, qs: string) =>
+      a.getApp().request(`/swaig${qs}`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          function: 'sd_default_secure',
+          argument: { parsed: [{}] },
+          call_id: 'c1',
+        }),
+      });
+
+    // A forged token on a secure tool is refused before the handler runs.
+    const bad = (await (await post(agentFor(), '?__token=forged')).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(String(bad['response'])).toContain('security token');
+
+    // The genuine per-tool token minted for this call dispatches. It must come
+    // from the agent's OWN SessionManager — that is the keying the validator uses.
+    const agent = agentFor();
+    const real = (agent as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = real.createToolToken('sd_default_secure', 'c1');
+    const ok = (await (
+      await post(agent, `?__token=${encodeURIComponent(valid)}`)
+    ).json()) as Record<string, unknown>;
+    expect(String(ok['response'])).toBe('dispatched');
+  });
+});

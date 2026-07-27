@@ -1,5 +1,53 @@
 # PORT_SIGNATURE_OMISSIONS.md
 
+<!-- ═══════════════════════════════════════════════════════════════════
+BEFORE YOU ADD AN ENTRY TO THIS FILE — READ THIS.
+
+Every entry here is a place the parity checker STOPS comparing. That is a real cost:
+a divergence you list is a divergence no gate will ever catch again. So entries must
+be RARE, and each one must earn its place. Default to skepticism: assume the entry is
+NOT needed and make the case that it is.
+
+The order of preference, always:
+  1. FIX THE PORT so it matches the reference (add the missing member; make the
+     signature match).
+  2. FIX THE EMISSION so idiom folds onto the reference shape — the enumerator/emitter
+     canonicalizes your language's spelling onto the oracle's (builder → __init__,
+     getters → attributes, Result<T,E> → the plain return, CamelCase → the reference
+     name, options-object/kwargs → the expanded param list, RAII/dispose → close).
+     MOST divergences are idiom and belong here, not in this file.
+  3. FIX THE REFERENCE if the oracle itself is wrong or stale (a Python-only symbol
+     that leaked into the contract, a param the reference added and the oracle never
+     re-enumerated). Fix Python / the oracle, then re-drift — do not paper over a
+     broken reference with a per-port entry.
+  4. Only when 1–3 genuinely cannot apply does an entry here become justified.
+
+An entry is JUSTIFIED ONLY IF it is irreducible after correct emission — i.e. the
+divergence survives because the two languages genuinely cannot express the same thing,
+not because the emitter hasn't folded the idiom yet. If emission COULD fold it, the
+entry is a bug in this file; go fix the emitter.
+
+Each entry MUST state WHY, concretely, in one of these forms:
+  • ADDITION — this symbol exists in the port but not the reference. Answer: is it
+    genuine port-only surface with NO reference twin (say what it is and why the
+    reference has no equivalent), or is it IDIOM the emitter should have folded (then
+    it does not belong here — fold it)? A convenience/alias/back-compat wrapper is NOT
+    a justification.
+  • OMISSION — this reference symbol has no port member. Answer: WHY can it not exist
+    here — what specific language feature is absent (e.g. no async-context-manager
+    protocol, no __init__ method protocol)? "impossible:" means the construct cannot
+    be expressed at all; if it merely LOOKS different, that's idiom → fold it, don't
+    omit it. Cite a precedent when one exists (e.g. RelayClient omits the same dunder).
+  • SIGNATURE — the symbol matches by name but its parameters differ. Answer: is the
+    difference a foldable idiom collapse (options-object, leading context/self,
+    builder) — then EXPAND it in the signature emitter so names+count match, don't list
+    it — or a genuine reference-only parameter with no cross-language analogue?
+
+If you cannot write a crisp, specific WHY that survives the "could emission fold this?"
+test, the entry is not ready. Prove it's needed before you add it.
+════════════════════════════════════════════════════════════════════ -->
+
+
 Documented signature divergences between this TypeScript port and the
 Python reference. Names-only divergences live in PORT_OMISSIONS.md /
 PORT_ADDITIONS.md and are inherited automatically.
@@ -369,3 +417,41 @@ until the reference signatures oracle carries BedrockAgent.
 signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
+
+## Idiom: renamed composition accessor — reference class-name spelling differs
+
+signalwire.agent_server.AgentServer.logger: TS AgentServer.logger (renamed from the `log` field) returns a `Logger` instance from signalwire.core.logging_config.Logger; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path (identical disposition to SkillBase.logger).
+signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.
+
+## Port-only typed composition getters + framework-app accessor (signature-side additions)
+
+# The HTTP-framework app accessor: the Python reference exposes the underlying
+# FastAPI app; TS builds on Hono, which has no FastAPI analog, so the accessor's
+# reference return type (`class:fastapi.FastAPI`) has no TS twin. The equivalent
+# TS capability (`getApp()`) is surfaced separately; this bare `app` property/return
+# is impossible to match one-for-one because the framework class differs.
+signalwire.agent_server.AgentServer.app: impossible: reference `app` returns `class:fastapi.FastAPI`; TS is built on Hono (no FastAPI). The equivalent app-accessor is the TS-idiom `getApp()`; the FastAPI-typed accessor has no TS twin.
+signalwire.web.web_service.WebService.app: impossible: reference `app` returns `optional<class:FastAPI>`; TS is built on Hono (no FastAPI). The framework app object has no FastAPI-typed TS counterpart.
+
+# Port-only typed composition getters: TS exposes these composed sub-objects as
+# typed `readonly` fields / getters (the static enumerator records each as a
+# `(self)→<SDK class>` accessor). Python composes the same state but as a plain
+# dynamically-set instance attribute the signatures oracle does not record — so
+# each reads "in port, not in reference". Same composed object, stronger TS typing.
+signalwire.core.agent_base.AgentBase.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets `self.log`/logger dynamically so the signatures oracle records no such accessor. Same logger object, TS-idiom typed accessor.
+signalwire.core.swml_service.SWMLService.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets it dynamically so the signatures oracle records no accessor. Same logger object, TS-idiom typed accessor.
+signalwire.core.swml_service.SWMLService.swml_builder: TS exposes the composed `SWMLBuilder` as a typed `swmlBuilder` getter; Python holds the builder as a dynamically-set attribute the signatures oracle does not record. Same builder object, stronger TS typing.
+signalwire.core.auth_handler.AuthHandler.config: TS exposes the `AuthConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
+signalwire.core.skill_base.SkillBase.agent: TS exposes the owning `AgentBase` back-reference as a typed `agent` getter; Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
+signalwire.core.skill_base.SkillBase.config: TS exposes the `SkillConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
+signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS exposes the loaded FAQ entries as a typed `faqs` getter (`list<FAQEntry>`); Python holds the same list as a dynamically-set attribute the signatures oracle does not record. Same data, stronger TS typing.
+signalwire.prefabs.survey.SurveyAgent.questions: TS exposes the survey questions as a typed `questions` getter (`list<SurveyQuestion>`); Python holds the same list as a dynamically-set attribute. Same data, stronger TS typing.
+signalwire.relay.call.Action.call: TS exposes the originating `Call` back-reference as a typed `call` getter (`CallLike`); Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
+
+# TS resource base constructors: the generated REST resource bases take
+# `(http, base_path)` to wire the client + collection path; the Python reference
+# base resources are constructed differently (no explicit `__init__` recorded on
+# these bases), so the ctor reads "in port, not in reference". Port-idiom wiring.
+signalwire.rest._base.CrudResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base (resources are constructed via the client tree). Port-idiom construction, no reference twin to compare.
+signalwire.rest._base.CrudWithAddresses.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.
+signalwire.rest._base.ReadResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.
