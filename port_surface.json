@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 34d8804bf8262671474f810288ac6ad6a0d561c0",
+  "generated_from": "signalwire-typescript @ 8607ad0d1bdef0caf57b4ecea47a953c009c077b",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -870,6 +870,7 @@
           "as_router",
           "build_swml_for_request",
           "define_tool",
+          "domain",
           "extract_sip_username",
           "full_validation_enabled",
           "get_all_functions",
@@ -903,6 +904,9 @@
           "security",
           "serve",
           "set_on_request_callback",
+          "ssl_cert_path",
+          "ssl_enabled",
+          "ssl_key_path",
           "stop",
           "swaig_pre_dispatch",
           "validate_basic_auth",
@@ -1513,6 +1517,7 @@
         "Action": [
           "__init__",
           "call",
+          "completed",
           "control_id",
           "is_done",
           "result",
@@ -2043,6 +2048,7 @@
           "body",
           "headers",
           "method",
+          "request_id",
           "status_code",
           "url"
         ],
@@ -3591,6 +3597,7 @@
           "get_parameter_schema",
           "get_tools",
           "register_tools",
+          "remove_xpaths",
           "setup"
         ]
       },
