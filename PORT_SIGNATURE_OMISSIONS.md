@@ -337,7 +337,18 @@ canonical path differs.
 
 ## TS-idiomatic return-type divergences
 
-signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance from `signalwire.core.logging_config.Logger`; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path
+# EMPTY as of 2026-07-27. The sole entry here was
+# `signalwire.core.skill_base.SkillBase.logger`, deleted in the Wave-6 ledger
+# burn-down. Owner ruling 2026-07-24 (ALLOWLIST_DISCIPLINE §8): logging is a
+# MODULE-LEVEL capability, and the per-instance `logger` attribute was Python's
+# structlog idiom leaking into the enumerated surface — not contract. The
+# reference enumerator now suppresses it at the logging factory's RETURN TYPE
+# (`enumerate_python.py` `_LOGGER_FACTORY_RETURN`), so the oracle emits no
+# class-attribute `logger` for this exemption to excuse. The capability is
+# signalled by the 5 module-level free functions in
+# `signalwire.core.logging_config` (get_logger / configure_logging /
+# get_execution_mode / reset_logging_configuration / strip_control_chars),
+# which the TS port implements.
 
 ## TS-idiomatic params-object vs **kwargs
 
@@ -420,7 +431,10 @@ signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatur
 
 ## Idiom: renamed composition accessor — reference class-name spelling differs
 
-signalwire.agent_server.AgentServer.logger: TS AgentServer.logger (renamed from the `log` field) returns a `Logger` instance from signalwire.core.logging_config.Logger; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path (identical disposition to SkillBase.logger).
+# `signalwire.agent_server.AgentServer.logger` was deleted here 2026-07-27 (Wave-6
+# ledger burn-down) for the same reason as SkillBase.logger above: the reference
+# enumerator suppresses the per-instance logger member by the logging factory's
+# return type, so the oracle no longer emits the symbol this line excused.
 signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.
 
 ## Port-only typed composition getters + framework-app accessor (signature-side additions)
