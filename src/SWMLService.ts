@@ -93,6 +93,9 @@ export class SecurityConfig {
   private sslConfig: SslConfig;
 
   constructor(opts?: { configFile?: string; serviceName?: string }) {
+    // Resolution order mirrors Python's `SecurityConfig.__init__`:
+    // defaults -> environment variables -> config file (HIGHEST priority).
+
     // Load SSL config from env vars / options
     this.sslConfig = new SslConfig();
     this.sslEnabled = this.sslConfig.enabled;
@@ -109,9 +112,13 @@ export class SecurityConfig {
     this.hstsMaxAge = 31536000;
     this.loadFromEnv();
 
-    // Load from config file if available
-    if (opts?.configFile) {
-      this.loadFromConfigFile(opts.configFile);
+    // Finally apply the config file (highest priority). When no explicit path
+    // is given, discover one the same way the reference does via
+    // `ConfigLoader.find_config_file(service_name)`.
+    const configFile =
+      opts?.configFile ?? ConfigLoader.findConfigFile(opts?.serviceName) ?? undefined;
+    if (configFile) {
+      this.loadFromConfigFile(configFile);
     }
   }
 
@@ -144,24 +151,79 @@ export class SecurityConfig {
     }
   }
 
+  /**
+   * Apply the `security` section of a config file over the already-resolved
+   * defaults+env values. Mirrors Python's `SecurityConfig._load_config_file`:
+   * the config file has the HIGHEST priority, and the keys are the reference's
+   * snake_case wire names (`ssl_enabled`, `ssl_cert_path`, `ssl_key_path`,
+   * `domain`, `allowed_hosts`, `cors_origins`, `use_hsts`, `hsts_max_age`,
+   * `auth.basic.{user,password}`) — NOT the camelCase TypeScript API names.
+   * The section is read via `getSection`, so `${VAR|default}` interpolation
+   * applies exactly as it does in the reference.
+   */
   private loadFromConfigFile(filePath: string): void {
+    let section: Record<string, unknown>;
     try {
       const loader = new ConfigLoader(filePath);
-      const ssl = loader.get('security.ssl') as Record<string, unknown> | undefined;
-      if (ssl) {
-        if (ssl['enabled'] !== undefined) this.sslEnabled = !!ssl['enabled'];
-        if (typeof ssl['certPath'] === 'string') this.sslCertPath = ssl['certPath'];
-        if (typeof ssl['keyPath'] === 'string') this.sslKeyPath = ssl['keyPath'];
-        if (typeof ssl['domain'] === 'string') this.domain = ssl['domain'];
-      }
-      const auth = loader.get('security.basicAuth') as Record<string, unknown> | undefined;
-      if (auth) {
-        if (typeof auth['user'] === 'string') this.basicAuthUser = auth['user'];
-        if (typeof auth['password'] === 'string') this.basicAuthPassword = auth['password'];
-      }
+      if (!loader.hasConfig()) return;
+      section = loader.getSection('security');
     } catch {
       // Config file load failures are non-fatal
+      return;
     }
+    if (!section || Object.keys(section).length === 0) return;
+
+    // SSL
+    if (section['ssl_enabled'] !== undefined) this.sslEnabled = !!section['ssl_enabled'];
+    if (typeof section['ssl_cert_path'] === 'string') this.sslCertPath = section['ssl_cert_path'];
+    if (typeof section['ssl_key_path'] === 'string') this.sslKeyPath = section['ssl_key_path'];
+    if (typeof section['domain'] === 'string') this.domain = section['domain'];
+
+    // Host / CORS policy
+    const hosts = SecurityConfig.coerceList(section['allowed_hosts']);
+    if (hosts) this.allowedHosts = hosts;
+    const cors = SecurityConfig.coerceList(section['cors_origins']);
+    if (cors) this.corsOrigins = cors;
+
+    // HSTS
+    if (section['use_hsts'] !== undefined) this.useHsts = !!section['use_hsts'];
+    if (section['hsts_max_age'] !== undefined && !Number.isNaN(Number(section['hsts_max_age']))) {
+      this.hstsMaxAge = Number(section['hsts_max_age']);
+    }
+
+    // Authentication — reference shape is security.auth.basic.{user,password}
+    const auth = section['auth'];
+    if (auth !== null && typeof auth === 'object') {
+      const basic = (auth as Record<string, unknown>)['basic'];
+      if (basic !== null && typeof basic === 'object') {
+        const b = basic as Record<string, unknown>;
+        if (typeof b['user'] === 'string') this.basicAuthUser = b['user'];
+        if (typeof b['password'] === 'string') this.basicAuthPassword = b['password'];
+      }
+    }
+
+    // Rebuild the backing SslConfig so `isConfigured()` (and therefore
+    // `validateSslConfig()` / `getSslContextKwargs()`) sees the resolved
+    // values rather than the env-only ones captured at construction.
+    this.sslConfig = new SslConfig({
+      enabled: this.sslEnabled,
+      ...(this.sslCertPath !== null ? { certPath: this.sslCertPath } : {}),
+      ...(this.sslKeyPath !== null ? { keyPath: this.sslKeyPath } : {}),
+      ...(this.domain !== null ? { domain: this.domain } : {}),
+      hsts: this.useHsts,
+      hstsMaxAge: this.hstsMaxAge,
+    });
+  }
+
+  /**
+   * Coerce a config-file list value: an array passes through, `'*'` becomes
+   * `['*']`, and a comma-separated string is split. Mirrors Python's
+   * `SecurityConfig._parse_list` for the config-file path.
+   */
+  private static coerceList(value: unknown): string[] | null {
+    if (Array.isArray(value)) return value.map(String);
+    if (typeof value === 'string') return SecurityConfig.parseList(value);
+    return null;
   }
 
   /** Get basic auth credentials from security config, or null if not configured. */
