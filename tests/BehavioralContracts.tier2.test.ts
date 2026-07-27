@@ -598,6 +598,36 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     expect(insecureUrl).not.toContain('__token=');
   });
 
+  // The token TOPOLOGY the SECURE-DEFAULT differ derives from the rendered keys
+  // (diff_port_secure_default.token_carrier). Asserting only "the URL contains
+  // __token=" / "it does not" is too weak in BOTH directions, and both weaknesses
+  // are shipped defects elsewhere in the fleet:
+  //   * java put its token in the `meta_data_token` FIELD — a SWML metadata
+  //     SCOPING key the engine MD5-derives from public config and never validates
+  //     — while leaving web_hook_url tokenless. A "contains __token=" assertion on
+  //     the secure entry catches that, but nothing pinned that no OTHER key
+  //     carries a credential.
+  //   * an insecure tool must carry NO per-tool web_hook_url AT ALL (it falls back
+  //     to the shared, unauthenticated SWAIG defaults.web_hook_url). A tokenless
+  //     per-tool webhook still satisfies `not.toContain('__token=')` while
+  //     publishing an unauthenticated function-specific callback.
+  it('carries the token ONLY as a __token query param, and gives an insecure tool no webhook at all', () => {
+    const byName = swaigFunctionsByName(fixtureAgent());
+
+    const secure = byName['sd_default_secure']!;
+    const secureUrl = secure['web_hook_url'] as string;
+    // The carrier is the query param on the function's OWN webhook...
+    expect([...new URL(secureUrl).searchParams.keys()]).toContain('__token');
+    // ...and NO other key on the entry may carry a token (the meta_data_token misuse).
+    const tokenishFields = Object.keys(secure).filter(
+      (k) => k !== 'web_hook_url' && k.toLowerCase().endsWith('token'),
+    );
+    expect(tokenishFields).toEqual([]);
+
+    // An insecure tool omits the key entirely — not "present but tokenless".
+    expect(byName['sd_explicit_insecure']!).not.toHaveProperty('web_hook_url');
+  });
+
   it('defineTypedTool is secure by default too (both registration paths)', () => {
     const agent = new AgentBase({ name: 'typed-sd', route: '/tsd', basicAuth: ['u', 'p'] });
     agent.setPromptText('typed secure default');
