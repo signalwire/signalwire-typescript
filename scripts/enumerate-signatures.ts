@@ -1171,6 +1171,121 @@ function rawDefault(p: ts.ParameterDeclaration): unknown {
   return init.getText();
 }
 
+/**
+ * Resolve a class's `extends` clause to the base `ClassDeclaration`, or null.
+ *
+ * Follows the heritage identifier through the type checker to the declaration
+ * (including an aliased re-export), so a base imported from another module
+ * resolves the same as one declared in the same file.
+ */
+function resolveExtendsBase(
+  cls: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): ts.ClassDeclaration | null {
+  for (const h of cls.heritageClauses ?? []) {
+    if (h.token !== ts.SyntaxKind.ExtendsKeyword) continue;
+    for (const t of h.types) {
+      if (!t.expression || !ts.isIdentifier(t.expression)) continue;
+      let sym = checker.getSymbolAtLocation(t.expression);
+      if (sym && sym.flags & ts.SymbolFlags.Alias) {
+        try {
+          sym = checker.getAliasedSymbol(sym);
+        } catch {
+          // keep the un-aliased symbol
+        }
+      }
+      for (const d of sym?.declarations ?? []) {
+        if (ts.isClassDeclaration(d)) return d;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Lift composition members a class inherits from a PRIVATE base class.
+ *
+ * The TS analogue of the reference enumerator's `_wired_base_attributes`
+ * (porting-sdk/scripts/enumerate_python_signatures.py). Without it the whole
+ * `RestClient` resource tree is invisible to this oracle: `client.calling`,
+ * `client.fabric`, `client.video`, every flat resource and every namespace
+ * container is DECLARED on the generated `_GeneratedResourceTree` base that
+ * `RestClient extends`, not on `RestClient` itself
+ * (src/rest/namespaces/_client_tree_generated.ts, RULES §8). The member walk
+ * above only sees `cls.members`, so those 22 accessors were recorded nowhere —
+ * a pure enumerator blind spot, verified reachable at runtime by
+ * tests/rest/resource_tree_mock.test.ts.
+ *
+ * Keyed on STRUCTURE, never a name list — the base file is generated from
+ * `porting-sdk/rest-apis/*&#47;openapi.yaml`, so a new resource in the specs shows up
+ * here with no change to this function.
+ *
+ * Scoped deliberately narrow, matching the reference's rule:
+ *   - PRIVATE bases only (leading `_`). A PUBLIC base is its own surface symbol
+ *     whose members are already enumerated on the base itself; lifting those onto
+ *     every subclass would flatten real inheritance into duplicated members.
+ *     (`_`-prefixed classes are skipped by `collectClass`, exactly mirroring
+ *     griffe's treatment of Python's `_GeneratedResourceTree`, so their members
+ *     would otherwise be recorded nowhere at all.)
+ *   - Class-typed properties only. `signatureFromProperty` returns null for a
+ *     primitive-typed field, so internal scalar state contributes nothing —
+ *     the same gate the reference's `_is_sdk_class_type` applies.
+ *   - Transitive through a chain of private bases; stops at the first public one.
+ *
+ * Members the subclass declares itself always win (the caller uses `setdefault`
+ * semantics), so an override is never masked by the inherited declaration.
+ */
+function privateBaseComposition(
+  cls: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  mod: string,
+  canonClass: string,
+  methodAliases: Record<string, string> | undefined,
+  refFieldAccessors: Map<string, Set<string>>,
+  failures: TypeTranslationError[],
+): Record<string, CanonicalSignature> {
+  const out: Record<string, CanonicalSignature> = {};
+  const seen = new Set<ts.ClassDeclaration>();
+  let base = resolveExtendsBase(cls, checker);
+
+  while (base && base.name && base.name.text.startsWith('_') && !seen.has(base)) {
+    seen.add(base);
+    for (const m of base.members) {
+      if (!ts.isPropertyDeclaration(m)) continue;
+      if (!m.name || !ts.isIdentifier(m.name)) continue;
+      const nativeProp = m.name.text;
+      if (nativeProp.startsWith('_')) continue;
+      const propMods = ts.getCombinedModifierFlags(m as ts.Declaration);
+      if (propMods & ts.ModifierFlags.Private) continue;
+      // A `protected` member is internal plumbing, not caller-reachable surface.
+      if (propMods & ts.ModifierFlags.Protected) continue;
+      const propIsStatic = !!(propMods & ts.ModifierFlags.Static);
+      const snakeProp = methodAliases?.[camelToSnake(nativeProp)] ?? camelToSnake(nativeProp);
+      if (out[snakeProp] !== undefined) continue;
+      const emitPrimitiveField = (refFieldAccessors.get(`${mod}.${canonClass}`) ?? new Set()).has(
+        snakeProp,
+      );
+      try {
+        const sig = signatureFromProperty(
+          m,
+          checker,
+          aliases,
+          propIsStatic,
+          `${mod}.${canonClass}.${snakeProp}`,
+          emitPrimitiveField,
+        );
+        if (sig !== null) out[snakeProp] = sig;
+      } catch (e) {
+        if (e instanceof TypeTranslationError) failures.push(e);
+        else throw e;
+      }
+    }
+    base = resolveExtendsBase(base, checker);
+  }
+  return out;
+}
+
 function collectClass(
   cls: ts.ClassDeclaration,
   rel: string,
@@ -1298,6 +1413,27 @@ function collectClass(
       if (e instanceof TypeTranslationError) failures.push(e);
       else throw e;
     }
+  }
+
+  // WIRED-BASE composition: lift class-typed properties this class inherits from a
+  // PRIVATE base (`RestClient extends _GeneratedResourceTree`). Those declarations
+  // are not in `cls.members`, and the private base itself is skipped by
+  // `collectClass`, so without this the entire REST resource tree — `client.calling`,
+  // `client.fabric`, all 22 accessors — is recorded nowhere. Locally-declared members
+  // always win. See privateBaseComposition for the structural rule.
+  for (const [wname, wsig] of Object.entries(
+    privateBaseComposition(
+      cls,
+      checker,
+      aliases,
+      mod,
+      canonClass,
+      methodAliases,
+      refFieldAccessors,
+      failures,
+    ),
+  )) {
+    if (methods[wname] === undefined) methods[wname] = wsig;
   }
 
   if (Object.keys(methods).length === 0) return;
