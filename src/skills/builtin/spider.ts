@@ -40,6 +40,18 @@ interface CachedResponse {
 const WHITESPACE_REGEX = /\s+/g;
 
 /**
+ * Translate a `removeXpaths` entry into the cheerio selector that removes the
+ * same elements. The list is authored as XPath (`//script`) to stay identical
+ * across the SDKs — the reference drives lxml's `drop_tree()` with it directly.
+ * Cheerio takes CSS, so a leading `//` descendant axis maps to a bare tag-name
+ * selector; anything else is passed through so a caller who appends a CSS
+ * selector still works.
+ */
+function removeTagFor(xpath: string): string {
+  return xpath.startsWith('//') ? xpath.slice(2) : xpath;
+}
+
+/**
  * Fast web scraping skill optimized for speed and token efficiency.
  *
  * Multi-instance capable. Port of the Python `SpiderSkill` with three tools:
@@ -191,6 +203,22 @@ export class SpiderSkill extends SkillBase {
   private compiledFollowPatterns: RegExp[] = [];
   private cache: Map<string, CachedResponse> | null = null;
   private readonly cacheMaxSize = 100;
+  /**
+   * XPath expressions for the noise elements stripped before text extraction —
+   * mirrors the python reference `SpiderSkill.remove_xpaths`, same value and
+   * same defaults. Prefilled (not empty); mutate it to change what a scrape
+   * discards. Expressed as XPath so the list is portable across the SDKs; this
+   * port's cheerio backend consumes the `//tag` form via {@link removeTagFor}.
+   */
+  readonly removeXpaths: string[] = [
+    '//script',
+    '//style',
+    '//nav',
+    '//header',
+    '//footer',
+    '//aside',
+    '//noscript',
+  ];
   // Lazily-loaded optional `cheerio` module, populated in setup(). Non-null
   // for the lifetime of an initialized skill (setup() returns false if absent).
   private _cheerio!: typeof import('cheerio');
@@ -469,10 +497,10 @@ export class SpiderSkill extends SkillBase {
       // decoded six hand-coded entities, leaving `&mdash;`, `&#8212;`, etc.
       // literal in the output.
       const $ = this._cheerio.load(body);
-      // Strip noise tags before extracting text — matches Python's
-      // lxml drop_tree() on the same 7 tags.
-      for (const tag of ['script', 'style', 'nav', 'header', 'footer', 'aside', 'noscript']) {
-        $(tag).remove();
+      // Strip noise elements before extracting text — matches Python's
+      // lxml drop_tree() over the same `removeXpaths` list.
+      for (const xpath of this.removeXpaths) {
+        $(removeTagFor(xpath)).remove();
       }
       let text = $('body').text();
       if (!text || text.trim().length === 0) {

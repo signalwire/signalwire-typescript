@@ -7812,6 +7812,15 @@
               ],
               "returns": "any"
             },
+            "domain": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "extract_sip_username": {
               "params": [
                 {
@@ -8242,6 +8251,33 @@
                 }
               ],
               "returns": "any"
+            },
+            "ssl_cert_path": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "ssl_enabled": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
+            "ssl_key_path": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
             },
             "stop": {
               "params": [
@@ -10439,6 +10475,15 @@
               ],
               "returns": "class:signalwire.relay.call.CallLike"
             },
+            "completed": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
+            },
             "control_id": {
               "params": [
                 {
@@ -11237,7 +11282,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>"
             },
             "direction": {
               "params": [
@@ -13629,7 +13674,7 @@
                 },
                 {
                   "name": "device",
-                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
                   "required": false,
                   "default": {}
                 },
@@ -13691,7 +13736,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>"
             },
             "direction": {
               "params": [
@@ -13804,7 +13849,7 @@
                 },
                 {
                   "name": "device",
-                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
                   "required": false,
                   "default": {}
                 }
@@ -13827,7 +13872,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>"
             },
             "direction": {
               "params": [
@@ -15949,7 +15994,7 @@
                 },
                 {
                   "name": "device",
-                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+                  "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
                   "required": false,
                   "default": {}
                 }
@@ -15972,7 +16017,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>"
+              "returns": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>"
             },
             "from_payload": {
               "params": [
@@ -16850,6 +16895,15 @@
               "returns": "dict<string,any>"
             },
             "method": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "request_id": {
               "params": [
                 {
                   "name": "self",
@@ -27124,6 +27178,15 @@
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
             },
+            "remove_xpaths": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "setup": {
               "params": [
                 {
@@ -32645,7 +32708,7 @@
           "required": true
         },
         "device": {
-          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
           "required": false
         },
         "direction": {
@@ -32857,7 +32920,7 @@
           "required": false
         },
         "device": {
-          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
           "required": false
         },
         "direction": {
@@ -32905,7 +32968,7 @@
           "required": false
         },
         "device": {
-          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
           "required": false
         },
         "direction": {
@@ -33613,7 +33676,7 @@
           "required": false
         },
         "device": {
-          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice>",
+          "type": "union<dict<string,any>,class:signalwire.relay.types.PhoneDevice,class:signalwire.relay.types.SipDevice,class:signalwire.relay.types.FabricDevice>",
           "required": false
         },
         "event_type": {
