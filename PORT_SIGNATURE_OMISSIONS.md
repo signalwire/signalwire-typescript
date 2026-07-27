@@ -89,19 +89,7 @@ fall into these named categories:
 
 ## Idiom: TS constructors
 
-signalwire.agent_server.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.agent_base.AgentBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.security_config.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.skill_manager.SkillManager.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swaig_function.SWAIGFunction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swml_builder.SWMLBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swml_service.SWMLService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.Agent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentSession.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -116,36 +104,10 @@ signalwire.livewire.SileroVAD.__init__: TS constructor signature follows TS conv
 signalwire.livewire.StopResponse.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.TTS.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.ToolError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.concierge.ConciergeAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.faq_bot.FAQBotAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.receptionist.ReceptionistAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.survey.SurveyAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.AIAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Action.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Call.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.CollectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.DetectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.FaxAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.PayAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.PlayAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.RecordAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.StandaloneCollectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.StreamAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.TapAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.TranscribeAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.Call.device: TS declares `device: Device` as a typed class field; Python has the same attribute but sets it dynamically (`self.device = device or {}`), so the static signature enumerator records it "in port, not in reference". Same attribute, stronger TS typing (the Device union from the Tier-3 typed-objects pass).
 signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.client.RelayClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.message.Message.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest._base.HttpClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.client.RestClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
 
 ## Idiom: TS fluent API returns this
 
@@ -342,7 +304,6 @@ signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance
 ## TS-idiomatic params-object vs **kwargs
 
 signalwire.pom.pom.PromptObjectModel.add_section: TS PromptObjectModel.addSection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
-signalwire.pom.pom.Section.__init__: TS Section constructor takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 signalwire.pom.pom.Section.add_subsection: TS Section.addSubsection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 
 ## POM int vs float (TS has no integer type)
@@ -391,7 +352,6 @@ enumerators so they compare equal by name); the signature-level divergence below
 the residual idiom difference (TS declaration-merge / projection / callback shape),
 not a functional gap.
 
-signalwire.core.agent.tools.registry.ToolRegistry.__init__: idiom: TS has no ToolRegistry class to construct (the registry is a `toolRegistry` Map folded onto SWMLService); the class is surfaced by projection, so Python's constructor has no TS counterpart signature
 signalwire.core.mixins.mcp_server_mixin.MCPServerMixin.add_mcp_server: idiom: reference MCPServerMixin is an empty class; TS folds MCP helpers onto AgentBase and the signatures enumerator projects add_mcp_server onto the mixin — a port-only projection with no reference method
 signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: idiom: Python exposes `contexts` as a property on the mixin; TS surfaces the same capability via AgentBase/PromptManager.getContexts() (get_contexts), reconciled by name in the surface audit
 signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: idiom: TS expresses this as AgentBase.runServerless() (reconciled by name to handle_serverless_request in the surface audit); the signature shape is TS-idiomatic
@@ -414,7 +374,6 @@ The TS port implements BedrockAgent as a real AgentBase subclass
 have no reference signature to compare against (missing-reference). Excused here
 until the reference signatures oracle carries BedrockAgent.
 
-signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 
