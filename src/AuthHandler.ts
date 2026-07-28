@@ -90,6 +90,24 @@ export class BearerCredentials {
 }
 
 /**
+ * Split an `Authorization` header into its scheme and credential, mirroring
+ * FastAPI's `get_authorization_scheme_param` (the reference partitions on the
+ * FIRST space and strips the credential).
+ *
+ * Returns `null` when the header is absent/empty or the scheme token does not
+ * case-insensitively equal `expectedScheme`. RFC 7235 makes the auth-scheme
+ * token case-insensitive, so `bearer x` and `Bearer x` are both legal — the
+ * reference compares `scheme.lower() != "bearer"` and accepts either.
+ */
+function schemeParam(authHeader: string | undefined, expectedScheme: string): string | null {
+  if (!authHeader) return null;
+  const sep = authHeader.indexOf(' ');
+  if (sep < 0) return null;
+  if (authHeader.slice(0, sep).toLowerCase() !== expectedScheme.toLowerCase()) return null;
+  return authHeader.slice(sep + 1).trim();
+}
+
+/**
  * Constant-time string comparison to prevent timing attacks.
  */
 function safeCompare(a: string, b: string): boolean {
@@ -123,8 +141,12 @@ export class AuthHandler {
     // 1. Bearer token
     if (this.config.bearerToken) {
       const authHeader = headers['authorization'] || headers['Authorization'] || '';
-      if (authHeader.startsWith('Bearer ')) {
-        if (this.verifyBearerToken(new BearerCredentials('Bearer', authHeader.slice(7)))) {
+      const token = schemeParam(authHeader, 'Bearer');
+      if (token !== null) {
+        // The scheme is carried through exactly as the client sent it (the
+        // reference reports the wire scheme, not a canonicalized one).
+        const sentScheme = authHeader.slice(0, authHeader.indexOf(' '));
+        if (this.verifyBearerToken(new BearerCredentials(sentScheme, token))) {
           return true;
         }
       }
@@ -141,8 +163,9 @@ export class AuthHandler {
     // 3. Basic auth
     if (this.config.basicAuth) {
       const authHeader = headers['authorization'] || headers['Authorization'] || '';
-      if (authHeader.startsWith('Basic ')) {
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+      const param = schemeParam(authHeader, 'Basic');
+      if (param !== null) {
+        const decoded = Buffer.from(param, 'base64').toString();
         const colonIdx = decoded.indexOf(':');
         if (colonIdx > 0) {
           const parsed = new BasicCredentials(

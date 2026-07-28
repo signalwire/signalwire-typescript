@@ -24,6 +24,24 @@ import type { SwmlRequestData } from './PlatformContracts.js';
 import type { SwaigRequest } from './SwaigContracts.js';
 import type { Server } from 'node:http';
 
+/**
+ * Split an `Authorization` header into its scheme and credential, mirroring
+ * FastAPI's `get_authorization_scheme_param` (partition on the FIRST space,
+ * strip the credential).
+ *
+ * Returns `null` when the header is absent/empty or the scheme token does not
+ * case-insensitively equal `expectedScheme`. RFC 7235 makes the auth-scheme
+ * token case-insensitive and the reference compares `scheme.lower() != "basic"`,
+ * so `basic <cred>` is legal and must not be rejected.
+ */
+function schemeParam(authHeader: string | undefined, expectedScheme: string): string | null {
+  if (!authHeader) return null;
+  const sep = authHeader.indexOf(' ');
+  if (sep < 0) return null;
+  if (authHeader.slice(0, sep).toLowerCase() !== expectedScheme.toLowerCase()) return null;
+  return authHeader.slice(sep + 1).trim();
+}
+
 // ── Verb handler interfaces ────────────────────────────────────────────
 
 /**
@@ -1066,10 +1084,11 @@ export class SWMLService {
     // from the environment; auto-generated credentials are not enforced.
     if (!this.authCredentials || this.authSource === 'generated') return true;
     const authHeader = headers['authorization'] ?? headers['Authorization'];
-    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    const param = schemeParam(authHeader, 'Basic');
+    if (param === null) return false;
     let decoded: string;
     try {
-      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+      decoded = Buffer.from(param, 'base64').toString('utf-8');
     } catch {
       return false;
     }

@@ -50,6 +50,24 @@ import type { SwmlRequestData } from './PlatformContracts.js';
 import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /**
+ * Split an `Authorization` header into its scheme and credential, mirroring
+ * FastAPI's `get_authorization_scheme_param` (partition on the FIRST space,
+ * strip the credential).
+ *
+ * Returns `null` when the header is absent/empty or the scheme token does not
+ * case-insensitively equal `expectedScheme`. RFC 7235 makes the auth-scheme
+ * token case-insensitive and the reference compares `scheme.lower() != "basic"`,
+ * so `basic <cred>` is legal and must not be rejected.
+ */
+function schemeParam(authHeader: string | undefined, expectedScheme: string): string | null {
+  if (!authHeader) return null;
+  const sep = authHeader.indexOf(' ');
+  if (sep < 0) return null;
+  if (authHeader.slice(0, sep).toLowerCase() !== expectedScheme.toLowerCase()) return null;
+  return authHeader.slice(sep + 1).trim();
+}
+
+/**
  * Callback invoked at a registered routing endpoint to determine how to handle an
  * incoming request. Return a route string to redirect to that agent route, or
  * null / undefined to let normal SWML processing continue.
@@ -2202,10 +2220,11 @@ export class AgentBase extends SWMLService {
     const [user, pass] = this.basicAuthCreds;
     if (!user || !pass) return true;
     const authHeader = headers['authorization'] ?? headers['Authorization'];
-    if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+    const param = schemeParam(authHeader, 'Basic');
+    if (param === null) return false;
     let decoded: string;
     try {
-      decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+      decoded = Buffer.from(param, 'base64').toString('utf-8');
     } catch {
       return false;
     }

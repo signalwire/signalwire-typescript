@@ -40,6 +40,76 @@ describe('AuthHandler', () => {
     expect(valid).toBe(false);
   });
 
+  // ── RFC 7235 auth-scheme case-insensitivity ──────────────────────────
+  // The reference (FastAPI HTTPBearer/HTTPBasic) partitions the header on the
+  // first space and compares `scheme.lower() != "bearer"` / `!= "basic"`, so a
+  // legal lowercase scheme token authenticates. A case-sensitive port 401s it.
+
+  it('accepts a lowercase `bearer` scheme token', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    expect(await auth.validate({ authorization: 'bearer my-secret-token' })).toBe(true);
+  });
+
+  it('accepts a mixed-case `BeArEr` scheme token', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    expect(await auth.validate({ authorization: 'BeArEr my-secret-token' })).toBe(true);
+  });
+
+  it('accepts a lowercase `basic` scheme token', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    expect(await auth.validate({ authorization: `basic ${encoded}` })).toBe(true);
+  });
+
+  it('accepts a mixed-case `BaSiC` scheme token', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    expect(await auth.validate({ authorization: `BaSiC ${encoded}` })).toBe(true);
+  });
+
+  // Case-insensitivity must not widen the scheme set: a wrong scheme, a scheme
+  // whose name merely starts with the right token, a cross-branch scheme, and a
+  // scheme-less header all stay rejected.
+
+  it('still rejects wrong schemes on the Bearer branch', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    for (const header of [
+      'Digest my-secret-token',
+      'Negotiate my-secret-token',
+      'Bearerx my-secret-token',
+      'bearerx my-secret-token',
+      'Basic my-secret-token',
+      'my-secret-token',
+    ]) {
+      expect(await auth.validate({ authorization: header })).toBe(false);
+    }
+  });
+
+  it('still rejects wrong schemes on the Basic branch', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    for (const header of [
+      `Digest ${encoded}`,
+      `Negotiate ${encoded}`,
+      `Basicx ${encoded}`,
+      `basicx ${encoded}`,
+      `Bearer ${encoded}`,
+      `${encoded}`,
+    ]) {
+      expect(await auth.validate({ authorization: header })).toBe(false);
+    }
+  });
+
+  it('rejects a colon-less Basic payload regardless of scheme case', async () => {
+    // The reference does `username, separator, password = data.partition(":")`
+    // and raises when `not separator`, so a payload with no colon is rejected
+    // outright — it must never authenticate as user-with-empty-password.
+    const auth = new AuthHandler({ basicAuth: ['admin', ''] });
+    const encoded = Buffer.from('admin').toString('base64');
+    expect(await auth.validate({ authorization: `Basic ${encoded}` })).toBe(false);
+    expect(await auth.validate({ authorization: `basic ${encoded}` })).toBe(false);
+  });
+
   it('validates custom validator', async () => {
     const auth = new AuthHandler({
       customValidator: (req) => req.headers['x-custom'] === 'valid',
