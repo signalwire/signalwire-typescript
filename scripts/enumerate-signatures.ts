@@ -367,10 +367,24 @@ const SKIP_METHOD_NAMES = new Set([
 // object collapses a Python method's exploded KEYWORD argument set. For these,
 // unfold the object's members back to individual `keyword` params + a synthetic
 // `**kwargs` tail so the port signature matches the reference positionally (see
-// signatureFromMethod). Keyed by canonical `module.Class.method`. Only methods
-// whose Python reference uses keyword-only params belong here — methods that take
-// a SINGLE `dict` param (DataMap.foreach) or whose reference uses positional-or-
-// keyword params (the `ts-options-object`-excused set) MUST NOT be listed.
+// signatureFromMethod). Keyed by canonical `module.Class.method`.
+//
+// THE BOUNDARY — the one test that decides membership: does the reference method
+// EXPLODE into a keyword set, or does it take ONE genuine `dict` DOMAIN param?
+// Only the former belongs here. `DataMap.foreach(config: {input_key, output_key,
+// append, max?})` is the canonical counter-example and MUST NOT be listed: it is a
+// single required param whose object is passed through WHOLE onto the wire
+// (`webhook['foreach'] = config`), and its members are already snake_case because
+// they ARE the wire shape — not a TS options bag. Contrast `DataMap.webhook(method,
+// url, opts?)`, whose `opts` members are read off individually and mapped to
+// separate wire keys: that explodes, so it unfolds.
+//
+// A method whose reference uses positional-or-keyword (rather than keyword-only)
+// params is NOT excluded. That was the premise of the old `ts-options-object`
+// excused set, and it is false: diff_port_signatures.py::compare_param_properties
+// folds ref=`positional` → port=`keyword` (directional, wire-neutral — a Python
+// positional-or-keyword param IS callable by name), so those unfold and COMPARE
+// rather than needing an excuse.
 // (Set the env var UNFOLD_ALL=1 to unfold every options-object method — a build
 // aid for deriving this list; never used in CI.)
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
@@ -414,6 +428,39 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.relay.call.Call.user_event',
   'signalwire.relay.client.RelayClient.dial',
   'signalwire.relay.client.RelayClient.send_message',
+  // ── Wave C (2026-07-28): the former `ts-options-object` excused set ──────
+  // These were excused on the premise that unfolding leaves a residual KIND
+  // mismatch (reference `positional`, port `keyword`). That premise is false:
+  // diff_port_signatures.py::compare_param_properties folds ref=`positional` →
+  // port=`keyword` (directional, wire-neutral — a Python positional-or-keyword
+  // param IS callable by name). Unfolding them therefore COMPARES rather than
+  // being excused. Measured: excused 435 → 418, drift flat at 200.
+  'signalwire.core.contexts.GatherInfo.add_question',
+  'signalwire.core.contexts.Step.add_gather_question',
+  'signalwire.core.contexts.Step.set_gather_info',
+  'signalwire.core.data_map.DataMap.parameter',
+  'signalwire.core.data_map.DataMap.webhook',
+  'signalwire.core.data_map.create_expression_tool',
+  'signalwire.core.data_map.create_simple_api_tool',
+  'signalwire.core.function_result.FunctionResult.execute_rpc',
+  'signalwire.core.function_result.FunctionResult.join_conference',
+  'signalwire.core.function_result.FunctionResult.pay',
+  'signalwire.core.function_result.FunctionResult.record_call',
+  'signalwire.core.function_result.FunctionResult.send_sms',
+  'signalwire.core.function_result.FunctionResult.switch_context',
+  'signalwire.core.function_result.FunctionResult.tap',
+  'signalwire.core.function_result.FunctionResult.wait_for_user',
+  'signalwire.core.agent_base.AgentBase.add_mcp_server',
+  'signalwire.core.agent_base.AgentBase.add_pattern_hint',
+  'signalwire.core.agent_base.AgentBase.prompt_add_section',
+  'signalwire.core.agent_base.AgentBase.prompt_add_subsection',
+  'signalwire.core.agent_base.AgentBase.prompt_add_to_section',
+  'signalwire.core.pom_builder.PomBuilder.add_section',
+  'signalwire.core.pom_builder.PomBuilder.add_subsection',
+  'signalwire.core.pom_builder.PomBuilder.add_to_section',
+  'signalwire.core.swml_builder.SWMLBuilder.say',
+  'signalwire.core.agent_base.AgentBase.serve',
+  'signalwire.core.swml_service.SWMLService.serve',
 ]);
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
 
@@ -2460,11 +2507,28 @@ function signatureFromMethod(
           aliases,
           `${ctx}[${mSnake}]`,
         );
+        // DEFAULT RECOVERY. A TS optional property (`body?: string`) carries NO
+        // syntactic default — the value a caller gets when omitting it is applied
+        // downstream, in the method body (`opts?.body ?? ''`, an omit-when-default
+        // guard, or a constructor's `??` chain). The declaration site therefore
+        // cannot tell us the default, and recording `default: null` would ASSERT
+        // "the default is null" — false wherever the reference declares a real one
+        // (`""`, `false`, `"POST"`, `250`, …), manufacturing a spurious
+        // `default-mismatch` against a port that behaves identically. (Verified in
+        // source: PomSection's ctor applies `?? ''` / `?? false`; FunctionResult.
+        // joinConference omits each key when it equals the reference default.)
+        //
+        // Omit the `default` key instead. diff_port_signatures.py
+        // (compare_param_properties, direction (b)) treats a reference-optional
+        // param whose port records NO default as UNRECORDED — not drift — exactly
+        // because a port may be unable to enumerate it. `required` still compares,
+        // so a port that turns an optional into a required param is still caught.
+        // `undefined` is dropped by JSON.stringify, matching the convention the
+        // required-branch already used here.
         params.push({
           name: mSnake,
           type,
           required: !optional,
-          default: optional ? null : undefined,
           kind: 'keyword',
         });
       }

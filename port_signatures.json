@@ -1149,10 +1149,41 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered_bullets",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "subsections",
+                  "type": "optional<list<dict<string,any>>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -1174,10 +1205,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -1194,10 +1238,29 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullet",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -2490,35 +2553,30 @@
                   "name": "task",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "bullets",
                   "type": "optional<list<string>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "criteria",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "functions",
                   "type": "optional<union<string,list<string>>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "valid_steps",
                   "type": "optional<list<string>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -2969,9 +3027,53 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "key",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "question",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "confirm",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "functions",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "isolated",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -3155,9 +3257,53 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "key",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "question",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "confirm",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "functions",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "isolated",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -3270,10 +3416,35 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "output_key",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "completion_action",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "isolated",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -3659,10 +3830,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "required",
+                  "type": "optional<bool>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "enum",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -3749,10 +3933,35 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "headers",
+                  "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "form_param",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "input_args_as_params",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "require_args",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -3778,9 +3987,29 @@
         "create_expression_tool": {
           "params": [
             {
-              "name": "opts",
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "kind": "keyword"
+            },
+            {
+              "name": "patterns",
               "type": "dict<string,any>",
-              "required": true
+              "required": true,
+              "kind": "keyword"
+            },
+            {
+              "name": "parameters",
+              "type": "dict<string,any>",
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "kwargs",
+              "kind": "var_keyword",
+              "type": "any",
+              "required": false,
+              "default": {}
             }
           ],
           "returns": "class:signalwire.core.data_map.DataMap"
@@ -3788,9 +4017,59 @@
         "create_simple_api_tool": {
           "params": [
             {
-              "name": "opts",
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "kind": "keyword"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true,
+              "kind": "keyword"
+            },
+            {
+              "name": "response_template",
+              "type": "string",
+              "required": true,
+              "kind": "keyword"
+            },
+            {
+              "name": "parameters",
               "type": "dict<string,any>",
-              "required": true
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "method",
+              "type": "optional<string>",
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "headers",
+              "type": "dict<string,any>",
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "body",
+              "type": "dict<string,any>",
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "error_keys",
+              "type": "optional<list<string>>",
+              "required": false,
+              "kind": "keyword"
+            },
+            {
+              "name": "kwargs",
+              "kind": "var_keyword",
+              "type": "any",
+              "required": false,
+              "default": {}
             }
           ],
           "returns": "class:signalwire.core.data_map.DataMap"
@@ -4012,9 +4291,35 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
+                  "name": "method",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "params",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "call_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "node_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4075,10 +4380,113 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "muted",
+                  "type": "optional<bool>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "beep",
+                  "type": "optional<union<string,string,string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "start_on_enter",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "end_on_exit",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "wait_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_participants",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "record",
+                  "type": "optional<union<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "region",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "trim",
+                  "type": "optional<union<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "coach",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback_event",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_callback_method",
+                  "type": "optional<union<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback_method",
+                  "type": "optional<union<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "recording_status_callback_event",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "result",
+                  "type": "any",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4104,9 +4512,125 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "payment_connector_url",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "input_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "payment_method",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_attempts",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "security_code",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "postal_code",
+                  "type": "optional<union<bool,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "min_postal_code_length",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "token_type",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "charge_amount",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "currency",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "language",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "description",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "valid_card_types",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "parameters",
+                  "type": "list<class:signalwire.core.function_result.PaymentParameter>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompts",
+                  "type": "list<class:signalwire.core.function_result.PaymentPrompt>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ai_response",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4147,10 +4671,77 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "control_id",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "stereo",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "format",
+                  "type": "optional<union<string,string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "direction",
+                  "type": "optional<union<string,string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "terminators",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "beep",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "input_sensitivity",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "initial_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "end_silence_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_length",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4297,9 +4888,47 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "to_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "from_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "body",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "media",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "tags",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "region",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4457,10 +5086,35 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "system_prompt",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "user_prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "consolidate",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "full_reset",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4539,9 +5193,47 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "uri",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "control_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "direction",
+                  "type": "optional<union<string,string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "codec",
+                  "type": "optional<union<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "rtp_ptime",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4613,10 +5305,29 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "enabled",
+                  "type": "optional<bool>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "answer_first",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4768,10 +5479,29 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "headers",
+                  "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "resources",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "resource_vars",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -4783,9 +5513,35 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "hint",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "pattern",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "replace",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ignore_case",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5100,10 +5856,29 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "headers",
+                  "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "resources",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "resource_vars",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5161,10 +5936,41 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered_bullets",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "subsections",
+                  "type": "optional<list<dict<string,any>>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5186,10 +5992,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5206,10 +6025,29 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullet",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5654,10 +6492,23 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "host",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "port",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -5763,10 +6614,41 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "numbered_bullets",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "subsections",
+                  "type": "optional<list<dict<string,any>>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5788,10 +6670,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5808,10 +6703,29 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "body",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullet",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "bullets",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -7520,10 +8434,35 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "voice",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "language",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "gender",
+                  "type": "string",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "volume",
+                  "type": "optional<float>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -8246,10 +9185,35 @@
                   "default": null
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "ssl_cert",
+                  "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ssl_key",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ssl_enabled",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "domain",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -10609,98 +11573,84 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "agent",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "prompt",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt_auth_user",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt_auth_password",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "pronounce",
                   "type": "list<dict<string,any>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "hints",
                   "type": "optional<list<string>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "languages",
                   "type": "list<dict<string,any>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "swaig",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "ai_params",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10723,14 +11673,12 @@
                   "name": "timeout",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "prompt",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10753,28 +11701,24 @@
                   "name": "message_text",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "role",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "reset",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10797,7 +11741,6 @@
                   "name": "prompt",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10820,42 +11763,36 @@
                   "name": "prompt",
                   "type": "any",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "swaig",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "ai_params",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10903,21 +11840,18 @@
                   "name": "bind_params",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "realm",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_triggers",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -10964,63 +11898,54 @@
                   "name": "digits",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "speech",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "initial_timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "partial_results",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "continuous",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "send_start_of_input",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "start_input_timers",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11048,35 +11973,30 @@
                   "name": "ringback",
                   "type": "list<dict<string,any>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "tag",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_duration",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_price_per_minute",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11131,21 +12051,18 @@
                   "name": "timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11168,56 +12085,48 @@
                   "name": "initial_timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "end_silence_timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "machine_voice_threshold",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "machine_words_threshold",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "detect_interruptions",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "detect_message_end",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11240,21 +12149,18 @@
                   "name": "digits",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11277,21 +12183,18 @@
                   "name": "tone",
                   "type": "string",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11341,14 +12244,12 @@
                   "name": "timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11409,133 +12310,114 @@
                   "name": "muted",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "beep",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "start_on_enter",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "end_on_exit",
                   "type": "optional<bool>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "wait_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_participants",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "record",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "region",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "trim",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "coach",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_callback",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_callback_event",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_callback_event_type",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_callback_method",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "recording_status_callback",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "recording_status_callback_event",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "recording_status_callback_event_type",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "recording_status_callback_method",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "stream",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11563,7 +12445,6 @@
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11646,7 +12527,6 @@
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11711,133 +12591,114 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "input_method",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "payment_method",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "timeout",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_attempts",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "security_code",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "postal_code",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "min_postal_code_length",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "token_type",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "charge_amount",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "currency",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "language",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "voice",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "description",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "valid_card_types",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "parameters",
                   "type": "list<dict<string,any>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "prompts",
                   "type": "list<dict<string,any>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11865,35 +12726,30 @@
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "direction",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "loop",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11926,21 +12782,18 @@
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -11968,14 +12821,12 @@
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12003,21 +12854,18 @@
                   "name": "duration",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12045,7 +12893,6 @@
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12073,35 +12920,30 @@
                   "name": "language",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "gender",
                   "type": "string",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "voice",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12143,14 +12985,12 @@
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12183,35 +13023,30 @@
                   "name": "language",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "gender",
                   "type": "string",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "voice",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "volume",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12239,14 +13074,12 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12274,21 +13107,18 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "queue_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12311,14 +13141,12 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12347,14 +13175,12 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12382,7 +13208,6 @@
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12439,28 +13264,24 @@
                   "name": "identity",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "header_info",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12497,63 +13318,54 @@
                   "name": "name",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "codec",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "track",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url_method",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "authorization_bearer_token",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "custom_parameters",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12595,14 +13407,12 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12625,21 +13435,18 @@
                   "name": "control_id",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "status_url",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -12691,7 +13498,6 @@
                   "name": "event",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -13289,21 +14095,18 @@
                   "name": "tag",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "max_duration",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "dial_timeout",
                   "type": "optional<float>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
@@ -13486,42 +14289,36 @@
                   "name": "context",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "body",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "media",
                   "type": "optional<list<string>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "tags",
                   "type": "optional<list<string>>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "region",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "on_completed",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": false,
-                  "default": null,
                   "kind": "keyword"
                 },
                 {
