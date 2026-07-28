@@ -6249,18 +6249,17 @@
                   "required": true
                 },
                 {
-                  "name": "metadata_or_key",
-                  "type": "union<string,dict<string,any>>",
+                  "name": "key",
+                  "type": "string",
                   "required": true
                 },
                 {
                   "name": "value",
                   "type": "any",
-                  "required": false,
-                  "default": null
+                  "required": true
                 }
               ],
-              "returns": "union<bool,void>"
+              "returns": "union<void,bool>"
             },
             "token_expiry_secs": {
               "params": [

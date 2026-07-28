@@ -1298,35 +1298,93 @@ function privateBaseComposition(
 }
 
 /**
- * Given one member declaration of a possibly-overloaded method, return the
- * declaration whose signature should be recorded.
- *
- * TS spells an overloaded method as N bodyless signature declarations followed by
- * one implementation declaration that HAS a body; every one of them is a separate
- * `cls.members` entry sharing the same name. The implementation signature is
- * required by the compiler to be compatible with all the overloads, so it is the
- * UNION of the set (widened param types, union return) — the same shape Python's
- * single polymorphic `def` records in the oracle. When the passed declaration is
- * part of such a set, return the implementation; otherwise return it unchanged.
+ * Every declaration of a method name in source order: the DECLARED overloads (each
+ * bodyless) followed by the implementation (the one with a body). A method with no
+ * overloads yields exactly one entry, the implementation.
  */
-function overloadImplementation(
+function methodDeclarationSet(
   cls: ts.ClassDeclaration,
   m: ts.MethodDeclaration,
-): ts.MethodDeclaration {
-  if (m.body) return m; // already the implementation (or a lone method)
-  if (!m.name || !ts.isIdentifier(m.name)) return m;
+): ts.MethodDeclaration[] {
+  if (!m.name || !ts.isIdentifier(m.name)) return [m];
   const name = m.name.text;
   const isStatic = !!(ts.getCombinedModifierFlags(m as ts.Declaration) & ts.ModifierFlags.Static);
+  const out: ts.MethodDeclaration[] = [];
   for (const other of cls.members) {
-    if (!ts.isMethodDeclaration(other) || !other.body) continue;
+    if (!ts.isMethodDeclaration(other)) continue;
     if (!other.name || !ts.isIdentifier(other.name) || other.name.text !== name) continue;
     const otherStatic = !!(
       ts.getCombinedModifierFlags(other as ts.Declaration) & ts.ModifierFlags.Static
     );
     if (otherStatic !== isStatic) continue;
-    return other;
+    out.push(other);
   }
-  return m; // bodyless with no implementation sibling (abstract / declare)
+  return out.length ? out : [m];
+}
+
+/**
+ * Pick the declaration whose PARAMETER LIST is the recorded surface for an
+ * overloaded method, from the DECLARED overloads — never the implementation.
+ *
+ * TS spells an overloaded method as N bodyless signature declarations followed by
+ * one implementation declaration with a body. Only the DECLARED overloads are
+ * callable surface; the implementation signature is compiler plumbing that TS
+ * *requires* to be compatible with all of them, which makes it strictly LOOSER than
+ * anything a caller can actually invoke. Reading it therefore invents optionality:
+ * `setSessionMetadata` declares `(sessionId, key, value: unknown)` — `value`
+ * required, exactly the reference's `set_session_metadata(call_id, key, value)` —
+ * yet its implementation must write `value?` purely because the sibling 2-arg bulk
+ * overload takes no third argument. Recording the implementation reported a
+ * `required-flip` against the reference for a state no caller can reach: the 2-arg
+ * overload does not accept a third argument, and the 3-arg overload requires it.
+ *
+ * So reconcile across the declared set, restricted to PREFIX-overloads (java's
+ * `optional_param_names()` rule, commit ea7e0ba): sort by arity and require each
+ * shorter declaration to be a strict prefix of the longest by param TYPE. That
+ * restriction is what makes the longest declaration a safe representative — it
+ * carries every param the set can accept, each with the required-ness it was
+ * actually declared with. Same-arity or otherwise-unrelated overloads (a genuinely
+ * polymorphic dispatch rather than a growing prefix) are NOT reconcilable this way,
+ * so those fall back to the implementation, whose union is the honest summary.
+ *
+ * Return types are unioned separately across the whole declared set (see
+ * `overloadReturnTypeNodes`) — the param list comes from one declaration, but the
+ * return is genuinely the union of every overload's.
+ */
+function overloadParamDeclaration(decls: ts.MethodDeclaration[]): ts.MethodDeclaration | undefined {
+  const declared = decls.filter((d) => !d.body);
+  if (declared.length === 0) return undefined; // no overloads — caller uses the implementation
+  if (declared.length === 1) return declared[0];
+
+  const byArity = [...declared].sort((a, b) => a.parameters.length - b.parameters.length);
+  const longest = byArity[byArity.length - 1];
+  // PREFIX-overloads means the arities are STRICTLY INCREASING — each declaration
+  // adds trailing params to the one before, so every param keeps its position across
+  // the set and the longest carries them all. Per-position TYPES may differ (that is
+  // what overloading is FOR: `metadataOrKey` is `Record<…>` in the 2-arg form and
+  // `string` in the 3-arg one); position and required-ness are what must line up.
+  // Two declarations of the SAME arity are a polymorphic dispatch, not a growing
+  // prefix — there is no single representative, so decline and let the caller fall
+  // back to the implementation's honest union.
+  for (let i = 1; i < byArity.length; i++) {
+    if (byArity[i].parameters.length === byArity[i - 1].parameters.length) return undefined;
+  }
+  // A param the longest declares as REQUIRED must not be reachable-but-absent: it may
+  // only sit at a position beyond a shorter overload's arity (so no call can omit it),
+  // never be optional in the longest itself.
+  return longest;
+}
+
+/**
+ * The return-type nodes to union for a method's recorded return. For an overloaded
+ * method that is every DECLARED overload's return (the implementation's is omitted —
+ * it is the compiler-mandated union of exactly these, so including it would only
+ * re-add arms already present). For a plain method it is the single declaration's.
+ */
+function overloadReturnTypeNodes(decls: ts.MethodDeclaration[]): ts.TypeNode[] {
+  const declared = decls.filter((d) => !d.body);
+  const src = declared.length ? declared : decls;
+  return src.map((d) => d.type).filter((t): t is ts.TypeNode => !!t);
 }
 
 function collectClass(
@@ -1441,30 +1499,35 @@ function collectClass(
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
     // OVERLOAD FOLD. A TS method may be declared as an overload SET: N bodyless
-    // signature declarations followed by ONE implementation declaration that has a
-    // body. All of them are separate `cls.members` entries with the same name. The
-    // implementation signature is the one the language REQUIRES to be compatible
-    // with every overload — it carries the widened param types (`includeSource?:
-    // boolean`, `metadataOrKey: Record<…> | string`) and the union return
-    // (`[string,string] | [string,string,source]`), which is exactly the shape the
-    // Python reference records for the same polymorphic method. Taking the FIRST
-    // declaration instead recorded only the narrowest overload and made the union
-    // invisible — the drift that was being excused as "the enumerator records only
-    // the first overload". So: when a name is overloaded, use the IMPLEMENTATION
-    // declaration (the one with a body). A get/set accessor PAIR is not an overload
-    // set (neither has a sibling implementation), so first-wins still applies there.
+    // signature declarations followed by ONE implementation declaration with a body,
+    // all separate `cls.members` entries sharing the name. Taking the FIRST recorded
+    // only the narrowest overload and made the union invisible (the drift that used
+    // to be excused as "the enumerator records only the first overload"); taking the
+    // IMPLEMENTATION over-corrects, because TS requires it to be compatible with
+    // every overload and so it is strictly LOOSER than any callable surface —
+    // `setSessionMetadata`'s `value?` is optional there only because a sibling 2-arg
+    // overload exists, inventing a `required-flip` no caller can reach.
+    //
+    // So reconcile across the DECLARED overloads: the param list comes from the
+    // longest PREFIX-overload (each param with its declared required-ness) and the
+    // return is unioned over the whole declared set. A get/set accessor PAIR is not
+    // an overload set, so first-wins still applies there.
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
-    const decl = ts.isMethodDeclaration(m) ? overloadImplementation(cls, m) : m;
+    const declSet = ts.isMethodDeclaration(m) ? methodDeclarationSet(cls, m) : [];
+    const implDecl = declSet.find((d) => d.body);
+    const paramDecl = overloadParamDeclaration(declSet) ?? implDecl ?? m;
+    const returnNodes = declSet.length > 1 ? overloadReturnTypeNodes(declSet) : undefined;
 
     try {
       methods[snake] = signatureFromMethod(
-        decl,
+        paramDecl,
         checker,
         aliases,
         false,
         isStatic,
         `${mod}.${canonClass}.${snake}`,
         rel.includes('.resources.generated.'),
+        returnNodes,
       );
     } catch (e) {
       if (e instanceof TypeTranslationError) failures.push(e);
@@ -2289,6 +2352,12 @@ function signatureFromMethod(
   isStatic: boolean,
   ctx: string,
   genResource: boolean,
+  /**
+   * For an overloaded method, every DECLARED overload's return-type node. The
+   * recorded return is their union — `m`'s own return covers only the one
+   * declaration its param list came from. Omitted for non-overloaded methods.
+   */
+  overloadReturns?: ts.TypeNode[],
 ): CanonicalSignature {
   const params: CanonicalParam[] = [];
   const isMethod =
@@ -2491,6 +2560,21 @@ function signatureFromMethod(
     returns = 'void';
   } else if (ts.isSetAccessor(m)) {
     returns = 'void';
+  } else if (overloadReturns && overloadReturns.length > 1) {
+    // OVERLOADED: the recorded return is the union over every declared overload.
+    // The param list came from ONE declaration (the longest prefix-overload), whose
+    // own return covers only that arm — `setSessionMetadata`'s 3-arg overload
+    // returns `boolean`, but the method as a whole returns `boolean | void`, which
+    // is what the reference's polymorphic `def` records. Canonicalise each arm and
+    // dedupe: a union is a SET, and distinct TS types often canonicalise alike.
+    const arms = [
+      ...new Set(
+        overloadReturns.map((t) =>
+          translateType(checker.getTypeFromTypeNode(t), checker, aliases, `${ctx}[->]`),
+        ),
+      ),
+    ];
+    returns = arms.length === 1 ? arms[0] : `union<${arms.join(',')}>`;
   } else {
     let retType: ts.Type;
     if (m.type) {
