@@ -273,11 +273,14 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   // class has a slightly different method shape (``addSection`` etc.)
   // and is enumerated separately from PromptManager.ts; the projected
   // AgentBase methods are merged into the same module entry.
+  // `define_contexts` / `get_contexts` are NOT projected: TS's PromptManager ships
+  // them as real methods with the reference's own shape (`define_contexts(contexts)`
+  // REQUIRED, storing the value; `get_contexts()` reading it back). Projecting
+  // AgentBase's optional-arg builder entry over them would clobber the real
+  // signatures with a required-flip against the reference.
   PromptManager: [
     'signalwire.core.agent.prompt.manager',
     [
-      'define_contexts',
-      'get_contexts',
       'get_post_prompt',
       'get_prompt',
       'get_raw_prompt',

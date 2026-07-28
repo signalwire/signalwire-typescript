@@ -633,7 +633,7 @@
                   "name": "options",
                   "type": "class:signalwire.ai_chat.client.SummarizeOptions",
                   "required": false,
-                  "default": {}
+                  "default": null
                 }
               ],
               "returns": "string"
@@ -1036,6 +1036,29 @@
               ],
               "returns": "class:signalwire.core.agent_base.AgentBase"
             },
+            "define_contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "union<dict<string,any>,dict<string,any>>",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "get_contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "get_pom_builder": {
               "params": [
                 {
@@ -1113,30 +1136,6 @@
                 }
               ],
               "returns": "any"
-            },
-            "define_contexts": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "contexts",
-                  "type": "union<dict<string,any>,class:signalwire.core.contexts.ContextBuilder>",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "class:signalwire.core.contexts.ContextBuilder"
-            },
-            "get_contexts": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "dict<string,any>"
             },
             "prompt_add_section": {
               "params": [
@@ -1635,6 +1634,15 @@
               ],
               "returns": "string"
             },
+            "get_contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "get_full_url": {
               "params": [
                 {
@@ -1798,8 +1806,9 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt",
-                  "required": true
+                  "type": "optional<class:signalwire.signalwire_typescript.src.swaig_contracts.generated.PostPrompt>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "union<void,void>"
@@ -5534,7 +5543,8 @@
                 {
                   "name": "_raw_data",
                   "type": "dict<string,any>",
-                  "required": true
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
@@ -31893,7 +31903,7 @@
                   "name": "host",
                   "type": "optional<string>",
                   "required": false,
-                  "default": null
+                  "default": "0.0.0.0"
                 },
                 {
                   "name": "port",

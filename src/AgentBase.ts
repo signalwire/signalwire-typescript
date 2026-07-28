@@ -710,6 +710,14 @@ export class AgentBase extends SWMLService {
     // Attach agent reference so ContextBuilder.validate() can check
     // user tool names against reserved native tool names.
     this.contextsBuilder.attachAgent(this);
+    // Mirror the reference: when a value IS supplied, PromptMixin.define_contexts
+    // delegates it to the prompt manager's own store (`core/mixins/prompt_mixin.py:149`),
+    // so `promptManager.getContexts()` reads back what the caller defined.
+    if (contexts !== undefined) {
+      this._promptManager.defineContexts(
+        contexts instanceof ContextBuilder ? contexts : (contexts as Record<string, unknown>),
+      );
+    }
     return this.contextsBuilder;
   }
 
@@ -2039,7 +2047,7 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(_summary: PostPromptData | null, _rawData: PostPrompt): void | Promise<void> {
+  onSummary(_summary: PostPromptData | null, _rawData?: PostPrompt): void | Promise<void> {
     // Default no-op
   }
 
@@ -2242,7 +2250,7 @@ export class AgentBase extends SWMLService {
   onFunctionCall(
     _name: string,
     _args: Record<string, unknown>,
-    _rawData: Record<string, unknown>,
+    _rawData?: Record<string, unknown>,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
     // Default no-op
   }

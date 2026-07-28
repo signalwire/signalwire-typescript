@@ -255,11 +255,16 @@ export class WebService {
    * @param sslKey - Path to SSL key file (overrides `SslConfig`).
    * @returns Resolves once the server has begun listening.
    */
-  async start(host?: string, port?: number, sslCert?: string, sslKey?: string): Promise<void> {
+  async start(
+    host: string = '0.0.0.0', // intended server default: listen on all interfaces (overridable)
+    port?: number,
+    sslCert?: string,
+    sslKey?: string,
+  ): Promise<void> {
     // When loaded by the CLI tool, skip server startup.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
 
-    const h = host ?? '0.0.0.0';
+    const h = host;
     const p = port ?? this.port;
 
     // Determine SSL configuration

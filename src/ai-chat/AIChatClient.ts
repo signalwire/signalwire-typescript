@@ -454,16 +454,18 @@ export class AIChatClient {
    * @returns The summary text.
    * @throws {SummaryError} When the service reports summary generation failed.
    */
-  async summarize(conversationId: string, options: SummarizeOptions = {}): Promise<string> {
+  async summarize(conversationId: string, options?: SummarizeOptions): Promise<string> {
     const params: JsonRpcParams = { id: conversationId };
-    if (options.summaryPrompt) params['summary_prompt'] = options.summaryPrompt;
-    if (options.temperature !== undefined) params['temperature'] = options.temperature;
-    if (options.topP !== undefined) params['top_p'] = options.topP;
-    if (options.frequencyPenalty !== undefined) {
+    if (options?.summaryPrompt) params['summary_prompt'] = options.summaryPrompt;
+    if (options?.temperature !== undefined) params['temperature'] = options.temperature;
+    if (options?.topP !== undefined) params['top_p'] = options.topP;
+    if (options?.frequencyPenalty !== undefined) {
       params['frequency_penalty'] = options.frequencyPenalty;
     }
-    if (options.presencePenalty !== undefined) params['presence_penalty'] = options.presencePenalty;
-    if (options.maxTokens !== undefined) params['max_tokens'] = options.maxTokens;
+    if (options?.presencePenalty !== undefined) {
+      params['presence_penalty'] = options.presencePenalty;
+    }
+    if (options?.maxTokens !== undefined) params['max_tokens'] = options.maxTokens;
 
     const result = await this._request('summarize', params);
     if ('error' in result && !('summary' in result)) {
