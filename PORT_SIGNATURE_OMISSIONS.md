@@ -184,9 +184,6 @@ signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, toke
 signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) omits Python's trailing **kwargs passthrough (no extra fields are forwarded to this relay method in TS); same clear-bindings wire command.
 signalwire.relay.call.Call.send_digits: TS sendDigits(digits, controlId?) takes control_id positionally where Python makes it keyword-only; same send_digits wire command with the same fields.
 signalwire.relay.call.Call.amazon_bedrock: TS amazonBedrock(options) types the collapsed prompt as required-in-context where Python records Optional[Any]; both accept the same open prompt value and POST the identical amazon_bedrock params.
-signalwire.relay.call.Call.on: TS on(event, handler) types handler as the plain callback (event) => void; Python wraps it in an EventHandler class. Same subscription; EventHandler is a Python-internal wrapper.
-signalwire.relay.client.RelayClient.on_call: TS onCall(handler) types handler as (call) => void and returns void; Python's CallHandler is a Python-internal wrapper class returned for decorator use. Same registration.
-signalwire.relay.client.RelayClient.on_message: TS onMessage(handler) types handler as (message) => void and returns void; Python's MessageHandler is a Python-internal wrapper. Same registration.
 signalwire.rest._request_options.RequestOptions.abort_signal: field-vs-accessor idiom: the reference dataclass surfaces abort_signal as a read accessor; TS carries it as a public readonly field on the RequestOptions value object (RequestOptions.abortSignal). Same value, read the same way — a TS field is the idiomatic analog of a Python dataclass field.
 
 ## Reference-oracle gap: signalwire.livewire not in the signatures oracle
