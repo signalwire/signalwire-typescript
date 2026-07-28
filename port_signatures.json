@@ -157,7 +157,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,string>",
+                  "type": "callable<list<class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,string>",
                   "required": true
                 },
                 {
@@ -1628,7 +1628,7 @@
               "params": [
                 {
                   "name": "request_body",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
                   "required": true
                 }
               ],
@@ -2063,7 +2063,7 @@
                   "default": false
                 }
               ],
-              "returns": "callable<list<any,callable<list<>,void>>,union<void,any>>"
+              "returns": "callable<list<class:Request,callable<list<>,void>>,union<void,any>>"
             },
             "security_config": {
               "params": [
@@ -3555,7 +3555,7 @@
                 },
                 {
                   "name": "pattern",
-                  "type": "string",
+                  "type": "union<string,class:Pattern>",
                   "required": true
                 },
                 {
@@ -5620,7 +5620,7 @@
                 },
                 {
                   "name": "callback",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,string>",
+                  "type": "callable<list<class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,string>",
                   "required": true
                 },
                 {
@@ -5670,7 +5670,7 @@
                 },
                 {
                   "name": "cb",
-                  "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>,class:signalwire.core.agent_base.AgentBase>,void>",
+                  "type": "callable<list<dict<string,any>,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>,class:signalwire.core.agent_base.AgentBase>,void>",
                   "required": true
                 }
               ],
@@ -5684,7 +5684,7 @@
                 },
                 {
                   "name": "request_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
                   "required": false,
                   "default": null
                 },
@@ -5705,8 +5705,9 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
-                  "required": true
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "_callback_path",
@@ -5716,7 +5717,7 @@
                 },
                 {
                   "name": "_context",
-                  "type": "any",
+                  "type": "class:Request",
                   "required": false,
                   "default": null
                 }
@@ -6367,7 +6368,7 @@
               "required": true
             }
           ],
-          "returns": "callable<list<any,callable<list<>,void>>,union<void,any>>"
+          "returns": "callable<list<class:Request,callable<list<>,void>>,union<void,any>>"
         }
       }
     },
@@ -6603,7 +6604,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "callable<list<any,callable<list<>,void>>,union<void,any>>"
+              "returns": "callable<list<class:Request,callable<list<>,void>>,union<void,any>>"
             },
             "is_configured": {
               "params": [
@@ -7840,7 +7841,7 @@
               "params": [
                 {
                   "name": "request_body",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
                   "required": true
                 }
               ],
@@ -8106,7 +8107,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,string>",
+                  "type": "callable<list<class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,string>",
                   "required": true
                 },
                 {
@@ -8261,7 +8262,7 @@
                 },
                 {
                   "name": "cb",
-                  "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,class:signalwire.core.swml_builder.SWMLBuilder>",
+                  "type": "callable<list<dict<string,any>,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,class:signalwire.core.swml_builder.SWMLBuilder>",
                   "required": true
                 }
               ],
@@ -8376,7 +8377,7 @@
                 },
                 {
                   "name": "request_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
                   "required": false,
                   "default": null
                 },
@@ -10125,8 +10126,21 @@
                 },
                 {
                   "name": "raw_data",
-                  "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
-                  "required": true
+                  "type": "class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "_callback_path",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "_context",
+                  "type": "class:Request",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "union<void,dict<string,any>>"
@@ -10139,7 +10153,7 @@
                 },
                 {
                   "name": "callback",
-                  "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,list<class:signalwire.prefabs.info_gatherer.InfoGathererQuestion>>",
+                  "type": "callable<list<dict<string,any>,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,list<class:signalwire.prefabs.info_gatherer.InfoGathererQuestion>>",
                   "required": true
                 }
               ],
@@ -16876,7 +16890,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "union<string,class:signalwire.platform_contracts.generated.SignalWireErrorBody>",
+                  "type": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>",
                   "required": true
                 },
                 {
@@ -16906,7 +16920,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,class:signalwire.platform_contracts.generated.SignalWireErrorBody>"
+              "returns": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>"
             },
             "headers": {
               "params": [
@@ -32793,7 +32807,7 @@
           "required": false
         },
         "question_callback": {
-          "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>>,list<class:signalwire.prefabs.info_gatherer.InfoGathererQuestion>>",
+          "type": "callable<list<dict<string,any>,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SwmlRequestData,dict<string,any>>,list<class:signalwire.prefabs.info_gatherer.InfoGathererQuestion>>",
           "required": false
         },
         "questions": {
@@ -34093,7 +34107,7 @@
     "signalwire.rest._base.SignalWireRestError": {
       "params": {
         "body": {
-          "type": "union<string,class:signalwire.platform_contracts.generated.SignalWireErrorBody>",
+          "type": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>",
           "required": true
         },
         "headers": {

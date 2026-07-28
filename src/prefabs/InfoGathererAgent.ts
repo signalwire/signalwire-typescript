@@ -11,6 +11,7 @@ import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwmlRequestData } from '../PlatformContracts.js';
+import type { Context } from 'hono';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -224,8 +225,24 @@ export class InfoGathererAgent extends AgentBase {
    * Handle dynamic configuration using the registered callback. Returns the
    * per-request global_data payload which AgentBase merges into the SWML
    * response. Mirrors Python's `on_swml_request` return-dict contract.
+   *
+   * Carries the full base-hook parameter list — `(requestData, callbackPath,
+   * context)` — matching the reference's
+   * `on_swml_request(request_data, callback_path, request)`. The two trailing
+   * params are unused by this prefab's logic but must be DECLARED: an override
+   * that narrows to one parameter cannot be handed the callback path or the
+   * framework request object, so a subclass of this prefab could not reach
+   * them. The reference passes both at its call sites.
+   *
+   * @param rawData - The parsed request body.
+   * @param _callbackPath - Optional callback path from the request.
+   * @param _context - The raw Hono context (analog of the reference's `request`).
    */
-  override async onSwmlRequest(rawData: SwmlRequestData): Promise<Record<string, unknown> | void> {
+  override async onSwmlRequest(
+    rawData?: SwmlRequestData | null,
+    _callbackPath?: string,
+    _context?: Context,
+  ): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
 
@@ -240,10 +257,13 @@ export class InfoGathererAgent extends AgentBase {
       };
     }
 
-    // Build callback inputs from the incoming raw data.
-    const queryParams = this.extractRecord(rawData['query_params']);
-    const headers = this.extractRecord(rawData['headers']);
-    const bodyParams = rawData;
+    // Build callback inputs from the incoming raw data. `rawData` is optional
+    // on the base hook (the reference defaults it to None), so treat an absent
+    // body as the empty request.
+    const body: SwmlRequestData = rawData ?? {};
+    const queryParams = this.extractRecord(body['query_params']);
+    const headers = this.extractRecord(body['headers']);
+    const bodyParams = body;
 
     try {
       const questions = await this.questionCallback(queryParams, bodyParams, headers);

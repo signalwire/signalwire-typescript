@@ -76,6 +76,19 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  // The SWML/SWAIG webhook payload types. Both this file and the reference's
+  // `signalwire/rest/namespaces/swml_webhooks_types_generated.py` are generated
+  // from the SAME spec (porting-sdk/rest-apis/swml-webhooks/openapi.yaml), so
+  // they are the identical contract and must record the identical module. The
+  // SURFACE enumerator already carried this mapping; the signature enumerator
+  // did not, so it fell back to `signalwire.platform_contracts.generated`. That
+  // fallback carries none of the generator-module markers the diff checker's
+  // `normalize_type` looks for, so a `SwmlRequestData` param never collapsed to
+  // the `gen:<Name>` token — and the checker's existing rule that a generated
+  // TypedDict is compatible with `dict<string,any>` in either direction could
+  // not fire. The result was a spurious `SwmlRequestData` vs `dict<string,any>`
+  // param-mismatch on every dynamic-SWML hook, each one carried as an omission.
+  'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',

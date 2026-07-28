@@ -73,9 +73,25 @@ fall into these named categories:
      Python's positional affordance). Same wire, same value set — the analog of
      Go's `go-variadic-options`.
    - **framework / typed-shape**: TS omits FastAPI-specific wrapper types
-     (``Request``/``HTTPAuthorizationCredentials``) that have no Hono/TS analog,
-     and types payloads/returns as named shapes where Python uses ``dict``/``Any``
+     (``HTTPAuthorizationCredentials``) that have no Hono/TS analog, and types
+     payloads/returns as named shapes where Python uses ``dict``/``Any``
      (TS strictly richer — never loosened; same emitted wire, proven by EMISSION).
+     NOTE (2026-07-28): the two claims this bullet used to make about the
+     framework REQUEST object were both wrong and have been retired, not
+     re-excused — reconciled in the type/module tables so comparison KEEPS
+     RUNNING instead of stopping:
+       * "FastAPI ``Request`` has no Hono/TS analog" — it does. Hono's per-request
+         ``Context`` is that analog, and go already maps its ``http.Request`` and
+         compares equal. ``Context`` now maps to ``class:Request`` in
+         porting-sdk/type_aliases.yaml (the differ matches bare class refs by leaf).
+       * "TS types payloads as named shapes where Python uses dict, so they cannot
+         compare" — the diff checker has ALWAYS held a spec-generated TypedDict
+         compatible with ``dict<string,any>`` in either direction. That rule simply
+         never fired, because this port's SIGNATURE enumerator was missing the
+         ``src/PlatformContracts.generated.ts`` module alias its own SURFACE
+         enumerator already had, so ``SwmlRequestData`` never normalised to the
+         ``gen:<Name>`` token the rule keys on. Adding the alias retired 12 excuses
+         with zero new drift.
 
 2. **Reference-oracle gaps**: symbols the port genuinely implements but that are
    absent from ``python_signatures.json`` (griffe enumeration gaps — e.g. the
@@ -172,10 +188,6 @@ signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: TS get
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: TS getTools() returns list<SkillToolDefinition>; Python returns list[dict[str,Any]]. Same tool defs, TS stricter.
 signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: TS getTools() returns list<SkillToolDefinition>; Python returns list[dict[str,Any]]. Same tool defs, TS stricter.
 signalwire.core.swml_service.SWMLService.extract_sip_username: TS types request_body as SwmlRequestData (the canonical dynamic-SWML request shape); Python types it dict[str,Any]. Same payload, TS stricter.
-signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: TS types request_data as SwmlRequestData (canonical dynamic-SWML request shape) where Python has Optional[dict]; the framework `request` param (FastAPI Request) has no Hono/TS analog and is untyped. Same payload, TS stricter on the body.
-signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: TS callback receives the typed SwmlRequestData and returns string (route); Python's callback takes (Request, dict) -> Optional[str]. The FastAPI Request has no TS analog; the dict is typed as SwmlRequestData. Same routing contract, TS stricter payload.
-signalwire.core.swml_service.SWMLService.register_routing_callback: TS callback receives the typed SwmlRequestData and returns string; Python's callback takes (Request, dict) -> Optional[str]. FastAPI Request has no TS analog; same routing contract, TS stricter payload.
-signalwire.agent_server.AgentServer.register_global_routing_callback: TS callback receives the typed SwmlRequestData and returns string; Python's callback takes (Request, dict) -> Optional[str]. FastAPI Request has no TS analog; same routing contract, TS stricter payload.
 signalwire.core.mixins.web_mixin.WebMixin.set_dynamic_config_callback: TS callback's 2nd arg is typed SwmlRequestData (canonical dynamic-SWML request); Python types it dict[str,Any]. Same callback contract, TS stricter payload.
 signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: TS callback receives a typed SwmlRequestData + returns list<InfoGathererQuestion> (named shapes) where Python uses dicts. Same callback contract, TS stricter.
 
@@ -194,7 +206,6 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: Python define_c
 
 signalwire.core.auth_handler.AuthHandler.verify_bearer_token: Python takes a FastAPI HTTPAuthorizationCredentials wrapper and immediately reads .credentials (the raw token); TS has no FastAPI so it takes the already-unwrapped token: string. Same value compared.
 signalwire.core.auth_handler.AuthHandler.verify_basic_auth: Python takes a single FastAPI HTTPBasicCredentials wrapper; TS takes the unwrapped (username, password) pair directly (no FastAPI credentials object). Same two values.
-signalwire.core.data_map.DataMap.expression: TS types pattern as string | RegExp; Python uses str | Pattern[str]. RegExp is the TS analog of Python's compiled Pattern — a rename-map equivalence, not a divergence.
 signalwire.core.agent_base.AgentBase.on_debug_event: Python on_debug_event is a decorator that registers and returns a handler (Callable->Callable); TS onDebugEvent(event) is the idiomatic overridable receiver hook that consumes the event and returns void. Same debug-event capability, different (Pythonic vs OO) registration mechanism.
 signalwire.core.skill_base.SkillBase.define_tool: Python define_tool(**kwargs) is untyped keyword-splat; TS defineTool(toolDef: SkillToolDefinition) collapses it into one typed options object (the canonical TS translation of **kwargs). TS stricter.
 signalwire.core.logging_config.strip_control_chars: Python strip_control_chars(logger, method_name, event_dict) is a structlog processor (3-arg processor protocol); the TS logging layer is not structlog-based, so the equivalent helper takes just the data payload to sanitize. Same sanitization behavior, no structlog processor protocol in TS.
@@ -205,7 +216,6 @@ signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, toke
 signalwire.core.swml_handler.AIVerbHandler.build_config: ts-options-object: buildConfig(opts) collapses Python's prompt_text/prompt_pom/contexts/post_prompt/post_prompt_url/swaig/**kwargs into one options object; same AI verb config emitted.
 signalwire.core.agent.tools.registry.ToolRegistry.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/wait_file/wait_file_loops/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
-signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: TS onSwmlRequest(rawData) receives the request payload; Python on_swml_request(request_data, callback_path, request) additionally threads FastAPI callback_path/Request which have no Hono/TS analog. Same dynamic-SWML hook.
 signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) omits Python's trailing **kwargs passthrough (no extra fields are forwarded to this relay method in TS); same clear-bindings wire command.
 signalwire.relay.call.Call.user_event: ts-options-object: userEvent(options) collapses Python's event + **kwargs into one options object; same user_event wire command.
 signalwire.relay.call.Call.send_digits: TS sendDigits(digits, controlId?) takes control_id positionally where Python makes it keyword-only; same send_digits wire command with the same fields.
@@ -382,13 +392,40 @@ until the reference signatures oracle carries BedrockAgent.
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 
-## Idiom: renamed composition accessor — reference class-name spelling differs
+## UNRESOLVED — real capability gap awaiting an owner ruling (NOT idiom)
 
 # `signalwire.agent_server.AgentServer.logger` was deleted here 2026-07-27 (Wave-6
 # ledger burn-down) for the same reason as SkillBase.logger above: the reference
 # enumerator suppresses the per-instance logger member by the logging factory's
 # return type, so the oracle no longer emits the symbol this line excused.
-signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.
+#
+# WebService.security — the rationale that stood here until 2026-07-28 was FALSE and
+# is corrected below rather than re-excused. It claimed this was "only the config
+# class-name spelling" across a rename. The source says otherwise:
+#   * TS ALREADY HAS a `SecurityConfig` class (src/SWMLService.ts) that is a faithful
+#     analog of the reference's — SSL + basic auth + allowed hosts + CORS origins +
+#     HSTS. It is real and in use by SWMLService. So there is no missing class and no
+#     class-name divergence to fold; the two names denote two DIFFERENT objects.
+#   * `WebService` simply does not use it: it holds `_ssl: SslConfig` and its
+#     `security` accessor returns that. `SslConfig` covers SSL/HSTS ONLY.
+#   * The reference's `SecurityConfig` exposes 7 public capabilities —
+#     get_cors_config, get_security_headers, should_allow_host, get_basic_auth,
+#     get_ssl_context_kwargs, validate_ssl_config, log_config. Through TS's
+#     `WebService.security` a caller can reach NONE of the CORS / security-headers /
+#     host-allowlist / basic-auth ones.
+# This is therefore a genuine NARROWING of a public accessor, not a rename: the
+# reference hands back the unified security object, the port hands back an SSL-only
+# subset. It is NOT foldable at the emitter and it is NOT a language ceiling —
+# TypeScript can express it, and the class already exists.
+#
+# Closing it is a behavioural change to WebService (swap the `_ssl` field for a
+# `SecurityConfig`, and add the `isConfigured()` / `hstsMiddleware()` /
+# `getServerOptions()` affordances that `WebService` calls on `_ssl` today and that
+# `SecurityConfig` does not currently expose). That is a deliberate API change to a
+# security-relevant surface, so it is NOT made unilaterally here — it is reported for
+# an owner ruling. Comparison is left EXCUSED only to keep this entry honest about
+# what it hides; do not treat the excuse as a resolution.
+signalwire.web.web_service.WebService.security: UNRESOLVED capability gap (reported 2026-07-28, awaiting owner ruling — see the note above): the reference's `security` returns the unified `SecurityConfig` (SSL + CORS + security headers + allowed hosts + basic auth); TS's returns `SslConfig`, an SSL/HSTS-only subset, so the CORS/headers/host/auth capabilities are unreachable through this accessor. TS's own faithful `SecurityConfig` exists (src/SWMLService.ts) but `WebService` does not use it. Not idiom, not a rename, not a language ceiling.
 
 ## Port-only typed composition getters + framework-app accessor (signature-side additions)
 

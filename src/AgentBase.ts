@@ -2090,7 +2090,7 @@ export class AgentBase extends SWMLService {
    * @returns Optionally a dict of SWML modifications, or void.
    */
   onSwmlRequest(
-    _rawData: SwmlRequestData,
+    _rawData?: SwmlRequestData | null,
     _callbackPath?: string,
     _context?: Context,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
