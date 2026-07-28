@@ -152,7 +152,7 @@ export { SchemaUtils, SchemaValidationError } from './SchemaUtils.js';
 export type { ValidationResult } from './SchemaUtils.js';
 
 // Auth
-export { AuthHandler } from './AuthHandler.js';
+export { AuthHandler, BasicCredentials, BearerCredentials } from './AuthHandler.js';
 export type { AuthConfig } from './AuthHandler.js';
 
 // Type inference for typed tool handlers

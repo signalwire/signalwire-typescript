@@ -72,14 +72,21 @@ fall into these named categories:
      is this idiom (the options object is a keyword-passing bag; it cannot express
      Python's positional affordance). Same wire, same value set — the analog of
      Go's `go-variadic-options`.
-   - **framework / typed-shape**: TS omits FastAPI-specific wrapper types
-     (``HTTPAuthorizationCredentials``) that have no Hono/TS analog, and types
-     payloads/returns as named shapes where Python uses ``dict``/``Any``
-     (TS strictly richer — never loosened; same emitted wire, proven by EMISSION).
-     NOTE (2026-07-28): the two claims this bullet used to make about the
-     framework REQUEST object were both wrong and have been retired, not
-     re-excused — reconciled in the type/module tables so comparison KEEPS
-     RUNNING instead of stopping:
+   - **framework / typed-shape**: TS types payloads/returns as named shapes where
+     Python uses ``dict``/``Any`` (TS strictly richer — never loosened; same
+     emitted wire, proven by EMISSION).
+     NOTE (2026-07-28): THREE claims this bullet used to make were all wrong and
+     have been retired, not re-excused — reconciled in the type/module tables and
+     in the port's own source so comparison KEEPS RUNNING instead of stopping:
+       * "TS omits FastAPI wrapper types (``HTTPBasicCredentials`` /
+         ``HTTPAuthorizationCredentials``) that have no Hono/TS analog" — FastAPI
+         was never the contract. Those objects are just the fields parsed out of
+         the ``Authorization`` header, and that shape is fully portable. porting-sdk
+         dcff742 publishes them as real oracle classes
+         (``BasicCredentials`` {username, password} / ``BearerCredentials``
+         {scheme, credentials}); ``src/AuthHandler.ts`` now declares exactly those
+         two carriers and ``verifyBasicAuth``/``verifyBearerToken`` take them, so
+         both methods COMPARE EQUAL instead of being excused.
        * "FastAPI ``Request`` has no Hono/TS analog" — it does. Hono's per-request
          ``Context`` is that analog, and go already maps its ``http.Request`` and
          compares equal. ``Context`` now maps to ``class:Request`` in
@@ -171,8 +178,6 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: Python define_c
 
 ## Idiom: framework / language-idiom param divergences (same wire/behavior)
 
-signalwire.core.auth_handler.AuthHandler.verify_bearer_token: Python takes a FastAPI HTTPAuthorizationCredentials wrapper and immediately reads .credentials (the raw token); TS has no FastAPI so it takes the already-unwrapped token: string. Same value compared.
-signalwire.core.auth_handler.AuthHandler.verify_basic_auth: Python takes a single FastAPI HTTPBasicCredentials wrapper; TS takes the unwrapped (username, password) pair directly (no FastAPI credentials object). Same two values.
 signalwire.core.agent_base.AgentBase.on_debug_event: Python on_debug_event is a decorator that registers and returns a handler (Callable->Callable); TS onDebugEvent(event) is the idiomatic overridable receiver hook that consumes the event and returns void. Same debug-event capability, different (Pythonic vs OO) registration mechanism.
 signalwire.core.logging_config.strip_control_chars: Python strip_control_chars(logger, method_name, event_dict) is a structlog processor (3-arg processor protocol); the TS logging layer is not structlog-based, so the equivalent helper takes just the data payload to sanitize. Same sanitization behavior, no structlog processor protocol in TS.
 signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, token, call_id) omits Python's include_auth flag (auth inclusion is derived from token presence in the TS emitter); same emitted SWAIG entry.

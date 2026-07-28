@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ f5d01882359b40838b2aaa0e69958425eb960072",
+  "generated_from": "signalwire-typescript @ 5c533d21ab3a3f272241583261bb9c022a2f4c4a",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -207,6 +207,14 @@
     },
     "signalwire.core.auth_handler": {
       "classes": {
+        "BasicCredentials": [
+          "password",
+          "username"
+        ],
+        "BearerCredentials": [
+          "credentials",
+          "scheme"
+        ],
         "AuthHandler": [
           "__init__",
           "express_middleware",

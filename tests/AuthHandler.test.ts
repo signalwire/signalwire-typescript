@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AuthHandler } from '../src/AuthHandler.js';
+import { AuthHandler, BasicCredentials, BearerCredentials } from '../src/AuthHandler.js';
 
 describe('AuthHandler', () => {
   it('validates Bearer token', async () => {
@@ -133,5 +133,58 @@ describe('AuthHandler', () => {
     });
     expect(nextCalled).toBe(false);
     expect((result as { status: number }).status).toBe(401);
+  });
+
+  // The credential carriers are the parity contract with the Python reference:
+  // verify_basic_auth takes a {username, password} record and verify_bearer_token
+  // takes a {scheme, credentials} record. These verify the fields are load-bearing
+  // (each is actually compared) rather than decorative.
+  describe('credential carriers', () => {
+    it('BasicCredentials carries the username/password pair verbatim', () => {
+      const c = new BasicCredentials('alice', 'hunter2');
+      expect(c.username).toBe('alice');
+      expect(c.password).toBe('hunter2');
+    });
+
+    it('BearerCredentials carries the scheme/credentials pair verbatim', () => {
+      const c = new BearerCredentials('Bearer', 'tok-abc');
+      expect(c.scheme).toBe('Bearer');
+      expect(c.credentials).toBe('tok-abc');
+    });
+
+    it('verifyBasicAuth accepts the configured pair and compares BOTH fields', () => {
+      const h = new AuthHandler({ basicAuth: ['alice', 'hunter2'] });
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'hunter2'))).toBe(true);
+      // Each field independently participates in the comparison.
+      expect(h.verifyBasicAuth(new BasicCredentials('bob', 'hunter2'))).toBe(false);
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'wrong'))).toBe(false);
+    });
+
+    it('verifyBasicAuth returns false when Basic auth is not configured', () => {
+      const h = new AuthHandler({ bearerToken: 'tok' });
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'hunter2'))).toBe(false);
+    });
+
+    it('verifyBearerToken compares the credentials field, not the scheme', () => {
+      const h = new AuthHandler({ bearerToken: 'tok-abc' });
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-abc'))).toBe(true);
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-wrong'))).toBe(false);
+      // The scheme is carried for header fidelity but is NOT the secret compared —
+      // same as the Python reference, which reads only `.credentials`.
+      expect(h.verifyBearerToken(new BearerCredentials('Token', 'tok-abc'))).toBe(true);
+    });
+
+    it('verifyBearerToken returns false when Bearer auth is not configured', () => {
+      const h = new AuthHandler({ apiKey: 'k' });
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-abc'))).toBe(false);
+    });
+
+    it('validate() routes header parsing through the carriers', async () => {
+      const h = new AuthHandler({ basicAuth: ['alice', 'hunter2'] });
+      const encoded = Buffer.from('alice:hunter2').toString('base64');
+      expect(await h.validate({ authorization: `Basic ${encoded}` })).toBe(true);
+      const wrong = Buffer.from('alice:nope').toString('base64');
+      expect(await h.validate({ authorization: `Basic ${wrong}` })).toBe(false);
+    });
   });
 });

@@ -42,6 +42,54 @@ export interface AuthConfig {
 }
 
 /**
+ * The username/password pair parsed out of an HTTP `Authorization: Basic` header.
+ *
+ * This is the credential carrier {@link AuthHandler.verifyBasicAuth} verifies. The
+ * Python reference receives the same two fields from FastAPI's `HTTPBasicCredentials`;
+ * FastAPI is not the contract — the two parsed fields are, and this class carries them
+ * with no web framework attached.
+ */
+export class BasicCredentials {
+  /** The username decoded from the Basic credentials. */
+  readonly username: string;
+  /** The password decoded from the Basic credentials. */
+  readonly password: string;
+
+  /**
+   * @param username - The username decoded from the Basic credentials.
+   * @param password - The password decoded from the Basic credentials.
+   */
+  constructor(username: string, password: string) {
+    this.username = username;
+    this.password = password;
+  }
+}
+
+/**
+ * The scheme/credentials pair parsed out of an HTTP `Authorization` header.
+ *
+ * This is the credential carrier {@link AuthHandler.verifyBearerToken} verifies.
+ * `scheme` is the auth scheme as sent (`Bearer`); `credentials` is the raw token that
+ * follows it. The Python reference receives the same two fields from FastAPI's
+ * `HTTPAuthorizationCredentials`.
+ */
+export class BearerCredentials {
+  /** The authorization scheme as sent on the wire (e.g. `Bearer`). */
+  readonly scheme: string;
+  /** The raw credential following the scheme — for Bearer, the token itself. */
+  readonly credentials: string;
+
+  /**
+   * @param scheme - The authorization scheme as sent on the wire (e.g. `Bearer`).
+   * @param credentials - The raw credential following the scheme.
+   */
+  constructor(scheme: string, credentials: string) {
+    this.scheme = scheme;
+    this.credentials = credentials;
+  }
+}
+
+/**
  * Constant-time string comparison to prevent timing attacks.
  */
 function safeCompare(a: string, b: string): boolean {
@@ -76,8 +124,9 @@ export class AuthHandler {
     if (this.config.bearerToken) {
       const authHeader = headers['authorization'] || headers['Authorization'] || '';
       if (authHeader.startsWith('Bearer ')) {
-        const token = authHeader.slice(7);
-        if (safeCompare(token, this.config.bearerToken)) return true;
+        if (this.verifyBearerToken(new BearerCredentials('Bearer', authHeader.slice(7)))) {
+          return true;
+        }
       }
     }
 
@@ -96,10 +145,11 @@ export class AuthHandler {
         const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
         const colonIdx = decoded.indexOf(':');
         if (colonIdx > 0) {
-          const user = decoded.slice(0, colonIdx);
-          const pass = decoded.slice(colonIdx + 1);
-          const [expectedUser, expectedPass] = this.config.basicAuth;
-          if (safeCompare(user, expectedUser) && safeCompare(pass, expectedPass)) return true;
+          const parsed = new BasicCredentials(
+            decoded.slice(0, colonIdx),
+            decoded.slice(colonIdx + 1),
+          );
+          if (this.verifyBasicAuth(parsed)) return true;
         }
       }
     }
@@ -134,33 +184,39 @@ export class AuthHandler {
   }
 
   /**
-   * Verify a Basic Auth username/password pair against the configured credentials.
+   * Verify a parsed Basic Auth credential pair against the configured credentials.
    *
    * Returns false immediately if Basic Auth is not configured.
    * Uses constant-time comparison to prevent timing attacks.
    *
-   * @param username - The username to verify.
-   * @param password - The password to verify.
+   * @param credentials - The username/password pair parsed from the Authorization header.
    * @returns True if the credentials match the configured Basic Auth credentials.
    */
-  verifyBasicAuth(username: string, password: string): boolean {
+  verifyBasicAuth(credentials: BasicCredentials): boolean {
     if (!this.config.basicAuth) return false;
     const [expectedUser, expectedPass] = this.config.basicAuth;
-    return safeCompare(username, expectedUser) && safeCompare(password, expectedPass);
+    return (
+      safeCompare(credentials.username, expectedUser) &&
+      safeCompare(credentials.password, expectedPass)
+    );
   }
 
   /**
-   * Verify a Bearer token against the configured token.
+   * Verify a parsed Bearer credential against the configured token.
    *
    * Returns false immediately if Bearer token auth is not configured.
    * Uses constant-time comparison to prevent timing attacks.
    *
-   * @param token - The Bearer token string to verify (without the "Bearer " prefix).
+   * Only the `credentials` field (the raw token) is compared — the same field the
+   * Python reference compares. The `scheme` is carried for fidelity with what the
+   * Authorization header actually said, and is not part of the secret comparison.
+   *
+   * @param credentials - The scheme/token pair parsed from the Authorization header.
    * @returns True if the token matches the configured Bearer token.
    */
-  verifyBearerToken(token: string): boolean {
+  verifyBearerToken(credentials: BearerCredentials): boolean {
     if (!this.config.bearerToken) return false;
-    return safeCompare(token, this.config.bearerToken);
+    return safeCompare(credentials.credentials, this.config.bearerToken);
   }
 
   /**
