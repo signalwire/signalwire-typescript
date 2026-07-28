@@ -976,7 +976,15 @@ function translateType(
       const inner = translateType(filtered[0], checker, aliases, context);
       return hasNullish ? `optional<${inner}>` : inner;
     }
-    const parts = filtered.map((t) => translateType(t, checker, aliases, context));
+    // DEDUPE. A union is a SET, so identical canonical arms collapse. TS unions can
+    // hold several DISTINCT types that canonicalise to the SAME string — most often a
+    // string-literal union (`'provided' | 'environment' | 'generated'`), where every
+    // arm canonicalises to `string`. Emitting `union<string,string,string>` records a
+    // 3-arm union for what is one type; the diff's own normaliser dedupes at compare
+    // time, so this only ever made the stored artifact noisier than the surface it
+    // describes. Collapse to the single arm when they all agree.
+    const parts = [...new Set(filtered.map((t) => translateType(t, checker, aliases, context)))];
+    if (parts.length === 1) return hasNullish ? `optional<${parts[0]}>` : parts[0];
     const u = `union<${parts.join(',')}>`;
     return hasNullish ? `optional<${u}>` : u;
   }
@@ -1289,6 +1297,38 @@ function privateBaseComposition(
   return out;
 }
 
+/**
+ * Given one member declaration of a possibly-overloaded method, return the
+ * declaration whose signature should be recorded.
+ *
+ * TS spells an overloaded method as N bodyless signature declarations followed by
+ * one implementation declaration that HAS a body; every one of them is a separate
+ * `cls.members` entry sharing the same name. The implementation signature is
+ * required by the compiler to be compatible with all the overloads, so it is the
+ * UNION of the set (widened param types, union return) — the same shape Python's
+ * single polymorphic `def` records in the oracle. When the passed declaration is
+ * part of such a set, return the implementation; otherwise return it unchanged.
+ */
+function overloadImplementation(
+  cls: ts.ClassDeclaration,
+  m: ts.MethodDeclaration,
+): ts.MethodDeclaration {
+  if (m.body) return m; // already the implementation (or a lone method)
+  if (!m.name || !ts.isIdentifier(m.name)) return m;
+  const name = m.name.text;
+  const isStatic = !!(ts.getCombinedModifierFlags(m as ts.Declaration) & ts.ModifierFlags.Static);
+  for (const other of cls.members) {
+    if (!ts.isMethodDeclaration(other) || !other.body) continue;
+    if (!other.name || !ts.isIdentifier(other.name) || other.name.text !== name) continue;
+    const otherStatic = !!(
+      ts.getCombinedModifierFlags(other as ts.Declaration) & ts.ModifierFlags.Static
+    );
+    if (otherStatic !== isStatic) continue;
+    return other;
+  }
+  return m; // bodyless with no implementation sibling (abstract / declare)
+}
+
 function collectClass(
   cls: ts.ClassDeclaration,
   rel: string,
@@ -1400,11 +1440,25 @@ function collectClass(
 
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
+    // OVERLOAD FOLD. A TS method may be declared as an overload SET: N bodyless
+    // signature declarations followed by ONE implementation declaration that has a
+    // body. All of them are separate `cls.members` entries with the same name. The
+    // implementation signature is the one the language REQUIRES to be compatible
+    // with every overload — it carries the widened param types (`includeSource?:
+    // boolean`, `metadataOrKey: Record<…> | string`) and the union return
+    // (`[string,string] | [string,string,source]`), which is exactly the shape the
+    // Python reference records for the same polymorphic method. Taking the FIRST
+    // declaration instead recorded only the narrowest overload and made the union
+    // invisible — the drift that was being excused as "the enumerator records only
+    // the first overload". So: when a name is overloaded, use the IMPLEMENTATION
+    // declaration (the one with a body). A get/set accessor PAIR is not an overload
+    // set (neither has a sibling implementation), so first-wins still applies there.
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
+    const decl = ts.isMethodDeclaration(m) ? overloadImplementation(cls, m) : m;
 
     try {
       methods[snake] = signatureFromMethod(
-        m,
+        decl,
         checker,
         aliases,
         false,
@@ -2195,6 +2249,33 @@ function canonForParamNode(
   return translateType(resolved, checker, aliases, ctx);
 }
 
+/**
+ * Resolve the inline TYPE LITERAL that carries an options bag's named members, or
+ * `undefined` when the param isn't an unfoldable bag.
+ *
+ * A bag is normally written as a bare type literal (`options: { a?: X; b?: Y }`).
+ * It may also be written as an INTERSECTION with an open index-signature arm —
+ * `options: { event?: string } & Record<string, unknown>` — which is TS's spelling
+ * of Python's `def m(self, *, event=None, **kwargs)`: the literal arm holds the
+ * NAMED keyword params, the `Record<…>` arm is the `**kwargs` tail. Before this,
+ * the guard was a bare `ts.isTypeLiteralNode`, so the intersection form silently
+ * failed to unfold and its method had to be excused as an options-object
+ * divergence even though it was on the unfold allowlist.
+ *
+ * Exactly one literal arm may contribute members; more than one would make the
+ * member ORDER (which the diff compares positionally) ambiguous, so that is
+ * declined rather than guessed at.
+ */
+function optionsBagTypeLiteral(typeNode: ts.TypeNode | undefined): ts.TypeLiteralNode | undefined {
+  if (!typeNode) return undefined;
+  if (ts.isTypeLiteralNode(typeNode)) return typeNode;
+  if (ts.isIntersectionTypeNode(typeNode)) {
+    const literals = typeNode.types.filter(ts.isTypeLiteralNode);
+    if (literals.length === 1) return literals[0];
+  }
+  return undefined;
+}
+
 function signatureFromMethod(
   m:
     | ts.ConstructorDeclaration
@@ -2279,13 +2360,12 @@ function signatureFromMethod(
     }
     // General options-object unfold (allowlisted methods): a trailing inline
     // `options`/`opts`/`config` type-literal → its members as `keyword` params.
-    if (
-      shouldGeneralUnfold &&
-      (native === 'options' || native === 'opts' || native === 'config') &&
-      p.type &&
-      ts.isTypeLiteralNode(p.type)
-    ) {
-      for (const member of p.type.members) {
+    const unfoldLiteral =
+      shouldGeneralUnfold && (native === 'options' || native === 'opts' || native === 'config')
+        ? optionsBagTypeLiteral(p.type)
+        : undefined;
+    if (unfoldLiteral) {
+      for (const member of unfoldLiteral.members) {
         if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
           continue;
         const mNative = member.name.text;

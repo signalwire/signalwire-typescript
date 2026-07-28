@@ -179,11 +179,9 @@ signalwire.agent_server.AgentServer.register_global_routing_callback: TS callbac
 signalwire.core.mixins.web_mixin.WebMixin.set_dynamic_config_callback: TS callback's 2nd arg is typed SwmlRequestData (canonical dynamic-SWML request); Python types it dict[str,Any]. Same callback contract, TS stricter payload.
 signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: TS callback receives a typed SwmlRequestData + returns list<InfoGathererQuestion> (named shapes) where Python uses dicts. Same callback contract, TS stricter.
 
-## Idiom: TS overload set expresses the Python union (enumerator records first overload)
+## Idiom: TS overload set expresses the Python union
 
-signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: TS overloads express the full union: (includeSource?: false) -> [string,string] and (includeSource: true) -> [string,string,source]. The enumerator records only the first overload; the union is present and in fact stricter (source is a literal union). Same contract.
-signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: TS overloads express the full [string,string] | [string,string,source] union; the enumerator records only the first overload. Same contract, TS stricter.
-signalwire.core.security.session_manager.SessionManager.set_session_metadata: TS overloads: (sessionId, metadata) -> void (TS-native bulk merge) and (sessionId, key, value) -> boolean (the Python-compatible 3-arg form matching set_session_metadata(call_id,key,value)->bool). The enumerator records the first (bulk) overload; the Python-parity overload exists. session_id≡call_id (rename).
+signalwire.core.security.session_manager.SessionManager.set_session_metadata: TS overloads: (sessionId, metadata) -> void (TS-native bulk merge) and (sessionId, key, value) -> boolean (the Python-parity 3-arg form). The enumerator now folds the overload SET via the implementation signature, so the union return and the 3-param arity compare EQUAL. What remains is a genuine surface difference, not an enumerator limit: because the 2-arg bulk overload is a strict PREFIX of the 3-arg one, `value` is optional in the union where the reference requires it. Retiring this needs a ruling on dropping the bulk overload (used by tests + docs) — see the lane report; do not widen the entry to re-hide the arity/return.
 
 ## Idiom: TS richer return / method-split (superset or parity shim)
 

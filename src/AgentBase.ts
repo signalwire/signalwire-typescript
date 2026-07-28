@@ -3219,7 +3219,7 @@ export class AgentBase extends SWMLService {
     includeSource: true,
   ): [string, string, 'provided' | 'environment' | 'generated'];
   getBasicAuthCredentials(
-    includeSource?: boolean,
+    includeSource: boolean = false,
   ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;

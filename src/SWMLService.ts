@@ -1237,7 +1237,7 @@ export class SWMLService {
     includeSource: true,
   ): [string, string, 'provided' | 'environment' | 'generated'];
   getBasicAuthCredentials(
-    includeSource?: boolean,
+    includeSource: boolean = false,
   ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
