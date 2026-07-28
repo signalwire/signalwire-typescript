@@ -77,7 +77,16 @@ export class SessionManager {
     const message = `${callId}:${functionName}:${expiry}:${nonce}`;
     const signature = createHmac('sha256', this.secretKey).update(message).digest('hex');
     const token = `${callId}.${functionName}.${expiry}.${nonce}.${signature}`;
-    const encoded = Buffer.from(token).toString('base64url');
+    // PADDED urlsafe base64 — the reference is `base64.urlsafe_b64encode`, which KEEPS
+    // the '=' padding, and its `validate_token` decodes with `urlsafe_b64decode`, which
+    // RAISES on a stripped '='. Node's `'base64url'` encoding strips padding, so a token
+    // encoded that way is unusable to the reference (and to every port that decodes
+    // strictly) even though the message and HMAC are correct — and this port's own
+    // `validateToken` would still accept it, because Node's base64url DECODER is
+    // padding-tolerant. That asymmetry is why round-tripping against ourselves cannot
+    // catch it; the TOKEN-INTEROP gate validates against the reference decoder instead.
+    // So: standard base64, then the urlsafe alphabet, padding intact.
+    const encoded = Buffer.from(token).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
     this.log.debug('created_token', { function: functionName, call_id: callId });
     return encoded;
   }

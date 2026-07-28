@@ -181,6 +181,21 @@ sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, night
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
         --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
 
+# TOKEN-INTEROP — property 3 of the SWAIG tool-token contract: a token this port MINTS
+# must validate under the REFERENCE's own decoder. SECURE-DEFAULT proves a token is
+# minted and the fleet keying check proves the HMAC key; NEITHER sees the base64
+# ENVELOPE, so a port could ship correct-key correct-HMAC tokens that no other
+# implementation accepts — in production every secure tool call then fails auth. This
+# port shipped exactly that (Node's 'base64url' STRIPS padding; the reference's
+# urlsafe_b64decode RAISES on a stripped '='), and it was invisible to our own tests
+# because Node's base64url DECODER is padding-tolerant, so we round-tripped fine.
+# One mint + a pure-python validation → cheap, per-PR (a security property must not
+# wait for nightly). Scheduled as its OWN line, not in the BEHAVIORAL suite line
+# above, because that line is defer=1 (heavy wave) and this is cheap.
+sched_gate TOKEN-INTEROP desc="a token this port mints validates under the reference's decoder (padded urlsafe base64, ':'-signed / '.'-enveloped, hex HMAC keyed by the secret_key string)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_token_interop.py" --port typescript \
+        --mint-cmd "SIGNALWIRE_LOG_MODE=off npx tsx $PORT_ROOT/scripts/token-interop-mint.ts"
+
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/
 # ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE.
 sched_gate DOC-TRUTH res=surface desc="doc-truth suite (DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE)" \
