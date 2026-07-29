@@ -127,21 +127,26 @@ signalwire.livewire.SileroVAD.__init__: TS constructor signature follows TS conv
 signalwire.livewire.StopResponse.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.TTS.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.ToolError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Call.device: TS declares `device: Device` as a typed class field; Python has the same attribute but sets it dynamically (`self.device = device or {}`), so the static signature enumerator records it "in port, not in reference". Same attribute, stronger TS typing (the Device union from the Tier-3 typed-objects pass).
-signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
 
-## Idiom: TS fluent API returns this
+## Idiom: TS named collection/result types vs the reference's bare dicts + tuples
 
-signalwire.agent_server.AgentServer.get_agents: TS fluent API returns this for chaining
-signalwire.core.function_result.FunctionResult.create_payment_action: TS fluent API returns this for chaining
-signalwire.core.function_result.FunctionResult.create_payment_parameter: TS fluent API returns this for chaining
-signalwire.core.pom_builder.PomBuilder.get_section: TS fluent API returns this for chaining
-signalwire.core.pom_builder.PomBuilder.to_dict: TS fluent API returns this for chaining
-signalwire.core.security.session_manager.SessionManager.debug_token: TS fluent API returns this for chaining
-signalwire.core.skill_base.SkillBase.get_prompt_sections: TS fluent API returns this for chaining
-signalwire.skills.registry.SkillRegistry.list_skills: TS fluent API returns this for chaining
+# NOTE (2026-07-29): every rationale in this section used to read "TS fluent API
+# returns this for chaining". That was FALSE for all eight — not one of these TS
+# methods returns `this` (`getAgents(): Map<...>`, `createPaymentAction():
+# PaymentAction`, `getSection(): PomSection | undefined`, `toDict():
+# PomSectionData[]`, `debugToken(): DebugTokenResult`, `getPromptSections():
+# SkillPromptSection[]`). The divergences each entry suppresses ARE real, so the
+# entries stay; only the wording is corrected to name the actual divergence the
+# differ reports.
+
+signalwire.agent_server.AgentServer.get_agents: TS getAgents() returns the live `Map<string, AgentBase>` registry; the reference returns `list<tuple<string, AgentBase>>`. Same (name, agent) pairs, TS's native keyed-collection type instead of a list of 2-tuples (TS has no tuple-of-pairs idiom for a registry).
+signalwire.core.function_result.FunctionResult.create_payment_action: TS createPaymentAction() returns the named `PaymentAction` interface; the reference returns the equivalent `dict<string,string>`. Same SWAIG payload object, TS stricter.
+signalwire.core.function_result.FunctionResult.create_payment_parameter: TS createPaymentParameter() returns the named `PaymentParameter` interface; the reference returns the equivalent `dict<string,string>`. Same SWAIG payload object, TS stricter.
+signalwire.core.pom_builder.PomBuilder.get_section: TS getSection() returns `PomSection | undefined` (the port's own section class); the reference returns `optional<signalwire.pom.pom.Section>`. Same section object, the port's co-located PomSection class instead of the pom.pom one.
+signalwire.core.pom_builder.PomBuilder.to_dict: TS toDict() returns `list<PomSectionData>` (a named shape); the reference returns the equivalent `list<dict<string,any>>`. Same JSON, TS stricter.
+signalwire.core.security.session_manager.SessionManager.debug_token: TS debugToken() returns the named `DebugTokenResult` shape; the reference returns the equivalent `dict<string,any>`. Same decoded-token fields, TS stricter.
+signalwire.core.skill_base.SkillBase.get_prompt_sections: TS getPromptSections() returns `list<SkillPromptSection>` (a named shape); the reference returns the equivalent `list<dict<string,any>>`. Same prompt sections, TS stricter.
+signalwire.skills.registry.SkillRegistry.list_skills: the reference's `SkillRegistry.list_skills` has no port member under this name: TS's `listSkills()` is enumerated as the port twin of `discover_skills` (see that entry), so `list_skills` itself reads missing-port. Same listing capability, reached through the discover_skills mapping.
 
 ## Idiom: TS options-object vs Python positional-or-keyword params
 
@@ -179,9 +184,8 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: Python define_c
 ## Idiom: framework / language-idiom param divergences (same wire/behavior)
 
 signalwire.core.agent_base.AgentBase.on_debug_event: Python on_debug_event is a decorator that registers and returns a handler (Callable->Callable); TS onDebugEvent(event) is the idiomatic overridable receiver hook that consumes the event and returns void. Same debug-event capability, different (Pythonic vs OO) registration mechanism.
-signalwire.core.logging_config.strip_control_chars: Python strip_control_chars(logger, method_name, event_dict) is a structlog processor (3-arg processor protocol); the TS logging layer is not structlog-based, so the equivalent helper takes just the data payload to sanitize. Same sanitization behavior, no structlog processor protocol in TS.
 signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, token, call_id) omits Python's include_auth flag (auth inclusion is derived from token presence in the TS emitter); same emitted SWAIG entry.
-signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) omits Python's trailing **kwargs passthrough (no extra fields are forwarded to this relay method in TS); same clear-bindings wire command.
+signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) takes realm positionally where Python makes it keyword-only (`*, realm`); same clear-bindings wire command with the same field. (The reference also carries a `**kwargs` passthrough, but the oracle strips the kwargs tail, so the param-KIND difference is the whole of what the differ reports.)
 signalwire.relay.call.Call.send_digits: TS sendDigits(digits, controlId?) takes control_id positionally where Python makes it keyword-only; same send_digits wire command with the same fields.
 signalwire.relay.call.Call.amazon_bedrock: TS amazonBedrock(options) types the collapsed prompt as required-in-context where Python records Optional[Any]; both accept the same open prompt value and POST the identical amazon_bedrock params.
 signalwire.rest._request_options.RequestOptions.abort_signal: field-vs-accessor idiom: the reference dataclass surfaces abort_signal as a read accessor; TS carries it as a public readonly field on the RequestOptions value object (RequestOptions.abortSignal). Same value, read the same way — a TS field is the idiomatic analog of a Python dataclass field.
@@ -334,7 +338,6 @@ signalwire.core.swml_builder.SWMLBuilder.ai: idiom: SwmlBuilder installs every s
 signalwire.core.swml_builder.SWMLBuilder.answer: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
 signalwire.core.swml_builder.SWMLBuilder.hangup: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
 signalwire.core.swml_builder.SWMLBuilder.play: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
-signalwire.rest._base.SignalWireRestError.body: idiom: TS exposes the parsed error body as a public property on the consolidated RestError/SignalWireRestError class; Python has no such attribute
 signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_parameter_schema: idiom: TS static get_parameter_schema accessor; the reference SIGNATURES oracle records no class for this skill module (same shape as the other per-skill get_parameter_schema idiom entries)
 signalwire.utils.schema_utils.SchemaUtils.validate_document: idiom: TS validate() returns a ValidationResult object (structured), Python validate_document returns a (bool, list[str]) tuple — same validation capability, TS-idiomatic return
 
@@ -405,11 +408,7 @@ signalwire.core.agent_base.AgentBase.log: TS exposes the composed `Logger` as a 
 signalwire.core.swml_service.SWMLService.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets it dynamically so the signatures oracle records no accessor. Same logger object, TS-idiom typed accessor.
 signalwire.core.swml_service.SWMLService.swml_builder: TS exposes the composed `SWMLBuilder` as a typed `swmlBuilder` getter; Python holds the builder as a dynamically-set attribute the signatures oracle does not record. Same builder object, stronger TS typing.
 signalwire.core.auth_handler.AuthHandler.config: TS exposes the `AuthConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
-signalwire.core.skill_base.SkillBase.agent: TS exposes the owning `AgentBase` back-reference as a typed `agent` getter; Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
 signalwire.core.skill_base.SkillBase.config: TS exposes the `SkillConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
-signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS exposes the loaded FAQ entries as a typed `faqs` getter (`list<FAQEntry>`); Python holds the same list as a dynamically-set attribute the signatures oracle does not record. Same data, stronger TS typing.
-signalwire.prefabs.survey.SurveyAgent.questions: TS exposes the survey questions as a typed `questions` getter (`list<SurveyQuestion>`); Python holds the same list as a dynamically-set attribute. Same data, stronger TS typing.
-signalwire.relay.call.Action.call: TS exposes the originating `Call` back-reference as a typed `call` getter (`CallLike`); Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
 
 # TS resource base constructors: the generated REST resource bases take
 # `(http, base_path)` to wire the client + collection path; the Python reference
