@@ -5440,7 +5440,7 @@
         "strip_control_chars": {
           "params": [
             {
-              "name": "data",
+              "name": "event_dict",
               "type": "any",
               "required": true
             }

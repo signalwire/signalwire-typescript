@@ -231,13 +231,16 @@ const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
  * log injection attacks. Mirrors Python SDK's `strip_control_chars` structlog
  * processor. Processes nested objects and arrays recursively.
  *
- * @param data - The record whose string values should be sanitized.
- * @returns A shallow copy of `data` with control characters removed from strings.
+ * @param eventDict - The log event record whose string values should be sanitized.
+ *   Named for the reference's `event_dict` (`logging_config.py:33`) — the enumerator
+ *   camelCase->snake_case folds this to `event_dict`, so the recorded signature matches
+ *   the oracle without needing a rename-table entry.
+ * @returns A shallow copy of `eventDict` with control characters removed from strings.
  */
-export function stripControlChars<T extends Record<string, unknown>>(data: T): T {
+export function stripControlChars<T extends Record<string, unknown>>(eventDict: T): T {
   const result = {} as T;
-  for (const key of Object.keys(data) as (keyof T)[]) {
-    const value = data[key];
+  for (const key of Object.keys(eventDict) as (keyof T)[]) {
+    const value = eventDict[key];
     if (typeof value === 'string') {
       result[key] = value.replace(CONTROL_CHAR_RE, '') as T[keyof T];
     } else if (Array.isArray(value)) {
