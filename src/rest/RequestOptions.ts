@@ -64,9 +64,37 @@ export interface RequestOptionsInit {
 
 // The built-in defaults (the contract floor). `undefined` on a RequestOptions
 // field means "inherit"; these are what an unset field resolves to at apply-time.
+
+/**
+ * Built-in {@link RequestOptionsInit.timeout}: wall-clock seconds allowed per
+ * attempt before the request raises the transport-error type. Applies when
+ * neither the per-request options nor the client default set `timeout`.
+ */
 export const DEFAULT_TIMEOUT = 30.0;
+
+/**
+ * Built-in {@link RequestOptionsInit.retries}: **zero**. Retries are opt-in —
+ * out of the box a request is attempted exactly once and the first non-2xx
+ * raises, which is the pinned REST contract. Raising this is a caller decision,
+ * not a default.
+ */
 export const DEFAULT_RETRIES = 0;
+
+/**
+ * Built-in {@link RequestOptionsInit.retryOnStatus}: `{429, 500, 502, 503, 504}`
+ * — throttling plus the transient server/gateway failures. Note this set alone
+ * does not decide a retry: {@link statusIsRetryable} additionally restricts
+ * non-idempotent methods (POST/PATCH) to 429 and 503, so a POST is never
+ * replayed on a 500/502/504 whose side effect may have partially applied.
+ */
 export const DEFAULT_RETRY_ON_STATUS: ReadonlySet<number> = new Set([429, 500, 502, 503, 504]);
+
+/**
+ * Built-in {@link RequestOptionsInit.retryBackoff}: base seconds for the
+ * exponential wait between retries (`backoff * 2 ** (attempt - 1)`, so
+ * 0.5s, 1s, 2s…). A `Retry-After` response header takes precedence when
+ * present.
+ */
 export const DEFAULT_RETRY_BACKOFF = 0.5;
 
 /**
