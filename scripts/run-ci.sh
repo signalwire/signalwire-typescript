@@ -164,8 +164,8 @@ sched_gate SURFACE desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SU
 # declared optional<dict<string,string>> and go still shipped a bare string, with no gate
 # red. RATCHET, not a hard gate: dynamic languages cannot always express a type, so this
 # banks the current count and fails only on REGRESSION. Drive the number DOWN; never up.
-sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 45)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port typescript --repo "$PORT_ROOT" --max 45
+sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 5)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port typescript --repo "$PORT_ROOT" --max 5
 
 # GEN (regen-from-specs family): the 5 GEN-FRESH rules.
 sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
