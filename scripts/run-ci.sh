@@ -296,12 +296,15 @@ sched_gate PUBLIC-JARGON res=dayone desc="no porting-process jargon in public AP
 sched_gate WIRED-MODES res=dayone desc="load-bearing run-ci modes (WIRED_MODES.md) present — merge-race guard" \
     -- bash -c 'if [ -f "$1/scripts/check_wired_modes.py" ]; then python3 "$1/scripts/check_wired_modes.py" --port typescript --repo "$2"; else echo "[wired-modes] check_wired_modes.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
 
-# DOC-SURFACE (plan 6.3): TSDoc coverage floor on the public API surface. Report-only —
-# it prints the current coverage and ratchets against the committed .doc_surface_floor
-# (never regress below it), it does not fail the build on the absolute percentage.
-# Guarded so the ts lane stays green until doc_surface.py lands on porting-sdk main.
-sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API surface (report-only, ratchets via .doc_surface_floor)" \
-    -- bash -c 'if [ -f "$1/scripts/doc_surface.py" ]; then python3 "$1/scripts/doc_surface.py" --port typescript --repo "$2" --report-only; else echo "[doc-surface] doc_surface.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
+# DOC-SURFACE (plan §6.3): TSDoc coverage floor on the public API surface.
+# BLOCKING. The port is at 100.0% (327/327) as of the 2026-07-29 burn and the floor in
+# .doc_surface_floor is pinned there, so a newly-undocumented public symbol is a real
+# regression with a pinned number to prove it — it must red the run, not print a note.
+# Was report-only at graduation, and previously wrapped in a skip-with-pass guard for
+# when doc_surface.py still lived only on the porting-sdk plan branch. Both are gone: the
+# script is on the pinned PORTING_SDK_REF, and a MISSING gate script must fail, not pass.
+sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API surface (100% — blocking; ratchets via .doc_surface_floor)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port typescript --repo "$PORT_ROOT"
 
 # AI-CHAT (task #22, COORDINATED pass ts:ai-chat-client <-> porting-sdk:ai-chat-client):
 # wire-behavioral gate for the AIChatClient. Drives scripts/ai-chat-dump.ts through the
