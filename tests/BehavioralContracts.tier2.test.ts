@@ -771,3 +771,189 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     expect(String(insecure['response'])).toBe('HANDLER RAN');
   });
 });
+
+// ── The SERVERLESS half of the same token contract ───────────────────────────
+//
+// The sibling suite above proves the matrix over the HTTP transport. This one
+// proves it over the SERVERLESS envelope, and the reason it is a SEPARATE test
+// rather than a parameterisation is that the two transports carry the
+// credential differently and only their INTERSECTION is the contract:
+//
+//   * the `__token` rides the lambda event's `queryStringParameters` (the
+//     PARSED mapping, present in both the REST-API-v1 and HTTP-API-v2 payload
+//     shapes) — NOT a header, NOT the body;
+//   * the `call_id` rides the POST BODY, read back as `raw_data.call_id`.
+//
+// That split is the reference's own (`_build_webhook_url`'s serverless branch
+// STRIPS call_id from the query and keeps only `__token`), so serverless is not
+// a weaker transport — it is the identical contract over a different envelope.
+//
+// In THIS port both transports are enforced by ONE check, because
+// `runServerless` translates the event into a `Request` and routes it through
+// `getApp()` — the very Hono app the HTTP server serves. That is worth pinning
+// precisely BECAUSE it is a structural claim: if someone ever gives serverless
+// its own dispatch, these assertions are what catches the second, unguarded
+// copy. (In the reference the analogous function was defined TWICE and MRO
+// picked the winner, so patching the visible one enforced nothing.)
+//
+// Cross-port gate: BEHAVIORAL-HTTP fixtures `http_serverless_lambda_swaig`
+// (refusal) and `http_serverless_lambda_swaig_valid_token` (acceptance).
+describe('SWAIG __token enforcement over the SERVERLESS transport', () => {
+  const USER = 'u';
+  const PASSWORD = 'p';
+  const authHeader = 'Basic ' + Buffer.from(`${USER}:${PASSWORD}`).toString('base64');
+
+  function agentFor(): AgentBase {
+    const a = new AgentBase({ name: 'sls-token', route: '/', basicAuth: [USER, PASSWORD] });
+    a.setPromptText('serverless token matrix');
+    a.defineTool({
+      name: 'sls_secure',
+      description: 'secure by default',
+      parameters: {},
+      handler: () => new FunctionResult('HANDLER RAN'),
+    });
+    a.defineTool({
+      name: 'sls_insecure',
+      description: 'explicitly insecure',
+      parameters: {},
+      secure: false,
+      handler: () => new FunctionResult('HANDLER RAN'),
+    });
+    return a;
+  }
+
+  /** Invoke a tool through the lambda envelope; returns the parsed FunctionResult body. */
+  async function invoke(
+    a: AgentBase,
+    fn: string,
+    query: Record<string, string> | undefined,
+    callId: string | null,
+  ): Promise<Record<string, unknown>> {
+    const resp = await a.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: { authorization: authHeader, 'content-type': 'application/json' },
+        ...(query ? { queryStringParameters: query } : {}),
+        body: JSON.stringify({
+          function: fn,
+          argument: { parsed: [{}] },
+          ...(callId === null ? {} : { call_id: callId }),
+        }),
+      } as never,
+      undefined,
+      'lambda',
+    );
+    // The refusal is a 200 + FunctionResult body, never an HTTP error status:
+    // the engine has no handling for a SWAIG refusal status.
+    expect(resp.statusCode).toBe(200);
+    return JSON.parse(resp.body) as Record<string, unknown>;
+  }
+
+  it('accepts a GENUINELY MINTED token and RUNS the secure handler', async () => {
+    // The positive half. A fix that refuses everything — never validating, just
+    // always denying — would satisfy every other row here, so this row is what
+    // makes the rest of the matrix mean anything.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_secure', 'c1');
+    const ok = await invoke(a, 'sls_secure', { __token: valid }, 'c1');
+    expect(String(ok['response'])).toBe('HANDLER RAN');
+  });
+
+  it('refuses a FORGED token', async () => {
+    const bad = await invoke(agentFor(), 'sls_secure', { __token: 'forged' }, 'c1');
+    expect(String(bad['response'])).not.toBe('HANDLER RAN');
+    expect(String(bad['response'])).toContain('security token');
+  });
+
+  it('refuses an ABSENT token (fail-CLOSED)', async () => {
+    // No queryStringParameters at all — the shape a caller who simply omits the
+    // credential produces. Omitting it must never be weaker than presenting a
+    // wrong one.
+    const absent = await invoke(agentFor(), 'sls_secure', undefined, 'c1');
+    expect(String(absent['response'])).not.toBe('HANDLER RAN');
+    expect(String(absent['response'])).toContain('security token');
+  });
+
+  it('refuses when the call_id is ABSENT, even with a token present', async () => {
+    // A token is only meaningful against a call_id; with none in the body there
+    // is nothing to validate it against, so the call is unvalidated — which is
+    // a refusal, never a bypass.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    // Deliberately a REAL token for a REAL call_id — the point is that dropping
+    // the call_id from the body must not turn it into a skip.
+    const valid = sm.createToolToken('sls_secure', 'c1');
+    const noCallId = await invoke(a, 'sls_secure', { __token: valid }, null);
+    expect(String(noCallId['response'])).not.toBe('HANDLER RAN');
+    expect(String(noCallId['response'])).toContain('security token');
+  });
+
+  it('leaves an INSECURE tool ungated in every one of those cases', async () => {
+    // The other direction: `secure: false` opts out of the gate entirely, so
+    // none of the four rows above may gate it.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_insecure', 'c1');
+
+    const rows = [
+      await invoke(a, 'sls_insecure', { __token: valid }, 'c1'), // valid
+      await invoke(a, 'sls_insecure', { __token: 'forged' }, 'c1'), // forged
+      await invoke(a, 'sls_insecure', undefined, 'c1'), // absent
+      await invoke(a, 'sls_insecure', { __token: 'forged' }, null), // no call_id
+    ];
+    for (const row of rows) expect(String(row['response'])).toBe('HANDLER RAN');
+  });
+
+  it('pins the refusal WORDING verbatim — it is what the model speaks aloud', () => {
+    // The wording is wire contract, not a local message: the engine has no
+    // handling for a refusal, so the tool's `response` string is relayed to the
+    // caller by the model. It is byte-compared against the reference by the
+    // BEHAVIORAL-HTTP corpus, and every OTHER assertion in this file uses the
+    // weak `toContain('security token')` — which is exactly why this port
+    // drifted to a reworded refusal without a single test going red.
+    return invoke(agentFor(), 'sls_secure', undefined, 'c1').then((refused) => {
+      expect(refused['response']).toBe(
+        "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
+      );
+    });
+  });
+
+  it('routes serverless through the SAME Hono app as HTTP (one enforcement site)', async () => {
+    // The structural claim the matrix above rests on. If serverless ever grows
+    // its own dispatch, this is the assertion that fails first.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_secure', 'c1');
+
+    const viaHttp = (await (
+      await a.getApp().request(`/swaig?__token=${encodeURIComponent(valid)}`, {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          function: 'sls_secure',
+          argument: { parsed: [{}] },
+          call_id: 'c1',
+        }),
+      })
+    ).json()) as Record<string, unknown>;
+    const viaServerless = await invoke(a, 'sls_secure', { __token: valid }, 'c1');
+    expect(viaServerless).toEqual(viaHttp);
+
+    // ...and the refusals agree too, not just the happy path.
+    const refusedHttp = (await (
+      await a.getApp().request('/swaig', {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          function: 'sls_secure',
+          argument: { parsed: [{}] },
+          call_id: 'c1',
+        }),
+      })
+    ).json()) as Record<string, unknown>;
+    const refusedServerless = await invoke(agentFor(), 'sls_secure', undefined, 'c1');
+    expect(refusedServerless).toEqual(refusedHttp);
+  });
+});

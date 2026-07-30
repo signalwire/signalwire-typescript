@@ -2904,6 +2904,11 @@ export class AgentBase extends SWMLService {
       // status: the engine (mod_openai) has no handling for a SWAIG refusal
       // status, so the tool reports that it cannot execute and the model
       // relays it.
+      //
+      // The refusal WORDING is part of that wire contract, not a local message:
+      // it is what the model speaks to the caller, so it is pinned verbatim to
+      // the reference (`agent_base.py` :1496-1501) and byte-compared by the
+      // BEHAVIORAL-HTTP corpus. Do not reword it.
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
       if (token) {
@@ -2924,7 +2929,7 @@ export class AgentBase extends SWMLService {
         if (fn.secure) {
           reqLog.warn('secure_function_refused', { token_present: Boolean(token) });
           const result = new FunctionResult(
-            'The security token for this function is invalid or expired. This action cannot be completed.',
+            "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
           );
           return c.json(result.toDict());
         }
