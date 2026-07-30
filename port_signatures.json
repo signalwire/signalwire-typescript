@@ -27589,15 +27589,6 @@
               "params": [],
               "returns": "dict<string,any>"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
-            },
             "get_tools": {
               "params": [
                 {
@@ -27686,15 +27677,6 @@
               "params": [],
               "returns": "dict<string,any>"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
-            },
             "get_tools": {
               "params": [
                 {
@@ -27756,15 +27738,6 @@
               "params": [],
               "returns": "dict<string,any>"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
-            },
             "get_tools": {
               "params": [
                 {
@@ -27825,15 +27798,6 @@
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -27975,15 +27939,6 @@
               "params": [],
               "returns": "dict<string,any>"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
-            },
             "get_tools": {
               "params": [
                 {
@@ -28044,15 +27999,6 @@
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -28123,15 +28069,6 @@
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -28220,15 +28157,6 @@
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -28684,15 +28612,6 @@
               "params": [],
               "returns": "dict<string,any>"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
-            },
             "get_tools": {
               "params": [
                 {
@@ -28814,15 +28733,6 @@
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
