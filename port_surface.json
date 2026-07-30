@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ f95bc0e143980260823c1c3ab1d48d170a849800",
+  "generated_from": "signalwire-typescript @ a11f4d4611806b0841f8d58373a524b4212deb1b",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -362,7 +362,6 @@
       "classes": {
         "DataMap": [
           "__init__",
-          "body",
           "description",
           "enable_env_expansion",
           "error_keys",

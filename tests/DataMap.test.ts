@@ -71,13 +71,16 @@ describe('DataMap', () => {
     expect(exprs[0]!['nomatch-output']).toEqual({ response: 'no match' });
   });
 
-  it('webhook with body and headers', () => {
+  // Was `webhook with body and headers`, which read the `body` key back and
+  // asserted its contents — pinning a schema-forbidden key as correct. It now
+  // asserts `params`, the contract key the engine actually reads.
+  it('webhook with params and headers', () => {
     const dm = new DataMap('search')
       .purpose('Search docs')
       .webhook('POST', 'https://api.docs.com/search', {
         headers: { Authorization: 'Bearer TOKEN' },
       })
-      .body({ query: '${query}', limit: 3 })
+      .params({ query: '${query}', limit: 3 })
       .output(new FunctionResult('Found: ${response.title}'));
 
     const fn = dm.toSwaigFunction();
@@ -87,7 +90,8 @@ describe('DataMap', () => {
     >[];
     expect(webhooks[0]!['method']).toBe('POST');
     expect(webhooks[0]!['headers']).toEqual({ Authorization: 'Bearer TOKEN' });
-    expect(webhooks[0]!['body']).toEqual({ query: '${query}', limit: 3 });
+    expect(webhooks[0]!['params']).toEqual({ query: '${query}', limit: 3 });
+    expect(webhooks[0]).not.toHaveProperty('body');
   });
 
   it('webhook with params', () => {
@@ -149,9 +153,8 @@ describe('DataMap', () => {
     expect(dataMap['error_keys']).toEqual(['err']);
   });
 
-  it('throws if body/output/params/foreach called without webhook', () => {
+  it('throws if output/params/foreach called without webhook', () => {
     const dm = new DataMap('fn');
-    expect(() => dm.body({})).toThrow('Must add webhook');
     expect(() => dm.output(new FunctionResult('x'))).toThrow('Must add webhook');
     expect(() => dm.params({})).toThrow('Must add webhook');
     expect(() => dm.foreach({ input_key: 'a', output_key: 'b', append: 'c' })).toThrow(
@@ -494,5 +497,43 @@ describe('DataMap - ENV prefix whitelist', () => {
       unknown
     >[];
     expect(webhooks[0]!['url']).toBe('https://example.com?db=postgres://host/db');
+  });
+});
+
+/**
+ * `DataMap.body()` is GONE — the key it wrote is invalid, not merely ignored.
+ *
+ * Owner-ruled 2026-07-29, extending the ruling behind `createSimpleApiTool`'s
+ * dropped `body` OPTION (this port's a11f4d4, reference f171ce3) from the helper
+ * PARAMETER to the public BUILDER METHOD. The same three sources condemn both:
+ *
+ * - `porting-sdk/schema.json` `$defs/Webhook` declares exactly ten properties
+ *   (error_keys, expressions, foreach, headers, input_args_as_params, method,
+ *   output, params, require_args, url) under `unevaluatedProperties: {"not": {}}`
+ *   — `body` is not among them, so emitting it is a SCHEMA VIOLATION.
+ * - `mod_openai/actions.c:735-739` and `bedrock.c:4920-4926` read url, method,
+ *   form_param, `params` and `headers` and nothing else; `grep -n '"body"'`
+ *   across both files returns ZERO matches.
+ * - So the method's only possible effect was producing an invalid document while
+ *   silently discarding the caller's payload.
+ *
+ * `params()` is the correct method for POST/PUT request data — it writes the
+ * `params` key, which IS in the contract and IS read.
+ */
+describe('DataMap body() builder removed', () => {
+  it('body() is gone from the DataMap prototype', () => {
+    expect('body' in DataMap.prototype).toBe(false);
+  });
+
+  it('params() still writes the contract key (positive control)', () => {
+    const dm = new DataMap('t')
+      .webhook('POST', 'https://x.test')
+      .params({ q: '${query}' })
+      .output(new FunctionResult('ok'));
+    const webhooks = (dm.toSwaigFunction()['data_map'] as Record<string, unknown>)[
+      'webhooks'
+    ] as Record<string, unknown>[];
+    expect(webhooks[0]!['params']).toEqual({ q: '${query}' });
+    expect(webhooks[0]).not.toHaveProperty('body');
   });
 });

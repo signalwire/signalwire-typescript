@@ -1195,15 +1195,6 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 Set expressions on the most recently added webhook.
 
-#### `body(data)`
-
-<!-- snippet: no-compile API signature / type reference, not runnable code -->
-```ts
-body(data: Record<string, unknown>): this
-```
-
-Set the JSON body for the most recently added webhook.
-
 #### `params(data)`
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
@@ -1211,7 +1202,9 @@ Set the JSON body for the most recently added webhook.
 params(data: Record<string, unknown>): this
 ```
 
-Set query/form parameters for the most recently added webhook.
+Set query/form parameters — including POST/PUT request data — for the most recently added
+webhook. There is no `body()` builder: `params` is the only request-data key the webhook
+contract permits and the engine reads.
 
 #### `foreach(config)`
 

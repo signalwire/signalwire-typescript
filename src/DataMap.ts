@@ -286,21 +286,10 @@ export class DataMap {
   }
 
   /**
-   * Set the JSON body for the most recently added webhook.
-   * @param data - The request body object.
-   * @returns This instance for chaining.
-   */
-  body(data: Record<string, unknown>): this {
-    if (!this._webhooks.length) throw new Error('Must add webhook before setting body');
-    this._webhooks[this._webhooks.length - 1]!['body'] = data; // non-empty checked above
-    return this;
-  }
-
-  /**
    * Set request params for the most recently added webhook. Use this for POST/PUT
    * request data.
    *
-   * This is NOT an alias for {@link DataMap.body}: the two write different webhook
+   * This replaced the removed `body()` builder: the two wrote different webhook
    * keys (`params` vs `body`), and only `params` is part of the webhook contract —
    * schema.json `$defs/Webhook` lists `params` among its ten permitted properties
    * and forbids everything else, and the engine's webhook readers look up `params`
