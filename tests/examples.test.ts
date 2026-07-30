@@ -23,6 +23,28 @@ async function loadExample(name: string): Promise<LoadedAgent> {
 }
 
 describe('examples', () => {
+  // Warm the shared module graph ONCE, outside any test's budget.
+  //
+  // Every example imports `../src/index.js`, so the FIRST loadExample() in this
+  // file pays for tsx-transforming the entire SDK import graph — measured at
+  // ~3s idle and several times that under concurrent load. Subsequent examples
+  // hit the ES module cache and load in 12-23ms. Left inside an `it()`, that
+  // one-time startup cost lands in the per-test budget and makes whichever test
+  // happens to run first fail on a wall-clock boundary that has nothing to do
+  // with what it asserts (which test failed moved with machine load).
+  //
+  // Paying it in beforeAll puts the cost where it belongs — it is file setup,
+  // not test work — and lets the tests keep vitest's tight 5s default timeout,
+  // so a genuinely hung example still fails fast and visibly.
+  //
+  // This does not weaken isolation: examples export a module-scope singleton
+  // (`export const agent = ...`), so the ES module cache already returns the
+  // identical instance to every loadExample() call for a given file. There was
+  // never per-test construction to preserve.
+  beforeAll(async () => {
+    await loadExample('simple-agent.ts');
+  }, 120_000);
+
   // ── Existing examples ───────────────────────────────────────────
 
   describe('simple-agent.ts', () => {
