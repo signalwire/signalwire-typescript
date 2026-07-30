@@ -2415,22 +2415,19 @@ export class AgentBase extends SWMLService {
     }
 
     // ── PHASE 2: Answer verb ──
-    // Internally-assembled trusted verb — skip the schema pass (its shape is
-    // fixed by the builder, and revalidating it on every render would pay the
-    // full-schema Ajv compile cost on the hot path). User-supplied verbs below
-    // still validate.
+    // Validates like every other verb. `answerConfig` is caller-settable via
+    // the public `addAnswerVerb(config)`, so "internally assembled" was never
+    // true of it — arbitrary user config reached the schema-free path.
     if (this.autoAnswer) {
-      this.swmlBuilder.addVerb('answer', this.answerConfig, { skipValidation: true });
+      this.swmlBuilder.addVerb('answer', this.answerConfig);
     }
 
     // ── PHASE 3: Post-answer verbs ──
     if (this._recordCall) {
-      // Internally-assembled trusted verb — skip the schema pass (see PHASE 2).
-      this.swmlBuilder.addVerb(
-        'record_call',
-        { format: this.recordFormat, stereo: this.recordStereo },
-        { skipValidation: true },
-      );
+      this.swmlBuilder.addVerb('record_call', {
+        format: this.recordFormat,
+        stereo: this.recordStereo,
+      });
     }
     for (const [verb, config] of this.postAnswerVerbs) {
       this.swmlBuilder.addVerb(verb, config);
@@ -2452,10 +2449,16 @@ export class AgentBase extends SWMLService {
     };
     if (this.contextsBuilder) {
       const contextsDict = this.contextsBuilder.toDict();
-      aiConfig['prompt'] = buildPromptObj(
-        prompt || `You are ${this.name}, a helpful AI assistant.`,
-      );
-      aiConfig['contexts'] = contextsDict;
+      const promptObj = buildPromptObj(prompt || `You are ${this.name}, a helpful AI assistant.`);
+      // `contexts` nests INSIDE the prompt object, not at the ai top level.
+      // Reference: `swml_handler.py:191` `prompt_config["contexts"] = contexts`,
+      // fed by `agent_base.py:1246` `contexts=contexts_dict`. The bundled
+      // `schema.json` agrees: `contexts` is a property of `$defs/AIPromptText`
+      // and `$defs/AIPromptPom`, and `$defs/AIObject` is closed
+      // (`unevaluatedProperties: {"not": {}}`) over 9 keys that do NOT include it.
+      // Emitting it at the top level produced a document the schema rejects.
+      promptObj['contexts'] = contextsDict;
+      aiConfig['prompt'] = promptObj;
     } else {
       aiConfig['prompt'] = buildPromptObj(prompt);
     }
@@ -2478,14 +2481,25 @@ export class AgentBase extends SWMLService {
     // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
     if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
+
+    // Debug events — these are `ai.params` members, NOT ai top-level keys.
+    // Reference: `agent_base.py:1286` writes `agent_to_use._params["debug_webhook_url"]`
+    // and `:1291` `_params["debug_webhook_level"]` BEFORE params is attached, so they
+    // ride inside `params`. The bundled `schema.json` agrees: both are properties of
+    // `$defs/AIParams`, and `$defs/AIObject` is closed over 9 keys that include
+    // neither. Emitting them at the top level produced a document the schema rejects.
+    // Written into `this.params` (not a copy) to mirror the reference, which mutates
+    // the agent's own `_params`.
+    if (this.debugEventsEnabled) {
+      this.params['debug_webhook_url'] = this.buildWebhookUrl(
+        'debug_events',
+        this.swaigQueryParams,
+      );
+      this.params['debug_webhook_level'] = this.debugEventsLevel;
+    }
+
     if (Object.keys(this.params).length) aiConfig['params'] = this.params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
-
-    // Debug events
-    if (this.debugEventsEnabled) {
-      aiConfig['debug_webhook_url'] = this.buildWebhookUrl('debug_events');
-      aiConfig['debug_webhook_level'] = this.debugEventsLevel;
-    }
 
     // Apply modifications from onSwmlRequest (Python equivalent: merge into AI verb config).
     // global_data is deep-merged; all other keys override AI config fields directly.
@@ -2503,12 +2517,34 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    // The assembled ai verb may legitimately carry real SWML the bundled schema
-    // does not yet model (multilingual, SWAIG.mcp_servers, per-language
-    // engine/model/fillers, debug_webhook_url). It is built from typed builder
-    // inputs, not raw user config, so skip the closed-schema check here; the
-    // strict-render contract governs direct addVerb input, not trusted assembly.
-    this.swmlBuilder.addVerb('ai', aiConfig, { skipValidation: true });
+    // This opt-out was audited key-by-key against the bundled schema (every key
+    // this method can emit was run through `validateVerb('ai', …)`). The blanket
+    // rationale it used to carry was mostly WRONG — `SWAIG.mcp_servers`,
+    // per-language `engine`/`model`/`fillers`, `hints`, `pronounce`, `params`,
+    // `global_data`, `post_prompt*` and both prompt forms all VALIDATE. Two keys
+    // it named as schema-unmodelled were in fact MISPLACED by this method and are
+    // now emitted where the schema and the reference put them: `contexts` moved
+    // into `prompt`, `debug_webhook_url`/`_level` into `params`.
+    //
+    // Exactly ONE key still requires the opt-out: `multilingual`. It is emitted at
+    // the ai top level by the reference (`agent_base.py:1273`
+    // `ai_config["multilingual"] = …`, via the documented `set_multilingual`
+    // Mode-B API), but `$defs/AIObject` is closed (`unevaluatedProperties:
+    // {"not": {}}`) over 9 keys and does not declare it — the string
+    // "multilingual" appears in `schema.json` only inside two description blobs.
+    // So the bundled schema is genuinely behind the server here, and validating
+    // would reject a shape the reference ships. Everything else is now covered by
+    // the schema, and `renderSwml` self-checks that below.
+    //
+    // The narrow scope is enforced, not merely asserted: when no `multilingual`
+    // is configured we take the VALIDATING path, so any future ai key that the
+    // schema rejects fails loudly instead of silently riding this bypass.
+    const needsSchemaBypass = Object.keys(this.multilingual).length > 0;
+    this.swmlBuilder.addVerb(
+      'ai',
+      aiConfig,
+      needsSchemaBypass ? { skipValidation: true } : undefined,
+    );
 
     // ── PHASE 5: Post-AI verbs ──
     for (const [verb, config] of this.postAiVerbs) {

@@ -220,15 +220,24 @@ export class SwmlBuilder {
    * @param verbName - The SWML verb name (e.g., "answer", "ai").
    * @param config - The verb's configuration payload.
    * @param opts - When `opts.skipValidation` is true, the config is appended
-   *   WITHOUT schema validation. Used by AgentBase for the internally-assembled
-   *   `ai` verb, whose config is built from already-typed builder inputs and may
-   *   carry real, server-accepted SWML that the bundled schema does not yet model
-   *   (e.g. `multilingual`, `SWAIG.mcp_servers`, per-language engine/model/fillers,
-   *   `debug_webhook_url`). Validating it against the closed schema would raise on
-   *   those legitimate features — the strict-render contract is about rejecting
-   *   MISSHAPEN direct `addVerb` input (unknown verb, misspelled/unknown key,
-   *   wrong type), NOT about second-guessing trusted internal assembly. The
-   *   direct/public `addVerb` path stays fully strict.
+   *   WITHOUT schema validation. This is a narrow escape hatch for a shape the
+   *   bundled `schema.json` is genuinely behind the server on — NOT a blanket
+   *   "trusted internal assembly" exemption. Its one production caller is
+   *   `AgentBase.renderSwml`, and only when a `multilingual` config is set: the
+   *   reference emits a top-level `ai.multilingual` (`agent_base.py:1273`) that
+   *   `$defs/AIObject` — closed via `unevaluatedProperties: {"not": {}}` over 9
+   *   keys — does not declare. Every other verb `renderSwml` emits (`answer`,
+   *   `record_call`, and `ai` without `multilingual`) goes through the
+   *   VALIDATING path.
+   *
+   *   Do not widen this. An earlier revision opted `answer`, `record_call` and
+   *   every `ai` render out unconditionally; auditing each key against the
+   *   schema showed the opt-outs were unnecessary AND were concealing two real
+   *   wire-shape bugs — `contexts` emitted at the ai top level instead of inside
+   *   `prompt`, and `debug_webhook_url`/`_level` at the top level instead of
+   *   inside `params`. Both shipped invalid documents for as long as the bypass
+   *   existed. If you reach for this flag, first run the config through
+   *   `SchemaUtils.validateVerb` and fix what it reports.
    */
   addVerb(verbName: string, config: unknown, opts?: { skipValidation?: boolean }): void {
     if (this.enableValidation && !opts?.skipValidation) {

@@ -4,6 +4,7 @@ import { FunctionResult } from '../src/FunctionResult.js';
 import { DataMap } from '../src/DataMap.js';
 import { SkillBase, type SkillToolDefinition } from '../src/skills/SkillBase.js';
 import type { AgentOptions } from '../src/types.js';
+import { SchemaUtils } from '../src/SchemaUtils.js';
 
 /** Subset of the agent's private SessionManager that the token tests stub/inspect. */
 interface SessionManagerInternals {
@@ -243,8 +244,81 @@ describe('AgentBase', () => {
     def.addStep('quiz', { task: 'Ask a quiz question' });
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main[1].ai;
-    expect(ai.contexts).toBeDefined();
-    expect(ai.contexts.default.steps.length).toBe(2);
+    // `contexts` nests inside the PROMPT object — it is a property of
+    // `$defs/AIPromptText`/`$defs/AIPromptPom`, not of the closed `$defs/AIObject`.
+    // Reference: `swml_handler.py:191` `prompt_config["contexts"] = contexts`.
+    expect(ai.contexts).toBeUndefined();
+    expect(ai.prompt.contexts).toBeDefined();
+    expect(ai.prompt.contexts.default.steps.length).toBe(2);
+
+    // Assert THROUGH the validator, not against a literal.
+    expect(new SchemaUtils().validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
+  });
+
+  describe('renderSwml emits schema-valid verbs (no silent bypass)', () => {
+    // ITEM 4 (task #194): `renderSwml` used to hand `answer`, `record_call` and
+    // `ai` to `SwmlBuilder.addVerb` with `{ skipValidation: true }`, so a wrong
+    // key in any of them shipped silently. The answer/record_call opt-outs were
+    // measured to be unnecessary (their configs validate) and were deleted; the
+    // `ai` opt-out is now scoped to the ONE key that genuinely needs it.
+
+    it('answer + record_call validate against the schema', () => {
+      const su = new SchemaUtils();
+      const agent = createAgent({ recordCall: true, recordFormat: 'wav', recordStereo: false });
+      agent.setPromptText('hello');
+      agent.addAnswerVerb({ max_duration: 30 });
+      const main = JSON.parse(agent.renderSwml()).sections.main as Array<Record<string, unknown>>;
+
+      const answer = main.find((v) => 'answer' in v);
+      const record = main.find((v) => 'record_call' in v);
+      expect(answer).toBeDefined();
+      expect(record).toBeDefined();
+      expect(su.validateVerb('answer', answer!['answer'])).toEqual({ valid: true, errors: [] });
+      expect(su.validateVerb('record_call', record!['record_call'])).toEqual({
+        valid: true,
+        errors: [],
+      });
+    });
+
+    it('a fully-loaded ai verb (no multilingual) takes the VALIDATING path', () => {
+      // If any key this method emits stopped satisfying the schema, renderSwml
+      // would now THROW rather than emit an invalid document silently.
+      const agent = createAgent();
+      agent.setPromptText('hello');
+      agent.setPostPrompt('summarize');
+      agent.addHint('acme');
+      agent.setParams({ verbose_logs: true });
+      agent.setGlobalData({ tenant: 't1' });
+      agent.enableDebugEvents(3);
+      agent.defineTool({
+        name: 'fn',
+        description: 'd',
+        parameters: {},
+        handler: () => new FunctionResult('ok'),
+      });
+
+      const swml = JSON.parse(agent.renderSwml());
+      const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+      expect(new SchemaUtils().validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
+    });
+
+    it('multilingual is the only key still riding the bypass', () => {
+      // Documents WHY the remaining opt-out exists: the reference emits a
+      // top-level `multilingual` (agent_base.py:1273) that the bundled
+      // `$defs/AIObject` — closed over 9 keys — does not declare. If a schema
+      // refresh ever adds it, this test flips and the bypass can be deleted.
+      const agent = createAgent();
+      agent.setPromptText('hello');
+      agent.setMultilingual({ enable: true });
+
+      const swml = JSON.parse(agent.renderSwml());
+      const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+      expect(ai.multilingual).toEqual({ enable: true });
+
+      const result = new SchemaUtils().validateVerb('ai', ai);
+      expect(result.valid).toBe(false);
+      expect(result.errors.join(' ')).toContain('multilingual');
+    });
   });
 
   it('contexts step functions whitelist rejects a dangling SWAIG ref', () => {
@@ -528,15 +602,26 @@ describe('AgentBase', () => {
 
   // ── Debug events ──────────────────────────────────────────────────
 
-  it('enableDebugEvents injects debug_webhook_url in SWML', () => {
+  it('enableDebugEvents injects debug_webhook_url into ai.params (not ai top level)', () => {
+    // `debug_webhook_url`/`debug_webhook_level` are `$defs/AIParams` properties.
+    // `$defs/AIObject` is closed (`unevaluatedProperties: {"not": {}}`) and does
+    // not declare them, so the old top-level emission produced a document the
+    // schema rejects. Reference: `agent_base.py:1286` writes them into `_params`.
     const agent = createAgent();
     agent.setPromptText('hello');
     agent.enableDebugEvents(2);
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main[1].ai;
-    expect(ai.debug_webhook_url).toBeDefined();
-    expect(ai.debug_webhook_url).toContain('/debug_events');
-    expect(ai.debug_webhook_level).toBe(2);
+
+    expect(ai.debug_webhook_url).toBeUndefined();
+    expect(ai.debug_webhook_level).toBeUndefined();
+    expect(ai.params.debug_webhook_url).toBeDefined();
+    expect(ai.params.debug_webhook_url).toContain('/debug_events');
+    expect(ai.params.debug_webhook_level).toBe(2);
+
+    // Assert THROUGH the validator, not against a literal — this is what catches
+    // the next misplaced key, which comparing to a hand-written blob would not.
+    expect(new SchemaUtils().validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
   });
 
   it('debug events endpoint responds to POST', async () => {
