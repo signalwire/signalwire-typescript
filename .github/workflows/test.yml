@@ -69,6 +69,14 @@ jobs:
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
+      # scripts/run-py-lint.sh and run-py-format.sh fail LOUD when ruff is
+      # absent rather than skipping, so PY-LINT/PY-FMT cannot pass vacuously on
+      # a runner that lacks it — hence this explicit install rather than relying
+      # on it being preinstalled. Without it the gates red with "ruff not found
+      # on PATH", which is a missing CI dep, not a code finding.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: pip install ruff
+
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: |
           if python -c "import signalwire.core.function_result" 2>/dev/null; then
