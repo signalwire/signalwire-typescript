@@ -24,6 +24,7 @@ import { describe, it, expect } from 'vitest';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
+import { probeDiagnostics } from './tscProbe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -37,20 +38,17 @@ const REPO_ROOT = path.resolve(__dirname, '..');
  */
 function typeCheckProbe(body: string): ts.Diagnostic[] {
   const virtual = path.resolve(__dirname, '__skill_tool_probe__.ts');
-  const configPath = ts.findConfigFile(REPO_ROOT, ts.sys.fileExists, 'tsconfig.json');
-  if (!configPath) throw new Error('tsconfig.json not found');
-  const config = ts.readConfigFile(configPath, ts.sys.readFile);
-  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(configPath));
-  const options: ts.CompilerOptions = { ...parsed.options, noEmit: true, skipLibCheck: true };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? body : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  return ts
-    .getPreEmitDiagnostics(program)
-    .filter((d) => d.file && path.resolve(d.file.fileName) === virtual);
+  // 'repo-tsconfig': this probe IMPORTS real `src/` modules (SkillBase,
+  // FunctionResult) and their transitive graph, so it needs the shipped
+  // module/lib resolution rather than the hermetic option set.
+  //
+  // This is the ONE probe whose cost is irreducible: type-checking the real
+  // `src/` graph is the point of the test, and it lands at ~0.5-1.3s even with
+  // the shared host. The explicit `timeout` below is therefore a genuine budget
+  // for real work, NOT the papering-over that the hermetic probes had — those
+  // were re-parsing the default lib on every call and are now 12-28ms with no
+  // extended timeout at all. (See tests/tscProbe.ts.)
+  return probeDiagnostics(virtual, body, 'repo-tsconfig');
 }
 
 describe('defineSkillTool — schema→args inference', () => {

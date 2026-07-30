@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import * as ts from 'typescript';
+import { diagnosticsByLine } from './tscProbe.js';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
 import { SchemaValidationError } from '../src/SchemaUtils.js';
 import type { TtsGender } from '../src/relay/closedSets.js';
@@ -32,28 +32,7 @@ function extractUnion(aliasName: string): string {
 /** Compile `type TtsGender = ...;` + body; return diagnostics keyed by body line (body line N → file line N+1). */
 function typeCheckSayGender(body: string): Map<number, string> {
   const virtual = path.resolve(__dirname, '__say_gender_probe__.ts');
-  const source = `type TtsGender = ${extractUnion('TtsGender')};\n` + `${body}\n`;
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    types: [],
-    typeRoots: [],
-    target: ts.ScriptTarget.ES2022,
-  };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  const byLine = new Map<number, string>();
-  for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
-    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
-    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-  }
-  return byLine;
+  return diagnosticsByLine(virtual, `type TtsGender = ${extractUnion('TtsGender')};\n${body}\n`);
 }
 
 describe('SwmlBuilder — verb auto-vivification', () => {

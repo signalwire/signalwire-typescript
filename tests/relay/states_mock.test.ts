@@ -28,7 +28,7 @@ import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import * as ts from 'typescript';
+import { diagnosticsByLine } from '../tscProbe.js';
 import { RelayClient } from '../../src/relay/RelayClient.js';
 import { Call } from '../../src/relay/Call.js';
 import { Message } from '../../src/relay/Message.js';
@@ -49,7 +49,10 @@ const CLOSED_SETS_SRC = path.resolve(__dirname, '../../src/relay/closedSets.ts')
 // ---------------------------------------------------------------------------
 // tsc typo-probe — type-check against the REAL union extracted from the shipped
 // source so the closed set under test is the one we actually export (not a
-// hand-copied duplicate). Hermetic + fast: no @types, no lib-check.
+// hand-copied duplicate). Hermetic: no @types, no lib-check. Fast because the
+// compiler host + parsed default lib are shared (see ./tscProbe.ts) rather than
+// rebuilt per probe — a fresh host cost ~330-500ms EACH and blew the 5s budget
+// under concurrent load.
 // (Same harness shape as closedSets_mock.test.ts; extended to also probe the
 // `…OrString` widened forms.)
 // ---------------------------------------------------------------------------
@@ -74,28 +77,7 @@ function extractAlias(aliasName: string): string {
 function typeCheckLines(aliases: string[], body: string): Map<number, string> {
   const virtual = path.resolve(__dirname, `__state_probe_${aliases.join('_')}__.ts`);
   const preamble = aliases.map((a) => `type ${a} = ${extractAlias(a)};`).join('\n');
-  const source = `${preamble}\n${body}\n`;
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    types: [],
-    typeRoots: [],
-    target: ts.ScriptTarget.ES2022,
-  };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  const byLine = new Map<number, string>();
-  for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
-    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
-    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-  }
-  return byLine;
+  return diagnosticsByLine(virtual, `${preamble}\n${body}\n`);
 }
 
 /**
@@ -103,7 +85,7 @@ function typeCheckLines(aliases: string[], body: string): Map<number, string> {
  * `alias`) in ONE tsc program against the declared `aliases`, and return the
  * per-assignment diagnostic (`undefined` = type-checks clean). Batching keeps
  * the whole describe-block to a handful of `ts.createProgram` calls — one per
- * test — instead of one per literal (which blew the default 5s test timeout).
+ * test — instead of one per literal.
  *
  * Guards against a probe going vacuously green: any diagnostic on the
  * *preamble* (e.g. a `…OrString` whose base `…State` alias was not also
