@@ -13,9 +13,12 @@ Requires: beautifulsoup4 (pip install beautifulsoup4).
 Usage:
     python3 python_extract.py path/to/fixture.html > expected.json
 """
+
 import json
 import re
 import sys
+from pathlib import Path
+
 from bs4 import BeautifulSoup
 
 
@@ -104,6 +107,6 @@ def extract(html: str) -> dict:
 
 
 if __name__ == "__main__":
-    html = open(sys.argv[1], encoding="utf-8").read()
+    html = Path(sys.argv[1]).read_text(encoding="utf-8")
     json.dump(extract(html), sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
