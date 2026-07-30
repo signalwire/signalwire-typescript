@@ -167,7 +167,14 @@ signalwire.skills.mcp_gateway.skill.MCPGatewaySkill: approved: Python-only MCP g
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_global_data: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_hints: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_prompt_sections: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
+# get_prompt_sections: DELETED 2026-07-30 as DEAD, not un-excused. The reference made
+# SkillBase.get_prompt_sections() a final template method carrying the skip_prompt guard
+# and delegating to a PROTECTED _get_prompt_sections() hook (signalwire-python e9aa402,
+# core/skill_base.py:89-96), so concrete skills override the protected hook and the
+# PUBLIC member exists on the BASE ONLY. python_surface.json no longer records it on
+# MCPGatewaySkill, so this line excused nothing (diff_port_surface reported it under
+# dead_omissions). The other six MCPGatewaySkill entries stand — the Python-only ruling
+# (§I.1) is untouched.
 signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.setup: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation

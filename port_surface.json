@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ a11f4d4611806b0841f8d58373a524b4212deb1b",
+  "generated_from": "signalwire-typescript @ 78850cfe2576e7bbfbe4a116eff068cd321aee24",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -3465,7 +3465,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3483,7 +3482,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3498,7 +3496,6 @@
         "DateTimeSkill": [
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3513,7 +3510,6 @@
         "GoogleMapsSkill": [
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3544,7 +3540,6 @@
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3559,7 +3554,6 @@
         "MathSkill": [
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3591,7 +3585,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3670,7 +3663,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3701,7 +3693,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "setup"
@@ -3717,7 +3708,6 @@
         "WikipediaSearchSkill": [
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "get_tools",
           "register_tools",
           "search_wiki",
