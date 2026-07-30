@@ -643,9 +643,9 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     // route:'/' so the SWAIG endpoint is served at '/swaig' (the fixture agent
     // above is routed at '/sd', where it would be '/sd/swaig').
     //
-    // Parity with the reference (agent_base.py:1413-1445): a token that IS
-    // supplied must be valid for a secure function; a missing token does not by
-    // itself block dispatch (basic auth already gates the endpoint).
+    // Parity with the reference (`agent_base.py` `_swaig_pre_dispatch`): a
+    // `secure` tool REQUIRES a valid token. A supplied-but-wrong one is
+    // refused; so is an ABSENT one (pinned by the sibling test below).
     function agentFor(): AgentBase {
       const a = new AgentBase({ name: 'secure-dispatch', route: '/', basicAuth: ['u', 'p'] });
       a.setPromptText('secure default dispatch');
@@ -687,5 +687,87 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
       await post(agent, `?__token=${encodeURIComponent(valid)}`)
     ).json()) as Record<string, unknown>;
     expect(String(ok['response'])).toBe('dispatched');
+  });
+
+  // The FAIL-CLOSED contract. A `secure` tool invoked with NO `__token` at all
+  // must be refused exactly like one invoked with a forged token — omitting the
+  // credential can never be weaker than presenting a wrong one, or `secure`
+  // degrades into a flag that PERMITS anonymous calls.
+  //
+  // The reference (`agent_base.py` `_swaig_pre_dispatch`) computes validity
+  // ONCE — `token && call_id !== null && validate(...)` — and refuses whenever
+  // that is false AND the function is secure; an absent token is a way to FAIL
+  // validation, never a way to SKIP it (signalwire-python 7c2f253, owner-ruled
+  // 2026-07-29). Cross-port gate: SWAIG-HTTP-INVOKE fixture `token_absent`,
+  // golden `{handler_invoked: false, refused: true}`.
+  //
+  // The DEFECT this pins: TS nested the whole check inside `if (token) { … }`,
+  // so a tokenless POST fell straight through to `fn.execute` and the secure
+  // handler RAN. `token_forged` was refused correctly, which is exactly why the
+  // hole survived — the refusal path looked wired.
+  //
+  // Refusal shape is a 200 + FunctionResult body, never an HTTP error status:
+  // the engine (mod_openai) has no handling for a SWAIG refusal status, so the
+  // tool reports it cannot execute and the model relays that to the caller.
+  it('refuses a secure tool invoked with NO token at all (fail-CLOSED, not fail-open)', async () => {
+    function agentFor(): AgentBase {
+      const a = new AgentBase({ name: 'secure-failclosed', route: '/', basicAuth: ['u', 'p'] });
+      a.setPromptText('secure fail-closed');
+      a.defineTool({
+        name: 'fc_secure',
+        description: 'secure by default',
+        parameters: {},
+        handler: () => new FunctionResult('HANDLER RAN'),
+      });
+      a.defineTool({
+        name: 'fc_insecure',
+        description: 'explicitly insecure',
+        parameters: {},
+        secure: false,
+        handler: () => new FunctionResult('HANDLER RAN'),
+      });
+      return a;
+    }
+    const post = (a: AgentBase, fn: string, qs: string, callId: string | null) =>
+      a.getApp().request(`/swaig${qs}`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          function: fn,
+          argument: { parsed: [{}] },
+          ...(callId === null ? {} : { call_id: callId }),
+        }),
+      });
+
+    // (a) No `__token` query param at all, WITH a call_id — the corpus's
+    //     `token_absent` shape. The handler must NOT run.
+    const absent = (await (await post(agentFor(), 'fc_secure', '', 'c1')).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(String(absent['response'])).not.toBe('HANDLER RAN');
+    expect(String(absent['response'])).toContain('security token');
+
+    // (b) A token can only be validated AGAINST a call_id; with no call_id in
+    //     the body there is nothing to check it against, so even a
+    //     well-formed-looking token leaves the call unvalidated and refused.
+    const noCallId = (await (
+      await post(agentFor(), 'fc_secure', '?__token=anything', null)
+    ).json()) as Record<string, unknown>;
+    expect(String(noCallId['response'])).not.toBe('HANDLER RAN');
+    expect(String(noCallId['response'])).toContain('security token');
+
+    // (c) The other direction — an INSECURE tool is not gated by any of this.
+    //     A fix that refuses every tokenless call would break the unwrap
+    //     fixtures (`platform_nested` / `flat_arguments`) which target a
+    //     `secure: false` tool with no token; this keeps that honest.
+    const insecure = (await (await post(agentFor(), 'fc_insecure', '', 'c1')).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(String(insecure['response'])).toBe('HANDLER RAN');
   });
 });

@@ -2891,24 +2891,43 @@ export class AgentBase extends SWMLService {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
-      // Validate the security token IF PRESENT. Parity with the reference
-      // (agent_base.py:1413-1445): a token that is supplied must be valid for a
-      // secure function — an invalid/expired one is refused — but a MISSING
-      // token does not by itself block dispatch here. The transport already
-      // gates this endpoint (basic auth), and the per-tool `__token` minted into
+      // Validate the security token. Parity with the reference
+      // (`agent_base.py` `_swaig_pre_dispatch`).
+      //
+      // A tool registered `secure: true` REQUIRES a valid `__token`. An ABSENT
+      // token is refused exactly like an invalid one — omitting the credential
+      // must never be weaker than presenting a wrong one, or `secure` would be
+      // a flag that permits anonymous calls. The per-tool `__token` minted into
       // the rendered `web_hook_url` is what the platform round-trips.
+      //
+      // The refusal shape is a 200 + FunctionResult body, NOT an HTTP error
+      // status: the engine (mod_openai) has no handling for a SWAIG refusal
+      // status, so the tool reports that it cannot execute and the model
+      // relays it.
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
       if (token) {
         reqLog.debug('token_found');
-        if (fn.secure && !this.sessionManager.validateToken(callIdStr, fnName, token)) {
-          reqLog.warn('token_invalid');
+      } else {
+        reqLog.warn('token_missing');
+      }
+
+      // A token can only be validated against a call_id; without one there is
+      // nothing to check it against, so treat it as unvalidated.
+      const tokenValid = Boolean(
+        token && callIdStr && this.sessionManager.validateToken(callIdStr, fnName, token),
+      );
+      if (tokenValid) {
+        reqLog.debug('token_valid');
+      } else {
+        if (token) reqLog.warn('token_invalid');
+        if (fn.secure) {
+          reqLog.warn('secure_function_refused', { token_present: Boolean(token) });
           const result = new FunctionResult(
             'The security token for this function is invalid or expired. This action cannot be completed.',
           );
           return c.json(result.toDict());
         }
-        reqLog.debug('token_valid');
       }
 
       const args = this.extractSwaigArgs(body, reqLog);

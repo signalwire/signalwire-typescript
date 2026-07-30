@@ -1205,11 +1205,11 @@ describe('AgentBase', () => {
     });
     const app = agent.getApp();
 
-    // Missing token: dispatch proceeds. Parity with the reference
-    // (agent_base.py:1413 `if token:`) — a token is validated only when one is
-    // supplied; absence alone does not refuse the call, since basic auth already
-    // gates this endpoint. The per-tool `__token` is minted into the rendered
-    // web_hook_url for the platform to round-trip (see Contract 9).
+    // Missing token: REFUSED, and refused the same way an invalid one is.
+    // Parity with the reference (`agent_base.py` `_swaig_pre_dispatch`): a
+    // `secure` tool requires a valid `__token`, so an absent token is a way to
+    // FAIL validation rather than a way to SKIP it. Both halves of this test
+    // pin the same thing — the refusal is a 200 + FunctionResult, never a 403.
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
@@ -1220,7 +1220,7 @@ describe('AgentBase', () => {
     });
     expect(res1.status).toBe(200);
     const body1 = await res1.json();
-    expect(body1.response).toBe('ok');
+    expect(body1.response).toContain('security token');
 
     // Invalid token — a SUPPLIED token must be valid: refused, but as a 200
     // FunctionResult (not a 403), which is what this test pins.
