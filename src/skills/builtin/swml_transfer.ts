@@ -1,13 +1,12 @@
 /**
  * SWML Transfer Skill - Transfer calls between agents using SWML with pattern matching.
  *
- * Port of the Python `SWMLTransferSkill`. Supports the Python `transfers`
- * config (regex-keyed dict of per-destination configs with url/address,
- * message, return_message, post_process, final, from_addr) as well as the
- * TypeScript-native `patterns` array of friendly-named destinations.
+ * Supports the `transfers` config (regex-keyed dict of per-destination configs
+ * with url/address, message, return_message, post_process, final, from_addr)
+ * as well as the `patterns` array of friendly-named destinations.
  *
  * Either configuration shape works; when both are provided `transfers`
- * takes precedence (matching the Python API).
+ * takes precedence.
  */
 
 import { SkillBase } from '../SkillBase.js';

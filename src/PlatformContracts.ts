@@ -12,8 +12,8 @@
  *
  * NOTE: the SWAIG payloads (function-request + post-prompt) are NOT re-exported
  * here — they now come from the AUTHORITATIVE mod_openai engine specs via
- * `./SwaigContracts.js` (SwaigRequest / PostPrompt), matching the Python
- * reference. The swml-webhooks spec's own SwaigRequestData / PostPromptData* are
+ * `./SwaigContracts.js` (SwaigRequest / PostPrompt).
+ * The swml-webhooks spec's own SwaigRequestData / PostPromptData* are
  * the superseded non-authoritative derivatives (see SwaigContracts.generated.ts);
  * they remain in PlatformContracts.generated.ts only until the SWAIG schemas are
  * dropped from the shared swml-webhooks spec (a coupled cross-port spec change).

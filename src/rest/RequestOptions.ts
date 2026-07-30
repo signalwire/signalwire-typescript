@@ -13,16 +13,11 @@
  *   default.
  *
  * The timeout + retry semantics are a wire-observable contract (the server sees
- * N attempts and honors the backoff ordering). `abortSignal`
- * fidelity is per-port idiom: the field exists in every port. In TypeScript the
- * primitive is the native {@link AbortSignal}, which is passed straight to
- * `fetch`, so cancellation is TRUE in-flight abort (an in-progress request is
- * interrupted), not merely a between-attempt check — the strongest fidelity of
- * any port. It is *also* checked before each attempt so an already-aborted
- * signal raises before the send.
- *
- * Mirrors `signalwire-python`'s `signalwire/rest/_request_options.py`
- * ``RequestOptions`` dataclass (a value object with a ``merge`` method).
+ * N attempts and honors the backoff ordering). For `abortSignal` the primitive
+ * is the native {@link AbortSignal}, which is passed straight to `fetch`, so
+ * cancellation is TRUE in-flight abort (an in-progress request is interrupted),
+ * not merely a between-attempt check. It is *also* checked before each attempt
+ * so an already-aborted signal raises before the send.
  */
 
 /**
@@ -98,9 +93,9 @@ export const DEFAULT_RETRY_ON_STATUS: ReadonlySet<number> = new Set([429, 500, 5
 export const DEFAULT_RETRY_BACKOFF = 0.5;
 
 /**
- * Per-request transport options value object. Mirrors the Python reference's
- * ``RequestOptions`` dataclass: all fields optional (`undefined` = inherit),
- * plus a {@link merge} method for the per-request-over-client-default shallow
+ * Per-request transport options value object: all fields optional
+ * (`undefined` = inherit), plus a {@link merge} method for the
+ * per-request-over-client-default shallow
  * merge. A call site may pass either an instance or a plain
  * {@link RequestOptionsInit} object literal — every verb normalizes both.
  */

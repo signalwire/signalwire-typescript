@@ -80,16 +80,15 @@ const UNWANTED_PATTERNS = [
 ] as const;
 
 /**
- * Run the HTML → plain-text extraction pipeline that mirrors Python's
- * `GoogleSearchScraper.extract_html_content` (skill.py:204-282).
+ * Run the HTML → plain-text extraction pipeline.
  *
  * Pipeline:
- * 1. Pre-process `<![CDATA[…]]>` sections to plain text (Python html.parser
- *    keeps CDATA content; cheerio/htmlparser2 drops it).
+ * 1. Pre-process `<![CDATA[…]]>` sections to plain text — CDATA content must
+ *    be preserved, and cheerio/htmlparser2 drops it otherwise.
  * 2. Walk {@link CONTENT_CANDIDATES} in order, picking the first match.
  *    Fall back to `<body>` or the raw document.
- * 3. Clone the picked subtree so tag/pattern removal only affects it —
- *    analogous to Python's `content_soup = BeautifulSoup(str(main_content))`.
+ * 3. Clone the picked subtree so tag/pattern removal only affects it, leaving
+ *    the source document untouched.
  *    The selector-first-then-filter order is load-bearing: if the real
  *    content is wrapped in a sidebar-pattern div, Python still finds it
  *    because the selector runs before removal.
@@ -182,7 +181,7 @@ interface GoogleSearchResponse {
  * `search_engine_id` params or `GOOGLE_SEARCH_API_KEY` /
  * `GOOGLE_SEARCH_ENGINE_ID` (legacy: `GOOGLE_SEARCH_CX`) environment variables.
  *
- * The handler mirrors Python's `search_and_scrape_best` pipeline: fetches
+ * The handler pipeline: fetches
  * `oversample_factor × num_results` candidates from Google, scrapes each
  * result page (SSRF-guarded, cheerio-based text extraction), scores for
  * quality (length + query relevance + boilerplate penalty), deduplicates by
@@ -355,11 +354,11 @@ export class WebSearchSkill extends SkillBase {
   /**
    * Validate required credentials before the skill becomes active.
    *
-   * Mirrors Python's `setup()` (skill.py:559-600) which checks `api_key` and
-   * `search_engine_id` and returns `False` (logging an error) if either is
-   * absent. In the TS SDK credentials may also arrive via environment variables
-   * (`GOOGLE_SEARCH_API_KEY` / `GOOGLE_SEARCH_ENGINE_ID` or the legacy alias
-   * `GOOGLE_SEARCH_CX`), so both config params and env vars are checked.
+   * Checks `api_key` and `search_engine_id`, returning `false` (and logging an
+   * error) if either is absent. Credentials may also arrive via environment
+   * variables (`GOOGLE_SEARCH_API_KEY` / `GOOGLE_SEARCH_ENGINE_ID` or the
+   * legacy alias `GOOGLE_SEARCH_CX`), so both config params and env vars are
+   * checked.
    * @returns `true` if all required credentials are present, `false` otherwise.
    */
   override async setup(): Promise<boolean> {
@@ -384,8 +383,8 @@ export class WebSearchSkill extends SkillBase {
 
   /**
    * Instance key for the SkillManager. Includes the configured
-   * `search_engine_id` (or `"default"`) and `tool_name` (or `"web_search"`)
-   * to match Python's `"{SKILL_NAME}_{search_engine_id}_{tool_name}"` scheme.
+   * `search_engine_id` (or `"default"`) and `tool_name` (or `"web_search"`),
+   * following the `"{SKILL_NAME}_{search_engine_id}_{tool_name}"` scheme.
    */
   override getInstanceKey(): string {
     const searchEngineId = this.getConfig<string>('search_engine_id', '') || 'default';
@@ -393,7 +392,7 @@ export class WebSearchSkill extends SkillBase {
     return `${this.skillName}_${searchEngineId}_${toolName}`;
   }
 
-  /** Global data injected into the agent's SWML context (mirrors Python). */
+  /** Global data injected into the agent's SWML context. */
   override getGlobalData(): Record<string, unknown> {
     return {
       web_search_enabled: true,
@@ -402,7 +401,7 @@ export class WebSearchSkill extends SkillBase {
     };
   }
 
-  /** Resolve the tool name (defaults to `web_search`, matches Python default). */
+  /** Resolve the tool name (defaults to `web_search`). */
   private getToolName(): string {
     return this.getConfig<string>('tool_name', 'web_search');
   }
@@ -825,13 +824,12 @@ export class WebSearchSkill extends SkillBase {
    * Python equivalent: `extract_reddit_content` (skill.py:71-190). Matches the
    * post-title/author/score/comments assembly and the top-20 → valid → top-5
    * comment pipeline. Returns just the compiled text — Python's
-   * `search_and_scrape_best` unconditionally overwrites Reddit's
-   * engagement-score metrics with the 6-factor `_calculate_content_quality`
-   * (skill.py:447-448), so we skip computing the dead engagement score here
-   * and let the handler score the text via `_qualityMetrics`.
+   * The handler unconditionally overwrites Reddit's engagement-score metrics
+   * with the 6-factor quality score, so we skip computing the dead engagement
+   * score here and let the handler score the text via `_qualityMetrics`.
    *
    * Falls through to HTML extraction on JSON fetch failure or malformed
-   * payload, matching Python's `except Exception: fall back` behavior.
+   * payload rather than propagating the error.
    */
   private async _extractRedditContent(
     url: string,
@@ -944,14 +942,13 @@ export class WebSearchSkill extends SkillBase {
   /**
    * Fetch a URL and extract clean text content, then score it with the
    * 6-factor `_qualityMetrics`. Reddit URLs are routed to the JSON extractor
-   * first; the compiled Reddit text is scored with the same 6-factor formula
-   * to match Python's `search_and_scrape_best` overwrite behavior
-   * (skill.py:447-448).
+   * first; the compiled Reddit text is scored with the same 6-factor formula,
+   * so the handler's later overwrite of Reddit metrics is consistent.
    *
-   * Python equivalent: `extract_text_from_url` (skill.py:192-202). Returns `null`
-   * on any failure (network, non-200, parse error, or SSRF rejection).
+   * Returns `null` on any failure (network, non-200, parse error, or SSRF
+   * rejection).
    *
-   * @param timeoutMs - Per-page fetch timeout (Python `per_page_timeout`).
+   * @param timeoutMs - Per-page fetch timeout.
    * @param externalSignal - Optional shared abort signal driven by the
    *   handler's `overall_deadline`. When it fires, in-flight fetches are
    *   cancelled even if the per-page timeout has not elapsed. Combined with

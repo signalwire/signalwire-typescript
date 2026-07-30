@@ -139,8 +139,7 @@ export class SchemaUtils {
    *  verb name. Each validates a single verb's config against JUST that verb's
    *  `$defs` definition (with the schema's `$defs` available for `$ref`s), the
    *  closed-schema check that raises on unknown/misspelled top-level keys and
-   *  wrong-typed values — the TS mirror of Python's jsonschema-rs
-   *  `_validate_verb_full`, but scoped to one verb so compilation is cheap. A
+   *  wrong-typed values — scoped to one verb so compilation is cheap. A
    *  `null` entry means a validator couldn't be built for that verb (fall back
    *  to lightweight). Shared Ajv instance is created once. */
   private verbValidators: Map<string, ValidateFunction | null> = new Map();
@@ -174,11 +173,9 @@ export class SchemaUtils {
 
   /**
    * Load the schema from the path specified in opts.schemaPath (if given) or fall back
-   * to the bundled schema.json.  Mirrors Python's SchemaUtils which accepts an explicit
-   * schema_path and falls back to _get_default_schema_path() when None is supplied.
-   * Public accessor matching Python SDK's `load_schema()`, which returns the loaded
-   * schema dictionary (or `null` if unavailable). Also (re)populates the internal
-   * verb definitions as a side effect.
+   * to the bundled schema.json when no explicit path is supplied.
+   * Public accessor returning the loaded schema dictionary (or `null` if
+   * unavailable). Also (re)populates the internal verb definitions as a side effect.
    * @returns The loaded schema object, or `null` if it could not be loaded.
    */
   loadSchema(): Record<string, unknown> | null {
@@ -210,7 +207,6 @@ export class SchemaUtils {
 
   /**
    * Extract verb definitions from `$defs/SWMLMethod.anyOf` in the schema.
-   * Mirrors Python SDK's `_extract_verb_definitions()`.
    */
   private extractVerbDefinitions(): Map<string, VerbDefinition> {
     const verbs = new Map<string, VerbDefinition>();
@@ -247,10 +243,9 @@ export class SchemaUtils {
   }
 
   /**
-   * Whether full JSON-Schema validation is available. Mirrors Python SDK's
-   * `full_validation_available` property (which reports whether `jsonschema` is
-   * installed). This SDK always bundles Ajv, so full validation is always
-   * available — this is constantly `true`.
+   * Whether full JSON-Schema validation is available — i.e. whether a full
+   * schema validator is installed. This SDK always bundles Ajv, so full
+   * validation is always available — this is constantly `true`.
    */
   get fullValidationAvailable(): boolean {
     return true;
@@ -280,8 +275,8 @@ export class SchemaUtils {
 
   /**
    * Get the parameter definitions for a specific verb — the map of parameter
-   * name → JSON-schema definition. Mirrors Python SDK's `get_verb_parameters()`:
-   * it returns the nested `properties` object of the verb's inner schema (whereas
+   * name → JSON-schema definition. Returns the nested `properties` object of
+   * the verb's inner schema (whereas
    * `getVerbProperties` returns the whole inner schema object).
    * @param verbName - The verb name (e.g. "ai", "answer").
    * @returns Dictionary mapping parameter names to their definitions, or `{}`.
@@ -328,7 +323,6 @@ export class SchemaUtils {
   /**
    * Lightweight validation of a verb config against the schema.
    * Checks that the verb exists and required properties are present.
-   * Mirrors Python SDK's `_validate_verb_lightweight()`.
    *
    * @param verbName - The verb name.
    * @param config - The verb configuration to validate.
@@ -460,8 +454,7 @@ export class SchemaUtils {
 
   /**
    * Lightweight validation (verb existence + required fields only). The fallback
-   * when the full validator can't be built. Mirrors Python's
-   * `_validate_verb_lightweight`.
+   * when the full validator can't be built.
    */
   private validateVerbLightweight(verbName: string, config: unknown): ValidationResult {
     const errors: string[] = [];
@@ -506,8 +499,6 @@ export class SchemaUtils {
    * legitimate deep ai shapes the bundled schema doesn't fully model (empty
    * `prompt.pom: []`, SWAIG `defaults`/`web_hook_url`/`__token`). `ai.params`
    * stays open (it is a known top-level key; its contents are never checked).
-   * Mirrors the python reference's AIVerbHandler.validate_config +
-   * validate_verb_top_level_keys.
    */
   private validateAiVerbStrict(config: unknown): ValidationResult {
     // The ai verb's config must be an object.
@@ -561,7 +552,7 @@ export class SchemaUtils {
    * Resolve the set of KNOWN top-level property names for a verb's config object,
    * following a single `$ref` (e.g. AI -> AIObject). Returns `null` when the
    * verb's config schema is not a CLOSED object-with-properties (so no shallow
-   * key check applies). Mirrors python's `_verb_top_level_property_names`.
+   * key check applies).
    */
   private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
     const verb = this.verbs.get(verbName);

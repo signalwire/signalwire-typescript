@@ -276,7 +276,7 @@ export class ServerlessAdapter {
     };
   }
 
-  /** Maximum CGI request body size (10MB), matching Python's `MAX_CGI_BODY_SIZE`. */
+  /** Maximum CGI request body size (10MB). */
   static readonly MAX_CGI_BODY_SIZE = 10 * 1024 * 1024;
 
   /**
@@ -286,7 +286,7 @@ export class ServerlessAdapter {
    * (`REQUEST_METHOD`, `PATH_INFO`, `QUERY_STRING`, `CONTENT_TYPE`, `HTTP_*`) and
    * the body arrives on stdin. This reconstructs the normalized event so a CGI
    * invocation dispatches through the same Hono routing as Lambda/GCF/Azure
-   * (mirrors Python `serverless_mixin` CGI mode: `PATH_INFO` + stdin body).
+   * (CGI mode: `PATH_INFO` + stdin body).
    *
    * @param env - The process environment (defaults to `process.env`).
    * @param body - The already-read request body from stdin (optional).

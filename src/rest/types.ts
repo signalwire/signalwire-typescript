@@ -27,12 +27,11 @@ export interface HttpClientOptions {
   /**
    * Base URL (e.g. "https://example.signalwire.com").
    * Either `baseUrl` or `host` must be provided. If both are given, `host` takes precedence
-   * (matching the Python SDK convention where `host` is the canonical parameter).
+   * — `host` is the canonical parameter.
    */
   baseUrl?: string;
   /**
-   * Bare hostname (e.g. "example.signalwire.com"). `https://` is prepended automatically,
-   * matching the Python SDK's `HttpClient(project, token, host)` convention.
+   * Bare hostname (e.g. "example.signalwire.com"). `https://` is prepended automatically.
    */
   host?: string;
   /** Project ID for Basic Auth username. */

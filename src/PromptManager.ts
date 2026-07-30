@@ -144,8 +144,7 @@ export class PromptManager {
 
   /**
    * Returns the raw prompt text whatever `setPromptText` stored, or null
-   * when no raw prompt has been set. Mirrors Python's
-   * `PromptManager.get_raw_prompt`.
+   * when no raw prompt has been set.
    * @returns The raw prompt string, or null if not set.
    */
   getRawPrompt(): string | null {

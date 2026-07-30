@@ -54,11 +54,11 @@ function removeTagFor(xpath: string): string {
 /**
  * Fast web scraping skill optimized for speed and token efficiency.
  *
- * Multi-instance capable. Port of the Python `SpiderSkill` with three tools:
- * `scrape_url`, `crawl_site`, and `extract_structured_data`. Configuration
- * mirrors the Python schema (delay, concurrent_requests, timeout, max_pages,
- * max_depth, extract_type, max_text_length, clean_text, selectors,
- * follow_patterns, user_agent, headers, follow_robots_txt, cache_enabled).
+ * Multi-instance capable, with three tools: `scrape_url`, `crawl_site`, and
+ * `extract_structured_data`. Configuration keys: delay, concurrent_requests,
+ * timeout, max_pages, max_depth, extract_type, max_text_length, clean_text,
+ * selectors, follow_patterns, user_agent, headers, follow_robots_txt,
+ * cache_enabled.
  *
  * @example
  * ```ts
@@ -204,11 +204,10 @@ export class SpiderSkill extends SkillBase {
   private cache: Map<string, CachedResponse> | null = null;
   private readonly cacheMaxSize = 100;
   /**
-   * XPath expressions for the noise elements stripped before text extraction —
-   * mirrors the python reference `SpiderSkill.remove_xpaths`, same value and
-   * same defaults. Prefilled (not empty); mutate it to change what a scrape
-   * discards. Expressed as XPath so the list is portable across the SDKs; this
-   * port's cheerio backend consumes the `//tag` form via {@link removeTagFor}.
+   * XPath expressions for the noise elements stripped before text extraction.
+   * Prefilled (not empty); mutate it to change what a scrape discards.
+   * Expressed as XPath so the list is portable across the SDKs; this SDK's
+   * cheerio backend consumes the `//tag` form via {@link removeTagFor}.
    */
   readonly removeXpaths: string[] = [
     '//script',
@@ -468,8 +467,7 @@ export class SpiderSkill extends SkillBase {
   /**
    * Extract plain text from a fetched response using simple regex stripping.
    *
-   * Takes a {@link CachedResponse} (TS equivalent of `requests.Response`) to
-   * match Python's `_fast_text_extract(response)` capability surface — the
+   * Takes a {@link CachedResponse} rather than a bare HTML string — the
    * response-like object exposes `url`, `status`, and `body` for callers that
    * need to branch on status/content-type.
    */
@@ -533,10 +531,9 @@ export class SpiderSkill extends SkillBase {
 
   /**
    * Extract a value using a CSS selector (via cheerio) or XPath-like
-   * selector (`//tag`). Mirrors Python `_structured_extract`'s selector
-   * branching: selectors starting with `/` are treated as XPath (tag-name
-   * subset), everything else is full CSS via cheerio's querySelector-style
-   * engine.
+   * selector (`//tag`): selectors starting with `/` are treated as XPath
+   * (tag-name subset), everything else is full CSS via cheerio's
+   * querySelector-style engine.
    */
   private _applySelector($: cheerio.CheerioAPI, selector: string): string[] {
     const trimmed = selector.trim();
@@ -558,7 +555,7 @@ export class SpiderSkill extends SkillBase {
       .filter((t) => t.length > 0);
   }
 
-  /** Markdown extraction using cheerio. Mirrors Python `_markdown_extract`. */
+  /** Markdown extraction using cheerio. */
   private _markdownExtract(response: CachedResponse): string {
     try {
       const $ = this._cheerio.load(response.body);

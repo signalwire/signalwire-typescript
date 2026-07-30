@@ -259,9 +259,8 @@ export class SwaigFunction {
    * @param opts - Configuration options for the SWAIG function.
    *   Use `opts.extraFields` to pass any additional SWAIG-only fields
    *   (e.g. `meta_data_token`, `web_hook_auth_user`, `web_hook_auth_password`).
-   *   This mirrors the Python constructor's `**extra_swaig_fields` kwargs:
-   *   both are merged directly into the serialized SWAIG definition, so the
-   *   wire format is identical — only the call-site syntax differs.
+   *   Every entry is merged directly into the serialized SWAIG definition, so
+   *   it lands on the wire verbatim under its own key.
    */
   constructor(opts: SwaigFunctionOptions) {
     this.name = opts.name;
@@ -293,14 +292,12 @@ export class SwaigFunction {
    * Validate arguments against the parameter JSON schema using full
    * JSON Schema Draft-7 validation (via ajv).
    *
-   * Mirrors Python's `validate_args` which tries `jsonschema_rs` (Rust-based
-   * Draft-7 validator) then falls back to `jsonschema` (pure Python Draft-7).
    * All JSON Schema constraint keywords are honoured: `required`, `type`,
    * `minLength`, `maxLength`, `pattern`, `format`, `minimum`, `maximum`,
    * `enum`, `anyOf`, `oneOf`, `$ref`, nested object/array validation, etc.
    *
    * If the schema has no properties, validation is skipped and the args are
-   * considered valid — matching Python's early-return path.
+   * considered valid.
    *
    * @param args - Arguments to validate.
    * @returns A tuple of `[isValid, errors]`. When no validation is needed

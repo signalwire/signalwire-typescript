@@ -1,16 +1,14 @@
 /**
- * PromptObjectModel — direct port of Python's `signalwire.pom.pom`.
- *
- * A structured data format for composing, organizing, and rendering prompt
+ * PromptObjectModel — a structured data format for composing, organizing, and rendering prompt
  * instructions for large language models. The Prompt Object Model provides a
  * tree-based representation of a prompt document composed of nested sections,
  * each of which can include a title, body text, bullet points, and arbitrarily
  * nested subsections.
  *
  * This is the lower-level building block. Most agent code uses the higher-level
- * {@link PomBuilder} wrapper, but `PromptObjectModel` is exposed directly so
- * that callers can mirror the Python SDK (`agent.pom` is a `PromptObjectModel`)
- * and load/save POMs as JSON/YAML.
+ * {@link PomBuilder} wrapper, but `PromptObjectModel` is exposed directly
+ * (`agent.pom` is a `PromptObjectModel`) so that callers can load/save POMs
+ * as JSON/YAML.
  */
 
 import * as yaml from 'js-yaml';
@@ -47,7 +45,7 @@ export class Section {
 
   /**
    * @param title Section title (null permitted only on the very first top-level section).
-   * @param opts Keyword-style options matching Python's `body=`/`bullets=`/`numbered=`/`numberedBullets=`.
+   * @param opts Keyword-style options: `body`, `bullets`, `numbered`, `numberedBullets`.
    */
   constructor(
     title: string | null = null,
@@ -470,9 +468,7 @@ export class PromptObjectModel {
 
   /**
    * Internal: build a PromptObjectModel from a parsed array-of-sections shape.
-   *
-   * Mirrors Python's `_from_dict` (despite the name, Python takes a list at
-   * the top level — the function name is historical).
+   * The top level of a POM document is a list of sections, not a mapping.
    */
   private static _fromList(data: unknown): PromptObjectModel {
     if (!Array.isArray(data)) {

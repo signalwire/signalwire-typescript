@@ -34,8 +34,7 @@ interface PageEnvelope {
  * @param dataKey - Key on each response containing the array of items.
  *   Defaults to `"data"`.
  * @param requestOptions - Per-request transport envelope forwarded to EVERY
- *   page fetch (mirrors Python's `_pagination.py`, which forwards
- *   `request_options` on each page). Timeout/retry/abort apply to every page.
+ *   page fetch. Timeout/retry/abort apply to every page.
  * @returns An async iterable that yields one `T` per call until exhausted.
  */
 export async function* paginate<T>(

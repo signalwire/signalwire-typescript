@@ -25,8 +25,7 @@ export class ConfigLoader {
    * Create a new ConfigLoader, optionally loading a JSON file immediately.
    *
    * Accepts a single file path or an array of paths. When given an array,
-   * the loader iterates in order and loads the first file that exists
-   * (mirroring Python's ordered-search behaviour).
+   * the loader iterates in order and loads the first file that exists.
    *
    * @param filePaths - Path(s) to a JSON config file to load on construction.
    */
@@ -246,8 +245,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Return a shallow copy of the entire configuration object. Canonical name,
-   * matching Python's `ConfigLoader.get_config()`.
+   * Return a shallow copy of the entire configuration object. Canonical name.
    * @returns A copy of the top-level config data.
    */
   getConfig(): Record<string, unknown> {
@@ -255,8 +253,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Return the absolute path of the loaded config file, if any. Canonical name,
-   * matching Python's `ConfigLoader.get_config_file()`.
+   * Return the absolute path of the loaded config file, if any. Canonical name.
    * @returns The file path, or null if config was loaded from an object.
    */
   getConfigFile(): string | null {
@@ -266,12 +263,8 @@ export class ConfigLoader {
   /**
    * Check if a configuration was loaded.
    *
-   * **Deliberate deviation from Python `has_config()`:** Python returns `True`
-   * only when a file was loaded (`self._config is not None`). This TypeScript
-   * implementation also returns `true` when data was loaded via
-   * {@link loadFromObject}, because `loadFromObject` is an extra TS-only method
-   * with no Python equivalent. Treating object-loaded data as "configured" is
-   * the correct semantic for the TS API surface.
+   * Returns `true` when configuration data exists from EITHER source — a file
+   * loaded from disk or data supplied to {@link loadFromObject}.
    *
    * If you need file-load-only detection, check `this.getConfigFile() !== null`.
    *
@@ -352,8 +345,6 @@ export class ConfigLoader {
    * Config file values take precedence over environment variables. Matching
    * env var keys are stripped of the prefix, lowercased, split on `_`, and
    * written into a nested object (e.g. `SWML_FOO_BAR` → `{ foo: { bar: v } }`).
-   * Mirrors Python's `merge_with_env` in
-   * `signalwire/signalwire/core/config_loader.py`.
    *
    * @param envPrefix - Prefix for environment variables to consider (default: `'SWML_'`).
    * @returns Merged configuration dictionary.
@@ -379,7 +370,7 @@ export class ConfigLoader {
 
   /**
    * Check if a nested key (underscore-separated path) exists in a dict.
-   * Used by {@link mergeWithEnv} to mirror Python's `_has_nested_key`.
+   * Used by {@link mergeWithEnv}.
    */
   private _hasNestedKey(data: Record<string, unknown>, keyPath: string): boolean {
     const keys = keyPath.split('_');
@@ -399,7 +390,7 @@ export class ConfigLoader {
   /**
    * Set a value in a dict using an underscore-separated path, creating
    * intermediate objects as needed.
-   * Used by {@link mergeWithEnv} to mirror Python's `_set_nested_key`.
+   * Used by {@link mergeWithEnv}.
    */
   private _setNestedKey(data: Record<string, unknown>, keyPath: string, value: unknown): void {
     const keys = keyPath.split('_');

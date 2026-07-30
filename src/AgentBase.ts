@@ -72,10 +72,9 @@ function schemeParam(authHeader: string | undefined, expectedScheme: string): st
  * incoming request. Return a route string to redirect to that agent route, or
  * null / undefined to let normal SWML processing continue.
  *
- * Mirrors Python `web_mixin.register_routing_callback` callback signature. Python
- * decomposed the routing callback to `callback_fn(body, headers)` — the parsed body
- * plus the request headers (the raw Hono request object is not forwarded). `headers`
- * is optional so existing body-only callbacks keep working.
+ * The callback receives the parsed request body plus the request headers (the raw
+ * Hono request object is NOT forwarded). `headers` is optional so existing
+ * body-only callbacks keep working.
  */
 export type RoutingCallback = (
   body: SwmlRequestData,
@@ -504,12 +503,9 @@ export class AgentBase extends SWMLService {
   /**
    * Public accessor for the agent's POM as a {@link PromptObjectModel} instance.
    *
-   * Python equivalent: ``agent.pom`` instance attribute (agent_base.py line 209)
-   * is a ``signalwire.pom.pom.PromptObjectModel`` when ``use_pom=True``,
-   * or ``None`` otherwise. This getter returns the equivalent TypeScript
-   * ``PromptObjectModel`` instance — callers can use ``addSection``,
-   * ``findSection``, ``renderMarkdown``, ``renderXml``, ``toJson``, ``toYaml``
-   * exactly as in Python.
+   * Returns a ``PromptObjectModel`` when POM mode is on, or ``null`` otherwise.
+   * Callers can use ``addSection``, ``findSection``, ``renderMarkdown``,
+   * ``renderXml``, ``toJson``, and ``toYaml`` on it.
    *
    * The instance returned is a fresh snapshot built from the current
    * ``PomBuilder`` state, so mutating it does not feed back into the agent's
@@ -642,9 +638,7 @@ export class AgentBase extends SWMLService {
    * Get the raw POM (Prompt Object Model) structure as an array of section data objects,
    * when the agent is in POM mode and has at least one section.
    *
-   * Matches Python `get_prompt()` which returns `Union[str, List[Dict]]` — a raw list when
-   * in POM mode (via `pom.to_list()` / `pom.render_dict()`), or a string otherwise.
-   * The TS `getPrompt()` always returns a string (rendered Markdown), so this companion
+   * `getPrompt()` always returns a string (rendered Markdown), so this companion
    * method exposes the raw POM structure for callers that need it for serialisation or
    * inspection (e.g. skills that inspect prompt sections).
    *
@@ -670,9 +664,8 @@ export class AgentBase extends SWMLService {
    * Get the raw prompt text whatever `setPromptText` stored, or null when
    * no raw prompt has been set.
    *
-   * Matches Python `PromptManager.get_raw_prompt()` which returns the raw
-   * stored string or `None`. Use this instead of `getPrompt()` when you
-   * need the unrendered text rather than the POM-rendered Markdown.
+   * Use this instead of `getPrompt()` when you need the unrendered text rather
+   * than the POM-rendered Markdown.
    *
    * @returns The raw prompt string, or null if not set.
    */
@@ -758,9 +751,6 @@ export class AgentBase extends SWMLService {
   /**
    * Get the contexts dictionary as serialised SWML, or null when no
    * contexts have been defined yet.
-   *
-   * Matches Python `PromptManager.get_contexts()` which returns the
-   * contexts dict or `None`.
    *
    * @returns Contexts dict, or null when no contexts are defined.
    */
@@ -968,8 +958,8 @@ export class AgentBase extends SWMLService {
    * **MERGES** `data` into the global_data object passed into the AI
    * configuration. **Despite the name, this does NOT replace** the existing
    * object — existing keys are preserved and incoming keys overwrite only on
-   * collision (it calls `.update()`-style merge, matching Python
-   * `set_global_data`). This is intentional: skills and other callers each
+   * collision (an `.update()`-style merge). This is intentional: skills and
+   * other callers each
    * contribute keys via {@link updateGlobalData}, and a replacing
    * `setGlobalData` would silently clobber their contributions.
    *
@@ -1012,10 +1002,6 @@ export class AgentBase extends SWMLService {
    *
    * A shallow copy of `data` is stored, so later mutations of the caller's
    * object do not leak into the agent.
-   *
-   * TS-native addition: Python's reference SDK has no replace path (its
-   * `set_global_data` only merges), so this has no Python counterpart — see
-   * `PORT_ADDITIONS.md`.
    *
    * @param data - The new global_data object (replaces all prior keys).
    * @returns This agent instance for chaining.
@@ -1301,9 +1287,6 @@ export class AgentBase extends SWMLService {
    * request to the right agent. If `callback` returns `null` / `undefined` the
    * agent's own SWML is returned instead (normal processing).
    *
-   * Mirrors Python `swml_service.register_routing_callback` /
-   * `web_mixin.register_routing_callback`.
-   *
    * @param callback - Function receiving the parsed request body and returning a
    *   route string to redirect, or null/undefined for normal processing.
    * @param path - HTTP path where this callback endpoint is registered
@@ -1581,19 +1564,17 @@ export class AgentBase extends SWMLService {
   /**
    * Validate a tool-call token for the given function.
    *
-   * Mirrors Python reference `core/mixins/state_mixin.py validate_tool_token`:
    * 1. Unknown function → `false`.
    * 2. Registered but non-secure → `true` without consulting SessionManager
    *    (non-secure tools never require a token).
-   * 3. Raw-dict descriptors (e.g. DataMap) are treated as secure, matching
-   *    Python's `isinstance(func, dict) → is_secure = True` branch.
+   * 3. Raw-dict descriptors (e.g. DataMap) are treated as secure.
    * 4. Missing token on a secure tool → `false`.
    * 5. Otherwise delegate to `SessionManager.validateToolToken`.
    *
-   * Divergences from the Python reference:
+   * Notes:
    * - No debug-logging branch: `AgentBase` does not expose an agent-level
-   *   debug-mode flag, so the per-call debug telemetry Python emits is
-   *   omitted. `SessionManager` still logs its own validation outcomes.
+   *   debug-mode flag, so no per-call debug telemetry is emitted here.
+   *   `SessionManager` still logs its own validation outcomes.
    * - No token-derived call-id fallback: `SessionManager.debugToken`
    *   truncates the embedded call-id for log safety, so an extracted value
    *   cannot be round-tripped back through `validateToolToken`. The caller
@@ -1616,9 +1597,8 @@ export class AgentBase extends SWMLService {
   /**
    * Mint a per-call SWAIG-function token via the agent's SessionManager.
    *
-   * Mirrors Python reference `core/mixins/state_mixin.py _create_tool_token`:
-   * delegates to `SessionManager.createToolToken` and returns an empty
-   * string on any failure (Python catches all exceptions and returns "").
+   * Delegates to `SessionManager.createToolToken` and returns an empty
+   * string on any failure (all exceptions are caught).
    */
   createToolToken(toolName: string, callId: string): string {
     try {
@@ -1771,15 +1751,13 @@ export class AgentBase extends SWMLService {
   /**
    * Add a skill by its registered name, looking it up in the global SkillRegistry.
    *
-   * Matches Python's `add_skill(skill_name, params)` which loads skills by string
-   * name via the SkillManager registry. Throws a `ValueError`-equivalent if the
-   * skill name is not found in the registry.
+   * Throws if the skill name is not found in the registry.
    *
    * Accepts a typed {@link SkillNameOrString}: one of the built-in
    * {@link SkillName} values (autocompleted, with a typo caught at compile
    * time) or any other string for custom / third-party skills. The value is
    * forwarded to the registry unchanged — the typing is erased at runtime, so
-   * this matches Python's bare-`str` `add_skill(skill_name, params)`.
+   * any string reaches the registry.
    *
    * @param skillName - The name the skill was registered under in the SkillRegistry.
    * @param params - Optional configuration parameters forwarded to the skill factory.
@@ -1816,7 +1794,7 @@ export class AgentBase extends SWMLService {
    *
    * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
    * and a typo is a compile-time error; any other string is still accepted
-   * (custom skills / matching Python's bare-`str` `has_skill`).
+   * (custom / third-party skills).
    *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.
@@ -1826,11 +1804,10 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Remove a skill by its name (matches the Python SDK).
+   * Remove a skill by its name.
    *
-   * Python's `remove_skill(skill_name)` removes by skill name.
-   * The existing `removeSkill(instanceId)` removes by instance ID.
-   * This method provides name-based removal to match the Python SDK.
+   * The companion `removeSkill(instanceId)` removes by instance ID instead;
+   * this method provides name-based removal.
    *
    * @param skillName - The skill name to remove.
    * @returns True if a skill with that name was found and removed.
@@ -1912,9 +1889,8 @@ export class AgentBase extends SWMLService {
    * is created in `getApp()`. The callback receives the request body and returns
    * Enable debug routes for testing and development.
    *
-   * This is a backward-compatibility stub matching the Python SDK.
-   * In the TypeScript SDK, debug routes (health, ready, debug_events)
-   * are automatically registered in `getApp()`.
+   * This is a backward-compatibility stub: debug routes (health, ready,
+   * debug_events) are automatically registered in `getApp()`.
    *
    * @returns This agent instance for chaining.
    */
@@ -2074,10 +2050,8 @@ export class AgentBase extends SWMLService {
    * {@link onSwmlRequest} and returns its result. Subclasses typically
    * override `onSwmlRequest` rather than this method.
    *
-   * Matches Python `WebMixin.on_request(request_data, callback_path)`. The
-   * cross-language API is the two-arg form; the Hono `context` argument is
-   * a TypeScript-side extra preserved for callers that already have it but
-   * is not part of the audited surface.
+   * The canonical form is the two-arg `(requestData, callbackPath)`; the Hono
+   * `context` argument is an extra preserved for callers that already have it.
    *
    * @param requestData - The parsed request body.
    * @param callbackPath - Optional callback path from the request.
@@ -2095,12 +2069,11 @@ export class AgentBase extends SWMLService {
    * Lifecycle hook called on every SWML request before rendering. Override in subclasses.
    *
    * May optionally return a modification dict that will be merged into the
-   * rendered SWML document (matching Python's `Optional[dict]` return type).
+   * rendered SWML document, or nothing for default rendering.
    *
-   * Matches Python `on_swml_request(request_data, callback_path, request)` — the third
-   * parameter is the FastAPI `Request` in Python; here it is the raw Hono context object
-   * so that subclasses can access query parameters (`context.req.query()`), raw request
-   * headers (`context.req.raw.headers`), etc.
+   * The third parameter is the raw Hono context object, so that subclasses can
+   * access query parameters (`context.req.query()`), raw request headers
+   * (`context.req.raw.headers`), etc.
    *
    * @param _rawData - The parsed request body.
    * @param _callbackPath - Optional callback path from the request.
@@ -2123,8 +2096,7 @@ export class AgentBase extends SWMLService {
    * instead of the base `renderDocument`. Performs basic-auth, the routing-callback
    * check `(body, headers)`, and `onSwmlRequest` modification over plain
    * primitives, returning a `[status, headers, bodyString]` triple with the
-   * 401-auth and 307-redirect behavior preserved. Mirrors Python's
-   * `AgentBase.handle_request(method, url, headers, body)`.
+   * 401-auth and 307-redirect behavior preserved.
    *
    * @param method  HTTP method, e.g. `"GET"` or `"POST"`.
    * @param url     The full request URL.
@@ -2254,11 +2226,10 @@ export class AgentBase extends SWMLService {
   /**
    * Hook called before each SWAIG function execution. Override in subclasses.
    *
-   * **Behavioral note:** In the Python SDK, `on_function_call` IS the dispatcher
-   * — it retrieves and executes the function, returning the result. In TypeScript,
-   * `fn.execute()` is called separately after this hook. However, if this method
-   * returns a non-void value, it is used as the result and the default execution
-   * is skipped, enabling dispatch interception matching the Python SDK.
+   * **Behavioral note:** this hook does not itself execute the function —
+   * `fn.execute()` is called separately after it. However, if this method
+   * returns a non-void value, that value is used as the result and the default
+   * execution is skipped, enabling dispatch interception.
    *
    * @param _name - Name of the function about to execute.
    * @param _args - Parsed arguments for the function.
@@ -2283,8 +2254,7 @@ export class AgentBase extends SWMLService {
    * envelope (`{parsed, raw}`) instead of the args, so a real platform call
    * arrives with EMPTY args. This unwraps `argument.parsed[0]` first, falls back
    * to parsing `argument.raw` JSON, and finally accepts the flat
-   * `{"arguments": {...}}` shape some external integrations send — matching the
-   * Python reference (`core/swml_service.py:836-851`).
+   * `{"arguments": {...}}` shape some external integrations send.
    *
    * @param body - The parsed SWAIG request body.
    * @param reqLog - Request-scoped logger for the raw-parse-error path.
@@ -2331,8 +2301,8 @@ export class AgentBase extends SWMLService {
    *
    * @param callId - Optional call ID to use for session tokens; auto-generated if omitted.
    * @param modifications - Optional dict returned from `onSwmlRequest` to merge into the AI
-   *   verb config before rendering. Matches Python's `_render_swml(modifications)` semantics:
-   *   `global_data` is deep-merged; all other keys override the AI config directly.
+   *   verb config before rendering: `global_data` is deep-merged; all other keys
+   *   override the AI config directly.
    * @returns The rendered SWML document as a JSON string.
    */
   renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
@@ -2655,7 +2625,7 @@ export class AgentBase extends SWMLService {
    * `Response` — including the routing-callback **307** (`Location`) and the
    * **401** (`WWW-Authenticate`). This is what routes serve()/asRouter() through
    * the same core the primitive path uses, instead of a parallel inline
-   * auth/render/redirect path (mirrors the rust/dotnet/php served path).
+   * auth/render/redirect path.
    *
    * Proxy detection stays here as framework plumbing (it needs the raw request);
    * everything else comes from `handleRequest`.
@@ -3157,8 +3127,8 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Smart entry point matching Python's `WebMixin.run()`: auto-detects the
-   * execution environment and dispatches accordingly. When a serverless event
+   * Smart entry point: auto-detects the execution environment and dispatches
+   * accordingly. When a serverless event
    * is supplied, or a serverless platform is detected from the environment
    * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `K_SERVICE`/`FUNCTION_TARGET`,
    * `FUNCTIONS_WORKER_RUNTIME`, `GATEWAY_INTERFACE`), it dispatches to
@@ -3198,13 +3168,12 @@ export class AgentBase extends SWMLService {
   /**
    * Handle a single serverless invocation (AWS Lambda, Google Cloud Functions, Azure Functions, or CGI).
    *
-   * Matches Python `run(event, context)` when executed in a serverless environment. Python's
-   * `run()` auto-detects the platform via `get_execution_mode()` and dispatches accordingly;
-   * `runServerless` is the **explicit** serverless path so callers can opt in deliberately
-   * (the polymorphic {@link run} dispatches here when a serverless env/event is detected).
+   * This is the **explicit** serverless path so callers can opt in deliberately
+   * (the polymorphic {@link run} auto-detects and dispatches here when a
+   * serverless env/event is present).
    *
-   * Platform detection follows the same environment-variable heuristics as Python's
-   * `ServerlessMixin`: `AWS_LAMBDA_FUNCTION_NAME` → Lambda, `K_SERVICE` → GCF,
+   * Platform detection uses environment-variable heuristics:
+   * `AWS_LAMBDA_FUNCTION_NAME` → Lambda, `K_SERVICE` → GCF,
    * `FUNCTIONS_WORKER_RUNTIME` → Azure, `GATEWAY_INTERFACE` → CGI.
    *
    * Usage in a Lambda handler file:

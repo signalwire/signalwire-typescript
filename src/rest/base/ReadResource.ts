@@ -51,9 +51,8 @@ export class ReadResource<TList = unknown, TItem = unknown> extends BaseResource
    * }
    * ```
    *
-   * The TS analogue of Python's `ReadResource.paginate()` /
-   * `PaginatedIterator`: an async iterator wired to the shared {@link paginate}
-   * generator, reading items from `resp["data"]`.
+   * It is an async iterator wired to the shared {@link paginate} generator,
+   * reading items from `resp["data"]`.
    *
    * @param params - Query parameters applied to the FIRST request only;
    *   subsequent pages follow the server-supplied next-page URL.

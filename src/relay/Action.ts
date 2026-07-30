@@ -142,8 +142,7 @@ export class Action {
   /**
    * Wait for the action to complete.
    *
-   * @param timeout - Maximum time to wait in **seconds** (matches the Python
-   *   SDK convention — not milliseconds).
+   * @param timeout - Maximum time to wait in **seconds** — not milliseconds.
    * @returns The terminal {@link RelayEvent} for this action.
    * @throws {Error} When the optional timeout elapses before the action ends.
    */

@@ -11,11 +11,9 @@
  * (seconds, not milliseconds). The service streams keepalive whitespace ahead of
  * a slow response body (proxy read-timeout protection), so liveness is byte-driven
  * rather than wall-clock: there is no total-request timeout an idle turn could
- * trip — only a per-read idle timeout, mirroring the python reference's
- * `aiohttp.ClientTimeout(total=None, connect=10, sock_read=60)`. Leading whitespace
- * is valid JSON, so the buffered `response.json()` parse is unaffected.
- *
- * Mirrors the python reference `signalwire.ai_chat.AIChatClient`.
+ * trip — only a per-read idle timeout (no total cap, 10s connect, 60s idle read).
+ * Leading whitespace is valid JSON, so the buffered `response.json()` parse is
+ * unaffected.
  *
  * @example
  * ```ts
@@ -34,8 +32,7 @@ const DEFAULT_PATH = '/api/ai/chat';
 /**
  * Idle read timeout (seconds) for a single request. The service streams keepalive
  * whitespace roughly every 10s, so this bounds true byte-silence (a dead
- * connection), NOT total turn length — mirroring the python reference's
- * `sock_read=60`. `fetch` has no native per-read timeout, so this is applied as a
+ * connection), NOT total turn length. `fetch` has no native per-read timeout, so this is applied as a
  * bounded read the streaming proxy's heartbeat keeps alive. A total wall-clock cap
  * is deliberately absent — a slow-but-live turn must never be severed by the client.
  */
@@ -276,7 +273,7 @@ export class AIChatClient {
    * Success/failure is decided by the JSON-RPC BODY, not the HTTP status: the
    * service's keepalive heartbeat commits `200` before the turn's outcome is
    * known, so a slow error can arrive as `200 + {"error": …}`. Never gate on
-   * `response.status` here (mirrors the python reference).
+   * `response.status` here.
    *
    * @throws {AIChatError} (or a typed subclass) when the body carries `error`.
    */

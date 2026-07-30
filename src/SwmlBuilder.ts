@@ -18,19 +18,16 @@ import './SwmlVerbMethods.generated.js';
 /** Options for constructing a SwmlBuilder. */
 export interface SwmlBuilderOptions {
   /** An initial SWML document to seed the builder with, enabling document injection.
-   *  When provided, the builder uses this document instead of creating an empty one.
-   *  This mirrors the Python SDK's pattern of injecting an SWMLService instance. */
+   *  When provided, the builder uses this document instead of creating an empty one. */
   initialDocument?: { version?: string; sections?: Record<string, unknown[]> };
   /** When false, disables verb schema validation.
    *  Defaults to true unless `SWML_SKIP_SCHEMA_VALIDATION=true` is set in the environment. */
   enableValidation?: boolean;
   /** Optional path to a custom SWML schema JSON file. When set, the builder uses
-   *  a per-instance SchemaUtils loaded from this path instead of the bundled schema.
-   *  Mirrors Python's `schema_path` constructor parameter on `SWMLService`/`AgentBase`. */
+   *  a per-instance SchemaUtils loaded from this path instead of the bundled schema. */
   schemaPath?: string;
   /** The `SWMLService` this builder belongs to, kept as a public back-reference
-   *  ({@link SwmlBuilder.service}). The reference's `SWMLBuilder(service)` takes it as
-   *  its sole constructor argument and keeps it as public `self.service`. Omit for a
+   *  ({@link SwmlBuilder.service}). Omit for a
    *  standalone builder (the common case — a builder used to hand-craft SWML has no
    *  service). */
   service?: SWMLServiceLike;
@@ -99,7 +96,7 @@ export class SwmlBuilder {
   /**
    * Creates a new SwmlBuilder.
    * @param opts - Optional configuration.
-   *   - `initialDocument`: inject an existing document (mirrors Python SDK's `SWMLService` injection pattern).
+   *   - `initialDocument`: inject an existing document instead of starting empty.
    *   - `enableValidation`: explicit override for verb schema validation (falls back to env var).
    *   - `schemaPath`: load SWML schema from a custom JSON file instead of the bundled one.
    */
@@ -142,8 +139,8 @@ export class SwmlBuilder {
   }
 
   /**
-   * Enable or disable verb schema validation at runtime.
-   * Matches the Python `schema_validation` constructor parameter on AgentBase.
+   * Enable or disable verb schema validation at runtime — the runtime
+   * counterpart of the `schemaValidation` constructor option on AgentBase.
    * @param enabled - True to enable validation, false to disable.
    */
   setValidation(enabled: boolean): void {
@@ -168,7 +165,6 @@ export class SwmlBuilder {
   /**
    * Install verb methods on this instance for every verb defined in the schema.
    * Uses a closure factory so each method captures the correct verb name.
-   * Mirrors Python SDK's `_create_verb_methods()`.
    */
   private _installVerbMethods(): void {
     const schemaUtils = this.getSchemaUtils();
@@ -292,7 +288,7 @@ export class SwmlBuilder {
 
   /**
    * Add a 'play' verb with say: prefix for text-to-speech.
-   * Convenience wrapper matching Python SDK's `say()` method.
+   * Convenience wrapper over {@link addVerb}.
    *
    * @param text - Text to speak.
    * @param opts - Optional TTS parameters (voice, language, gender, volume).
@@ -319,7 +315,6 @@ export class SwmlBuilder {
   /**
    * Creates a new empty named section in the document.
    * If the section already exists, this is a no-op.
-   * Matches Python SDK's `add_section(section_name)`.
    *
    * @param sectionName - The name of the section to create.
    * @returns this for fluent chaining.
@@ -332,8 +327,7 @@ export class SwmlBuilder {
   }
 
   /**
-   * Build and return the SWML document as a dictionary/object. Canonical name,
-   * matching Python's `SWMLBuilder.build()`.
+   * Build and return the SWML document as a dictionary/object. Canonical name.
    *
    * @returns The document with version and sections.
    */
@@ -342,8 +336,7 @@ export class SwmlBuilder {
   }
 
   /**
-   * Build and render the SWML document as a JSON string. Canonical name,
-   * matching Python's `SWMLBuilder.render()`.
+   * Build and render the SWML document as a JSON string. Canonical name.
    *
    * @returns The JSON-encoded SWML document.
    */

@@ -25,9 +25,8 @@ import type { SwaigRequest } from './SwaigContracts.js';
 import type { Server } from 'node:http';
 
 /**
- * Split an `Authorization` header into its scheme and credential, mirroring
- * FastAPI's `get_authorization_scheme_param` (partition on the FIRST space,
- * strip the credential).
+ * Split an `Authorization` header into its scheme and credential: partition on
+ * the FIRST space, strip the credential.
  *
  * Returns `null` when the header is absent/empty or the scheme token does not
  * case-insensitively equal `expectedScheme`. RFC 7235 makes the auth-scheme
@@ -46,7 +45,6 @@ function schemeParam(authHeader: string | undefined, expectedScheme: string): st
 
 /**
  * Interface for custom SWML verb handlers.
- * Mirrors Python SDK's `SWMLVerbHandler` abstract base class.
  */
 export interface SWMLVerbHandler {
   /** Return the verb name this handler manages. */
@@ -59,7 +57,6 @@ export interface SWMLVerbHandler {
 
 /**
  * Registry for custom SWML verb handlers.
- * Mirrors Python SDK's `VerbHandlerRegistry`.
  */
 export class VerbHandlerRegistry {
   private handlers = new Map<string, SWMLVerbHandler>();
@@ -83,8 +80,7 @@ export class VerbHandlerRegistry {
 // ── Security config ────────────────────────────────────────────────────
 
 /**
- * Unified security configuration.
- * Mirrors Python SDK's `SecurityConfig` — reads from env vars and optional config file.
+ * Unified security configuration — reads from env vars and an optional config file.
  */
 export class SecurityConfig {
   /** Whether SSL is enabled. */
@@ -151,9 +147,9 @@ export class SecurityConfig {
   }
 
   /**
-   * (Re)load host/CORS/HSTS settings from environment variables. Mirrors Python
-   * SDK's `SecurityConfig.load_from_env()`. SSL/auth are loaded in the constructor
-   * from their own env vars; this refreshes the network-policy fields.
+   * (Re)load host/CORS/HSTS settings from environment variables. SSL/auth are
+   * loaded in the constructor from their own env vars; this refreshes the
+   * network-policy fields.
    */
   loadFromEnv(): void {
     const hosts = SecurityConfig.parseList(process.env['SWML_ALLOWED_HOSTS']);
@@ -171,13 +167,12 @@ export class SecurityConfig {
 
   /**
    * Apply the `security` section of a config file over the already-resolved
-   * defaults+env values. Mirrors Python's `SecurityConfig._load_config_file`:
-   * the config file has the HIGHEST priority, and the keys are the reference's
-   * snake_case wire names (`ssl_enabled`, `ssl_cert_path`, `ssl_key_path`,
-   * `domain`, `allowed_hosts`, `cors_origins`, `use_hsts`, `hsts_max_age`,
-   * `auth.basic.{user,password}`) — NOT the camelCase TypeScript API names.
-   * The section is read via `getSection`, so `${VAR|default}` interpolation
-   * applies exactly as it does in the reference.
+   * defaults+env values. The config file has the HIGHEST priority, and its
+   * keys are the snake_case wire names (`ssl_enabled`, `ssl_cert_path`,
+   * `ssl_key_path`, `domain`, `allowed_hosts`, `cors_origins`, `use_hsts`,
+   * `hsts_max_age`, `auth.basic.{user,password}`) — NOT the camelCase
+   * TypeScript API names. The section is read via `getSection`, so
+   * `${VAR|default}` interpolation applies.
    */
   private loadFromConfigFile(filePath: string): void {
     let section: Record<string, unknown>;
@@ -235,8 +230,7 @@ export class SecurityConfig {
 
   /**
    * Coerce a config-file list value: an array passes through, `'*'` becomes
-   * `['*']`, and a comma-separated string is split. Mirrors Python's
-   * `SecurityConfig._parse_list` for the config-file path.
+   * `['*']`, and a comma-separated string is split.
    */
   private static coerceList(value: unknown): string[] | null {
     if (Array.isArray(value)) return value.map(String);
@@ -262,12 +256,9 @@ export class SecurityConfig {
 
   /**
    * Build the SSL parameters for the HTTPS server, as a plain dictionary of
-   * primitive filesystem paths. Mirrors Python's
-   * `SecurityConfig.get_ssl_context_kwargs()` verbatim: the reference targets
-   * uvicorn's `ssl_certfile`/`ssl_keyfile` kwargs, and this returns the exact
-   * same primitive path pair (the TS HTTPS server passes them to
-   * `node:https.createServer` / `readFileSync`). Returns an empty object when
-   * SSL is disabled or the cert/key files fail validation.
+   * primitive filesystem paths, keyed `ssl_certfile`/`ssl_keyfile` (the HTTPS
+   * server passes them to `node:https.createServer` / `readFileSync`). Returns
+   * an empty object when SSL is disabled or the cert/key files fail validation.
    * @returns `{ ssl_certfile, ssl_keyfile }` path strings, or `{}` when unavailable.
    */
   getSslContextKwargs(): Record<string, string> {
@@ -280,14 +271,14 @@ export class SecurityConfig {
     };
   }
 
-  /** Get the URL scheme based on SSL configuration. Mirrors Python's `get_url_scheme()`. */
+  /** Get the URL scheme based on SSL configuration. */
   getUrlScheme(): string {
     return this.sslEnabled ? 'https' : 'http';
   }
 
   /**
-   * Check whether a host is allowed. Mirrors Python's `should_allow_host()`:
-   * a wildcard `*` in the allow-list permits any host.
+   * Check whether a host is allowed: a wildcard `*` in the allow-list permits
+   * any host.
    */
   shouldAllowHost(host: string): boolean {
     if (this.allowedHosts.includes('*')) return true;
@@ -295,7 +286,7 @@ export class SecurityConfig {
   }
 
   /**
-   * Get CORS configuration. Mirrors Python's `get_cors_config()`.
+   * Get CORS configuration.
    * @returns An object of CORS settings (origins, credentials, methods, headers).
    */
   getCorsConfig(): Record<string, unknown> {
@@ -308,9 +299,8 @@ export class SecurityConfig {
   }
 
   /**
-   * Get the security headers to add to responses. Mirrors Python's
-   * `get_security_headers()`; adds an HSTS header when the request is HTTPS and
-   * HSTS is enabled.
+   * Get the security headers to add to responses; adds an HSTS header when the
+   * request is HTTPS and HSTS is enabled.
    * @param isHttps - Whether the connection is over HTTPS.
    */
   getSecurityHeaders(isHttps = false): Record<string, string> {
@@ -327,7 +317,7 @@ export class SecurityConfig {
   }
 
   /**
-   * Log the current security configuration. Mirrors Python's `log_config()`.
+   * Log the current security configuration.
    * @param serviceName - The service name to tag the log line with.
    */
   logConfig(serviceName: string): void {
@@ -366,8 +356,7 @@ type RoutingCallback = (
 /** Configuration options for SWMLService. */
 export interface SWMLServiceOptions {
   /**
-   * Service display name.
-   * Required to match Python SDK where `name` is a positional required parameter.
+   * Service display name. Required.
    */
   name: string;
   /** HTTP route path (default '/'). */
@@ -421,23 +410,23 @@ export class SWMLService {
   /** Port the server binds to. */
   readonly port: number;
 
-  /** Structured logger, exposed for subclass access. Mirrors Python's public `self.log`. */
+  /** Structured logger, exposed for subclass access. */
   readonly log: Logger;
 
-  /** Unified security configuration. Mirrors Python's `self.security`. */
+  /** Unified security configuration. */
   readonly security: SecurityConfig;
-  /** Whether SSL is enabled. Mirrors Python's `self.ssl_enabled`. */
+  /** Whether SSL is enabled. */
   readonly sslEnabled: boolean;
-  /** Domain name for SSL. Mirrors Python's `self.domain`. */
+  /** Domain name for SSL. */
   readonly domain: string | undefined;
-  /** Path to SSL certificate. Mirrors Python's `self.ssl_cert_path`. */
+  /** Path to SSL certificate. */
   readonly sslCertPath: string | undefined;
-  /** Path to SSL private key. Mirrors Python's `self.ssl_key_path`. */
+  /** Path to SSL private key. */
   readonly sslKeyPath: string | undefined;
 
-  /** Schema validation utilities. Mirrors Python's `self.schema_utils`. */
+  /** Schema validation utilities. */
   readonly schemaUtils: SchemaUtils;
-  /** Custom verb handler registry. Mirrors Python's `self.verb_registry`. */
+  /** Custom verb handler registry. */
   readonly verbRegistry: VerbHandlerRegistry;
 
   protected swmlBuilder: SwmlBuilder;
@@ -448,8 +437,7 @@ export class SWMLService {
   protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
 
   /** Validate provided basic-auth credentials against the configured ones
-   * using a constant-time comparison. (Python equivalent:
-   * ``AuthMixin.validate_basic_auth(username, password)``.) */
+   * using a constant-time comparison. */
   validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
     const [u, p] = this.authCredentials ?? ['', ''];
     if (u === '' && p === '') return false;
@@ -767,20 +755,17 @@ export class SWMLService {
     return this.toolRegistry.has(name);
   }
 
-  /** Whether a SWAIG function with the given name is registered.
-   * (Python equivalent: ``ToolRegistry.has_function``.) */
+  /** Whether a SWAIG function with the given name is registered. */
   hasFunction(name: string): boolean {
     return this.toolRegistry.has(name);
   }
 
-  /** Get a registered SWAIG function entry, or undefined.
-   * (Python equivalent: ``ToolRegistry.get_function``.) */
+  /** Get a registered SWAIG function entry, or undefined. */
   getFunction(name: string): SwaigFunction | Record<string, unknown> | undefined {
     return this.toolRegistry.get(name);
   }
 
-  /** Snapshot of all registered SWAIG functions keyed by name.
-   * (Python equivalent: ``ToolRegistry.get_all_functions``.) */
+  /** Snapshot of all registered SWAIG functions keyed by name. */
   getAllFunctions(): Record<string, SwaigFunction | Record<string, unknown>> {
     const out: Record<string, SwaigFunction | Record<string, unknown>> = {};
     for (const [name, fn] of this.toolRegistry) {
@@ -790,8 +775,7 @@ export class SWMLService {
   }
 
   /** Remove a registered SWAIG function. Returns true when removed,
-   * false when not found. (Python equivalent:
-   * ``ToolRegistry.remove_function``.) */
+   * false when not found. */
   removeFunction(name: string): boolean {
     return this.toolRegistry.delete(name);
   }
@@ -868,7 +852,6 @@ export class SWMLService {
 
   /**
    * Check if full JSON Schema validation is enabled.
-   * Mirrors Python's `@property full_validation_enabled`.
    * @returns True if schema-based verb validation is active.
    */
   get fullValidationEnabled(): boolean {
@@ -905,7 +888,6 @@ export class SWMLService {
 
   /**
    * Add a new named section to the SWML document.
-   * Mirrors Python's `add_section()`.
    * @param sectionName - Name of the section to create.
    * @returns This service for chaining.
    */
@@ -919,7 +901,6 @@ export class SWMLService {
 
   /**
    * Add a verb to a specific named section.
-   * Mirrors Python's `add_verb_to_section()`.
    * @param sectionName - Target section name (auto-created if missing).
    * @param verbName - Verb name.
    * @param config - Verb configuration.
@@ -932,7 +913,6 @@ export class SWMLService {
 
   /**
    * Reset the SWML document to an empty state.
-   * Mirrors Python's `reset_document()`.
    * @returns This service for chaining.
    */
   resetDocument(): this {
@@ -958,7 +938,7 @@ export class SWMLService {
   }
 
   /**
-   * Get the SWML document as a dictionary. Matches Python's `get_document()`.
+   * Get the SWML document as a dictionary.
    * @returns The SWML document.
    */
   getDocument(): Record<string, unknown> {
@@ -967,7 +947,6 @@ export class SWMLService {
 
   /**
    * Render the SWML document as a JSON string.
-   * Mirrors Python's `render_document()`.
    * @returns JSON-encoded SWML document.
    */
   renderDocument(): string {
@@ -977,9 +956,7 @@ export class SWMLService {
   /**
    * Framework-free request-dispatch core.
    *
-   * The primitive dispatch surface the SDK ports share (mirrors Python's
-   * `SWMLService.handle_request(method, url, headers, body)` and, e.g., the
-   * dotnet `(int, Dictionary, string) HandleRequest(...)`). It performs the
+   * The primitive dispatch surface, for hosting outside Hono. It performs the
    * routing-callback check, `on_request` modification, and basic-auth exactly as
    * the Hono handler path does, but over plain primitives instead of Hono
    * `Context`/`Response` objects — so both paths produce identical responses.
@@ -1053,10 +1030,10 @@ export class SWMLService {
   }
 
   /**
-   * Derive the registered routing-callback path (if any) a URL targets. Mirrors
-   * Python's `_callback_path_for_url` — the primitive `handleRequest` recovers
-   * the equivalent of the router's `request.state.callback_path` by matching the
-   * URL's normalized path against the registered callbacks.
+   * Derive the registered routing-callback path (if any) a URL targets: the
+   * primitive `handleRequest` recovers the callback path the router would have
+   * attached, by matching the URL's normalized path against the registered
+   * callbacks.
    */
   protected _callbackPathForUrl(url: string): string | null {
     if (this._routingCallbacks.size === 0) return null;
@@ -1103,7 +1080,6 @@ export class SWMLService {
 
   /**
    * Register a custom verb handler.
-   * Mirrors Python's `register_verb_handler()`.
    * @param handler - The verb handler to register.
    */
   registerVerbHandler(handler: SWMLVerbHandler): void {
@@ -1117,7 +1093,6 @@ export class SWMLService {
    * When a POST request arrives at `path`, the callback is invoked with the
    * parsed request body. If it returns a string, the response is a 307 redirect
    * to that route; if it returns null, normal SWML serving continues.
-   * Mirrors Python's `register_routing_callback()`.
    *
    * @param callbackFn - Callback receiving the request body and returning a route or null.
    * @param path - HTTP path for the callback (default '/sip').
@@ -1171,7 +1146,6 @@ export class SWMLService {
 
   /**
    * Extract the SIP username from a request body's call.to field.
-   * Mirrors Python's `@staticmethod extract_sip_username()`.
    * @param requestBody - The parsed request body containing call information.
    * @returns The extracted SIP username, or null if not found.
    */
@@ -1206,9 +1180,9 @@ export class SWMLService {
    * to fully replace the document for this request, or `null` to fall
    * through to `setOnRequestCallback` or the static builder.
    *
-   * This is distinct from the WebMixin `onRequest(requestData,
-   * callbackPath)` hook on AgentBase (which mirrors Python's
-   * `on_request -> on_swml_request` modification-merge contract).
+   * This is distinct from the `onRequest(requestData, callbackPath)` hook on
+   * AgentBase, whose contract is to merge modifications into the rendered
+   * document rather than replace the builder.
    * Use this hook when you want to swap the entire SWML builder; use
    * `onRequest` / `onSwmlRequest` on AgentBase when you want to merge
    * targeted modifications into the rendered document.
@@ -1247,7 +1221,6 @@ export class SWMLService {
 
   /**
    * Get the basic-auth credentials used by this service.
-   * Mirrors Python's `get_basic_auth_credentials()`.
    * @param includeSource - When true, a third element indicating the credential source is appended.
    * @returns A tuple of [username, password] or [username, password, source].
    */
@@ -1267,7 +1240,6 @@ export class SWMLService {
 
   /**
    * Manually set the proxy base URL used for webhook URL generation.
-   * Mirrors Python's `manual_set_proxy_url()`.
    * @param url - The external-facing base URL (trailing slashes are stripped).
    * @returns This service for chaining.
    */
@@ -1283,11 +1255,9 @@ export class SWMLService {
   // ── HTTP ──────────────────────────────────────────────────────────
 
   /**
-   * Get the Hono application for mounting or testing.
-   * This is the TypeScript equivalent of Python's `as_router()`, which returns
-   * a FastAPI `APIRouter`. Both expose the underlying app/router so callers can
-   * mount it into a larger framework. Use `asRouter()` when porting Python code
-   * that calls `as_router()` directly.
+   * Get the Hono application for mounting or testing. Exposes the underlying
+   * app so callers can mount it into a larger framework; {@link asRouter} is
+   * the same object under the mountable-router name.
    * @returns The configured Hono app.
    */
   getApp(): Hono {
@@ -1298,9 +1268,8 @@ export class SWMLService {
    * Get a router to embed this service's routes in a host web app.
    *
    * Returns the fully-wired Hono app as a mountable sub-app; the host mounts it
-   * with `hostApp.route(path, service.asRouter())`. This is the TypeScript
-   * realization of Python's `as_router()`; the named {@link HostAppRouter} type
-   * is the cross-port "embed my routes in a host app" contract.
+   * with `hostApp.route(path, service.asRouter())`. The named
+   * {@link HostAppRouter} type is the "embed my routes in a host app" contract.
    *
    * @returns A mountable Hono sub-app carrying this service's routes.
    */
@@ -1309,12 +1278,10 @@ export class SWMLService {
   }
 
   /**
-   * Start the HTTP server. Canonical entrypoint, matching Python's
-   * `SWMLService.serve()`.
+   * Start the HTTP server. Canonical entrypoint.
    *
-   * Matches Python's `serve()` parameters including SSL options. When
-   * `SWAIG_CLI_MODE=true` is set in the environment (e.g. while running the
-   * `swaig-test` CLI) the call is a no-op.
+   * Accepts host/port and SSL options. When `SWAIG_CLI_MODE=true` is set in the
+   * environment (e.g. while running the `swaig-test` CLI) the call is a no-op.
    *
    * @param hostOrOpts - Hostname, or an options object. Defaults to `this.host`
    *   (constructor value) or `'0.0.0.0'`.
@@ -1394,7 +1361,6 @@ export class SWMLService {
 
   /**
    * Stop the HTTP server.
-   * Mirrors Python's `stop()`.
    */
   stop(): void {
     if (this._server) {

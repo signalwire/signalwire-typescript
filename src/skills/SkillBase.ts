@@ -41,7 +41,6 @@ export interface SkillToolDefinition {
   /**
    * When true, the SignalWire platform automatically invokes this tool when
    * the call ends (hangup), regardless of whether the AI explicitly calls it.
-   * Equivalent to Python's `is_hangup_hook=True` in `define_tool()`.
    * The flag is serialised as `"is_hangup_hook": true` in the SWAIG JSON.
    */
   isHangupHook?: boolean;
@@ -258,9 +257,8 @@ export abstract class SkillBase {
    * Get the parameter schema for this skill class, describing all accepted configuration options.
    * Subclasses should override and call `super.getParameterSchema()` to include base parameters.
    *
-   * Mirrors Python's `SkillBase.get_parameter_schema()` (skill_base.py:197-266):
-   * returns `swaig_fields` + `skip_prompt` for all skills, and additionally adds a
-   * `tool_name` entry with `default: cls.SKILL_NAME` for classes with
+   * Returns `swaig_fields` + `skip_prompt` for all skills, and additionally adds a
+   * `tool_name` entry defaulting to the class's `SKILL_NAME` for classes with
    * `SUPPORTS_MULTIPLE_INSTANCES = true`.
    *
    * @returns Record mapping parameter names to their schema entries.
@@ -304,12 +302,11 @@ export abstract class SkillBase {
   /**
    * Reference to the agent that owns this skill.
    * Set via `setAgent()` when the skill is added to an agent.
-   * Python equivalent: `self.agent` (set in `__init__`).
    *
-   * In the Python SDK `agent` is always non-null because it is injected in the
-   * constructor.  In the TypeScript SDK the SkillManager always calls
-   * `setAgent()` before `setup()`, so subclasses can rely on `getAgent()` being
-   * safe to call inside `setup()` and any method invoked after it.
+   * Declared optional because it is injected after construction, but the
+   * SkillManager always calls `setAgent()` before `setup()`, so subclasses can
+   * rely on `getAgent()` being safe to call inside `setup()` and any method
+   * invoked after it.
    *
    * Readable by anyone holding the skill, so a test or an introspection tool can
    * check which agent a skill was bound to. Subclasses that need a guaranteed
@@ -521,7 +518,6 @@ export abstract class SkillBase {
    * the skill name. For multi-instance skills, returns `${skillName}_${toolName}`
    * using the `tool_name` config (falls back to the skill name).
    *
-   * Matches Python's `SkillBase.get_instance_key()` default (`skill_base.py:141-146`).
    * Multi-instance subclasses only need to override when their key derivation
    * depends on config beyond `tool_name`.
    *
@@ -640,8 +636,8 @@ export abstract class SkillBase {
 
   /**
    * Check if all required environment variables are present.
-   * Convenience wrapper around `validateEnvVars()` that returns a boolean,
-   * matching the Python `validate_env_vars() -> bool` return type.
+   * Convenience wrapper around `validateEnvVars()` that returns a boolean
+   * instead of the list of missing names.
    * @returns `true` if all required env vars are set, `false` otherwise.
    */
   hasAllEnvVars(): boolean {
@@ -675,8 +671,8 @@ export abstract class SkillBase {
 
   /**
    * Check if all required packages declared in the manifest are available.
-   * Convenience wrapper around `validatePackages()` that returns a boolean,
-   * matching the Python `validate_packages() -> bool` return type.
+   * Convenience wrapper around `validatePackages()` that returns a boolean
+   * instead of the list of missing names.
    * @returns `true` if all required packages are importable, `false` otherwise.
    */
   async hasAllPackages(): Promise<boolean> {

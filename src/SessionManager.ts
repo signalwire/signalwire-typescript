@@ -8,7 +8,7 @@
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { getLogger } from './Logger.js';
 
-/** Decoded token debug info matching the Python SDK's nested return structure. */
+/** Decoded token debug info — a nested structure of components, status, and counts. */
 export interface DebugTokenResult {
   valid_format: boolean;
   components?: {
@@ -93,8 +93,7 @@ export class SessionManager {
 
   /**
    * Generate a signed token. Equivalent to {@link generateToken} (same
-   * parameter order); both exist to match the Python SDK (`SessionManager`
-   * exposes `generate_token` and `create_tool_token`).
+   * parameter order); both names are part of the public surface.
    * @param functionName - The SWAIG function name to bind.
    * @param callId - The call ID to bind.
    * @returns A base64url-encoded token string.
@@ -171,9 +170,8 @@ export class SessionManager {
   /**
    * Validate a token. Equivalent to {@link validateToken}, but **note the
    * different parameter order** — `validateToolToken(functionName, token,
-   * callId)` vs `validateToken(callId, functionName, token)`. Both exist for
-   * matching the Python SDK (`SessionManager.validate_token` / `validate_tool_token`,
-   * which use these exact orders). The forwarding maps the arguments to the
+   * callId)` vs `validateToken(callId, functionName, token)`. Both names are
+   * part of the public surface. The forwarding maps the arguments to the
    * correct positions, so both produce identical validation for the same
    * logical token; just be careful not to pass arguments in the wrong order
    * when switching between the two names.
@@ -190,10 +188,10 @@ export class SessionManager {
    * Debug a token without validating it.
    *
    * Requires {@link debugMode} to be `true`. When disabled, returns
-   * `{ error: "debug mode not enabled" }` matching the Python SDK behaviour.
+   * `{ error: "debug mode not enabled" }`.
    *
    * @param token - The base64url-encoded token to decode.
-   * @returns A nested debug structure matching the Python SDK, or an error object.
+   * @returns A nested debug structure, or an error object.
    */
   debugToken(token: string): DebugTokenResult {
     if (!this.debugMode) {
@@ -260,9 +258,9 @@ export class SessionManager {
   /**
    * Retrieve metadata associated with a session.
    *
-   * Returns an empty object when no metadata has been stored for the session,
-   * matching Python SDK behavior (`get_session_metadata` always returns `{}`).
-   * Callers can safely check truthiness or iterate keys without a null guard.
+   * Returns an empty object — never `null`/`undefined` — when no metadata has
+   * been stored for the session, so callers can safely check truthiness or
+   * iterate keys without a null guard.
    *
    * @param sessionId - The session identifier.
    * @returns The metadata record for the session, or `{}` if no metadata exists.
@@ -274,9 +272,9 @@ export class SessionManager {
   /**
    * Merge metadata into a session, creating the entry if it does not exist.
    *
-   * Supports two call signatures for Python SDK compatibility:
-   * - `setSessionMetadata(sessionId, metadata)` — bulk merge (TS-native)
-   * - `setSessionMetadata(sessionId, key, value)` — single key/value (Python-compatible)
+   * Supports two call signatures:
+   * - `setSessionMetadata(sessionId, metadata)` — bulk merge
+   * - `setSessionMetadata(sessionId, key, value)` — single key/value
    *
    * @param sessionId - The session identifier.
    * @param metadataOrKey - A metadata record to merge, or a string key when called with three arguments.
@@ -328,7 +326,7 @@ export class SessionManager {
   }
 
   /**
-   * Legacy method retained for API compatibility with the Python SDK.
+   * Legacy method retained for API compatibility.
    * Does nothing and returns `true`.
    * @param _callId - The call/session identifier (unused).
    * @returns Always `true`.
@@ -338,7 +336,7 @@ export class SessionManager {
   }
 
   /**
-   * Legacy method retained for API compatibility with the Python SDK.
+   * Legacy method retained for API compatibility.
    * Does nothing and returns `true`.
    * @param _callId - The call/session identifier (unused).
    * @returns Always `true`.

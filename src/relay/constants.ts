@@ -144,8 +144,8 @@ export const END_REASON_BUSY = 'busy';
 /**
  * `end_reason` for a leg that rang out without being answered. Note the
  * camelCase wire spelling `noAnswer` — unlike the other multi-word reasons,
- * which are snake_case; this asymmetry is the server's, and every port
- * reproduces it verbatim.
+ * which are snake_case. The asymmetry is the server's and is reproduced
+ * verbatim on the wire.
  */
 export const END_REASON_NO_ANSWER = 'noAnswer';
 

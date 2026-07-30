@@ -6,8 +6,6 @@
  * (skills, POM, SWAIG functions, post-prompt). The one behavioral difference
  * from a standard agent is that the rendered SWML uses the `amazon_bedrock`
  * verb instead of `ai`.
- *
- * Ported from the Python SDK `signalwire.agents.bedrock.BedrockAgent`.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -86,8 +84,7 @@ export class BedrockAgent extends AgentBase {
 
   /**
    * Render the SWML document, transforming the base `ai` verb into an
-   * `amazon_bedrock` verb with the same structure. Mirrors Python
-   * `BedrockAgent._render_swml`.
+   * `amazon_bedrock` verb with the same structure.
    */
   override renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
     // Build the base SWML with the ai verb, then transform it.
@@ -130,7 +127,6 @@ export class BedrockAgent extends AgentBase {
   /**
    * Add voice configuration to the prompt object. In Bedrock, voice and
    * inference params are part of the prompt object (not separate fields).
-   * Mirrors Python `_add_voice_to_prompt`.
    */
   private addVoiceToPrompt(promptConfig: Record<string, unknown>): Record<string, unknown> {
     const filtered: Record<string, unknown> = {};
@@ -149,7 +145,6 @@ export class BedrockAgent extends AgentBase {
 
   /**
    * Set the Bedrock voice ID (e.g. `"matthew"`, `"joanna"`).
-   * Mirrors Python `set_voice`.
    */
   setVoice(voiceId: string): this {
     this._voiceId = voiceId;
@@ -159,7 +154,7 @@ export class BedrockAgent extends AgentBase {
 
   /**
    * Update Bedrock inference parameters. Any argument left undefined is
-   * unchanged. Mirrors Python `set_inference_params`.
+   * unchanged.
    */
   setInferenceParams(temperature?: number, topP?: number, maxTokens?: number): this {
     if (temperature !== undefined) this._temperature = temperature;
@@ -174,7 +169,6 @@ export class BedrockAgent extends AgentBase {
   /**
    * Set the LLM model — not applicable for Bedrock, which uses a fixed
    * voice-to-voice model. Logs a warning and does nothing.
-   * Mirrors Python `set_llm_model`.
    */
   setLlmModel(model: string): this {
     this.log.warn(`setLlmModel('${model}') called but Bedrock uses a fixed voice-to-voice model`);
@@ -183,7 +177,6 @@ export class BedrockAgent extends AgentBase {
 
   /**
    * Set the LLM temperature — redirects to {@link setInferenceParams}.
-   * Mirrors Python `set_llm_temperature`.
    */
   setLlmTemperature(temperature: number): this {
     return this.setInferenceParams(temperature);
@@ -192,7 +185,6 @@ export class BedrockAgent extends AgentBase {
   /**
    * Set post-prompt LLM parameters — not applicable for Bedrock (its
    * post-prompt uses OpenAI configured in the engine). Logs a warning.
-   * Mirrors Python `set_post_prompt_llm_params`.
    */
   setPostPromptLlmParams(_params: Record<string, unknown>): this {
     this.log.warn(
@@ -203,7 +195,7 @@ export class BedrockAgent extends AgentBase {
 
   /**
    * Set prompt LLM parameters — use {@link setInferenceParams} instead for
-   * Bedrock. Logs a warning. Mirrors Python `set_prompt_llm_params`.
+   * Bedrock. Logs a warning.
    */
   setPromptLlmParams(_params: Record<string, unknown>): this {
     this.log.warn('setPromptLlmParams() called - use setInferenceParams() for Bedrock');
