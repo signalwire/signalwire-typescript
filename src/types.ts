@@ -97,15 +97,14 @@ export interface AgentOptions {
   webhookTrustProxy?: boolean;
 }
 
-/**
- * Configuration for a supported language in the AI agent.
- *
- * Member ORDER mirrors the reference's `add_language(name, code, voice,
- * speech_fillers, function_fillers, engine, model, params)` positional order
- * (`signalwire/core/mixins/ai_config_mixin.py:87-96`). The signature enumerator
- * unfolds this named options bag in declaration order, so the order is
- * load-bearing for parity even though every member is passed by name.
- */
+/** Configuration for a supported language in the AI agent. */
+// Member ORDER is load-bearing and must not be rearranged: it mirrors the
+// Python reference's `add_language(name, code, voice, speech_fillers,
+// function_fillers, engine, model, params)` positional order
+// (signalwire/core/mixins/ai_config_mixin.py:87-96). The signature enumerator
+// unfolds this named options bag in declaration order, so reordering these
+// members makes the audited signature diverge even though every member here is
+// passed by name. `speechModel` is last deliberately — see its note below.
 export interface LanguageConfig {
   /** Human-readable language name (e.g. "English"). */
   name: string;
