@@ -5517,9 +5517,65 @@
                   "kind": "self"
                 },
                 {
-                  "name": "config",
-                  "type": "class:signalwire.types.LanguageConfig",
-                  "required": true
+                  "name": "name",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "engine",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "model",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "fillers",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "speech_model",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "function_fillers",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "params",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -5610,9 +5666,29 @@
                   "kind": "self"
                 },
                 {
-                  "name": "rule",
-                  "type": "class:signalwire.types.PronunciationRule",
-                  "required": true
+                  "name": "replace",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "with",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "ignore_case",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -8562,8 +8638,45 @@
                   "kind": "self"
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.core.swml_handler.AIVerbBuildOptions",
+                  "name": "prompt_text",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "prompt_pom",
+                  "type": "list<dict<string,any>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "contexts",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "post_prompt_url",
+                  "type": "optional<string>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "swaig",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }

@@ -461,8 +461,30 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.core.swml_builder.SWMLBuilder.say',
   'signalwire.core.agent_base.AgentBase.serve',
   'signalwire.core.swml_service.SWMLService.serve',
+  // ── Wave C (2026-07-30): the `ts-named-options-type` excused set ────────────
+  // Same options-bag idiom as everything above; the ONLY difference is that the
+  // bag is a NAMED exported interface (`LanguageConfig`, `PronunciationRule`,
+  // `AIVerbBuildOptions`) rather than an inline type literal, which the old
+  // syntactic guard could not see through. `methodOptionsBagMembers` now resolves the
+  // reference to its declaration, so these unfold and COMPARE instead of being
+  // excused. Naming a bag is not a divergence in what the method accepts.
+  // add_language / add_pronunciation are keyed by their ENUMERATION-time ctx —
+  // the AgentBase class where they are physically declared — because the mixin
+  // projection copies the already-computed signature into the AIConfigMixin
+  // module afterward (same reason KWARGS_TAIL_ONLY keys its two setters there).
+  'signalwire.core.agent_base.AgentBase.add_language',
+  'signalwire.core.agent_base.AgentBase.add_pronunciation',
+  'signalwire.core.swml_handler.AIVerbHandler.build_config',
 ]);
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
+
+// Param NAMES the METHOD-path unfold accepts as an options bag. Deliberately
+// narrower than the ctor-path `OPTIONS_BAG_PARAM_NAMES` and gated on the
+// GENERAL_OPTIONS_UNFOLD allowlist as well, so a genuine single-dict DOMAIN param
+// (`DataMap.foreach`) is never mistaken for a bag. `rule` is here for
+// `addPronunciation(rule: PronunciationRule)` — the same bag, named for what it
+// holds rather than for being a bag.
+const METHOD_OPTIONS_BAG_PARAM_NAMES = new Set(['options', 'opts', 'config', 'rule']);
 
 // Hand-written methods whose Python reference is a PURE ``**kwargs``/``**params``
 // passthrough — ``def m(self, **params: Any)`` with NO exploded keyword set. The
@@ -2373,28 +2395,63 @@ function canonForParamNode(
 }
 
 /**
- * Resolve the inline TYPE LITERAL that carries an options bag's named members, or
+ * Resolve the MEMBER LIST that carries an options bag's named members, or
  * `undefined` when the param isn't an unfoldable bag.
  *
- * A bag is normally written as a bare type literal (`options: { a?: X; b?: Y }`).
- * It may also be written as an INTERSECTION with an open index-signature arm —
- * `options: { event?: string } & Record<string, unknown>` — which is TS's spelling
- * of Python's `def m(self, *, event=None, **kwargs)`: the literal arm holds the
- * NAMED keyword params, the `Record<…>` arm is the `**kwargs` tail. Before this,
- * the guard was a bare `ts.isTypeLiteralNode`, so the intersection form silently
- * failed to unfold and its method had to be excused as an options-object
- * divergence even though it was on the unfold allowlist.
+ * Three spellings of the same TS idiom, all of which stand in for Python's
+ * exploded keyword set, and all of which must unfold identically:
  *
- * Exactly one literal arm may contribute members; more than one would make the
- * member ORDER (which the diff compares positionally) ambiguous, so that is
- * declined rather than guessed at.
+ * 1. **Inline type literal** — `options: { a?: X; b?: Y }`. The base case.
+ * 2. **Intersection with an open index-signature arm** —
+ *    `options: { event?: string } & Record<string, unknown>` — TS's spelling of
+ *    `def m(self, *, event=None, **kwargs)`: the literal arm holds the NAMED
+ *    keyword params, the `Record<…>` arm is the `**kwargs` tail.
+ * 3. **A NAMED interface reference** — `config: LanguageConfig`, where
+ *    `LanguageConfig` is an exported `interface` declared elsewhere in the tree.
+ *    This is the SAME bag, merely given a name so it can be exported and reused;
+ *    its members map 1:1 onto the reference's keyword set and each is read
+ *    individually onto the wire (`config.name` / `config.code` / …). A syntactic
+ *    `ts.isTypeLiteralNode` guard cannot see through the reference, so five
+ *    methods (`add_language`, `add_pronunciation`, `AIVerbHandler.build_config`,
+ *    `define_tool`, `load_skill`) had to be excused as `ts-named-options-type`
+ *    even though naming a bag is not a divergence in what the method accepts.
+ *    Resolving the reference to its declaration folds that idiom here — which is
+ *    where idiom belongs (RULES §2) — instead of in the ledger.
+ *
+ * Only an INTERFACE (or an interface-shaped type alias) is followed, and only when
+ * it resolves to exactly one declaration: a union alias, a mapped type, or a
+ * generic instantiation has no unambiguous positional member order, and the diff
+ * compares params positionally, so those are declined rather than guessed at. For
+ * the same reason exactly one literal arm may contribute members in the
+ * intersection case.
  */
-function optionsBagTypeLiteral(typeNode: ts.TypeNode | undefined): ts.TypeLiteralNode | undefined {
+function methodOptionsBagMembers(
+  typeNode: ts.TypeNode | undefined,
+  checker: ts.TypeChecker,
+): readonly ts.TypeElement[] | undefined {
   if (!typeNode) return undefined;
-  if (ts.isTypeLiteralNode(typeNode)) return typeNode;
+  if (ts.isTypeLiteralNode(typeNode)) return typeNode.members;
   if (ts.isIntersectionTypeNode(typeNode)) {
     const literals = typeNode.types.filter(ts.isTypeLiteralNode);
-    if (literals.length === 1) return literals[0];
+    if (literals.length === 1) return literals[0].members;
+    return undefined;
+  }
+  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName)) {
+    // A generic instantiation (`Foo<Bar>`) has no single stable member list —
+    // decline rather than unfold a partially-substituted shape.
+    if (typeNode.typeArguments && typeNode.typeArguments.length > 0) return undefined;
+    const sym = checker.getSymbolAtLocation(typeNode.typeName);
+    const target = sym && sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+    const decls = target?.declarations ?? [];
+    if (decls.length !== 1) return undefined;
+    const decl = decls[0];
+    if (ts.isInterfaceDeclaration(decl)) {
+      // An interface that EXTENDS another has inherited members the syntactic
+      // member list does not carry; unfolding it would silently drop them.
+      if (decl.heritageClauses && decl.heritageClauses.length > 0) return undefined;
+      return decl.members;
+    }
+    if (ts.isTypeAliasDeclaration(decl)) return methodOptionsBagMembers(decl.type, checker);
   }
   return undefined;
 }
@@ -2487,14 +2544,16 @@ function signatureFromMethod(
       });
       continue;
     }
-    // General options-object unfold (allowlisted methods): a trailing inline
-    // `options`/`opts`/`config` type-literal → its members as `keyword` params.
-    const unfoldLiteral =
-      shouldGeneralUnfold && (native === 'options' || native === 'opts' || native === 'config')
-        ? optionsBagTypeLiteral(p.type)
+    // General options-object unfold (allowlisted methods): a trailing
+    // `options`/`opts`/`config`/`rule` bag → its members as `keyword` params. The
+    // bag may be an inline type literal, an intersection with an open
+    // index-signature arm, or a NAMED interface — see `methodOptionsBagMembers`.
+    const unfoldMembers =
+      shouldGeneralUnfold && METHOD_OPTIONS_BAG_PARAM_NAMES.has(native)
+        ? methodOptionsBagMembers(p.type, checker)
         : undefined;
-    if (unfoldLiteral) {
-      for (const member of unfoldLiteral.members) {
+    if (unfoldMembers) {
+      for (const member of unfoldMembers) {
         if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
           continue;
         const mNative = member.name.text;
