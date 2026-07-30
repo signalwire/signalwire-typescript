@@ -143,6 +143,9 @@ export interface CallingCollectStopParams {
   [key: string]: unknown;
 }
 
+/** Placeholder schema for the FreeSWITCH-side `calling.conference` method. Registered via `swclt_sess_register_protocol_method(..., "conference", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
+export type CallingConferenceParams = Record<string, unknown>;
+
 /** Wire schema for the JSON payload of `calling.connect` (params). Extracted from switchblade `PublicCallConnectParams.cs`. */
 export interface CallingConnectParams {
   call_id: string;
@@ -824,6 +827,9 @@ export interface CallingCollectStopResult {
   message?: string;
   [key: string]: unknown;
 }
+
+/** Placeholder schema for the FreeSWITCH-side `calling.conference` method. Registered via `swclt_sess_register_protocol_method(..., "conference", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
+export type CallingConferenceResult = Record<string, unknown>;
 
 /** Wire schema for the JSON payload of `calling.connect` (result). Extracted from switchblade `PublicCallConnectResult.cs`. */
 export interface CallingConnectResult {
