@@ -268,6 +268,20 @@ sched_gate FMT defer=1 desc="scripts/run-format.sh (local: auto-fix; CI: --check
 sched_gate LINT defer=1 desc="scripts/run-lint.sh (tsc src+examples+tests + eslint)" \
     -- bash "$PORT_ROOT/scripts/run-lint.sh"
 
+# PY-LINT / PY-FMT — the hand-written PYTHON this repo tracks. Today that is
+# exactly one file (tests/fixtures/scrape-parity/python_extract.py, the
+# scrape-parity reference extractor); eslint and prettier cannot see a .py file,
+# so it was linted and format-checked by NOTHING until 2026-07-30. Wired even at
+# one file so the NEXT .py added here is covered from the day it lands, rather
+# than starting a fresh blind spot. eng/ruff.toml mirrors the reference's rule
+# selection with no per-file-ignores, so it is the same bar, not a looser one.
+# Wired once the burn reached ZERO (2 -> 0), so the gate never lands red.
+sched_gate PY-LINT defer=1 desc="scripts/run-py-lint.sh (ruff check, zero findings over the tracked *.py)" \
+    -- bash "$PORT_ROOT/scripts/run-py-lint.sh"
+
+sched_gate PY-FMT defer=1 desc="scripts/run-py-format.sh (ruff format over the tracked *.py; local: apply; CI: --check)" \
+    -- bash "$PORT_ROOT/scripts/run-py-format.sh" ${CI:+--check}
+
 # ---- §C1 doc/example/CLI execution gates ------------------------------------
 # SNIPPET-COMPILE (tsc --noEmit each doc code fence with the real SDK source
 # mapped) + DOC-CLI (probe documented swaig-test invocations against the real
