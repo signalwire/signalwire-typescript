@@ -2746,8 +2746,33 @@ function findTsFiles(dir: string, out: string[] = []): string[] {
 
 function main(): number {
   const args = process.argv.slice(2);
+
+  // Reject unknown flags. This parser used to silently IGNORE anything it did
+  // not recognise, which is how `--output <path>` (the flag go's enumerator
+  // uses; ours is `--out`) fell through to the default path and OVERWROTE the
+  // committed port_signatures.json at exit 0, with no warning. An unrecognised
+  // flag is a caller error, not a no-op.
+  const KNOWN = new Set(['--stdout', '--strict', '--no-strict', '--out']);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!a.startsWith('--')) continue;
+    if (!KNOWN.has(a)) {
+      console.error(
+        `enumerate-signatures: unknown flag '${a}'\n` +
+          `usage: enumerate-signatures [--out <path>] [--stdout] [--no-strict]`,
+      );
+      return 2;
+    }
+    if (a === '--out') i++; // consume its value
+  }
+
   const stdoutFlag = args.includes('--stdout');
-  const strict = args.includes('--strict');
+  // Fail-loud is the DEFAULT, not an opt-in. `--strict` was declared and
+  // documented in the usage header above, but NO gate ever passed it, so the
+  // fail path was dead code: a type that failed to translate silently DROPPED
+  // THE WHOLE SYMBOL and the artifact was written anyway at exit 0 — the port
+  // then got blamed for an omission it never had.
+  const strict = !args.includes('--no-strict');
   const outIdx = args.indexOf('--out');
   const outputPath = outIdx >= 0 ? args[outIdx + 1] : path.join(REPO_ROOT, 'port_signatures.json');
 
@@ -3076,4 +3101,7 @@ function main(): number {
   return 0;
 }
 
-main();
+// `main()` returns a process exit code; DISCARDING it (the previous `main();`)
+// meant every non-zero return was thrown away and the script always exited 0 —
+// so even a caller that DID pass --strict got a silent success. Propagate it.
+process.exit(main());
