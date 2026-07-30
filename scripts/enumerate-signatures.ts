@@ -3095,6 +3095,125 @@ function main(): number {
     }
   }
 
+  // ── Built-in skill contract projection (signalwire.skills.<name>.skill) ────
+  //
+  // WHY THIS EXISTS. `SkillBase` defines the built-in-skill contract — the six
+  // hooks a concrete skill may implement: setup / register_tools /
+  // get_prompt_sections / get_hints / get_global_data / cleanup. TS and Python
+  // express a concrete skill's participation in that contract two ways this
+  // enumerator's OWN-MEMBER walk cannot see:
+  //
+  //   1. RENAME. TS replaces Python's imperative `register_tools()` with the
+  //      declarative `getTools()` (SkillBase.ts:424 documents the substitution:
+  //      "replaces the `@abstractmethod register_tools()` contract"). Same
+  //      capability — surface this skill's tools — different spelling.
+  //
+  //   2. PROTECTED-OVERRIDE TARGET. Python's concrete skills override the PUBLIC
+  //      `get_prompt_sections()`, which bypasses SkillBase's `skip_prompt` guard
+  //      (core/skill_base.py:89-94). TS keeps the public wrapper on the base and
+  //      has subclasses override the PROTECTED `_getPromptSections()` instead
+  //      (SkillBase.ts:476-496) — so `skip_prompt` is honoured for EVERY skill,
+  //      not just the ones that remember to. The protected member is correctly
+  //      not enumerated (it is not public surface), so the public capability the
+  //      subclass really provides was invisible.
+  //
+  //   3. BASE-IDENTICAL INHERITANCE. Where Python's subclass re-declares a hook
+  //      with a body identical to the base's (every one of the six `get_hints`
+  //      overrides in the reference is a bare `return []`; MathSkill.setup is
+  //      `return True` against a base that returns the same), TS simply inherits
+  //      it. Reference and port behave identically; only the syntactic
+  //      re-declaration differs.
+  //
+  // Until porting-sdk 8496c77 none of this was observable: the signature oracle
+  // dropped a class whose every method was a base-identical override, so 11 of
+  // the 18 skill modules had NO class recorded at all and the whole comparison
+  // was vacuous. (That vacuity is what PORT_SIGNATURE_OMISSIONS.md's
+  // "reference-oracle gap: the Python signatures oracle records no class for this
+  // skill module" entries were written against — a premise that no longer holds.)
+  // With the oracle fixed, all 18 classes are visible and the three idioms above
+  // surfaced as 30 spurious `missing-port` findings. Fold them here, at the
+  // enumerator, where idiom belongs (AGENT_RULES §2).
+  //
+  // Every projection is GUARDED THREE WAYS and therefore fails loud rather than
+  // inventing surface: the reference class must declare the member, the port
+  // class must not already have it, and the canonical signature is copied from
+  // the PORT's own `SkillBase` entry (never synthesized). A skill that genuinely
+  // stops participating in the contract — or a SkillBase that loses the hook —
+  // goes back to reading `missing-port`.
+  //
+  // SIGNATURE SOURCE — the projected entry records the CANONICAL (reference)
+  // signature, not the port's. The claim a projection makes is precisely "this
+  // class participates in the contract hook it inherits (or reaches under another
+  // name)"; the port class does not DECLARE the member, so there is no port-side
+  // shape here to record. The port's real, possibly-stricter shape stays recorded
+  // exactly once — on the class that actually declares it, `SkillBase` — where any
+  // divergence is visible and adjudicated a single time rather than replicated
+  // across 18 inheritance artifacts. (Concretely: TS's `getPromptSections()`
+  // returns the closed `SkillPromptSection[]` against the reference's open
+  // `list[dict[str, Any]]`; that one difference belongs to `SkillBase`, not to
+  // DateTimeSkill, which merely inherits it. Likewise `get_tools`, the TS spelling
+  // of `register_tools`, keeps its truthful `list<SkillToolDefinition>` return on
+  // every class that declares it.)
+  {
+    const { refMembers } = loadReferenceSignatureIndex();
+    const refPath = path.join(PSDK, 'python_signatures.json');
+    let refDoc: {
+      modules?: Record<
+        string,
+        { classes?: Record<string, { methods?: Record<string, CanonicalSignature> }> }
+      >;
+    } = {};
+    if (fs.existsSync(refPath)) {
+      try {
+        refDoc = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+      } catch {
+        refDoc = {};
+      }
+    }
+    const refSkillBase =
+      refDoc.modules?.['signalwire.core.skill_base']?.classes?.['SkillBase']?.methods ?? {};
+    const skillBase = doc.modules['signalwire.core.skill_base']?.classes?.['SkillBase'];
+    if (skillBase) {
+      // canonical contract member -> the port `SkillBase` member whose PRESENCE
+      // proves the port reaches the capability. `register_tools` is reached through
+      // the TS-idiom `get_tools`; the other five are inherited under their own name.
+      const CONTRACT: Record<string, string> = {
+        register_tools: 'get_tools',
+        get_prompt_sections: 'get_prompt_sections',
+        get_hints: 'get_hints',
+        get_global_data: 'get_global_data',
+        setup: 'setup',
+        cleanup: 'cleanup',
+      };
+      for (const [mod, modEntry] of Object.entries(doc.modules)) {
+        if (!mod.startsWith('signalwire.skills.') || !mod.endsWith('.skill')) continue;
+        for (const [cls, clsEntry] of Object.entries(modEntry.classes ?? {})) {
+          const declared = refMembers.get(`${mod}.${cls}`);
+          if (!declared) continue;
+          let changed = false;
+          for (const [canonical, source] of Object.entries(CONTRACT)) {
+            // Guard 1: the reference class must actually declare this hook.
+            if (!declared.has(canonical)) continue;
+            // Guard 2: never overwrite a member the port class declares itself.
+            if (clsEntry.methods[canonical]) continue;
+            // Guard 3: the port's own SkillBase must carry the source member — this
+            // is what makes the capability claim true. If it does not, project
+            // nothing and let the `missing-port` finding stand.
+            if (!skillBase.methods[source]) continue;
+            // Guard 4: the reference base must define the canonical signature to copy.
+            const sig = refSkillBase[canonical];
+            if (!sig) continue;
+            clsEntry.methods[canonical] = sig;
+            changed = true;
+          }
+          if (changed) {
+            clsEntry.methods = Object.fromEntries(Object.entries(clsEntry.methods).sort());
+          }
+        }
+      }
+    }
+  }
+
   // Sort modules + functions deterministically
   const sortedModules: Record<string, ModuleEntry> = {};
   for (const k of Object.keys(doc.modules).sort()) {

@@ -27452,6 +27452,15 @@
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
             },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
             "setup": {
               "params": [
                 {
@@ -27540,6 +27549,15 @@
       "classes": {
         "DataSphereSkill": {
           "methods": {
+            "cleanup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
             "get_global_data": {
               "params": [
                 {
@@ -27548,6 +27566,15 @@
                 }
               ],
               "returns": "dict<string,any>"
+            },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
             },
             "get_instance_key": {
               "params": [
@@ -27562,6 +27589,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -27570,6 +27606,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -27619,6 +27664,15 @@
               ],
               "returns": "dict<string,any>"
             },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_instance_key": {
               "params": [
                 {
@@ -27632,6 +27686,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -27640,6 +27703,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -27671,9 +27743,27 @@
       "classes": {
         "DateTimeSkill": {
           "methods": {
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
+            },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -27683,6 +27773,24 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
@@ -27718,6 +27826,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -27726,6 +27843,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -27788,6 +27914,15 @@
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
             },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
             "setup": {
               "params": [
                 {
@@ -27827,9 +27962,27 @@
               ],
               "returns": "dict<string,any>"
             },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
+            },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -27839,6 +27992,24 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
@@ -27861,9 +28032,27 @@
       "classes": {
         "MathSkill": {
           "methods": {
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_parameter_schema": {
               "params": [],
               "returns": "dict<string,any>"
+            },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
             },
             "get_tools": {
               "params": [
@@ -27873,6 +28062,24 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
@@ -27917,6 +28124,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -27925,6 +28141,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -27996,6 +28221,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -28004,6 +28238,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -28441,6 +28684,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -28449,6 +28701,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
@@ -28532,6 +28793,15 @@
               ],
               "returns": "dict<string,any>"
             },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<string>"
+            },
             "get_instance_key": {
               "params": [
                 {
@@ -28545,6 +28815,15 @@
               "params": [],
               "returns": "dict<string,any>"
             },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
             "get_tools": {
               "params": [
                 {
@@ -28553,6 +28832,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
             },
             "setup": {
               "params": [
