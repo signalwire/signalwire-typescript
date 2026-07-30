@@ -265,9 +265,20 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   SwmlBuilder: 'SWMLBuilder',
   // Skill class casing aligned with the Python reference (camelCase initialism
   // in TS ↔ SCREAMING initialism in Python). Kept in sync with the signatures
-  // enumerator's CLASS_NAME_ALIASES. (McpGatewaySkill is intentionally NOT
-  // aliased here — it belongs to the py-only mcp_gateway subsystem which is
-  // handled separately via PORT_OMISSIONS/PORT_ADDITIONS under its TS name.)
+  // enumerator's CLASS_NAME_ALIASES.
+  //
+  // McpGatewaySkill USED to be deliberately excluded here, on the premise that it
+  // "belongs to the py-only mcp_gateway subsystem … handled separately via
+  // PORT_OMISSIONS/PORT_ADDITIONS under its TS name". That premise was FALSE: this
+  // port SHIPS the skill (`src/skills/builtin/mcp_gateway.ts:90`, an exported
+  // `class McpGatewaySkill extends SkillBase`). Withholding the alias did not
+  // record a real gap — it split ONE class across TWO spellings so that BOTH
+  // ledgers excused it at once: 6 PORT_OMISSIONS entries under `MCPGatewaySkill`
+  // ("intentionally not ported to any SDK") and 6 PORT_ADDITIONS entries under
+  // `McpGatewaySkill` ("TS-specific skill helper method or class"), for the SAME
+  // five members. A spelling difference is a RENAME (AGENT_RULES §5), never an
+  // omission plus an addition, and neither rationale survived the source.
+  McpGatewaySkill: 'MCPGatewaySkill',
   SwmlTransferSkill: 'SWMLTransferSkill',
   // Note: SWMLService, SWMLVerbHandler, AIVerbHandler keep their ALL-CAPS
   // spelling on both sides.

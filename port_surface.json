@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ b714eec22913305b31a8a0771441eb5eb7963ef7",
+  "generated_from": "signalwire-typescript @ 4f3bb54735423e1200f18a32e1c801f9b40c3256",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -3567,11 +3567,12 @@
     },
     "signalwire.skills.mcp_gateway.skill": {
       "classes": {
-        "McpGatewaySkill": [
+        "MCPGatewaySkill": [
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
           "get_tools",
+          "register_tools",
           "setup"
         ]
       },

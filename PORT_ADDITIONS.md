@@ -96,12 +96,16 @@ signalwire.skills.joke.skill.JokeSkill.get_tools: TS-specific skill helper metho
 signalwire.skills.joke.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.math.skill.MathSkill.get_tools: TS-specific skill helper method or class
 signalwire.skills.math.skill.create_skill: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill.get_global_data: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill.get_hints: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill.get_parameter_schema: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill.get_tools: TS-specific skill helper method or class
-signalwire.skills.mcp_gateway.skill.McpGatewaySkill.setup: TS-specific skill helper method or class
+# The six `McpGatewaySkill.*` camelCase entries here were DELETED 2026-07-30 as DEAD.
+# They were the addition half of a spelling split: the surface enumerator withheld the
+# McpGatewaySkill→MCPGatewaySkill alias, so one class was compared under two names and
+# BOTH ledgers excused it at once (these 6, plus 6 PORT_OMISSIONS entries under the
+# Python spelling claiming the subsystem was "not ported to any SDK" — while
+# src/skills/builtin/mcp_gateway.ts:90 ships it). With the alias in CLASS_NAME_ALIASES
+# the class compares member-for-member and both halves went dead in the same regen.
+# Only `get_tools` survives, below, under the canonical spelling — identical in kind to
+# the other 19 skills' `get_tools` entries.
+signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_tools: TS-specific skill helper method or class
 signalwire.skills.mcp_gateway.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_tools: TS-specific skill helper method or class
 signalwire.skills.native_vector_search.skill.create_skill: TS-specific skill helper method or class
