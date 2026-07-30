@@ -212,3 +212,81 @@ describe('SchemaUtils — verb extraction and validation', () => {
     });
   });
 });
+
+// ── x-sdk-widen: a const-union that is a HINT, not a closed set ──────────────
+//
+// Some SWML schema fields carry an enum/const union that documents the COMMON
+// values while the platform actually accepts any value of the base type. Those
+// carry `x-sdk-widen: true`, and the marker means: do not treat this union as
+// closed.
+//
+// The SDK honours it in TWO places, and they are easy to get half-right:
+//
+//   1. the TYPE generator (scripts/_gen-common.ts tsType) widens the emitted TS
+//      type to the base scalar — otherwise `swml_verbs_generated.ts` would
+//      declare `reason?: 'hangup' | 'busy' | 'decline'` and refuse to COMPILE a
+//      valid document;
+//   2. the VALIDATOR, here — otherwise Ajv, which has never heard of
+//      `x-sdk-widen`, enforces the raw `anyOf` const-union at RUNTIME and
+//      rejects documents the platform accepts.
+//
+// This port shipped (1) and not (2): `validateVerb('hangup', {reason:'user_hangup'})`
+// returned invalid with "must be equal to constant … must match a schema in
+// anyOf". A validator being too STRICT is the failure direction nobody probes,
+// because every test anyone writes uses a value from the union and passes.
+//
+// java and ruby both had this identical hole, in both cases becoming live the
+// moment emissions were routed through their validators.
+describe('SchemaUtils — x-sdk-widen widens the validator, not just the types', () => {
+  const su = new SchemaUtils();
+
+  // $defs/Hangup.properties.hangup.properties.reason is the one field carrying
+  // the marker today. Guard that fact: if the vendored schema moves it, this
+  // suite would otherwise keep passing while testing nothing.
+  it('the vendored schema still marks Hangup.reason as widened', () => {
+    const schema = su.loadSchema() as Record<string, unknown>;
+    const defs = schema['$defs'] as Record<string, Record<string, unknown>>;
+    const hangup = defs['Hangup']!['properties'] as Record<string, Record<string, unknown>>;
+    const reason = (hangup['hangup']!['properties'] as Record<string, Record<string, unknown>>)[
+      'reason'
+    ]!;
+    expect(reason['x-sdk-widen']).toBe(true);
+    // ...and that it IS a const-union, i.e. there is something to widen.
+    expect(Array.isArray(reason['anyOf'])).toBe(true);
+  });
+
+  it('accepts a value INSIDE the documented union', () => {
+    // The direction every existing test already covers — kept as the control,
+    // so a fix that simply disabled validation for this verb is caught by the
+    // wrong-TYPE case below rather than sailing through.
+    expect(su.validateVerb('hangup', { reason: 'busy' }).valid).toBe(true);
+  });
+
+  it('accepts a value OUTSIDE the union — the union is a hint', () => {
+    for (const reason of ['user_hangup', 'no_answer', 'anything-at-all']) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${reason} errors=${JSON.stringify(result.errors)}`).toBe(true);
+    }
+  });
+
+  it('still rejects the wrong TYPE — widening relaxes the VALUE set, not the type', () => {
+    // The bound that makes widening safe. `x-sdk-widen` says "any value OF THE
+    // BASE TYPE", so a number or an object is still a schema violation. Without
+    // this row, "widening" could be implemented by deleting the constraint
+    // outright and nothing would notice.
+    for (const reason of [42, true, { nested: 'object' }, ['array']]) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${JSON.stringify(reason)} unexpectedly accepted`).toBe(false);
+    }
+  });
+
+  it('leaves NON-widened closed enums alone', () => {
+    // The blast-radius check. Widening must apply ONLY where the marker is —
+    // a relaxation that leaked into every union would silently turn the whole
+    // validator into a rubber stamp, which is a far worse defect than the one
+    // being fixed here. `play`'s config is a well-populated verb with typed
+    // fields; a garbage-typed value there must still fail.
+    const result = su.validateVerb('play', { url: 12345 });
+    expect(result.valid).toBe(false);
+  });
+});

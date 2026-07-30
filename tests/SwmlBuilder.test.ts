@@ -462,19 +462,38 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   });
 
   describe('hangup reason', () => {
-    // The `reason` param TYPE is widened to `string` for ergonomics, but at
-    // RUNTIME the SWML schema closes it to the documented enum
-    // (hangup/busy/decline) — the strict-render contract: the port matches the
-    // python reference, which raises on an off-enum reason. So a widened type is
-    // a compile-time convenience, not a licence to emit off-spec values.
+    // `$defs/Hangup.reason` carries `x-sdk-widen: true` — a DECLARED ruling that
+    // its hangup|busy|decline union is a documentation HINT, not a closed set:
+    // the platform accepts any string. So the widened `string` param type is not
+    // merely a compile-time ergonomic, it is the actual contract, and the
+    // validator must agree with it end to end.
+    //
+    // This block previously asserted the OPPOSITE — that an off-enum reason
+    // throws, "parity with python". That was written against the reference's
+    // RUNTIME schema copy, which has no markup layer and therefore still
+    // enforces the union. The port vendors the CANONICAL marked-up schema
+    // (byte-identical to porting-sdk/schema.json), where the ruling is declared,
+    // and java honours it in its own validator for the same reason. Enforcing
+    // the union anyway invents a constraint the server does not have and makes
+    // the SDK refuse to emit documents that work on the wire.
     it('accepts a documented enum reason', () => {
       builder.hangup({ reason: 'busy' });
       const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'busy' } });
     });
 
-    it('rejects an arbitrary off-enum reason at render (parity with python)', () => {
-      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(SchemaValidationError);
+    it('accepts an arbitrary off-enum reason — the union is a hint', () => {
+      builder.hangup({ reason: 'custom_reason' });
+      const doc = builder.build() as { sections: { main: unknown[] } };
+      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
+    });
+
+    it('still rejects a wrong-TYPED reason', () => {
+      // The bound that keeps widening honest: `x-sdk-widen` relaxes the VALUE
+      // set to "any value of the base type", never to "anything at all".
+      expect(() => builder.hangup({ reason: 42 as unknown as string })).toThrow(
+        SchemaValidationError,
+      );
     });
   });
 
