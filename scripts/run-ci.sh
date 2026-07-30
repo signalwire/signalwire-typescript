@@ -158,6 +158,29 @@ sched_gate TEST defer=1 desc="scripts/run-tests.sh (vitest)" \
 sched_gate SURFACE desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port typescript --repo "$PORT_ROOT"
 
+# SIGNATURES-FRESH: the signatures analogue of SURFACE-FRESH, and the reason it is
+# worth its own gate is that port_signatures.json is not an OUTPUT — it is DRIFT's
+# INPUT. diff_port_signatures compares the reference oracle against that file, never
+# against this port's source, so a stale artifact makes the whole parity claim a
+# comparison against a fiction: it can report clean while the source has diverged.
+# Nothing guarded it before (SURFACE-FRESH covers only port_surface.json), and the
+# rot was real — perl, cpp and java all shipped stale signatures, each found only
+# because some unrelated lane happened to regenerate.
+#
+# STANDALONE sched_gate, deliberately NOT a rule inside the SURFACE suite table:
+# only 8 of the 10 ports invoke suites/surface.py at all — rust and python schedule
+# their SURFACE-family gates individually and never read that table — so a rule added
+# there would silently skip exactly the two ports nobody would double-check.
+#
+# res=surface because the regen shells out to this port's enumerator (tsc), the same
+# resource class SURFACE declares, so the two never contend. No deps= is needed: it
+# regenerates into .sw-tmp/ and reads only the COMMITTED blob (git show HEAD:), so it
+# neither consumes nor clobbers another gate's artifact — which also means it is
+# immune to SURFACE-FRESH's regenerate-then-git-restore window noted above.
+sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json matches a fresh regen" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
+        --port typescript --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
