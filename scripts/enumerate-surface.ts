@@ -1075,10 +1075,37 @@ function getGitSha(repoRoot: string): string {
 // Main
 // ---------------------------------------------------------------------------
 
-function main(): void {
+function main(): number {
   const argv = process.argv.slice(2);
+
+  // Reject unknown flags. This parser used to silently IGNORE anything it did not
+  // recognise — the exact hole enumerate-signatures.ts closed in 722932e, still open
+  // here. The two enumerators spell their output flag DIFFERENTLY (`--output` here,
+  // `--out` there), so `--out <path>` passed to this script fell through to the
+  // default path and OVERWROTE the committed port_surface.json at exit 0, with no
+  // warning: the caller thinks it wrote a scratch file, and the working tree is
+  // silently mutated instead. (Observed live, 2026-07-30.) An unrecognised flag is a
+  // caller error, not a no-op.
+  const KNOWN = new Set(['--stdout', '--output']);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a || !a.startsWith('--')) continue;
+    if (!KNOWN.has(a)) {
+      console.error(
+        `enumerate-surface: unknown flag '${a}'\n` +
+          `usage: enumerate-surface [--output <path>] [--stdout]`,
+      );
+      return 2;
+    }
+    if (a === '--output') i++; // consume its value
+  }
+
   const writeStdout = argv.includes('--stdout');
   const outputArgIdx = argv.indexOf('--output');
+  if (outputArgIdx >= 0 && argv[outputArgIdx + 1] === undefined) {
+    console.error('enumerate-surface: --output requires a path argument');
+    return 2;
+  }
   const repoRoot = path.resolve(__dirname, '..');
   const outputPath =
     outputArgIdx >= 0
@@ -1739,6 +1766,11 @@ function main(): void {
     fs.writeFileSync(outputPath, rendered, 'utf-8');
     process.stderr.write(`wrote ${outputPath}\n`);
   }
+  return 0;
 }
 
-main();
+// `process.exit(main())`, not a bare `main()`: a non-zero return must reach the
+// shell. A bare call discards the code and the process exits 0, which is how a
+// rejected flag would still read as success to every caller. Mirrors
+// enumerate-signatures.ts (722932e).
+process.exit(main());
