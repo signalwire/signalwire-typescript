@@ -522,7 +522,7 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
       voice: 'rime.spore',
       engine: 'rime',
       speechModel: 'arcana',
-      fillers: { default: ['um', 'let me check'] },
+      speechFillers: ['um', 'let me check'],
     });
 
     const languages = aiBlock(agent)['languages'] as Array<Record<string, unknown>>;
@@ -532,7 +532,61 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
     expect(lang['code']).toBe('en-US');
     expect(lang['engine']).toBe('rime'); // dropped by a degraded impl
     expect(lang['speech_model']).toBe('arcana'); // model — dropped by a degraded impl
-    expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
+    // Only ONE filler list was given, so the reference emits the DEPRECATED single
+    // `fillers` key carrying it (ai_config_mixin.py: `fillers = speech_fillers or
+    // function_fillers`) — a FLAT string list, per the SWML schema.
+    expect(lang['fillers']).toEqual(['um', 'let me check']);
+  });
+
+  it('both filler lists render under their canonical flat-array wire keys', () => {
+    const agent = new AgentBase({ name: 'lang2', route: '/lang2' });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'josh',
+      speechFillers: ['um', 'uh'],
+      functionFillers: ['checking that now'],
+    });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    // `LanguagesWithFillers` in the SWML schema types both as
+    // {"type":"array","items":"string"} — not a nested object.
+    expect(lang['speech_fillers']).toEqual(['um', 'uh']);
+    expect(lang['function_fillers']).toEqual(['checking that now']);
+    expect(lang['fillers']).toBeUndefined(); // the deprecated key is NOT emitted when both are given
+  });
+
+  it('a combined "engine.voice:model" voice splits into the three wire keys', () => {
+    const agent = new AgentBase({ name: 'lang3', route: '/lang3' });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'elevenlabs.josh:eleven_turbo_v2_5',
+    });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    expect(lang['voice']).toBe('josh');
+    expect(lang['engine']).toBe('elevenlabs');
+    expect(lang['model']).toBe('eleven_turbo_v2_5');
+  });
+
+  it('every emitted language object carries the schema-required voice key', () => {
+    // `LanguagesWithFillers.required` is ["name","code","voice"] (src/schema.json),
+    // and the reference declares `voice` as a required positional. `voice` being
+    // OPTIONAL in TS let a caller emit {"name","code"} with no voice at all — a
+    // language object the engine rejects. It is required now; this is the wire
+    // proof, not just the type signature.
+    const agent = new AgentBase({ name: 'lang4', route: '/lang4' });
+    agent.setPromptText('hi');
+    agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    for (const key of ['name', 'code', 'voice']) {
+      expect(Object.keys(lang)).toContain(key);
+    }
+    expect(lang['voice']).toBe('rachel');
   });
 });
 

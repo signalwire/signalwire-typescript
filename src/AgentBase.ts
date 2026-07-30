@@ -805,11 +805,19 @@ export class AgentBase extends SWMLService {
 
   /**
    * Add a supported language to the AI configuration.
-   * @param config - Language configuration including name, code, voice, and optional fillers.
+   *
+   * `voice` accepts either a plain voice name or the combined
+   * `"engine.voice:model"` form; the combined form is split into the separate
+   * `voice` / `engine` / `model` wire keys unless an explicit `engine` or `model`
+   * is supplied, which wins. Matches the Python reference
+   * (`ai_config_mixin.add_language`) and the `LanguagesWithFillers` schema.
+   *
+   * @param config - Language configuration. `name`, `code`, and `voice` are
+   *   required. `speechFillers` / `functionFillers` are flat string lists.
    *   `params` may be set to attach engine-specific tuning (voice stability,
    *   similarity boost, model knobs, etc.); only emitted into SWML when
    *   non-empty so existing entries stay byte-identical when no params are
-   *   passed (Python ai_config_mixin.py `add_language`).
+   *   passed.
    * @returns This agent instance for chaining.
    */
   addLanguage(config: LanguageConfig): this {
@@ -817,12 +825,44 @@ export class AgentBase extends SWMLService {
       name: config.name,
       code: config.code,
     };
-    if (config.voice) lang['voice'] = config.voice;
-    if (config.engine) lang['engine'] = config.engine;
-    if (config.model) lang['model'] = config.model;
-    if (config.fillers) lang['fillers'] = config.fillers;
+
+    // Voice: explicit engine/model win; otherwise parse the combined
+    // "engine.voice:model" form, falling back to the raw string if it does not
+    // split cleanly (Python equivalent: the try/except ValueError branch).
+    if (config.engine || config.model) {
+      lang['voice'] = config.voice;
+      if (config.engine) lang['engine'] = config.engine;
+      if (config.model) lang['model'] = config.model;
+    } else if (config.voice.includes('.') && config.voice.includes(':')) {
+      const colon = config.voice.indexOf(':');
+      const engineVoice = config.voice.slice(0, colon);
+      const modelPart = config.voice.slice(colon + 1);
+      const dot = engineVoice.indexOf('.');
+      if (dot === -1) {
+        lang['voice'] = config.voice;
+      } else {
+        lang['voice'] = engineVoice.slice(dot + 1);
+        lang['engine'] = engineVoice.slice(0, dot);
+        lang['model'] = modelPart;
+      }
+    } else {
+      lang['voice'] = config.voice;
+    }
+
     if (config.speechModel) lang['speech_model'] = config.speechModel;
-    if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
+
+    // Fillers. Both present → the two canonical keys. Exactly one present → the
+    // DEPRECATED single `fillers` key carrying whichever was given (Python
+    // equivalent: `fillers = speech_fillers or function_fillers`).
+    const speech = config.speechFillers;
+    const fn = config.functionFillers;
+    if (speech && speech.length > 0 && fn && fn.length > 0) {
+      lang['speech_fillers'] = speech;
+      lang['function_fillers'] = fn;
+    } else if ((speech && speech.length > 0) || (fn && fn.length > 0)) {
+      lang['fillers'] = speech && speech.length > 0 ? speech : fn;
+    }
+
     // Per-language params — only emit the key when non-empty (Python equivalent:
     // `if params: language["params"] = params`).
     if (config.params && Object.keys(config.params).length > 0) {

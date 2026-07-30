@@ -5530,7 +5530,19 @@
                 },
                 {
                   "name": "voice",
-                  "type": "optional<string>",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "speech_fillers",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "function_fillers",
+                  "type": "optional<list<string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -5547,7 +5559,7 @@
                   "kind": "keyword"
                 },
                 {
-                  "name": "fillers",
+                  "name": "params",
                   "type": "dict<string,any>",
                   "required": false,
                   "kind": "keyword"
@@ -5555,18 +5567,6 @@
                 {
                   "name": "speech_model",
                   "type": "optional<string>",
-                  "required": false,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "function_fillers",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "params",
-                  "type": "dict<string,any>",
                   "required": false,
                   "kind": "keyword"
                 },

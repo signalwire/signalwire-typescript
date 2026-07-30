@@ -395,8 +395,8 @@ agent.addLanguage({
   name: 'Spanish',
   code: 'es',
   voice: 'google.es-ES-Neural2-A',
-  fillers: { thinking: ['Un momento...'] },
-  functionFillers: { search: { es: ['Buscando...'] } },
+  speechFillers: ['Un momento...'],
+  functionFillers: ['Buscando...'],
 });
 
 // Speech recognition
