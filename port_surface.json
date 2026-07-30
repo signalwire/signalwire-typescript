@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 78850cfe2576e7bbfbe4a116eff068cd321aee24",
+  "generated_from": "signalwire-typescript @ b714eec22913305b31a8a0771441eb5eb7963ef7",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1952,6 +1952,7 @@
         "CallingCollectParams": [],
         "CallingCollectStartInputTimersParams": [],
         "CallingCollectStopParams": [],
+        "CallingConferenceParams": [],
         "CallingConnectParams": [],
         "CallingDenoiseParams": [],
         "CallingDenoiseStopParams": [],
@@ -2015,6 +2016,7 @@
         "CallingCollectResult": [],
         "CallingCollectStartInputTimersResult": [],
         "CallingCollectStopResult": [],
+        "CallingConferenceResult": [],
         "CallingConnectResult": [],
         "CallingDenoiseResult": [],
         "CallingDenoiseStopResult": [],
