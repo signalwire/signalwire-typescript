@@ -1293,7 +1293,6 @@ function createSimpleApiTool(opts: {
   parameters?: Record<string, { type?: string; description?: string; required?: boolean }>;
   method?: string;         // default 'GET'
   headers?: Record<string, string>;
-  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap
 ```

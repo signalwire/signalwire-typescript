@@ -297,7 +297,14 @@ export class DataMap {
   }
 
   /**
-   * Set query or form parameters for the most recently added webhook.
+   * Set request params for the most recently added webhook. Use this for POST/PUT
+   * request data.
+   *
+   * This is NOT an alias for {@link DataMap.body}: the two write different webhook
+   * keys (`params` vs `body`), and only `params` is part of the webhook contract —
+   * schema.json `$defs/Webhook` lists `params` among its ten permitted properties
+   * and forbids everything else, and the engine's webhook readers look up `params`
+   * and never `body`.
    * @param data - The parameters object.
    * @returns This instance for chaining.
    */
@@ -430,7 +437,6 @@ export function createSimpleApiTool(opts: {
   parameters?: Record<string, { type?: string; description?: string; required?: boolean }>;
   method?: string;
   headers?: Record<string, string>;
-  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap {
   const dm = new DataMap(opts.name);
@@ -442,7 +448,6 @@ export function createSimpleApiTool(opts: {
     }
   }
   dm.webhook(opts.method ?? 'GET', opts.url, { headers: opts.headers });
-  if (opts.body) dm.body(opts.body);
   if (opts.errorKeys) dm.errorKeys(opts.errorKeys);
   dm.output(new FunctionResult(opts.responseTemplate));
   return dm;

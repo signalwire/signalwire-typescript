@@ -206,6 +206,76 @@ describe('createSimpleApiTool', () => {
     const params = fn['parameters'] as Record<string, unknown>;
     expect(params['required']).toEqual(['location']);
   });
+
+  // `body` is not a valid webhook key: porting-sdk/schema.json `$defs/Webhook`
+  // declares exactly ten properties (error_keys, expressions, foreach, headers,
+  // input_args_as_params, method, output, params, require_args, url) under
+  // `unevaluatedProperties: {"not": {}}`, and neither engine reader
+  // (mod_openai/actions.c parse_webhook, mod_openai/bedrock.c
+  // bedrock_parse_webhook) looks up "body". Accepting the option and forwarding
+  // it into an unread key silently lost the caller's data.
+  it('has no body option — passing one is a compile error', () => {
+    // Type layer: `body` is rejected by excess-property checking on the literal.
+    createSimpleApiTool({
+      name: 'poster',
+      url: 'https://api.example.com/search',
+      responseTemplate: 'Found: ${response.title}',
+      method: 'POST',
+      // @ts-expect-error `body` is not part of createSimpleApiTool's options
+      body: { query: '${args.q}' },
+    });
+
+    // Runtime layer: even a cast-through caller gets no `body` on the wire.
+    const opts = {
+      name: 'poster',
+      url: 'https://api.example.com/search',
+      responseTemplate: 'Found: ${response.title}',
+      method: 'POST',
+      body: { query: '${args.q}' },
+    };
+    const dm = createSimpleApiTool(opts as Parameters<typeof createSimpleApiTool>[0]);
+    const emitted = dm.toSwaigFunction();
+    const webhooks = (emitted['data_map'] as Record<string, unknown>)['webhooks'] as Record<
+      string,
+      unknown
+    >[];
+    expect(webhooks[0]).not.toHaveProperty('body');
+  });
+
+  it('emits no body key and stays inside the schema.json webhook properties', () => {
+    const dm = createSimpleApiTool({
+      name: 'poster',
+      url: 'https://api.example.com/search',
+      responseTemplate: 'Found: ${response.title}',
+      parameters: { q: { type: 'string', description: 'Query', required: true } },
+      method: 'POST',
+      headers: { Authorization: 'Bearer TOKEN' },
+      errorKeys: ['error'],
+    });
+
+    const emitted = dm.toSwaigFunction();
+    const webhooks = (emitted['data_map'] as Record<string, unknown>)['webhooks'] as Record<
+      string,
+      unknown
+    >[];
+    expect(webhooks.length).toBe(1);
+    expect(webhooks[0]).not.toHaveProperty('body');
+
+    const allowed = new Set([
+      'error_keys',
+      'expressions',
+      'foreach',
+      'headers',
+      'input_args_as_params',
+      'method',
+      'output',
+      'params',
+      'require_args',
+      'url',
+    ]);
+    const outside = Object.keys(webhooks[0]!).filter((k) => !allowed.has(k));
+    expect(outside).toEqual([]);
+  });
 });
 
 describe('createExpressionTool', () => {

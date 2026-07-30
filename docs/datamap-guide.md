@@ -826,7 +826,6 @@ createSimpleApiTool(opts: {
   }>;
   method?: string;
   headers?: Record<string, string>;
-  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap
 ```
@@ -839,7 +838,6 @@ createSimpleApiTool(opts: {
 | `opts.parameters`       | `Record<string, {...}>`    | --        | Parameter definitions.                            |
 | `opts.method`           | `string`                   | `'GET'`   | HTTP method.                                      |
 | `opts.headers`          | `Record<string, string>`   | --        | Request headers.                                  |
-| `opts.body`             | `Record<string, unknown>`  | --        | Request body (for POST/PUT).                      |
 | `opts.errorKeys`        | `string[]`                 | --        | Response keys indicating errors.                  |
 
 **Returns:** A configured `DataMap` instance ready for registration.
@@ -868,10 +866,6 @@ const searchTool = createSimpleApiTool({
   },
   headers: {
     'Authorization': 'Bearer my-token',
-  },
-  body: {
-    q: '${args.query}',
-    max: '${args.limit}',
   },
   errorKeys: ['error'],
 });

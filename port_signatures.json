@@ -4130,12 +4130,6 @@
               "kind": "keyword"
             },
             {
-              "name": "body",
-              "type": "dict<string,any>",
-              "required": false,
-              "kind": "keyword"
-            },
-            {
               "name": "error_keys",
               "type": "optional<list<string>>",
               "required": false,
