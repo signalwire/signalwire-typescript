@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4f3bb54735423e1200f18a32e1c801f9b40c3256",
+  "generated_from": "signalwire-typescript @ 873d8ab06da466c5ae0c4b68fe393d948fa1f9de",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1947,12 +1947,10 @@
         "CallingAnswerParams": [],
         "CallingBeginParams": [],
         "CallingBindDigitParams": [],
-        "CallingCallParams": [],
         "CallingClearDigitBindingsParams": [],
         "CallingCollectParams": [],
         "CallingCollectStartInputTimersParams": [],
         "CallingCollectStopParams": [],
-        "CallingConferenceParams": [],
         "CallingConnectParams": [],
         "CallingDenoiseParams": [],
         "CallingDenoiseStopParams": [],
@@ -2011,12 +2009,10 @@
         "CallingAnswerResult": [],
         "CallingBeginResult": [],
         "CallingBindDigitResult": [],
-        "CallingCallResult": [],
         "CallingClearDigitBindingsResult": [],
         "CallingCollectResult": [],
         "CallingCollectStartInputTimersResult": [],
         "CallingCollectStopResult": [],
-        "CallingConferenceResult": [],
         "CallingConnectResult": [],
         "CallingDenoiseResult": [],
         "CallingDenoiseStopResult": [],

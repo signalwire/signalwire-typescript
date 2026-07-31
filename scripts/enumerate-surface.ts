@@ -747,9 +747,36 @@ function enumerateFile(file: string): FileSurface {
     classes.push({ name: canon, methods: [] });
   }
 
+  /** Is this node a bare `unknown` / `any` keyword? */
+  function isOpenKeyword(typeNode: ts.TypeNode): boolean {
+    return (
+      typeNode.kind === ts.SyntaxKind.UnknownKeyword || typeNode.kind === ts.SyntaxKind.AnyKeyword
+    );
+  }
+
+  // An OPEN index-map alias — `Record<K, unknown>` / `Record<K, any>`, the exact TS
+  // spelling of the reference's `dict[str, Any]`. It carries no structural surface
+  // (the value type is unconstrained), so it is the same "pure format alias" case as
+  // a bare scalar: the reference GENERATES these (`CallingCallParams: TypeAlias =
+  // "dict[str, Any]"`) but griffe does not record a module-level TypeAlias, so they
+  // are absent from python_surface.json.
+  //
+  // NARROW ON PURPOSE: only a Record whose VALUE type is itself a bare `unknown`/`any`
+  // keyword. A Record to a NAMED or UNION type (`Record<string, ChatPermissionWithRead
+  // | ChatPermissionWithWrite>`) or to a nested `Record<...>` (`Record<string,
+  // Record<string, unknown>>`) DOES carry structural surface and must be kept.
+  function isOpenRecordAlias(typeNode: ts.TypeNode): boolean {
+    if (!ts.isTypeReferenceNode(typeNode)) return false;
+    if (!ts.isIdentifier(typeNode.typeName) || typeNode.typeName.text !== 'Record') return false;
+    const args = typeNode.typeArguments;
+    if (!args || args.length !== 2) return false;
+    return isOpenKeyword(args[1]!);
+  }
+
   // A type alias whose RHS is a single primitive keyword (`string`, `number`,
-  // `boolean`, `null`, `unknown`, `any`) — a pure format alias with no structural
-  // surface. The reference emits these too but its surface enumerator drops them.
+  // `boolean`, `null`, `unknown`, `any`) or an open `Record<K, unknown|any>` — a pure
+  // format alias with no structural surface. The reference emits these too but its
+  // surface enumerator drops them.
   function isBareScalarAlias(typeNode: ts.TypeNode): boolean {
     switch (typeNode.kind) {
       case ts.SyntaxKind.StringKeyword:
@@ -760,7 +787,7 @@ function enumerateFile(file: string): FileSurface {
       case ts.SyntaxKind.AnyKeyword:
         return true;
       default:
-        return false;
+        return isOpenRecordAlias(typeNode);
     }
   }
 
