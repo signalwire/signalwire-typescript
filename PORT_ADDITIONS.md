@@ -516,8 +516,6 @@ symbol. These are idiomatic-TS improvements (RULES: keep the better shape; docum
 rather than strip). See porting-sdk SESSION_CHANGESET_FOR_PORTS.md §H(5). Every one is generated
 + GEN-FRESH-gated (not hand-added).
 
-signalwire.relay.protocol_types_generated.CallingCallParams: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
-signalwire.relay.protocol_types_generated.CallingCallResult: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
 signalwire.relay.protocol_types_generated.SignalwireDisconnectResult: TS names this inline operation-body type; the reference inlines it
 signalwire.rest.namespaces.calling_types_generated.CallDirection: TS extracts this inline enum to a named string/number-literal union (autocomplete + typo-check); the reference inlines it as a Literal, so it carries no standalone surface symbol there
 signalwire.rest.namespaces.calling_types_generated.CallRequest: TS names this discriminated/permission union type; the reference inlines it or references it anonymously, so it has no standalone surface symbol there
