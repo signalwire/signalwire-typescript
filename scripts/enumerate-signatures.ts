@@ -853,6 +853,39 @@ function camelToSnake(name: string): string {
     .toLowerCase();
 }
 
+/**
+ * The `src/`-relative, extension-stripped stem of an ABSOLUTE source-file path,
+ * or `null` when the file is not under this repo's `src/`.
+ *
+ * WHY THIS EXISTS (checkout-location reproducibility). Three call sites used to
+ * derive the generated-module path by scanning the ABSOLUTE path with
+ * ``/\/src\/(.+?)\.ts$/``. That regex is unanchored, so it matches the FIRST
+ * ``/src/`` segment anywhere in the path — including one that belongs to a
+ * PARENT directory, not to this repo. The capture (and therefore every
+ * ``class:signalwire.<modPath>.<Name>`` leaf built from it) then depended on
+ * WHERE THE REPO HAPPENS TO BE CHECKED OUT:
+ *
+ *   /home/runner/work/…/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *       → 'rest.namespaces.x.types.generated'                       (correct)
+ *   /Users/<dev>/src/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *       → 'signalwire-typescript.src.rest.namespaces.x.types.generated'  (WRONG)
+ *
+ * A developer whose workspace dir is literally named ``src`` (the documented
+ * adjacency layout in porting-sdk/CLAUDE.md §7 is exactly ``~/src/``) produced a
+ * DIFFERENT port_signatures.json from CI on the very same commit — 602 differing
+ * leaves, all of them this spurious ``<repo-dir>.src.`` prefix. The artifact is
+ * DRIFT's input, so a location-dependent enumerator makes the whole parity claim
+ * unreproducible. Anchoring on REPO_ROOT removes the ambiguity: there is exactly
+ * one ``src/`` that can match, and it is this repo's.
+ */
+function srcRelStem(absFileName: string): string | null {
+  const rel = path.relative(REPO_ROOT, absFileName);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  const posix = rel.split(path.sep).join('/');
+  if (!posix.startsWith('src/') || !posix.endsWith('.ts')) return null;
+  return posix.slice('src/'.length, -'.ts'.length);
+}
+
 function fallbackModuleName(fileRelPath: string): string {
   let rel = fileRelPath.replace(/^src\//, '').replace(/\.ts$/, '');
   // Generated REST modules follow the Python file-naming idiom in the oracle:
@@ -987,9 +1020,11 @@ function translateType(
       // so the diff checker's generated-type leaf-name normalization matches it
       // against Python's `class:...<gen-module>.<AliasName>`. A bare
       // `class:CallResponse` would lack the gen-module marker and not normalize.
-      // Derive the dotted module path from the source file under src/.
-      const m = srcFile.match(/\/src\/(.+?)\.ts$/);
-      const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+      // Derive the dotted module path from the source file under src/. Anchored on
+      // REPO_ROOT (see srcRelStem) so the result cannot depend on the checkout
+      // location.
+      const stem = srcRelStem(srcFile);
+      const modPath = stem ? stem.replace(/\//g, '.') : 'rest.namespaces';
       return `class:signalwire.${modPath}.${aliasSym.getName()}`;
     }
   }
@@ -1808,8 +1843,8 @@ function extractCrudBase(
           const decl = sym?.declarations?.[0];
           const src = decl?.getSourceFile().fileName ?? '';
           if (src.includes('.types.generated') || src.includes('.generated.')) {
-            const m = src.match(/\/src\/(.+?)\.ts$/);
-            const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+            const stem = srcRelStem(src);
+            const modPath = stem ? stem.replace(/\//g, '.') : 'rest.namespaces';
             return `class:signalwire.${modPath}.${node.typeName.text}`;
           }
           return `class:${node.typeName.text}`;
@@ -2049,9 +2084,9 @@ function generatedAliasFromNode(
     // are recorded under the `*_types_generated` module so the diff's generated-type
     // normalization (which keys off `.types.generated.` / `_types_generated.`)
     // folds them to `gen:<Name>` and matches the Python reference.
-    const m = src.match(/\/src\/(.+?)\.ts$/);
-    if (m && /\.types\.generated$/.test(m[1])) {
-      const modPath = m[1].replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
+    const stem = srcRelStem(src);
+    if (stem && /\.types\.generated$/.test(stem)) {
+      const modPath = stem.replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
       return `class:signalwire.${modPath}.${node.typeName.text}`;
     }
     // Generated-payload aliases/interfaces (swml_verbs_generated.ts,
@@ -2060,11 +2095,11 @@ function generatedAliasFromNode(
     // above needs each member's NAME to survive the type checker's alias inlining
     // (`boolean | SWMLVar` would otherwise resolve to `boolean | string`). The diff
     // folds the gen-payload module + compares by leaf name.
-    if (m && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
+    if (stem && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
       // The diff compares generated `class:` refs by LEAF name (the module folds to
       // gen-payload), so the qualifier only needs to be a stable gen-payload module
       // path — fallbackModuleName produces exactly the one collectInterface records.
-      return `class:${fallbackModuleName(`src/${m[1]}.ts`)}.${node.typeName.text}`;
+      return `class:${fallbackModuleName(`src/${stem}.ts`)}.${node.typeName.text}`;
     }
   }
   return null;
