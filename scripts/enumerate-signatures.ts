@@ -865,13 +865,17 @@ function camelToSnake(name: string): string {
  * ``class:signalwire.<modPath>.<Name>`` leaf built from it) then depended on
  * WHERE THE REPO HAPPENS TO BE CHECKED OUT:
  *
- *   /home/runner/work/…/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
- *       → 'rest.namespaces.x.types.generated'                       (correct)
- *   /Users/<dev>/src/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
- *       → 'signalwire-typescript.src.rest.namespaces.x.types.generated'  (WRONG)
+ * Checked out under a parent with NO ``src`` segment, the capture is the intended
+ * repo-relative one:
+ *     <workspace>/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *         → 'rest.namespaces.x.types.generated'                          (correct)
+ * Checked out under a parent directory that IS named ``src``, the earlier segment
+ * wins and the repo directory leaks into the module path:
+ *     <home>/src/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *         → 'signalwire-typescript.src.rest.namespaces.x.types.generated'  (WRONG)
  *
  * A developer whose workspace dir is literally named ``src`` (the documented
- * adjacency layout in porting-sdk/CLAUDE.md §7 is exactly ``~/src/``) produced a
+ * adjacency layout in porting-sdk/CLAUDE.md §7 is exactly that) produced a
  * DIFFERENT port_signatures.json from CI on the very same commit — 602 differing
  * leaves, all of them this spurious ``<repo-dir>.src.`` prefix. The artifact is
  * DRIFT's input, so a location-dependent enumerator makes the whole parity claim
