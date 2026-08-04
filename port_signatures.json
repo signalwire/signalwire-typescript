@@ -2399,20 +2399,6 @@
               ],
               "returns": "bool"
             },
-            "interpolate_env_vars": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "input",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "string"
-            },
             "load": {
               "params": [
                 {

@@ -57,7 +57,21 @@ export class ConfigLoader {
   }
 
   /**
-   * Load configuration from a JSON file, performing `${VAR|default}` env var interpolation on the raw text.
+   * Load configuration from a JSON file.
+   *
+   * `${VAR|default}` references are NOT expanded here — they are expanded on the
+   * PARSED VALUES, at read time, by {@link substituteVars} (via {@link getSection}
+   * / {@link mergeWithEnv}). That is what the reference does
+   * (`ConfigLoader._load_config` → `json.load`, then `substitute_vars` walking
+   * str/dict/list), and it is the only correct order: expanding into the raw JSON
+   * TEXT splices the variable's value into a JSON string literal WITHOUT escaping
+   * it, so any value containing a backslash — every Windows path — produces
+   * invalid JSON and `JSON.parse` throws `Bad escaped character in JSON`. A
+   * `${VAR}` naming `D:\a\repo\cert.pem` yielded `"D:\a\repo\cert.pem"`, whose
+   * `\a` / `\r` are not legal JSON escapes; the config then failed to load and TLS
+   * silently stayed off. Ubuntu CI could never see it (POSIX paths have no
+   * backslash) — only the multi-OS nightly's windows-latest job did.
+   *
    * @param filePath - Path to the JSON config file.
    * @returns This instance for chaining.
    */
@@ -67,8 +81,7 @@ export class ConfigLoader {
       throw new Error(`Config file not found: ${absPath}`);
     }
     const raw = readFileSync(absPath, 'utf-8');
-    const interpolated = this.interpolateEnvVars(raw);
-    this.data = JSON.parse(interpolated);
+    this.data = JSON.parse(raw);
     this.filePath = absPath;
     return this;
   }
@@ -179,9 +192,17 @@ export class ConfigLoader {
 
   /**
    * Retrieve a configuration value using a dot-notation path (e.g. `'server.port'`).
+   *
+   * `${VAR|default}` references in the resolved value are expanded via
+   * {@link substituteVars}, matching the reference (`ConfigLoader.get` ends
+   * `return self.substitute_vars(value)`). Substituting HERE — on the parsed
+   * value — rather than on the raw file text is what makes a value containing
+   * backslashes (any Windows path) survive: splicing it into the JSON source
+   * would produce an illegal escape and fail the parse.
+   *
    * @param path - Dot-separated key path into the config object.
    * @param defaultValue - Value returned when the path does not exist.
-   * @returns The resolved value, or defaultValue if not found.
+   * @returns The resolved value with variables substituted, or defaultValue if not found.
    */
   get<T = unknown>(path: string, defaultValue?: T): T {
     const parts = path.split('.');
@@ -197,7 +218,8 @@ export class ConfigLoader {
       current = (current as Record<string, unknown>)[part];
     }
 
-    return (current !== undefined ? current : defaultValue) as T;
+    if (current === undefined) return defaultValue as T;
+    return this.substituteVars(current) as T;
   }
 
   /**
@@ -414,19 +436,5 @@ export class ConfigLoader {
     this.data = { ...obj };
     this.filePath = null;
     return this;
-  }
-
-  /**
-   * Interpolate ${VAR|default} patterns in a raw string.
-   * @param input - The string containing env var references.
-   * @returns The string with all env var references resolved.
-   */
-  interpolateEnvVars(input: string): string {
-    return input.replace(ENV_VAR_PATTERN, (_match, varName: string, defaultValue?: string) => {
-      const envVal = process.env[varName.trim()];
-      if (envVal !== undefined) return envVal;
-      if (defaultValue !== undefined) return defaultValue;
-      return '';
-    });
   }
 }

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ fbf303fc9557653d6147b3112f5921b735620dc7",
+  "generated_from": "signalwire-typescript @ 76810c3dae447b8d72e67d93da1b5d7314f48417",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -249,7 +249,6 @@
           "get_section",
           "has",
           "has_config",
-          "interpolate_env_vars",
           "load",
           "load_from_object",
           "merge_with_env",
