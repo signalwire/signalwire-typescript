@@ -129,6 +129,26 @@ jobs:
                       -e porting-sdk/test_harness/mock_signalwire \
                       pytest pytest-timeout requests websockets
 
+      # scripts/run-py-lint.sh and run-py-format.sh fail LOUD when ruff is absent
+      # rather than skipping, so PY-LINT/PY-FMT cannot pass vacuously on a runner
+      # that lacks it — which means EVERY workflow that runs run-ci.sh must install
+      # it. test.yml has had this step; this file did not, so both gates red here
+      # with "FATAL: ruff not found" (nightly run 30908541718). That is a missing CI
+      # dependency, not a code finding. scripts/_env.sh:82 already documents the
+      # contract as `{test,nightly}.yml` — nightly was simply never wired.
+      #
+      # PINNED EXACT, in lockstep with SW_RUFF_VERSION in scripts/_env.sh: an
+      # unbounded `pip install ruff` resolves whatever is newest at CI time, so a
+      # ruff release that adds a rule or changes a format heuristic turns these red
+      # on a commit that was green locally — the VERSION changed, not the code.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: |
+          pip install "ruff==0.15.21"
+          # Assert the pin actually took: pip can satisfy a spec from an
+          # unexpected index or cache, so verify rather than assume.
+          ruff --version
+          ruff --version | grep -qw '0\.15\.21' || { echo "FATAL: ruff is not the pinned 0.15.21" >&2; exit 1; }
+
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: pip install -e signalwire-python || true
 
