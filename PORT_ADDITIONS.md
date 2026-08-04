@@ -309,7 +309,6 @@ signalwire.core.skill_base.SkillBase.set_agent: TS-native SkillBase helper or ge
 
 signalwire.core.config_loader.ConfigLoader.config_paths: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.has: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
-signalwire.core.config_loader.ConfigLoader.interpolate_env_vars: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.load: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.load_from_object: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
 signalwire.core.config_loader.ConfigLoader.search: TS ConfigLoader has richer accessor helpers (type-narrowed getters, has/set helpers)
