@@ -140,11 +140,14 @@ jobs:
 
       # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
       # binary and fails LOUD when it is absent, so install it before run-ci.
+      # VERSION PINNED — see the same step in test.yml for why; keep the two and
+      # scripts/_env.sh's SW_ACTIONLINT_VERSION in lockstep.
       - name: Install actionlint (ACTIONLINT gate)
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.12
           sudo mv ./actionlint /usr/local/bin/actionlint
           actionlint --version
+          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned 1.7.12" >&2; exit 1; }
 
       - name: npm ci
         working-directory: signalwire-typescript
