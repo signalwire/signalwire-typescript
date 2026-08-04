@@ -224,6 +224,29 @@ sched_gate TOKEN-INTEROP desc="a token this port mints validates under the refer
 sched_gate DOC-TRUTH res=surface desc="doc-truth suite (DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/doc_truth.py" --port typescript --repo "$PORT_ROOT"
 
+# DOC-SURFACE-FRESH: the docs_audit_surface.json analogue of SIGNATURES-FRESH, and the
+# reason it is worth its own gate is that NOTHING READS the committed artifact. Both
+# consumers regenerate it first — the doc-audit workflow enumerates before auditing, and
+# porting-sdk's suites/_doc_audit.py (what DOC-TRUTH invokes here) regenerates, audits,
+# then RESTORES the committed content via TreeGuard. So DOC-AUDIT's verdict is identical
+# whether the committed copy is current or 300 commits old, and the restore actively
+# guarantees running the gate can never refresh it: the staleness is self-perpetuating
+# and invisible.
+#
+# It was real. On 2026-08-04 the committed artifact was generated at c278ce2, 314 commits
+# behind HEAD; a regen was +6811/-584. Audited AS COMMITTED it produced 3 blocking
+# unresolved symbols (includes/send/trim) that are ordinary TS members of the current
+# source — names that look exactly like genuine doc-audit findings and would have been
+# "fixed" by three DOC_AUDIT_IGNORE.md entries, masking the stale artifact behind them.
+#
+# res=surface because the regen shells out to this port's enumerator (tsc), the same
+# resource class SURFACE/SIGNATURES-FRESH declare, so they never contend. It regenerates
+# into .sw-tmp/ via --output and reads only the COMMITTED blob (git show HEAD:), so it
+# neither consumes nor clobbers another gate's artifact — in particular it is immune to
+# DOC-AUDIT's regenerate-then-restore window.
+sched_gate DOC-SURFACE-FRESH res=surface desc="committed docs_audit_surface.json matches a fresh regen" \
+    -- bash "$PORT_ROOT/scripts/check-doc-surface-fresh.sh"
+
 # LEDGER: SUPPRESSION-LEDGER + IGNORE-LEDGER-VERIFY.
 sched_gate LEDGER res=dayone desc="ledger governance suite (SUPPRESSION-LEDGER/IGNORE-LEDGER-VERIFY)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/ledger.py" --port typescript --repo "$PORT_ROOT"

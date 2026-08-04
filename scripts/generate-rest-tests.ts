@@ -51,7 +51,7 @@ const TESTS_REST = path.join(REPO_ROOT, 'tests', 'rest');
 //
 // Adjacency alone is FALSE IN CI. This repo is checked out INSIDE porting-sdk's workspace
 // there, so `REPO_ROOT/../porting-sdk` resolved to
-// `/home/runner/work/porting-sdk/porting-sdk/porting-sdk/rest-apis` -- note the tripled
+// `<runner-workspace>/porting-sdk/porting-sdk/porting-sdk/rest-apis` -- note the tripled
 // segment -- and GEN-FRESH-TESTS reported `STALE (exit 2)` when nothing was stale at all.
 // exit 2 is this script's missing-input code; a genuine staleness exits 1.
 //
@@ -61,16 +61,17 @@ const TESTS_REST = path.join(REPO_ROOT, 'tests', 'rest');
 // enumerate-surface.ts / enumerate-doc-surface.ts read PORTING_SDK_PATH, and emit-skills.ts
 // takes env-then-adjacency. This script was the one tsx entry point honouring neither, so it
 // was the only one that broke when the checkout layout changed.
-const PORTING_SDK = [
-  process.env['PORTING_SDK'],
-  process.env['PORTING_SDK_PATH'],
-  path.resolve(REPO_ROOT, '..', 'porting-sdk'),
-]
-  .filter((p): p is string => Boolean(p))
-  .find((p) => fs.existsSync(path.join(p, 'rest-apis')))
+const PORTING_SDK =
+  [
+    process.env['PORTING_SDK'],
+    process.env['PORTING_SDK_PATH'],
+    path.resolve(REPO_ROOT, '..', 'porting-sdk'),
+  ]
+    .filter((p): p is string => Boolean(p))
+    .find((p) => fs.existsSync(path.join(p, 'rest-apis'))) ??
   // Keep the adjacent guess when nothing resolves, so the error below names the conventional
   // location rather than `undefined`.
-  ?? path.resolve(REPO_ROOT, '..', 'porting-sdk');
+  path.resolve(REPO_ROOT, '..', 'porting-sdk');
 const REST_APIS = path.join(PORTING_SDK, 'rest-apis');
 
 // The path-param sentinel the route registry substitutes back to {id}.
