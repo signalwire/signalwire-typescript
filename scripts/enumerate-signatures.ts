@@ -1719,7 +1719,17 @@ function collectClass(
 // the reference after the diff tool's gen-payload module fold. A path test (not a
 // blanket interface walk) keeps every other interface in the codebase out of the
 // oracle — only these generated payloads are part of the cross-port contract.
-const GEN_PAYLOAD_FILE_MARKERS = ['SwaigContracts.generated.', 'swml_verbs_generated.'];
+// `SwaigActions.generated.` belongs here for the same reason as the other two: it
+// declares the response ENVELOPE interfaces (`SwaigAction`, `SwaigResponse`), whose
+// class-typed fields (`SwaigAction.transfer` → `TransferAction`, `SwaigResponse.action`
+// → `SwaigAction`) the reference records on its `swaig_actions_generated` TypedDicts.
+// Its per-verb `<Verb>Action` types carry only scalar fields, so including the file
+// adds no surface beyond the two envelopes.
+const GEN_PAYLOAD_FILE_MARKERS = [
+  'SwaigContracts.generated.',
+  'SwaigActions.generated.',
+  'swml_verbs_generated.',
+];
 
 function isGenPayloadFile(rel: string): boolean {
   return GEN_PAYLOAD_FILE_MARKERS.some((m) => rel.includes(m));

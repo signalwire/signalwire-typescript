@@ -28845,6 +28845,63 @@
         }
       }
     },
+    "signalwire.swaig_actions.generated": {
+      "classes": {
+        "SwaigAction": {
+          "methods": {
+            "context_switch": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.swaig_actions.generated.ContextSwitchAction>"
+            },
+            "hold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,string,class:signalwire.swaig_actions.generated.HoldAction>"
+            },
+            "playback_bg": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.swaig_actions.generated.PlaybackBgAction>"
+            },
+            "transfer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<string,class:signalwire.swaig_actions.generated.TransferAction>"
+            }
+          }
+        },
+        "SwaigResponse": {
+          "methods": {
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<class:signalwire.swaig_actions.generated.SwaigAction,list<class:signalwire.swaig_actions.generated.SwaigAction>>"
+            }
+          }
+        }
+      }
+    },
     "signalwire.swaig_contracts.generated": {
       "classes": {
         "PostPrompt": {
@@ -28911,6 +28968,15 @@
         },
         "PostPromptSwaigLogEntry": {
           "methods": {
+            "delayed_post_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_actions.generated.SwaigResponse"
+            },
             "post_data": {
               "params": [
                 {
@@ -28919,6 +28985,15 @@
                 }
               ],
               "returns": "class:signalwire.swaig_contracts.generated.SwaigRequest"
+            },
+            "post_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_actions.generated.SwaigResponse"
             }
           }
         },

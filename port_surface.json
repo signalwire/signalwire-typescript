@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 873d8ab06da466c5ae0c4b68fe393d948fa1f9de",
+  "generated_from": "signalwire-typescript @ fbf303fc9557653d6147b3112f5921b735620dc7",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -644,7 +644,9 @@
         "PostPromptSystemLogEntry": [],
         "PostPromptSystemEntry": [],
         "PostPromptSwaigLogEntry": [
-          "post_data"
+          "delayed_post_response",
+          "post_data",
+          "post_response"
         ],
         "PostPromptTimesEntry": [],
         "PostPromptEntity": [],
@@ -790,7 +792,9 @@
         "ContextSwitchAction": [],
         "HoldAction": [],
         "PlaybackBgAction": [],
-        "TransferAction": []
+        "TransferAction": [],
+        "SwaigAction": [],
+        "SwaigResponse": []
       },
       "functions": []
     },
