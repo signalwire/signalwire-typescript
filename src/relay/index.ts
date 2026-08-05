@@ -126,6 +126,7 @@ export type {
   EventHandler,
   CompletedCallback,
   Device,
+  DeviceInput,
   PhoneDevice,
   SipDevice,
   FabricDevice,
@@ -134,3 +135,12 @@ export type {
   PlayItem,
   CollectConfig,
 } from './types.js';
+
+// Event payload shape — the `params` property + `parseEvent()` argument shared by
+// every RELAY event class (issue #19530).
+export type { EventPayload } from './RelayEvent.js';
+
+// Generated protocol wire DTOs — the `Calling*Params`/`Calling*Result` types that
+// back the Call.* method signatures, re-exported so consumers can name them
+// (issue #19530). See types.public.generated.ts.
+export type * from './types.public.generated.js';

@@ -46,7 +46,7 @@ export interface ServerlessEvent {
 }
 
 /** Minimal Google Cloud Functions request shape (Express-style) consumed by {@link ServerlessAdapter.createGcfHandler}. */
-interface GcfRequest {
+export interface GcfRequest {
   method?: string;
   headers?: Record<string, string>;
   body?: string | Record<string, unknown>;
@@ -55,14 +55,14 @@ interface GcfRequest {
 }
 
 /** Minimal Google Cloud Functions response shape (Express-style) consumed by {@link ServerlessAdapter.createGcfHandler}. */
-interface GcfResponse {
+export interface GcfResponse {
   status(code: number): void;
   set(field: string, value: string): void;
   send(body: string): void;
 }
 
 /** Minimal Azure Functions request shape consumed by {@link ServerlessAdapter.createAzureHandler}. */
-interface AzureRequest {
+export interface AzureRequest {
   method?: string;
   headers?: Record<string, string>;
   body?: string | Record<string, unknown>;
@@ -70,7 +70,7 @@ interface AzureRequest {
 }
 
 /** Minimal Azure Functions invocation context consumed by {@link ServerlessAdapter.createAzureHandler}. */
-interface AzureContext {
+export interface AzureContext {
   res?: { status: number; headers: Record<string, string>; body: string };
 }
 

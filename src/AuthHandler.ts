@@ -10,12 +10,12 @@ import type { Context } from 'hono';
 import { getLogger } from './Logger.js';
 
 /** Minimal Express/Connect-style request shape consumed by {@link AuthHandler.expressMiddleware}. */
-interface ExpressLikeRequest {
+export interface ExpressLikeRequest {
   headers: Record<string, string>;
 }
 
 /** Minimal Express/Connect-style response shape consumed by {@link AuthHandler.expressMiddleware}. */
-interface ExpressLikeResponse {
+export interface ExpressLikeResponse {
   status(code: number): { json(body: unknown): void };
 }
 
