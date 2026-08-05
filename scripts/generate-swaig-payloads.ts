@@ -27,6 +27,7 @@ import {
   pascal,
   resetCrossFileImports,
   resolvePortingSdk,
+  setSameFileDeclared,
   tsName,
   tsType,
 } from './_gen-common.js';
@@ -164,6 +165,40 @@ async function generateSwaigActions(specPath: string, outPath: string): Promise<
   resetCrossFileImports(SWAIG_ACTIONS_MODULE);
   const decls: string[] = [];
   const isObj = (s: Schema | undefined): boolean => !!s && s.type === 'object' && !!s.properties;
+
+  // The type names this module WILL declare, derived by the same rules the emit loop
+  // below applies, so a same-file `$ref` can be checked against them. Without this a
+  // ref to a components/schemas entry that this generator does not emit silently
+  // produces a dangling type name that only tsc catches — see resolveSameFileRef.
+  const declaredNames = new Set<string>(['SwaigAction', 'SwaigResponse']);
+  for (const verb of Object.keys(actions)) {
+    const schema = actions[verb]!;
+    if (!schema.oneOf) {
+      if (isObj(schema)) declaredNames.add(`${pascal(verb)}Action`);
+      continue;
+    }
+    let n = 0;
+    for (const b of schema.oneOf) {
+      if (isObj(b)) {
+        n += 1;
+        declaredNames.add(`${pascal(verb)}Action${n === 1 ? '' : String(n)}`);
+      }
+    }
+  }
+  // A same-file $ref this module does not declare folds to the opaque record — the
+  // TS analog of the reference's `dict[str, Any]`, and exactly what tsType() already
+  // does for a whole-file JSON ref. This is IDIOM FOLDING, not a widening of
+  // convenience: the Python oracle types context_switch's system_pom/user_pom as
+  // `dict[str, Any]` because its emitter lifts only the TOP-LEVEL action object and
+  // never descends to the nested `pom` items. TS's objectBody DOES descend, so
+  // without this the two generators disagree about the same spec.
+  //
+  // Emitting the ref'd schema instead was tried and is WRONG: `PromptPomSection` is
+  // absent from the Python reference, so declaring it made DRIFT and SURFACE-DIFF red
+  // with "1 port symbol(s) not in Python reference" — invented surface. The fold keeps
+  // the port and the reference comparing EQUAL, which is where a cross-language
+  // difference belongs (AGENT_RULES §2).
+  setSameFileDeclared(declaredNames, 'Record<string, unknown>');
 
   // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces and
   // record the verb's resulting VALUE TYPE expression (mirrors the Python emitter's

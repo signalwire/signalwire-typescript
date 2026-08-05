@@ -176,6 +176,71 @@ const _crossFileSpecCache = new Map<string, OpenApiDoc>();
 let _crossFileImports = new Map<string, Set<string>>();
 let _crossFileSelfModule: string | null = null;
 
+// ---- SAME-file $ref resolution ---------------------------------------------
+// The mirror of the block above, for `#/components/schemas/<Name>` (no file part).
+// The cross-file path verifies its target and fails loud; the same-file path used
+// to return refName() unconditionally — the bare leaf name, with NOTHING checking
+// that this module ever declares it. A generator does not emit every schema in the
+// document: generate-swaig-payloads emits one <Verb>Action per object-shaped action
+// value plus two envelopes, so a same-file ref to any OTHER components/schemas entry
+// produces a dangling identifier that only tsc catches.
+//
+// Found live 2026-08-05. porting-sdk d8e5787 re-vendored swaig-response.yaml and
+// gave context_switch's system_pom/user_pom a real shape whose `pom` items
+// `$ref: '#/components/schemas/PromptPomSection'`. PromptPomSection IS declared in
+// that document (and is recursive), but no generator emits it, so the regen wrote
+//     pom?: PromptPomSection[];
+// twice into SwaigActions.generated.ts and LINT died with two TS2304 "Cannot find
+// name 'PromptPomSection'". The generated tree was byte-fresh per GEN-FRESH and did
+// not compile — the two gates disagreeing is the signal that the emit, not the
+// tree, was wrong.
+//
+// So: a same-file ref must name something this module DECLARES. The emitter
+// registers its declared names; an unregistered target is an error naming both the
+// ref and the fix, never a silent dangling name.
+let _sameFileDeclared: Set<string> | null = null;
+let _sameFileFallback: string | null = null;
+
+/**
+ * Declare the type names the module currently being emitted will contain, so a
+ * same-file `$ref` can be checked against them. Call before resolving types.
+ *
+ * `undeclaredAs` is what an UNDECLARED target folds to. Supply it when the
+ * reference generator does not descend to that ref either, so the port and the
+ * reference compare equal — `'Record<string, unknown>'` is the TS analog of the
+ * Python emitter's `dict[str, Any]`. Omit it to make an undeclared target a hard
+ * error instead, for a generator that should be able to name every ref it reaches.
+ *
+ * Passing nothing (or never calling it) leaves same-file refs UNCHECKED, which is
+ * the historical behaviour — generators that emit every schema in their document
+ * have no dangling-name risk and need no registration.
+ */
+export function setSameFileDeclared(names?: Iterable<string>, undeclaredAs?: string): void {
+  _sameFileDeclared = names ? new Set(names) : null;
+  _sameFileFallback = undeclaredAs ?? null;
+}
+
+/**
+ * `#/components/schemas/<Name>` → the TS type name, verified against the emitting
+ * module's declared names when the emitter registered them. An undeclared target
+ * folds to the registered fallback, or raises when there is none — either way it
+ * never returns a name nothing declares.
+ */
+export function resolveSameFileRef(ref: string): string {
+  const resolved = refName(ref);
+  if (_sameFileDeclared && !_sameFileDeclared.has(resolved)) {
+    if (_sameFileFallback !== null) return _sameFileFallback;
+    const declared = [..._sameFileDeclared].sort().join(', ') || '<none>';
+    throw new CrossFileRefError(
+      `same-file $ref '${ref}' resolves to type '${resolved}', which this module ` +
+        `does not declare (it declares: ${declared}). Emitting it would write a ` +
+        `dangling type name that only tsc catches. Either emit '${resolved}' from ` +
+        `this generator, or register a fold via setSameFileDeclared's undeclaredAs.`,
+    );
+  }
+  return resolved;
+}
+
 /**
  * Start recording cross-file refs for a fresh output module. `selfModule` is the
  * module specifier being emitted; refs that resolve to it are same-module and
@@ -184,6 +249,13 @@ let _crossFileSelfModule: string | null = null;
 export function resetCrossFileImports(selfModule?: string): void {
   _crossFileImports = new Map();
   _crossFileSelfModule = selfModule ?? null;
+  // Starting a new module also clears the previous module's same-file declared
+  // set. Tied to THIS reset rather than left to each caller so a generator that
+  // registers names cannot leak them into the next module emitted in the same
+  // process — which would let a dangling ref pass by matching a name only the
+  // PREVIOUS module declared.
+  _sameFileDeclared = null;
+  _sameFileFallback = null;
 }
 
 /**
@@ -301,7 +373,9 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
     if (!schema.$ref.startsWith('#/')) {
       return resolveCrossFileRef(schema.$ref);
     }
-    return refName(schema.$ref);
+    // A SAME-file ref must name a type this module actually declares; see
+    // resolveSameFileRef. refName() alone emits a dangling name (PromptPomSection).
+    return resolveSameFileRef(schema.$ref);
   }
 
   // const → literal

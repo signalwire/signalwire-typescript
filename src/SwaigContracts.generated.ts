@@ -248,9 +248,10 @@ export interface PostPromptSystemLogEntry {
   role?: string;
   content?: string;
   timestamp?: number;
-  /** closed set of 27 values, from two producers: `ai_conversation_system_log` (7); `tl_make_entry` (21). Derived from the call sites, not hand-listed. */
+  /** closed set of 28 values, from two producers: `ai_conversation_system_log` (8); `tl_make_entry` (21). Derived from the call sites, not hand-listed. */
   action?:
     | 'attention_timeout'
+    | 'attention_wait'
     | 'auto_correct'
     | 'change_step_failed'
     | 'check_for_input'

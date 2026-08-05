@@ -10,11 +10,15 @@
 export interface ContextSwitchAction {
   consolidate?: boolean;
   full_reset?: boolean;
-  /** read by the engine; no predicate types it here */
-  system_pom?: Record<string, unknown>;
+  system_pom?: {
+    pom?: Record<string, unknown>[];
+    text?: string;
+  };
   system_prompt?: string;
-  /** read by the engine; no predicate types it here */
-  user_pom?: Record<string, unknown>;
+  user_pom?: {
+    pom?: Record<string, unknown>[];
+    text?: string;
+  };
   user_prompt?: string;
   [key: string]: unknown;
 }
@@ -47,12 +51,12 @@ export interface SwaigAction {
   back_to_back_functions?: boolean | 'forever';
   change_context?: string;
   change_step?: string;
-  clear_dynamic_hints?: Record<string, unknown>;
+  clear_dynamic_hints?: boolean | string;
   context_switch?: string | ContextSwitchAction;
   end_of_speech_timeout?: number;
   extensive_data?: boolean;
   functions_on_speaker_timeout?: boolean;
-  hangup?: Record<string, unknown>;
+  hangup?: boolean | string;
   hold?: number | string | HoldAction;
   playback_bg?: string | PlaybackBgAction;
   replace_in_history?: string | true;
@@ -61,8 +65,8 @@ export interface SwaigAction {
   set_meta_data?: Record<string, unknown>;
   settings?: Record<string, unknown>;
   speech_event_timeout?: number;
-  stop?: Record<string, unknown>;
-  stop_playback_bg?: Record<string, unknown>;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
   toggle_functions?: {
     active?: boolean | number | string;
     function?: string;
