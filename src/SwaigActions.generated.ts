@@ -42,6 +42,7 @@ export interface TransferAction {
 
 /** A response-action object. The keys below are the full vocabulary dispatched by actions.c::process_action; an action object sets one or more of them. Each key's source line is the engine dispatch site. */
 export interface SwaigAction {
+  SWML?: string | Record<string, unknown>;
   add_dynamic_hints?: (
     | {
         hint?: string;
@@ -54,8 +55,8 @@ export interface SwaigAction {
   clear_dynamic_hints?: boolean | string;
   context_switch?: string | ContextSwitchAction;
   end_of_speech_timeout?: number;
-  extensive_data?: boolean;
-  functions_on_speaker_timeout?: boolean;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
   hangup?: boolean | string;
   hold?: number | string | HoldAction;
   playback_bg?: string | PlaybackBgAction;

@@ -22,6 +22,10 @@ export interface SwaigArgument {
 }
 
 export interface SwaigRequest {
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  SWMLCall?: Record<string, unknown>;
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  SWMLVars?: Record<string, unknown>;
   /** Always present. */
   ai_session_id?: string;
   /** Always present. */
