@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4ecd9f0fc7df205a65c84463d080fb443815f377",
+  "generated_from": "signalwire-typescript @ 297c5efe57c025c9741e3c31408a21d1c962709e",
   "typescript_version": "6.0.3",
   "note": "TS-native camelCase surface — used by audit_docs.py to verify doc/example references. NOT a substitute for port_surface.json (which is Python-translated for Layer B diffing).",
   "modules": {
@@ -908,6 +908,7 @@
           "summarize"
         ],
         "SwaigAction": [
+          "SWML",
           "add_dynamic_hints",
           "back_to_back_functions",
           "change_context",
@@ -942,6 +943,8 @@
           "response"
         ],
         "SwaigRequest": [
+          "SWMLCall",
+          "SWMLVars",
           "ai_session_id",
           "app_name",
           "args",
