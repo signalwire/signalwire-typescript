@@ -73,7 +73,9 @@ techSupport.addLanguage({ name: 'English', code: 'en-US', voice: 'dave' });
 techSupport.setParam('temperature', 0.2);
 
 // --- Server ---
-const server = new AgentServer({ port: 3000 });
+// Fall back to the PORT env var (used by CI / the EXAMPLES-RUN harness) and
+// finally to 3000 for local interactive use.
+const server = new AgentServer({ port: parseInt(process.env['PORT'] ?? '3000', 10) });
 server.register(billing);
 server.register(techSupport);
 server.run();
