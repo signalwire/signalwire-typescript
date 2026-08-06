@@ -162,6 +162,17 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   RestError: 'SignalWireRestError',
   // Same rationale as RestError above, for the transport-failure subclass.
   RestTransportError: 'SignalWireRestTransportError',
+  // Generated type names the TS emitter suffixes with `_` to avoid colliding with a
+  // TS built-in type (`Record<>`/`Set<>`); the reference (Python, no such collision)
+  // names them bare. Map back so they compare equal — the type analog of the
+  // reserved-word field rename (Python `from`→`from_`), and the same table
+  // `enumerate-surface.ts`'s BUILTIN_COLLISION_RENAME already applies. The
+  // signature enumerator simply never had it: before porting-sdk 4ddda70 the
+  // reference dropped both classes' only member (a primitive-typed field), so the
+  // classes were absent from the oracle entirely and the missing rename could not
+  // show up as drift.
+  Record_: 'Record',
+  Set_: 'Set',
 };
 
 /** Per-class canonical-module overrides (by post-alias class name). A TS file may
@@ -1711,14 +1722,14 @@ function collectClass(
 
 // Generated read-side payload modules (SWAIG request / post-prompt; later SWML
 // verbs) declare their typed payloads as `interface`s, not classes. The Python
-// reference enumerates each such TypedDict's CLASS-typed fields as zero-arg
-// members (``PostPrompt.call_log`` → ``list<class:…PostPromptCallLogEntry>``),
-// skipping primitive-typed fields (``project_id: str``). Mirror that here: walk
-// only the generated-payload modules' interfaces and project the same
-// class-typed-fields-only surface, so the (class, field) shapes compare against
-// the reference after the diff tool's gen-payload module fold. A path test (not a
-// blanket interface walk) keeps every other interface in the codebase out of the
-// oracle — only these generated payloads are part of the cross-port contract.
+// reference enumerates EVERY key of each such TypedDict as a zero-arg member —
+// class-typed (``PostPrompt.call_log`` → ``list<class:…PostPromptCallLogEntry>``)
+// AND primitive-typed (``AIParams.ai_name`` → ``string``). Mirror that here: walk
+// only the generated-payload modules' interfaces and project every field, so the
+// (class, field) shapes compare against the reference after the diff tool's
+// gen-payload module fold. A path test (not a blanket interface walk) keeps every
+// other interface in the codebase out of the oracle — only these generated
+// payloads are part of the cross-port contract.
 // `SwaigActions.generated.` belongs here for the same reason as the other two: it
 // declares the response ENVELOPE interfaces (`SwaigAction`, `SwaigResponse`), whose
 // class-typed fields (`SwaigAction.transfer` → `TransferAction`, `SwaigResponse.action`
@@ -1753,16 +1764,14 @@ function collectInterface(
     if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
     const native = m.name.text;
     if (native.startsWith('_')) continue;
-    // Mirror the Python enumerator (enumerate_python_signatures.py): it skips a
-    // member whose name is ALL-CAPS (a Python-convention constant, not an API
-    // attribute) — BUT only when the field is not SDK-class-typed. An all-caps
-    // field whose type IS a class (`AIObject.SWAIG: SWAIG`) is a real data field
-    // the reference records; only a genuine all-caps *constant* (primitive type)
-    // is dropped. (The reference had the same fix; the port must match it.)
-    const isAllCaps = (() => {
-      const letters = native.replace(/[^A-Za-z]/g, '');
-      return letters.length > 0 && letters === letters.toUpperCase();
-    })();
+    // NOTE: no ALL-CAPS filter here, deliberately. The Python enumerator drops an
+    // all-caps member as a PEP-8 module/class CONSTANT, but a generated-payload
+    // interface declares no constants — every member is a wire key, and SWML has
+    // four spelled in caps. The reference records all four, including
+    // `SWMLAction.SWML`, whose type is a plain object and which an all-caps guard
+    // therefore dropped on the port side while keeping the three class-typed ones
+    // (`AIObject.SWAIG`). Filtering by name-casing inside these files can only
+    // lose real wire keys.
     // Key the field by its VERBATIM wire name, NOT camelToSnake(native). A generated-
     // payload interface field IS the schema property name (`allOf`, `numberedBullets`,
     // `post_prompt`); the Python (griffe) reference records the TypedDict key verbatim,
@@ -1784,18 +1793,28 @@ function collectInterface(
         methods[key] = { params: [{ name: 'self', kind: 'self' }], returns: written };
         continue;
       }
-      // Not class-typed via the alias path. An all-caps name here is a genuine
-      // constant (a class-typed all-caps field would have been kept above) — drop it.
-      if (isAllCaps) continue;
       // A PropertySignature is structurally a PropertyDeclaration for the field
-      // we need (`.name`, `.type`); signatureFromProperty applies the same
-      // SDK-class-typed-only filter (returns null for primitives) as Python.
+      // we need (`.name`, `.type`). Emit PRIMITIVE-typed fields too
+      // (`emitPrimitiveField`): a generated-payload interface is a TypedDict
+      // analog and the reference records EVERY key of it, primitives included
+      // (`AIParams.ai_name -> string`).
+      //
+      // This used to pass `false`, on the premise — stated in the comment above
+      // and in this function's own docstring — that the Python enumerator "skips
+      // primitive-typed fields". That premise was true only of the DEFECTIVE
+      // reference. porting-sdk 4ddda70 fixed the cross-file `$ref` resolver, and
+      // the corrected oracle carries 604 payload members it had silently dropped
+      // — 87 keys on `AIParams` where it previously had 60, the 27 difference
+      // being exactly its bare-`string` and string-literal-union fields. Mirroring
+      // the pre-fix behaviour made those 597 members read as `missing-port` when
+      // the port declares every one of them.
       const sig = signatureFromProperty(
         m as unknown as ts.PropertyDeclaration,
         checker,
         aliases,
         false,
         `${mod}.${canonClass}.${key}`,
+        true,
       );
       if (sig !== null) methods[key] = sig;
     } catch (e) {
