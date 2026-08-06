@@ -597,38 +597,52 @@ async function main(): Promise<void> {
     return;
   }
 
-  // The SWML/CXML webhook platform contracts (manufactured spec from swml.md prose
-  // — no upstream OpenAPI). Skipped cleanly if the spec dir is absent.
-  const platformSpec = path.join(psdk, 'rest-apis', 'swml-webhooks', 'openapi.yaml');
-  if (fs.existsSync(platformSpec)) {
-    const platformOut = 'src/PlatformContracts.generated.ts';
-    const n = await generatePlatformContracts(platformSpec, platformOut);
-    console.log(`${verb} ${platformOut} (${n} types)`);
-  } else {
-    console.log(
-      `skipped platform contracts (no swml-webhooks spec at ${platformSpec}; ` +
-        `using committed src/PlatformContracts.generated.ts).`,
+  // Both remaining sources are TRACKED files in porting-sdk, so once `psdk` itself
+  // resolved they are present in every legitimate configuration. Their absence is
+  // therefore NOT a soft "nothing to do" — it is an unverifiable check, and under
+  // --check a silent skip is a FALSE GREEN: `emitFile` is never called for the
+  // corresponding output, nothing lands in `staleFiles`, and `finalizeCheck` exits 0
+  // having compared the committed file against nothing at all. (Measured on this
+  // repo: with porting-sdk/schema.json absent the run printed a friendly "skipped"
+  // line and exited 0 while all 192 committed SWML verb config types went
+  // uncompared.) porting-sdk/schema.json is the legacy hand-maintained SWML spec and
+  // is slated for deletion (porting-sdk task #199); on the day it is removed this
+  // gate must SAY so rather than report success.
+  //
+  // This also matches how the `!psdk` branch above already behaves — an
+  // unverifiable --check is a hard failure there (exit 2), not a pass. Non-check
+  // generate runs stay hard-failing too: emitting a partial tree while exiting 0
+  // would silently leave a committed file behind at a stale revision.
+  const requireSpec = (specPath: string, what: string, out: string): void => {
+    if (fs.existsSync(specPath)) return;
+    throw new Error(
+      `${what}: spec source not found at ${specPath}. Refusing to skip — under ` +
+        `--check a skip would leave the committed ${out} compared against nothing ` +
+        `and still exit 0 (a false green). If porting-sdk genuinely no longer ships ` +
+        `this spec, update this generator and ${out} deliberately.`,
     );
-  }
+  };
+
+  // The SWML/CXML webhook platform contracts (manufactured spec from swml.md prose
+  // — no upstream OpenAPI).
+  const platformSpec = path.join(psdk, 'rest-apis', 'swml-webhooks', 'openapi.yaml');
+  requireSpec(platformSpec, 'SWML platform contracts', 'src/PlatformContracts.generated.ts');
+  const platformOut = 'src/PlatformContracts.generated.ts';
+  const platformN = await generatePlatformContracts(platformSpec, platformOut);
+  console.log(`${verb} ${platformOut} (${platformN} types)`);
 
   // Typed SWML verb CONFIG types from schema.json ($defs). The verb METHOD surface
   // (SwmlVerbMethods.generated.ts) was already emitted above from the vendored
   // src/schema.json.
   const swmlSchema = path.join(psdk, 'schema.json');
-  if (fs.existsSync(swmlSchema)) {
-    const swmlOut = 'src/swml_verbs_generated.ts';
-    // Verbs this port hand-writes with richer ergonomics — excluded from the verb
-    // walk so their <Verb>Config isn't flattened (matches the Python reference's
-    // hand_written set; only affects which Config decls are emitted).
-    const handWritten = new Set(['answer', 'hangup', 'ai', 'play', 'say']);
-    const n = await generateSwmlVerbs(swmlSchema, swmlOut, handWritten);
-    console.log(`${verb} ${swmlOut} (${n} types)`);
-  } else {
-    console.log(
-      `skipped SWML verb contracts (no schema.json at ${swmlSchema}; ` +
-        `using committed src/swml_verbs_generated.ts).`,
-    );
-  }
+  requireSpec(swmlSchema, 'SWML verb contracts', 'src/swml_verbs_generated.ts');
+  const swmlOut = 'src/swml_verbs_generated.ts';
+  // Verbs this port hand-writes with richer ergonomics — excluded from the verb
+  // walk so their <Verb>Config isn't flattened (matches the Python reference's
+  // hand_written set; only affects which Config decls are emitted).
+  const handWritten = new Set(['answer', 'hangup', 'ai', 'play', 'say']);
+  const swmlN = await generateSwmlVerbs(swmlSchema, swmlOut, handWritten);
+  console.log(`${verb} ${swmlOut} (${swmlN} types)`);
 
   finalizeCheck('npx tsx scripts/generate-swml-verbs.ts');
 }
