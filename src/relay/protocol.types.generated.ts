@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/relay-protocol/*.{params,result}.json — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/combined-specs/relay.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-relay-protocol.ts
 //
 // One interface per RELAY method's params (<Method>Params) and ack result
@@ -88,7 +88,6 @@ export interface CallingBindDigitParams {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.call` method. Registered via `swclt_sess_register_protocol_method(..., "call", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
 export type CallingCallParams = Record<string, unknown>;
 
 /** Wire schema for the JSON payload of `calling.clear_digit_bindings` (params). Extracted from switchblade `PublicCallClearDigitBindingsParams.cs`. */
@@ -143,7 +142,6 @@ export interface CallingCollectStopParams {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.conference` method. Registered via `swclt_sess_register_protocol_method(..., "conference", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
 export type CallingConferenceParams = Record<string, unknown>;
 
 /** Wire schema for the JSON payload of `calling.connect` (params). Extracted from switchblade `PublicCallConnectParams.cs`. */
@@ -658,7 +656,6 @@ export interface CallingUserEventParams {
   [key: string]: unknown;
 }
 
-/** Permissive schema for the messaging.send RPC params. Switchblade forwards the JObject as-is to the messaging gateway, so the schema is derived from the Python relay client (``signalwire/relay/client.py:send_message``). At least one of `body` or `media` is required. */
 export interface MessagingSendParams {
   body?: string;
   context: string;
@@ -786,7 +783,6 @@ export interface CallingBindDigitResult {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.call` method. Registered via `swclt_sess_register_protocol_method(..., "call", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
 export type CallingCallResult = Record<string, unknown>;
 
 /** Wire schema for the JSON payload of `calling.clear_digit_bindings` (result). Extracted from switchblade `PublicCallClearDigitBindingsResult.cs`. */
@@ -828,7 +824,6 @@ export interface CallingCollectStopResult {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.conference` method. Registered via `swclt_sess_register_protocol_method(..., "conference", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
 export type CallingConferenceResult = Record<string, unknown>;
 
 /** Wire schema for the JSON payload of `calling.connect` (result). Extracted from switchblade `PublicCallConnectResult.cs`. */
@@ -996,8 +991,8 @@ export interface CallingPayStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.pause` (result). Extracted from switchblade `PublicCallPlayPauseResult.cs`. */
-export interface CallingPlayPauseResult {
+/** Wire schema for the JSON payload of `calling.play` (result). Extracted from switchblade `PublicCallPlayResult.cs`. */
+export interface CallingPlayResult {
   call_id?: string;
   code: string;
   control_id?: string;
@@ -1006,8 +1001,8 @@ export interface CallingPlayPauseResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play` (result). Extracted from switchblade `PublicCallPlayResult.cs`. */
-export interface CallingPlayResult {
+/** Wire schema for the JSON payload of `calling.play.pause` (result). Extracted from switchblade `PublicCallPlayPauseResult.cs`. */
+export interface CallingPlayPauseResult {
   call_id?: string;
   code: string;
   control_id?: string;
@@ -1123,16 +1118,6 @@ export interface CallingReceiveFaxStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.pause` (result). Extracted from switchblade `PublicCallRecordPauseResult.cs`. */
-export interface CallingRecordPauseResult {
-  call_id?: string;
-  code: string;
-  control_id?: string;
-  data?: Record<string, unknown>;
-  message?: string;
-  [key: string]: unknown;
-}
-
 /** Wire schema for the JSON payload of `calling.record` (result). Extracted from switchblade `PublicCallRecordResult.cs`. */
 export interface CallingRecordResult {
   call_id?: string;
@@ -1141,6 +1126,16 @@ export interface CallingRecordResult {
   data?: Record<string, unknown>;
   message?: string;
   url?: string;
+  [key: string]: unknown;
+}
+
+/** Wire schema for the JSON payload of `calling.record.pause` (result). Extracted from switchblade `PublicCallRecordPauseResult.cs`. */
+export interface CallingRecordPauseResult {
+  call_id?: string;
+  code: string;
+  control_id?: string;
+  data?: Record<string, unknown>;
+  message?: string;
   [key: string]: unknown;
 }
 
@@ -1264,7 +1259,6 @@ export interface CallingUserEventResult {
   [key: string]: unknown;
 }
 
-/** Permissive schema for the messaging.send RPC response. The message_id from the response is used to route subsequent messaging.state events. */
 export interface MessagingSendResult {
   code: string;
   message?: string;

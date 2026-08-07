@@ -40,9 +40,10 @@ import type {
   EventHandler,
   PlayItem,
 } from './types.js';
-// Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
-// *.params.json — the switchblade source). Method params index into these so
-// callers get the real field-level types instead of Record<string, unknown>.
+// Canonical RELAY wire param shapes (generated from the params_dto shapes in
+// porting-sdk/combined-specs/relay.yaml — the switchblade source). Method params
+// index into these so callers get the real field-level types instead of
+// Record<string, unknown>.
 // The SDK fills node_id/call_id/control_id internally, so methods take only the
 // payload-specific members.
 import type {
