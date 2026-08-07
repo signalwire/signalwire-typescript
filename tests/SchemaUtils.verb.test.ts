@@ -1,5 +1,35 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SchemaUtils } from '../src/SchemaUtils.js';
+
+/**
+ * The verb used to stand in for "docs chose not to enrich this one". Any verb
+ * works -- `hangup` is picked because it has no required inner properties, so
+ * the un-enriched copy still validates against an empty config and the test can
+ * show that dropping the prose degrades nothing else.
+ */
+const UNENRICHED_VERB = 'hangup';
+
+/**
+ * Find the PascalCase `$defs` key that declares `verbName`, by walking
+ * `SWMLMethod.anyOf` the way SchemaUtils' own loader does. Derived rather than
+ * hardcoded so the helper does not pin a second fixture spelling.
+ */
+function schemaDefKeyForVerb(schemaDoc: Record<string, unknown>, verbName: string): string {
+  const defs = schemaDoc['$defs'] as Record<string, Record<string, unknown>>;
+  const anyOf = (defs['SWMLMethod'] as Record<string, unknown>)['anyOf'] as Record<
+    string,
+    unknown
+  >[];
+  for (const ref of anyOf) {
+    const key = (ref['$ref'] as string).split('/').pop()!;
+    const props = defs[key]?.['properties'] as Record<string, unknown> | undefined;
+    if (props && Object.keys(props)[0] === verbName) return key;
+  }
+  throw new Error(`no $defs entry declares verb '${verbName}'`);
+}
 
 describe('SchemaUtils — verb extraction and validation', () => {
   let schema: SchemaUtils;
@@ -107,20 +137,132 @@ describe('SchemaUtils — verb extraction and validation', () => {
     });
   });
 
+  // getVerbDescription is an ACCESSOR over whatever prose the schema happens to
+  // carry -- it is not a wire fact. Descriptions are editorial: the docs pipeline
+  // may reword a verb's text, or legitimately decline to enrich a verb at all (a
+  // deprecated or internal one), and neither is a defect in this SDK. So these
+  // tests assert ACCESSOR properties, driven from the fixture rather than from
+  // prose spelled out here: surfaces exactly the schema's text when present,
+  // returns '' when absent, never throws, never returns undefined. Pinning the
+  // literal English (previously `toContain('End the call')` for hangup) turned a
+  // copy edit in another repo into a red port, and requiring a specific verb to be
+  // enriched (previously `length > 0` for tap) turned an editorial decision into
+  // a failing build.
   describe('getVerbDescription()', () => {
-    it('returns description for hangup', () => {
-      const desc = schema.getVerbDescription('hangup');
-      expect(desc).toContain('End the call');
+    /** The description the schema itself records for a verb, or '' when unenriched. */
+    const fixtureDescription = (verbName: string): string => {
+      const inner = schema.getVerbProperties(verbName) as Record<string, unknown>;
+      const d = inner['description'];
+      return typeof d === 'string' ? d : '';
+    };
+
+    it('surfaces exactly the schema description for every enriched verb', () => {
+      const enriched = schema.getVerbNames().filter((v) => fixtureDescription(v) !== '');
+      // Guard against a vacuous pass: if the schema carried no prose at all this
+      // assertion loop would be empty and prove nothing. It is not a claim that
+      // any PARTICULAR verb is enriched -- only that when some are, we check them.
+      expect(enriched.length).toBeGreaterThan(0);
+      for (const verbName of enriched) {
+        expect(schema.getVerbDescription(verbName)).toBe(fixtureDescription(verbName));
+      }
     });
 
-    it('returns description for tap', () => {
-      const desc = schema.getVerbDescription('tap');
-      expect(desc.length).toBeGreaterThan(0);
+    it('returns empty string for every verb the schema does not enrich', () => {
+      const unenriched = schema.getVerbNames().filter((v) => fixtureDescription(v) === '');
+      for (const verbName of unenriched) {
+        expect(schema.getVerbDescription(verbName)).toBe('');
+      }
+    });
+
+    it('returns a string -- never undefined -- for every verb in the schema', () => {
+      for (const verbName of schema.getVerbNames()) {
+        expect(typeof schema.getVerbDescription(verbName)).toBe('string');
+      }
     });
 
     it('returns empty string for unknown verb', () => {
       const desc = schema.getVerbDescription('nonexistent');
       expect(desc).toBe('');
+    });
+
+    it('does not throw for an unknown verb or an empty name', () => {
+      expect(() => schema.getVerbDescription('nonexistent')).not.toThrow();
+      expect(() => schema.getVerbDescription('')).not.toThrow();
+      expect(schema.getVerbDescription('')).toBe('');
+    });
+
+    // The scenario the accessor exists to tolerate: the verb IS in the schema, but
+    // the docs pipeline chose not to enrich it (deprecated / internal / unwritten).
+    // The bundled schema currently enriches all of its verbs, so the only way to
+    // exercise this branch is against a schema that deliberately omits the prose.
+    describe('a verb that exists but is deliberately not enriched', () => {
+      let tmpRoot: string;
+      let deprosedPath: string;
+      let deprosed: SchemaUtils;
+
+      beforeEach(() => {
+        // Repo-local scratch (gitignored .sw-tmp/), derived from this test file's
+        // own location so it is CWD-independent -- not a machine-wide temp dir.
+        const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+        const scratch = join(repoRoot, '.sw-tmp');
+        mkdirSync(scratch, { recursive: true });
+        tmpRoot = mkdtempSync(join(scratch, 'swts_deprosed_'));
+        deprosedPath = join(tmpRoot, 'schema.json');
+
+        // Start from the real bundled schema and strip the description from ONE
+        // verb, so the file differs from the shipped one in exactly that respect.
+        const bundled = JSON.parse(
+          readFileSync(fileURLToPath(new URL('../src/schema.json', import.meta.url)), 'utf8'),
+        ) as Record<string, unknown>;
+        const defs = bundled['$defs'] as Record<string, Record<string, unknown>>;
+        const target = defs[schemaDefKeyForVerb(bundled, UNENRICHED_VERB)]!;
+        const outer = target['properties'] as Record<string, Record<string, unknown>>;
+        delete outer[UNENRICHED_VERB]!['description'];
+
+        writeFileSync(deprosedPath, JSON.stringify(bundled));
+        deprosed = new SchemaUtils({ schemaPath: deprosedPath });
+      });
+
+      afterEach(() => {
+        rmSync(tmpRoot, { recursive: true, force: true });
+      });
+
+      it('loaded the de-prosed schema, not the bundled one', () => {
+        // Load-failure is SILENT: loadSchema() falls back to the bundled schema
+        // while `schemaPath` still reads back whatever was passed in (verified:
+        // a bogus path yields schemaPath='/nonexistent/xyz.json' AND the full
+        // 39-verb bundled schema). So the readback proves nothing on its own --
+        // assert against the CONTENT that was actually loaded, otherwise this
+        // whole block could pass while testing the bundled schema.
+        const loaded = deprosed.loadSchema()!;
+        const defs = loaded['$defs'] as Record<string, Record<string, unknown>>;
+        const inner = defs[schemaDefKeyForVerb(loaded, UNENRICHED_VERB)]!['properties'] as Record<
+          string,
+          Record<string, unknown>
+        >;
+        expect(inner[UNENRICHED_VERB]).not.toHaveProperty('description');
+        // ...and the bundled schema DOES enrich it, so the absence above is the
+        // de-prosed copy and not a property the schema never had.
+        expect(schema.getVerbDescription(UNENRICHED_VERB)).not.toBe('');
+        expect(deprosed.hasVerb(UNENRICHED_VERB)).toBe(true);
+      });
+
+      it('returns empty string and does not throw', () => {
+        expect(() => deprosed.getVerbDescription(UNENRICHED_VERB)).not.toThrow();
+        expect(deprosed.getVerbDescription(UNENRICHED_VERB)).toBe('');
+      });
+
+      it('still exposes the verb and validates it normally', () => {
+        // Declining to document a verb must not degrade any other behaviour.
+        expect(deprosed.getVerbNames()).toContain(UNENRICHED_VERB);
+        expect(deprosed.getVerbProperties(UNENRICHED_VERB)).toHaveProperty('type', 'object');
+        expect(deprosed.validateVerb(UNENRICHED_VERB, {}).valid).toBe(true);
+      });
+
+      it('leaves other verbs unaffected', () => {
+        const other = schema.getVerbNames().find((v) => v !== UNENRICHED_VERB)!;
+        expect(deprosed.getVerbDescription(other)).toBe(schema.getVerbDescription(other));
+      });
     });
   });
 
