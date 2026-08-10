@@ -550,24 +550,73 @@ export class SchemaUtils {
 
   /**
    * Resolve the set of KNOWN top-level property names for a verb's config object,
-   * following a single `$ref` (e.g. AI -> AIObject). Returns `null` when the
-   * verb's config schema is not a CLOSED object-with-properties (so no shallow
-   * key check applies).
+   * following a single `$ref` (e.g. AI -> AIObject) and UNIONING the branches of
+   * an `anyOf`/`oneOf` union. Returns `null` only when there is genuinely no
+   * enumerable closed key-set (so no shallow key check applies).
    */
   private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
     const verb = this.verbs.get(verbName);
     if (!verb) return null;
     const outerProps = verb.definition['properties'] as Record<string, unknown> | undefined;
-    let body = outerProps?.[verbName] as Record<string, unknown> | undefined;
-    if (!body || typeof body !== 'object') return null;
-    // Follow a single $ref (AI -> AIObject) to the object declaring the props.
+    const body = outerProps?.[verbName] as Record<string, unknown> | undefined;
+    return this.closedKeySet(body, 0);
+  }
+
+  /**
+   * Resolve ONE schema node to the set of top-level property names it closes
+   * over, or `null` when it has no such enumerable closed key-set.
+   *
+   * Three node shapes are handled, and the union case is the one that matters:
+   *
+   * - `$ref` — followed into `$defs` and resolved recursively (ai -> AIObject).
+   * - `anyOf`/`oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without this the
+   *   resolver used to bail on the first `type !== 'object'` test, because a
+   *   union node carries no `type` of its own. That bail silently DISENGAGED the
+   *   closed-key check — the caller reads `null` as "nothing to enforce" and
+   *   answers valid for any key whatsoever. Five verbs in the shipped schema are
+   *   union-shaped (connect, play, send_sms, sleep, unset), so the check was
+   *   doing nothing for all of them. A union's known-key set is the union of its
+   *   object branches' keys: a config satisfying the union satisfies SOME branch,
+   *   so a key belonging to no branch belongs to no valid document. Non-object
+   *   branches (sleep's bare `integer`, SWMLVar) contribute no keys and are
+   *   skipped — they constrain the config to not be an object at all, a different
+   *   question from which keys an object config may carry.
+   * - a plain closed object — its own `properties`.
+   *
+   * `depth` bounds `$ref`/union following so a self-referential `$ref` cannot
+   * spin the resolver; eight is well past anything the SWML schema needs.
+   */
+  private closedKeySet(
+    body: Record<string, unknown> | undefined,
+    depth: number,
+  ): Set<string> | null {
+    if (!body || typeof body !== 'object' || depth > 8) return null;
+
+    // Follow a $ref (ai -> AIObject) to the node that declares the properties.
     const ref = body['$ref'];
     if (typeof ref === 'string') {
       const refName = ref.split('/').pop()!;
       const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
-      body = defs?.[refName] as Record<string, unknown> | undefined;
+      return this.closedKeySet(defs?.[refName] as Record<string, unknown> | undefined, depth + 1);
     }
-    if (!body || body['type'] !== 'object') return null;
+
+    // A union node: resolve every branch and union the ones that yield a set.
+    const branches = (body['anyOf'] ?? body['oneOf']) as unknown;
+    if (Array.isArray(branches)) {
+      const union = new Set<string>();
+      let found = false;
+      for (const b of branches) {
+        const keys = this.closedKeySet(b as Record<string, unknown> | undefined, depth + 1);
+        if (!keys) continue;
+        found = true;
+        for (const k of keys) union.add(k);
+      }
+      // No branch is a closed object (e.g. unset: string | array-of-string).
+      // There is no key-set to enforce; the deep validator owns this shape.
+      return found ? union : null;
+    }
+
+    if (body['type'] !== 'object') return null;
     const propMap = body['properties'];
     if (!propMap || typeof propMap !== 'object') return null;
     // Only a meaningful closed-key check when the schema closes the object.
