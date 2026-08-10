@@ -10,6 +10,39 @@ import { createRequire } from 'module';
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ValidateFunction } from 'ajv';
 
+/** The subset of the Ajv instance surface this module uses. */
+interface AjvInstance {
+  compile: (s: object) => ValidateFunction;
+  addSchema: (s: object, key: string) => void;
+}
+
+/**
+ * External `$ref` targets the bundled schema names but does NOT bundle.
+ *
+ * The bundled `schema.json` contains exactly one non-local `$ref`:
+ * `$defs/SWMLAction.SWML -> "SWMLObject.json"`, a sibling spec file that is not
+ * part of the bundle. Ajv resolves refs EAGERLY at compile time, so ANY verb
+ * whose `$defs` subtree transitively reaches `SWMLAction` used to throw
+ * `can't resolve reference SWMLObject.json from id #` — 8 of 39 verbs
+ * (`ai`, `ai_sidecar`, `amazon_bedrock`, `cond`, `connect`, `execute`,
+ * `join_conference`, `switch`), all via
+ * `… -> Action -> SWMLAction -> SWMLObject.json`.
+ *
+ * Registering a permissive placeholder makes the ref RESOLVE to an
+ * always-accept schema, so compilation succeeds and every OTHER constraint in
+ * the verb — most importantly the `unevaluatedProperties` closure that rejects
+ * unknown/misspelled keys — is enforced normally. Only the contents of the
+ * nested `SWML` payload go unchecked, which is precisely the behaviour of go's
+ * santhosh-tekuri validator, which tolerates the unresolved ref and still
+ * rejects the surrounding unknown keys.
+ *
+ * This is an Ajv *ref-resolution policy* applied to our own Ajv instance. It
+ * does not modify, vendor, or reinterpret `schema.json`; supplying the real
+ * `SWMLObject.json` remains an owner-held schema-artifact change, after which
+ * this placeholder can simply be dropped.
+ */
+const UNBUNDLED_EXTERNAL_REFS = ['SWMLObject.json'] as const;
+
 /** Result of validating a SWML document. */
 export interface ValidationResult {
   /** Whether the document passed all validation checks. */
@@ -143,7 +176,10 @@ export class SchemaUtils {
    *  `null` entry means a validator couldn't be built for that verb (fall back
    *  to lightweight). Shared Ajv instance is created once. */
   private verbValidators: Map<string, ValidateFunction | null> = new Map();
-  private ajv: { compile: (s: object) => ValidateFunction } | null | undefined = undefined;
+  private ajv: AjvInstance | null | undefined = undefined;
+  /** Verb names whose validator FAILED TO COMPILE (as opposed to verbs for which
+   *  no full validator is applicable). See {@link compileFailedVerbs}. */
+  private compileFailures: Map<string, string> = new Map();
 
   /**
    * Create a SchemaUtils instance.
@@ -181,6 +217,7 @@ export class SchemaUtils {
   loadSchema(): Record<string, unknown> | null {
     // A (re)load may change the schema; drop any compiled verb validators.
     this.verbValidators.clear();
+    this.compileFailures.clear();
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this._schemaPath) {
@@ -249,6 +286,37 @@ export class SchemaUtils {
    */
   get fullValidationAvailable(): boolean {
     return true;
+  }
+
+  /**
+   * The verbs whose full validator FAILED TO COMPILE, mapped to the compiler
+   * error — i.e. verbs for which {@link validateVerb} cannot actually validate.
+   *
+   * Only populated for verbs that have been validated at least once (validators
+   * compile lazily). It exists so a compile failure is OBSERVABLE rather than
+   * silent: previously such a failure fell through to the permissive lightweight
+   * check and the caller received `{valid: true, errors: []}` for a config
+   * nobody had validated.
+   *
+   * @returns A verb-name → compile-error map; empty when every compiled verb
+   *   validator built successfully.
+   */
+  get compileFailedVerbs(): Record<string, string> {
+    return Object.fromEntries(this.compileFailures);
+  }
+
+  /**
+   * Force every verb's full validator to compile, and report which ones failed.
+   *
+   * Validators are otherwise built lazily on first use, so a compile failure
+   * stays invisible until some caller happens to validate that verb. Calling
+   * this makes the whole set testable in one step.
+   *
+   * @returns A verb-name → compile-error map; empty when all verbs compile.
+   */
+  precompileVerbValidators(): Record<string, string> {
+    for (const verbName of this.verbs.keys()) this.getVerbValidator(verbName);
+    return this.compileFailedVerbs;
   }
 
   /**
@@ -388,6 +456,24 @@ export class SchemaUtils {
       };
     }
 
+    // No full validator. Distinguish the two very different reasons:
+    //  (a) the verb's schema FAILED TO COMPILE — validation did not happen, and
+    //      reporting `valid: true` here would be a false clean bill of health.
+    //      Refuse loudly instead.
+    //  (b) no full validator is applicable (partial/mocked schema, verb absent
+    //      from `$defs`) — the lightweight required-props check is the intended,
+    //      documented behaviour.
+    const compileError = this.compileFailures.get(verbName);
+    if (compileError !== undefined) {
+      return {
+        valid: false,
+        errors: [
+          `Schema validation unavailable for '${verbName}': its schema failed to compile ` +
+            `(${compileError}). The config was NOT validated; this is not a pass.`,
+        ],
+      };
+    }
+
     return this.validateVerbLightweight(verbName, config);
   }
 
@@ -397,7 +483,7 @@ export class SchemaUtils {
    * — a partial/mocked schema) so callers fall back to lightweight validation,
    * the TS mirror of Python's `_validate_verb_full` guard.
    */
-  private getAjv(): { compile: (s: object) => ValidateFunction } | null {
+  private getAjv(): AjvInstance | null {
     if (this.ajv !== undefined) return this.ajv;
     const props = (this.schema?.['properties'] as Record<string, unknown> | undefined) ?? {};
     if (!this.schema || !('sections' in props)) {
@@ -411,11 +497,24 @@ export class SchemaUtils {
     // stderr with one warning per field). We validate structure/keys, not
     // formats.
     const AjvCtor = (Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ?? Ajv2020;
-    this.ajv = new (AjvCtor as new (o: object) => { compile: (s: object) => ValidateFunction })({
+    const ajv = new (AjvCtor as new (o: object) => AjvInstance)({
       allErrors: true,
       strict: false,
       logger: false,
     });
+    // Ref policy: resolve the schema's unbundled external `$ref`s to a
+    // permissive placeholder so eager resolution cannot make compilation throw.
+    // See UNBUNDLED_EXTERNAL_REFS for why this is a policy and not a schema edit.
+    for (const ref of UNBUNDLED_EXTERNAL_REFS) {
+      try {
+        ajv.addSchema({ $id: ref }, ref);
+      } catch {
+        // A duplicate/invalid registration must not disable validation wholesale;
+        // if the ref genuinely can't be satisfied the per-verb compile below will
+        // fail and be reported LOUDLY rather than degrading silently.
+      }
+    }
+    this.ajv = ajv;
     return this.ajv;
   }
 
@@ -444,8 +543,17 @@ export class SchemaUtils {
         // it the raw const-union is enforced and the validator rejects values
         // the platform accepts (see applyWiden's own comment).
         built = ajv.compile(applyWiden({ $defs: defs, ...(verb.definition as object) }) as object);
-      } catch {
+        this.compileFailures.delete(verbName);
+      } catch (e) {
+        // A COMPILE FAILURE IS NOT "NOTHING TO VALIDATE". Record it so the
+        // caller is never handed a silent pass for a verb nobody validated:
+        // `validateVerb` reports it as an error rather than falling through to
+        // the always-permissive lightweight check. (Regression guarded: the
+        // unresolved external `$ref` SWMLObject.json used to make 8 verbs —
+        // connect among them — accept arbitrary unknown keys with
+        // `{valid:true,errors:[]}`.)
         built = null;
+        this.compileFailures.set(verbName, (e as Error)?.message ?? String(e));
       }
     }
     this.verbValidators.set(verbName, built);

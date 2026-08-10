@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { SchemaUtils } from '../src/SchemaUtils.js';
 
 /**
@@ -30,6 +31,22 @@ function schemaDefKeyForVerb(schemaDoc: Record<string, unknown>, verbName: strin
   }
   throw new Error(`no $defs entry declares verb '${verbName}'`);
 }
+
+/** Ajv's ESM/CJS interop default, as SchemaUtils itself resolves it. */
+const AjvCtor = ((Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ??
+  Ajv2020) as unknown as new (o: object) => object;
+
+/** A minimal VALID config for each verb that reaches the unbundled external $ref. */
+const legitConfigs: Record<string, unknown> = {
+  ai: { prompt: { text: 'hello' } },
+  ai_sidecar: { prompt: { text: 'hello' }, lang: 'en' },
+  amazon_bedrock: { prompt: { text: 'hello' } },
+  cond: [{ when: 'x == 1', then: [{ hangup: {} }] }],
+  connect: { to: 'sip:alice@example.com' },
+  execute: { dest: 'main' },
+  join_conference: { name: 'room1' },
+  switch: { variable: 'x', case: { a: [{ hangup: {} }] } },
+};
 
 describe('SchemaUtils — verb extraction and validation', () => {
   let schema: SchemaUtils;
@@ -327,6 +344,89 @@ describe('SchemaUtils — verb extraction and validation', () => {
     it('passes for sleep (anyOf typed verb)', () => {
       const result = schema.validateVerb('sleep', 5000);
       expect(result.valid).toBe(true);
+    });
+  });
+
+  // A verb whose $defs subtree transitively reaches `SWMLAction` hits the
+  // schema's one unbundled external `$ref` (`SWMLObject.json`). Ajv resolves
+  // refs EAGERLY, so compiling those verbs used to THROW; `getVerbValidator`'s
+  // bare catch swallowed it and `validateVerb` fell through to the permissive
+  // lightweight check — so a config nobody validated came back
+  // `{valid: true, errors: []}`. Measured on main @6a2aa09:
+  //   validateVerb('connect', {to, zzz_not_a_real_key}) -> {"valid":true,"errors":[]}
+  // 8 of 39 verbs degraded this way, all via
+  // `… -> Action -> SWMLAction -> SWMLObject.json`.
+  describe('unbundled external $ref must not silently disable validation', () => {
+    // Every verb that reached SWMLAction, i.e. the full blast radius.
+    const previouslyDegraded = [
+      'ai',
+      'ai_sidecar',
+      'amazon_bedrock',
+      'cond',
+      'connect',
+      'execute',
+      'join_conference',
+      'switch',
+    ];
+
+    // Compiling all 39 verbs eagerly is a test-only sweep and costs ~2.5s: the 7
+    // verbs that recurse through `SWMLMethod` are ~200-400ms each (they were
+    // "free" before only because they threw immediately). Real callers compile
+    // lazily and cache — one cold verb is ~330ms, warm is ~0.02ms.
+    it('compiles a validator for EVERY verb in the schema', () => {
+      expect(schema.precompileVerbValidators()).toEqual({});
+    }, 30_000);
+
+    it('rejects an unknown key on connect (the reported case)', () => {
+      const result = schema.validateVerb('connect', {
+        to: 'sip:alice@example.com',
+        zzz_not_a_real_key: 1,
+      });
+      expect(result.valid).toBe(false);
+    });
+
+    it('still accepts a legitimate connect config', () => {
+      expect(schema.validateVerb('connect', { to: 'sip:alice@example.com' }).valid).toBe(true);
+    });
+
+    it.each(previouslyDegraded)('rejects an unknown key on %s', (verb) => {
+      // `cond` takes an ARRAY of CondParams; inject the bogus key into an element.
+      const config: Record<string, unknown> | unknown[] =
+        verb === 'cond'
+          ? [{ when: 'x == 1', then: [{ hangup: {} }], zzz_not_a_real_key: 1 }]
+          : { ...(legitConfigs[verb] as object), zzz_not_a_real_key: 1 };
+      expect(schema.validateVerb(verb, config).valid).toBe(false);
+    });
+
+    it.each(previouslyDegraded)('still accepts a legitimate %s config', (verb) => {
+      expect(schema.validateVerb(verb, legitConfigs[verb]).valid).toBe(true);
+    });
+
+    // The ref policy is the root fix; THIS is the backstop. Even if a verb's
+    // schema someday fails to compile for an unrelated reason, the caller must
+    // be told validation did not happen rather than handed a false pass.
+    it('reports a refusal, never `valid: true`, when a verb fails to compile', () => {
+      const su = new SchemaUtils();
+      su.getVerbNames();
+      // Reinstate the pre-fix condition: an Ajv instance with no placeholder
+      // registered for the unbundled external ref.
+      const internals = su as unknown as {
+        ajv: unknown;
+        verbValidators: Map<string, unknown>;
+        compileFailures: Map<string, string>;
+      };
+      internals.verbValidators.clear();
+      internals.compileFailures.clear();
+      internals.ajv = new AjvCtor({ allErrors: true, strict: false, logger: false });
+
+      const result = su.validateVerb('connect', {
+        to: 'sip:alice@example.com',
+        zzz_not_a_real_key: 1,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain('failed to compile');
+      expect(result.errors[0]).toContain('NOT validated');
+      expect(Object.keys(su.compileFailedVerbs)).toContain('connect');
     });
   });
 
