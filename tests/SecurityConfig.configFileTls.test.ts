@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { SWMLService, SecurityConfig } from '../src/SWMLService.js';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { request as httpsRequest } from 'node:https';
 import { request as httpRequest } from 'node:http';
@@ -16,7 +17,21 @@ import type { AddressInfo } from 'node:net';
 // HTTP with no error while the operator believed it was serving HTTPS. So each
 // test starts a real server and speaks a real protocol to it.
 
-const TEST_DIR = join(process.cwd(), '__config_file_tls_test_tmp__');
+// Repo-local scratch (gitignored .sw-tmp/), derived from THIS FILE's own location
+// so it is CWD-independent, and made unique per run by mkdtemp. Both halves are
+// load-bearing for parallel safety, and both were absent:
+//   - process.cwd() is a property of the RUNNER, not of this file, so every copy
+//     of this test resolved to the SAME directory. With sibling agent worktrees
+//     under .claude/worktrees/, four copies of this file got collected into one
+//     run and raced on one path -- until one copy's afterAll rm -rf deleted the
+//     fixtures out from under the other three mid-openssl.
+//   - a fixed basename would still collide between two concurrent runs of this
+//     same file (e.g. two checkouts, or a watch-mode rerun overlapping itself).
+// mkdtemp makes collision impossible by construction rather than by scheduling
+// luck: isolation comes from SCOPING the path we own, never from serialising.
+const SCRATCH_ROOT = join(fileURLToPath(new URL('..', import.meta.url)), '.sw-tmp');
+mkdirSync(SCRATCH_ROOT, { recursive: true });
+const TEST_DIR = mkdtempSync(join(SCRATCH_ROOT, 'swts_config_file_tls_'));
 const CERT = join(TEST_DIR, 'cert.pem');
 const KEY = join(TEST_DIR, 'key.pem');
 const CONFIG = join(TEST_DIR, 'tls_config.json');

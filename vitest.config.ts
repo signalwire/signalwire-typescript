@@ -5,6 +5,28 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
+    // Collect ONLY this checkout's own tests. Without an explicit include,
+    // vitest's default glob sweeps the entire tree from the project root --
+    // which, on a working machine, includes sibling agent worktrees under
+    // .claude/worktrees/*. Measured: 955 files collected, of which 816 (85%)
+    // belonged to OTHER checkouts, including four copies of every test in
+    // this suite, all EXECUTED as part of `npm test`.
+    //
+    // That is not merely wasted work: those copies are different revisions of
+    // the same tests running against THIS checkout's shared resources, so a
+    // sibling worktree's content decides whether this repo's suite is green.
+    // (It concretely broke SecurityConfig.configFileTls.test.ts, whose fixture
+    // dir was cwd-derived and therefore identical across all four copies.)
+    //
+    // INCLUDE rather than EXCLUDE, deliberately: an exclude list is open by
+    // construction -- it only bars the directory shapes we thought to name, so
+    // the next stray checkout (a differently-named worktree dir, a vendored
+    // copy, a node_modules-nested fixture) silently starts running again, and
+    // the failure it causes looks like a flake because it depends on what else
+    // happens to be on disk. An include is closed by construction: every test
+    // this repo runs lives under tests/, so anything outside it is not ours to
+    // run. Verified to collect exactly the same 139 files as before.
+    include: ['tests/**/*.test.ts'],
     // Wire CA trust for the TLS capability tests (tests/tls/*) BEFORE the
     // worker forks: this globalSetup runs gen_certs.sh and exports
     // NODE_EXTRA_CA_CERTS so the worker boots trusting the porting-sdk test CA.
