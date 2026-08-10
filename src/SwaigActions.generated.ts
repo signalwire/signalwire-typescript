@@ -8,8 +8,8 @@
 // same lint bar as hand source.
 
 export interface ContextSwitchAction {
-  consolidate?: boolean;
-  full_reset?: boolean;
+  consolidate?: boolean | string;
+  full_reset?: boolean | string;
   system_pom?: {
     pom?: Record<string, unknown>[];
     text?: string;
@@ -30,13 +30,13 @@ export interface HoldAction {
 
 export interface PlaybackBgAction {
   file?: string;
-  wait?: boolean;
+  wait?: boolean | string;
   [key: string]: unknown;
 }
 
 export interface TransferAction {
   dest?: string;
-  summarize?: boolean;
+  summarize?: boolean | string;
   [key: string]: unknown;
 }
 
@@ -49,7 +49,7 @@ export interface SwaigAction {
       }
     | string
   )[];
-  back_to_back_functions?: boolean | 'forever';
+  back_to_back_functions?: boolean | 'forever' | string;
   change_context?: string;
   change_step?: string;
   clear_dynamic_hints?: boolean | string;
@@ -77,7 +77,7 @@ export interface SwaigAction {
   unset_meta_data?: string | string[];
   user_event?: Record<string, unknown>;
   user_input?: string;
-  wait_for_user?: boolean | number | 'answer_first';
+  wait_for_user?: boolean | number | 'answer_first' | string;
   [key: string]: unknown;
 }
 
