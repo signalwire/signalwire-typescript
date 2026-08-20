@@ -3,7 +3,7 @@
  *
  * Provides configurable static file serving with security features including
  * basic auth, extension filtering, directory browsing, file size limits,
- * CORS, and SSL support. Equivalent to the Python SDK's WebService class.
+ * CORS, and SSL support.
  */
 
 import { Hono } from 'hono';
@@ -99,7 +99,7 @@ function formatSize(bytes: number): string {
  *
  * Provides configurable static file hosting with per-route directory mounting,
  * extension filtering, file size limits, HTTP Basic Auth, CORS, directory
- * browsing, and optional SSL/TLS. Mirrors the Python SDK's `WebService` class.
+ * browsing, and optional SSL/TLS.
  *
  * Useful when an agent or prefab needs to serve supporting assets — prompts, audio
  * files, images — from the same process without running a separate nginx / CDN.
@@ -230,12 +230,10 @@ export class WebService {
   /**
    * The SSL/TLS configuration for this service.
    *
-   * Mirrors the Python SDK's `security` attribute (`SecurityConfig`), which
-   * exposes SSL settings for post-construction inspection.  In the Python SDK
-   * `SecurityConfig` also covers CORS origins, HSTS, allowed hosts, and rate
-   * limiting; in this SDK those concerns are configured via their own
-   * constructor options (`enableCors`, `ssl`, etc.) and Hono middleware rather
-   * than a single combined object.
+   * Exposes SSL settings for post-construction inspection. CORS origins, HSTS,
+   * allowed hosts, and rate limiting are NOT covered here — those concerns are
+   * configured via their own constructor options (`enableCors`, `ssl`, etc.)
+   * and Hono middleware rather than a single combined object.
    *
    * @returns The `SslConfig` instance used by this service.
    */
@@ -255,11 +253,16 @@ export class WebService {
    * @param sslKey - Path to SSL key file (overrides `SslConfig`).
    * @returns Resolves once the server has begun listening.
    */
-  async start(host?: string, port?: number, sslCert?: string, sslKey?: string): Promise<void> {
+  async start(
+    host: string = '0.0.0.0', // intended server default: listen on all interfaces (overridable)
+    port?: number,
+    sslCert?: string,
+    sslKey?: string,
+  ): Promise<void> {
     // When loaded by the CLI tool, skip server startup.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
 
-    const h = host ?? '0.0.0.0';
+    const h = host;
     const p = port ?? this.port;
 
     // Determine SSL configuration

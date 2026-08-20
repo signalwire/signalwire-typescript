@@ -28,9 +28,8 @@ type LogStream = 'stdout' | 'stderr';
  * The env var is operator input and MUST NOT fail open to full verbosity. An
  * uppercase (`WARN`) or mixed-case (`Warn`) value is lowercased so it matches
  * the closed level set; any value that is still not a known level (a typo, an
- * empty string, `verbose`) falls back to `'info'` — never to `'debug'`. This
- * matches the Python reference, which `.lower()`s the value with an `'info'`
- * default (`core/logging_config.py:141`). Without this, an unknown value made
+ * empty string, `verbose`) falls back to `'info'` — never to `'debug'`.
+ * Without this, an unknown value made
  * `LEVELS[globalLevel]` `undefined`, the `<` comparison at the filter site was
  * always false, and NOTHING was filtered — an operator asking for LESS output
  * (e.g. `WARN`) got ALL output, a log-leak footgun.
@@ -42,7 +41,7 @@ function normalizeLogLevel(raw: string | undefined): LogLevel {
 }
 
 /**
- * Detect the execution environment, matching the Python SDK's `get_execution_mode()`.
+ * Detect the execution environment.
  * @returns the environment name: 'cgi' | 'lambda' | 'google_cloud_function' |
  *   'azure_function' | 'server'.
  */
@@ -61,11 +60,12 @@ export function getExecutionMode(): string {
 }
 
 /**
- * The log-mode TS derives from the execution environment. Kept separate from
- * `getExecutionMode()` so that function matches Python's string-only contract
- * (Python derives the log mode in `configure_logging`, not in get_execution_mode).
- * TS's mapping is richer than Python's `cgi→off else default`: it also routes the
- * serverless envs to stderr/default as before.
+ * The log-mode derived from the execution environment: `cgi` → `off` (a CGI
+ * process must not write log noise into its response stream), `lambda` →
+ * `stderr`, and every other environment → `default`.
+ *
+ * Kept separate from `getExecutionMode()` so that function keeps its string-only
+ * contract of naming the environment and nothing more.
  */
 function getDerivedLogMode(): 'off' | 'stderr' | 'default' {
   switch (getExecutionMode()) {
@@ -180,7 +180,7 @@ let _loggingConfigured = false;
 
 /**
  * Configure the logging system once, globally, from environment variables.
- * Mirrors Python SDK's `configure_logging()`: it reads `SIGNALWIRE_LOG_MODE`,
+ * Reads `SIGNALWIRE_LOG_MODE`,
  * `SIGNALWIRE_LOG_LEVEL`, and `SIGNALWIRE_LOG_FORMAT` and applies them, and is
  * idempotent — subsequent calls are a no-op until {@link resetLoggingConfiguration}
  * is invoked. (Use `resetLoggingConfiguration()` to force a re-read of the env.)
@@ -228,16 +228,15 @@ const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
 
 /**
  * Strip control characters from all string values in a data record to prevent
- * log injection attacks. Mirrors Python SDK's `strip_control_chars` structlog
- * processor. Processes nested objects and arrays recursively.
+ * log injection attacks. Processes nested objects and arrays recursively.
  *
- * @param data - The record whose string values should be sanitized.
- * @returns A shallow copy of `data` with control characters removed from strings.
+ * @param eventDict - The log event record whose string values should be sanitized.
+ * @returns A shallow copy of `eventDict` with control characters removed from strings.
  */
-export function stripControlChars<T extends Record<string, unknown>>(data: T): T {
+export function stripControlChars<T extends Record<string, unknown>>(eventDict: T): T {
   const result = {} as T;
-  for (const key of Object.keys(data) as (keyof T)[]) {
-    const value = data[key];
+  for (const key of Object.keys(eventDict) as (keyof T)[]) {
+    const value = eventDict[key];
     if (typeof value === 'string') {
       result[key] = value.replace(CONTROL_CHAR_RE, '') as T[keyof T];
     } else if (Array.isArray(value)) {

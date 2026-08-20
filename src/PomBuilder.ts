@@ -449,7 +449,6 @@ export class PomBuilder {
   /**
    * Returns the underlying {@link PromptObjectModel} for the builder.
    *
-   * Mirrors Python's `PomBuilder.pom` attribute (the wrapped low-level model).
    * Returns a fresh `PromptObjectModel` populated from the builder's current
    * sections; mutations on the returned instance do not propagate back to
    * this builder.

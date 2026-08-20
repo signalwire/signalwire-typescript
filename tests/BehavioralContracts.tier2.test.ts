@@ -522,7 +522,7 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
       voice: 'rime.spore',
       engine: 'rime',
       speechModel: 'arcana',
-      fillers: { default: ['um', 'let me check'] },
+      speechFillers: ['um', 'let me check'],
     });
 
     const languages = aiBlock(agent)['languages'] as Array<Record<string, unknown>>;
@@ -532,7 +532,61 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
     expect(lang['code']).toBe('en-US');
     expect(lang['engine']).toBe('rime'); // dropped by a degraded impl
     expect(lang['speech_model']).toBe('arcana'); // model — dropped by a degraded impl
-    expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
+    // Only ONE filler list was given, so the reference emits the DEPRECATED single
+    // `fillers` key carrying it (ai_config_mixin.py: `fillers = speech_fillers or
+    // function_fillers`) — a FLAT string list, per the SWML schema.
+    expect(lang['fillers']).toEqual(['um', 'let me check']);
+  });
+
+  it('both filler lists render under their canonical flat-array wire keys', () => {
+    const agent = new AgentBase({ name: 'lang2', route: '/lang2' });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'josh',
+      speechFillers: ['um', 'uh'],
+      functionFillers: ['checking that now'],
+    });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    // `LanguagesWithFillers` in the SWML schema types both as
+    // {"type":"array","items":"string"} — not a nested object.
+    expect(lang['speech_fillers']).toEqual(['um', 'uh']);
+    expect(lang['function_fillers']).toEqual(['checking that now']);
+    expect(lang['fillers']).toBeUndefined(); // the deprecated key is NOT emitted when both are given
+  });
+
+  it('a combined "engine.voice:model" voice splits into the three wire keys', () => {
+    const agent = new AgentBase({ name: 'lang3', route: '/lang3' });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'elevenlabs.josh:eleven_turbo_v2_5',
+    });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    expect(lang['voice']).toBe('josh');
+    expect(lang['engine']).toBe('elevenlabs');
+    expect(lang['model']).toBe('eleven_turbo_v2_5');
+  });
+
+  it('every emitted language object carries the schema-required voice key', () => {
+    // `LanguagesWithFillers.required` is ["name","code","voice"] (src/schema.json),
+    // and the reference declares `voice` as a required positional. `voice` being
+    // OPTIONAL in TS let a caller emit {"name","code"} with no voice at all — a
+    // language object the engine rejects. It is required now; this is the wire
+    // proof, not just the type signature.
+    const agent = new AgentBase({ name: 'lang4', route: '/lang4' });
+    agent.setPromptText('hi');
+    agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
+
+    const lang = (aiBlock(agent)['languages'] as Array<Record<string, unknown>>)[0]!;
+    for (const key of ['name', 'code', 'voice']) {
+      expect(Object.keys(lang)).toContain(key);
+    }
+    expect(lang['voice']).toBe('rachel');
   });
 });
 
@@ -598,6 +652,36 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     expect(insecureUrl).not.toContain('__token=');
   });
 
+  // The token TOPOLOGY the SECURE-DEFAULT differ derives from the rendered keys
+  // (diff_port_secure_default.token_carrier). Asserting only "the URL contains
+  // __token=" / "it does not" is too weak in BOTH directions, and both weaknesses
+  // are shipped defects elsewhere in the fleet:
+  //   * java put its token in the `meta_data_token` FIELD — a SWML metadata
+  //     SCOPING key the engine MD5-derives from public config and never validates
+  //     — while leaving web_hook_url tokenless. A "contains __token=" assertion on
+  //     the secure entry catches that, but nothing pinned that no OTHER key
+  //     carries a credential.
+  //   * an insecure tool must carry NO per-tool web_hook_url AT ALL (it falls back
+  //     to the shared, unauthenticated SWAIG defaults.web_hook_url). A tokenless
+  //     per-tool webhook still satisfies `not.toContain('__token=')` while
+  //     publishing an unauthenticated function-specific callback.
+  it('carries the token ONLY as a __token query param, and gives an insecure tool no webhook at all', () => {
+    const byName = swaigFunctionsByName(fixtureAgent());
+
+    const secure = byName['sd_default_secure']!;
+    const secureUrl = secure['web_hook_url'] as string;
+    // The carrier is the query param on the function's OWN webhook...
+    expect([...new URL(secureUrl).searchParams.keys()]).toContain('__token');
+    // ...and NO other key on the entry may carry a token (the meta_data_token misuse).
+    const tokenishFields = Object.keys(secure).filter(
+      (k) => k !== 'web_hook_url' && k.toLowerCase().endsWith('token'),
+    );
+    expect(tokenishFields).toEqual([]);
+
+    // An insecure tool omits the key entirely — not "present but tokenless".
+    expect(byName['sd_explicit_insecure']!).not.toHaveProperty('web_hook_url');
+  });
+
   it('defineTypedTool is secure by default too (both registration paths)', () => {
     const agent = new AgentBase({ name: 'typed-sd', route: '/tsd', basicAuth: ['u', 'p'] });
     agent.setPromptText('typed secure default');
@@ -613,9 +697,9 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     // route:'/' so the SWAIG endpoint is served at '/swaig' (the fixture agent
     // above is routed at '/sd', where it would be '/sd/swaig').
     //
-    // Parity with the reference (agent_base.py:1413-1445): a token that IS
-    // supplied must be valid for a secure function; a missing token does not by
-    // itself block dispatch (basic auth already gates the endpoint).
+    // Parity with the reference (`agent_base.py` `_swaig_pre_dispatch`): a
+    // `secure` tool REQUIRES a valid token. A supplied-but-wrong one is
+    // refused; so is an ABSENT one (pinned by the sibling test below).
     function agentFor(): AgentBase {
       const a = new AgentBase({ name: 'secure-dispatch', route: '/', basicAuth: ['u', 'p'] });
       a.setPromptText('secure default dispatch');
@@ -657,5 +741,273 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
       await post(agent, `?__token=${encodeURIComponent(valid)}`)
     ).json()) as Record<string, unknown>;
     expect(String(ok['response'])).toBe('dispatched');
+  });
+
+  // The FAIL-CLOSED contract. A `secure` tool invoked with NO `__token` at all
+  // must be refused exactly like one invoked with a forged token — omitting the
+  // credential can never be weaker than presenting a wrong one, or `secure`
+  // degrades into a flag that PERMITS anonymous calls.
+  //
+  // The reference (`agent_base.py` `_swaig_pre_dispatch`) computes validity
+  // ONCE — `token && call_id !== null && validate(...)` — and refuses whenever
+  // that is false AND the function is secure; an absent token is a way to FAIL
+  // validation, never a way to SKIP it (signalwire-python 7c2f253, owner-ruled
+  // 2026-07-29). Cross-port gate: SWAIG-HTTP-INVOKE fixture `token_absent`,
+  // golden `{handler_invoked: false, refused: true}`.
+  //
+  // The DEFECT this pins: TS nested the whole check inside `if (token) { … }`,
+  // so a tokenless POST fell straight through to `fn.execute` and the secure
+  // handler RAN. `token_forged` was refused correctly, which is exactly why the
+  // hole survived — the refusal path looked wired.
+  //
+  // Refusal shape is a 200 + FunctionResult body, never an HTTP error status:
+  // the engine (mod_openai) has no handling for a SWAIG refusal status, so the
+  // tool reports it cannot execute and the model relays that to the caller.
+  it('refuses a secure tool invoked with NO token at all (fail-CLOSED, not fail-open)', async () => {
+    function agentFor(): AgentBase {
+      const a = new AgentBase({ name: 'secure-failclosed', route: '/', basicAuth: ['u', 'p'] });
+      a.setPromptText('secure fail-closed');
+      a.defineTool({
+        name: 'fc_secure',
+        description: 'secure by default',
+        parameters: {},
+        handler: () => new FunctionResult('HANDLER RAN'),
+      });
+      a.defineTool({
+        name: 'fc_insecure',
+        description: 'explicitly insecure',
+        parameters: {},
+        secure: false,
+        handler: () => new FunctionResult('HANDLER RAN'),
+      });
+      return a;
+    }
+    const post = (a: AgentBase, fn: string, qs: string, callId: string | null) =>
+      a.getApp().request(`/swaig${qs}`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          function: fn,
+          argument: { parsed: [{}] },
+          ...(callId === null ? {} : { call_id: callId }),
+        }),
+      });
+
+    // (a) No `__token` query param at all, WITH a call_id — the corpus's
+    //     `token_absent` shape. The handler must NOT run.
+    const absent = (await (await post(agentFor(), 'fc_secure', '', 'c1')).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(String(absent['response'])).not.toBe('HANDLER RAN');
+    expect(String(absent['response'])).toContain('security token');
+
+    // (b) A token can only be validated AGAINST a call_id; with no call_id in
+    //     the body there is nothing to check it against, so even a
+    //     well-formed-looking token leaves the call unvalidated and refused.
+    const noCallId = (await (
+      await post(agentFor(), 'fc_secure', '?__token=anything', null)
+    ).json()) as Record<string, unknown>;
+    expect(String(noCallId['response'])).not.toBe('HANDLER RAN');
+    expect(String(noCallId['response'])).toContain('security token');
+
+    // (c) The other direction — an INSECURE tool is not gated by any of this.
+    //     A fix that refuses every tokenless call would break the unwrap
+    //     fixtures (`platform_nested` / `flat_arguments`) which target a
+    //     `secure: false` tool with no token; this keeps that honest.
+    const insecure = (await (await post(agentFor(), 'fc_insecure', '', 'c1')).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(String(insecure['response'])).toBe('HANDLER RAN');
+  });
+});
+
+// ── The SERVERLESS half of the same token contract ───────────────────────────
+//
+// The sibling suite above proves the matrix over the HTTP transport. This one
+// proves it over the SERVERLESS envelope, and the reason it is a SEPARATE test
+// rather than a parameterisation is that the two transports carry the
+// credential differently and only their INTERSECTION is the contract:
+//
+//   * the `__token` rides the lambda event's `queryStringParameters` (the
+//     PARSED mapping, present in both the REST-API-v1 and HTTP-API-v2 payload
+//     shapes) — NOT a header, NOT the body;
+//   * the `call_id` rides the POST BODY, read back as `raw_data.call_id`.
+//
+// That split is the reference's own (`_build_webhook_url`'s serverless branch
+// STRIPS call_id from the query and keeps only `__token`), so serverless is not
+// a weaker transport — it is the identical contract over a different envelope.
+//
+// In THIS port both transports are enforced by ONE check, because
+// `runServerless` translates the event into a `Request` and routes it through
+// `getApp()` — the very Hono app the HTTP server serves. That is worth pinning
+// precisely BECAUSE it is a structural claim: if someone ever gives serverless
+// its own dispatch, these assertions are what catches the second, unguarded
+// copy. (In the reference the analogous function was defined TWICE and MRO
+// picked the winner, so patching the visible one enforced nothing.)
+//
+// Cross-port gate: BEHAVIORAL-HTTP fixtures `http_serverless_lambda_swaig`
+// (refusal) and `http_serverless_lambda_swaig_valid_token` (acceptance).
+describe('SWAIG __token enforcement over the SERVERLESS transport', () => {
+  const USER = 'u';
+  const PASSWORD = 'p';
+  const authHeader = 'Basic ' + Buffer.from(`${USER}:${PASSWORD}`).toString('base64');
+
+  function agentFor(): AgentBase {
+    const a = new AgentBase({ name: 'sls-token', route: '/', basicAuth: [USER, PASSWORD] });
+    a.setPromptText('serverless token matrix');
+    a.defineTool({
+      name: 'sls_secure',
+      description: 'secure by default',
+      parameters: {},
+      handler: () => new FunctionResult('HANDLER RAN'),
+    });
+    a.defineTool({
+      name: 'sls_insecure',
+      description: 'explicitly insecure',
+      parameters: {},
+      secure: false,
+      handler: () => new FunctionResult('HANDLER RAN'),
+    });
+    return a;
+  }
+
+  /** Invoke a tool through the lambda envelope; returns the parsed FunctionResult body. */
+  async function invoke(
+    a: AgentBase,
+    fn: string,
+    query: Record<string, string> | undefined,
+    callId: string | null,
+  ): Promise<Record<string, unknown>> {
+    const resp = await a.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: { authorization: authHeader, 'content-type': 'application/json' },
+        ...(query ? { queryStringParameters: query } : {}),
+        body: JSON.stringify({
+          function: fn,
+          argument: { parsed: [{}] },
+          ...(callId === null ? {} : { call_id: callId }),
+        }),
+      } as never,
+      undefined,
+      'lambda',
+    );
+    // The refusal is a 200 + FunctionResult body, never an HTTP error status:
+    // the engine has no handling for a SWAIG refusal status.
+    expect(resp.statusCode).toBe(200);
+    return JSON.parse(resp.body) as Record<string, unknown>;
+  }
+
+  it('accepts a GENUINELY MINTED token and RUNS the secure handler', async () => {
+    // The positive half. A fix that refuses everything — never validating, just
+    // always denying — would satisfy every other row here, so this row is what
+    // makes the rest of the matrix mean anything.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_secure', 'c1');
+    const ok = await invoke(a, 'sls_secure', { __token: valid }, 'c1');
+    expect(String(ok['response'])).toBe('HANDLER RAN');
+  });
+
+  it('refuses a FORGED token', async () => {
+    const bad = await invoke(agentFor(), 'sls_secure', { __token: 'forged' }, 'c1');
+    expect(String(bad['response'])).not.toBe('HANDLER RAN');
+    expect(String(bad['response'])).toContain('security token');
+  });
+
+  it('refuses an ABSENT token (fail-CLOSED)', async () => {
+    // No queryStringParameters at all — the shape a caller who simply omits the
+    // credential produces. Omitting it must never be weaker than presenting a
+    // wrong one.
+    const absent = await invoke(agentFor(), 'sls_secure', undefined, 'c1');
+    expect(String(absent['response'])).not.toBe('HANDLER RAN');
+    expect(String(absent['response'])).toContain('security token');
+  });
+
+  it('refuses when the call_id is ABSENT, even with a token present', async () => {
+    // A token is only meaningful against a call_id; with none in the body there
+    // is nothing to validate it against, so the call is unvalidated — which is
+    // a refusal, never a bypass.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    // Deliberately a REAL token for a REAL call_id — the point is that dropping
+    // the call_id from the body must not turn it into a skip.
+    const valid = sm.createToolToken('sls_secure', 'c1');
+    const noCallId = await invoke(a, 'sls_secure', { __token: valid }, null);
+    expect(String(noCallId['response'])).not.toBe('HANDLER RAN');
+    expect(String(noCallId['response'])).toContain('security token');
+  });
+
+  it('leaves an INSECURE tool ungated in every one of those cases', async () => {
+    // The other direction: `secure: false` opts out of the gate entirely, so
+    // none of the four rows above may gate it.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_insecure', 'c1');
+
+    const rows = [
+      await invoke(a, 'sls_insecure', { __token: valid }, 'c1'), // valid
+      await invoke(a, 'sls_insecure', { __token: 'forged' }, 'c1'), // forged
+      await invoke(a, 'sls_insecure', undefined, 'c1'), // absent
+      await invoke(a, 'sls_insecure', { __token: 'forged' }, null), // no call_id
+    ];
+    for (const row of rows) expect(String(row['response'])).toBe('HANDLER RAN');
+  });
+
+  it('pins the refusal WORDING verbatim — it is what the model speaks aloud', () => {
+    // The wording is wire contract, not a local message: the engine has no
+    // handling for a refusal, so the tool's `response` string is relayed to the
+    // caller by the model. It is byte-compared against the reference by the
+    // BEHAVIORAL-HTTP corpus, and every OTHER assertion in this file uses the
+    // weak `toContain('security token')` — which is exactly why this port
+    // drifted to a reworded refusal without a single test going red.
+    return invoke(agentFor(), 'sls_secure', undefined, 'c1').then((refused) => {
+      expect(refused['response']).toBe(
+        "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
+      );
+    });
+  });
+
+  it('routes serverless through the SAME Hono app as HTTP (one enforcement site)', async () => {
+    // The structural claim the matrix above rests on. If serverless ever grows
+    // its own dispatch, this is the assertion that fails first.
+    const a = agentFor();
+    const sm = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const valid = sm.createToolToken('sls_secure', 'c1');
+
+    const viaHttp = (await (
+      await a.getApp().request(`/swaig?__token=${encodeURIComponent(valid)}`, {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          function: 'sls_secure',
+          argument: { parsed: [{}] },
+          call_id: 'c1',
+        }),
+      })
+    ).json()) as Record<string, unknown>;
+    const viaServerless = await invoke(a, 'sls_secure', { __token: valid }, 'c1');
+    expect(viaServerless).toEqual(viaHttp);
+
+    // ...and the refusals agree too, not just the happy path.
+    const refusedHttp = (await (
+      await a.getApp().request('/swaig', {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          function: 'sls_secure',
+          argument: { parsed: [{}] },
+          call_id: 'c1',
+        }),
+      })
+    ).json()) as Record<string, unknown>;
+    const refusedServerless = await invoke(agentFor(), 'sls_secure', undefined, 'c1');
+    expect(refusedServerless).toEqual(refusedHttp);
   });
 });

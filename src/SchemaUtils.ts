@@ -10,6 +10,39 @@ import { createRequire } from 'module';
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ValidateFunction } from 'ajv';
 
+/** The subset of the Ajv instance surface this module uses. */
+interface AjvInstance {
+  compile: (s: object) => ValidateFunction;
+  addSchema: (s: object, key: string) => void;
+}
+
+/**
+ * External `$ref` targets the bundled schema names but does NOT bundle.
+ *
+ * The bundled `schema.json` contains exactly one non-local `$ref`:
+ * `$defs/SWMLAction.SWML -> "SWMLObject.json"`, a sibling spec file that is not
+ * part of the bundle. Ajv resolves refs EAGERLY at compile time, so ANY verb
+ * whose `$defs` subtree transitively reaches `SWMLAction` used to throw
+ * `can't resolve reference SWMLObject.json from id #` — 8 of 39 verbs
+ * (`ai`, `ai_sidecar`, `amazon_bedrock`, `cond`, `connect`, `execute`,
+ * `join_conference`, `switch`), all via
+ * `… -> Action -> SWMLAction -> SWMLObject.json`.
+ *
+ * Registering a permissive placeholder makes the ref RESOLVE to an
+ * always-accept schema, so compilation succeeds and every OTHER constraint in
+ * the verb — most importantly the `unevaluatedProperties` closure that rejects
+ * unknown/misspelled keys — is enforced normally. Only the contents of the
+ * nested `SWML` payload go unchecked, which is precisely the behaviour of go's
+ * santhosh-tekuri validator, which tolerates the unresolved ref and still
+ * rejects the surrounding unknown keys.
+ *
+ * This is an Ajv *ref-resolution policy* applied to our own Ajv instance. It
+ * does not modify, vendor, or reinterpret `schema.json`; supplying the real
+ * `SWMLObject.json` remains an owner-held schema-artifact change, after which
+ * this placeholder can simply be dropped.
+ */
+const UNBUNDLED_EXTERNAL_REFS = ['SWMLObject.json'] as const;
+
 /** Result of validating a SWML document. */
 export interface ValidationResult {
   /** Whether the document passed all validation checks. */
@@ -62,6 +95,70 @@ export interface VerbDefinition {
 const REQUIRED_TOP_LEVEL = ['version', 'sections'];
 const VALID_VERSIONS = ['1.0.0'];
 
+// Rewrite every widen-marked subschema so its const/enum union stops being
+// enforced as a CLOSED set, returning a new schema (the input is never mutated —
+// it is the loaded schema object, shared with `loadSchema` callers).
+//
+// The marker flags a field whose enum/const union documents the COMMON values
+// while the platform accepts any value of the base type. Ajv has never heard of
+// the keyword — under `strict: false` it silently ignores it and enforces the
+// raw union — so a validator compiled from the schema verbatim REJECTS documents
+// the platform accepts. That is the failure direction nobody probes: every test
+// anyone writes naturally picks a value from the union and passes, so the
+// validator looks correct right up until a user sends a valid document and the
+// SDK refuses to emit it. (The same hole existed in java and ruby, and became
+// live in both the moment emissions were routed through their validators.)
+//
+// The widening is deliberately NARROW: it drops only the value-constraining
+// keywords and keeps the base `type`, so a wrong TYPE still fails. Widening
+// means "any value of this type", never "anything at all" — the latter would
+// turn the marker into a way to switch validation off.
+//
+// The type generator applies the same marker at the type level
+// (`scripts/_gen-common.ts` `tsType`); the two must agree, or the SDK would
+// accept a value at runtime that its own emitted types refuse to express.
+function applyWiden(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(applyWiden);
+  if (node === null || typeof node !== 'object') return node;
+
+  const src = node as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(src)) out[k] = applyWiden(v);
+
+  if (src['x-sdk-widen'] !== true) return out;
+
+  // Recover the base type. It may be stated directly, or (the shape the SWML
+  // schema actually uses) only inside the const-union branches — `anyOf: [
+  // {type:'string',const:'hangup'}, … ]` — in which case every branch agrees
+  // and the first one carries it.
+  let baseType = out['type'];
+  if (baseType === undefined) {
+    const branches = (out['anyOf'] ?? out['oneOf']) as unknown;
+    if (Array.isArray(branches)) {
+      for (const b of branches) {
+        const t = (b as Record<string, unknown> | null)?.['type'];
+        if (t !== undefined) {
+          baseType = t;
+          break;
+        }
+      }
+    }
+  }
+
+  // Drop the value-constraining keywords, keep everything else (description,
+  // examples, format, …). If no base type could be recovered, leave the node
+  // untouched rather than erasing the constraint blindly — an unconstrained
+  // field is a worse outcome than a too-strict one, and a marker on a shape we
+  // do not understand is a schema bug worth surfacing rather than papering over.
+  if (baseType === undefined) return out;
+  delete out['anyOf'];
+  delete out['oneOf'];
+  delete out['enum'];
+  delete out['const'];
+  out['type'] = baseType;
+  return out;
+}
+
 /** Validates SWML documents against structural rules with an LRU-style result cache. */
 export class SchemaUtils {
   private skipValidation: boolean;
@@ -75,12 +172,14 @@ export class SchemaUtils {
    *  verb name. Each validates a single verb's config against JUST that verb's
    *  `$defs` definition (with the schema's `$defs` available for `$ref`s), the
    *  closed-schema check that raises on unknown/misspelled top-level keys and
-   *  wrong-typed values — the TS mirror of Python's jsonschema-rs
-   *  `_validate_verb_full`, but scoped to one verb so compilation is cheap. A
+   *  wrong-typed values — scoped to one verb so compilation is cheap. A
    *  `null` entry means a validator couldn't be built for that verb (fall back
    *  to lightweight). Shared Ajv instance is created once. */
   private verbValidators: Map<string, ValidateFunction | null> = new Map();
-  private ajv: { compile: (s: object) => ValidateFunction } | null | undefined = undefined;
+  private ajv: AjvInstance | null | undefined = undefined;
+  /** Verb names whose validator FAILED TO COMPILE (as opposed to verbs for which
+   *  no full validator is applicable). See {@link compileFailedVerbs}. */
+  private compileFailures: Map<string, string> = new Map();
 
   /**
    * Create a SchemaUtils instance.
@@ -110,16 +209,15 @@ export class SchemaUtils {
 
   /**
    * Load the schema from the path specified in opts.schemaPath (if given) or fall back
-   * to the bundled schema.json.  Mirrors Python's SchemaUtils which accepts an explicit
-   * schema_path and falls back to _get_default_schema_path() when None is supplied.
-   * Public accessor matching Python SDK's `load_schema()`, which returns the loaded
-   * schema dictionary (or `null` if unavailable). Also (re)populates the internal
-   * verb definitions as a side effect.
+   * to the bundled schema.json when no explicit path is supplied.
+   * Public accessor returning the loaded schema dictionary (or `null` if
+   * unavailable). Also (re)populates the internal verb definitions as a side effect.
    * @returns The loaded schema object, or `null` if it could not be loaded.
    */
   loadSchema(): Record<string, unknown> | null {
     // A (re)load may change the schema; drop any compiled verb validators.
     this.verbValidators.clear();
+    this.compileFailures.clear();
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this._schemaPath) {
@@ -146,7 +244,6 @@ export class SchemaUtils {
 
   /**
    * Extract verb definitions from `$defs/SWMLMethod.anyOf` in the schema.
-   * Mirrors Python SDK's `_extract_verb_definitions()`.
    */
   private extractVerbDefinitions(): Map<string, VerbDefinition> {
     const verbs = new Map<string, VerbDefinition>();
@@ -183,13 +280,43 @@ export class SchemaUtils {
   }
 
   /**
-   * Whether full JSON-Schema validation is available. Mirrors Python SDK's
-   * `full_validation_available` property (which reports whether `jsonschema` is
-   * installed). This SDK always bundles Ajv, so full validation is always
-   * available — this is constantly `true`.
+   * Whether full JSON-Schema validation is available — i.e. whether a full
+   * schema validator is installed. This SDK always bundles Ajv, so full
+   * validation is always available — this is constantly `true`.
    */
   get fullValidationAvailable(): boolean {
     return true;
+  }
+
+  /**
+   * The verbs whose full validator FAILED TO COMPILE, mapped to the compiler
+   * error — i.e. verbs for which {@link validateVerb} cannot actually validate.
+   *
+   * Only populated for verbs that have been validated at least once (validators
+   * compile lazily). It exists so a compile failure is OBSERVABLE rather than
+   * silent: previously such a failure fell through to the permissive lightweight
+   * check and the caller received `{valid: true, errors: []}` for a config
+   * nobody had validated.
+   *
+   * @returns A verb-name → compile-error map; empty when every compiled verb
+   *   validator built successfully.
+   */
+  get compileFailedVerbs(): Record<string, string> {
+    return Object.fromEntries(this.compileFailures);
+  }
+
+  /**
+   * Force every verb's full validator to compile, and report which ones failed.
+   *
+   * Validators are otherwise built lazily on first use, so a compile failure
+   * stays invisible until some caller happens to validate that verb. Calling
+   * this makes the whole set testable in one step.
+   *
+   * @returns A verb-name → compile-error map; empty when all verbs compile.
+   */
+  precompileVerbValidators(): Record<string, string> {
+    for (const verbName of this.verbs.keys()) this.getVerbValidator(verbName);
+    return this.compileFailedVerbs;
   }
 
   /**
@@ -216,8 +343,8 @@ export class SchemaUtils {
 
   /**
    * Get the parameter definitions for a specific verb — the map of parameter
-   * name → JSON-schema definition. Mirrors Python SDK's `get_verb_parameters()`:
-   * it returns the nested `properties` object of the verb's inner schema (whereas
+   * name → JSON-schema definition. Returns the nested `properties` object of
+   * the verb's inner schema (whereas
    * `getVerbProperties` returns the whole inner schema object).
    * @param verbName - The verb name (e.g. "ai", "answer").
    * @returns Dictionary mapping parameter names to their definitions, or `{}`.
@@ -264,7 +391,6 @@ export class SchemaUtils {
   /**
    * Lightweight validation of a verb config against the schema.
    * Checks that the verb exists and required properties are present.
-   * Mirrors Python SDK's `_validate_verb_lightweight()`.
    *
    * @param verbName - The verb name.
    * @param config - The verb configuration to validate.
@@ -330,6 +456,24 @@ export class SchemaUtils {
       };
     }
 
+    // No full validator. Distinguish the two very different reasons:
+    //  (a) the verb's schema FAILED TO COMPILE — validation did not happen, and
+    //      reporting `valid: true` here would be a false clean bill of health.
+    //      Refuse loudly instead.
+    //  (b) no full validator is applicable (partial/mocked schema, verb absent
+    //      from `$defs`) — the lightweight required-props check is the intended,
+    //      documented behaviour.
+    const compileError = this.compileFailures.get(verbName);
+    if (compileError !== undefined) {
+      return {
+        valid: false,
+        errors: [
+          `Schema validation unavailable for '${verbName}': its schema failed to compile ` +
+            `(${compileError}). The config was NOT validated; this is not a pass.`,
+        ],
+      };
+    }
+
     return this.validateVerbLightweight(verbName, config);
   }
 
@@ -339,7 +483,7 @@ export class SchemaUtils {
    * — a partial/mocked schema) so callers fall back to lightweight validation,
    * the TS mirror of Python's `_validate_verb_full` guard.
    */
-  private getAjv(): { compile: (s: object) => ValidateFunction } | null {
+  private getAjv(): AjvInstance | null {
     if (this.ajv !== undefined) return this.ajv;
     const props = (this.schema?.['properties'] as Record<string, unknown> | undefined) ?? {};
     if (!this.schema || !('sections' in props)) {
@@ -353,11 +497,24 @@ export class SchemaUtils {
     // stderr with one warning per field). We validate structure/keys, not
     // formats.
     const AjvCtor = (Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ?? Ajv2020;
-    this.ajv = new (AjvCtor as new (o: object) => { compile: (s: object) => ValidateFunction })({
+    const ajv = new (AjvCtor as new (o: object) => AjvInstance)({
       allErrors: true,
       strict: false,
       logger: false,
     });
+    // Ref policy: resolve the schema's unbundled external `$ref`s to a
+    // permissive placeholder so eager resolution cannot make compilation throw.
+    // See UNBUNDLED_EXTERNAL_REFS for why this is a policy and not a schema edit.
+    for (const ref of UNBUNDLED_EXTERNAL_REFS) {
+      try {
+        ajv.addSchema({ $id: ref }, ref);
+      } catch {
+        // A duplicate/invalid registration must not disable validation wholesale;
+        // if the ref genuinely can't be satisfied the per-verb compile below will
+        // fail and be reported LOUDLY rather than degrading silently.
+      }
+    }
+    this.ajv = ajv;
     return this.ajv;
   }
 
@@ -381,9 +538,22 @@ export class SchemaUtils {
         // Compile the verb's own definition (which is `{ properties: { <verb>:
         // <config-schema> }, ... }`) with $defs present so cross-verb $refs
         // resolve. Give it a fresh $id so repeat compiles never collide.
-        built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
-      } catch {
+        //
+        // `applyWiden` first: Ajv has never heard of `x-sdk-widen`, so without
+        // it the raw const-union is enforced and the validator rejects values
+        // the platform accepts (see applyWiden's own comment).
+        built = ajv.compile(applyWiden({ $defs: defs, ...(verb.definition as object) }) as object);
+        this.compileFailures.delete(verbName);
+      } catch (e) {
+        // A COMPILE FAILURE IS NOT "NOTHING TO VALIDATE". Record it so the
+        // caller is never handed a silent pass for a verb nobody validated:
+        // `validateVerb` reports it as an error rather than falling through to
+        // the always-permissive lightweight check. (Regression guarded: the
+        // unresolved external `$ref` SWMLObject.json used to make 8 verbs —
+        // connect among them — accept arbitrary unknown keys with
+        // `{valid:true,errors:[]}`.)
         built = null;
+        this.compileFailures.set(verbName, (e as Error)?.message ?? String(e));
       }
     }
     this.verbValidators.set(verbName, built);
@@ -392,8 +562,7 @@ export class SchemaUtils {
 
   /**
    * Lightweight validation (verb existence + required fields only). The fallback
-   * when the full validator can't be built. Mirrors Python's
-   * `_validate_verb_lightweight`.
+   * when the full validator can't be built.
    */
   private validateVerbLightweight(verbName: string, config: unknown): ValidationResult {
     const errors: string[] = [];
@@ -438,8 +607,6 @@ export class SchemaUtils {
    * legitimate deep ai shapes the bundled schema doesn't fully model (empty
    * `prompt.pom: []`, SWAIG `defaults`/`web_hook_url`/`__token`). `ai.params`
    * stays open (it is a known top-level key; its contents are never checked).
-   * Mirrors the python reference's AIVerbHandler.validate_config +
-   * validate_verb_top_level_keys.
    */
   private validateAiVerbStrict(config: unknown): ValidationResult {
     // The ai verb's config must be an object.
@@ -491,24 +658,73 @@ export class SchemaUtils {
 
   /**
    * Resolve the set of KNOWN top-level property names for a verb's config object,
-   * following a single `$ref` (e.g. AI -> AIObject). Returns `null` when the
-   * verb's config schema is not a CLOSED object-with-properties (so no shallow
-   * key check applies). Mirrors python's `_verb_top_level_property_names`.
+   * following a single `$ref` (e.g. AI -> AIObject) and UNIONING the branches of
+   * an `anyOf`/`oneOf` union. Returns `null` only when there is genuinely no
+   * enumerable closed key-set (so no shallow key check applies).
    */
   private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
     const verb = this.verbs.get(verbName);
     if (!verb) return null;
     const outerProps = verb.definition['properties'] as Record<string, unknown> | undefined;
-    let body = outerProps?.[verbName] as Record<string, unknown> | undefined;
-    if (!body || typeof body !== 'object') return null;
-    // Follow a single $ref (AI -> AIObject) to the object declaring the props.
+    const body = outerProps?.[verbName] as Record<string, unknown> | undefined;
+    return this.closedKeySet(body, 0);
+  }
+
+  /**
+   * Resolve ONE schema node to the set of top-level property names it closes
+   * over, or `null` when it has no such enumerable closed key-set.
+   *
+   * Three node shapes are handled, and the union case is the one that matters:
+   *
+   * - `$ref` — followed into `$defs` and resolved recursively (ai -> AIObject).
+   * - `anyOf`/`oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without this the
+   *   resolver used to bail on the first `type !== 'object'` test, because a
+   *   union node carries no `type` of its own. That bail silently DISENGAGED the
+   *   closed-key check — the caller reads `null` as "nothing to enforce" and
+   *   answers valid for any key whatsoever. Five verbs in the shipped schema are
+   *   union-shaped (connect, play, send_sms, sleep, unset), so the check was
+   *   doing nothing for all of them. A union's known-key set is the union of its
+   *   object branches' keys: a config satisfying the union satisfies SOME branch,
+   *   so a key belonging to no branch belongs to no valid document. Non-object
+   *   branches (sleep's bare `integer`, SWMLVar) contribute no keys and are
+   *   skipped — they constrain the config to not be an object at all, a different
+   *   question from which keys an object config may carry.
+   * - a plain closed object — its own `properties`.
+   *
+   * `depth` bounds `$ref`/union following so a self-referential `$ref` cannot
+   * spin the resolver; eight is well past anything the SWML schema needs.
+   */
+  private closedKeySet(
+    body: Record<string, unknown> | undefined,
+    depth: number,
+  ): Set<string> | null {
+    if (!body || typeof body !== 'object' || depth > 8) return null;
+
+    // Follow a $ref (ai -> AIObject) to the node that declares the properties.
     const ref = body['$ref'];
     if (typeof ref === 'string') {
       const refName = ref.split('/').pop()!;
       const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
-      body = defs?.[refName] as Record<string, unknown> | undefined;
+      return this.closedKeySet(defs?.[refName] as Record<string, unknown> | undefined, depth + 1);
     }
-    if (!body || body['type'] !== 'object') return null;
+
+    // A union node: resolve every branch and union the ones that yield a set.
+    const branches = (body['anyOf'] ?? body['oneOf']) as unknown;
+    if (Array.isArray(branches)) {
+      const union = new Set<string>();
+      let found = false;
+      for (const b of branches) {
+        const keys = this.closedKeySet(b as Record<string, unknown> | undefined, depth + 1);
+        if (!keys) continue;
+        found = true;
+        for (const k of keys) union.add(k);
+      }
+      // No branch is a closed object (e.g. unset: string | array-of-string).
+      // There is no key-set to enforce; the deep validator owns this shape.
+      return found ? union : null;
+    }
+
+    if (body['type'] !== 'object') return null;
     const propMap = body['properties'];
     if (!propMap || typeof propMap !== 'object') return null;
     // Only a meaningful closed-key check when the schema closes the object.

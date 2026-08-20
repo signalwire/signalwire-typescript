@@ -29,6 +29,10 @@ process.env['SIGNALWIRE_LOG_MODE'] = 'off';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createHmac } from 'node:crypto';
+// Type-only — erased at compile time, so it does NOT defeat the deferred-import
+// discipline above (the SDK must not load until SIGNALWIRE_LOG_MODE is set, or
+// logging reaches stdout and corrupts the JSON).
+import type { SessionManager } from '../src/SessionManager.js';
 
 const USER = 'user';
 const PASSWORD = 'pass';
@@ -236,6 +240,51 @@ async function main(): Promise<void> {
       'lambda',
     );
     out['http_serverless_lambda_swaig'] = reduceServerless(resp);
+  }
+  {
+    // The POSITIVE half of the serverless token contract. Identical to the case
+    // above in every respect EXCEPT that it carries a genuinely minted
+    // `__token`, so the pair differs in exactly ONE dimension and the two
+    // goldens together pin BOTH directions. Without this case a port that
+    // refused everything — never validating, just always denying — would match
+    // the refusal golden and look correct.
+    //
+    // The `__TOKEN__:<fn>:<call_id>` corpus entry is a DIRECTIVE, not a literal:
+    // the token is HMAC-keyed by this agent's own per-process SessionManager
+    // secret and it expires, so no fixed string could ever be valid. Each port
+    // mints its own from the SAME agent instance the case then drives (the
+    // oracle does this in diff_port_http._mint_token); only the ACCEPT/REFUSE
+    // outcome is compared across ports, never the token bytes.
+    //
+    // WHERE IT RIDES: `queryStringParameters` — the parsed mapping both the
+    // lambda REST-API-v1 and HTTP-API-v2 payload shapes provide — while the
+    // `call_id` rides the POST BODY. That split is the reference's own, and it
+    // is the same one the plain-HTTP path uses, so serverless is not a weaker
+    // transport, just a different envelope.
+    const a = new AgentBase({ name: 'demo', route: '/', basicAuth: [USER, PASSWORD] });
+    a.defineTool({
+      name: 'say_hello',
+      description: 'greet',
+      parameters: {},
+      handler: () => new FunctionResult('hello there'),
+    });
+    const sessionManager = (a as unknown as { sessionManager: SessionManager }).sessionManager;
+    const token = sessionManager.createToolToken('say_hello', 'c1');
+    const resp = await a.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: {
+          authorization: basicAuthHeader(USER, PASSWORD),
+          'content-type': 'application/json',
+        },
+        queryStringParameters: { __token: token },
+        body: '{"function":"say_hello","argument":{"parsed":[{}]},"call_id":"c1"}',
+      } as any,
+      undefined,
+      'lambda',
+    );
+    out['http_serverless_lambda_swaig_valid_token'] = reduceServerless(resp);
   }
   {
     const a = new AgentBase({ name: 'demo', route: '/', basicAuth: [USER, PASSWORD] });

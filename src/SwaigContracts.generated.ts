@@ -9,17 +9,23 @@
 // unmodeled server keys round-trip. Held to the same lint bar as hand-written
 // source (no rule suppressions, no loose types).
 
+import type { SwaigResponse } from './SwaigActions.generated.js';
+
 export interface SwaigArgument {
-  /** JSON objects parsed from the model's argument string (always an array, possibly empty). */
-  parsed?: unknown[];
-  /** The original argument string. */
+  /** JSON values scraped from the model's tool-call argument string (always an array, possibly empty). Each element is an object or an array -- never a scalar. */
+  parsed?: (Record<string, unknown> | unknown[])[];
+  /** the model's tool-call argument string, verbatim. */
   raw?: string;
-  /** The argument string with JSON blocks replaced. */
+  /** the model's tool-call argument string with the extracted JSON removed. Absent when the last extraction left no leading text (swaig.c:637-639). */
   substituted?: string;
   [key: string]: unknown;
 }
 
 export interface SwaigRequest {
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  SWMLCall?: Record<string, unknown>;
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  SWMLVars?: Record<string, unknown>;
   /** Always present. */
   ai_session_id?: string;
   /** Always present. */
@@ -32,7 +38,14 @@ export interface SwaigRequest {
   /** Always present. */
   call_id?: string;
   /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
-  call_log?: unknown[];
+  call_log?: {
+    content?: string;
+    role?: string;
+    /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
+    timestamp?: Record<string, unknown>;
+    /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
+    tool_calls?: Record<string, unknown>;
+  }[];
   /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
   caller_id_name?: string;
   /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
@@ -68,7 +81,14 @@ export interface SwaigRequest {
   /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
   project_id?: string;
   /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
-  raw_call_log?: unknown[];
+  raw_call_log?: {
+    content?: string;
+    role?: string;
+    /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
+    timestamp?: Record<string, unknown>;
+    /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
+    tool_calls?: Record<string, unknown>;
+  }[];
   /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
   space_id?: string;
   /** Always present. */
@@ -105,8 +125,14 @@ export interface PostPrompt {
   SWMLCall?: Record<string, unknown>;
   call_log?: PostPromptCallLogEntry[];
   raw_call_log?: PostPromptCallLogEntry[];
-  call_timeline?: Record<string, unknown>[];
-  previous_contexts?: Record<string, unknown>[][];
+  call_timeline?: {
+    ts?: number;
+    type?: string;
+  }[];
+  previous_contexts?: {
+    content?: string;
+    role?: string;
+  }[][];
   times?: PostPromptTimesEntry[];
   swaig_log?: PostPromptSwaigLogEntry[];
   total_minutes?: number;
@@ -124,8 +150,11 @@ export interface PostPrompt {
 }
 
 export interface PostPromptData {
-  parsed?: Record<string, unknown>[];
+  /** JSON values scraped from the LLM's post-prompt completion (always an array, possibly empty). Each element is an object or an array -- never a scalar. */
+  parsed?: (Record<string, unknown> | unknown[])[];
+  /** the LLM's post-prompt completion, verbatim. */
   raw?: string;
+  /** the LLM's post-prompt completion with the extracted JSON removed. Absent when the last extraction left no leading text (swaig.c:637-639). */
   substituted?: string;
   [key: string]: unknown;
 }
@@ -164,7 +193,14 @@ export interface PostPromptAssistantEntry {
   role?: string;
   content?: string;
   timestamp?: number;
-  tool_calls?: Record<string, unknown>[];
+  tool_calls?: {
+    function?: {
+      arguments?: string;
+      name?: string;
+    };
+    id?: string;
+    type?: string;
+  }[];
   latency?: number;
   utterance_latency?: number;
   audio_latency?: number;
@@ -216,14 +252,45 @@ export interface PostPromptSystemLogEntry {
   role?: string;
   content?: string;
   timestamp?: number;
-  action?: string;
+  /** closed set of 28 values, from two producers: `ai_conversation_system_log` (8); `tl_make_entry` (21). Derived from the call sites, not hand-listed. */
+  action?:
+    | 'attention_timeout'
+    | 'attention_wait'
+    | 'auto_correct'
+    | 'change_step_failed'
+    | 'check_for_input'
+    | 'context_enter'
+    | 'double_turn'
+    | 'filler'
+    | 'function_call'
+    | 'function_error'
+    | 'function_loop'
+    | 'gather_answer'
+    | 'gather_complete'
+    | 'gather_question'
+    | 'gather_reject'
+    | 'gather_start'
+    | 'hangup_hook'
+    | 'hearing_hint'
+    | 'inner_dialog'
+    | 'inner_dialog_scorecard'
+    | 'manual_say'
+    | 'reset'
+    | 'session_end'
+    | 'session_start'
+    | 'startup_hook'
+    | 'step_change'
+    | 'summarize_start'
+    | 'swaig_problem';
   lang?: string;
   tokens?: number;
   content_type?: string;
-  metadata?: Record<string, unknown>;
-  context?: string;
-  step?: string;
-  step_index?: number;
+  /** per-action detail. `tl_stamp_location` (timeline.c) stamps `context`/`step`/`step_index` here; the remaining keys vary by `action` and are open. Entries from the second producer (`ai_conversation_system_log`, conversation.c) carry their detail as TOP-LEVEL keys instead and have no `metadata` object. */
+  metadata?: {
+    context?: string;
+    step?: string;
+    step_index?: number;
+  };
   [key: string]: unknown;
 }
 
@@ -238,16 +305,22 @@ export interface PostPromptSwaigLogEntry {
   command_name?: string;
   command_arg?: string;
   epoch_time?: number;
-  native?: boolean;
+  /** present and true for a NATIVE function, which has no SWAIG handle (actions.c:1954); absent otherwise */
+  native?: true;
+  /** the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:1968-1971), so it is absent whenever `native` is present. */
   active_count?: number | 'endless';
   url?: string;
   post_data?: SwaigRequest;
-  post_response?: Record<string, unknown>;
-  delayed_post_response?: Record<string, unknown>;
+  /** the SWAIG webhook's response body, as returned (actions.c:2312). Mutually exclusive with delayed_post_response. */
+  post_response?: SwaigResponse;
+  /** the SWAIG webhook's response body when it is held for post-processing instead of executed immediately (actions.c:2256). Mutually exclusive with post_response. */
+  delayed_post_response?: SwaigResponse;
   mcp_url?: string;
   mcp_tool?: string;
-  mcp_response?: Record<string, unknown>;
-  mcp_error?: string;
+  /** the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2158). Not parsed JSON. */
+  mcp_response?: string;
+  /** present and true when the MCP tool returned no result (actions.c:2162); absent otherwise */
+  mcp_error?: true;
   [key: string]: unknown;
 }
 

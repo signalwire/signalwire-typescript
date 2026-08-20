@@ -76,6 +76,19 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  // The SWML/SWAIG webhook payload types. Both this file and the reference's
+  // `signalwire/rest/namespaces/swml_webhooks_types_generated.py` are generated
+  // from the SAME spec (porting-sdk/rest-apis/swml-webhooks/openapi.yaml), so
+  // they are the identical contract and must record the identical module. The
+  // SURFACE enumerator already carried this mapping; the signature enumerator
+  // did not, so it fell back to `signalwire.platform_contracts.generated`. That
+  // fallback carries none of the generator-module markers the diff checker's
+  // `normalize_type` looks for, so a `SwmlRequestData` param never collapsed to
+  // the `gen:<Name>` token — and the checker's existing rule that a generated
+  // TypedDict is compatible with `dict<string,any>` in either direction could
+  // not fire. The result was a spurious `SwmlRequestData` vs `dict<string,any>`
+  // param-mismatch on every dynamic-SWML hook, each one carried as an omission.
+  'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
@@ -149,6 +162,17 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   RestError: 'SignalWireRestError',
   // Same rationale as RestError above, for the transport-failure subclass.
   RestTransportError: 'SignalWireRestTransportError',
+  // Generated type names the TS emitter suffixes with `_` to avoid colliding with a
+  // TS built-in type (`Record<>`/`Set<>`); the reference (Python, no such collision)
+  // names them bare. Map back so they compare equal — the type analog of the
+  // reserved-word field rename (Python `from`→`from_`), and the same table
+  // `enumerate-surface.ts`'s BUILTIN_COLLISION_RENAME already applies. The
+  // signature enumerator simply never had it: before porting-sdk 4ddda70 the
+  // reference dropped both classes' only member (a primitive-typed field), so the
+  // classes were absent from the oracle entirely and the missing rename could not
+  // show up as drift.
+  Record_: 'Record',
+  Set_: 'Set',
 };
 
 /** Per-class canonical-module overrides (by post-alias class name). A TS file may
@@ -273,11 +297,14 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   // class has a slightly different method shape (``addSection`` etc.)
   // and is enumerated separately from PromptManager.ts; the projected
   // AgentBase methods are merged into the same module entry.
+  // `define_contexts` / `get_contexts` are NOT projected: TS's PromptManager ships
+  // them as real methods with the reference's own shape (`define_contexts(contexts)`
+  // REQUIRED, storing the value; `get_contexts()` reading it back). Projecting
+  // AgentBase's optional-arg builder entry over them would clobber the real
+  // signatures with a required-flip against the reference.
   PromptManager: [
     'signalwire.core.agent.prompt.manager',
     [
-      'define_contexts',
-      'get_contexts',
       'get_post_prompt',
       'get_prompt',
       'get_raw_prompt',
@@ -351,10 +378,24 @@ const SKIP_METHOD_NAMES = new Set([
 // object collapses a Python method's exploded KEYWORD argument set. For these,
 // unfold the object's members back to individual `keyword` params + a synthetic
 // `**kwargs` tail so the port signature matches the reference positionally (see
-// signatureFromMethod). Keyed by canonical `module.Class.method`. Only methods
-// whose Python reference uses keyword-only params belong here — methods that take
-// a SINGLE `dict` param (DataMap.foreach) or whose reference uses positional-or-
-// keyword params (the `ts-options-object`-excused set) MUST NOT be listed.
+// signatureFromMethod). Keyed by canonical `module.Class.method`.
+//
+// THE BOUNDARY — the one test that decides membership: does the reference method
+// EXPLODE into a keyword set, or does it take ONE genuine `dict` DOMAIN param?
+// Only the former belongs here. `DataMap.foreach(config: {input_key, output_key,
+// append, max?})` is the canonical counter-example and MUST NOT be listed: it is a
+// single required param whose object is passed through WHOLE onto the wire
+// (`webhook['foreach'] = config`), and its members are already snake_case because
+// they ARE the wire shape — not a TS options bag. Contrast `DataMap.webhook(method,
+// url, opts?)`, whose `opts` members are read off individually and mapped to
+// separate wire keys: that explodes, so it unfolds.
+//
+// A method whose reference uses positional-or-keyword (rather than keyword-only)
+// params is NOT excluded. That was the premise of the old `ts-options-object`
+// excused set, and it is false: diff_port_signatures.py::compare_param_properties
+// folds ref=`positional` → port=`keyword` (directional, wire-neutral — a Python
+// positional-or-keyword param IS callable by name), so those unfold and COMPARE
+// rather than needing an excuse.
 // (Set the env var UNFOLD_ALL=1 to unfold every options-object method — a build
 // aid for deriving this list; never used in CI.)
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
@@ -398,8 +439,63 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.relay.call.Call.user_event',
   'signalwire.relay.client.RelayClient.dial',
   'signalwire.relay.client.RelayClient.send_message',
+  // ── Wave C (2026-07-28): the former `ts-options-object` excused set ──────
+  // These were excused on the premise that unfolding leaves a residual KIND
+  // mismatch (reference `positional`, port `keyword`). That premise is false:
+  // diff_port_signatures.py::compare_param_properties folds ref=`positional` →
+  // port=`keyword` (directional, wire-neutral — a Python positional-or-keyword
+  // param IS callable by name). Unfolding them therefore COMPARES rather than
+  // being excused. Measured: excused 435 → 418, drift flat at 200.
+  'signalwire.core.contexts.GatherInfo.add_question',
+  'signalwire.core.contexts.Step.add_gather_question',
+  'signalwire.core.contexts.Step.set_gather_info',
+  'signalwire.core.data_map.DataMap.parameter',
+  'signalwire.core.data_map.DataMap.webhook',
+  'signalwire.core.data_map.create_expression_tool',
+  'signalwire.core.data_map.create_simple_api_tool',
+  'signalwire.core.function_result.FunctionResult.execute_rpc',
+  'signalwire.core.function_result.FunctionResult.join_conference',
+  'signalwire.core.function_result.FunctionResult.pay',
+  'signalwire.core.function_result.FunctionResult.record_call',
+  'signalwire.core.function_result.FunctionResult.send_sms',
+  'signalwire.core.function_result.FunctionResult.switch_context',
+  'signalwire.core.function_result.FunctionResult.tap',
+  'signalwire.core.function_result.FunctionResult.wait_for_user',
+  'signalwire.core.agent_base.AgentBase.add_mcp_server',
+  'signalwire.core.agent_base.AgentBase.add_pattern_hint',
+  'signalwire.core.agent_base.AgentBase.prompt_add_section',
+  'signalwire.core.agent_base.AgentBase.prompt_add_subsection',
+  'signalwire.core.agent_base.AgentBase.prompt_add_to_section',
+  'signalwire.core.pom_builder.PomBuilder.add_section',
+  'signalwire.core.pom_builder.PomBuilder.add_subsection',
+  'signalwire.core.pom_builder.PomBuilder.add_to_section',
+  'signalwire.core.swml_builder.SWMLBuilder.say',
+  'signalwire.core.agent_base.AgentBase.serve',
+  'signalwire.core.swml_service.SWMLService.serve',
+  // ── Wave C (2026-07-30): the `ts-named-options-type` excused set ────────────
+  // Same options-bag idiom as everything above; the ONLY difference is that the
+  // bag is a NAMED exported interface (`LanguageConfig`, `PronunciationRule`,
+  // `AIVerbBuildOptions`) rather than an inline type literal, which the old
+  // syntactic guard could not see through. `methodOptionsBagMembers` now resolves the
+  // reference to its declaration, so these unfold and COMPARE instead of being
+  // excused. Naming a bag is not a divergence in what the method accepts.
+  // add_language / add_pronunciation are keyed by their ENUMERATION-time ctx —
+  // the AgentBase class where they are physically declared — because the mixin
+  // projection copies the already-computed signature into the AIConfigMixin
+  // module afterward (same reason KWARGS_TAIL_ONLY keys its two setters there).
+  'signalwire.core.agent_base.AgentBase.add_language',
+  'signalwire.core.agent_base.AgentBase.add_pronunciation',
+  'signalwire.core.swml_handler.AIVerbHandler.build_config',
 ]);
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
+
+// Param NAMES the METHOD-path unfold accepts as an options bag. Deliberately
+// narrower than the ctor-path `OPTIONS_BAG_PARAM_NAMES` and gated on the
+// GENERAL_OPTIONS_UNFOLD allowlist as well, so a genuine single-dict DOMAIN param
+// (`DataMap.foreach`) is never mistaken for a bag. `rule` is here for
+// `addPronunciation(rule: PronunciationRule)` — the same bag, named for what it
+// holds rather than for being a bag.
+const METHOD_OPTIONS_BAG_PARAM_NAMES = new Set(['options', 'opts', 'config', 'rule']);
 
 // Hand-written methods whose Python reference is a PURE ``**kwargs``/``**params``
 // passthrough — ``def m(self, **params: Any)`` with NO exploded keyword set. The
@@ -768,6 +864,43 @@ function camelToSnake(name: string): string {
     .toLowerCase();
 }
 
+/**
+ * The `src/`-relative, extension-stripped stem of an ABSOLUTE source-file path,
+ * or `null` when the file is not under this repo's `src/`.
+ *
+ * WHY THIS EXISTS (checkout-location reproducibility). Three call sites used to
+ * derive the generated-module path by scanning the ABSOLUTE path with
+ * ``/\/src\/(.+?)\.ts$/``. That regex is unanchored, so it matches the FIRST
+ * ``/src/`` segment anywhere in the path — including one that belongs to a
+ * PARENT directory, not to this repo. The capture (and therefore every
+ * ``class:signalwire.<modPath>.<Name>`` leaf built from it) then depended on
+ * WHERE THE REPO HAPPENS TO BE CHECKED OUT:
+ *
+ * Checked out under a parent with NO ``src`` segment, the capture is the intended
+ * repo-relative one:
+ *     <workspace>/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *         → 'rest.namespaces.x.types.generated'                          (correct)
+ * Checked out under a parent directory that IS named ``src``, the earlier segment
+ * wins and the repo directory leaks into the module path:
+ *     <home>/src/signalwire-typescript/src/rest/namespaces/x.types.generated.ts
+ *         → 'signalwire-typescript.src.rest.namespaces.x.types.generated'  (WRONG)
+ *
+ * A developer whose workspace dir is literally named ``src`` (the documented
+ * adjacency layout in porting-sdk/CLAUDE.md §7 is exactly that) produced a
+ * DIFFERENT port_signatures.json from CI on the very same commit — 602 differing
+ * leaves, all of them this spurious ``<repo-dir>.src.`` prefix. The artifact is
+ * DRIFT's input, so a location-dependent enumerator makes the whole parity claim
+ * unreproducible. Anchoring on REPO_ROOT removes the ambiguity: there is exactly
+ * one ``src/`` that can match, and it is this repo's.
+ */
+function srcRelStem(absFileName: string): string | null {
+  const rel = path.relative(REPO_ROOT, absFileName);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  const posix = rel.split(path.sep).join('/');
+  if (!posix.startsWith('src/') || !posix.endsWith('.ts')) return null;
+  return posix.slice('src/'.length, -'.ts'.length);
+}
+
 function fallbackModuleName(fileRelPath: string): string {
   let rel = fileRelPath.replace(/^src\//, '').replace(/\.ts$/, '');
   // Generated REST modules follow the Python file-naming idiom in the oracle:
@@ -902,9 +1035,11 @@ function translateType(
       // so the diff checker's generated-type leaf-name normalization matches it
       // against Python's `class:...<gen-module>.<AliasName>`. A bare
       // `class:CallResponse` would lack the gen-module marker and not normalize.
-      // Derive the dotted module path from the source file under src/.
-      const m = srcFile.match(/\/src\/(.+?)\.ts$/);
-      const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+      // Derive the dotted module path from the source file under src/. Anchored on
+      // REPO_ROOT (see srcRelStem) so the result cannot depend on the checkout
+      // location.
+      const stem = srcRelStem(srcFile);
+      const modPath = stem ? stem.replace(/\//g, '.') : 'rest.namespaces';
       return `class:signalwire.${modPath}.${aliasSym.getName()}`;
     }
   }
@@ -973,7 +1108,15 @@ function translateType(
       const inner = translateType(filtered[0], checker, aliases, context);
       return hasNullish ? `optional<${inner}>` : inner;
     }
-    const parts = filtered.map((t) => translateType(t, checker, aliases, context));
+    // DEDUPE. A union is a SET, so identical canonical arms collapse. TS unions can
+    // hold several DISTINCT types that canonicalise to the SAME string — most often a
+    // string-literal union (`'provided' | 'environment' | 'generated'`), where every
+    // arm canonicalises to `string`. Emitting `union<string,string,string>` records a
+    // 3-arm union for what is one type; the diff's own normaliser dedupes at compare
+    // time, so this only ever made the stored artifact noisier than the surface it
+    // describes. Collapse to the single arm when they all agree.
+    const parts = [...new Set(filtered.map((t) => translateType(t, checker, aliases, context)))];
+    if (parts.length === 1) return hasNullish ? `optional<${parts[0]}>` : parts[0];
     const u = `union<${parts.join(',')}>`;
     return hasNullish ? `optional<${u}>` : u;
   }
@@ -1171,6 +1314,211 @@ function rawDefault(p: ts.ParameterDeclaration): unknown {
   return init.getText();
 }
 
+/**
+ * Resolve a class's `extends` clause to the base `ClassDeclaration`, or null.
+ *
+ * Follows the heritage identifier through the type checker to the declaration
+ * (including an aliased re-export), so a base imported from another module
+ * resolves the same as one declared in the same file.
+ */
+function resolveExtendsBase(
+  cls: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): ts.ClassDeclaration | null {
+  for (const h of cls.heritageClauses ?? []) {
+    if (h.token !== ts.SyntaxKind.ExtendsKeyword) continue;
+    for (const t of h.types) {
+      if (!t.expression || !ts.isIdentifier(t.expression)) continue;
+      let sym = checker.getSymbolAtLocation(t.expression);
+      if (sym && sym.flags & ts.SymbolFlags.Alias) {
+        try {
+          sym = checker.getAliasedSymbol(sym);
+        } catch {
+          // keep the un-aliased symbol
+        }
+      }
+      for (const d of sym?.declarations ?? []) {
+        if (ts.isClassDeclaration(d)) return d;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Lift composition members a class inherits from a PRIVATE base class.
+ *
+ * The TS analogue of the reference enumerator's `_wired_base_attributes`
+ * (porting-sdk/scripts/enumerate_python_signatures.py). Without it the whole
+ * `RestClient` resource tree is invisible to this oracle: `client.calling`,
+ * `client.fabric`, `client.video`, every flat resource and every namespace
+ * container is DECLARED on the generated `_GeneratedResourceTree` base that
+ * `RestClient extends`, not on `RestClient` itself
+ * (src/rest/namespaces/_client_tree_generated.ts, RULES §8). The member walk
+ * above only sees `cls.members`, so those 22 accessors were recorded nowhere —
+ * a pure enumerator blind spot, verified reachable at runtime by
+ * tests/rest/resource_tree_mock.test.ts.
+ *
+ * Keyed on STRUCTURE, never a name list — the base file is generated from
+ * `porting-sdk/rest-apis/*&#47;openapi.yaml`, so a new resource in the specs shows up
+ * here with no change to this function.
+ *
+ * Scoped deliberately narrow, matching the reference's rule:
+ *   - PRIVATE bases only (leading `_`). A PUBLIC base is its own surface symbol
+ *     whose members are already enumerated on the base itself; lifting those onto
+ *     every subclass would flatten real inheritance into duplicated members.
+ *     (`_`-prefixed classes are skipped by `collectClass`, exactly mirroring
+ *     griffe's treatment of Python's `_GeneratedResourceTree`, so their members
+ *     would otherwise be recorded nowhere at all.)
+ *   - Class-typed properties only. `signatureFromProperty` returns null for a
+ *     primitive-typed field, so internal scalar state contributes nothing —
+ *     the same gate the reference's `_is_sdk_class_type` applies.
+ *   - Transitive through a chain of private bases; stops at the first public one.
+ *
+ * Members the subclass declares itself always win (the caller uses `setdefault`
+ * semantics), so an override is never masked by the inherited declaration.
+ */
+function privateBaseComposition(
+  cls: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+  aliases: Record<string, string>,
+  mod: string,
+  canonClass: string,
+  methodAliases: Record<string, string> | undefined,
+  refFieldAccessors: Map<string, Set<string>>,
+  failures: TypeTranslationError[],
+): Record<string, CanonicalSignature> {
+  const out: Record<string, CanonicalSignature> = {};
+  const seen = new Set<ts.ClassDeclaration>();
+  let base = resolveExtendsBase(cls, checker);
+
+  while (base && base.name && base.name.text.startsWith('_') && !seen.has(base)) {
+    seen.add(base);
+    for (const m of base.members) {
+      if (!ts.isPropertyDeclaration(m)) continue;
+      if (!m.name || !ts.isIdentifier(m.name)) continue;
+      const nativeProp = m.name.text;
+      if (nativeProp.startsWith('_')) continue;
+      const propMods = ts.getCombinedModifierFlags(m as ts.Declaration);
+      if (propMods & ts.ModifierFlags.Private) continue;
+      // A `protected` member is internal plumbing, not caller-reachable surface.
+      if (propMods & ts.ModifierFlags.Protected) continue;
+      const propIsStatic = !!(propMods & ts.ModifierFlags.Static);
+      const snakeProp = methodAliases?.[camelToSnake(nativeProp)] ?? camelToSnake(nativeProp);
+      if (out[snakeProp] !== undefined) continue;
+      const emitPrimitiveField = (refFieldAccessors.get(`${mod}.${canonClass}`) ?? new Set()).has(
+        snakeProp,
+      );
+      try {
+        const sig = signatureFromProperty(
+          m,
+          checker,
+          aliases,
+          propIsStatic,
+          `${mod}.${canonClass}.${snakeProp}`,
+          emitPrimitiveField,
+        );
+        if (sig !== null) out[snakeProp] = sig;
+      } catch (e) {
+        if (e instanceof TypeTranslationError) failures.push(e);
+        else throw e;
+      }
+    }
+    base = resolveExtendsBase(base, checker);
+  }
+  return out;
+}
+
+/**
+ * Every declaration of a method name in source order: the DECLARED overloads (each
+ * bodyless) followed by the implementation (the one with a body). A method with no
+ * overloads yields exactly one entry, the implementation.
+ */
+function methodDeclarationSet(
+  cls: ts.ClassDeclaration,
+  m: ts.MethodDeclaration,
+): ts.MethodDeclaration[] {
+  if (!m.name || !ts.isIdentifier(m.name)) return [m];
+  const name = m.name.text;
+  const isStatic = !!(ts.getCombinedModifierFlags(m as ts.Declaration) & ts.ModifierFlags.Static);
+  const out: ts.MethodDeclaration[] = [];
+  for (const other of cls.members) {
+    if (!ts.isMethodDeclaration(other)) continue;
+    if (!other.name || !ts.isIdentifier(other.name) || other.name.text !== name) continue;
+    const otherStatic = !!(
+      ts.getCombinedModifierFlags(other as ts.Declaration) & ts.ModifierFlags.Static
+    );
+    if (otherStatic !== isStatic) continue;
+    out.push(other);
+  }
+  return out.length ? out : [m];
+}
+
+/**
+ * Pick the declaration whose PARAMETER LIST is the recorded surface for an
+ * overloaded method, from the DECLARED overloads — never the implementation.
+ *
+ * TS spells an overloaded method as N bodyless signature declarations followed by
+ * one implementation declaration with a body. Only the DECLARED overloads are
+ * callable surface; the implementation signature is compiler plumbing that TS
+ * *requires* to be compatible with all of them, which makes it strictly LOOSER than
+ * anything a caller can actually invoke. Reading it therefore invents optionality:
+ * `setSessionMetadata` declares `(sessionId, key, value: unknown)` — `value`
+ * required, exactly the reference's `set_session_metadata(call_id, key, value)` —
+ * yet its implementation must write `value?` purely because the sibling 2-arg bulk
+ * overload takes no third argument. Recording the implementation reported a
+ * `required-flip` against the reference for a state no caller can reach: the 2-arg
+ * overload does not accept a third argument, and the 3-arg overload requires it.
+ *
+ * So reconcile across the declared set, restricted to PREFIX-overloads (java's
+ * `optional_param_names()` rule, commit ea7e0ba): sort by arity and require each
+ * shorter declaration to be a strict prefix of the longest by param TYPE. That
+ * restriction is what makes the longest declaration a safe representative — it
+ * carries every param the set can accept, each with the required-ness it was
+ * actually declared with. Same-arity or otherwise-unrelated overloads (a genuinely
+ * polymorphic dispatch rather than a growing prefix) are NOT reconcilable this way,
+ * so those fall back to the implementation, whose union is the honest summary.
+ *
+ * Return types are unioned separately across the whole declared set (see
+ * `overloadReturnTypeNodes`) — the param list comes from one declaration, but the
+ * return is genuinely the union of every overload's.
+ */
+function overloadParamDeclaration(decls: ts.MethodDeclaration[]): ts.MethodDeclaration | undefined {
+  const declared = decls.filter((d) => !d.body);
+  if (declared.length === 0) return undefined; // no overloads — caller uses the implementation
+  if (declared.length === 1) return declared[0];
+
+  const byArity = [...declared].sort((a, b) => a.parameters.length - b.parameters.length);
+  const longest = byArity[byArity.length - 1];
+  // PREFIX-overloads means the arities are STRICTLY INCREASING — each declaration
+  // adds trailing params to the one before, so every param keeps its position across
+  // the set and the longest carries them all. Per-position TYPES may differ (that is
+  // what overloading is FOR: `metadataOrKey` is `Record<…>` in the 2-arg form and
+  // `string` in the 3-arg one); position and required-ness are what must line up.
+  // Two declarations of the SAME arity are a polymorphic dispatch, not a growing
+  // prefix — there is no single representative, so decline and let the caller fall
+  // back to the implementation's honest union.
+  for (let i = 1; i < byArity.length; i++) {
+    if (byArity[i].parameters.length === byArity[i - 1].parameters.length) return undefined;
+  }
+  // A param the longest declares as REQUIRED must not be reachable-but-absent: it may
+  // only sit at a position beyond a shorter overload's arity (so no call can omit it),
+  // never be optional in the longest itself.
+  return longest;
+}
+
+/**
+ * The return-type nodes to union for a method's recorded return. For an overloaded
+ * method that is every DECLARED overload's return (the implementation's is omitted —
+ * it is the compiler-mandated union of exactly these, so including it would only
+ * re-add arms already present). For a plain method it is the single declaration's.
+ */
+function overloadReturnTypeNodes(decls: ts.MethodDeclaration[]): ts.TypeNode[] {
+  const declared = decls.filter((d) => !d.body);
+  const src = declared.length ? declared : decls;
+  return src.map((d) => d.type).filter((t): t is ts.TypeNode => !!t);
+}
+
 function collectClass(
   cls: ts.ClassDeclaration,
   rel: string,
@@ -1282,22 +1630,62 @@ function collectClass(
 
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
+    // OVERLOAD FOLD. A TS method may be declared as an overload SET: N bodyless
+    // signature declarations followed by ONE implementation declaration with a body,
+    // all separate `cls.members` entries sharing the name. Taking the FIRST recorded
+    // only the narrowest overload and made the union invisible (the drift that used
+    // to be excused as "the enumerator records only the first overload"); taking the
+    // IMPLEMENTATION over-corrects, because TS requires it to be compatible with
+    // every overload and so it is strictly LOOSER than any callable surface —
+    // `setSessionMetadata`'s `value?` is optional there only because a sibling 2-arg
+    // overload exists, inventing a `required-flip` no caller can reach.
+    //
+    // So reconcile across the DECLARED overloads: the param list comes from the
+    // longest PREFIX-overload (each param with its declared required-ness) and the
+    // return is unioned over the whole declared set. A get/set accessor PAIR is not
+    // an overload set, so first-wins still applies there.
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
+    const declSet = ts.isMethodDeclaration(m) ? methodDeclarationSet(cls, m) : [];
+    const implDecl = declSet.find((d) => d.body);
+    const paramDecl = overloadParamDeclaration(declSet) ?? implDecl ?? m;
+    const returnNodes = declSet.length > 1 ? overloadReturnTypeNodes(declSet) : undefined;
 
     try {
       methods[snake] = signatureFromMethod(
-        m,
+        paramDecl,
         checker,
         aliases,
         false,
         isStatic,
         `${mod}.${canonClass}.${snake}`,
         rel.includes('.resources.generated.'),
+        returnNodes,
       );
     } catch (e) {
       if (e instanceof TypeTranslationError) failures.push(e);
       else throw e;
     }
+  }
+
+  // WIRED-BASE composition: lift class-typed properties this class inherits from a
+  // PRIVATE base (`RestClient extends _GeneratedResourceTree`). Those declarations
+  // are not in `cls.members`, and the private base itself is skipped by
+  // `collectClass`, so without this the entire REST resource tree — `client.calling`,
+  // `client.fabric`, all 22 accessors — is recorded nowhere. Locally-declared members
+  // always win. See privateBaseComposition for the structural rule.
+  for (const [wname, wsig] of Object.entries(
+    privateBaseComposition(
+      cls,
+      checker,
+      aliases,
+      mod,
+      canonClass,
+      methodAliases,
+      refFieldAccessors,
+      failures,
+    ),
+  )) {
+    if (methods[wname] === undefined) methods[wname] = wsig;
   }
 
   if (Object.keys(methods).length === 0) return;
@@ -1334,15 +1722,25 @@ function collectClass(
 
 // Generated read-side payload modules (SWAIG request / post-prompt; later SWML
 // verbs) declare their typed payloads as `interface`s, not classes. The Python
-// reference enumerates each such TypedDict's CLASS-typed fields as zero-arg
-// members (``PostPrompt.call_log`` → ``list<class:…PostPromptCallLogEntry>``),
-// skipping primitive-typed fields (``project_id: str``). Mirror that here: walk
-// only the generated-payload modules' interfaces and project the same
-// class-typed-fields-only surface, so the (class, field) shapes compare against
-// the reference after the diff tool's gen-payload module fold. A path test (not a
-// blanket interface walk) keeps every other interface in the codebase out of the
-// oracle — only these generated payloads are part of the cross-port contract.
-const GEN_PAYLOAD_FILE_MARKERS = ['SwaigContracts.generated.', 'swml_verbs_generated.'];
+// reference enumerates EVERY key of each such TypedDict as a zero-arg member —
+// class-typed (``PostPrompt.call_log`` → ``list<class:…PostPromptCallLogEntry>``)
+// AND primitive-typed (``AIParams.ai_name`` → ``string``). Mirror that here: walk
+// only the generated-payload modules' interfaces and project every field, so the
+// (class, field) shapes compare against the reference after the diff tool's
+// gen-payload module fold. A path test (not a blanket interface walk) keeps every
+// other interface in the codebase out of the oracle — only these generated
+// payloads are part of the cross-port contract.
+// `SwaigActions.generated.` belongs here for the same reason as the other two: it
+// declares the response ENVELOPE interfaces (`SwaigAction`, `SwaigResponse`), whose
+// class-typed fields (`SwaigAction.transfer` → `TransferAction`, `SwaigResponse.action`
+// → `SwaigAction`) the reference records on its `swaig_actions_generated` TypedDicts.
+// Its per-verb `<Verb>Action` types carry only scalar fields, so including the file
+// adds no surface beyond the two envelopes.
+const GEN_PAYLOAD_FILE_MARKERS = [
+  'SwaigContracts.generated.',
+  'SwaigActions.generated.',
+  'swml_verbs_generated.',
+];
 
 function isGenPayloadFile(rel: string): boolean {
   return GEN_PAYLOAD_FILE_MARKERS.some((m) => rel.includes(m));
@@ -1366,16 +1764,14 @@ function collectInterface(
     if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
     const native = m.name.text;
     if (native.startsWith('_')) continue;
-    // Mirror the Python enumerator (enumerate_python_signatures.py): it skips a
-    // member whose name is ALL-CAPS (a Python-convention constant, not an API
-    // attribute) — BUT only when the field is not SDK-class-typed. An all-caps
-    // field whose type IS a class (`AIObject.SWAIG: SWAIG`) is a real data field
-    // the reference records; only a genuine all-caps *constant* (primitive type)
-    // is dropped. (The reference had the same fix; the port must match it.)
-    const isAllCaps = (() => {
-      const letters = native.replace(/[^A-Za-z]/g, '');
-      return letters.length > 0 && letters === letters.toUpperCase();
-    })();
+    // NOTE: no ALL-CAPS filter here, deliberately. The Python enumerator drops an
+    // all-caps member as a PEP-8 module/class CONSTANT, but a generated-payload
+    // interface declares no constants — every member is a wire key, and SWML has
+    // four spelled in caps. The reference records all four, including
+    // `SWMLAction.SWML`, whose type is a plain object and which an all-caps guard
+    // therefore dropped on the port side while keeping the three class-typed ones
+    // (`AIObject.SWAIG`). Filtering by name-casing inside these files can only
+    // lose real wire keys.
     // Key the field by its VERBATIM wire name, NOT camelToSnake(native). A generated-
     // payload interface field IS the schema property name (`allOf`, `numberedBullets`,
     // `post_prompt`); the Python (griffe) reference records the TypedDict key verbatim,
@@ -1397,18 +1793,28 @@ function collectInterface(
         methods[key] = { params: [{ name: 'self', kind: 'self' }], returns: written };
         continue;
       }
-      // Not class-typed via the alias path. An all-caps name here is a genuine
-      // constant (a class-typed all-caps field would have been kept above) — drop it.
-      if (isAllCaps) continue;
       // A PropertySignature is structurally a PropertyDeclaration for the field
-      // we need (`.name`, `.type`); signatureFromProperty applies the same
-      // SDK-class-typed-only filter (returns null for primitives) as Python.
+      // we need (`.name`, `.type`). Emit PRIMITIVE-typed fields too
+      // (`emitPrimitiveField`): a generated-payload interface is a TypedDict
+      // analog and the reference records EVERY key of it, primitives included
+      // (`AIParams.ai_name -> string`).
+      //
+      // This used to pass `false`, on the premise — stated in the comment above
+      // and in this function's own docstring — that the Python enumerator "skips
+      // primitive-typed fields". That premise was true only of the DEFECTIVE
+      // reference. porting-sdk 4ddda70 fixed the cross-file `$ref` resolver, and
+      // the corrected oracle carries 604 payload members it had silently dropped
+      // — 87 keys on `AIParams` where it previously had 60, the 27 difference
+      // being exactly its bare-`string` and string-literal-union fields. Mirroring
+      // the pre-fix behaviour made those 597 members read as `missing-port` when
+      // the port declares every one of them.
       const sig = signatureFromProperty(
         m as unknown as ts.PropertyDeclaration,
         checker,
         aliases,
         false,
         `${mod}.${canonClass}.${key}`,
+        true,
       );
       if (sig !== null) methods[key] = sig;
     } catch (e) {
@@ -1470,8 +1876,8 @@ function extractCrudBase(
           const decl = sym?.declarations?.[0];
           const src = decl?.getSourceFile().fileName ?? '';
           if (src.includes('.types.generated') || src.includes('.generated.')) {
-            const m = src.match(/\/src\/(.+?)\.ts$/);
-            const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+            const stem = srcRelStem(src);
+            const modPath = stem ? stem.replace(/\//g, '.') : 'rest.namespaces';
             return `class:signalwire.${modPath}.${node.typeName.text}`;
           }
           return `class:${node.typeName.text}`;
@@ -1711,9 +2117,9 @@ function generatedAliasFromNode(
     // are recorded under the `*_types_generated` module so the diff's generated-type
     // normalization (which keys off `.types.generated.` / `_types_generated.`)
     // folds them to `gen:<Name>` and matches the Python reference.
-    const m = src.match(/\/src\/(.+?)\.ts$/);
-    if (m && /\.types\.generated$/.test(m[1])) {
-      const modPath = m[1].replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
+    const stem = srcRelStem(src);
+    if (stem && /\.types\.generated$/.test(stem)) {
+      const modPath = stem.replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
       return `class:signalwire.${modPath}.${node.typeName.text}`;
     }
     // Generated-payload aliases/interfaces (swml_verbs_generated.ts,
@@ -1722,11 +2128,11 @@ function generatedAliasFromNode(
     // above needs each member's NAME to survive the type checker's alias inlining
     // (`boolean | SWMLVar` would otherwise resolve to `boolean | string`). The diff
     // folds the gen-payload module + compares by leaf name.
-    if (m && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
+    if (stem && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
       // The diff compares generated `class:` refs by LEAF name (the module folds to
       // gen-payload), so the qualifier only needs to be a stable gen-payload module
       // path — fallbackModuleName produces exactly the one collectInterface records.
-      return `class:${fallbackModuleName(`src/${m[1]}.ts`)}.${node.typeName.text}`;
+      return `class:${fallbackModuleName(`src/${stem}.ts`)}.${node.typeName.text}`;
     }
   }
   return null;
@@ -2056,6 +2462,68 @@ function canonForParamNode(
   return translateType(resolved, checker, aliases, ctx);
 }
 
+/**
+ * Resolve the MEMBER LIST that carries an options bag's named members, or
+ * `undefined` when the param isn't an unfoldable bag.
+ *
+ * Three spellings of the same TS idiom, all of which stand in for Python's
+ * exploded keyword set, and all of which must unfold identically:
+ *
+ * 1. **Inline type literal** — `options: { a?: X; b?: Y }`. The base case.
+ * 2. **Intersection with an open index-signature arm** —
+ *    `options: { event?: string } & Record<string, unknown>` — TS's spelling of
+ *    `def m(self, *, event=None, **kwargs)`: the literal arm holds the NAMED
+ *    keyword params, the `Record<…>` arm is the `**kwargs` tail.
+ * 3. **A NAMED interface reference** — `config: LanguageConfig`, where
+ *    `LanguageConfig` is an exported `interface` declared elsewhere in the tree.
+ *    This is the SAME bag, merely given a name so it can be exported and reused;
+ *    its members map 1:1 onto the reference's keyword set and each is read
+ *    individually onto the wire (`config.name` / `config.code` / …). A syntactic
+ *    `ts.isTypeLiteralNode` guard cannot see through the reference, so five
+ *    methods (`add_language`, `add_pronunciation`, `AIVerbHandler.build_config`,
+ *    `define_tool`, `load_skill`) had to be excused as `ts-named-options-type`
+ *    even though naming a bag is not a divergence in what the method accepts.
+ *    Resolving the reference to its declaration folds that idiom here — which is
+ *    where idiom belongs (RULES §2) — instead of in the ledger.
+ *
+ * Only an INTERFACE (or an interface-shaped type alias) is followed, and only when
+ * it resolves to exactly one declaration: a union alias, a mapped type, or a
+ * generic instantiation has no unambiguous positional member order, and the diff
+ * compares params positionally, so those are declined rather than guessed at. For
+ * the same reason exactly one literal arm may contribute members in the
+ * intersection case.
+ */
+function methodOptionsBagMembers(
+  typeNode: ts.TypeNode | undefined,
+  checker: ts.TypeChecker,
+): readonly ts.TypeElement[] | undefined {
+  if (!typeNode) return undefined;
+  if (ts.isTypeLiteralNode(typeNode)) return typeNode.members;
+  if (ts.isIntersectionTypeNode(typeNode)) {
+    const literals = typeNode.types.filter(ts.isTypeLiteralNode);
+    if (literals.length === 1) return literals[0].members;
+    return undefined;
+  }
+  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName)) {
+    // A generic instantiation (`Foo<Bar>`) has no single stable member list —
+    // decline rather than unfold a partially-substituted shape.
+    if (typeNode.typeArguments && typeNode.typeArguments.length > 0) return undefined;
+    const sym = checker.getSymbolAtLocation(typeNode.typeName);
+    const target = sym && sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+    const decls = target?.declarations ?? [];
+    if (decls.length !== 1) return undefined;
+    const decl = decls[0];
+    if (ts.isInterfaceDeclaration(decl)) {
+      // An interface that EXTENDS another has inherited members the syntactic
+      // member list does not carry; unfolding it would silently drop them.
+      if (decl.heritageClauses && decl.heritageClauses.length > 0) return undefined;
+      return decl.members;
+    }
+    if (ts.isTypeAliasDeclaration(decl)) return methodOptionsBagMembers(decl.type, checker);
+  }
+  return undefined;
+}
+
 function signatureFromMethod(
   m:
     | ts.ConstructorDeclaration
@@ -2069,6 +2537,12 @@ function signatureFromMethod(
   isStatic: boolean,
   ctx: string,
   genResource: boolean,
+  /**
+   * For an overloaded method, every DECLARED overload's return-type node. The
+   * recorded return is their union — `m`'s own return covers only the one
+   * declaration its param list came from. Omitted for non-overloaded methods.
+   */
+  overloadReturns?: ts.TypeNode[],
 ): CanonicalSignature {
   const params: CanonicalParam[] = [];
   const isMethod =
@@ -2138,15 +2612,16 @@ function signatureFromMethod(
       });
       continue;
     }
-    // General options-object unfold (allowlisted methods): a trailing inline
-    // `options`/`opts`/`config` type-literal → its members as `keyword` params.
-    if (
-      shouldGeneralUnfold &&
-      (native === 'options' || native === 'opts' || native === 'config') &&
-      p.type &&
-      ts.isTypeLiteralNode(p.type)
-    ) {
-      for (const member of p.type.members) {
+    // General options-object unfold (allowlisted methods): a trailing
+    // `options`/`opts`/`config`/`rule` bag → its members as `keyword` params. The
+    // bag may be an inline type literal, an intersection with an open
+    // index-signature arm, or a NAMED interface — see `methodOptionsBagMembers`.
+    const unfoldMembers =
+      shouldGeneralUnfold && METHOD_OPTIONS_BAG_PARAM_NAMES.has(native)
+        ? methodOptionsBagMembers(p.type, checker)
+        : undefined;
+    if (unfoldMembers) {
+      for (const member of unfoldMembers) {
         if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
           continue;
         const mNative = member.name.text;
@@ -2159,11 +2634,28 @@ function signatureFromMethod(
           aliases,
           `${ctx}[${mSnake}]`,
         );
+        // DEFAULT RECOVERY. A TS optional property (`body?: string`) carries NO
+        // syntactic default — the value a caller gets when omitting it is applied
+        // downstream, in the method body (`opts?.body ?? ''`, an omit-when-default
+        // guard, or a constructor's `??` chain). The declaration site therefore
+        // cannot tell us the default, and recording `default: null` would ASSERT
+        // "the default is null" — false wherever the reference declares a real one
+        // (`""`, `false`, `"POST"`, `250`, …), manufacturing a spurious
+        // `default-mismatch` against a port that behaves identically. (Verified in
+        // source: PomSection's ctor applies `?? ''` / `?? false`; FunctionResult.
+        // joinConference omits each key when it equals the reference default.)
+        //
+        // Omit the `default` key instead. diff_port_signatures.py
+        // (compare_param_properties, direction (b)) treats a reference-optional
+        // param whose port records NO default as UNRECORDED — not drift — exactly
+        // because a port may be unable to enumerate it. `required` still compares,
+        // so a port that turns an optional into a required param is still caught.
+        // `undefined` is dropped by JSON.stringify, matching the convention the
+        // required-branch already used here.
         params.push({
           name: mSnake,
           type,
           required: !optional,
-          default: optional ? null : undefined,
           kind: 'keyword',
         });
       }
@@ -2272,6 +2764,21 @@ function signatureFromMethod(
     returns = 'void';
   } else if (ts.isSetAccessor(m)) {
     returns = 'void';
+  } else if (overloadReturns && overloadReturns.length > 1) {
+    // OVERLOADED: the recorded return is the union over every declared overload.
+    // The param list came from ONE declaration (the longest prefix-overload), whose
+    // own return covers only that arm — `setSessionMetadata`'s 3-arg overload
+    // returns `boolean`, but the method as a whole returns `boolean | void`, which
+    // is what the reference's polymorphic `def` records. Canonicalise each arm and
+    // dedupe: a union is a SET, and distinct TS types often canonicalise alike.
+    const arms = [
+      ...new Set(
+        overloadReturns.map((t) =>
+          translateType(checker.getTypeFromTypeNode(t), checker, aliases, `${ctx}[->]`),
+        ),
+      ),
+    ];
+    returns = arms.length === 1 ? arms[0] : `union<${arms.join(',')}>`;
   } else {
     let retType: ts.Type;
     if (m.type) {
@@ -2366,8 +2873,33 @@ function findTsFiles(dir: string, out: string[] = []): string[] {
 
 function main(): number {
   const args = process.argv.slice(2);
+
+  // Reject unknown flags. This parser used to silently IGNORE anything it did
+  // not recognise, which is how `--output <path>` (the flag go's enumerator
+  // uses; ours is `--out`) fell through to the default path and OVERWROTE the
+  // committed port_signatures.json at exit 0, with no warning. An unrecognised
+  // flag is a caller error, not a no-op.
+  const KNOWN = new Set(['--stdout', '--strict', '--no-strict', '--out']);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!a.startsWith('--')) continue;
+    if (!KNOWN.has(a)) {
+      console.error(
+        `enumerate-signatures: unknown flag '${a}'\n` +
+          `usage: enumerate-signatures [--out <path>] [--stdout] [--no-strict]`,
+      );
+      return 2;
+    }
+    if (a === '--out') i++; // consume its value
+  }
+
   const stdoutFlag = args.includes('--stdout');
-  const strict = args.includes('--strict');
+  // Fail-loud is the DEFAULT, not an opt-in. `--strict` was declared and
+  // documented in the usage header above, but NO gate ever passed it, so the
+  // fail path was dead code: a type that failed to translate silently DROPPED
+  // THE WHOLE SYMBOL and the artifact was written anyway at exit 0 — the port
+  // then got blamed for an omission it never had.
+  const strict = !args.includes('--no-strict');
   const outIdx = args.indexOf('--out');
   const outputPath = outIdx >= 0 ? args[outIdx + 1] : path.join(REPO_ROOT, 'port_signatures.json');
 
@@ -2631,6 +3163,125 @@ function main(): number {
     }
   }
 
+  // ── Built-in skill contract projection (signalwire.skills.<name>.skill) ────
+  //
+  // WHY THIS EXISTS. `SkillBase` defines the built-in-skill contract — the six
+  // hooks a concrete skill may implement: setup / register_tools /
+  // get_prompt_sections / get_hints / get_global_data / cleanup. TS and Python
+  // express a concrete skill's participation in that contract two ways this
+  // enumerator's OWN-MEMBER walk cannot see:
+  //
+  //   1. RENAME. TS replaces Python's imperative `register_tools()` with the
+  //      declarative `getTools()` (SkillBase.ts:424 documents the substitution:
+  //      "replaces the `@abstractmethod register_tools()` contract"). Same
+  //      capability — surface this skill's tools — different spelling.
+  //
+  //   2. PROTECTED-OVERRIDE TARGET. Python's concrete skills override the PUBLIC
+  //      `get_prompt_sections()`, which bypasses SkillBase's `skip_prompt` guard
+  //      (core/skill_base.py:89-94). TS keeps the public wrapper on the base and
+  //      has subclasses override the PROTECTED `_getPromptSections()` instead
+  //      (SkillBase.ts:476-496) — so `skip_prompt` is honoured for EVERY skill,
+  //      not just the ones that remember to. The protected member is correctly
+  //      not enumerated (it is not public surface), so the public capability the
+  //      subclass really provides was invisible.
+  //
+  //   3. BASE-IDENTICAL INHERITANCE. Where Python's subclass re-declares a hook
+  //      with a body identical to the base's (every one of the six `get_hints`
+  //      overrides in the reference is a bare `return []`; MathSkill.setup is
+  //      `return True` against a base that returns the same), TS simply inherits
+  //      it. Reference and port behave identically; only the syntactic
+  //      re-declaration differs.
+  //
+  // Until porting-sdk 8496c77 none of this was observable: the signature oracle
+  // dropped a class whose every method was a base-identical override, so 11 of
+  // the 18 skill modules had NO class recorded at all and the whole comparison
+  // was vacuous. (That vacuity is what PORT_SIGNATURE_OMISSIONS.md's
+  // "reference-oracle gap: the Python signatures oracle records no class for this
+  // skill module" entries were written against — a premise that no longer holds.)
+  // With the oracle fixed, all 18 classes are visible and the three idioms above
+  // surfaced as 30 spurious `missing-port` findings. Fold them here, at the
+  // enumerator, where idiom belongs (AGENT_RULES §2).
+  //
+  // Every projection is GUARDED THREE WAYS and therefore fails loud rather than
+  // inventing surface: the reference class must declare the member, the port
+  // class must not already have it, and the canonical signature is copied from
+  // the PORT's own `SkillBase` entry (never synthesized). A skill that genuinely
+  // stops participating in the contract — or a SkillBase that loses the hook —
+  // goes back to reading `missing-port`.
+  //
+  // SIGNATURE SOURCE — the projected entry records the CANONICAL (reference)
+  // signature, not the port's. The claim a projection makes is precisely "this
+  // class participates in the contract hook it inherits (or reaches under another
+  // name)"; the port class does not DECLARE the member, so there is no port-side
+  // shape here to record. The port's real, possibly-stricter shape stays recorded
+  // exactly once — on the class that actually declares it, `SkillBase` — where any
+  // divergence is visible and adjudicated a single time rather than replicated
+  // across 18 inheritance artifacts. (Concretely: TS's `getPromptSections()`
+  // returns the closed `SkillPromptSection[]` against the reference's open
+  // `list[dict[str, Any]]`; that one difference belongs to `SkillBase`, not to
+  // DateTimeSkill, which merely inherits it. Likewise `get_tools`, the TS spelling
+  // of `register_tools`, keeps its truthful `list<SkillToolDefinition>` return on
+  // every class that declares it.)
+  {
+    const { refMembers } = loadReferenceSignatureIndex();
+    const refPath = path.join(PSDK, 'python_signatures.json');
+    let refDoc: {
+      modules?: Record<
+        string,
+        { classes?: Record<string, { methods?: Record<string, CanonicalSignature> }> }
+      >;
+    } = {};
+    if (fs.existsSync(refPath)) {
+      try {
+        refDoc = JSON.parse(fs.readFileSync(refPath, 'utf-8'));
+      } catch {
+        refDoc = {};
+      }
+    }
+    const refSkillBase =
+      refDoc.modules?.['signalwire.core.skill_base']?.classes?.['SkillBase']?.methods ?? {};
+    const skillBase = doc.modules['signalwire.core.skill_base']?.classes?.['SkillBase'];
+    if (skillBase) {
+      // canonical contract member -> the port `SkillBase` member whose PRESENCE
+      // proves the port reaches the capability. `register_tools` is reached through
+      // the TS-idiom `get_tools`; the other five are inherited under their own name.
+      const CONTRACT: Record<string, string> = {
+        register_tools: 'get_tools',
+        get_prompt_sections: 'get_prompt_sections',
+        get_hints: 'get_hints',
+        get_global_data: 'get_global_data',
+        setup: 'setup',
+        cleanup: 'cleanup',
+      };
+      for (const [mod, modEntry] of Object.entries(doc.modules)) {
+        if (!mod.startsWith('signalwire.skills.') || !mod.endsWith('.skill')) continue;
+        for (const [cls, clsEntry] of Object.entries(modEntry.classes ?? {})) {
+          const declared = refMembers.get(`${mod}.${cls}`);
+          if (!declared) continue;
+          let changed = false;
+          for (const [canonical, source] of Object.entries(CONTRACT)) {
+            // Guard 1: the reference class must actually declare this hook.
+            if (!declared.has(canonical)) continue;
+            // Guard 2: never overwrite a member the port class declares itself.
+            if (clsEntry.methods[canonical]) continue;
+            // Guard 3: the port's own SkillBase must carry the source member — this
+            // is what makes the capability claim true. If it does not, project
+            // nothing and let the `missing-port` finding stand.
+            if (!skillBase.methods[source]) continue;
+            // Guard 4: the reference base must define the canonical signature to copy.
+            const sig = refSkillBase[canonical];
+            if (!sig) continue;
+            clsEntry.methods[canonical] = sig;
+            changed = true;
+          }
+          if (changed) {
+            clsEntry.methods = Object.fromEntries(Object.entries(clsEntry.methods).sort());
+          }
+        }
+      }
+    }
+  }
+
   // Sort modules + functions deterministically
   const sortedModules: Record<string, ModuleEntry> = {};
   for (const k of Object.keys(doc.modules).sort()) {
@@ -2696,4 +3347,7 @@ function main(): number {
   return 0;
 }
 
-main();
+// `main()` returns a process exit code; DISCARDING it (the previous `main();`)
+// meant every non-zero return was thrown away and the script always exited 0 —
+// so even a caller that DID pass --strict got a silent success. Propagate it.
+process.exit(main());

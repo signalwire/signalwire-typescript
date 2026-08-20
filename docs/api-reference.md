@@ -1195,15 +1195,6 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 Set expressions on the most recently added webhook.
 
-#### `body(data)`
-
-<!-- snippet: no-compile API signature / type reference, not runnable code -->
-```ts
-body(data: Record<string, unknown>): this
-```
-
-Set the JSON body for the most recently added webhook.
-
 #### `params(data)`
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
@@ -1211,7 +1202,9 @@ Set the JSON body for the most recently added webhook.
 params(data: Record<string, unknown>): this
 ```
 
-Set query/form parameters for the most recently added webhook.
+Set query/form parameters — including POST/PUT request data — for the most recently added
+webhook. There is no `body()` builder: `params` is the only request-data key the webhook
+contract permits and the engine reads.
 
 #### `foreach(config)`
 
@@ -1293,7 +1286,6 @@ function createSimpleApiTool(opts: {
   parameters?: Record<string, { type?: string; description?: string; required?: boolean }>;
   method?: string;         // default 'GET'
   headers?: Record<string, string>;
-  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap
 ```
@@ -2330,13 +2322,18 @@ interface LanguageConfig
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `name` | `string` | Human-readable name (e.g., `"English"`) |
-| `code` | `string` | BCP-47 code (e.g., `"en-US"`) |
-| `voice` | `string` | Voice identifier |
+| `name` | `string` | **Required.** Human-readable name (e.g., `"English"`) |
+| `code` | `string` | **Required.** BCP-47 code (e.g., `"en-US"`) |
+| `voice` | `string` | **Required.** Voice identifier. Accepts a plain name (`"en-US-Neural2-F"`) or the combined `"engine.voice:model"` form, which is split into the separate `voice` / `engine` / `model` wire keys |
 | `engine` | `string` | TTS engine identifier |
-| `fillers` | `Record<string, string[]>` | Filler phrases by category |
+| `model` | `string` | Explicit TTS model identifier |
+| `speechFillers` | `string[]` | Filler phrases spoken between conversational turns (wire key `speech_fillers`) |
 | `speechModel` | `string` | Speech recognition model |
-| `functionFillers` | `Record<string, Record<string, string[]>>` | Per-function fillers by language |
+| `functionFillers` | `string[]` | Filler phrases played while a SWAIG function runs (wire key `function_fillers`) |
+| `params` | `Record<string, unknown>` | Engine-specific per-language tuning; only emitted when non-empty |
+
+Supplying exactly one of `speechFillers` / `functionFillers` emits the deprecated
+single `fillers` key carrying that list; supplying both emits the two canonical keys.
 
 ### PronunciationRule
 

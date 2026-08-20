@@ -146,8 +146,7 @@ export class Message {
    * Wait for the message to reach a terminal state (`delivered`, `failed`,
    * `undelivered`, etc.).
    *
-   * @param timeout - Maximum time to wait in **seconds** (matches the Python
-   *   SDK convention — not milliseconds).
+   * @param timeout - Maximum time to wait in **seconds** — not milliseconds.
    * @returns The final `messaging.state` {@link RelayEvent}.
    * @throws {Error} When the optional timeout elapses before a terminal state.
    */

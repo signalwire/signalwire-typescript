@@ -48,15 +48,14 @@ interface WeatherApiResponse {
  * config option. The `api_key` config value takes precedence over the
  * environment variable when both are set.
  *
- * **Provider note:** The Python reference SDK uses WeatherAPI.com
- * (`api.weatherapi.com/v1/current.json`). This TypeScript skill uses
- * OpenWeatherMap (`api.openweathermap.org/data/2.5/weather`). These providers
- * use different API key formats — a WeatherAPI.com key will NOT work here.
- * Obtain an OpenWeatherMap key at https://openweathermap.org/api.
+ * **Provider note:** This skill calls OpenWeatherMap
+ * (`api.openweathermap.org/data/2.5/weather`), NOT WeatherAPI.com
+ * (`api.weatherapi.com/v1/current.json`). The two providers use different API
+ * key formats — a WeatherAPI.com key will NOT work here. Obtain an
+ * OpenWeatherMap key at https://openweathermap.org/api.
  *
- * **Unit aliases:** For migration compatibility with the Python SDK the `units`
- * config also accepts `"fahrenheit"` (normalized to `"imperial"`) and
- * `"celsius"` (normalized to `"metric"`).
+ * **Unit aliases:** the `units` config also accepts `"fahrenheit"` (normalized
+ * to `"imperial"`) and `"celsius"` (normalized to `"metric"`).
  *
  * @example
  * ```ts
@@ -79,8 +78,7 @@ export class WeatherApiSkill extends SkillBase {
   /**
    * Validates that an API key is available either via inline config or the
    * `WEATHER_API_KEY` environment variable. Fails fast (returns `false`) when
-   * neither source provides a key — matching Python SDK behaviour where
-   * `_validate_config()` raises on construction when `api_key` is absent.
+   * neither source provides a key.
    * @returns `true` if a key is present, `false` otherwise.
    */
   override async setup(): Promise<boolean> {

@@ -13,6 +13,7 @@ export class PromptManager {
   private postPrompt: string | null = null;
   private pom: PomBuilder | null = null;
   private usePom: boolean;
+  private contexts: Record<string, unknown> | null = null;
   /**
    * The agent this manager belongs to (the reference's public `self.agent`,
    * `core/agent/prompt/manager.py:32`), or `undefined` for standalone use.
@@ -143,11 +144,46 @@ export class PromptManager {
 
   /**
    * Returns the raw prompt text whatever `setPromptText` stored, or null
-   * when no raw prompt has been set. Mirrors Python's
-   * `PromptManager.get_raw_prompt`.
+   * when no raw prompt has been set.
    * @returns The raw prompt string, or null if not set.
    */
   getRawPrompt(): string | null {
     return this.rawText;
+  }
+
+  /**
+   * Defines the contexts configuration held by this manager.
+   *
+   * Mirrors the reference `PromptManager.define_contexts`
+   * (`core/agent/prompt/manager.py:79`): the argument is REQUIRED — there is no
+   * "define nothing" call — and is either a builder exposing `toDict()` (the
+   * reference's `hasattr(contexts, "to_dict")` branch) or a plain object. Anything
+   * else is rejected, matching the reference's `ValueError`.
+   *
+   * @param contexts - A ContextBuilder-like object with `toDict()`, or a plain object.
+   * @throws {TypeError} When `contexts` is neither an object nor `toDict()`-bearing.
+   */
+  defineContexts(contexts: Record<string, unknown> | { toDict(): Record<string, unknown> }): void {
+    if (
+      contexts !== null &&
+      typeof contexts === 'object' &&
+      typeof (contexts as { toDict?: unknown }).toDict === 'function'
+    ) {
+      this.contexts = (contexts as { toDict(): Record<string, unknown> }).toDict();
+    } else if (contexts !== null && typeof contexts === 'object' && !Array.isArray(contexts)) {
+      this.contexts = contexts as Record<string, unknown>;
+    } else {
+      throw new TypeError('contexts must be an object or a ContextBuilder');
+    }
+  }
+
+  /**
+   * Returns the contexts configuration set by {@link defineContexts}, or null
+   * when none has been defined. Mirrors the reference `PromptManager.get_contexts`
+   * (`core/agent/prompt/manager.py:309`).
+   * @returns The contexts object, or null if not set.
+   */
+  getContexts(): Record<string, unknown> | null {
+    return this.contexts;
   }
 }

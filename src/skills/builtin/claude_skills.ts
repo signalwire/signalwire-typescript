@@ -4,8 +4,6 @@
  * Tier 3 built-in skill that parses Claude Code skill directories and makes
  * them available as SWAIG tools the AI can call. Each Claude skill becomes a
  * tool that returns the skill's instructions when invoked.
- *
- * Port of Python SDK's `signalwire_agents/skills/claude_skills/skill.py`.
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';

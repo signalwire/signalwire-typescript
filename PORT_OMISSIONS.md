@@ -128,7 +128,12 @@ signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool class
 
 ## Skills: explicit register_tools method
 
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.register_tools: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
+# MCPGatewaySkill.register_tools: DELETED 2026-07-30 as DEAD. See the MCPGatewaySkill
+# block below — the "Python-only, not ported to any SDK" premise was FALSE (this port
+# ships src/skills/builtin/mcp_gateway.ts:90). With the McpGatewaySkill→MCPGatewaySkill
+# rename in the enumerator's CLASS_NAME_ALIASES, the existing register_tools
+# duplication-mapping reconcile emits this member like it does for every other skill,
+# so there is nothing left to excuse.
 
 # Prefab tool-handler methods are now REFACTORED from inline closures into named
 # class methods (checkAvailability / getDirections / searchFaqs / startQuestions /
@@ -163,12 +168,36 @@ signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: imposs
 signalwire.core.swml_renderer.SwmlRenderer.render_swml: impossible: TS folds SWML rendering into SWMLService/AgentBase, no separate SwmlRenderer class
 signalwire.rest._pagination.PaginatedIterator: impossible: TS paginates via the paginate()/paginateAll() async-iterator functions (native AsyncGenerator), no PaginatedIterator class
 signalwire.rest._pagination.PaginatedIterator.__init__: impossible: TS paginates via the paginate()/paginateAll() async-iterator functions (native AsyncGenerator), no PaginatedIterator class to construct
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_global_data: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_hints: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_parameter_schema: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.get_prompt_sections: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
-signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.setup: approved: Python-only MCP gateway subsystem, intentionally not ported to any SDK — user sign-off 2026-07 pass
+# ── MCPGatewaySkill: ALL SEVEN ENTRIES DELETED 2026-07-30 ────────────────────────
+#
+# Two independent findings, one week apart, and NEITHER left an entry standing.
+#
+# 1. get_prompt_sections went DEAD when the reference made
+#    SkillBase.get_prompt_sections() a final template method carrying the skip_prompt
+#    guard, delegating to a PROTECTED _get_prompt_sections() hook (signalwire-python
+#    e9aa402, core/skill_base.py:89-96). Concrete skills override the protected hook,
+#    so the public member exists on the BASE ONLY. python_surface.json stopped
+#    recording it on this class, so the line excused nothing (diff_port_surface
+#    reported it under dead_omissions).
+#
+# 2. The other six were FALSE. Their rationale — "Python-only MCP gateway subsystem,
+#    intentionally not ported to any SDK" — is contradicted by this port's own source:
+#    `src/skills/builtin/mcp_gateway.ts:90` exports
+#    `class McpGatewaySkill extends SkillBase`, a real, shipped, registered skill. The
+#    subsystem IS ported here. What actually happened is a SPELLING split: the surface
+#    enumerator deliberately withheld the McpGatewaySkill→MCPGatewaySkill alias, so ONE
+#    class was compared under TWO names and BOTH ledgers excused it simultaneously —
+#    these 6 omissions under the Python spelling, and 6 PORT_ADDITIONS entries
+#    ("TS-specific skill helper method or class") under the TS spelling, for the SAME
+#    five members. The two cancelled out and the class was never actually compared.
+#
+#    A spelling difference is a RENAME (AGENT_RULES §5), never an omission plus a
+#    matching addition. The alias is now in CLASS_NAME_ALIASES; both ledger sides went
+#    dead in the same regen (excused_omissions 33→27, dead_additions 6) and the class
+#    now compares member-for-member against the reference.
+#
+# The §I.1 Python-only ruling is NOT being overturned here — it never applied to this
+# port in the first place, because this port implements the skill.
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 # SchemaValidationError: RESOLVED 2026-07-26, entries DELETED — the capability was

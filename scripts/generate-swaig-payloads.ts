@@ -19,15 +19,25 @@ import {
   CHECK,
   OpenApiDoc,
   Schema,
+  crossFileImportBlock,
   emitFile,
   finalizeCheck,
   formatTs,
   objectBody,
   pascal,
+  resetCrossFileImports,
   resolvePortingSdk,
+  setSameFileDeclared,
   tsName,
   tsType,
 } from './_gen-common.js';
+
+// The two committed SWAIG modules, as the import specifiers a cross-file $ref
+// resolves to (see CROSS_FILE_MODULES in _gen-common.ts). Named here so each
+// generate* function can declare which module it IS — a ref that resolves to the
+// emitting module is same-module and needs no import.
+const SWAIG_CONTRACTS_MODULE = './SwaigContracts.generated.js';
+const SWAIG_ACTIONS_MODULE = './SwaigActions.generated.js';
 
 /**
  * The typed SWAIG wire payloads (SWAIG_PIPELINE §4), from the vendored
@@ -75,6 +85,10 @@ async function generateSwaigContracts(
   const reqDoc = yaml.load(fs.readFileSync(requestSpecPath, 'utf-8')) as OpenApiDoc;
   const ppDoc = yaml.load(fs.readFileSync(postPromptSpecPath, 'utf-8')) as OpenApiDoc;
   const decls: string[] = [];
+  // This module hosts swaig-request.yaml's schemas, so `post_data`'s cross-file ref
+  // to SwaigRequest resolves same-module (no import); `post_response`'s ref into
+  // swaig-response.yaml records an import of the SwaigActions module.
+  resetCrossFileImports(SWAIG_CONTRACTS_MODULE);
 
   // --- swaig-request.yaml → SwaigRequest (+ the inline `argument` lifted to a
   // named SwaigArgument), mirroring generate_swaig_request. ---
@@ -96,10 +110,9 @@ async function generateSwaigContracts(
 
   // --- post-prompt.yaml → the PostPrompt tree (one decl per component schema),
   // mirroring generate_post_prompt. SwaigRequest is already declared above, so
-  // its in-tree ref (PostPromptSwaigLogEntry.post_data) resolves locally. ---
+  // PostPromptSwaigLogEntry.post_data's cross-file ref resolves same-module. ---
   const ppSchemas = ppDoc.components?.schemas ?? {};
   for (const [pname, pschema] of Object.entries(ppSchemas)) {
-    if (pname === 'SwaigRequest') continue; // declared from the request spec above
     decls.push(swaigDeclaration(pname, pschema));
   }
 
@@ -113,7 +126,11 @@ async function generateSwaigContracts(
     `// field optional, every named type carries a [key: string]: unknown tail so\n` +
     `// unmodeled server keys round-trip. Held to the same lint bar as hand-written\n` +
     `// source (no rule suppressions, no loose types).\n\n`;
-  const formatted = await formatTs(header + decls.join('\n'), outPath);
+  // Types owned by a SIBLING swaig spec, imported so the cross-file $ref fields
+  // resolve to the real type rather than an undefined name.
+  const imports = crossFileImportBlock();
+  const body = (imports ? `${imports}\n` : '') + decls.join('\n');
+  const formatted = await formatTs(header + body, outPath);
   emitFile(outPath, formatted);
   return decls.length;
 }
@@ -128,38 +145,126 @@ async function generateSwaigContracts(
  * FunctionResult action builder accepts (e.g. `TransferAction`, `PlaybackBgAction`).
  * Only the TYPE surface is emitted here; the ergonomic builder methods live on
  * FunctionResult. Emitted into one module so cross-action refs resolve locally.
+ *
+ * The module also owns the response ENVELOPE types `SwaigAction` (the action OBJECT —
+ * one or more action keys set at once; the engine dispatches every recognized key)
+ * and `SwaigResponse` (the `{response, action, post_process}` body a handler
+ * returns), because this is the module that owns swaig-response.yaml — which is what
+ * makes `swaig-response.yaml#/components/schemas/SwaigResponse` resolvable from
+ * post-prompt.yaml. Each envelope field reuses the SAME type expression as its
+ * per-action value, so the envelope and the `<Verb>Action` types cannot drift.
  */
 async function generateSwaigActions(specPath: string, outPath: string): Promise<number> {
   const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
-  const actions = doc.components?.schemas?.SwaigAction?.properties;
+  const actionEnvelope = doc.components?.schemas?.SwaigAction;
+  const actions = actionEnvelope?.properties;
   if (!actions) throw new Error('swaig-response.yaml: missing SwaigAction.properties');
+  const responseEnvelope = doc.components?.schemas?.SwaigResponse;
+  if (!responseEnvelope) throw new Error('swaig-response.yaml: missing SwaigResponse');
 
+  resetCrossFileImports(SWAIG_ACTIONS_MODULE);
   const decls: string[] = [];
   const isObj = (s: Schema | undefined): boolean => !!s && s.type === 'object' && !!s.properties;
 
-  // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces.
-  // Matches the Python emitter: a bare object → one interface; the object branches of
-  // a oneOf → `<Verb>Action`, `<Verb>Action2`, … (scalar/const/array branches are not
-  // named types). Names collide-free with the SWML verb types (same PascalCase(verb)).
-  for (const verb of Object.keys(actions).sort()) {
+  // The type names this module WILL declare, derived by the same rules the emit loop
+  // below applies, so a same-file `$ref` can be checked against them. Without this a
+  // ref to a components/schemas entry that this generator does not emit silently
+  // produces a dangling type name that only tsc catches — see resolveSameFileRef.
+  const declaredNames = new Set<string>(['SwaigAction', 'SwaigResponse']);
+  for (const verb of Object.keys(actions)) {
     const schema = actions[verb]!;
-    const branches = schema.oneOf ?? (isObj(schema) ? [schema] : []);
-    let objIdx = 0;
-    for (const b of branches) {
-      if (!isObj(b)) continue;
-      objIdx += 1;
-      const name = `${pascal(verb)}Action${objIdx === 1 ? '' : String(objIdx)}`;
-      decls.push(swaigDeclaration(name, { type: 'object', properties: b.properties }));
+    if (!schema.oneOf) {
+      if (isObj(schema)) declaredNames.add(`${pascal(verb)}Action`);
+      continue;
+    }
+    let n = 0;
+    for (const b of schema.oneOf) {
+      if (isObj(b)) {
+        n += 1;
+        declaredNames.add(`${pascal(verb)}Action${n === 1 ? '' : String(n)}`);
+      }
     }
   }
+  // A same-file $ref this module does not declare folds to the opaque record — the
+  // TS analog of the reference's `dict[str, Any]`, and exactly what tsType() already
+  // does for a whole-file JSON ref. This is IDIOM FOLDING, not a widening of
+  // convenience: the Python oracle types context_switch's system_pom/user_pom as
+  // `dict[str, Any]` because its emitter lifts only the TOP-LEVEL action object and
+  // never descends to the nested `pom` items. TS's objectBody DOES descend, so
+  // without this the two generators disagree about the same spec.
+  //
+  // Emitting the ref'd schema instead was tried and is WRONG: `PromptPomSection` is
+  // absent from the Python reference, so declaring it made DRIFT and SURFACE-DIFF red
+  // with "1 port symbol(s) not in Python reference" — invented surface. The fold keeps
+  // the port and the reference comparing EQUAL, which is where a cross-language
+  // difference belongs (AGENT_RULES §2).
+  setSameFileDeclared(declaredNames, 'Record<string, unknown>');
+
+  // Lift each action's object-shaped value(s) into named `<Verb>Action` interfaces and
+  // record the verb's resulting VALUE TYPE expression (mirrors the Python emitter's
+  // `_value_type` + `verb_types`): a bare object → one interface; the object branches
+  // of a oneOf → `<Verb>Action`, `<Verb>Action2`, … with the scalar/const/array
+  // branches typed inline. Names collide-free with the SWML verb types (same
+  // PascalCase(verb)).
+  const verbTypes: Record<string, string> = {};
+  for (const verb of Object.keys(actions).sort()) {
+    const schema = actions[verb]!;
+    if (!schema.oneOf) {
+      if (isObj(schema)) {
+        const name = `${pascal(verb)}Action`;
+        decls.push(swaigDeclaration(name, { type: 'object', properties: schema.properties }));
+        verbTypes[verb] = name;
+      } else {
+        verbTypes[verb] = tsType(schema, 1);
+      }
+      continue;
+    }
+    const parts: string[] = [];
+    let objIdx = 0;
+    for (const b of schema.oneOf) {
+      if (isObj(b)) {
+        objIdx += 1;
+        const name = `${pascal(verb)}Action${objIdx === 1 ? '' : String(objIdx)}`;
+        decls.push(swaigDeclaration(name, { type: 'object', properties: b.properties }));
+        parts.push(name);
+      } else {
+        parts.push(tsType(b, 1));
+      }
+    }
+    verbTypes[verb] = [...new Set(parts)].join(' | ') || 'unknown';
+  }
+
+  // The SwaigAction envelope: every action key, optional, typed by the expression
+  // recorded above. Open tail so an unmodeled engine action key round-trips (same
+  // policy as every other SWAIG payload type here).
+  const actionDesc = actionEnvelope.description
+    ? `/** ${actionEnvelope.description.split('\n')[0]} */\n`
+    : '';
+  const actionLines = [`${actionDesc}export interface SwaigAction {`];
+  for (const verb of Object.keys(verbTypes).sort()) {
+    // An interface member name IS the wire key, so it is never escaped (unlike a
+    // param name): a key that cannot be a bare identifier is quoted.
+    const keyTok = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(verb) ? verb : JSON.stringify(verb);
+    actionLines.push(`  ${keyTok}?: ${verbTypes[verb]};`);
+  }
+  actionLines.push('  [key: string]: unknown;', '}');
+  decls.push(`${actionLines.join('\n')}\n`);
+
+  // The SwaigResponse envelope, straight from its schema — its `action` field refs
+  // `#/components/schemas/SwaigAction`, which now resolves to the interface above.
+  decls.push(swaigDeclaration('SwaigResponse', responseEnvelope));
 
   const header =
     `// AUTO-GENERATED from porting-sdk/swaig-specs/swaig-response.yaml — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts\n//\n` +
     `// The typed SWAIG response-action CONFIG types (one <Verb>Action per object-shaped\n` +
-    `// action value). The ergonomic builder methods live on FunctionResult; these are the\n` +
-    `// shapes those methods accept. Held to the same lint bar as hand source.\n\n`;
-  const formatted = await formatTs(header + decls.join('\n'), outPath);
+    `// action value), plus the response ENVELOPE types SwaigAction (the action object)\n` +
+    `// and SwaigResponse (the body a handler returns). The ergonomic builder methods\n` +
+    `// live on FunctionResult; these are the shapes those methods accept. Held to the\n` +
+    `// same lint bar as hand source.\n\n`;
+  const imports = crossFileImportBlock();
+  const body = (imports ? `${imports}\n` : '') + decls.join('\n');
+  const formatted = await formatTs(header + body, outPath);
   emitFile(outPath, formatted);
   return decls.length;
 }

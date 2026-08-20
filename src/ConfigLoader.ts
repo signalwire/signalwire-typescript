@@ -25,8 +25,7 @@ export class ConfigLoader {
    * Create a new ConfigLoader, optionally loading a JSON file immediately.
    *
    * Accepts a single file path or an array of paths. When given an array,
-   * the loader iterates in order and loads the first file that exists
-   * (mirroring Python's ordered-search behaviour).
+   * the loader iterates in order and loads the first file that exists.
    *
    * @param filePaths - Path(s) to a JSON config file to load on construction.
    */
@@ -58,7 +57,21 @@ export class ConfigLoader {
   }
 
   /**
-   * Load configuration from a JSON file, performing `${VAR|default}` env var interpolation on the raw text.
+   * Load configuration from a JSON file.
+   *
+   * `${VAR|default}` references are NOT expanded here — they are expanded on the
+   * PARSED VALUES, at read time, by {@link substituteVars} (via {@link getSection}
+   * / {@link mergeWithEnv}). That is what the reference does
+   * (`ConfigLoader._load_config` → `json.load`, then `substitute_vars` walking
+   * str/dict/list), and it is the only correct order: expanding into the raw JSON
+   * TEXT splices the variable's value into a JSON string literal WITHOUT escaping
+   * it, so any value containing a backslash — every Windows path — produces
+   * invalid JSON and `JSON.parse` throws `Bad escaped character in JSON`. A
+   * `${VAR}` naming `D:\a\repo\cert.pem` yielded `"D:\a\repo\cert.pem"`, whose
+   * `\a` / `\r` are not legal JSON escapes; the config then failed to load and TLS
+   * silently stayed off. Ubuntu CI could never see it (POSIX paths have no
+   * backslash) — only the multi-OS nightly's windows-latest job did.
+   *
    * @param filePath - Path to the JSON config file.
    * @returns This instance for chaining.
    */
@@ -68,8 +81,7 @@ export class ConfigLoader {
       throw new Error(`Config file not found: ${absPath}`);
     }
     const raw = readFileSync(absPath, 'utf-8');
-    const interpolated = this.interpolateEnvVars(raw);
-    this.data = JSON.parse(interpolated);
+    this.data = JSON.parse(raw);
     this.filePath = absPath;
     return this;
   }
@@ -180,9 +192,17 @@ export class ConfigLoader {
 
   /**
    * Retrieve a configuration value using a dot-notation path (e.g. `'server.port'`).
+   *
+   * `${VAR|default}` references in the resolved value are expanded via
+   * {@link substituteVars}, matching the reference (`ConfigLoader.get` ends
+   * `return self.substitute_vars(value)`). Substituting HERE — on the parsed
+   * value — rather than on the raw file text is what makes a value containing
+   * backslashes (any Windows path) survive: splicing it into the JSON source
+   * would produce an illegal escape and fail the parse.
+   *
    * @param path - Dot-separated key path into the config object.
    * @param defaultValue - Value returned when the path does not exist.
-   * @returns The resolved value, or defaultValue if not found.
+   * @returns The resolved value with variables substituted, or defaultValue if not found.
    */
   get<T = unknown>(path: string, defaultValue?: T): T {
     const parts = path.split('.');
@@ -198,7 +218,8 @@ export class ConfigLoader {
       current = (current as Record<string, unknown>)[part];
     }
 
-    return (current !== undefined ? current : defaultValue) as T;
+    if (current === undefined) return defaultValue as T;
+    return this.substituteVars(current) as T;
   }
 
   /**
@@ -246,8 +267,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Return a shallow copy of the entire configuration object. Canonical name,
-   * matching Python's `ConfigLoader.get_config()`.
+   * Return a shallow copy of the entire configuration object. Canonical name.
    * @returns A copy of the top-level config data.
    */
   getConfig(): Record<string, unknown> {
@@ -255,8 +275,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Return the absolute path of the loaded config file, if any. Canonical name,
-   * matching Python's `ConfigLoader.get_config_file()`.
+   * Return the absolute path of the loaded config file, if any. Canonical name.
    * @returns The file path, or null if config was loaded from an object.
    */
   getConfigFile(): string | null {
@@ -266,12 +285,8 @@ export class ConfigLoader {
   /**
    * Check if a configuration was loaded.
    *
-   * **Deliberate deviation from Python `has_config()`:** Python returns `True`
-   * only when a file was loaded (`self._config is not None`). This TypeScript
-   * implementation also returns `true` when data was loaded via
-   * {@link loadFromObject}, because `loadFromObject` is an extra TS-only method
-   * with no Python equivalent. Treating object-loaded data as "configured" is
-   * the correct semantic for the TS API surface.
+   * Returns `true` when configuration data exists from EITHER source — a file
+   * loaded from disk or data supplied to {@link loadFromObject}.
    *
    * If you need file-load-only detection, check `this.getConfigFile() !== null`.
    *
@@ -352,8 +367,6 @@ export class ConfigLoader {
    * Config file values take precedence over environment variables. Matching
    * env var keys are stripped of the prefix, lowercased, split on `_`, and
    * written into a nested object (e.g. `SWML_FOO_BAR` → `{ foo: { bar: v } }`).
-   * Mirrors Python's `merge_with_env` in
-   * `signalwire/signalwire/core/config_loader.py`.
    *
    * @param envPrefix - Prefix for environment variables to consider (default: `'SWML_'`).
    * @returns Merged configuration dictionary.
@@ -379,7 +392,7 @@ export class ConfigLoader {
 
   /**
    * Check if a nested key (underscore-separated path) exists in a dict.
-   * Used by {@link mergeWithEnv} to mirror Python's `_has_nested_key`.
+   * Used by {@link mergeWithEnv}.
    */
   private _hasNestedKey(data: Record<string, unknown>, keyPath: string): boolean {
     const keys = keyPath.split('_');
@@ -399,7 +412,7 @@ export class ConfigLoader {
   /**
    * Set a value in a dict using an underscore-separated path, creating
    * intermediate objects as needed.
-   * Used by {@link mergeWithEnv} to mirror Python's `_set_nested_key`.
+   * Used by {@link mergeWithEnv}.
    */
   private _setNestedKey(data: Record<string, unknown>, keyPath: string, value: unknown): void {
     const keys = keyPath.split('_');
@@ -423,19 +436,5 @@ export class ConfigLoader {
     this.data = { ...obj };
     this.filePath = null;
     return this;
-  }
-
-  /**
-   * Interpolate ${VAR|default} patterns in a raw string.
-   * @param input - The string containing env var references.
-   * @returns The string with all env var references resolved.
-   */
-  interpolateEnvVars(input: string): string {
-    return input.replace(ENV_VAR_PATTERN, (_match, varName: string, defaultValue?: string) => {
-      const envVal = process.env[varName.trim()];
-      if (envVal !== undefined) return envVal;
-      if (defaultValue !== undefined) return defaultValue;
-      return '';
-    });
   }
 }

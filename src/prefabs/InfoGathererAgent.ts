@@ -2,7 +2,6 @@
  * InfoGathererAgent - Prefab agent for collecting answers to a series of
  * questions.
  *
- * Ported from the Python SDK `signalwire.prefabs.info_gatherer.InfoGathererAgent`.
  * Supports both static (questions provided at init) and dynamic (questions
  * determined by a callback function per request) configuration modes.
  */
@@ -11,6 +10,7 @@ import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwmlRequestData } from '../PlatformContracts.js';
+import type { Context } from 'hono';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export interface InfoGathererQuestion {
 
 /**
  * Callback invoked on each incoming SWML request to produce the list of
- * questions for that request. Mirrors Python's `set_question_callback`.
+ * questions for that request. Registered via {@link InfoGathererAgent.setQuestionCallback}.
  * @returns a list of questions (may be async).
  */
 export type InfoGathererQuestionCallback = (
@@ -157,7 +157,6 @@ export class InfoGathererAgent extends AgentBase {
    * Register a callback for dynamic question configuration. The callback is
    * invoked on each incoming SWML request with the query params, body, and
    * headers, and must return the list of questions to ask on that call.
-   * Mirrors Python `set_question_callback`.
    */
   setQuestionCallback(callback: InfoGathererQuestionCallback): this {
     this.questionCallback = callback;
@@ -193,8 +192,7 @@ export class InfoGathererAgent extends AgentBase {
   }
 
   /**
-   * Generate the instruction text for asking a question. Mirrors Python's
-   * `_generate_question_instruction`.
+   * Generate the instruction text for asking a question.
    */
   private generateQuestionInstruction(
     questionText: string,
@@ -223,9 +221,24 @@ export class InfoGathererAgent extends AgentBase {
   /**
    * Handle dynamic configuration using the registered callback. Returns the
    * per-request global_data payload which AgentBase merges into the SWML
-   * response. Mirrors Python's `on_swml_request` return-dict contract.
+   * response.
+   *
+   * Carries the full base-hook parameter list — `(requestData, callbackPath,
+   * context)`. The two trailing params are unused by this prefab's logic but
+   * must be DECLARED: an override that narrows to one parameter cannot be
+   * handed the callback path or the framework request object, so a subclass of
+   * this prefab could not reach them. The base
+   * {@link AgentBase.onSwmlRequest} declares all three.
+   *
+   * @param rawData - The parsed request body.
+   * @param _callbackPath - Optional callback path from the request.
+   * @param _context - The raw Hono context for the request.
    */
-  override async onSwmlRequest(rawData: SwmlRequestData): Promise<Record<string, unknown> | void> {
+  override async onSwmlRequest(
+    rawData?: SwmlRequestData | null,
+    _callbackPath?: string,
+    _context?: Context,
+  ): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
 
@@ -240,10 +253,13 @@ export class InfoGathererAgent extends AgentBase {
       };
     }
 
-    // Build callback inputs from the incoming raw data.
-    const queryParams = this.extractRecord(rawData['query_params']);
-    const headers = this.extractRecord(rawData['headers']);
-    const bodyParams = rawData;
+    // Build callback inputs from the incoming raw data. `rawData` is optional
+    // on the base hook (the reference defaults it to None), so treat an absent
+    // body as the empty request.
+    const body: SwmlRequestData = rawData ?? {};
+    const queryParams = this.extractRecord(body['query_params']);
+    const headers = this.extractRecord(body['headers']);
+    const bodyParams = body;
 
     try {
       const questions = await this.questionCallback(queryParams, bodyParams, headers);
@@ -315,8 +331,7 @@ export class InfoGathererAgent extends AgentBase {
 
   /**
    * SWAIG handler for `start_questions`: emit the instruction for the first
-   * question from the per-call `global_data`. Mirrors Python
-   * `InfoGathererAgent.start_questions`.
+   * question from the per-call `global_data`.
    */
   startQuestions(_args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
     const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
@@ -341,8 +356,7 @@ export class InfoGathererAgent extends AgentBase {
 
   /**
    * SWAIG handler for `submit_answer`: record the answer to the current question
-   * and advance to the next one. Mirrors Python
-   * `InfoGathererAgent.submit_answer`.
+   * and advance to the next one.
    */
   submitAnswer(args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
     const answer = (args['answer'] as string) ?? '';

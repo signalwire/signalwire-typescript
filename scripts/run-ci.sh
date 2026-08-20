@@ -158,14 +158,37 @@ sched_gate TEST defer=1 desc="scripts/run-tests.sh (vitest)" \
 sched_gate SURFACE desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port typescript --repo "$PORT_ROOT"
 
+# SIGNATURES-FRESH: the signatures analogue of SURFACE-FRESH, and the reason it is
+# worth its own gate is that port_signatures.json is not an OUTPUT — it is DRIFT's
+# INPUT. diff_port_signatures compares the reference oracle against that file, never
+# against this port's source, so a stale artifact makes the whole parity claim a
+# comparison against a fiction: it can report clean while the source has diverged.
+# Nothing guarded it before (SURFACE-FRESH covers only port_surface.json), and the
+# rot was real — perl, cpp and java all shipped stale signatures, each found only
+# because some unrelated lane happened to regenerate.
+#
+# STANDALONE sched_gate, deliberately NOT a rule inside the SURFACE suite table:
+# only 8 of the 10 ports invoke suites/surface.py at all — rust and python schedule
+# their SURFACE-family gates individually and never read that table — so a rule added
+# there would silently skip exactly the two ports nobody would double-check.
+#
+# res=surface because the regen shells out to this port's enumerator (tsc), the same
+# resource class SURFACE declares, so the two never contend. No deps= is needed: it
+# regenerates into .sw-tmp/ and reads only the COMMITTED blob (git show HEAD:), so it
+# neither consumes nor clobbers another gate's artifact — which also means it is
+# immune to SURFACE-FRESH's regenerate-then-git-restore window noted above.
+sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json matches a fresh regen" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
+        --port typescript --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
 # declared optional<dict<string,string>> and go still shipped a bare string, with no gate
 # red. RATCHET, not a hard gate: dynamic languages cannot always express a type, so this
 # banks the current count and fails only on REGRESSION. Drive the number DOWN; never up.
-sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 45)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port typescript --repo "$PORT_ROOT" --max 45
+sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 5)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port typescript --repo "$PORT_ROOT" --max 5
 
 # GEN (regen-from-specs family): the 5 GEN-FRESH rules.
 sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
@@ -173,18 +196,56 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 
 # BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
 # is the separate line below.
-sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/SWAIG-HTTP-INVOKE/TLS-VERIFY/CA-VAR/SECRET-SCRUB/SECURE-DEFAULT)" \
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ENVELOPE/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/SWAIG-HTTP-INVOKE/TLS-VERIFY/CA-VAR/SECRET-SCRUB/SECURE-DEFAULT)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,SWAIG-HTTP-INVOKE,TLS-VERIFY,CA-VAR,SECRET-SCRUB,SECURE-DEFAULT
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ENVELOPE,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,SWAIG-HTTP-INVOKE,TLS-VERIFY,CA-VAR,SECRET-SCRUB,SECURE-DEFAULT
 
 sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port typescript --repo "$PORT_ROOT" \
         --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
 
+# TOKEN-INTEROP — property 3 of the SWAIG tool-token contract: a token this port MINTS
+# must validate under the REFERENCE's own decoder. SECURE-DEFAULT proves a token is
+# minted and the fleet keying check proves the HMAC key; NEITHER sees the base64
+# ENVELOPE, so a port could ship correct-key correct-HMAC tokens that no other
+# implementation accepts — in production every secure tool call then fails auth. This
+# port shipped exactly that (Node's 'base64url' STRIPS padding; the reference's
+# urlsafe_b64decode RAISES on a stripped '='), and it was invisible to our own tests
+# because Node's base64url DECODER is padding-tolerant, so we round-tripped fine.
+# One mint + a pure-python validation → cheap, per-PR (a security property must not
+# wait for nightly). Scheduled as its OWN line, not in the BEHAVIORAL suite line
+# above, because that line is defer=1 (heavy wave) and this is cheap.
+sched_gate TOKEN-INTEROP desc="a token this port mints validates under the reference's decoder (padded urlsafe base64, ':'-signed / '.'-enveloped, hex HMAC keyed by the secret_key string)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_token_interop.py" --port typescript \
+        --mint-cmd "SIGNALWIRE_LOG_MODE=off npx tsx $PORT_ROOT/scripts/token-interop-mint.ts"
+
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/
 # ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE.
 sched_gate DOC-TRUTH res=surface desc="doc-truth suite (DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/doc_truth.py" --port typescript --repo "$PORT_ROOT"
+
+# DOC-SURFACE-FRESH: the docs_audit_surface.json analogue of SIGNATURES-FRESH, and the
+# reason it is worth its own gate is that NOTHING READS the committed artifact. Both
+# consumers regenerate it first — the doc-audit workflow enumerates before auditing, and
+# porting-sdk's suites/_doc_audit.py (what DOC-TRUTH invokes here) regenerates, audits,
+# then RESTORES the committed content via TreeGuard. So DOC-AUDIT's verdict is identical
+# whether the committed copy is current or 300 commits old, and the restore actively
+# guarantees running the gate can never refresh it: the staleness is self-perpetuating
+# and invisible.
+#
+# It was real. On 2026-08-04 the committed artifact was generated at c278ce2, 314 commits
+# behind HEAD; a regen was +6811/-584. Audited AS COMMITTED it produced 3 blocking
+# unresolved symbols (includes/send/trim) that are ordinary TS members of the current
+# source — names that look exactly like genuine doc-audit findings and would have been
+# "fixed" by three DOC_AUDIT_IGNORE.md entries, masking the stale artifact behind them.
+#
+# res=surface because the regen shells out to this port's enumerator (tsc), the same
+# resource class SURFACE/SIGNATURES-FRESH declare, so they never contend. It regenerates
+# into .sw-tmp/ via --output and reads only the COMMITTED blob (git show HEAD:), so it
+# neither consumes nor clobbers another gate's artifact — in particular it is immune to
+# DOC-AUDIT's regenerate-then-restore window.
+sched_gate DOC-SURFACE-FRESH res=surface desc="committed docs_audit_surface.json matches a fresh regen" \
+    -- bash "$PORT_ROOT/scripts/check-doc-surface-fresh.sh"
 
 # LEDGER: SUPPRESSION-LEDGER + IGNORE-LEDGER-VERIFY.
 sched_gate LEDGER res=dayone desc="ledger governance suite (SUPPRESSION-LEDGER/IGNORE-LEDGER-VERIFY)" \
@@ -229,6 +290,20 @@ sched_gate FMT defer=1 desc="scripts/run-format.sh (local: auto-fix; CI: --check
 
 sched_gate LINT defer=1 desc="scripts/run-lint.sh (tsc src+examples+tests + eslint)" \
     -- bash "$PORT_ROOT/scripts/run-lint.sh"
+
+# PY-LINT / PY-FMT — the hand-written PYTHON this repo tracks. Today that is
+# exactly one file (tests/fixtures/scrape-parity/python_extract.py, the
+# scrape-parity reference extractor); eslint and prettier cannot see a .py file,
+# so it was linted and format-checked by NOTHING until 2026-07-30. Wired even at
+# one file so the NEXT .py added here is covered from the day it lands, rather
+# than starting a fresh blind spot. eng/ruff.toml mirrors the reference's rule
+# selection with no per-file-ignores, so it is the same bar, not a looser one.
+# Wired once the burn reached ZERO (2 -> 0), so the gate never lands red.
+sched_gate PY-LINT defer=1 desc="scripts/run-py-lint.sh (ruff check, zero findings over the tracked *.py)" \
+    -- bash "$PORT_ROOT/scripts/run-py-lint.sh"
+
+sched_gate PY-FMT defer=1 desc="scripts/run-py-format.sh (ruff format over the tracked *.py; local: apply; CI: --check)" \
+    -- bash "$PORT_ROOT/scripts/run-py-format.sh" ${CI:+--check}
 
 # ---- §C1 doc/example/CLI execution gates ------------------------------------
 # SNIPPET-COMPILE (tsc --noEmit each doc code fence with the real SDK source
@@ -281,12 +356,15 @@ sched_gate PUBLIC-JARGON res=dayone desc="no porting-process jargon in public AP
 sched_gate WIRED-MODES res=dayone desc="load-bearing run-ci modes (WIRED_MODES.md) present — merge-race guard" \
     -- bash -c 'if [ -f "$1/scripts/check_wired_modes.py" ]; then python3 "$1/scripts/check_wired_modes.py" --port typescript --repo "$2"; else echo "[wired-modes] check_wired_modes.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
 
-# DOC-SURFACE (plan 6.3): TSDoc coverage floor on the public API surface. Report-only —
-# it prints the current coverage and ratchets against the committed .doc_surface_floor
-# (never regress below it), it does not fail the build on the absolute percentage.
-# Guarded so the ts lane stays green until doc_surface.py lands on porting-sdk main.
-sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API surface (report-only, ratchets via .doc_surface_floor)" \
-    -- bash -c 'if [ -f "$1/scripts/doc_surface.py" ]; then python3 "$1/scripts/doc_surface.py" --port typescript --repo "$2" --report-only; else echo "[doc-surface] doc_surface.py not on porting-sdk main yet — skip-pass (plan-branch dep)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
+# DOC-SURFACE (plan §6.3): TSDoc coverage floor on the public API surface.
+# BLOCKING. The port is at 100.0% (327/327) as of the 2026-07-29 burn and the floor in
+# .doc_surface_floor is pinned there, so a newly-undocumented public symbol is a real
+# regression with a pinned number to prove it — it must red the run, not print a note.
+# Was report-only at graduation, and previously wrapped in a skip-with-pass guard for
+# when doc_surface.py still lived only on the porting-sdk plan branch. Both are gone: the
+# script is on the pinned PORTING_SDK_REF, and a MISSING gate script must fail, not pass.
+sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API surface (100% — blocking; ratchets via .doc_surface_floor)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port typescript --repo "$PORT_ROOT"
 
 # AI-CHAT (task #22, COORDINATED pass ts:ai-chat-client <-> porting-sdk:ai-chat-client):
 # wire-behavioral gate for the AIChatClient. Drives scripts/ai-chat-dump.ts through the

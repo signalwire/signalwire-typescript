@@ -26,7 +26,7 @@ import { describe, it, expect } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import * as ts from 'typescript';
+import { diagnosticsByLine } from './tscProbe.js';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import {
@@ -61,77 +61,45 @@ function typeCheckHandler(body: string): Map<number, string> {
     `declare class FunctionResult { private __brand: 'fr'; }\n` +
     `type TypedToolHandler = ${extractTypedToolHandler()};\n` +
     `${body}\n`;
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    types: [],
-    typeRoots: [],
-    target: ts.ScriptTarget.ES2022,
-  };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  const byLine = new Map<number, string>();
-  for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
-    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
-    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-  }
-  return byLine;
+  return diagnosticsByLine(virtual, source);
 }
 
 describe('TypedToolHandler — precise typed-tool handler signature', () => {
-  it(
-    'accepts every legitimate handler shape (string / record / FunctionResult / async)',
-    { timeout: 30000 },
-    () => {
-      const errs = typeCheckHandler(
-        `const h1: TypedToolHandler = (city: string) => 'ok'; void h1;\n` + // line 0 → diag 2
-          `const h2: TypedToolHandler = (city: string, n = 1) => ({ response: 'ok' }); void h2;\n` + // line 1 → diag 3
-          `const h3: TypedToolHandler = () => new FunctionResult(); void h3;\n` + // line 2 → diag 4
-          `const h4: TypedToolHandler = async (q: string) => 'later'; void h4;`, // line 3 → diag 5
-      );
-      expect(errs.get(2)).toBeUndefined(); // string return
-      expect(errs.get(3)).toBeUndefined(); // record return
-      expect(errs.get(4)).toBeUndefined(); // FunctionResult return
-      expect(errs.get(5)).toBeUndefined(); // async (Promise) return
-    },
-  );
+  it('accepts every legitimate handler shape (string / record / FunctionResult / async)', () => {
+    const errs = typeCheckHandler(
+      `const h1: TypedToolHandler = (city: string) => 'ok'; void h1;\n` + // line 0 → diag 2
+        `const h2: TypedToolHandler = (city: string, n = 1) => ({ response: 'ok' }); void h2;\n` + // line 1 → diag 3
+        `const h3: TypedToolHandler = () => new FunctionResult(); void h3;\n` + // line 2 → diag 4
+        `const h4: TypedToolHandler = async (q: string) => 'later'; void h4;`, // line 3 → diag 5
+    );
+    expect(errs.get(2)).toBeUndefined(); // string return
+    expect(errs.get(3)).toBeUndefined(); // record return
+    expect(errs.get(4)).toBeUndefined(); // FunctionResult return
+    expect(errs.get(5)).toBeUndefined(); // async (Promise) return
+  });
 
-  it(
-    'REJECTS a non-callable (the bare `Function` would too — but as `unknown`, not a SWAIG result)',
-    { timeout: 30000 },
-    () => {
-      const errs = typeCheckHandler(
-        `const notFn: TypedToolHandler = 42; void notFn;\n` + // line 0 → diag 2
-          `const obj: TypedToolHandler = { run() {} }; void obj;`, // line 1 → diag 3
-      );
-      expect(errs.get(2)).toBeDefined();
-      expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
-      expect(errs.get(3)).toBeDefined();
-    },
-  );
+  it('REJECTS a non-callable (the bare `Function` would too — but as `unknown`, not a SWAIG result)', () => {
+    const errs = typeCheckHandler(
+      `const notFn: TypedToolHandler = 42; void notFn;\n` + // line 0 → diag 2
+        `const obj: TypedToolHandler = { run() {} }; void obj;`, // line 1 → diag 3
+    );
+    expect(errs.get(2)).toBeDefined();
+    expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
+    expect(errs.get(3)).toBeDefined();
+  });
 
-  it(
-    'REJECTS a callable whose return cannot be a SWAIG result (void / boolean)',
-    { timeout: 30000 },
-    () => {
-      const errs = typeCheckHandler(
-        `const voidH: TypedToolHandler = (city: string): void => { void city; }; void voidH;\n` + // line 0 → diag 2
-          `const boolH: TypedToolHandler = (city: string): boolean => true; void boolH;`, // line 1 → diag 3
-      );
-      // A `() => void` / `() => boolean` is NOT assignable to a handler whose
-      // declared return is FunctionResult | record | string | Promise<…>.
-      expect(errs.get(2)).toBeDefined();
-      expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
-      expect(errs.get(3)).toBeDefined();
-      expect(errs.get(3)!).toMatch(/not assignable to type 'TypedToolHandler'/);
-    },
-  );
+  it('REJECTS a callable whose return cannot be a SWAIG result (void / boolean)', () => {
+    const errs = typeCheckHandler(
+      `const voidH: TypedToolHandler = (city: string): void => { void city; }; void voidH;\n` + // line 0 → diag 2
+        `const boolH: TypedToolHandler = (city: string): boolean => true; void boolH;`, // line 1 → diag 3
+    );
+    // A `() => void` / `() => boolean` is NOT assignable to a handler whose
+    // declared return is FunctionResult | record | string | Promise<…>.
+    expect(errs.get(2)).toBeDefined();
+    expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
+    expect(errs.get(3)).toBeDefined();
+    expect(errs.get(3)!).toMatch(/not assignable to type 'TypedToolHandler'/);
+  });
 
   it('runtime: a valid typed handler drives inferSchema + wrapper for real', () => {
     const captured: unknown[] = [];

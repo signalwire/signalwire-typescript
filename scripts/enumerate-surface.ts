@@ -265,9 +265,20 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
   SwmlBuilder: 'SWMLBuilder',
   // Skill class casing aligned with the Python reference (camelCase initialism
   // in TS ↔ SCREAMING initialism in Python). Kept in sync with the signatures
-  // enumerator's CLASS_NAME_ALIASES. (McpGatewaySkill is intentionally NOT
-  // aliased here — it belongs to the py-only mcp_gateway subsystem which is
-  // handled separately via PORT_OMISSIONS/PORT_ADDITIONS under its TS name.)
+  // enumerator's CLASS_NAME_ALIASES.
+  //
+  // McpGatewaySkill USED to be deliberately excluded here, on the premise that it
+  // "belongs to the py-only mcp_gateway subsystem … handled separately via
+  // PORT_OMISSIONS/PORT_ADDITIONS under its TS name". That premise was FALSE: this
+  // port SHIPS the skill (`src/skills/builtin/mcp_gateway.ts:90`, an exported
+  // `class McpGatewaySkill extends SkillBase`). Withholding the alias did not
+  // record a real gap — it split ONE class across TWO spellings so that BOTH
+  // ledgers excused it at once: 6 PORT_OMISSIONS entries under `MCPGatewaySkill`
+  // ("intentionally not ported to any SDK") and 6 PORT_ADDITIONS entries under
+  // `McpGatewaySkill` ("TS-specific skill helper method or class"), for the SAME
+  // five members. A spelling difference is a RENAME (AGENT_RULES §5), never an
+  // omission plus an addition, and neither rationale survived the source.
+  McpGatewaySkill: 'MCPGatewaySkill',
   SwmlTransferSkill: 'SWMLTransferSkill',
   // Note: SWMLService, SWMLVerbHandler, AIVerbHandler keep their ALL-CAPS
   // spelling on both sides.
@@ -553,6 +564,12 @@ interface ClassInfo {
    *  Python reference @dataclass declares it on the same class — otherwise it
    *  would flood the surface with port-internal struct members. */
   fields?: string[];
+  /** Set on a PRIVATE (`_`-prefixed) class: its public composition property
+   *  names, snake_cased. Such a class is not itself surface — it is skipped as
+   *  an implementation detail, exactly as griffe skips Python's
+   *  `_GeneratedResourceTree` — but the members it DECLARES are surface on
+   *  whatever public class extends it. See `wiredBaseAccessors` below. */
+  privateWiringFields?: string[];
 }
 
 interface FileSurface {
@@ -602,7 +619,38 @@ function enumerateFile(file: string): FileSurface {
     // underscore-prefixed members: the generated `_GeneratedResourceTree` wiring
     // base is an implementation detail (Python's `_GeneratedResourceTree` is
     // likewise absent from the reference surface).
-    if (rawName.startsWith('_')) return;
+    //
+    // The CLASS is not surface — but the members it DECLARES are, on whatever
+    // public class extends it. `RestClient extends _GeneratedResourceTree`, and
+    // that base declares all 22 resource-tree accessors (`calling`, `fabric`,
+    // `video`, every flat resource + namespace container). Returning outright
+    // here recorded them nowhere, so the surface oracle could not see a single
+    // one. Record them under `privateWiringFields` for the lifting pass; the
+    // class itself is still never emitted. (Reachability verified at runtime by
+    // tests/rest/resource_tree_mock.test.ts.)
+    if (rawName.startsWith('_')) {
+      const wiring: string[] = [];
+      for (const member of node.members) {
+        if (!ts.isPropertyDeclaration(member) || !member.name || !ts.isIdentifier(member.name)) {
+          continue;
+        }
+        const fName = member.name.text;
+        if (fName.startsWith('_')) continue;
+        const mods = ts.getCombinedModifierFlags(member);
+        // `private`/`protected` members are internal plumbing, not caller surface.
+        if (mods & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected)) continue;
+        wiring.push(camelToSnake(fName));
+      }
+      if (wiring.length > 0) {
+        classes.push({
+          name: rawName,
+          methods: [],
+          fields: [],
+          privateWiringFields: wiring.sort(),
+        });
+      }
+      return;
+    }
     const methods = new Set<string>();
     const fields = new Set<string>();
     for (const member of node.members) {
@@ -699,9 +747,36 @@ function enumerateFile(file: string): FileSurface {
     classes.push({ name: canon, methods: [] });
   }
 
+  /** Is this node a bare `unknown` / `any` keyword? */
+  function isOpenKeyword(typeNode: ts.TypeNode): boolean {
+    return (
+      typeNode.kind === ts.SyntaxKind.UnknownKeyword || typeNode.kind === ts.SyntaxKind.AnyKeyword
+    );
+  }
+
+  // An OPEN index-map alias — `Record<K, unknown>` / `Record<K, any>`, the exact TS
+  // spelling of the reference's `dict[str, Any]`. It carries no structural surface
+  // (the value type is unconstrained), so it is the same "pure format alias" case as
+  // a bare scalar: the reference GENERATES these (`CallingCallParams: TypeAlias =
+  // "dict[str, Any]"`) but griffe does not record a module-level TypeAlias, so they
+  // are absent from python_surface.json.
+  //
+  // NARROW ON PURPOSE: only a Record whose VALUE type is itself a bare `unknown`/`any`
+  // keyword. A Record to a NAMED or UNION type (`Record<string, ChatPermissionWithRead
+  // | ChatPermissionWithWrite>`) or to a nested `Record<...>` (`Record<string,
+  // Record<string, unknown>>`) DOES carry structural surface and must be kept.
+  function isOpenRecordAlias(typeNode: ts.TypeNode): boolean {
+    if (!ts.isTypeReferenceNode(typeNode)) return false;
+    if (!ts.isIdentifier(typeNode.typeName) || typeNode.typeName.text !== 'Record') return false;
+    const args = typeNode.typeArguments;
+    if (!args || args.length !== 2) return false;
+    return isOpenKeyword(args[1]!);
+  }
+
   // A type alias whose RHS is a single primitive keyword (`string`, `number`,
-  // `boolean`, `null`, `unknown`, `any`) — a pure format alias with no structural
-  // surface. The reference emits these too but its surface enumerator drops them.
+  // `boolean`, `null`, `unknown`, `any`) or an open `Record<K, unknown|any>` — a pure
+  // format alias with no structural surface. The reference emits these too but its
+  // surface enumerator drops them.
   function isBareScalarAlias(typeNode: ts.TypeNode): boolean {
     switch (typeNode.kind) {
       case ts.SyntaxKind.StringKeyword:
@@ -712,7 +787,7 @@ function enumerateFile(file: string): FileSurface {
       case ts.SyntaxKind.AnyKeyword:
         return true;
       default:
-        return false;
+        return isOpenRecordAlias(typeNode);
     }
   }
 
@@ -1038,10 +1113,37 @@ function getGitSha(repoRoot: string): string {
 // Main
 // ---------------------------------------------------------------------------
 
-function main(): void {
+function main(): number {
   const argv = process.argv.slice(2);
+
+  // Reject unknown flags. This parser used to silently IGNORE anything it did not
+  // recognise — the exact hole enumerate-signatures.ts closed in 722932e, still open
+  // here. The two enumerators spell their output flag DIFFERENTLY (`--output` here,
+  // `--out` there), so `--out <path>` passed to this script fell through to the
+  // default path and OVERWROTE the committed port_surface.json at exit 0, with no
+  // warning: the caller thinks it wrote a scratch file, and the working tree is
+  // silently mutated instead. (Observed live, 2026-07-30.) An unrecognised flag is a
+  // caller error, not a no-op.
+  const KNOWN = new Set(['--stdout', '--output']);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a || !a.startsWith('--')) continue;
+    if (!KNOWN.has(a)) {
+      console.error(
+        `enumerate-surface: unknown flag '${a}'\n` +
+          `usage: enumerate-surface [--output <path>] [--stdout]`,
+      );
+      return 2;
+    }
+    if (a === '--output') i++; // consume its value
+  }
+
   const writeStdout = argv.includes('--stdout');
   const outputArgIdx = argv.indexOf('--output');
+  if (outputArgIdx >= 0 && argv[outputArgIdx + 1] === undefined) {
+    console.error('enumerate-surface: --output requires a path argument');
+    return 2;
+  }
   const repoRoot = path.resolve(__dirname, '..');
   const outputPath =
     outputArgIdx >= 0
@@ -1069,6 +1171,7 @@ function main(): void {
     methods: string[];
     extendsName?: string;
     fields?: string[];
+    privateWiringFields?: string[];
   }
   const rawClasses: RawClass[] = [];
   const rawFunctions: Array<{ fileRel: string; fns: string[] }> = [];
@@ -1082,14 +1185,30 @@ function main(): void {
         methods: c.methods,
         extendsName: c.extendsName,
         fields: c.fields,
+        privateWiringFields: c.privateWiringFields,
       });
     }
     if (fs2.functions.length > 0) rawFunctions.push({ fileRel: rel, fns: fs2.functions });
   }
 
+  // Name → composition accessors declared on a PRIVATE wiring base. Keyed by the
+  // raw TS class name so the `extends` chain (which is name-keyed here — this
+  // enumerator parses per-file with no type checker) can look it up. The private
+  // class is never emitted itself; only these member names, lifted onto the
+  // public subclass that extends it. See the `_`-prefix branch of collectClass.
+  const privateWiring = new Map<string, Set<string>>();
+  for (const c of rawClasses) {
+    if (!c.privateWiringFields || c.privateWiringFields.length === 0) continue;
+    if (!privateWiring.has(c.name)) privateWiring.set(c.name, new Set());
+    for (const f of c.privateWiringFields) privateWiring.get(c.name)!.add(f);
+  }
+
   // Build a name → methods map for inheritance lookups (TS-class-name keyed).
   const classMethods = new Map<string, Set<string>>();
   for (const c of rawClasses) {
+    // A private wiring base contributes through `privateWiring` only — never as a
+    // name-keyed entry `resolveInherited` could pick up.
+    if (c.privateWiringFields) continue;
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     if (!classMethods.has(cleanName)) classMethods.set(cleanName, new Set());
     for (const m of c.methods) classMethods.get(cleanName)!.add(m);
@@ -1109,6 +1228,7 @@ function main(): void {
   // a TS caller could set but not read back (CONSTRUCTION-READBACK).
   const classFields = new Map<string, Set<string>>();
   for (const c of rawClasses) {
+    if (c.privateWiringFields) continue;
     if (!c.fields || c.fields.length === 0) continue;
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     const emitKey = CLASS_NAME_ALIASES[cleanName] ?? cleanName;
@@ -1138,9 +1258,36 @@ function main(): void {
   // class also explicitly declares it — avoiding a flood of inherited
   // methods that wouldn't be in Python's surface anyway.
   for (const c of rawClasses) {
+    if (c.privateWiringFields) continue; // not surface; only a source of lifted members
     const cleanName = c.name.startsWith('__NS__') ? c.name.split('__').pop()! : c.name;
     const emitName = CLASS_NAME_ALIASES[cleanName] ?? cleanName;
     const moduleGuess = pickModule(emitName, c.fileRel, classToModules);
+
+    // WIRED-BASE composition: lift the accessors declared on a PRIVATE base this
+    // class extends (`RestClient extends _GeneratedResourceTree`). Those members
+    // are surface — reachable, spec-derived, and recorded by the reference oracle
+    // on the SUBCLASS — but they live on a base that is itself an implementation
+    // detail, so neither the per-class member walk nor the public-base
+    // `resolveInherited` pass could see them. Walks the private-base chain so a
+    // multi-level wiring base resolves too. Unlike `resolveInherited` below, this
+    // is NOT filtered against the reference's method set: the base is generated
+    // from `porting-sdk/rest-apis/*/openapi.yaml`, so its accessors track the
+    // specs by construction and a genuinely port-only accessor would be a real
+    // ADDITION the gate should report, not something to silently drop.
+    {
+      const lifted = new Set<string>();
+      const seenBase = new Set<string>();
+      let baseName = c.extendsName;
+      while (baseName && privateWiring.has(baseName) && !seenBase.has(baseName)) {
+        seenBase.add(baseName);
+        for (const f of privateWiring.get(baseName)!) lifted.add(f);
+        baseName = rawClasses.find((r) => r.name === baseName)?.extendsName;
+      }
+      if (lifted.size > 0) {
+        c.methods = Array.from(new Set([...c.methods, ...lifted])).sort();
+      }
+    }
+
     // A generated-type interface (recorded method-less from a *.types.generated /
     // swml_verbs_generated / SwaigContracts.generated file) is a pure data shape — it
     // must NOT absorb inherited/Python methods from a same-named BUILDER class in
@@ -1189,6 +1336,9 @@ function main(): void {
 
   // Emit classes.
   for (const cls of rawClasses) {
+    // A private wiring base is not surface — it was recorded ONLY so its declared
+    // accessors could be lifted onto the public class that extends it.
+    if (cls.privateWiringFields) continue;
     const rel = cls.fileRel;
 
     // Handle nested-namespace marker: "__NS__plugins__DeepgramSTT" → class
@@ -1654,6 +1804,11 @@ function main(): void {
     fs.writeFileSync(outputPath, rendered, 'utf-8');
     process.stderr.write(`wrote ${outputPath}\n`);
   }
+  return 0;
 }
 
-main();
+// `process.exit(main())`, not a bare `main()`: a non-zero return must reach the
+// shell. A bare call discards the code and the process exits 0, which is how a
+// rejected flag would still read as success to every caller. Mirrors
+// enumerate-signatures.ts (722932e).
+process.exit(main());
