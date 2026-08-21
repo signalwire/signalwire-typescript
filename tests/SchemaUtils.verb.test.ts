@@ -455,79 +455,75 @@ describe('SchemaUtils — verb extraction and validation', () => {
   });
 });
 
-// ── x-sdk-widen: a const-union that is a HINT, not a closed set ──────────────
+
+// ── hangup.reason: the SDK validates the value set the ENGINE validates ──────
 //
-// Some SWML schema fields carry an enum/const union that documents the COMMON
-// values while the platform actually accepts any value of the base type. Those
-// carry `x-sdk-widen: true`, and the marker means: do not treat this union as
-// closed.
+// The engine's contract is stated once, in C, at
+// mod_infrastructure/relay_apis.c:1105:
 //
-// The SDK honours it in TWO places, and they are easy to get half-right:
+//   JSON_CHECK_STRING_MATCHES_OPTIONAL(reason, "hangup,cancel,busy,noAnswer,decline,error")
 //
-//   1. the TYPE generator (scripts/_gen-common.ts tsType) widens the emitted TS
-//      type to the base scalar — otherwise `swml_verbs_generated.ts` would
-//      declare `reason?: 'hangup' | 'busy' | 'decline'` and refuse to COMPILE a
-//      valid document;
-//   2. the VALIDATOR, here — otherwise Ajv, which has never heard of
-//      `x-sdk-widen`, enforces the raw `anyOf` const-union at RUNTIME and
-//      rejects documents the platform accepts.
+// and a non-match is a hard reject (libks ks_json_check.h sets *error_msg and
+// returns 0). The SWML layer types the field as a bare string
+// (swml_schema.c:1571) and swml.c forwards it verbatim into the `end` RPC on
+// the same call, so the contract a document must satisfy is the COMPOSITION of
+// the two layers — exactly these six values.
 //
-// This port shipped (1) and not (2): `validateVerb('hangup', {reason:'user_hangup'})`
-// returned invalid with "must be equal to constant … must match a schema in
-// anyOf". A validator being too STRICT is the failure direction nobody probes,
-// because every test anyone writes uses a value from the union and passes.
-//
-// java and ruby both had this identical hole, in both cases becoming live the
-// moment emissions were routed through their validators.
-describe('SchemaUtils — x-sdk-widen widens the validator, not just the types', () => {
+// This replaces the previous `x-sdk-widen` suite, which asserted the OPPOSITE:
+// that 'user_hangup', 'no_answer' and 'anything-at-all' must validate. The
+// engine refuses all three, so those rows pinned a bug. The bundled schema had
+// listed only hangup|busy|decline and carried the marker, and the SDK stripped
+// the value set before compiling — which accepted the three engine values the
+// schema omitted, but accepted everything else too.
+describe('SchemaUtils — hangup.reason matches the engine value set', () => {
   const su = new SchemaUtils();
 
-  // $defs/Hangup.properties.hangup.properties.reason is the one field carrying
-  // the marker today. Guard that fact: if the vendored schema moves it, this
-  // suite would otherwise keep passing while testing nothing.
-  it('the vendored schema still marks Hangup.reason as widened', () => {
+  // The six values from relay_apis.c:1105, in source order. Note the camelCase
+  // 'noAnswer' — 'no_answer' is NOT an engine value in any spelling.
+  const ENGINE_REASONS = ['hangup', 'cancel', 'busy', 'noAnswer', 'decline', 'error'];
+
+  // Guard the artifact itself, so a re-vendor that reintroduces the three-value
+  // union or the marker is caught here rather than only through behaviour.
+  it('the bundled schema publishes the six engine values and no widen marker', () => {
     const schema = su.loadSchema() as Record<string, unknown>;
     const defs = schema['$defs'] as Record<string, Record<string, unknown>>;
     const hangup = defs['Hangup']!['properties'] as Record<string, Record<string, unknown>>;
     const reason = (hangup['hangup']!['properties'] as Record<string, Record<string, unknown>>)[
       'reason'
     ]!;
-    expect(reason['x-sdk-widen']).toBe(true);
-    // ...and that it IS a const-union, i.e. there is something to widen.
-    expect(Array.isArray(reason['anyOf'])).toBe(true);
+    expect(reason['x-sdk-widen']).toBeUndefined();
+    expect(reason['enum']).toEqual(ENGINE_REASONS);
   });
 
-  it('accepts a value INSIDE the documented union', () => {
-    // The direction every existing test already covers — kept as the control,
-    // so a fix that simply disabled validation for this verb is caught by the
-    // wrong-TYPE case below rather than sailing through.
-    expect(su.validateVerb('hangup', { reason: 'busy' }).valid).toBe(true);
-  });
-
-  it('accepts a value OUTSIDE the union — the union is a hint', () => {
-    for (const reason of ['user_hangup', 'no_answer', 'anything-at-all']) {
+  it('accepts every value the engine accepts', () => {
+    // cancel, noAnswer and error were absent from the old three-const union and
+    // validated only because widen removed the constraint altogether.
+    for (const reason of ENGINE_REASONS) {
       const result = su.validateVerb('hangup', { reason });
       expect(result.valid, `reason=${reason} errors=${JSON.stringify(result.errors)}`).toBe(true);
     }
   });
 
-  it('still rejects the wrong TYPE — widening relaxes the VALUE set, not the type', () => {
-    // The bound that makes widening safe. `x-sdk-widen` says "any value OF THE
-    // BASE TYPE", so a number or an object is still a schema violation. Without
-    // this row, "widening" could be implemented by deleting the constraint
-    // outright and nothing would notice.
+  it('rejects a value the engine refuses', () => {
+    // The behaviour change, and it is intended: these previously validated.
+    // Rejecting locally is STRICTER and correct — the caller gets a clear
+    // client-side error instead of an opaque server-side call failure.
+    for (const reason of ['user_hangup', 'no_answer', 'anything-at-all', 'HANGUP', '']) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${reason} unexpectedly accepted`).toBe(false);
+    }
+  });
+
+  it('still rejects the wrong TYPE', () => {
     for (const reason of [42, true, { nested: 'object' }, ['array']]) {
       const result = su.validateVerb('hangup', { reason });
       expect(result.valid, `reason=${JSON.stringify(reason)} unexpectedly accepted`).toBe(false);
     }
   });
 
-  it('leaves NON-widened closed enums alone', () => {
-    // The blast-radius check. Widening must apply ONLY where the marker is —
-    // a relaxation that leaked into every union would silently turn the whole
-    // validator into a rubber stamp, which is a far worse defect than the one
-    // being fixed here. `play`'s config is a well-populated verb with typed
-    // fields; a garbage-typed value there must still fail.
+  it('leaves other verbs alone', () => {
+    // Blast-radius check: removing the widen transform must not have changed
+    // validation anywhere else.
     const result = su.validateVerb('play', { url: 12345 });
     expect(result.valid).toBe(false);
   });

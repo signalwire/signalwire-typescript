@@ -95,70 +95,6 @@ export interface VerbDefinition {
 const REQUIRED_TOP_LEVEL = ['version', 'sections'];
 const VALID_VERSIONS = ['1.0.0'];
 
-// Rewrite every widen-marked subschema so its const/enum union stops being
-// enforced as a CLOSED set, returning a new schema (the input is never mutated —
-// it is the loaded schema object, shared with `loadSchema` callers).
-//
-// The marker flags a field whose enum/const union documents the COMMON values
-// while the platform accepts any value of the base type. Ajv has never heard of
-// the keyword — under `strict: false` it silently ignores it and enforces the
-// raw union — so a validator compiled from the schema verbatim REJECTS documents
-// the platform accepts. That is the failure direction nobody probes: every test
-// anyone writes naturally picks a value from the union and passes, so the
-// validator looks correct right up until a user sends a valid document and the
-// SDK refuses to emit it. (The same hole existed in java and ruby, and became
-// live in both the moment emissions were routed through their validators.)
-//
-// The widening is deliberately NARROW: it drops only the value-constraining
-// keywords and keeps the base `type`, so a wrong TYPE still fails. Widening
-// means "any value of this type", never "anything at all" — the latter would
-// turn the marker into a way to switch validation off.
-//
-// The type generator applies the same marker at the type level
-// (`scripts/_gen-common.ts` `tsType`); the two must agree, or the SDK would
-// accept a value at runtime that its own emitted types refuse to express.
-function applyWiden(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(applyWiden);
-  if (node === null || typeof node !== 'object') return node;
-
-  const src = node as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(src)) out[k] = applyWiden(v);
-
-  if (src['x-sdk-widen'] !== true) return out;
-
-  // Recover the base type. It may be stated directly, or (the shape the SWML
-  // schema actually uses) only inside the const-union branches — `anyOf: [
-  // {type:'string',const:'hangup'}, … ]` — in which case every branch agrees
-  // and the first one carries it.
-  let baseType = out['type'];
-  if (baseType === undefined) {
-    const branches = (out['anyOf'] ?? out['oneOf']) as unknown;
-    if (Array.isArray(branches)) {
-      for (const b of branches) {
-        const t = (b as Record<string, unknown> | null)?.['type'];
-        if (t !== undefined) {
-          baseType = t;
-          break;
-        }
-      }
-    }
-  }
-
-  // Drop the value-constraining keywords, keep everything else (description,
-  // examples, format, …). If no base type could be recovered, leave the node
-  // untouched rather than erasing the constraint blindly — an unconstrained
-  // field is a worse outcome than a too-strict one, and a marker on a shape we
-  // do not understand is a schema bug worth surfacing rather than papering over.
-  if (baseType === undefined) return out;
-  delete out['anyOf'];
-  delete out['oneOf'];
-  delete out['enum'];
-  delete out['const'];
-  out['type'] = baseType;
-  return out;
-}
-
 /** Validates SWML documents against structural rules with an LRU-style result cache. */
 export class SchemaUtils {
   private skipValidation: boolean;
@@ -538,11 +474,7 @@ export class SchemaUtils {
         // Compile the verb's own definition (which is `{ properties: { <verb>:
         // <config-schema> }, ... }`) with $defs present so cross-verb $refs
         // resolve. Give it a fresh $id so repeat compiles never collide.
-        //
-        // `applyWiden` first: Ajv has never heard of `x-sdk-widen`, so without
-        // it the raw const-union is enforced and the validator rejects values
-        // the platform accepts (see applyWiden's own comment).
-        built = ajv.compile(applyWiden({ $defs: defs, ...(verb.definition as object) }) as object);
+        built = ajv.compile({ $defs: defs, ...(verb.definition as object) } as object);
         this.compileFailures.delete(verbName);
       } catch (e) {
         // A COMPILE FAILURE IS NOT "NOTHING TO VALIDATE". Record it so the
