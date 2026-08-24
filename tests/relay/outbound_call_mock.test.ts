@@ -86,7 +86,7 @@ describe('Dial — happy path', () => {
     expect(p!.devices![0]![0]!.type).toBe('phone');
   });
 
-  it('test_dial_with_max_duration_in_frame', async () => {
+  it('test_dial_with_region_and_max_price_in_frame', async () => {
     await mock.armDial({
       tag: 't-md',
       winner_call_id: 'winner-md',
@@ -94,9 +94,18 @@ describe('Dial — happy path', () => {
       node_id: 'node-mock-1',
       device: phoneDevice(),
     });
-    await client.dial([[phoneDevice()]], { tag: 't-md', maxDuration: 300, dialTimeout: 5.0 });
+    // calling.dial has no max_duration on the wire (CallingDialParams); the real
+    // optional knobs are region + max_price_per_minute.
+    await client.dial([[phoneDevice()]], {
+      tag: 't-md',
+      region: 'us',
+      maxPricePerMinute: 0.05,
+      dialTimeout: 5.0,
+    });
     const [entry] = await mock.journalRecv('calling.dial');
-    expect(entry!.frame.params!.max_duration).toBe(300);
+    expect(entry!.frame.params!.region).toBe('us');
+    expect(entry!.frame.params!.max_price_per_minute).toBe(0.05);
+    expect(entry!.frame.params!.max_duration).toBeUndefined();
   });
 
   it('test_dial_auto_generates_uuid_tag_when_omitted', async () => {

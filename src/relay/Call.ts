@@ -39,6 +39,7 @@ import type {
   DeviceInput,
   EventHandler,
   PlayItem,
+  ReferDevice,
 } from './types.js';
 // Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
 // *.params.json — the switchblade source). Method params index into these so
@@ -53,6 +54,7 @@ import type {
   CallingAnswerResult,
   CallingBindDigitResult,
   CallingClearDigitBindingsResult,
+  CallingCollectParams,
   CallingConnectParams,
   CallingConnectResult,
   CallingDenoiseResult,
@@ -82,7 +84,6 @@ import type {
 // same wire command, fully specified. (connect's params are relay-only — see
 // CallingConnectParams above for ringback.)
 import type {
-  CallCollectRequest,
   CallDetectRequest,
   CallRecordRequest,
   CallTapRequest,
@@ -833,8 +834,8 @@ export class Call {
    */
   async collect(
     options: {
-      digits?: CallCollectRequest['params']['digits'];
-      speech?: CallCollectRequest['params']['speech'];
+      digits?: CallingCollectParams['digits'];
+      speech?: CallingCollectParams['speech'];
       initialTimeout?: number;
       partialResults?: boolean;
       continuous?: boolean;
@@ -1070,17 +1071,22 @@ export class Call {
   /**
    * Transfer a SIP call via REFER.
    *
-   * @param device - Platform-shaped SIP target device descriptor.
+   * @param device - SIP target device descriptor. `to` is required by the wire
+   *   (`CallingReferParams.device.params.to`); `headers` is a name→value map.
    * @param options - Optional REFER behaviour.
    * @param options.statusUrl - Webhook URL for REFER status events.
    * @returns The platform's refer response.
    * @throws {RelayError} When the refer command is rejected.
    */
   async refer(
-    device: DeviceInput,
+    device: ReferDevice,
     options: { statusUrl?: string } = {},
   ): Promise<CallingReferResult> {
-    const params: Record<string, unknown> = { device: normalizeDevice(device) };
+    // ReferDevice is a closed shape (no index signature), so widen it to the
+    // normalizer's open record type at this boundary.
+    const params: Record<string, unknown> = {
+      device: normalizeDevice(device as unknown as Record<string, unknown>),
+    };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
     return this._execute<CallingReferResult>('refer', params);
   }
