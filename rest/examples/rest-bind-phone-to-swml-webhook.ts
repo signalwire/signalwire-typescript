@@ -21,11 +21,11 @@
 import { RestClient, PhoneCallHandler } from '../../src/index.js';
 
 async function main(): Promise<void> {
-  const pnSid = process.env['PHONE_NUMBER_SID'];
-  const webhookUrl = process.env['SWML_WEBHOOK_URL'];
-  if (!pnSid || !webhookUrl) {
-    throw new Error('Set PHONE_NUMBER_SID and SWML_WEBHOOK_URL.');
-  }
+  // Read the resource identifiers from the environment; fall back to placeholders
+  // so the example runs verbatim against the local mock (which serves any
+  // well-formed SID). A real run exports your own PHONE_NUMBER_SID / SWML_WEBHOOK_URL.
+  const pnSid = process.env['PHONE_NUMBER_SID'] ?? 'pn-00000000-0000-0000-0000-000000000000';
+  const webhookUrl = process.env['SWML_WEBHOOK_URL'] ?? 'https://example.com/swml';
 
   const client = new RestClient();
 

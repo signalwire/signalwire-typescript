@@ -110,9 +110,11 @@ export interface RelayClientLike {
  *
  * @example Inside an onCall handler
  * ```ts
+ * import { RelayClient } from '@signalwire/sdk';
+ * const client = new RelayClient();
  * client.onCall(async (call) => {
  *   await call.answer();
- *   const play = await call.playAsync({ play: [{ type: 'tts', text: 'Hello!' }] });
+ *   const play = await call.play([{ type: 'tts', params: { text: 'Hello!' } }]);
  *   await play.wait();
  *   await call.hangup();
  * });
@@ -217,10 +219,17 @@ export class Call {
     try {
       return (await this._client.execute(rpcMethod, params)) as R;
     } catch (err: unknown) {
+      // A2 contract (RELAY-LIVENESS relay_contract fixture; mirrors the python
+      // reference `Call._execute`): a 404 or 410 means the call no longer exists,
+      // so the verb is a no-op and returns `{}` (the action can't proceed, but
+      // that isn't an error worth raising). EVERY OTHER non-2xx server error
+      // (500, auth, bad params, server faults) RAISES — the previous code
+      // swallowed ALL errors carrying a `code`, hiding real failures the
+      // developer must see.
       const code = (err as { code?: unknown } | null)?.code;
-      if (code !== undefined) {
+      if (code === 404 || code === 410) {
         logger.warn(
-          `Call ${this.callId} error during ${method} (code=${String(code)}): ${String(err)}`,
+          `Call ${this.callId} gone during ${method} (code=${String(code)}): ${String(err)}`,
         );
         return {} as R;
       }
@@ -853,6 +862,11 @@ export class Call {
 
   /**
    * Bridge the call to one or more destinations.
+   *
+   * Each device is a {@link PhoneDevice}, {@link SipDevice}, or
+   * {@link FabricDevice} (dial a Fabric address directly — the platform resolves
+   * the address to whatever it points to: a Subscriber, a Relay/LaML app, a video
+   * room, …).
    *
    * @param devices - Serial/parallel dial plan — outer array of serial groups,
    *   inner arrays dialled in parallel.

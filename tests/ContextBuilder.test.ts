@@ -167,4 +167,48 @@ describe('ContextBuilder', () => {
       expect(() => new Context('default').setHistory('bogus')).toThrow(/history must be one of/);
     });
   });
+
+  // Ported from the reference's TestGatherIsolated
+  // (signalwire-python tests/unit/core/test_contexts.py).
+  describe('gather isolated (gather default + per-question tri-state override)', () => {
+    it('GatherInfo emits isolated:true when set', () => {
+      const g = new GatherInfo({ isolated: true });
+      g.addQuestion({ key: 'k', question: 'Q?' });
+      expect(g.toDict().isolated).toBe(true);
+    });
+
+    it('GatherInfo omits isolated by default', () => {
+      const g = new GatherInfo({});
+      g.addQuestion({ key: 'k', question: 'Q?' });
+      expect('isolated' in g.toDict()).toBe(false);
+    });
+
+    it('GatherQuestion omits isolated by default', () => {
+      const q = new GatherQuestion({ key: 'k', question: 'Q?' });
+      expect('isolated' in q.toDict()).toBe(false);
+    });
+
+    it('GatherQuestion emits isolated:true', () => {
+      const q = new GatherQuestion({ key: 'k', question: 'Q?', isolated: true });
+      expect(q.toDict()['isolated']).toBe(true);
+    });
+
+    it('GatherQuestion emits isolated:false — False must survive to SWML so it can override an isolated gather', () => {
+      const q = new GatherQuestion({ key: 'k', question: 'Q?', isolated: false });
+      expect(q.toDict()['isolated']).toBe(false);
+    });
+
+    it('Step gather isolated roundtrip', () => {
+      const step = new Step('collect').setText('t');
+      step.setGatherInfo({ outputKey: 'cust', isolated: true });
+      step.addGatherQuestion({ key: 'name', question: 'Your name?' });
+      step.addGatherQuestion({ key: 'zip', question: 'Your ZIP?', isolated: false });
+
+      const gather = step.toDict().gather_info!;
+      expect(gather.isolated).toBe(true);
+      expect(gather.output_key).toBe('cust');
+      expect('isolated' in gather.questions[0]!).toBe(false);
+      expect(gather.questions[1]!['isolated']).toBe(false);
+    });
+  });
 });

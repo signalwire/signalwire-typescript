@@ -18,7 +18,7 @@ import { RelayClient } from '@signalwire/sdk';
 function makeClient() {
   return new RelayClient({
     project: 'your-project-id',    // or env: SIGNALWIRE_PROJECT_ID
-    token: 'your-api-token',       // or env: SIGNALWIRE_TOKEN
+    token: 'your-api-token',       // or env: SIGNALWIRE_API_TOKEN
     host: 'your-space.signalwire.com', // or env: SIGNALWIRE_SPACE
     contexts: ['office', 'support'],
   });
@@ -27,7 +27,7 @@ function makeClient() {
 
 All parameters can be provided via environment variables:
 - `SIGNALWIRE_PROJECT_ID` - Your SignalWire project ID
-- `SIGNALWIRE_TOKEN` - Your SignalWire API token (or `SIGNALWIRE_JWT_TOKEN` for JWT auth)
+- `SIGNALWIRE_API_TOKEN` - Your SignalWire API token (or `SIGNALWIRE_JWT_TOKEN` for JWT auth)
 - `SIGNALWIRE_SPACE` - Your SignalWire space hostname
 
 ## Handling Inbound Calls
@@ -304,7 +304,7 @@ call.on('calling.call.state', (event) => {
 | Variable | Purpose |
 |----------|---------|
 | `SIGNALWIRE_PROJECT_ID` | Project ID for authentication |
-| `SIGNALWIRE_TOKEN` | API token for authentication |
+| `SIGNALWIRE_API_TOKEN` | API token for authentication |
 | `SIGNALWIRE_JWT_TOKEN` | JWT token (alternative to project/token) |
 | `SIGNALWIRE_SPACE` | Space hostname (default: relay.signalwire.com) |
 | `SIGNALWIRE_LOG_LEVEL` | Log level: debug, info, warn, error |

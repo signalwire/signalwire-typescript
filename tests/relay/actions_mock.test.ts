@@ -397,14 +397,16 @@ describe('FaxAction', () => {
 describe('TapAction', () => {
   it('test_tap_journals_calling_tap', async () => {
     const call = await answeredInboundCall('call-tap');
+    // The RELAY wire contract (relay_apis.c: JSON_CHECK(tap, "type,params"))
+    // REQUIRES tap.params — a tap missing it is rejected -32602 by the server.
     await call.tap(
-      { type: 'audio' },
+      { type: 'audio', params: { direction: 'both' } },
       { type: 'rtp', params: { addr: '203.0.113.1', port: 4000 } },
       { controlId: 'tap-ctl' },
     );
     const [entry] = await mock.journalRecv('calling.tap');
     const p = entry!.frame.params;
-    expect(p!.tap).toEqual({ type: 'audio' });
+    expect(p!.tap).toEqual({ type: 'audio', params: { direction: 'both' } });
     expect(p!.device!.params!.port).toBe(4000);
     expect(p!.control_id).toBe('tap-ctl');
   });
@@ -412,7 +414,7 @@ describe('TapAction', () => {
   it('test_tap_stop_journals_tap_stop', async () => {
     const call = await answeredInboundCall('call-tap-stop');
     const action = await call.tap(
-      { type: 'audio' },
+      { type: 'audio', params: { direction: 'both' } },
       { type: 'rtp', params: { addr: '203.0.113.1', port: 4000 } },
       { controlId: 'tap-stop' },
     );

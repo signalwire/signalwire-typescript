@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
 import { Call } from './Call.js';
 import { createDeferred, type Deferred } from './Deferred.js';
@@ -62,6 +63,46 @@ type WirePayload = Record<string, unknown>;
 (Symbol as { asyncDispose?: symbol }).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
 
 const logger = getLogger('relay_client');
+
+/**
+ * Extra `ws` connection options trusting a custom RELAY CA bundle, read from
+ * `SIGNALWIRE_RELAY_CA_FILE` (A5 fleet CA-var contract, hard-cut, no aliases).
+ * When the env var names a CA bundle it becomes the RELAY WebSocket transport's
+ * TLS trust root (`ws` forwards `ca` to the underlying `tls.connect`), the exact
+ * RELAY half of the fleet pair (`SIGNALWIRE_REST_CA_FILE` is the REST half).
+ * Unset → node's default trust store (`{}`). Mirrors the python reference
+ * (`relay/client.py:134` `_build_relay_ssl_context` → `websockets.connect(ssl=)`).
+ *
+ * Read at connect time (not module load) so a var set after import is honored,
+ * matching the REST half. Returns `{}` when unset or the file can't be read.
+ */
+function relayCaWsOptions(): { ca?: Buffer } {
+  const caFile = process.env['SIGNALWIRE_RELAY_CA_FILE'];
+  if (!caFile) return {};
+  try {
+    const require = createRequire(import.meta.url);
+    const { readFileSync } = require('node:fs') as { readFileSync: (p: string) => Buffer };
+    return { ca: readFileSync(caFile) };
+  } catch (err) {
+    logger.warn(`relay_ca_file_load_failed file=${caFile} error=${String(err)}`);
+    return {};
+  }
+}
+
+/**
+ * Read a positive numeric override from the environment, falling back to a
+ * default when unset, empty, or non-numeric. Used for the liveness-timing knobs
+ * (ping interval / max failures / request timeout / reconnect delays) so a
+ * bounded test window can exercise the half-open / black-hole / reconnect paths
+ * without changing production defaults. Mirrors the `RELAY_MAX_CONNECTIONS`
+ * env-read pattern already in this module.
+ */
+function _envNum(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 // Any 2xx code is considered success
 const SUCCESS_CODE_RE = /^2\d{2}$/;
@@ -116,7 +157,7 @@ type WsLike = {
  *
  * client.onCall(async (call) => {
  *   await call.answer();
- *   await call.playTTS({ text: 'Thanks for calling!' });
+ *   await call.playTTS('Thanks for calling!');
  *   await call.hangup();
  * });
  *
@@ -125,11 +166,13 @@ type WsLike = {
  *
  * @example Outbound dial + SMS
  * ```ts
+ * import { RelayClient } from '@signalwire/sdk';
+ * const client = new RelayClient();
  * await client.connect();
- * const call = await client.dial({
- *   devices: [[{ type: 'phone', to: '+15551234567', from: '+15557654321' }]],
- * });
- * await client.sendMessage({ to: '+15551234567', from: '+15557654321', body: 'Hi!' });
+ * const call = await client.dial([
+ *   [{ type: 'phone', to: '+15551234567', from: '+15557654321' }],
+ * ]);
+ * await client.sendMessage({ toNumber: '+15551234567', fromNumber: '+15557654321', body: 'Hi!' });
  * ```
  *
  * @see {@link Call}
@@ -185,6 +228,34 @@ export class RelayClient {
   private _pingFailures = 0;
   private _serverPingTimeout: ReturnType<typeof setTimeout> | null = null;
   private _maxActiveCalls = DEFAULT_MAX_ACTIVE_CALLS;
+
+  // Liveness timings. Default to the module constants; overridable via env so a
+  // half-open/black-hole/reconnect scenario can be exercised inside a bounded
+  // test window (RELAY-LIVENESS behavioral gate) — the exact analog of the
+  // python reference's monkeypatchable `_CLIENT_PING_INTERVAL` / `_EXECUTE_TIMEOUT`
+  // / `RECONNECT_MIN_DELAY` module constants and go's `WithPingWatchdog` /
+  // `WithExecuteTimeout` / `WithReconnectBackoff` options. Production behavior is
+  // unchanged when the env vars are unset.
+  private readonly _clientPingIntervalMs = _envNum(
+    'SIGNALWIRE_RELAY_PING_INTERVAL_MS',
+    CLIENT_PING_INTERVAL,
+  );
+  private readonly _clientPingMaxFailures = _envNum(
+    'SIGNALWIRE_RELAY_PING_MAX_FAILURES',
+    CLIENT_PING_MAX_FAILURES,
+  );
+  private readonly _requestTimeoutMs = _envNum(
+    'SIGNALWIRE_RELAY_REQUEST_TIMEOUT_MS',
+    REQUEST_TIMEOUT,
+  );
+  private readonly _reconnectMinDelay = _envNum(
+    'SIGNALWIRE_RELAY_RECONNECT_MIN_DELAY_S',
+    RECONNECT_MIN_DELAY,
+  );
+  private readonly _reconnectMaxDelay = _envNum(
+    'SIGNALWIRE_RELAY_RECONNECT_MAX_DELAY_S',
+    RECONNECT_MAX_DELAY,
+  );
 
   // For run() — resolves when shutdown requested
   private _shutdownDeferred: Deferred<void> | null = null;
@@ -262,16 +333,21 @@ export class RelayClient {
    *
    * Enables usage with `await using`:
    * ```ts
-   * await using client = new RelayClient({ ... });
+   * import { RelayClient } from '@signalwire/sdk';
+   * await using client = new RelayClient({ project: 'p', token: 't', host: 'example.signalwire.com' });
    * await client.connect();
-   * // ... automatically disconnects when scope exits
+   * // automatically disconnects when scope exits
    * ```
    *
    * For environments without `await using`, use try/finally:
    * ```ts
-   * const client = new RelayClient({ ... });
-   * try { await client.connect(); ... }
-   * finally { await client.disconnect(); }
+   * import { RelayClient } from '@signalwire/sdk';
+   * const client = new RelayClient({ project: 'p', token: 't', host: 'example.signalwire.com' });
+   * try {
+   *   await client.connect();
+   * } finally {
+   *   await client.disconnect();
+   * }
    * ```
    */
   async [Symbol.asyncDispose](): Promise<void> {
@@ -375,7 +451,7 @@ export class RelayClient {
 
     this._ws = ws;
     this._connected = true;
-    this._reconnectDelay = RECONNECT_MIN_DELAY;
+    this._reconnectDelay = this._reconnectMinDelay;
 
     // Set up message handling
     this._setupWsListeners(ws);
@@ -397,7 +473,10 @@ export class RelayClient {
   private async _createWebSocket(uri: string): Promise<WsLike> {
     const wsModule = await import('ws');
     const WS = wsModule.default ?? wsModule;
-    const ws = new WS(uri, { maxPayload: 10 * 1024 * 1024 }) as unknown as WsLike;
+    const ws = new WS(uri, {
+      maxPayload: 10 * 1024 * 1024,
+      ...relayCaWsOptions(),
+    }) as unknown as WsLike;
     // Wait for the socket to finish the handshake before the caller tries to
     // send signalwire.connect — otherwise send() throws "readyState 0".
     await new Promise<void>((resolve, reject) => {
@@ -407,6 +486,29 @@ export class RelayClient {
     return ws;
   }
 
+  /**
+   * Return a log-safe repr of a raw RELAY frame with credential VALUES masked.
+   *
+   * SECRET-SCRUB (enterprise F3.1/F3.2): a `SIGNALWIRE_LOG_LEVEL=debug` session
+   * must never emit live credentials or the re-auth blob. Mirrors the python
+   * reference `_scrub_frame` (key-shape mask of "token"/"project"/"jwt_token"/
+   * "authorization_state" JSON values) composed with `_scrub_log` (verbatim
+   * masking of THIS connection's live credential values wherever they appear —
+   * e.g. a project value the server reflects into a non-credential `identity`
+   * field). Never a no-op: the raw frame + the identity diagnostic are the two
+   * enterprise-flagged leak sites.
+   */
+  private _scrubLog(text: string): string {
+    let out = text.replace(
+      /("(?:token|project|jwt_token|authorization_state)"\s*:\s*)"(?:\\.|[^"\\])*"/g,
+      '$1"***"',
+    );
+    for (const value of [this.project, this.token, this.jwtToken, this._authorizationState]) {
+      if (value) out = out.split(value).join('***');
+    }
+    return out;
+  }
+
   private _setupWsListeners(ws: WsLike): void {
     ws.on('message', (data: unknown) => {
       const raw = typeof data === 'string' ? data : (data as { toString(): string }).toString();
@@ -414,10 +516,10 @@ export class RelayClient {
       try {
         msg = JSON.parse(raw) as WirePayload;
       } catch {
-        logger.warn(`Invalid JSON received: ${raw}`);
+        logger.warn(`Invalid JSON received: ${this._scrubLog(raw)}`);
         return;
       }
-      logger.debug(`<< ${raw}`);
+      logger.debug(`<< ${this._scrubLog(raw)}`);
       this._handleMessage(msg).catch((err) => {
         logger.error(`Error handling message: ${err}`);
       });
@@ -481,7 +583,9 @@ export class RelayClient {
     this._relayProtocol = (result.protocol as string) ?? this._relayProtocol;
     this._identity = (result.identity as string) ?? this._identity;
     this._sessionId = (result.sessionid as string) ?? this._sessionId;
-    logger.debug(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`);
+    logger.debug(
+      this._scrubLog(`Auth response: protocol=${this._relayProtocol} identity=${this._identity}`),
+    );
   }
 
   /**
@@ -817,7 +921,7 @@ export class RelayClient {
 
         this._reconnectDelay = Math.min(
           this._reconnectDelay * RECONNECT_BACKOFF_FACTOR,
-          RECONNECT_MAX_DELAY,
+          this._reconnectMaxDelay,
         );
       }
     } finally {
@@ -867,7 +971,7 @@ export class RelayClient {
           if (method !== METHOD_SIGNALWIRE_CONNECT) {
             this._forceClose();
           }
-        }, REQUEST_TIMEOUT);
+        }, this._requestTimeoutMs);
 
         deferred.promise.then(
           (v) => {
@@ -1266,18 +1370,18 @@ export class RelayClient {
       } catch {
         this._pingFailures++;
         const backoff = Math.min(
-          RECONNECT_MIN_DELAY * RECONNECT_BACKOFF_FACTOR ** this._pingFailures,
-          RECONNECT_MAX_DELAY,
+          this._reconnectMinDelay * RECONNECT_BACKOFF_FACTOR ** this._pingFailures,
+          this._reconnectMaxDelay,
         );
         logger.warn(
-          `Client ping failed (${this._pingFailures}/${CLIENT_PING_MAX_FAILURES}), backoff ${backoff.toFixed(1)}s`,
+          `Client ping failed (${this._pingFailures}/${this._clientPingMaxFailures}), backoff ${backoff.toFixed(1)}s`,
         );
-        if (this._pingFailures >= CLIENT_PING_MAX_FAILURES) {
+        if (this._pingFailures >= this._clientPingMaxFailures) {
           logger.error('Max ping failures reached, forcing reconnect');
           this._forceClose();
         }
       }
-    }, CLIENT_PING_INTERVAL);
+    }, this._clientPingIntervalMs);
   }
 
   private _stopPingLoop(): void {

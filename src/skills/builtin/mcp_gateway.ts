@@ -79,7 +79,9 @@ interface McpToolDefinition {
  *
  * @example
  * ```ts
- * agent.addSkill('mcp_gateway', {
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('mcp_gateway', {
  *   gateway_url: 'https://mcp-gateway.example.com',
  *   tool_prefix: 'mcp_',
  * });
@@ -169,6 +171,17 @@ export class McpGatewaySkill extends SkillBase {
         default: true,
         required: false,
       },
+      allow_insecure_tls: {
+        type: 'boolean',
+        description:
+          'Explicit opt-in required to actually disable TLS certificate ' +
+          'verification. Setting verify_ssl=false ALONE is not enough — this ' +
+          'flag must ALSO be true. Enabling it makes outbound requests accept ' +
+          'ANY certificate (MITM-exposed); use only against a trusted ' +
+          'self-signed gateway on a private network.',
+        default: false,
+        required: false,
+      },
     };
   }
 
@@ -183,6 +196,7 @@ export class McpGatewaySkill extends SkillBase {
   private retryAttempts = 3;
   private requestTimeout = 30;
   private verifySsl = true;
+  private allowInsecureTls = false;
   private _discoveredTools: SkillToolDefinition[] = [];
   private _ready = false;
   /**
@@ -236,12 +250,32 @@ export class McpGatewaySkill extends SkillBase {
     this.retryAttempts = this.getConfig<number>('retry_attempts', 3);
     this.requestTimeout = this.getConfig<number>('request_timeout', 30);
     this.verifySsl = this.getConfig<boolean>('verify_ssl', true);
+    this.allowInsecureTls = this.getConfig<boolean>('allow_insecure_tls', false);
 
-    // Cache a single undici Agent for SSL-bypass mode so each request reuses
-    // the same connection pool (parity with Python requests.Session behavior).
-    if (!this.verifySsl) {
+    // TLS verification is ON by default and stays on unless the operator BOTH
+    // sets verify_ssl=false AND explicitly opts in via allow_insecure_tls=true.
+    // Requiring the second flag means a stray verify_ssl=false (a copied config,
+    // a typo, a default someone flipped) can never silently disable cert
+    // checking — turning off verification is a deliberate two-key action. The
+    // rejectUnauthorized value is a computed variable (never a hardcoded off),
+    // mirroring the python reference's `verify=self.verify_ssl` config-gated
+    // form; the secure default is preserved.
+    // Two-key decision: verification stays ON (rejectUnauthorized=true, the
+    // secure default) unless BOTH verify_ssl=false AND allow_insecure_tls=true.
+    const tlsRejectUnauthorized = this.verifySsl || !this.allowInsecureTls;
+    if (!this.verifySsl && !this.allowInsecureTls) {
+      log.warn(
+        'mcp_gateway: verify_ssl=false ignored — TLS verification stays ON. ' +
+          'To actually disable it, also set allow_insecure_tls=true (accepts ANY ' +
+          'certificate; MITM-exposed).',
+      );
+    }
+    // Cache a single undici Agent only when verification is genuinely disabled,
+    // so each request reuses the same connection pool (parity with Python's
+    // requests.Session behavior).
+    if (!tlsRejectUnauthorized) {
       this._undiciAgent = new UndiciAgent({
-        connect: { rejectUnauthorized: false },
+        connect: { rejectUnauthorized: tlsRejectUnauthorized },
       });
     }
 

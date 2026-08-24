@@ -34,7 +34,7 @@ async function main() {
 
   // 3. Search for a phone number
   console.log('\nSearching for available phone numbers...');
-  const available = await client.phoneNumbers.search({ area_code: '512', max_results: 3 });
+  const available = await client.phoneNumbers.search({ areacode: '512', max_results: 3 });
   for (const num of available.data ?? []) {
     console.log(`  - ${num.number ?? 'unknown'}`);
   }

@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type { TokenPermission, TokenResponse } from './project.types.generated.js';
 
@@ -19,6 +20,7 @@ export class ProjectTokens extends BaseResource {
     name: string,
     permissions: TokenPermission[],
     options?: { subproject_id?: string; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<TokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -28,12 +30,13 @@ export class ProjectTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<TokenResponse>(this._basePath, body);
+    return this._http.post<TokenResponse>(this._basePath, body, undefined, requestOptions);
   }
 
   async update(
     token_id: string,
     options?: { name?: string; permissions?: TokenPermission[]; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<TokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -42,10 +45,13 @@ export class ProjectTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.patch<TokenResponse>(this._path(token_id), body);
+    return this._http.patch<TokenResponse>(this._path(token_id), body, requestOptions);
   }
 
-  async delete(token_id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(token_id));
+  async delete(
+    token_id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(token_id), requestOptions);
   }
 }

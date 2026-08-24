@@ -7,7 +7,7 @@ and the verdict reached for each.
 
 The cross-port gates police the *surface* (public signatures via DRIFT, the
 exported symbol set via SURFACE, generated wire types via GEN-FRESH) and one
-slice of *emission* (`FunctionResult.to_dict()` via EMISSION). Historically they
+slice of *emission* (`FunctionResult.toDict()` via EMISSION). Historically they
 did **not** cover a skill's SWAIG **tool contract** — the `parameters` /
 `required` / `enum` each skill registers from `getTools()` — so two ports could
 pass every gate and still hand the model different tools. Every divergence below

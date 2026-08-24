@@ -26,6 +26,7 @@ export type SWMLMethod =
   | Goto
   | Label
   | LiveTranscribe
+  | AiSidecar
   | LiveTranslate
   | Hangup
   | JoinRoom
@@ -760,8 +761,8 @@ export interface ConnectDeviceSingle {
   webrtc_media?: boolean | SWMLVar;
   /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
   session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
+  /** Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object. */
+  ringback?: string[] | RingbackConfig;
   /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
   result?: ConnectSwitch | CondParams[];
   /** Time, in seconds, to wait for the call to be answered. */
@@ -802,8 +803,8 @@ export interface ConnectDeviceSerial {
   webrtc_media?: boolean | SWMLVar;
   /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
   session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
+  /** Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object. */
+  ringback?: string[] | RingbackConfig;
   /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
   result?: ConnectSwitch | CondParams[];
   /** Time, in seconds, to wait for the call to be answered. */
@@ -843,8 +844,8 @@ export interface ConnectDeviceParallel {
   webrtc_media?: boolean | SWMLVar;
   /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
   session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
+  /** Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object. */
+  ringback?: string[] | RingbackConfig;
   /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
   result?: ConnectSwitch | CondParams[];
   /** Time, in seconds, to wait for the call to be answered. */
@@ -885,8 +886,8 @@ export interface ConnectDeviceSerialParallel {
   webrtc_media?: boolean | SWMLVar;
   /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
   session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
+  /** Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object. */
+  ringback?: string[] | RingbackConfig;
   /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
   result?: ConnectSwitch | CondParams[];
   /** Time, in seconds, to wait for the call to be answered. */
@@ -2867,6 +2868,56 @@ export interface UserInputAction {
   [key: string]: unknown;
 }
 
+export interface AiSidecar {
+  /** Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top. */
+  ai_sidecar?: {
+    /** Operator prompt — POM object, plain string, or {file: path}. */
+    prompt:
+      | string
+      | Record<string, unknown>
+      | {
+          file: string;
+        };
+    /** BCP-47 conversation language. Required. */
+    lang: string;
+    /** LLM model for sidecar tick + close-time summaries. */
+    model?: string;
+    /** Both legs are required for sidecar mode. */
+    direction?: ('remote-caller' | 'local-caller')[];
+    /** Which leg is the customer (turn-end trigger source). */
+    customer_role?: 'remote-caller' | 'local-caller';
+    /** Webhook URL for transcribe events AND sidecar events. */
+    url?: string;
+    /** SWAIG functions and MCP servers. */
+    SWAIG?: SWAIG;
+    /** SWAIG permission overrides — pass-through to mod_openai. */
+    permissions?: Record<string, unknown>;
+    /** Initial sidecar global_data. */
+    global_data?: Record<string, unknown>;
+    /** Speech-recognition hints biasing ASR toward specific terms. */
+    hints?: string[];
+    /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here. */
+    params?: Record<string, unknown>;
+    /** Reserved for future runtime sub-actions. */
+    action?: Record<string, unknown>;
+  };
+  [key: string]: unknown;
+}
+
+/** Ringback configuration (the modern object form). Declared as a named $defs entry so every generator emits a TYPED shape via $ref rather than collapsing an inline object to an untyped map; the legacy URI array remains the other oneOf branch. */
+export interface RingbackConfig {
+  url?: string;
+  urls?: string[];
+  volume?: number;
+  auto_answer?: boolean;
+  say_voice?: string;
+  say_language?: string;
+  say_gender?: 'male' | 'female';
+  status_url?: string;
+  loop?: number;
+  [key: string]: unknown;
+}
+
 /** Dial a SIP URI or phone number. */
 export interface ConnectConfig {
   /** The caller ID to use when dialing the number. */
@@ -2879,8 +2930,8 @@ export interface ConnectConfig {
   webrtc_media?: boolean | SWMLVar;
   /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
   session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
+  /** Ringback to play while the far end rings: a legacy array of URIs, or a RingbackConfig object. */
+  ringback?: string[] | RingbackConfig;
   /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
   result?: ConnectSwitch | CondParams[];
   /** Time, in seconds, to wait for the call to be answered. */
@@ -2949,6 +3000,40 @@ export interface GotoConfig {
 export interface LiveTranscribeConfig {
   /** The action to perform during live transcription. */
   action?: TranscribeAction;
+  [key: string]: unknown;
+}
+
+/** Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top. */
+export interface AiSidecarConfig {
+  /** Operator prompt — POM object, plain string, or {file: path}. */
+  prompt?:
+    | string
+    | Record<string, unknown>
+    | {
+        file: string;
+      };
+  /** BCP-47 conversation language. Required. */
+  lang?: string;
+  /** LLM model for sidecar tick + close-time summaries. */
+  model?: string;
+  /** Both legs are required for sidecar mode. */
+  direction?: ('remote-caller' | 'local-caller')[];
+  /** Which leg is the customer (turn-end trigger source). */
+  customer_role?: 'remote-caller' | 'local-caller';
+  /** Webhook URL for transcribe events AND sidecar events. */
+  url?: string;
+  /** SWAIG functions and MCP servers. */
+  SWAIG?: SWAIG;
+  /** SWAIG permission overrides — pass-through to mod_openai. */
+  permissions?: Record<string, unknown>;
+  /** Initial sidecar global_data. */
+  global_data?: Record<string, unknown>;
+  /** Speech-recognition hints biasing ASR toward specific terms. */
+  hints?: string[];
+  /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here. */
+  params?: Record<string, unknown>;
+  /** Reserved for future runtime sub-actions. */
+  action?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

@@ -234,10 +234,34 @@ describe('SwmlBuilder', () => {
 
   it('addVerbToSection creates section', () => {
     const b = new SwmlBuilder();
-    b.addVerbToSection('custom', 'play', { url: 'test.mp3' });
+    // `answer` rather than `play`: `addVerbToSection` now schema-validates (parity
+    // with the reference, which raises `SchemaValidationError` at BOTH add-verb sites
+    // — `core/swml_service.py:558` and `:635`), and the bundled schema rejects BOTH
+    // `play` shapes via its `oneOf`. The reference rejects them identically
+    // (`validate_verb('play', {'url': …})` → False, same for `urls`), so that is a
+    // schema issue shared with the reference, not a port divergence. This test is
+    // about SECTION CREATION, so use a verb that validates.
+    b.addVerbToSection('custom', 'answer', {});
     const sections = b.build()['sections'] as Record<string, unknown[]>;
     expect(sections['custom']).toBeDefined();
-    expect(sections['custom']![0]).toEqual({ play: { url: 'test.mp3' } });
+    expect(sections['custom']![0]).toEqual({ answer: {} });
+  });
+
+  it('addVerbToSection schema-validates like addVerb does', () => {
+    const b = new SwmlBuilder();
+    // The reference raises SchemaValidationError from add_verb_to_section too; this
+    // path previously appended without validating, so an unknown or misshapen verb
+    // reached a non-main section silently.
+    expect(() => b.addVerbToSection('custom', 'nosuchverb', {})).toThrow(
+      "Schema validation failed for 'nosuchverb'",
+    );
+    expect(() => b.addVerbToSection('custom', 'answer', { wibble: 1 })).toThrow(
+      "Schema validation failed for 'answer'",
+    );
+    // The trusted-internal escape hatch still appends without validating.
+    b.addVerbToSection('custom', 'nosuchverb', {}, { skipValidation: true });
+    const sections = b.build()['sections'] as Record<string, unknown[]>;
+    expect(sections['custom']![0]).toEqual({ nosuchverb: {} });
   });
 
   it('reset clears document', () => {

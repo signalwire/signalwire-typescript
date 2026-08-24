@@ -2,6 +2,8 @@
  * Types for the REST client module.
  */
 
+import type { RequestOptionsInit } from './RequestOptions.js';
+
 /** Options for constructing a RestClient. */
 export interface ClientOptions {
   /** SignalWire project ID. Falls back to SIGNALWIRE_PROJECT_ID env var. */
@@ -12,6 +14,12 @@ export interface ClientOptions {
   host?: string;
   /** Custom fetch implementation for testing. */
   fetchImpl?: typeof globalThis.fetch;
+  /**
+   * Client-default transport envelope (timeout / retries / abort) applied to
+   * every request; a per-request `requestOptions` shallow-overrides it. See
+   * {@link RequestOptions}.
+   */
+  requestOptions?: RequestOptionsInit;
 }
 
 /** Options for constructing an HttpClient. */
@@ -33,6 +41,12 @@ export interface HttpClientOptions {
   token: string;
   /** Custom fetch implementation for testing. */
   fetchImpl?: typeof globalThis.fetch;
+  /**
+   * Client-default transport envelope (timeout / retries / abort) applied to
+   * every request; a per-request `requestOptions` shallow-overrides it. See
+   * {@link RequestOptions}.
+   */
+  requestOptions?: RequestOptionsInit;
 }
 
 /** Standard paginated response with links-based navigation (relay REST). */

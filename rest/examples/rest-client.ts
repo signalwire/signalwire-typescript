@@ -23,7 +23,7 @@ async function main() {
   console.log('Owned numbers:', numbers.data?.length ?? 0);
 
   // Search available numbers
-  const available = await client.phoneNumbers.search({ area_code: '512' });
+  const available = await client.phoneNumbers.search({ areacode: '512' });
   console.log('Available 512 numbers:', available.data?.length ?? 0);
 
   console.log('\n=== Fabric AI Agents ===');

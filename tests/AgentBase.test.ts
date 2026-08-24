@@ -247,6 +247,43 @@ describe('AgentBase', () => {
     expect(ai.contexts.default.steps.length).toBe(2);
   });
 
+  it('contexts step functions whitelist rejects a dangling SWAIG ref', () => {
+    // r5 dogfood F3: a step's `functions` list naming a tool that was never
+    // registered must RAISE at render/validate time, not silently emit SWML
+    // with an unsatisfiable function restriction.
+    const agent = createAgent();
+    agent.setPromptText('You are an order bot');
+    agent.defineTool({
+      name: 'order_status',
+      description: 'look up an order',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+    const ctx = agent.defineContexts();
+    const def = ctx.addContext('default');
+    def
+      .addStep('lookup', { task: 'Look up the order' })
+      // 'get_datetime' was never registered (the real tools are
+      // get_current_time / get_current_date) — a dangling reference.
+      .setFunctions(['order_status', 'get_datetime']);
+    expect(() => agent.renderSwml()).toThrow(/unknown SWAIG function\(s\).*get_datetime/);
+  });
+
+  it('contexts step functions whitelist accepts a registered tool ref', () => {
+    const agent = createAgent();
+    agent.setPromptText('You are an order bot');
+    agent.defineTool({
+      name: 'order_status',
+      description: 'look up an order',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+    const ctx = agent.defineContexts();
+    const def = ctx.addContext('default');
+    def.addStep('lookup', { task: 'Look up the order' }).setFunctions(['order_status']);
+    expect(() => agent.renderSwml()).not.toThrow();
+  });
+
   it('getFullUrl returns correct URL', () => {
     const agent = new AgentBase({ name: 'test', route: '/myagent', port: 5000 });
     const url = agent.getFullUrl();
@@ -819,6 +856,10 @@ describe('AgentBase', () => {
       name: 'test_fn',
       description: 'Test',
       parameters: {},
+      // secure:false — this test exercises the onFunctionCall hook, not token
+      // validation; tools are secure by default so an untokenized POST would
+      // be rejected before dispatch.
+      secure: false,
       handler: () => new FunctionResult('ok'),
     });
     const app = agent.getApp();
@@ -994,6 +1035,9 @@ describe('AgentBase', () => {
       name: 'crash_fn',
       description: 'Will crash',
       parameters: {},
+      // secure:false — this test exercises handler-error redaction, not token
+      // validation (tools are secure by default).
+      secure: false,
       handler: () => {
         throw new Error('secret internal error details');
       },
@@ -1076,7 +1120,11 @@ describe('AgentBase', () => {
     });
     const app = agent.getApp();
 
-    // Missing token
+    // Missing token: dispatch proceeds. Parity with the reference
+    // (agent_base.py:1413 `if token:`) — a token is validated only when one is
+    // supplied; absence alone does not refuse the call, since basic auth already
+    // gates this endpoint. The per-tool `__token` is minted into the rendered
+    // web_hook_url for the platform to round-trip (see Contract 9).
     const res1 = await app.request('/swaig', {
       method: 'POST',
       headers: {
@@ -1087,9 +1135,10 @@ describe('AgentBase', () => {
     });
     expect(res1.status).toBe(200);
     const body1 = await res1.json();
-    expect(body1.response).toContain('security token');
+    expect(body1.response).toBe('ok');
 
-    // Invalid token
+    // Invalid token — a SUPPLIED token must be valid: refused, but as a 200
+    // FunctionResult (not a 403), which is what this test pins.
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
       headers: {
@@ -1149,6 +1198,9 @@ describe('AgentBase', () => {
       name: 'arg_test',
       description: 'Test args',
       parameters: {},
+      // secure:false — this test exercises argument coercion, not token
+      // validation (tools are secure by default).
+      secure: false,
       handler: (args) => {
         captured.push(args as Record<string, unknown>);
         return new FunctionResult('ok');
@@ -1194,6 +1246,95 @@ describe('AgentBase', () => {
     for (const args of captured) {
       expect(args).toEqual({});
     }
+  });
+
+  // ── SWAIG argument.parsed unwrap (TS-6 / SWAIG-HTTP-INVOKE) ───────────
+
+  it('unwraps platform-nested argument.parsed[0] so the handler sees real args', async () => {
+    // The real platform (mod_openai) POSTs a tool call as
+    // {function, argument: {parsed: [{...args}], raw: "..."}}. Reading
+    // body.argument directly would hand the handler {parsed, raw} — empty args.
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        function: 'lookup_order',
+        argument: {
+          parsed: [{ order_id: 'ORD-3007', customer: 'acme-42' }],
+          raw: '{"order_id":"ORD-3007","customer":"acme-42"}',
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'ORD-3007', customer: 'acme-42' });
+  });
+
+  it('falls back to argument.raw JSON when parsed is absent', async () => {
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        function: 'lookup_order',
+        argument: { raw: '{"order_id":"RAW-1"}' },
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'RAW-1' });
+  });
+
+  it('accepts the flat {arguments:{...}} fallback shape', async () => {
+    let received: Record<string, unknown> | undefined;
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'lookup_order',
+      description: 'record args',
+      parameters: {},
+      // secure:false — these tests exercise the argument-unwrap shapes, not
+      // token validation (tools are secure by default).
+      secure: false,
+      handler: (args) => {
+        received = args as Record<string, unknown>;
+        return new FunctionResult('ok');
+      },
+    });
+    const app = agent.getApp();
+    const res = await app.request('/swaig', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ function: 'lookup_order', arguments: { order_id: 'FLAT-9911' } }),
+    });
+    expect(res.status).toBe(200);
+    expect(received).toEqual({ order_id: 'FLAT-9911' });
   });
 
   // ── defineTypedTool ─────────────────────────────────────────────────

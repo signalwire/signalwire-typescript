@@ -9,12 +9,21 @@ import { FunctionResult } from '../../src/FunctionResult.js';
 
 const CLI = fileURLToPath(new URL('../../src/cli/swaig-test.ts', import.meta.url));
 
-/** Run the swaig-test CLI via tsx as a subprocess; resolves with code+output. */
+/**
+ * Run the swaig-test CLI via tsx as a subprocess; resolves with code+output.
+ *
+ * Invokes the current `node` binary with tsx's loader (`--import tsx`) rather
+ * than `npx tsx`. `execFile` runs WITHOUT a shell, so a bare `'npx'` cannot be
+ * spawned on Windows (the launcher there is `npx.cmd`, not `npx`) — the spawn
+ * fails, stdout comes back empty, and the error maps to a spurious exit code.
+ * Going through `process.execPath` sidesteps `.cmd` resolution entirely and is
+ * robust on Linux, macOS, and Windows alike.
+ */
 function runCli(args: string[]): Promise<{ code: number; out: string }> {
   return new Promise((resolve) => {
     execFile(
-      'npx',
-      ['tsx', CLI, ...args],
+      process.execPath,
+      ['--import', 'tsx', CLI, ...args],
       { timeout: 60_000, env: { ...process.env, SIGNALWIRE_LOG_MODE: 'off' } },
       (err, stdout, stderr) => {
         const code =
@@ -33,12 +42,17 @@ function runCli(args: string[]): Promise<{ code: number; out: string }> {
 function writeAgentFile(): { path: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), 'swaig-cli-'));
   const path = join(dir, 'agent.ts');
+  // Embed the AgentBase import as a `file://` URL, NOT a filesystem path. On
+  // Windows `fileURLToPath` yields backslashes (`C:\...\src\AgentBase.ts`);
+  // baked into a single-quoted TS string literal, `\a`/`\s`/`\A`... collapse as
+  // escape sequences and the specifier is corrupted, so the generated agent
+  // fails to import AgentBase. An ESM `file:///...` URL uses forward slashes and
+  // imports correctly on every platform.
+  const agentBaseUrl = new URL('../../src/AgentBase.ts', import.meta.url).href;
   writeFileSync(
     path,
     [
-      "import { AgentBase } from '" +
-        fileURLToPath(new URL('../../src/AgentBase.ts', import.meta.url)) +
-        "';",
+      "import { AgentBase } from '" + agentBaseUrl + "';",
       "const agent = new AgentBase({ name: 'probe', route: '/' });",
       "agent.setPromptText('hi');",
       'export default agent;',

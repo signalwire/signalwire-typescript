@@ -27,7 +27,7 @@ import {
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
-import { getLogger, suppressAllLogs } from './Logger.js';
+import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
@@ -202,8 +202,10 @@ export class AgentBase extends SWMLService {
    * SWMLService logger with an AgentBase-tagged one. */
   override log = getLogger('AgentBase');
 
-  // Skills
-  private _skillManager = new SkillManager();
+  // Skills. The manager takes `this` as its public back-reference (the
+  // reference's `SkillManager(agent)`); a field initializer runs after `super()`
+  // so `this` is already bound.
+  private _skillManager = new SkillManager(this);
 
   // New constructor params (P1 gaps)
   private _enablePostPromptOverride = false;
@@ -219,9 +221,30 @@ export class AgentBase extends SWMLService {
    * ``SIGNALWIRE_SIGNING_KEY``. When ``null``, signature validation is
    * disabled.
    *
-   * NEVER logged. NEVER serialized. NEVER returned from any public method.
+   * NEVER logged. NEVER serialized. Not included in any SWML/SWAIG render or
+   * state dump.
+   *
+   * READABLE, matching the reference's public `self.signing_key`
+   * (`core/agent_base.py:253`) and java's `getSigningKey()`. The value came FROM the
+   * caller (an explicit `signingKey` option or `SIGNALWIRE_SIGNING_KEY`), so a
+   * caller who supplied it must be able to read back which key the agent resolved —
+   * the same posture as `getBasicAuthCredentials()`, which already returns the auth
+   * secret. Withholding it hides configuration from its own owner without hiding it
+   * from anything else (the process already holds it).
    */
   private _signingKey: string | null = null;
+
+  /**
+   * The resolved SignalWire Signing Key, or `null` when signature validation is
+   * disabled — the reference's public `self.signing_key`.
+   *
+   * Read-only: the resolution order (explicit option → `SIGNALWIRE_SIGNING_KEY` →
+   * `null`) runs once at construction and the middleware is mounted against it, so a
+   * post-construction write would not take effect.
+   */
+  get signingKey(): string | null {
+    return this._signingKey;
+  }
   /** Whether to honor X-Forwarded-* headers when reconstructing the URL. */
   private _webhookTrustProxy = false;
 
@@ -319,7 +342,7 @@ export class AgentBase extends SWMLService {
       suppressAllLogs(true);
     }
 
-    this._promptManager = new PromptManager(opts.usePom ?? true);
+    this._promptManager = new PromptManager(opts.usePom ?? true, this);
     this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
     // swmlBuilder is inherited from SWMLService (initialized via super()).
 
@@ -2224,6 +2247,55 @@ export class AgentBase extends SWMLService {
     // Default no-op
   }
 
+  /**
+   * Extract the tool-call arguments from a SWAIG request body.
+   *
+   * The real platform (mod_openai) POSTs a tool call with the args nested under
+   * the platform envelope `{"argument": {"parsed": [{...args...}], "raw": "..."}}`
+   * — NOT flat. Reading `body.argument` directly hands the handler the WHOLE
+   * envelope (`{parsed, raw}`) instead of the args, so a real platform call
+   * arrives with EMPTY args. This unwraps `argument.parsed[0]` first, falls back
+   * to parsing `argument.raw` JSON, and finally accepts the flat
+   * `{"arguments": {...}}` shape some external integrations send — matching the
+   * Python reference (`core/swml_service.py:836-851`).
+   *
+   * @param body - The parsed SWAIG request body.
+   * @param reqLog - Request-scoped logger for the raw-parse-error path.
+   * @returns The extracted argument object (empty object when none present).
+   */
+  private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
+    const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+      v !== null && typeof v === 'object' && !Array.isArray(v);
+
+    const argument = body['argument'];
+    if (isPlainObject(argument)) {
+      // Platform-nested shape: argument.parsed[0] holds the real args.
+      const parsed = argument['parsed'];
+      if (Array.isArray(parsed) && parsed.length > 0 && isPlainObject(parsed[0])) {
+        return parsed[0];
+      }
+      // Fallback: argument.raw is a JSON string of the args.
+      const raw = argument['raw'];
+      if (typeof raw === 'string' && raw.length > 0) {
+        try {
+          const decoded: unknown = JSON.parse(raw);
+          if (isPlainObject(decoded)) return decoded;
+        } catch (e) {
+          reqLog.error('error_parsing_raw_arguments', {
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+      return {};
+    }
+
+    // Flat shape used by some external integrations: {"arguments": {...}}.
+    const flat = body['arguments'];
+    if (isPlainObject(flat)) return flat;
+
+    return {};
+  }
+
   // ── 5-phase SWML rendering ─────────────────────────────────────────
 
   /**
@@ -2316,16 +2388,22 @@ export class AgentBase extends SWMLService {
     }
 
     // ── PHASE 2: Answer verb ──
+    // Internally-assembled trusted verb — skip the schema pass (its shape is
+    // fixed by the builder, and revalidating it on every render would pay the
+    // full-schema Ajv compile cost on the hot path). User-supplied verbs below
+    // still validate.
     if (this.autoAnswer) {
-      this.swmlBuilder.addVerb('answer', this.answerConfig);
+      this.swmlBuilder.addVerb('answer', this.answerConfig, { skipValidation: true });
     }
 
     // ── PHASE 3: Post-answer verbs ──
     if (this._recordCall) {
-      this.swmlBuilder.addVerb('record_call', {
-        format: this.recordFormat,
-        stereo: this.recordStereo,
-      });
+      // Internally-assembled trusted verb — skip the schema pass (see PHASE 2).
+      this.swmlBuilder.addVerb(
+        'record_call',
+        { format: this.recordFormat, stereo: this.recordStereo },
+        { skipValidation: true },
+      );
     }
     for (const [verb, config] of this.postAnswerVerbs) {
       this.swmlBuilder.addVerb(verb, config);
@@ -2398,7 +2476,12 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    this.swmlBuilder.addVerb('ai', aiConfig);
+    // The assembled ai verb may legitimately carry real SWML the bundled schema
+    // does not yet model (multilingual, SWAIG.mcp_servers, per-language
+    // engine/model/fillers, debug_webhook_url). It is built from typed builder
+    // inputs, not raw user config, so skip the closed-schema check here; the
+    // strict-render contract governs direct addVerb input, not trusted assembly.
+    this.swmlBuilder.addVerb('ai', aiConfig, { skipValidation: true });
 
     // ── PHASE 5: Post-AI verbs ──
     for (const [verb, config] of this.postAiVerbs) {
@@ -2414,7 +2497,10 @@ export class AgentBase extends SWMLService {
     const copy = Object.create(Object.getPrototypeOf(this)) as AgentBase;
     Object.assign(copy, this);
     // Deep-copy mutable state
-    copy._promptManager = new PromptManager(true);
+    // The back-reference must point at the COPY, not `this` — an ephemeral
+    // per-request clone whose manager still pointed at the original would read
+    // back the wrong agent (the clone-drops-configuration defect class).
+    copy._promptManager = new PromptManager(true, copy);
     // Carry over the current prompt
     const p = this.getPrompt();
     if (p) copy._promptManager.setPromptText(p);
@@ -2430,10 +2516,12 @@ export class AgentBase extends SWMLService {
     copy.preAnswerVerbs = [...this.preAnswerVerbs];
     copy.postAnswerVerbs = [...this.postAnswerVerbs];
     copy.postAiVerbs = [...this.postAiVerbs];
-    copy.swmlBuilder = new SwmlBuilder();
+    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    copy.swmlBuilder = new SwmlBuilder({ service: copy });
 
     // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
-    copy._skillManager = new SkillManager();
+    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    copy._skillManager = new SkillManager(copy);
     for (const entry of this._skillManager.getLoadedSkillEntries()) {
       try {
         // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
@@ -2740,18 +2828,17 @@ export class AgentBase extends SWMLService {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
-      // Token validation for secure functions
-      if (fn.secure) {
-        const url = new URL(c.req.url);
-        const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-        if (!token) {
-          reqLog.warn('missing_token');
-          const result = new FunctionResult(
-            'The security token for this function is missing or expired. This action cannot be completed.',
-          );
-          return c.json(result.toDict());
-        }
-        if (!this.sessionManager.validateToken(callIdStr, fnName, token)) {
+      // Validate the security token IF PRESENT. Parity with the reference
+      // (agent_base.py:1413-1445): a token that is supplied must be valid for a
+      // secure function — an invalid/expired one is refused — but a MISSING
+      // token does not by itself block dispatch here. The transport already
+      // gates this endpoint (basic auth), and the per-tool `__token` minted into
+      // the rendered `web_hook_url` is what the platform round-trips.
+      const url = new URL(c.req.url);
+      const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
+      if (token) {
+        reqLog.debug('token_found');
+        if (fn.secure && !this.sessionManager.validateToken(callIdStr, fnName, token)) {
           reqLog.warn('token_invalid');
           const result = new FunctionResult(
             'The security token for this function is invalid or expired. This action cannot be completed.',
@@ -2761,11 +2848,7 @@ export class AgentBase extends SWMLService {
         reqLog.debug('token_valid');
       }
 
-      const rawArgs: unknown = body['argument'];
-      const args: Record<string, unknown> =
-        rawArgs !== null && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
-          ? (rawArgs as Record<string, unknown>)
-          : {};
+      const args = this.extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
       const hookResult = await this.onFunctionCall(fnName, args, body);
 

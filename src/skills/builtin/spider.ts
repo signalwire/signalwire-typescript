@@ -50,7 +50,9 @@ const WHITESPACE_REGEX = /\s+/g;
  *
  * @example
  * ```ts
- * agent.addSkill('spider', { max_pages: 5, max_depth: 2 });
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
  * ```
  */
 export class SpiderSkill extends SkillBase {

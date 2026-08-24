@@ -492,4 +492,81 @@ describe('parseEvent', () => {
       expect(e).toBeInstanceOf(expectedClass);
     }
   });
+
+  // The reference (signalwire/relay/event.py) is a dataclass hierarchy: only
+  // `event_type` and `params` are required; every other field defaults. A valid
+  // reference construction is therefore `CallStateEvent(event_type, params)`.
+  describe('reference construction contract: only eventType + params are required', () => {
+    it('every event subclass is constructible from (eventType, params) alone', () => {
+      const classes = [
+        RelayEvent,
+        CallStateEvent,
+        CallReceiveEvent,
+        PlayEvent,
+        RecordEvent,
+        CollectEvent,
+        ConnectEvent,
+        DetectEvent,
+        FaxEvent,
+        TapEvent,
+        StreamEvent,
+        SendDigitsEvent,
+        DialEvent,
+        ReferEvent,
+        DenoiseEvent,
+        PayEvent,
+        QueueEvent,
+        EchoEvent,
+        TranscribeEvent,
+        HoldEvent,
+        ConferenceEvent,
+        CallingErrorEvent,
+        MessageReceiveEvent,
+        MessageStateEvent,
+      ];
+      expect(classes.length).toBe(24);
+      for (const Cls of classes) {
+        const e = new Cls('some.event', { a: 1 });
+        expect(e).toBeInstanceOf(Cls);
+        expect(e.eventType).toBe('some.event');
+        expect(e.params).toEqual({ a: 1 });
+        // Base defaults from the reference's RelayEvent dataclass.
+        expect(e.callId).toBe('');
+        expect(e.timestamp).toBe(0);
+      }
+    });
+
+    it('subclass field defaults match the reference dataclass defaults', () => {
+      const cs = new CallStateEvent('calling.call.state', {});
+      expect(cs.callState).toBe('');
+      expect(cs.endReason).toBe('');
+      expect(cs.direction).toBe('');
+      expect(cs.device).toEqual({});
+
+      const q = new QueueEvent('calling.call.queue', {});
+      expect(q.position).toBe(0);
+      expect(q.size).toBe(0);
+      expect(q.queueId).toBe('');
+
+      const dn = new DenoiseEvent('calling.call.denoise', {});
+      expect(dn.denoised).toBe(false);
+
+      const mr = new MessageReceiveEvent('messaging.receive', {});
+      expect(mr.media).toEqual([]);
+      expect(mr.tags).toEqual([]);
+      expect(mr.segments).toBe(0);
+
+      const co = new CollectEvent('calling.call.collect', {});
+      expect(co.final).toBeUndefined();
+      expect(co.result).toEqual({});
+    });
+
+    it('a partially-specified construction keeps the remaining defaults', () => {
+      const e = new CallStateEvent('calling.call.state', {}, 'call-1', 12.5);
+      expect(e.callId).toBe('call-1');
+      expect(e.timestamp).toBe(12.5);
+      expect(e.callState).toBe('');
+      expect(e.device).toEqual({});
+    });
+  });
 });

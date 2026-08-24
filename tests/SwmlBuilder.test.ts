@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as ts from 'typescript';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
+import { SchemaValidationError } from '../src/SchemaUtils.js';
 import type { TtsGender } from '../src/relay/closedSets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,10 +64,13 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   });
 
   describe('verb method existence', () => {
-    it('has all ~38 verb methods', () => {
+    // The LOOP below is the real assertion: every verb the schema declares has a
+    // builder method. The headcount added nothing except a literal to edit on every
+    // upstream verb addition (ai_sidecar took it 38 -> 39).
+    it('has a builder method for every schema verb', () => {
       const schemaUtils = SwmlBuilder.getSchemaUtils();
       const verbNames = schemaUtils.getVerbNames();
-      expect(verbNames.length).toBe(38);
+      expect(verbNames.length).toBeGreaterThanOrEqual(38);
       for (const name of verbNames) {
         expect(typeof (builder as unknown as Record<string, unknown>)[name]).toBe('function');
       }
@@ -225,7 +229,7 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     it('rejects missing required properties', () => {
       expect(() => {
         builder.tap({} as Parameters<typeof builder.tap>[0]);
-      }).toThrow('SWML verb validation failed');
+      }).toThrow(SchemaValidationError);
     });
 
     it('rejects missing required properties with detail', () => {
@@ -478,11 +482,20 @@ describe('SwmlBuilder — verb auto-vivification', () => {
     });
   });
 
-  describe('hangup reason type widened to string', () => {
-    it('accepts arbitrary string reasons', () => {
-      builder.hangup({ reason: 'custom_reason' });
+  describe('hangup reason', () => {
+    // The `reason` param TYPE is widened to `string` for ergonomics, but at
+    // RUNTIME the SWML schema closes it to the documented enum
+    // (hangup/busy/decline) — the strict-render contract: the port matches the
+    // python reference, which raises on an off-enum reason. So a widened type is
+    // a compile-time convenience, not a licence to emit off-spec values.
+    it('accepts a documented enum reason', () => {
+      builder.hangup({ reason: 'busy' });
       const doc = builder.build() as { sections: { main: unknown[] } };
-      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'custom_reason' } });
+      expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'busy' } });
+    });
+
+    it('rejects an arbitrary off-enum reason at render (parity with python)', () => {
+      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(SchemaValidationError);
     });
   });
 

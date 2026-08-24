@@ -128,6 +128,7 @@ export type {
   Device,
   PhoneDevice,
   SipDevice,
+  FabricDevice,
   DialOptions,
   SendMessageOptions,
   PlayItem,

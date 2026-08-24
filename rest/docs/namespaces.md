@@ -1,6 +1,6 @@
 # All Namespaces
 
-Reference for every namespace beyond Fabric, Calling, and Compat (which have their own pages). All methods are async — `await` them.
+Reference for every namespace beyond Fabric and Calling (which have their own pages). All methods are async — `await` them.
 
 <!-- snippet-setup -->
 ```ts
@@ -18,7 +18,7 @@ let numbers = await client.phoneNumbers.list();
 numbers = await client.phoneNumbers.list({ name: 'Main' });
 
 // Search available numbers to purchase
-const available = await client.phoneNumbers.search({ areacode: '512', numberType: 'local' });
+const available = await client.phoneNumbers.search({ areacode: '512', number_type: 'local' });
 
 // Purchase a number
 const number = await client.phoneNumbers.create({ number: '+15551234567' });
@@ -29,7 +29,7 @@ await client.phoneNumbers.update('pn-uuid', { name: 'Support Line' });
 await client.phoneNumbers.delete('pn-uuid');
 ```
 
-> Search filters use the WIRE parameter names verbatim: `areacode` (all lowercase, as in the REST spec) — `areaCode` and `area_code` are silently ignored by the server.
+> Search filters use the WIRE parameter names verbatim: `areacode` (all lowercase) and `number_type` (snake_case), exactly as in the REST spec — camelCase (`areaCode`, `numberType`) or other spellings are silently ignored by the server.
 
 ## Addresses
 
@@ -132,7 +132,7 @@ await client.shortCodes.update('sc-uuid', 'Alerts', 'laml_webhooks', {
 ## Imported Phone Numbers
 
 ```typescript
-// create takes (number, numberType) positionally, with optional capabilities
+// create takes (number, number_type) positionally, with optional capabilities
 await client.importedNumbers.create('+15559999999', 'longcode', {
   capabilities: ['sms', 'voice'],
 });

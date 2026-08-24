@@ -11,7 +11,7 @@ Format: `- <path> — <reason>` (date).
 ## Skill examples requiring real provider credentials / config
 
 - examples/datasphere.ts — DataSphereSkill.setup() fails-loud on missing required params (space_name, project_id, token, document_id); needs a real SignalWire DataSphere knowledge base (2026-07-09).
-- examples/datasphere-serverless-env.ts — requires SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, DATASPHERE_DOCUMENT_ID env vars for a real DataSphere document (2026-07-09).
+- examples/datasphere-serverless-env.ts — requires SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, DATASPHERE_DOCUMENT_ID env vars for a real DataSphere document (2026-07-09).
 - examples/datasphere-webhook-env.ts — same real-DataSphere env-var requirement as datasphere-serverless-env.ts (2026-07-09).
 - examples/web-search.ts — WebSearchSkill requires GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_ENGINE_ID (real Google Programmable Search creds) (2026-07-09).
 - examples/web-search-multi-instance.ts — same `GOOGLE_SEARCH_*` real-creds requirement as web-search.ts (2026-07-09).
@@ -26,3 +26,8 @@ Format: `- <path> — <reason>` (date).
 - examples/rest_audit_harness.ts — requires REST_OPERATION env var; a parametrized harness driven by the enumerate/coverage tooling, not a runnable demo (2026-07-09).
 - examples/skills_audit_harness.ts — requires SKILL_NAME env var; parametrized skills-audit harness, not a runnable demo (2026-07-09).
 - examples/relay_audit_harness.ts — connects to a real RELAY endpoint with credentials (fails 401 against the public host); an audit harness, not a mockable demo (2026-07-09).
+
+## Live RELAY WebSocket examples (no mock_relay in the shared harness)
+
+- relay/examples/relay-outbound.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and dials a real number; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).
+- relay/examples/relay-messaging.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and sends a real SMS; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).

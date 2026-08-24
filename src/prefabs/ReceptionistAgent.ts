@@ -65,6 +65,10 @@ interface CheckInSession {
  * ```ts
  * import { ReceptionistAgent } from '@signalwire/sdk';
  *
+ * const notifyFrontDesk = async (visitor: Record<string, string>) => {
+ *   console.log('visitor checked in', visitor);
+ * };
+ *
  * const agent = new ReceptionistAgent({
  *   companyName: 'Acme Co',
  *   greeting: 'Thanks for calling Acme! How can I direct your call?',

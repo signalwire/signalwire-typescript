@@ -88,10 +88,30 @@ describe('Call', () => {
       expect(client.execCalls[0]!.params.reason).toBe('hangup');
     });
 
-    it('returns {} on RelayError (call-gone)', async () => {
+    // A2 contract (RELAY-LIVENESS relay_contract fixture): only the call-gone
+    // codes 404/410 are swallowed to `{}`; every OTHER server error RAISES so
+    // real failures (500, auth, bad params) are never hidden.
+    it('returns {} on 404 (call-gone)', async () => {
       const call = makeCall(errorClient(404, 'Not found'));
       const result = await call._execute('answer');
       expect(result).toEqual({});
+    });
+
+    it('returns {} on 410 (call-gone)', async () => {
+      const call = makeCall(errorClient(410, 'Gone'));
+      const result = await call._execute('answer');
+      expect(result).toEqual({});
+    });
+
+    it('rethrows on 500 (server error is NOT swallowed)', async () => {
+      const call = makeCall(errorClient(500, 'Internal server error'));
+      await expect(call._execute('play')).rejects.toThrow(RelayError);
+      await expect(call._execute('play')).rejects.toThrow('500');
+    });
+
+    it('rethrows on a non-call-gone 4xx (e.g. 403 auth)', async () => {
+      const call = makeCall(errorClient(403, 'Forbidden'));
+      await expect(call._execute('play')).rejects.toThrow(RelayError);
     });
 
     it('rethrows non-RelayError', async () => {

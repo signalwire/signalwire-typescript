@@ -36,7 +36,9 @@ const DEFAULT_NO_RESULTS_MESSAGE =
  *
  * @example
  * ```ts
- * agent.addSkill('datasphere_serverless', {
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('datasphere_serverless', {
  *   document_id: 'doc_abc123',
  *   count: 3,
  * });
@@ -76,7 +78,7 @@ export class DataSphereServerlessSkill extends SkillBase {
         description: 'SignalWire API token',
         required: true,
         hidden: true,
-        env_var: 'SIGNALWIRE_TOKEN',
+        env_var: 'SIGNALWIRE_API_TOKEN',
       },
       document_id: {
         type: 'string',

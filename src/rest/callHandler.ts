@@ -32,7 +32,10 @@
  *
  * @example
  * ```ts
- * import { PhoneCallHandler } from '@signalwire/sdk';
+ * import { PhoneCallHandler, RestClient } from '@signalwire/sdk';
+ *
+ * const client = new RestClient();
+ * const pnSid = 'pn-uuid';
  *
  * await client.phoneNumbers.update(pnSid, {
  *   call_handler: PhoneCallHandler.RELAY_SCRIPT,

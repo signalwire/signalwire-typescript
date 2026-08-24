@@ -166,11 +166,11 @@ const client = new RestClient({
 
 await client.fabric.aiAgents.create({ name: 'Support Bot', prompt: { text: 'You are helpful.' } });
 await client.calling.play(callId, [{ type: 'tts', params: { text: 'Hello!' } }]);
-await client.phoneNumbers.search({ area_code: '512' });
+await client.phoneNumbers.search({ areacode: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
-- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Uses Node's built-in `fetch` -- no HTTP client dependency
 - Dict returns -- raw JSON, no wrapper objects
 
@@ -191,12 +191,13 @@ package.
 ```typescript
 import { validateRequest } from '@signalwire/sdk';
 
-// Parsed form params (classic cXML/Compat webhooks) —
-// the equivalent of RestClient.validateRequest():
+// Parsed form params (classic cXML/Compat webhooks) — this one call replaces
+// the two Python-SDK entry points (validateRequest for parsed params and
+// validateRequestWithBody for raw bodies): TS unifies both behind validateRequest.
 const ok = validateRequest(signingKey, signatureHeader, fullUrl, requestParams);
 
 // Raw request body (JSON/SWML, or cXML form bodies that carry bodySHA256) —
-// the equivalent of RestClient.validateRequestWithBody():
+// same unified function, passed the raw body string instead of parsed params.
 const okBody = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
 ```
 
@@ -270,6 +271,10 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_REST_BASE_URL` | REST | Override the REST base URL with a full `http(s)://` URL (local mock / private space / proxy). Precedence: `host` option > `SIGNALWIRE_REST_BASE_URL` > `SIGNALWIRE_SPACE`. |
+| `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for HTTPS REST requests (private/self-signed certificates). |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |
+| `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`; default `wss`). Precedence: `scheme` option > `SIGNALWIRE_RELAY_SCHEME` > `wss`; any value other than `ws`/`wss` falls back to `wss`. |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
 | `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |
 | `SWML_PROXY_URL_BASE` | Agents | Base URL when behind a reverse proxy |

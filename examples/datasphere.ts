@@ -2,7 +2,7 @@
  * DataSphere Skill Example
  *
  * Uses the DataSphere skill to search a SignalWire knowledge base.
- * Requires SIGNALWIRE_PROJECT_ID, SIGNALWIRE_TOKEN, and SIGNALWIRE_SPACE env vars.
+ * Requires SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE env vars.
  * Run: npx tsx examples/datasphere.ts
  */
 

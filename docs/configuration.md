@@ -86,6 +86,20 @@ The SDK reads the following environment variables at startup. All are optional.
 |---|---|---|---|
 | `PORT` | `number` | `3000` | HTTP server port. Overridden by the constructor `port` option. |
 
+### RELAY Connection
+
+Read by the `RelayClient` constructor. Credentials (`SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_JWT_TOKEN`, `SIGNALWIRE_SPACE`) fall back to these env vars when the corresponding constructor option is omitted; the two below override the RELAY WebSocket endpoint itself.
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `SIGNALWIRE_RELAY_HOST` | `string` | -- | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |
+| `SIGNALWIRE_RELAY_SCHEME` | `"ws" \| "wss"` | `"wss"` | Override the RELAY WebSocket scheme (`ws`/`wss`; default `wss`). Precedence: `scheme` option > `SIGNALWIRE_RELAY_SCHEME` > `wss`; any value other than `ws`/`wss` falls back to `wss`. |
+| `SIGNALWIRE_RELAY_PING_INTERVAL_MS` | `number` | `30000` | Interval (ms) between client→server RELAY keepalive pings. Advanced/testing knob; leave unset in production. |
+| `SIGNALWIRE_RELAY_PING_MAX_FAILURES` | `number` | `3` | Consecutive missed ping responses before the client treats the RELAY connection as dead and reconnects. Advanced/testing knob; leave unset in production. |
+| `SIGNALWIRE_RELAY_REQUEST_TIMEOUT_MS` | `number` | `30000` | Timeout (ms) for a single RELAY request/response round-trip before it rejects. Advanced/testing knob; leave unset in production. |
+| `SIGNALWIRE_RELAY_RECONNECT_MIN_DELAY_S` | `number` | `1` | Minimum backoff delay (seconds) before the first reconnect attempt after a RELAY disconnect. Advanced/testing knob; leave unset in production. |
+| `SIGNALWIRE_RELAY_RECONNECT_MAX_DELAY_S` | `number` | `30` | Maximum backoff delay (seconds) the exponential reconnect backoff caps at. Advanced/testing knob; leave unset in production. |
+
 ### Authentication
 
 | Variable | Type | Default | Description |

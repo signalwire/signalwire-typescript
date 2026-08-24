@@ -100,7 +100,9 @@ const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
  *
  * @example
  * ```ts
- * agent.addSkill('joke');
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('joke');
  * ```
  */
 export class JokeSkill extends SkillBase {

@@ -1,5 +1,7 @@
 {
   "baseline_version": "3.0.2",
+  "generated_from_tag": "80381af6a456bfbe2fb9d2c61aa4065a6b3a04af",
+  "tag_sha": "80381af6a456bfbe2fb9d2c61aa4065a6b3a04af",
   "version": "2",
   "generated_from": "signalwire-typescript via ts.TypeChecker",
   "modules": {
