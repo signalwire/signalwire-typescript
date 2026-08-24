@@ -188,6 +188,90 @@ describe('RelayClient', () => {
       await client.disconnect();
     });
 
+    // Regression: a redelivered `calling.call.receive` used to construct a
+    // second Call and overwrite the live one in `_calls`, so the handler ran
+    // twice and the first Call silently stopped receiving events.
+    it('ignores a redelivered calling.call.receive for an in-flight call', async () => {
+      const { client, ws } = createClient();
+      await client.connect();
+
+      const receivedCalls: Call[] = [];
+      client.onCall(async (call) => { receivedCalls.push(call); });
+
+      const receiveEvent = (id: string) => ({
+        jsonrpc: '2.0',
+        id,
+        method: 'signalwire.event',
+        params: {
+          event_type: 'calling.call.receive',
+          params: {
+            call_id: 'c1',
+            node_id: 'n1',
+            call_state: 'ringing',
+            direction: 'inbound',
+            device: { type: 'phone', params: { to_number: '+1234' } },
+          },
+        },
+      });
+
+      ws.receiveMessage(receiveEvent('evt-1'));
+      await new Promise((r) => setTimeout(r, 50));
+      const first = receivedCalls[0];
+
+      // Relay redelivers the same receive while the first is still in flight.
+      ws.receiveMessage(receiveEvent('evt-2'));
+      await new Promise((r) => setTimeout(r, 50));
+
+      // The handler must not be entered a second time.
+      expect(receivedCalls).toHaveLength(1);
+
+      // The redelivery must still be ACKed, or the server keeps retrying.
+      const ackMsg = ws.getAllSent().find((m) => m.id === 'evt-2' && 'result' in m);
+      expect(ackMsg).toBeDefined();
+
+      // The instance the application holds must still receive events — a
+      // replacement in `_calls` would leave `first` frozen at 'ringing'.
+      ws.receiveMessage({
+        jsonrpc: '2.0',
+        id: 'evt-3',
+        method: 'signalwire.event',
+        params: {
+          event_type: 'calling.call.state',
+          params: { call_id: 'c1', call_state: 'answered' },
+        },
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(first.state).toBe('answered');
+
+      await client.disconnect();
+    });
+
+    it('still creates a new Call for a different call_id', async () => {
+      const { client, ws } = createClient();
+      await client.connect();
+
+      const receivedCalls: Call[] = [];
+      client.onCall(async (call) => { receivedCalls.push(call); });
+
+      for (const callId of ['c1', 'c2']) {
+        ws.receiveMessage({
+          jsonrpc: '2.0',
+          id: `evt-${callId}`,
+          method: 'signalwire.event',
+          params: {
+            event_type: 'calling.call.receive',
+            params: { call_id: callId, node_id: 'n1', call_state: 'ringing' },
+          },
+        });
+      }
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Deduping on call_id must not swallow genuinely distinct calls.
+      expect(receivedCalls.map((c) => c.callId)).toEqual(['c1', 'c2']);
+
+      await client.disconnect();
+    });
+
     it('dispatches inbound message to on_message handler', async () => {
       const { client, ws } = createClient();
       await client.connect();

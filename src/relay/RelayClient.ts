@@ -1071,12 +1071,22 @@ export class RelayClient {
   }
 
   private _handleInboundCall(payload: Record<string, any>): void {
+    const params = (payload.params ?? {}) as Record<string, any>;
+    const callId = (params.call_id ?? '') as string;
+
+    // Receive is idempotent per call_id: keep the live instance and don't
+    // re-enter the handler. Replacing it would orphan the Call the application
+    // is already holding.
+    if (this._calls.has(callId)) {
+      logger.debug(`Ignoring redelivered ${EVENT_CALL_RECEIVE} for in-flight call ${callId}`);
+      return;
+    }
+
+    // After the dedup: a redelivery at capacity is not a dropped call.
     if (this._calls.size >= this._maxActiveCalls) {
       logger.error(`Max active calls (${this._maxActiveCalls}) reached, dropping inbound call`);
       return;
     }
-    const params = (payload.params ?? {}) as Record<string, any>;
-    const callId = (params.call_id ?? '') as string;
 
     const call = new Call(
       this,
