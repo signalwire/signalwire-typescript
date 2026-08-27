@@ -5,6 +5,7 @@
  */
 
 import type { HttpClient } from './HttpClient.js';
+import type { RequestOptionsInit } from './RequestOptions.js';
 import type { QueryParams } from './types.js';
 
 /**
@@ -32,6 +33,9 @@ interface PageEnvelope {
  *   Subsequent pages use the server-supplied next-page URL unchanged.
  * @param dataKey - Key on each response containing the array of items.
  *   Defaults to `"data"`.
+ * @param requestOptions - Per-request transport envelope forwarded to EVERY
+ *   page fetch (mirrors Python's `_pagination.py`, which forwards
+ *   `request_options` on each page). Timeout/retry/abort apply to every page.
  * @returns An async iterable that yields one `T` per call until exhausted.
  */
 export async function* paginate<T>(
@@ -39,12 +43,25 @@ export async function* paginate<T>(
   path: string,
   params?: QueryParams,
   dataKey = 'data',
+  requestOptions?: RequestOptionsInit,
 ): AsyncGenerator<T, void, undefined> {
   let currentPath: string | null = path;
   let currentParams: QueryParams | undefined = params;
 
+  // Repeating-cursor guard: a degraded/buggy server can return the SAME next
+  // cursor twice (or a cursor pointing at a page already walked). Terminating
+  // only on an ABSENT next link would loop FOREVER re-fetching the same page —
+  // an unbounded HTTP + memory hot-loop with credentials attached (the fleet's
+  // "repeating-cursor" pagination defect). Track every next-page path already
+  // followed; if the server hands back one we have seen, stop.
+  const seenNext = new Set<string>();
+
   while (currentPath) {
-    const resp: PageEnvelope = await http.get<PageEnvelope>(currentPath, currentParams);
+    const resp: PageEnvelope = await http.get<PageEnvelope>(
+      currentPath,
+      currentParams,
+      requestOptions,
+    );
 
     // Extract items from the response using the data key
     const items = (resp[dataKey] as T[] | undefined) ?? [];
@@ -54,28 +71,39 @@ export async function* paginate<T>(
 
     // Determine next page URL
     // Style 1: links.next (relay REST)
-    if (resp.links?.next) {
-      const nextUrl = resp.links.next;
-      // If it's a full URL, extract path + query
-      if (nextUrl.startsWith('http')) {
-        const parsed = new URL(nextUrl);
-        currentPath = parsed.pathname + parsed.search;
-      } else {
-        currentPath = nextUrl;
-      }
-      currentParams = undefined; // params are in the URL already
-      continue;
-    }
-
     // Style 2: next_page_uri (LAML/compat)
-    if (resp.next_page_uri) {
-      currentPath = resp.next_page_uri as string;
-      currentParams = undefined;
-      continue;
+    let rawNext: string | null = null;
+    if (resp.links?.next) {
+      rawNext = resp.links.next;
+    } else if (resp.next_page_uri) {
+      rawNext = resp.next_page_uri;
     }
 
-    // No more pages
-    currentPath = null;
+    if (rawNext === null) {
+      // No more pages — `break` exits the loop; no need to null `currentPath`.
+      break;
+    }
+
+    // Normalize a full URL down to path+query so the cycle key is stable
+    // regardless of whether the server echoes an absolute or relative next.
+    let nextPath: string;
+    if (rawNext.startsWith('http')) {
+      const parsed = new URL(rawNext);
+      nextPath = parsed.pathname + parsed.search;
+    } else {
+      nextPath = rawNext;
+    }
+
+    // Cycle guard: a next cursor we have already followed (or the page we just
+    // fetched) means the server is looping — terminate instead of spinning.
+    if (nextPath === currentPath || seenNext.has(nextPath)) {
+      // Cursor loop detected — `break` terminates; no need to null `currentPath`.
+      break;
+    }
+    seenNext.add(nextPath);
+
+    currentPath = nextPath;
+    currentParams = undefined; // params are in the URL already
   }
 }
 

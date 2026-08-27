@@ -4,7 +4,7 @@ Typed HTTP client for managing SignalWire resources, controlling live calls, and
 
 ## Quick Start
 
-<!-- snippet: no-run makes live REST calls to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes live REST calls to a real SignalWire space; the loopback-mock override is documented in "Pointing at a non-default endpoint" below -->
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
@@ -29,6 +29,33 @@ await client.calling.dial('+15559876543', '+15551234567', {
 });
 ```
 
+## Pointing at a non-default endpoint
+
+By default the client talks to your SignalWire space over `https://`. To point it at a
+local mock, a private space, or a proxy, use any of these (in precedence order):
+
+- **`host` option accepting a full URL** — pass a `http://`/`https://` URL as `host` and
+  the client uses it verbatim:
+  ```typescript
+  import { RestClient } from '@signalwire/sdk';
+
+  const client = new RestClient({
+    project: 'your-project-id',
+    token: 'your-api-token',
+    host: 'http://127.0.0.1:8933', // full URL → used as-is (plain HTTP for loopback)
+  });
+  ```
+- **`SIGNALWIRE_REST_BASE_URL` env var** — the fleet-wide base-url override (a full URL);
+  takes effect when `host` is not passed. Matches the other SignalWire SDKs.
+- **`SIGNALWIRE_SPACE` env var** — a bare host (e.g. `example.signalwire.com`); the client
+  prepends `https://` (or `http://` for a loopback host).
+
+A bare loopback host (`127.0.0.1:<port>` / `localhost:<port>`) is auto-detected and served
+over plain `http://`, so the client can reach a local mock standalone.
+
+Custom CA: set `SIGNALWIRE_REST_CA_FILE` to a PEM bundle to trust a private/self-signed
+certificate for HTTPS requests.
+
 ## Features
 
 - Single `RestClient` with namespaced sub-objects for every API
@@ -36,7 +63,6 @@ await client.calling.dial('+15559876543', '+15551234567', {
 - Full Fabric API: 16 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
-- Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
 - Uses the platform's built-in `fetch` (Node 22+); a small set of runtime dependencies (`hono`, `@hono/node-server`, `ajv`, `js-yaml`, `ws`) power the agent/server layer
 - Injectable `fetchImpl` for testing
@@ -75,7 +101,7 @@ await client.calling.dial('+15559876543', '+15551234567', {
 src/rest/
     index.ts             # RestClient + public exports
     HttpClient.ts        # fetch-based HTTP with Basic Auth
-    RestError.ts         # Error class: statusCode, body, url, method
+    RestError.ts         # Error class: statusCode, body, url, method, headers, requestId
     pagination.ts        # paginate<T>() async generator + paginateAll()
     types.ts             # ClientOptions, PaginatedResponse, QueryParams
     base/
@@ -83,11 +109,10 @@ src/rest/
         CrudResource.ts      # list/create/get/update/delete with generics
         CrudWithAddresses.ts # CrudResource + listAddresses()
     namespaces/
-        fabric.ts        # 13 resource types + generic resources + addresses + tokens
+        fabric.ts        # 16 resource types incl. generic resources + addresses + tokens
         calling.ts       # 37 command dispatch methods via single POST
         phone-numbers.ts # Search, purchase, update, release
-        compat.ts        # Twilio-compatible LAML API (12 sub-resources)
-        video.ts         # Rooms, sessions, recordings, conferences, streams
-        datasphere.ts    # Documents, search, chunks
-        ... and 15 more
+        video.ts         # Rooms, sessions, recordings, conferences, tokens, streams
+        datasphere.ts    # Documents
+        ... and more
 ```

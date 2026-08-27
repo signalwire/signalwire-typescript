@@ -101,8 +101,8 @@ interface SurveySession {
  *   brandName: 'Acme Co',
  *   questions: [
  *     { id: 'q1', text: 'How satisfied were you with our service?', type: 'rating', scale: 5 },
- *     { id: 'q2', text: 'Would you recommend us to a friend?', type: 'yesno' },
- *     { id: 'q3', text: 'Anything else you want to share?', type: 'open' },
+ *     { id: 'q2', text: 'Would you recommend us to a friend?', type: 'yes_no' },
+ *     { id: 'q3', text: 'Anything else you want to share?', type: 'open_ended' },
  *   ],
  * });
  *

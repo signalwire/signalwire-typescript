@@ -19,6 +19,8 @@
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * await agent.addSkillByName('datetime');      // autocompleted built-in
  * agent.hasSkill('datetime');                  // true
  * await agent.addSkillByName('my_custom_one'); // open set: custom names OK

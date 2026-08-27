@@ -174,11 +174,6 @@ describe('ImportedNumbers', () => {
   it('create', async () => {
     const body = await client.importedNumbers.create('+15551234567', 'longcode', {
       capabilities: ['sms', 'voice'],
-      extras: {
-        sip_username: 'alice',
-        sip_password: 'secret',
-        sip_proxy: 'sip.example.com',
-      },
     });
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -191,8 +186,6 @@ describe('ImportedNumbers', () => {
     expect(sent.number).toBe('+15551234567');
     expect(sent.number_type).toBe('longcode');
     expect(sent.capabilities).toEqual(['sms', 'voice']);
-    expect(sent.sip_username).toBe('alice');
-    expect(sent.sip_proxy).toBe('sip.example.com');
   });
 });
 

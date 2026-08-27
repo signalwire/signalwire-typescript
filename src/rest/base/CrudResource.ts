@@ -3,6 +3,7 @@
  */
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { ReadResource } from './ReadResource.js';
 
 /**
@@ -44,8 +45,8 @@ export class CrudResource<
    * @returns The newly-created resource.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async create(body: TCreate): Promise<TItem> {
-    return this._http.post<TItem>(this._basePath, body);
+  async create(body: TCreate, requestOptions?: RequestOptionsInit): Promise<TItem> {
+    return this._http.post<TItem>(this._basePath, body, undefined, requestOptions);
   }
 
   /**
@@ -59,11 +60,15 @@ export class CrudResource<
    * @returns The updated resource.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async update(resourceId: string, body: TUpdate): Promise<TItem> {
+  async update(
+    resourceId: string,
+    body: TUpdate,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<TItem> {
     if (this._updateMethod === 'PUT') {
-      return this._http.put<TItem>(this._path(resourceId), body);
+      return this._http.put<TItem>(this._path(resourceId), body, requestOptions);
     }
-    return this._http.patch<TItem>(this._path(resourceId), body);
+    return this._http.patch<TItem>(this._path(resourceId), body, requestOptions);
   }
 
   /**
@@ -73,7 +78,7 @@ export class CrudResource<
    * @returns The platform's delete response (often an empty body on success).
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async delete(resourceId: string): Promise<unknown> {
-    return this._http.delete(this._path(resourceId));
+  async delete(resourceId: string, requestOptions?: RequestOptionsInit): Promise<unknown> {
+    return this._http.delete(this._path(resourceId), requestOptions);
   }
 }

@@ -23,7 +23,9 @@ import { FunctionResult } from '../../FunctionResult.js';
  *
  * @example
  * ```ts
- * agent.addSkill('datetime');
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
+ * agent.addSkillByName('datetime');
  * ```
  */
 export class DateTimeSkill extends SkillBase {

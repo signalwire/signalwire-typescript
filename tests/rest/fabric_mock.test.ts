@@ -142,11 +142,10 @@ describe('Subscribers SIP endpoint ops', () => {
 
 describe('FabricTokens', () => {
   it('create_invite_token', async () => {
-    // `email` is not a typed param on the generated signature; pass it via the
-    // trailing `extras` escape hatch (address_id left undefined → dropped).
-    const body = await client.fabric.tokens.createInviteToken(undefined as unknown as string, {
-      extras: { email: 'invitee@example.com' },
-    });
+    // address_id is the real spec-declared field (SubscriberInviteTokenCreateRequest).
+    const body = await client.fabric.tokens.createInviteToken(
+      '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -156,15 +155,14 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/subscriber/invites');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect((last.body as WireBody).email).toBe('invitee@example.com');
+    expect((last.body as WireBody).address_id).toBe('3fa85f64-5717-4562-b3fc-2c963f66afa6');
   });
 
   it('create_embed_token', async () => {
-    // `allowed_addresses` is not a typed param (the only typed field is
-    // `token`); pass it via the options object's `extras` escape hatch.
-    const body = await client.fabric.tokens.createEmbedToken(undefined as unknown as string, {
-      extras: { allowed_addresses: ['addr-1', 'addr-2'] },
-    });
+    // token is the only spec-declared field (EmbedsTokensRequest).
+    const body = await client.fabric.tokens.createEmbedToken(
+      'c2c_7acc0e5e968706a032983cd80cdca219',
+    );
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
 
@@ -173,7 +171,7 @@ describe('FabricTokens', () => {
     expect(last.path).toBe('/api/fabric/embeds/tokens');
     expect(typeof last.body).toBe('object');
     expect(last.body).not.toBeNull();
-    expect((last.body as WireBody).allowed_addresses).toEqual(['addr-1', 'addr-2']);
+    expect((last.body as WireBody).token).toBe('c2c_7acc0e5e968706a032983cd80cdca219');
   });
 
   it('refresh_subscriber_token', async () => {

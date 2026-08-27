@@ -99,4 +99,51 @@ describe.skipIf(!mockReady)('TLS: RelayClient over wss://', () => {
     expect(code).not.toBe('UNEXPECTED_OPEN');
     expect(code).toMatch(/UNABLE_TO_VERIFY|SELF_SIGNED|unable to (verify|get)|leaf/i);
   });
+
+  // TS-5 / CA-VAR: the RELAY WS transport honors SIGNALWIRE_RELAY_CA_FILE as its
+  // TLS trust root. Pointing it at a CA that does NOT sign the server cert must
+  // make connect() FAIL — proving the fleet var is genuinely wired into the
+  // transport (relayCaWsOptions overrides the ambient NODE_EXTRA_CA_CERTS trust).
+  it('SIGNALWIRE_RELAY_CA_FILE governs RELAY TLS trust (wrong CA => rejected)', async () => {
+    if (mock === null) {
+      return expect.unreachable('mock_relay --tls unavailable');
+    }
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const url = await import('node:url');
+    // An empty PEM bundle: trusts nothing, written repo-local (next to this test).
+    const emptyCa = path.join(
+      path.dirname(url.fileURLToPath(import.meta.url)),
+      `.empty-relay-ca-${process.pid}.pem`,
+    );
+    fs.writeFileSync(emptyCa, '');
+    const prev = process.env['SIGNALWIRE_RELAY_CA_FILE'];
+    process.env['SIGNALWIRE_RELAY_CA_FILE'] = emptyCa;
+    let insecureClient: RelayClient | null = null;
+    try {
+      insecureClient = new RelayClient({
+        project: 'test_proj',
+        token: 'test_tok',
+        host: mock.relayHost,
+        scheme: 'wss',
+        contexts: ['default'],
+      });
+      let rejected = false;
+      try {
+        await insecureClient.connect();
+      } catch {
+        rejected = true;
+      }
+      expect(rejected).toBe(true);
+    } finally {
+      try {
+        await insecureClient?.disconnect();
+      } catch {
+        /* not connected */
+      }
+      if (prev === undefined) delete process.env['SIGNALWIRE_RELAY_CA_FILE'];
+      else process.env['SIGNALWIRE_RELAY_CA_FILE'] = prev;
+      fs.rmSync(emptyCa, { force: true });
+    }
+  });
 });

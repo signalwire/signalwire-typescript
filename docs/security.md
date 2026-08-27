@@ -169,6 +169,24 @@ const ssl = new SslConfig({
 
 Environment variables are used as fallbacks when constructor options are not provided.
 
+### Custom CA certificates for outbound TLS
+
+The two env vars above configure the SDK's own HTTPS *server*. The following two
+configure how the SDK *verifies* the certificate of the SignalWire endpoints it
+connects OUT to — the REST API (`HttpClient`) and the RELAY WebSocket
+(`RelayClient`). Point them at a PEM bundle to trust a custom / private CA (e.g. a
+corporate TLS-inspection proxy) without disabling verification:
+
+| Variable | Description |
+|---|---|
+| `SIGNALWIRE_REST_CA_FILE` | Path to a PEM CA bundle used to verify the TLS certificate of the SignalWire **REST** API. When set, the REST `HttpClient` trusts this CA in addition to the system roots. |
+| `SIGNALWIRE_RELAY_CA_FILE` | Path to a PEM CA bundle used to verify the TLS certificate of the SignalWire **RELAY** WebSocket endpoint. When set, `RelayClient` trusts this CA in addition to the system roots. |
+
+Both are opt-in: unset, the SDK uses the platform's default trust store. Setting
+a CA file **adds** trust — it never disables certificate verification. These names
+match the Python reference (`SIGNALWIRE_REST_CA_FILE` / `SIGNALWIRE_RELAY_CA_FILE`)
+exactly, so a deployment's CA configuration is portable across SDKs.
+
 ### SslOptions Interface
 
 | Property | Type | Default | Description |

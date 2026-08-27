@@ -456,7 +456,9 @@ export class SWMLService {
       }
     }
 
-    this.swmlBuilder = new SwmlBuilder();
+    // `service: this` is the builder's public back-reference (the reference's
+    // `SWMLBuilder(service)`), so a caller holding the builder can reach its service.
+    this.swmlBuilder = new SwmlBuilder({ service: this });
     this._app = new Hono();
 
     // Security headers

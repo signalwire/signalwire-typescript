@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
@@ -43,12 +44,21 @@ export class VideoConferenceTokens extends BaseResource {
     super(http, '/api/video/conference_tokens');
   }
 
-  async get(id: string, params?: QueryParams): Promise<ConferenceToken> {
-    return this._http.get<ConferenceToken>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ConferenceToken> {
+    return this._http.get<ConferenceToken>(this._path(id), params, requestOptions);
   }
 
-  async reset(id: string): Promise<ConferenceToken> {
-    return this._http.post<ConferenceToken>(this._path(id, 'reset'));
+  async reset(id: string, requestOptions?: RequestOptionsInit): Promise<ConferenceToken> {
+    return this._http.post<ConferenceToken>(
+      this._path(id, 'reset'),
+      undefined,
+      undefined,
+      requestOptions,
+    );
   }
 }
 
@@ -68,8 +78,14 @@ export class VideoConferences extends CrudResource<
   override async create(
     body: CreateConferenceRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Conference> {
-    return this._http.post<Conference>(this._basePath, { ...body, ...extras });
+    return this._http.post<Conference>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -77,28 +93,36 @@ export class VideoConferences extends CrudResource<
     id: string,
     body: UpdateConferenceRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<Conference> {
-    return this._http.put<Conference>(this._path(id), { ...body, ...extras });
+    return this._http.put<Conference>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
   async listConferenceTokens(
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ListConferenceTokensResponse> {
     return this._http.get<ListConferenceTokensResponse>(
       this._path(id, 'conference_tokens'),
       params,
+      requestOptions,
     );
   }
 
-  async listStreams(id: string, params?: QueryParams): Promise<ListStreamsResponse> {
-    return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params);
+  async listStreams(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListStreamsResponse> {
+    return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params, requestOptions);
   }
 
   async createStream(
     id: string,
     url: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -106,7 +130,7 @@ export class VideoConferences extends CrudResource<
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<Stream>(this._path(id, 'streams'), body);
+    return this._http.post<Stream>(this._path(id, 'streams'), body, undefined, requestOptions);
   }
 }
 
@@ -115,20 +139,35 @@ export class VideoRoomRecordings extends BaseResource {
     super(http, '/api/video/room_recordings');
   }
 
-  async list(params?: QueryParams): Promise<ListRoomRecordingsResponse> {
-    return this._http.get<ListRoomRecordingsResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListRoomRecordingsResponse> {
+    return this._http.get<ListRoomRecordingsResponse>(this._basePath, params, requestOptions);
   }
 
-  async get(id: string, params?: QueryParams): Promise<RoomRecording> {
-    return this._http.get<RoomRecording>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<RoomRecording> {
+    return this._http.get<RoomRecording>(this._path(id), params, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 
-  async listEvents(id: string, params?: QueryParams): Promise<ListRoomRecordingEventsResponse> {
-    return this._http.get<ListRoomRecordingEventsResponse>(this._path(id, 'events'), params);
+  async listEvents(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListRoomRecordingEventsResponse> {
+    return this._http.get<ListRoomRecordingEventsResponse>(
+      this._path(id, 'events'),
+      params,
+      requestOptions,
+    );
   }
 }
 
@@ -137,19 +176,40 @@ export class VideoRoomSessions extends ReadResource<ListRoomSessionsResponse, Ro
     super(http, '/api/video/room_sessions');
   }
 
-  async listEvents(id: string, params?: QueryParams): Promise<ListRoomSessionEventsResponse> {
-    return this._http.get<ListRoomSessionEventsResponse>(this._path(id, 'events'), params);
+  async listEvents(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListRoomSessionEventsResponse> {
+    return this._http.get<ListRoomSessionEventsResponse>(
+      this._path(id, 'events'),
+      params,
+      requestOptions,
+    );
   }
 
-  async listMembers(id: string, params?: QueryParams): Promise<ListRoomSessionMembersResponse> {
-    return this._http.get<ListRoomSessionMembersResponse>(this._path(id, 'members'), params);
+  async listMembers(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListRoomSessionMembersResponse> {
+    return this._http.get<ListRoomSessionMembersResponse>(
+      this._path(id, 'members'),
+      params,
+      requestOptions,
+    );
   }
 
   async listRecordings(
     id: string,
     params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
   ): Promise<ListRoomSessionRecordingsResponse> {
-    return this._http.get<ListRoomSessionRecordingsResponse>(this._path(id, 'recordings'), params);
+    return this._http.get<ListRoomSessionRecordingsResponse>(
+      this._path(id, 'recordings'),
+      params,
+      requestOptions,
+    );
   }
 }
 
@@ -180,6 +240,7 @@ export class VideoRoomTokens extends BaseResource {
       sync_audio_video?: boolean;
       extras?: Record<string, unknown>;
     },
+    requestOptions?: RequestOptionsInit,
   ): Promise<RoomTokenResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -204,7 +265,7 @@ export class VideoRoomTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<RoomTokenResponse>(this._basePath, body);
+    return this._http.post<RoomTokenResponse>(this._basePath, body, undefined, requestOptions);
   }
 }
 
@@ -224,8 +285,14 @@ export class VideoRooms extends CrudResource<
   override async create(
     body: CreateRoomRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<RoomResponse> {
-    return this._http.post<RoomResponse>(this._basePath, { ...body, ...extras });
+    return this._http.post<RoomResponse>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
   }
 
   /** Update — typed request body plus an `extras` escape hatch. */
@@ -233,18 +300,24 @@ export class VideoRooms extends CrudResource<
     id: string,
     body: UpdateRoomRequest,
     extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
   ): Promise<RoomResponse> {
-    return this._http.put<RoomResponse>(this._path(id), { ...body, ...extras });
+    return this._http.put<RoomResponse>(this._path(id), { ...body, ...extras }, requestOptions);
   }
 
-  async listStreams(id: string, params?: QueryParams): Promise<ListStreamsResponse> {
-    return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params);
+  async listStreams(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ListStreamsResponse> {
+    return this._http.get<ListStreamsResponse>(this._path(id, 'streams'), params, requestOptions);
   }
 
   async createStream(
     id: string,
     url: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -252,7 +325,7 @@ export class VideoRooms extends CrudResource<
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<Stream>(this._path(id, 'streams'), body);
+    return this._http.post<Stream>(this._path(id, 'streams'), body, undefined, requestOptions);
   }
 }
 
@@ -261,14 +334,19 @@ export class VideoStreams extends BaseResource {
     super(http, '/api/video/streams');
   }
 
-  async get(id: string, params?: QueryParams): Promise<Stream> {
-    return this._http.get<Stream>(this._path(id), params);
+  async get(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Stream> {
+    return this._http.get<Stream>(this._path(id), params, requestOptions);
   }
 
   async update(
     id: string,
     url: string,
     options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<Stream> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -276,10 +354,10 @@ export class VideoStreams extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.put<Stream>(this._path(id), body);
+    return this._http.put<Stream>(this._path(id), body, requestOptions);
   }
 
-  async delete(id: string): Promise<Record<string, unknown>> {
-    return this._http.delete<Record<string, unknown>>(this._path(id));
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 }

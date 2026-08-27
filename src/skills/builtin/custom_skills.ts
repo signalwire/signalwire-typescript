@@ -79,8 +79,10 @@ interface CustomSkillsConfigData {
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * const agent = new AgentBase({ name: 'demo', route: '/' });
  * // Requires SWML_ALLOW_CUSTOM_HANDLER_CODE=true
- * agent.addSkill('custom_skills', {
+ * agent.addSkillByName('custom_skills', {
  *   tools: [
  *     {
  *       name: 'echo',

@@ -170,7 +170,7 @@ await client.phoneNumbers.search({ areacode: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
-- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Compat (Twilio-compatible), Phone Numbers, SIP, Queues, Recordings, and more
+- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Uses Node's built-in `fetch` -- no HTTP client dependency
 - Dict returns -- raw JSON, no wrapper objects
 
@@ -271,6 +271,8 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_REST_BASE_URL` | REST | Override the REST base URL with a full `http(s)://` URL (local mock / private space / proxy). Precedence: `host` option > `SIGNALWIRE_REST_BASE_URL` > `SIGNALWIRE_SPACE`. |
+| `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for HTTPS REST requests (private/self-signed certificates). |
 | `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |
 | `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`; default `wss`). Precedence: `scheme` option > `SIGNALWIRE_RELAY_SCHEME` > `wss`; any value other than `ws`/`wss` falls back to `wss`. |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |

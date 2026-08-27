@@ -2,11 +2,12 @@
  * Individual tests for the McpGateway skill.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi, afterEach } from 'vitest';
 import { McpGatewaySkill, createMcpGatewaySkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import * as SecurityUtils from '../../src/SecurityUtils.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -83,6 +84,55 @@ describe('McpGatewaySkill', () => {
     expect(schema['retry_attempts']).toBeDefined();
     expect(schema['request_timeout']).toBeDefined();
     expect(schema['verify_ssl']).toBeDefined();
+    expect((schema['verify_ssl'] as { default?: unknown }).default).toBe(true);
+    // TS TLS refactor: the explicit opt-in required to actually disable TLS.
+    expect(schema['allow_insecure_tls']).toBeDefined();
+    expect((schema['allow_insecure_tls'] as { default?: unknown }).default).toBe(false);
+  });
+
+  // TLS refactor (owner-ruled REFACTOR, not allowlist): TLS verification stays
+  // ON unless the operator sets BOTH verify_ssl=false AND allow_insecure_tls=true.
+  // Driven through the real setup() path with SSRF stubbed to pass and the health
+  // check stubbed to fail fast — the insecure undici Agent is created BEFORE the
+  // health check, so its presence (or absence) is the observable of the decision.
+  describe('TLS opt-in gating', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    // Returns whether setup() built the SSL-bypass undici Agent for this config.
+    const builtInsecureAgent = async (config: Record<string, unknown>): Promise<boolean> => {
+      vi.spyOn(SecurityUtils, 'validateUrl').mockResolvedValue(true);
+      const skill = new McpGatewaySkill({
+        gateway_url: 'https://gateway.internal.test',
+        auth_token: 'abc',
+        ...config,
+      });
+      // Stub the health check so setup() returns quickly (no network); the agent
+      // is created before this runs.
+      vi.spyOn(
+        skill as unknown as { _makeRequest: () => Promise<Response> },
+        '_makeRequest',
+      ).mockResolvedValue(new Response(null, { status: 500 }));
+      await skill.setup();
+      return (skill as unknown as { _undiciAgent: unknown })._undiciAgent !== undefined;
+    };
+
+    it('verify_ssl=false ALONE does not disable TLS (no insecure agent)', async () => {
+      expect(await builtInsecureAgent({ verify_ssl: false })).toBe(false);
+    });
+
+    it('verify_ssl=false + allow_insecure_tls=true disables TLS (insecure agent built)', async () => {
+      expect(await builtInsecureAgent({ verify_ssl: false, allow_insecure_tls: true })).toBe(true);
+    });
+
+    it('secure default (verify_ssl unset) keeps TLS on', async () => {
+      expect(await builtInsecureAgent({})).toBe(false);
+    });
+
+    it('allow_insecure_tls=true with verify_ssl=true (default) still keeps TLS on', async () => {
+      expect(await builtInsecureAgent({ allow_insecure_tls: true })).toBe(false);
+    });
   });
 
   it('should build prompt sections when services are configured', () => {

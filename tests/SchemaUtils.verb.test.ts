@@ -14,9 +14,14 @@ describe('SchemaUtils — verb extraction and validation', () => {
       expect(names.length).toBeGreaterThanOrEqual(30);
     });
 
-    it('extracts the expected verb count (~38)', () => {
+    // A frozen headcount has to be edited by every PR that adds a verb upstream
+    // (ai_sidecar took it 38 -> 39) and never caught a real defect -- the python
+    // reference has no equivalent assertion, it only logs the count. Assert the
+    // schema loaded and is not truncated instead.
+    it('extracts verbs from the schema', () => {
       const names = schema.getVerbNames();
-      expect(names.length).toBe(38);
+      expect(names.length).toBeGreaterThanOrEqual(38);
+      expect(new Set(names).size).toBe(names.length);
     });
   });
 

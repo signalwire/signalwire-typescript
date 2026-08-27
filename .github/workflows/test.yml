@@ -30,6 +30,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
@@ -42,7 +46,10 @@ jobs:
         with:
           repository: signalwire/signalwire-python
           path: signalwire-python
-          ref: main
+          # CI-PIN (Wave 1): the reference's Wave-1 changes (PY-1..9, incl PY-7
+          # request_options) live on signalwire-python wave/1-aplus (PR #67), not
+          # yet on main. REVERT to main when signalwire-python wave/1-aplus merges.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
@@ -69,6 +76,25 @@ jobs:
           else
             pip install ./signalwire-python
           fi
+
+      # The SWAIG-HTTP-INVOKE gate (porting-sdk diff_port_swaig_http.py) builds its
+      # oracle via starlette.testclient.TestClient. On py3.14 CI the resolved
+      # starlette (1.x) turned the httpx-deprecation into a HARD requirement for the
+      # package literally named `httpx2` (a real PyPI package, v2.x) — plain
+      # `pip install httpx` (0.28) no longer satisfies it. Install httpx2 so the
+      # TestClient imports clean and the SWAIG-HTTP oracle builds.
+      - name: Install SWAIG-HTTP gate backend (starlette TestClient needs httpx2)
+        run: pip install httpx2
+
+      # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
+      # binary and fails LOUD when it is absent (never a silent skip), so install
+      # it before run-ci. Official installer drops the binary in the cwd; move it
+      # onto PATH.
+      - name: Install actionlint (ACTIONLINT gate)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
 
       - name: npm ci
         working-directory: signalwire-typescript
@@ -100,4 +126,7 @@ jobs:
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
           SW_CI_TIER: ${{ steps.tier.outputs.tier }}
+          # COORDINATED-PASS reads the live PR body/labels via 'gh api' to see a
+          # 'Coordinated-With:' declaration edited after the triggering push.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/run-ci.sh

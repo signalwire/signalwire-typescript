@@ -415,4 +415,61 @@ describe('Logger', () => {
     expect(output).toContain('a=null');
     expect(output).toContain('b=undefined');
   });
+
+  describe('SIGNALWIRE_LOG_LEVEL env-var value contract (TS-4)', () => {
+    afterEach(() => {
+      delete process.env['SIGNALWIRE_LOG_LEVEL'];
+      resetLoggingConfiguration();
+    });
+
+    // The env value must NEVER fail open to full verbosity. An uppercase or
+    // mixed-case level is normalized (case-insensitive); an unknown value falls
+    // back to 'info' — never to 'debug'. Regression guard for the log-leak
+    // footgun where SIGNALWIRE_LOG_LEVEL=WARN emitted DEBUG lines.
+    const widensToDebug = (log: Logger): boolean => {
+      log.debug('probe-debug-line');
+      return spyDebug.mock.calls.length > 0;
+    };
+
+    it('uppercase WARN filters as warn (does NOT widen to debug)', () => {
+      process.env['SIGNALWIRE_LOG_LEVEL'] = 'WARN';
+      resetLoggingConfiguration();
+      const log = new Logger('uc-warn');
+      expect(widensToDebug(log)).toBe(false);
+      // warn still emits
+      log.warn('warn-line');
+      expect(spyWarn).toHaveBeenCalledOnce();
+    });
+
+    it('mixed-case Debug enables debug (case-insensitive match)', () => {
+      process.env['SIGNALWIRE_LOG_LEVEL'] = 'Debug';
+      resetLoggingConfiguration();
+      const log = new Logger('mc-debug');
+      expect(widensToDebug(log)).toBe(true);
+    });
+
+    it('lowercase warn filters correctly', () => {
+      process.env['SIGNALWIRE_LOG_LEVEL'] = 'warn';
+      resetLoggingConfiguration();
+      const log = new Logger('lc-warn');
+      expect(widensToDebug(log)).toBe(false);
+    });
+
+    it('garbage value falls back to info, never widens to debug', () => {
+      process.env['SIGNALWIRE_LOG_LEVEL'] = 'verbose-typo';
+      resetLoggingConfiguration();
+      const log = new Logger('garbage-level');
+      expect(widensToDebug(log)).toBe(false);
+      // info still emits (fallback is info, not a stricter level)
+      log.info('info-line');
+      expect(spyInfo).toHaveBeenCalledOnce();
+    });
+
+    it('empty string falls back to info, never widens to debug', () => {
+      process.env['SIGNALWIRE_LOG_LEVEL'] = '';
+      resetLoggingConfiguration();
+      const log = new Logger('empty-level');
+      expect(widensToDebug(log)).toBe(false);
+    });
+  });
 });

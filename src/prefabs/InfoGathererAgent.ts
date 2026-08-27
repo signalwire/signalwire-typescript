@@ -92,6 +92,8 @@ const FALLBACK_QUESTIONS: InfoGathererQuestion[] = [
  *
  * @example Dynamic questions per request
  * ```ts
+ * import { InfoGathererAgent } from '@signalwire/sdk';
+ *
  * const agent = new InfoGathererAgent({
  *   questionCallback: async (query) => {
  *     if (query.intake === 'medical') {

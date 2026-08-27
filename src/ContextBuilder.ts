@@ -71,6 +71,8 @@ export interface GatherInfoDict {
   output_key?: string;
   /** Optional action taken once gathering completes. */
   completion_action?: string;
+  /** Present (true) when every question in this gather defaults to isolated. */
+  isolated?: boolean;
 }
 
 /** Serialized form of a {@link Step} (`Step.toDict()`). */
@@ -156,10 +158,18 @@ export class GatherQuestion {
   prompt?: string;
   /** Optional list of SWAIG function names available during this question. */
   functions?: string[];
+  /**
+   * Overrides the gather's `isolated` default for this one question.
+   * Tri-state: `true` hides the sibling Q&A while this question is asked;
+   * `false` keeps it visible even inside an isolated gather; `undefined`
+   * (the default) inherits the gather's setting. `false` is NOT the same as
+   * unset — it is emitted to SWML so it can override an isolated gather.
+   */
+  isolated?: boolean;
 
   /**
    * Creates a new GatherQuestion.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
    */
   constructor(opts: {
     key: string;
@@ -168,6 +178,7 @@ export class GatherQuestion {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }) {
     this.key = opts.key;
     this.question = opts.question;
@@ -175,6 +186,9 @@ export class GatherQuestion {
     this.confirm = opts.confirm ?? false;
     this.prompt = opts.prompt;
     this.functions = opts.functions;
+    // Tri-state: undefined means "inherit the gather_info default". Do NOT
+    // collapse to a boolean — `false` must survive to the wire.
+    this.isolated = opts.isolated;
   }
 
   /**
@@ -187,6 +201,8 @@ export class GatherQuestion {
     if (this.confirm) d['confirm'] = true;
     if (this.prompt) d['prompt'] = this.prompt;
     if (this.functions) d['functions'] = this.functions;
+    // Emitted even when false, so it can override an isolated gather.
+    if (this.isolated !== undefined && this.isolated !== null) d['isolated'] = this.isolated;
     return d;
   }
 
@@ -207,20 +223,27 @@ export class GatherInfo {
   private outputKey?: string;
   private completionAction?: string;
   private prompt?: string;
+  private isolated: boolean;
 
   /**
    * Creates a new GatherInfo.
-   * @param opts - Optional output key, completion action, and prompt configuration.
+   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
    */
-  constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: string }) {
+  constructor(opts?: {
+    outputKey?: string;
+    completionAction?: string;
+    prompt?: string;
+    isolated?: boolean;
+  }) {
     this.outputKey = opts?.outputKey;
     this.completionAction = opts?.completionAction;
     this.prompt = opts?.prompt;
+    this.isolated = opts?.isolated ?? false;
   }
 
   /**
    * Adds a question to this gather operation.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
    * @returns This GatherInfo for chaining.
    */
   addQuestion(opts: {
@@ -230,6 +253,7 @@ export class GatherInfo {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }): this {
     this.questions.push(new GatherQuestion(opts));
     return this;
@@ -261,6 +285,7 @@ export class GatherInfo {
     if (this.prompt) d.prompt = this.prompt;
     if (this.outputKey) d.output_key = this.outputKey;
     if (this.completionAction) d.completion_action = this.completionAction;
+    if (this.isolated) d.isolated = true;
     return d;
   }
 
@@ -465,10 +490,21 @@ export class Step {
 
   /**
    * Initializes a gather info operation on this step for collecting structured data.
-   * @param opts - Optional output key, completion action, and prompt configuration.
+   *
+   * `isolated` is the default for every question in this gather. When true, a
+   * question is asked with the sibling Q&A hidden from the model, so it must ask
+   * rather than derive the answer from an earlier one. A question's own
+   * `isolated` overrides this. The hidden turns remain in the call log.
+   *
+   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
    * @returns This step for chaining.
    */
-  setGatherInfo(opts?: { outputKey?: string; completionAction?: string; prompt?: string }): this {
+  setGatherInfo(opts?: {
+    outputKey?: string;
+    completionAction?: string;
+    prompt?: string;
+    isolated?: boolean;
+  }): this {
     this.gatherInfo = new GatherInfo(opts);
     return this;
   }
@@ -493,7 +529,10 @@ export class Step {
    *   geocode a ZIP), list that tool name in this question's `functions`.
    *   Functions listed here are active ONLY for this question.
    *
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions.
+   * @param opts - Question configuration including key, question text, and optional
+   *   type/confirm/prompt/functions/isolated. `isolated` overrides the gather's default
+   *   for this one question: true hides the sibling Q&A while it is asked, false keeps
+   *   it visible even in an isolated gather, omitted inherits the gather's setting.
    * @returns This step for chaining.
    */
   addGatherQuestion(opts: {
@@ -503,6 +542,7 @@ export class Step {
     confirm?: boolean;
     prompt?: string;
     functions?: string[];
+    isolated?: boolean;
   }): this {
     if (!this.gatherInfo) throw new Error('Must call setGatherInfo() before addGatherQuestion()');
     this.gatherInfo.addQuestion(opts);
@@ -531,6 +571,18 @@ export class Step {
    */
   getStepValidContexts(): string[] | null {
     return this.validContexts;
+  }
+
+  /**
+   * Returns this step's function whitelist as an array of tool NAMES to
+   * validate, or null when there is nothing to validate. A string value
+   * (`'none'` and any other string) is a disable-all sentinel — NOT a tool
+   * name — so it yields null; only the array form is a real whitelist.
+   * @internal
+   */
+  getFunctions(): string[] | null {
+    if (this.functions === null) return null;
+    return Array.isArray(this.functions) ? this.functions : null;
   }
 
   /**
@@ -1355,6 +1407,55 @@ export class ContextBuilder {
             `names [${reserved.join(', ')}] are reserved and cannot be used ` +
             `for user-defined SWAIG tools when contexts/steps are in use. ` +
             `Rename your tool(s) to avoid the collision.`,
+        );
+      }
+
+      // Validate step/question `functions` whitelists against the real tool
+      // registry: a name that is neither a registered SWAIG tool nor a reserved
+      // native tool is a DANGLING reference — the SWML would be emitted with a
+      // function restriction the LLM can never satisfy, silently (r5 dogfood F3:
+      // `functions: ['order_status', 'get_datetime']` where `get_datetime` was
+      // never registered — the wrong tool name shipped with no warning). Raise
+      // instead of silently dropping.
+      const known = new Set<string>(RESERVED_NATIVE_TOOL_NAMES);
+      for (const tool of registered) {
+        if (tool && typeof tool.name === 'string') known.add(tool.name);
+      }
+      const dangling: string[] = [];
+      const seenDangling = new Set<string>();
+      const recordRefs = (ctxName: string, stepName: string, where: string, refs: string[]) => {
+        for (const ref of refs) {
+          if (!known.has(ref)) {
+            const key = `${ctxName}/${stepName}/${where}/${ref}`;
+            if (!seenDangling.has(key)) {
+              seenDangling.add(key);
+              dangling.push(`'${ref}' (${where} of step '${stepName}' in context '${ctxName}')`);
+            }
+          }
+        }
+      };
+      for (const [ctxName, ctx] of this.contexts) {
+        for (const [stepName, step] of ctx.getSteps()) {
+          const stepFns = step.getFunctions();
+          if (stepFns) recordRefs(ctxName, stepName, 'functions', stepFns);
+          const gi = step.getGatherInfo();
+          if (gi) {
+            for (const q of gi.getQuestions()) {
+              if (q.functions)
+                recordRefs(ctxName, stepName, `question '${q.key}' functions`, q.functions);
+            }
+          }
+        }
+      }
+      if (dangling.length > 0) {
+        const knownNames = [...known].filter((n) => !RESERVED_NATIVE_TOOL_NAMES.has(n)).sort();
+        throw new Error(
+          `Context/step 'functions' whitelist references unknown SWAIG ` +
+            `function(s): ${dangling.join(', ')}. Every name in a step's or ` +
+            `question's 'functions' list must be a registered tool (define it ` +
+            `via defineTool/defineTools or a skill) or a reserved native tool. ` +
+            `Registered tools: [${knownNames.map((n) => `'${n}'`).join(', ')}]. ` +
+            `Fix the tool name or register the missing tool.`,
         );
       }
     }

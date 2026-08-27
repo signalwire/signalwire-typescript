@@ -3,6 +3,7 @@
  */
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { CrudResource } from './CrudResource.js';
 
@@ -28,7 +29,11 @@ export class CrudWithAddresses<
    * @returns A paginated list of addresses.
    * @throws {RestError} On any non-2xx HTTP response.
    */
-  async listAddresses(resourceId: string, params?: QueryParams): Promise<unknown> {
-    return this._http.get(this._path(resourceId, 'addresses'), params);
+  async listAddresses(
+    resourceId: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<unknown> {
+    return this._http.get(this._path(resourceId, 'addresses'), params, requestOptions);
   }
 }

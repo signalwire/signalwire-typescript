@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type { ConferencesResponse } from './logs.types.generated.js';
@@ -16,7 +17,10 @@ export class ConferenceLogs extends BaseResource {
     super(http, '/api/logs/conferences');
   }
 
-  async list(params?: QueryParams): Promise<ConferencesResponse> {
-    return this._http.get<ConferencesResponse>(this._basePath, params);
+  async list(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ConferencesResponse> {
+    return this._http.get<ConferencesResponse>(this._basePath, params, requestOptions);
   }
 }

@@ -7,6 +7,7 @@
 // <ns>_resources_generated module.
 
 import type { HttpClient } from '../HttpClient.js';
+import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
 import type { ChatChannel, ChatState, ChatToken } from './chat.types.generated.js';
 
@@ -19,6 +20,7 @@ export class Chat extends BaseResource {
     ttl: number,
     channels: ChatChannel,
     options?: { member_id?: string; state?: ChatState; extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
   ): Promise<ChatToken> {
     const body: Record<string, unknown> = {};
     const _fields = {
@@ -29,6 +31,6 @@ export class Chat extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<ChatToken>(this._basePath, body);
+    return this._http.post<ChatToken>(this._basePath, body, undefined, requestOptions);
   }
 }

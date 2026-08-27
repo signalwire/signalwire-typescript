@@ -8,8 +8,10 @@
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ * const client = new RestClient();
  * const room = await client.video.rooms.create({ name: 'standup' });
- * const token = await client.video.roomTokens.create({ room_name: 'standup', user_name: 'Alice' });
+ * const token = await client.video.roomTokens.create('standup', { user_name: 'Alice' });
  * ```
  */
 

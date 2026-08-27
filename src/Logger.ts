@@ -23,6 +23,25 @@ type LogFormat = 'text' | 'json';
 type LogStream = 'stdout' | 'stderr';
 
 /**
+ * Normalize a raw `SIGNALWIRE_LOG_LEVEL` env value to a valid {@link LogLevel}.
+ *
+ * The env var is operator input and MUST NOT fail open to full verbosity. An
+ * uppercase (`WARN`) or mixed-case (`Warn`) value is lowercased so it matches
+ * the closed level set; any value that is still not a known level (a typo, an
+ * empty string, `verbose`) falls back to `'info'` — never to `'debug'`. This
+ * matches the Python reference, which `.lower()`s the value with an `'info'`
+ * default (`core/logging_config.py:141`). Without this, an unknown value made
+ * `LEVELS[globalLevel]` `undefined`, the `<` comparison at the filter site was
+ * always false, and NOTHING was filtered — an operator asking for LESS output
+ * (e.g. `WARN`) got ALL output, a log-leak footgun.
+ */
+function normalizeLogLevel(raw: string | undefined): LogLevel {
+  if (raw === undefined) return 'info';
+  const lowered = raw.toLowerCase();
+  return lowered in LEVELS ? (lowered as LogLevel) : 'info';
+}
+
+/**
  * Detect the execution environment, matching the Python SDK's `get_execution_mode()`.
  * @returns the environment name: 'cgi' | 'lambda' | 'google_cloud_function' |
  *   'azure_function' | 'server'.
@@ -88,7 +107,7 @@ function deriveColor(): boolean {
   return process.stdout?.isTTY ?? false;
 }
 
-let globalLevel: LogLevel = (process.env['SIGNALWIRE_LOG_LEVEL'] as LogLevel) ?? 'info';
+let globalLevel: LogLevel = normalizeLogLevel(process.env['SIGNALWIRE_LOG_LEVEL']);
 let globalSuppressed = deriveSuppressed(process.env['SIGNALWIRE_LOG_MODE']);
 let globalFormat: LogFormat = (process.env['SIGNALWIRE_LOG_FORMAT'] as LogFormat) ?? 'text';
 let globalColor = deriveColor();
@@ -176,7 +195,7 @@ export function configureLogging(): void {
 export function resetLoggingConfiguration(): void {
   _loggingConfigured = false;
   const mode = process.env['SIGNALWIRE_LOG_MODE'];
-  globalLevel = (process.env['SIGNALWIRE_LOG_LEVEL'] as LogLevel) ?? 'info';
+  globalLevel = normalizeLogLevel(process.env['SIGNALWIRE_LOG_LEVEL']);
   globalSuppressed = deriveSuppressed(mode);
   globalFormat = (process.env['SIGNALWIRE_LOG_FORMAT'] as LogFormat) ?? 'text';
   globalColor = deriveColor();

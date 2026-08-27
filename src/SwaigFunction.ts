@@ -132,7 +132,19 @@ export interface SwaigFunctionOptions {
   description: string;
   /** JSON Schema properties describing the tool's parameters. */
   parameters?: Record<string, unknown>;
-  /** Whether this tool requires session token authentication. */
+  /**
+   * Whether this tool requires session token authentication.
+   *
+   * **Defaults to `true` — secure by default.** A tool registered without an
+   * explicit `secure` requires SWAIG token validation, and its rendered SWML
+   * webhook carries a per-tool `__token`. Pass `secure: false` only to
+   * deliberately expose a tool on the unauthenticated shared webhook URL.
+   *
+   * **Python equivalent:** `define_tool(..., secure: bool = True)` — every
+   * user-facing entry point in the reference (`ToolMixin.define_tool`,
+   * `ToolRegistry.define_tool`, the `@AgentBase.tool()` decorator) defaults
+   * `secure=True`.
+   */
   secure?: boolean;
   /** Language-keyed filler phrases spoken while the tool executes. */
   fillers?: Record<string, string[]>;
@@ -256,7 +268,11 @@ export class SwaigFunction {
     this.handler = opts.handler;
     this.description = opts.description;
     this.parameters = opts.parameters ?? {};
-    this.secure = opts.secure ?? false;
+    // SECURE BY DEFAULT (A1): a tool registered without an explicit `secure`
+    // requires token validation, and renderSwml mints its per-tool `__token`.
+    // Matches the reference's user-facing `define_tool(..., secure=True)`
+    // (tool_mixin.py:37 / tools/registry.py:42 / tools/decorator.py:95).
+    this.secure = opts.secure ?? true;
     this.fillers = opts.fillers;
     this.waitFile = opts.waitFile;
     this.waitFileLoops = opts.waitFileLoops;

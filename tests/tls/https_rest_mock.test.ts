@@ -87,4 +87,47 @@ describe.skipIf(!ready)('TLS: RestClient over https://', () => {
     expect(code).not.toBe('UNEXPECTED_OK');
     expect(code).toMatch(/UNABLE_TO_VERIFY|SELF_SIGNED|unable to (verify|get)|leaf|certificate/i);
   });
+
+  // TS-5 / CA-VAR: the REST client honors SIGNALWIRE_REST_CA_FILE as its TLS
+  // trust bundle. Pointing it at a CA that does NOT sign the server cert must
+  // make the request FAIL — proving the fleet var is genuinely wired into the
+  // transport (the custom dispatcher overrides the ambient NODE_EXTRA_CA_CERTS
+  // trust). The positive path (a valid bundle) is already covered by the ambient
+  // NODE_EXTRA_CA_CERTS success above.
+  it('SIGNALWIRE_REST_CA_FILE governs REST TLS trust (wrong CA => rejected)', async () => {
+    if (mock === null) {
+      return expect.unreachable('mock_signalwire --tls unavailable');
+    }
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const url = await import('node:url');
+    // An empty PEM bundle: a valid file that trusts nothing, so the server cert
+    // (signed by the test CA) cannot be verified against it. Written repo-local
+    // (next to this test), never a machine-wide temp dir.
+    const emptyCa = path.join(
+      path.dirname(url.fileURLToPath(import.meta.url)),
+      `.empty-ca-${process.pid}.pem`,
+    );
+    fs.writeFileSync(emptyCa, '');
+    const prev = process.env['SIGNALWIRE_REST_CA_FILE'];
+    process.env['SIGNALWIRE_REST_CA_FILE'] = emptyCa;
+    try {
+      const client = new RestClient({
+        project: 'test_proj',
+        token: 'test_tok',
+        host: mock.baseUrl,
+      });
+      let rejected = false;
+      try {
+        await client.fabric.addresses.list();
+      } catch {
+        rejected = true;
+      }
+      expect(rejected).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env['SIGNALWIRE_REST_CA_FILE'];
+      else process.env['SIGNALWIRE_REST_CA_FILE'] = prev;
+      fs.rmSync(emptyCa, { force: true });
+    }
+  });
 });
