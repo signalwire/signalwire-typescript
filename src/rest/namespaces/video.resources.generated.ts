@@ -235,8 +235,8 @@ export class VideoRoomTokens extends BaseResource {
       end_room_session_on_leave?: boolean;
       join_as?: JoinAsType;
       media_allowed?: MediaAllowedType;
-      room_meta?: Record<string, Record<string, unknown>>;
-      meta?: Record<string, Record<string, unknown>>;
+      room_meta?: Record<string, unknown>;
+      meta?: Record<string, unknown>;
       sync_audio_video?: boolean;
       extras?: Record<string, unknown>;
     },
