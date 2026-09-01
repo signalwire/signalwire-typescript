@@ -452,3 +452,69 @@ describe('Inbound call — no handler', () => {
     client = fresh;
   });
 });
+
+// ---------------------------------------------------------------------------
+// Redelivered calling.call.receive (porting-sdk#141)
+//
+// RELAY delivers at least once: the same receive frame can arrive twice for one
+// call. Receive must therefore be idempotent per call_id — see the "Event
+// Redelivery" section of porting-sdk's RELAY_IMPLEMENTATION_GUIDE.md.
+// ---------------------------------------------------------------------------
+
+describe('Inbound call — redelivered receive', () => {
+  it('test_redelivered_receive_keeps_the_live_call', async () => {
+    // Without the idempotency guard the second receive builds a second Call and
+    // overwrites `_calls[call_id]`. Routing only ever reads that map, so the
+    // first Call — the one handed to the application — silently stops receiving
+    // events: an awaited connect/play/record on it hangs to its timeout instead
+    // of returning at hangup.
+    const handlerCalls: Call[] = [];
+    client.onCall(async (call) => {
+      handlerCalls.push(call);
+    });
+
+    await mock.inboundCall({
+      call_id: 'c-redeliver',
+      auto_states: ['ringing', 'answered'],
+      delay_ms: 20,
+      redeliver_receive: 1,
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    // 1. One call means one handler invocation.
+    expect(handlerCalls).toHaveLength(1);
+
+    // 2. The live instance survives — the map still points at what the
+    //    application was handed, not at a replacement.
+    const first = handlerCalls[0]!;
+    const calls = (client as unknown as { _calls: Map<string, Call> })._calls;
+    expect(calls.get('c-redeliver')).toBe(first);
+
+    // 3. And it is still the object events route to.
+    expect(first.state).toBe('answered');
+
+    // The duplicate really was on the wire — otherwise this proves nothing.
+    const receives = await mock.journalSend('calling.call.receive');
+    const redelivered = receives.filter(
+      (s) => s.frame.params!.params!.call_id === 'c-redeliver',
+    );
+    expect(redelivered).toHaveLength(2);
+  });
+
+  it('test_distinct_call_ids_still_create_separate_calls', async () => {
+    // The dedup is per call_id and must not swallow a genuinely new concurrent
+    // inbound call.
+    const handlerCalls: Call[] = [];
+    client.onCall(async (call) => {
+      handlerCalls.push(call);
+    });
+
+    await mock.inboundCall({ call_id: 'c-first', auto_states: ['ringing'], delay_ms: 0 });
+    await mock.inboundCall({ call_id: 'c-second', auto_states: ['ringing'], delay_ms: 0 });
+    await new Promise((r) => setTimeout(r, 300));
+
+    expect(handlerCalls.map((c) => c.callId).sort()).toEqual(['c-first', 'c-second']);
+    const calls = (client as unknown as { _calls: Map<string, Call> })._calls;
+    expect(calls.get('c-first')).not.toBe(calls.get('c-second'));
+  });
+});

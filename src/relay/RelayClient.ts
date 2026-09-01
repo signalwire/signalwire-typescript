@@ -1204,12 +1204,28 @@ export class RelayClient {
   }
 
   private _handleInboundCall(payload: WirePayload): void {
+    const params = (payload.params ?? {}) as Record<string, unknown>;
+    const callId = (params.call_id ?? '') as string;
+
+    // RELAY delivers at least once, so `calling.call.receive` can arrive again
+    // for a call already in flight. Receive is idempotent per call_id: keep the
+    // live instance and don't re-enter the handler. Replacing the map entry
+    // would orphan the Call the application is holding — routing only ever
+    // reads `_calls` by call_id, so the original would silently stop receiving
+    // events and an awaited connect/play/record on it would hang to its
+    // timeout instead of resolving at hangup. `_sendEventAck` fires in
+    // `_onMessage` before `_handleEvent`, so returning early still stops the
+    // server's retries.
+    if (this._calls.has(callId)) {
+      logger.debug(`Ignoring redelivered ${EVENT_CALL_RECEIVE} for in-flight call ${callId}`);
+      return;
+    }
+
+    // After the dedup: a redelivery at capacity is not a dropped call.
     if (this._calls.size >= this._maxActiveCalls) {
       logger.error(`Max active calls (${this._maxActiveCalls}) reached, dropping inbound call`);
       return;
     }
-    const params = (payload.params ?? {}) as Record<string, unknown>;
-    const callId = (params.call_id ?? '') as string;
 
     const call = new Call(
       this,

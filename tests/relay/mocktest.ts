@@ -268,6 +268,10 @@ export class MockRelayHarness {
       auto_states?: string[];
       delay_ms?: number;
       session_id?: string;
+      /** Replay the `calling.call.receive` frame this many EXTRA times
+       * (byte-identical, before the state frames) to drive RELAY's
+       * at-least-once delivery. See porting-sdk RELAY_IMPLEMENTATION_GUIDE.md. */
+      redeliver_receive?: number;
     } = {},
   ): Promise<RelayFrame> {
     const body: Record<string, unknown> = {
@@ -276,6 +280,7 @@ export class MockRelayHarness {
       context: opts.context ?? 'default',
       auto_states: opts.auto_states ?? ['created'],
       delay_ms: opts.delay_ms ?? 50,
+      redeliver_receive: opts.redeliver_receive ?? 0,
     };
     if (opts.call_id != null) body.call_id = opts.call_id;
     // Target this harness's session by default so the inbound-call sequence is
