@@ -411,17 +411,18 @@ renderSwml(callId?)
   |
   |-- PHASE 4: AI Verb
   |      Build aiConfig object:
-  |        prompt: { text: ..., ...promptLlmParams }
+  |        prompt: { text: ..., ...promptLlmParams,
+  |                  contexts: contextsBuilder.toDict() (if defined) }
   |        post_prompt: { text: ..., ...postPromptLlmParams }
   |        post_prompt_url: ...
   |        SWAIG: swaigObj
-  |        contexts: contextsBuilder.toDict() (if defined)
   |        hints: [...]
   |        languages: [...]
+  |        multilingual: {...} (if setMultilingual used)
   |        pronounce: [...]
-  |        params: {...}
+  |        params: { ...,
+  |                  debug_webhook_url / debug_webhook_level (if enabled) }
   |        global_data: {...}
-  |        debug_webhook_url / debug_webhook_level (if enabled)
   |      swmlBuilder.addVerb('ai', aiConfig)
   |
   |-- PHASE 5: Post-AI Verbs
@@ -861,4 +862,4 @@ These override the auto-generated webhook URLs in the rendered SWML document.
 agent.enableDebugEvents(2);  // level 1-3
 ```
 
-When enabled, the SWML document includes `debug_webhook_url` and `debug_webhook_level` in the AI configuration. SignalWire posts debug events to `/debug_events`, which calls `onDebugEvent()`.
+When enabled, the SWML document includes `debug_webhook_url` and `debug_webhook_level` inside the AI verb's `params` object (they are `$defs/AIParams` properties, not ai top-level keys). SignalWire posts debug events to `/debug_events`, which calls `onDebugEvent()`.

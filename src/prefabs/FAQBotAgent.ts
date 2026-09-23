@@ -2,10 +2,6 @@
  * FAQBotAgent - A prefab agent that answers frequently asked questions using
  * keyword/word-overlap matching with configurable similarity thresholds
  * and optional escalation to a live agent.
- *
- * Ported from the Python SDK `signalwire.prefabs.faq_bot.FAQBotAgent`. Keeps
- * TS-specific enhancements (configurable similarity threshold, word-overlap
- * matcher, escalation tool) alongside the Python prefab's public surface.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -329,8 +325,7 @@ export class FAQBotAgent extends AgentBase {
 
   /**
    * SWAIG handler for `search_faqs`: score the (optionally category-filtered)
-   * FAQ pool against the query and return the top matches. Mirrors Python
-   * `FAQBotAgent.search_faqs`.
+   * FAQ pool against the query and return the top matches.
    */
   searchFaqs(args: Record<string, unknown>, _rawData: Record<string, unknown>): FunctionResult {
     const query = (args['query'] as string) ?? '';

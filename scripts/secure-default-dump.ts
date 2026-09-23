@@ -1,42 +1,39 @@
 /**
- * secure-default-dump.ts — the TypeScript port's SECURE-DEFAULT dump program for
- * the cross-port behavioral differ (porting-sdk/scripts/diff_port_secure_default.py,
- * corpus porting-sdk/scripts/secure_default_corpus.py; A+ campaign A1 / PSDK-4a).
+ * secure-default-dump.ts — the TypeScript port's SECURE-DEFAULT (A1) Layer-D dump
+ * program for the cross-port behavioral differ
+ * (porting-sdk/scripts/diff_port_secure_default.py, corpus
+ * porting-sdk/scripts/secure_default_corpus.py).
  *
- * The A1 contract: `defineTool` WITHOUT an explicit `secure` MUST default to
- * SECURE, and the rendered SWML must reflect that on the WIRE — a secure tool's
- * SWAIG function entry carries a per-tool `__token=<hmac>` query parameter on its
- * `web_hook_url`; an explicitly `secure: false` tool carries none (it falls back
- * to the unauthenticated shared `defaults.web_hook_url`).
+ * The differ drives the python reference through the secure_default corpus to
+ * build the golden token TOPOLOGY, then runs THIS program (which embeds the same
+ * two fixtures) and classifies OUR rendered payload the same way.
  *
- * So this program drives the REAL AgentBase: it registers one default tool (no
- * explicit `secure`) plus one `secure: false` tool, renders the SWML with the
- * fixed corpus `CALL_ID`, locates each tool's rendered SWAIG function entry, and
- * emits, to stdout, ONE JSON object mapping
+ * Protocol (the 2026-07-27 redesign — a WIRE payload, not a self-verdict):
  *
- *   corpus-id -> {secure_default_true: bool, wire_reflects_secure: bool}
+ *   {"<fixture id>": {"secure_default_true": bool, "rendered": {<functions[] entry>}}}
  *
- * exactly as the Python oracle produces it (diff_port_secure_default.build_oracle
- * — this file mirrors that classification in TS):
+ *   secure_default_true — the SDK-RECORDED secure flag for that tool, read back
+ *     from the live registry (`AgentBase.getTool(name).secure`). It is deliberately
+ *     NOT the value this program passed to `defineTool`: echoing the input back
+ *     would make the field incapable of ever failing, which is precisely the
+ *     vacuity this redesign exists to close.
+ *   rendered — that tool's own `SWAIG.functions[]` entry, VERBATIM, with every
+ *     token VALUE replaced by the corpus placeholder `<TOKEN>` (the values are
+ *     HMACs and vary per run; the KEY PATH is the whole contract and is preserved
+ *     exactly).
  *
- *   secure_default_true   the SDK-recorded `secure` flag for the tool. For the
- *                         default case this is the observation that reds a port
- *                         whose defineTool defaults insecure.
- *   wire_reflects_secure  a `__token` is present on the rendered webhook IFF the
- *                         tool is secure (secure tool -> token present; insecure
- *                         tool -> token correctly absent).
+ * This program makes NO judgement about whether the render is correct — the
+ * differ derives `has_own_webhook` and `token_carrier` from the keys. The
+ * contract it pins (signalwire-python core/agent_base.py:1085-1099): a SECURE
+ * tool's entry carries its own `web_hook_url` with a `__token` query param; an
+ * INSECURE tool's entry carries NO `web_hook_url` key at all and falls back to
+ * the shared `SWAIG.defaults.web_hook_url`.
  *
- * Both booleans are read from the ACTUAL SDK state and the ACTUAL rendered
- * document — the recorded flag from the tool registry, the token from the
- * rendered `web_hook_url`. Nothing is asserted from a constant, so a port cannot
- * report a token it did not emit. The token VALUE is a nondeterministic HMAC and
- * is deliberately NOT compared, only its presence.
+ * Only stdout carries JSON; setup noise goes to stderr.
  *
  * Run from the signalwire-typescript repo root:
  *
  *   SIGNALWIRE_LOG_MODE=off npx tsx scripts/secure-default-dump.ts
- *
- * Nothing but the JSON object is written to stdout on success.
  */
 
 // Silence the SDK logger BEFORE AgentBase (and its Logger) is loaded so no debug
@@ -47,25 +44,66 @@ const { AgentBase } = await import('../src/AgentBase.js');
 const { FunctionResult } = await import('../src/FunctionResult.js');
 const { SwaigFunction } = await import('../src/SwaigFunction.js');
 
-// The fixed call_id the corpus renders with (secure_default_corpus.CALL_ID). A
-// per-tool token is only minted when a call_id is present, so this is load-bearing.
+/**
+ * The FIXED call_id the corpus renders with, so a secure tool deterministically
+ * gets a __token. Mirrors secure_default_corpus.CALL_ID.
+ */
 const CALL_ID = 'call-secure-default-fixture';
 
-// The tool names the corpus requires (secure_default_corpus.CORPUS[*].tool_name).
+/** Mirrors secure_default_corpus.TOKEN_PLACEHOLDER. */
+const TOKEN_PLACEHOLDER = '<TOKEN>';
+
+/** The tool names the corpus requires (secure_default_corpus.CORPUS[*].tool_name). */
 const DEFAULT_TOOL = 'sd_default_secure';
 const INSECURE_TOOL = 'sd_explicit_insecure';
 
-interface Fixture {
-  id: string;
-  toolName: string;
-  /** The SDK-recorded `secure` flag this fixture expects (corpus expect_secure). */
-  expectSecure: boolean;
+type AgentInstance = InstanceType<typeof AgentBase>;
+
+/** One fixture's emitted payload — exactly the two keys the differ consumes. */
+interface Emission {
+  secure_default_true: boolean;
+  rendered: Record<string, unknown>;
 }
 
-const CORPUS: Fixture[] = [
-  { id: 'define_tool_default_is_secure', toolName: DEFAULT_TOOL, expectSecure: true },
-  { id: 'define_tool_explicit_insecure', toolName: INSECURE_TOOL, expectSecure: false },
-];
+/**
+ * Replace the VALUE of every token-suffixed query parameter in a URL, preserving
+ * the parameter KEY and order. Mirrors diff_port_secure_default._redact_url_token.
+ */
+function redactUrl(url: string): string {
+  const q = url.indexOf('?');
+  if (q === -1) return url;
+  const rebuilt = url
+    .slice(q + 1)
+    .split('&')
+    .map((pair) => {
+      const eq = pair.indexOf('=');
+      if (eq === -1) return pair;
+      const key = pair.slice(0, eq);
+      return key.toLowerCase().endsWith('token') ? `${key}=${TOKEN_PLACEHOLDER}` : pair;
+    });
+  return url.slice(0, q + 1) + rebuilt.join('&');
+}
+
+/**
+ * Replace every nondeterministic token VALUE (an HMAC) with the corpus
+ * placeholder while preserving every KEY and key path exactly — both a
+ * token-suffixed field and a token-suffixed query parameter on a URL value.
+ * Mirrors diff_port_secure_default.redact_entry so the differ's re-application is
+ * a no-op.
+ */
+function redactEntry(entry: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(entry)) {
+    if (typeof value === 'string' && key.toLowerCase().endsWith('token')) {
+      out[key] = TOKEN_PLACEHOLDER;
+    } else if (typeof value === 'string' && (value.includes('://') || value.startsWith('/'))) {
+      out[key] = redactUrl(value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
 
 /**
  * Locate the SWAIG `functions` array inside a rendered SWML document, tolerant of
@@ -93,74 +131,75 @@ function findSwaigFunctions(obj: unknown): Record<string, unknown>[] | null {
   return null;
 }
 
-/**
- * True iff a rendered SWAIG function entry's webhook carries a per-tool token
- * (`__token` in its `web_hook_url` query string) — the wire reflection of
- * `secure`. Mirrors diff_port_secure_default._webhook_has_token.
- */
-function webhookHasToken(entry: Record<string, unknown> | undefined): boolean {
-  const url = entry?.['web_hook_url'];
-  return typeof url === 'string' && url.includes('__token=');
+/** Locate the SWAIG function entry by name in the rendered doc. */
+function functionEntry(doc: unknown, toolName: string): Record<string, unknown> {
+  for (const fn of findSwaigFunctions(doc) ?? []) {
+    if (fn !== null && typeof fn === 'object' && fn['function'] === toolName) return fn;
+  }
+  return {};
 }
 
-async function main(): Promise<void> {
+/**
+ * Build a fresh agent, define one tool, render the SWML with the fixed call_id,
+ * and emit {secure_default_true, rendered} for the differ to classify.
+ */
+function emit(toolName: string, define: (agent: AgentInstance) => void): Emission {
   const agent = new AgentBase({
     name: 'secure-default-fixture',
     route: '/sd',
     basicAuth: ['u', 'p'],
   });
   agent.setPromptText('secure default fixture');
+  define(agent);
 
-  // The DEFAULT tool: NO explicit `secure` — must default to SECURE (A1).
-  agent.defineTool({
-    name: DEFAULT_TOOL,
-    description: 'secure-default fixture tool',
-    parameters: {},
-    handler: () => new FunctionResult('ok'),
-  });
-  // The EXPLICIT insecure tool: `secure: false` must be honored.
-  agent.defineTool({
-    name: INSECURE_TOOL,
-    description: 'secure-default fixture tool',
-    parameters: {},
-    secure: false,
-    handler: () => new FunctionResult('ok'),
-  });
+  // The SDK-RECORDED flag, read back from the live registry — never the value we
+  // passed in (see the header: an echoed input can never red). `getTool` returns
+  // the live SwaigFunction; getRegisteredTools returns a name/description/
+  // parameters summary that does not carry `secure`.
+  const fn = agent.getTool(toolName);
+  const recordedSecure = fn instanceof SwaigFunction && fn.secure === true;
 
-  // Read back the SDK-recorded `secure` flag per tool from the real registry.
-  // `getTool` returns the live SwaigFunction (getRegisteredTools returns a
-  // name/description/parameters summary that does not carry `secure`).
-  const recordedSecure = new Map<string, boolean>();
-  for (const fixture of CORPUS) {
-    const fn = agent.getTool(fixture.toolName);
-    if (fn instanceof SwaigFunction) recordedSecure.set(fixture.toolName, Boolean(fn.secure));
-  }
-
-  // Render the SWML with the fixed call_id and read the per-tool webhook token.
   const rendered = agent.renderSwml(CALL_ID);
   const doc: unknown = typeof rendered === 'string' ? JSON.parse(rendered) : rendered;
-  const fns = findSwaigFunctions(doc) ?? [];
-  const byName = new Map<string, Record<string, unknown>>();
-  for (const fn of fns) {
-    const name = fn['function'];
-    if (typeof name === 'string') byName.set(name, fn);
-  }
 
-  const out: Record<string, Record<string, boolean>> = {};
-  for (const fixture of CORPUS) {
-    const isSecure = recordedSecure.get(fixture.toolName) ?? false;
-    const tokenPresent = webhookHasToken(byName.get(fixture.toolName));
-    out[fixture.id] = {
-      secure_default_true: isSecure,
-      // A token is present IFF the tool is secure.
-      wire_reflects_secure: tokenPresent === fixture.expectSecure,
-    };
-  }
+  return {
+    secure_default_true: recordedSecure,
+    rendered: redactEntry(functionEntry(doc, toolName)),
+  };
+}
+
+function main(): void {
+  const out: Record<string, Emission> = {};
+
+  // A1 (a): a tool defined with NO explicit `secure` must default to SECURE →
+  // its rendered entry carries its own web_hook_url with a __token query param.
+  out['define_tool_default_is_secure'] = emit(DEFAULT_TOOL, (agent) => {
+    agent.defineTool({
+      name: DEFAULT_TOOL,
+      description: 'secure-default fixture tool',
+      parameters: {},
+      handler: () => new FunctionResult('ok'),
+    });
+  });
+
+  // A1 (b): a tool defined with `secure: false` must be INSECURE → NO per-tool
+  // web_hook_url key at all (it falls back to SWAIG.defaults.web_hook_url).
+  out['define_tool_explicit_insecure'] = emit(INSECURE_TOOL, (agent) => {
+    agent.defineTool({
+      name: INSECURE_TOOL,
+      description: 'secure-default fixture tool',
+      parameters: {},
+      secure: false,
+      handler: () => new FunctionResult('ok'),
+    });
+  });
 
   process.stdout.write(JSON.stringify(out, null, 2) + '\n');
 }
 
-main().catch((err) => {
+try {
+  main();
+} catch (err) {
   process.stderr.write(`secure-default-dump: ${err instanceof Error ? err.stack : String(err)}\n`);
   process.exit(1);
-});
+}

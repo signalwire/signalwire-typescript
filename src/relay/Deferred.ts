@@ -1,5 +1,5 @@
 /**
- * Deferred promise utility — maps Python's asyncio.Future for the RELAY client.
+ * Deferred promise utility for the RELAY client.
  *
  * Uses a manual promise constructor for Node 18+ compatibility.
  */

@@ -72,10 +72,33 @@ fall into these named categories:
      is this idiom (the options object is a keyword-passing bag; it cannot express
      Python's positional affordance). Same wire, same value set — the analog of
      Go's `go-variadic-options`.
-   - **framework / typed-shape**: TS omits FastAPI-specific wrapper types
-     (``Request``/``HTTPAuthorizationCredentials``) that have no Hono/TS analog,
-     and types payloads/returns as named shapes where Python uses ``dict``/``Any``
-     (TS strictly richer — never loosened; same emitted wire, proven by EMISSION).
+   - **framework / typed-shape**: TS types payloads/returns as named shapes where
+     Python uses ``dict``/``Any`` (TS strictly richer — never loosened; same
+     emitted wire, proven by EMISSION).
+     NOTE (2026-07-28): THREE claims this bullet used to make were all wrong and
+     have been retired, not re-excused — reconciled in the type/module tables and
+     in the port's own source so comparison KEEPS RUNNING instead of stopping:
+       * "TS omits FastAPI wrapper types (``HTTPBasicCredentials`` /
+         ``HTTPAuthorizationCredentials``) that have no Hono/TS analog" — FastAPI
+         was never the contract. Those objects are just the fields parsed out of
+         the ``Authorization`` header, and that shape is fully portable. porting-sdk
+         dcff742 publishes them as real oracle classes
+         (``BasicCredentials`` {username, password} / ``BearerCredentials``
+         {scheme, credentials}); ``src/AuthHandler.ts`` now declares exactly those
+         two carriers and ``verifyBasicAuth``/``verifyBearerToken`` take them, so
+         both methods COMPARE EQUAL instead of being excused.
+       * "FastAPI ``Request`` has no Hono/TS analog" — it does. Hono's per-request
+         ``Context`` is that analog, and go already maps its ``http.Request`` and
+         compares equal. ``Context`` now maps to ``class:Request`` in
+         porting-sdk/type_aliases.yaml (the differ matches bare class refs by leaf).
+       * "TS types payloads as named shapes where Python uses dict, so they cannot
+         compare" — the diff checker has ALWAYS held a spec-generated TypedDict
+         compatible with ``dict<string,any>`` in either direction. That rule simply
+         never fired, because this port's SIGNATURE enumerator was missing the
+         ``src/PlatformContracts.generated.ts`` module alias its own SURFACE
+         enumerator already had, so ``SwmlRequestData`` never normalised to the
+         ``gen:<Name>`` token the rule keys on. Adding the alias retired 12 excuses
+         with zero new drift.
 
 2. **Reference-oracle gaps**: symbols the port genuinely implements but that are
    absent from ``python_signatures.json`` (griffe enumeration gaps — e.g. the
@@ -89,19 +112,7 @@ fall into these named categories:
 
 ## Idiom: TS constructors
 
-signalwire.agent_server.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.agent_base.AgentBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.security_config.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.skill_manager.SkillManager.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swaig_function.SWAIGFunction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swml_builder.SWMLBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.core.swml_service.SWMLService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.Agent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentSession.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -116,86 +127,32 @@ signalwire.livewire.SileroVAD.__init__: TS constructor signature follows TS conv
 signalwire.livewire.StopResponse.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.TTS.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.ToolError.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.concierge.ConciergeAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.faq_bot.FAQBotAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.receptionist.ReceptionistAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.prefabs.survey.SurveyAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.AIAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Action.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Call.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.CollectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.DetectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.FaxAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.PayAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.PlayAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.RecordAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.StandaloneCollectAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.StreamAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.TapAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.TranscribeAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.call.Call.device: TS declares `device: Device` as a typed class field; Python has the same attribute but sets it dynamically (`self.device = device or {}`), so the static signature enumerator records it "in port, not in reference". Same attribute, stronger TS typing (the Device union from the Tier-3 typed-objects pass).
-signalwire.relay.event.CallReceiveEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.event.CallStateEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.event.TapEvent.device: TS declares `device: Device` as a typed class field; Python sets the same attribute dynamically in __init__, so the enumerator records it "in port, not in reference". Same attribute, stronger TS typing.
-signalwire.relay.client.RelayClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.relay.message.Message.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest._base.HttpClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest.client.RestClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
-signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
 
-## Idiom: TS fluent API returns this
+## Idiom: TS named collection/result types vs the reference's bare dicts + tuples
 
-signalwire.agent_server.AgentServer.get_agents: TS fluent API returns this for chaining
-signalwire.core.function_result.FunctionResult.create_payment_action: TS fluent API returns this for chaining
-signalwire.core.function_result.FunctionResult.create_payment_parameter: TS fluent API returns this for chaining
-signalwire.core.pom_builder.PomBuilder.get_section: TS fluent API returns this for chaining
-signalwire.core.pom_builder.PomBuilder.to_dict: TS fluent API returns this for chaining
-signalwire.core.security.session_manager.SessionManager.debug_token: TS fluent API returns this for chaining
-signalwire.core.skill_base.SkillBase.get_prompt_sections: TS fluent API returns this for chaining
-signalwire.skills.registry.SkillRegistry.list_skills: TS fluent API returns this for chaining
+# NOTE (2026-07-29): every rationale in this section used to read "TS fluent API
+# returns this for chaining". That was FALSE for all eight — not one of these TS
+# methods returns `this` (`getAgents(): Map<...>`, `createPaymentAction():
+# PaymentAction`, `getSection(): PomSection | undefined`, `toDict():
+# PomSectionData[]`, `debugToken(): DebugTokenResult`, `getPromptSections():
+# SkillPromptSection[]`). The divergences each entry suppresses ARE real, so the
+# entries stay; only the wording is corrected to name the actual divergence the
+# differ reports.
+
+signalwire.agent_server.AgentServer.get_agents: TS getAgents() returns the live `Map<string, AgentBase>` registry; the reference returns `list<tuple<string, AgentBase>>`. Same (name, agent) pairs, TS's native keyed-collection type instead of a list of 2-tuples (TS has no tuple-of-pairs idiom for a registry).
+signalwire.core.function_result.FunctionResult.create_payment_action: TS createPaymentAction() returns the named `PaymentAction` interface; the reference returns the equivalent `dict<string,string>`. Same SWAIG payload object, TS stricter.
+signalwire.core.function_result.FunctionResult.create_payment_parameter: TS createPaymentParameter() returns the named `PaymentParameter` interface; the reference returns the equivalent `dict<string,string>`. Same SWAIG payload object, TS stricter.
+signalwire.core.pom_builder.PomBuilder.get_section: TS getSection() returns `PomSection | undefined` (the port's own section class); the reference returns `optional<signalwire.pom.pom.Section>`. Same section object, the port's co-located PomSection class instead of the pom.pom one.
+signalwire.core.pom_builder.PomBuilder.to_dict: TS toDict() returns `list<PomSectionData>` (a named shape); the reference returns the equivalent `list<dict<string,any>>`. Same JSON, TS stricter.
+signalwire.core.security.session_manager.SessionManager.debug_token: TS debugToken() returns the named `DebugTokenResult` shape; the reference returns the equivalent `dict<string,any>`. Same decoded-token fields, TS stricter.
+signalwire.core.skill_base.SkillBase.get_prompt_sections: TS getPromptSections() returns `list<SkillPromptSection>` (a named shape); the reference returns the equivalent `list<dict<string,any>>`. Same prompt sections, TS stricter.
+signalwire.skills.registry.SkillRegistry.list_skills: the reference's `SkillRegistry.list_skills` has no port member under this name: TS's `listSkills()` is enumerated as the port twin of `discover_skills` (see that entry), so `list_skills` itself reads missing-port. Same listing capability, reached through the discover_skills mapping.
 
 ## Idiom: TS options-object vs Python positional-or-keyword params
 
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_subsection: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.contexts.GatherInfo.add_question: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.contexts.Step.add_gather_question: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.contexts.Step.set_gather_info: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.data_map.DataMap.parameter: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.data_map.DataMap.webhook: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.data_map.create_expression_tool: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.data_map.create_simple_api_tool: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.execute_rpc: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.join_conference: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.pay: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.record_call: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.send_sms: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.switch_context: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.tap: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.function_result.FunctionResult.wait_for_user: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_mcp_server: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pronunciation: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_subsection: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.pom_builder.PomBuilder.add_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.pom_builder.PomBuilder.add_subsection: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.pom_builder.PomBuilder.add_to_section: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
-signalwire.core.swml_builder.SWMLBuilder.say: ts-options-object: TS collapses the Python method's positional-or-keyword arguments into one trailing options object (a keyword-passing bag). The enumerator unfolds the members back to keyword params, but the Python reference records these as positional (positional-or-keyword), not keyword-only, so the param KIND reads as a mismatch. Functionally identical: every value is passed by name to the same wire slot; types erase and the emitted wire bytes are unchanged. TS cannot express Python's positional-or-keyword affordance through an options object (same class as Go's go-variadic-options idiom).
 
 ## Idiom: TS options-object serve/run collapse
 
-signalwire.core.mixins.web_mixin.WebMixin.run: ts-options-object: run() takes a single options object (serverless event/context/force_mode/host/port collapsed); Python records them as positional-or-keyword. The serverless return is a typed ServerlessResponse|void where Python is Optional[dict|str] — the TS type is the precise serialized shape (same JSON).
-signalwire.core.mixins.web_mixin.WebMixin.serve: ts-options-object: serve(opts) collapses Python's host/port positional-or-keyword params into one options object; same values, keyword-passed.
-signalwire.core.swml_service.SWMLService.serve: ts-options-object: serve(host_or_opts, port?, opts?) collapses Python's host/port/ssl_cert/ssl_key/ssl_enabled/domain positional-or-keyword params into an overloaded options object; same values, keyword-passed.
-signalwire.agent_server.AgentServer.run: ts-options-object: run(host?, port?) — the TS AgentServer.run omits Python's serverless event/context leading params (those belong to the per-agent serverless entrypoint, not the multi-agent HTTP server); host/port are the same values.
 
 ## Idiom: TS typed payload/shape vs Python dict (TS stricter, same wire)
 
@@ -210,18 +167,8 @@ signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: TS get
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: TS getTools() returns list<SkillToolDefinition>; Python returns list[dict[str,Any]]. Same tool defs, TS stricter.
 signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: TS getTools() returns list<SkillToolDefinition>; Python returns list[dict[str,Any]]. Same tool defs, TS stricter.
 signalwire.core.swml_service.SWMLService.extract_sip_username: TS types request_body as SwmlRequestData (the canonical dynamic-SWML request shape); Python types it dict[str,Any]. Same payload, TS stricter.
-signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: TS types request_data as SwmlRequestData (canonical dynamic-SWML request shape) where Python has Optional[dict]; the framework `request` param (FastAPI Request) has no Hono/TS analog and is untyped. Same payload, TS stricter on the body.
-signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: TS callback receives the typed SwmlRequestData and returns string (route); Python's callback takes (Request, dict) -> Optional[str]. The FastAPI Request has no TS analog; the dict is typed as SwmlRequestData. Same routing contract, TS stricter payload.
-signalwire.core.swml_service.SWMLService.register_routing_callback: TS callback receives the typed SwmlRequestData and returns string; Python's callback takes (Request, dict) -> Optional[str]. FastAPI Request has no TS analog; same routing contract, TS stricter payload.
-signalwire.agent_server.AgentServer.register_global_routing_callback: TS callback receives the typed SwmlRequestData and returns string; Python's callback takes (Request, dict) -> Optional[str]. FastAPI Request has no TS analog; same routing contract, TS stricter payload.
 signalwire.core.mixins.web_mixin.WebMixin.set_dynamic_config_callback: TS callback's 2nd arg is typed SwmlRequestData (canonical dynamic-SWML request); Python types it dict[str,Any]. Same callback contract, TS stricter payload.
 signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: TS callback receives a typed SwmlRequestData + returns list<InfoGathererQuestion> (named shapes) where Python uses dicts. Same callback contract, TS stricter.
-
-## Idiom: TS overload set expresses the Python union (enumerator records first overload)
-
-signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: TS overloads express the full union: (includeSource?: false) -> [string,string] and (includeSource: true) -> [string,string,source]. The enumerator records only the first overload; the union is present and in fact stricter (source is a literal union). Same contract.
-signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: TS overloads express the full [string,string] | [string,string,source] union; the enumerator records only the first overload. Same contract, TS stricter.
-signalwire.core.security.session_manager.SessionManager.set_session_metadata: TS overloads: (sessionId, metadata) -> void (TS-native bulk merge) and (sessionId, key, value) -> boolean (the Python-compatible 3-arg form matching set_session_metadata(call_id,key,value)->bool). The enumerator records the first (bulk) overload; the Python-parity overload exists. session_id≡call_id (rename).
 
 ## Idiom: TS richer return / method-split (superset or parity shim)
 
@@ -236,29 +183,11 @@ signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: Python define_c
 
 ## Idiom: framework / language-idiom param divergences (same wire/behavior)
 
-signalwire.core.auth_handler.AuthHandler.verify_bearer_token: Python takes a FastAPI HTTPAuthorizationCredentials wrapper and immediately reads .credentials (the raw token); TS has no FastAPI so it takes the already-unwrapped token: string. Same value compared.
-signalwire.core.auth_handler.AuthHandler.verify_basic_auth: Python takes a single FastAPI HTTPBasicCredentials wrapper; TS takes the unwrapped (username, password) pair directly (no FastAPI credentials object). Same two values.
-signalwire.core.data_map.DataMap.expression: TS types pattern as string | RegExp; Python uses str | Pattern[str]. RegExp is the TS analog of Python's compiled Pattern — a rename-map equivalence, not a divergence.
 signalwire.core.agent_base.AgentBase.on_debug_event: Python on_debug_event is a decorator that registers and returns a handler (Callable->Callable); TS onDebugEvent(event) is the idiomatic overridable receiver hook that consumes the event and returns void. Same debug-event capability, different (Pythonic vs OO) registration mechanism.
-signalwire.core.skill_base.SkillBase.define_tool: Python define_tool(**kwargs) is untyped keyword-splat; TS defineTool(toolDef: SkillToolDefinition) collapses it into one typed options object (the canonical TS translation of **kwargs). TS stricter.
-signalwire.core.logging_config.strip_control_chars: Python strip_control_chars(logger, method_name, event_dict) is a structlog processor (3-arg processor protocol); the TS logging layer is not structlog-based, so the equivalent helper takes just the data payload to sanitize. Same sanitization behavior, no structlog processor protocol in TS.
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: ts-options-object: addLanguage(config) collapses Python's name/code/voice/speech_fillers/function_fillers/engine/model/params positional-or-keyword args into one config object; same values, keyword-passed.
-signalwire.core.skill_manager.SkillManager.load_skill: ts-options-object: loadSkill(skillClass, config) — the skill_name is derived from the class's static SKILL_NAME (not a separate arg) and params collapse into config; same load contract.
-signalwire.core.mixins.skill_mixin.SkillMixin.add_skill: ts-options-object: addSkillByName(skill, params?) — the params dict collapses into an optional object; same add-by-name contract.
 signalwire.core.swaig_function.SWAIGFunction.to_swaig: TS toSwaig(base_url, token, call_id) omits Python's include_auth flag (auth inclusion is derived from token presence in the TS emitter); same emitted SWAIG entry.
-signalwire.core.swml_handler.AIVerbHandler.build_config: ts-options-object: buildConfig(opts) collapses Python's prompt_text/prompt_pom/contexts/post_prompt/post_prompt_url/swaig/**kwargs into one options object; same AI verb config emitted.
-signalwire.core.agent.tools.registry.ToolRegistry.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/wait_file/wait_file_loops/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
-signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: ts-options-object: defineTool(opts) collapses Python's name/description/parameters/handler/secure/fillers/webhook_url/required/is_typed_handler/swaig_fields into one options object; same tool registered.
-signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: TS onSwmlRequest(rawData) receives the request payload; Python on_swml_request(request_data, callback_path, request) additionally threads FastAPI callback_path/Request which have no Hono/TS analog. Same dynamic-SWML hook.
-signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) omits Python's trailing **kwargs passthrough (no extra fields are forwarded to this relay method in TS); same clear-bindings wire command.
-signalwire.relay.call.Call.user_event: ts-options-object: userEvent(options) collapses Python's event + **kwargs into one options object; same user_event wire command.
+signalwire.relay.call.Call.clear_digit_bindings: TS clearDigitBindings(realm?) takes realm positionally where Python makes it keyword-only (`*, realm`); same clear-bindings wire command with the same field. (The reference also carries a `**kwargs` passthrough, but the oracle strips the kwargs tail, so the param-KIND difference is the whole of what the differ reports.)
 signalwire.relay.call.Call.send_digits: TS sendDigits(digits, controlId?) takes control_id positionally where Python makes it keyword-only; same send_digits wire command with the same fields.
 signalwire.relay.call.Call.amazon_bedrock: TS amazonBedrock(options) types the collapsed prompt as required-in-context where Python records Optional[Any]; both accept the same open prompt value and POST the identical amazon_bedrock params.
-signalwire.relay.call.Call.on: TS on(event, handler) types handler as the plain callback (event) => void; Python wraps it in an EventHandler class. Same subscription; EventHandler is a Python-internal wrapper.
-signalwire.relay.client.RelayClient.on_call: TS onCall(handler) types handler as (call) => void and returns void; Python's CallHandler is a Python-internal wrapper class returned for decorator use. Same registration.
-signalwire.relay.client.RelayClient.on_message: TS onMessage(handler) types handler as (message) => void and returns void; Python's MessageHandler is a Python-internal wrapper. Same registration.
-signalwire.rest._request_options.RequestOptions.merge: ts-options-object: the override param is typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) so a caller passes a plain object; the reference types it as RequestOptions. Same shallow-merge semantics over an identical field set.
-signalwire.rest._request_options.resolve: ts-options-object: the client_default/per_request params are typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions; identical fields, identical resolve-over-default semantics.
 signalwire.rest._request_options.RequestOptions.abort_signal: field-vs-accessor idiom: the reference dataclass surfaces abort_signal as a read accessor; TS carries it as a public readonly field on the RequestOptions value object (RequestOptions.abortSignal). Same value, read the same way — a TS field is the idiomatic analog of a Python dataclass field.
 
 ## Reference-oracle gap: signalwire.livewire not in the signatures oracle
@@ -284,19 +213,9 @@ signalwire.livewire.tool: reference-oracle gap: signalwire.livewire is absent fr
 ## Reference-oracle gap: per-skill get_parameter_schema (no class in the oracle)
 
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.datasphere.skill.DataSphereSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.datetime.skill.DateTimeSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.google_maps.skill.GoogleMapsSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.info_gatherer.skill.InfoGathererSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.joke.skill.JokeSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.math.skill.MathSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.spider.skill.SpiderSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.weather_api.skill.WeatherApiSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
-signalwire.skills.web_search.skill.WebSearchSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
 
 ## Port additions / co-location: in port, not in the signatures oracle
@@ -337,12 +256,22 @@ canonical path differs.
 
 ## TS-idiomatic return-type divergences
 
-signalwire.core.skill_base.SkillBase.logger: TS port returns a `Logger` instance from `signalwire.core.logging_config.Logger`; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path
+# EMPTY as of 2026-07-27. The sole entry here was
+# `signalwire.core.skill_base.SkillBase.logger`, deleted in the Wave-6 ledger
+# burn-down. Owner ruling 2026-07-24 (ALLOWLIST_DISCIPLINE §8): logging is a
+# MODULE-LEVEL capability, and the per-instance `logger` attribute was Python's
+# structlog idiom leaking into the enumerated surface — not contract. The
+# reference enumerator now suppresses it at the logging factory's RETURN TYPE
+# (`enumerate_python.py` `_LOGGER_FACTORY_RETURN`), so the oracle emits no
+# class-attribute `logger` for this exemption to excuse. The capability is
+# signalled by the 5 module-level free functions in
+# `signalwire.core.logging_config` (get_logger / configure_logging /
+# get_execution_mode / reset_logging_configuration / strip_control_chars),
+# which the TS port implements.
 
 ## TS-idiomatic params-object vs **kwargs
 
 signalwire.pom.pom.PromptObjectModel.add_section: TS PromptObjectModel.addSection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
-signalwire.pom.pom.Section.__init__: TS Section constructor takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 signalwire.pom.pom.Section.add_subsection: TS Section.addSubsection takes (title, opts) where opts={ body, bullets, numbered, numberedBullets } — mirrors Python's keyword-only params after `title`. Same call-site contract.
 
 ## POM int vs float (TS has no integer type)
@@ -391,7 +320,6 @@ enumerators so they compare equal by name); the signature-level divergence below
 the residual idiom difference (TS declaration-merge / projection / callback shape),
 not a functional gap.
 
-signalwire.core.agent.tools.registry.ToolRegistry.__init__: idiom: TS has no ToolRegistry class to construct (the registry is a `toolRegistry` Map folded onto SWMLService); the class is surfaced by projection, so Python's constructor has no TS counterpart signature
 signalwire.core.mixins.mcp_server_mixin.MCPServerMixin.add_mcp_server: idiom: reference MCPServerMixin is an empty class; TS folds MCP helpers onto AgentBase and the signatures enumerator projects add_mcp_server onto the mixin — a port-only projection with no reference method
 signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: idiom: Python exposes `contexts` as a property on the mixin; TS surfaces the same capability via AgentBase/PromptManager.getContexts() (get_contexts), reconciled by name in the surface audit
 signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: idiom: TS expresses this as AgentBase.runServerless() (reconciled by name to handle_serverless_request in the surface audit); the signature shape is TS-idiomatic
@@ -400,7 +328,6 @@ signalwire.core.swml_builder.SWMLBuilder.ai: idiom: SwmlBuilder installs every s
 signalwire.core.swml_builder.SWMLBuilder.answer: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
 signalwire.core.swml_builder.SWMLBuilder.hangup: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
 signalwire.core.swml_builder.SWMLBuilder.play: idiom: dynamically-installed/declaration-merged verb method; config-object param shape vs Python positional wrapper params
-signalwire.rest._base.SignalWireRestError.body: idiom: TS exposes the parsed error body as a public property on the consolidated RestError/SignalWireRestError class; Python has no such attribute
 signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_parameter_schema: idiom: TS static get_parameter_schema accessor; the reference SIGNATURES oracle records no class for this skill module (same shape as the other per-skill get_parameter_schema idiom entries)
 signalwire.utils.schema_utils.SchemaUtils.validate_document: idiom: TS validate() returns a ValidationResult object (structured), Python validate_document returns a (bool, list[str]) tuple — same validation capability, TS-idiomatic return
 
@@ -414,14 +341,43 @@ The TS port implements BedrockAgent as a real AgentBase subclass
 have no reference signature to compare against (missing-reference). Excused here
 until the reference signatures oracle carries BedrockAgent.
 
-signalwire.agents.bedrock.BedrockAgent.__init__: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference signatures oracle records no BedrockAgent class (present only in the surface oracle); port implements it — no reference signature to compare
 
-## Idiom: renamed composition accessor — reference class-name spelling differs
+## UNRESOLVED — real capability gap awaiting an owner ruling (NOT idiom)
 
-signalwire.agent_server.AgentServer.logger: TS AgentServer.logger (renamed from the `log` field) returns a `Logger` instance from signalwire.core.logging_config.Logger; Python's `logger` typing uses the `get_logger` factory's return-type annotation, so the canonical path resolves to `get_logger` rather than `Logger` — same logger object, different name in the canonical path (identical disposition to SkillBase.logger).
-signalwire.web.web_service.WebService.security: TS WebService.security (renamed from the `ssl_config` accessor) returns `SslConfig`; the Python reference types the same accessor as `SecurityConfig`. Same TLS/security configuration object, different class name across the port idiom (TS names the config `SslConfig`; the reference `SecurityConfig`). Accessor now compares by name after the rename — the residual is only the config class-name spelling.
+# `signalwire.agent_server.AgentServer.logger` was deleted here 2026-07-27 (Wave-6
+# ledger burn-down) for the same reason as SkillBase.logger above: the reference
+# enumerator suppresses the per-instance logger member by the logging factory's
+# return type, so the oracle no longer emits the symbol this line excused.
+#
+# WebService.security — the rationale that stood here until 2026-07-28 was FALSE and
+# is corrected below rather than re-excused. It claimed this was "only the config
+# class-name spelling" across a rename. The source says otherwise:
+#   * TS ALREADY HAS a `SecurityConfig` class (src/SWMLService.ts) that is a faithful
+#     analog of the reference's — SSL + basic auth + allowed hosts + CORS origins +
+#     HSTS. It is real and in use by SWMLService. So there is no missing class and no
+#     class-name divergence to fold; the two names denote two DIFFERENT objects.
+#   * `WebService` simply does not use it: it holds `_ssl: SslConfig` and its
+#     `security` accessor returns that. `SslConfig` covers SSL/HSTS ONLY.
+#   * The reference's `SecurityConfig` exposes 7 public capabilities —
+#     get_cors_config, get_security_headers, should_allow_host, get_basic_auth,
+#     get_ssl_context_kwargs, validate_ssl_config, log_config. Through TS's
+#     `WebService.security` a caller can reach NONE of the CORS / security-headers /
+#     host-allowlist / basic-auth ones.
+# This is therefore a genuine NARROWING of a public accessor, not a rename: the
+# reference hands back the unified security object, the port hands back an SSL-only
+# subset. It is NOT foldable at the emitter and it is NOT a language ceiling —
+# TypeScript can express it, and the class already exists.
+#
+# Closing it is a behavioural change to WebService (swap the `_ssl` field for a
+# `SecurityConfig`, and add the `isConfigured()` / `hstsMiddleware()` /
+# `getServerOptions()` affordances that `WebService` calls on `_ssl` today and that
+# `SecurityConfig` does not currently expose). That is a deliberate API change to a
+# security-relevant surface, so it is NOT made unilaterally here — it is reported for
+# an owner ruling. Comparison is left EXCUSED only to keep this entry honest about
+# what it hides; do not treat the excuse as a resolution.
+signalwire.web.web_service.WebService.security: UNRESOLVED capability gap (reported 2026-07-28, awaiting owner ruling — see the note above): the reference's `security` returns the unified `SecurityConfig` (SSL + CORS + security headers + allowed hosts + basic auth); TS's returns `SslConfig`, an SSL/HSTS-only subset, so the CORS/headers/host/auth capabilities are unreachable through this accessor. TS's own faithful `SecurityConfig` exists (src/SWMLService.ts) but `WebService` does not use it. Not idiom, not a rename, not a language ceiling.
 
 ## Port-only typed composition getters + framework-app accessor (signature-side additions)
 
@@ -442,11 +398,7 @@ signalwire.core.agent_base.AgentBase.log: TS exposes the composed `Logger` as a 
 signalwire.core.swml_service.SWMLService.log: TS exposes the composed `Logger` as a typed `log` getter; Python sets it dynamically so the signatures oracle records no accessor. Same logger object, TS-idiom typed accessor.
 signalwire.core.swml_service.SWMLService.swml_builder: TS exposes the composed `SWMLBuilder` as a typed `swmlBuilder` getter; Python holds the builder as a dynamically-set attribute the signatures oracle does not record. Same builder object, stronger TS typing.
 signalwire.core.auth_handler.AuthHandler.config: TS exposes the `AuthConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
-signalwire.core.skill_base.SkillBase.agent: TS exposes the owning `AgentBase` back-reference as a typed `agent` getter; Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
 signalwire.core.skill_base.SkillBase.config: TS exposes the `SkillConfig` as a typed `config` getter; Python holds the same config as a dynamically-set attribute. Same config object, TS-idiom typed accessor.
-signalwire.prefabs.faq_bot.FAQBotAgent.faqs: TS exposes the loaded FAQ entries as a typed `faqs` getter (`list<FAQEntry>`); Python holds the same list as a dynamically-set attribute the signatures oracle does not record. Same data, stronger TS typing.
-signalwire.prefabs.survey.SurveyAgent.questions: TS exposes the survey questions as a typed `questions` getter (`list<SurveyQuestion>`); Python holds the same list as a dynamically-set attribute. Same data, stronger TS typing.
-signalwire.relay.call.Action.call: TS exposes the originating `Call` back-reference as a typed `call` getter (`CallLike`); Python holds it as a dynamically-set attribute the signatures oracle does not record. Same reference, stronger TS typing.
 
 # TS resource base constructors: the generated REST resource bases take
 # `(http, base_path)` to wire the client + collection path; the Python reference
@@ -455,3 +407,14 @@ signalwire.relay.call.Action.call: TS exposes the originating `Call` back-refere
 signalwire.rest._base.CrudResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base (resources are constructed via the client tree). Port-idiom construction, no reference twin to compare.
 signalwire.rest._base.CrudWithAddresses.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.
 signalwire.rest._base.ReadResource.__init__: idiom: TS resource base ctor `(http, base_path)` wires the HttpClient + collection path; the Python reference records no `__init__` on this base. Port-idiom construction, no reference twin.
+signalwire.core.agent.tools.registry.ToolRegistry.define_tool: ts-generic-intersection-options: defineTool<P, R>(opts: Omit<SwaigFunctionOptions,...> & { parameters?: P; required?: R; handler: ... }) — the bag is a GENERIC INTERSECTION whose first arm is a mapped `Omit<...>` type, not a type literal. `optionsBagTypeLiteral` unfolds an intersection only when exactly ONE arm is a literal, so this cannot be exploded structurally. Same tool registered.
+signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: ts-generic-intersection-options: same declaration as ToolRegistry.define_tool (both project from SWMLService.defineTool) — a generic intersection over a mapped `Omit<...>`, which the options-object unfold cannot explode. Same tool registered.
+signalwire.core.skill_base.SkillBase.define_tool: ts-named-options-type: defineTool(toolDef: SkillToolDefinition) — a NAMED interface collapsing Python's untyped `**kwargs` splat. The reference records zero params (the oracle strips the `**kwargs` tail), so the port's one required typed bag reads as a count mismatch. Tracked with the named-class-type (`stricter/superset`) bucket.
+signalwire.core.skill_manager.SkillManager.load_skill: ts-named-options-type: loadSkill(skillClass, config?: SkillConfig) — the skill_name is derived from the class's static SKILL_NAME (not a separate arg) and the params bag is a NAMED interface, so the unfold cannot explode it. Same load contract.
+signalwire.core.mixins.skill_mixin.SkillMixin.add_skill: ts-object-arg: addSkill(skill: SkillBase) takes the constructed SkillBase INSTANCE, where the reference takes (skill_name, params) and constructs it internally. Not an options bag at all — a genuine object argument; the add-by-name path is the separate addSkillByName.
+signalwire.agent_server.AgentServer.run: ts-flat-params: run(host?: string, port?: number) takes flat optional positionals — not an options object — and omits Python's serverless event/context leading params (those belong to the per-agent serverless entrypoint, not the multi-agent HTTP server). host/port are the same values.
+signalwire.core.mixins.web_mixin.WebMixin.run: ts-options-member-order: run(opts) collapses Python's event/context/force_mode/host/port into one options object, but the TS members are declared in a DIFFERENT ORDER (host, port, event, context, platform) than the reference's positional list. The signature differ compares params BY POSITION, so unfolding this bag pairs event<->host and port<->context and manufactures four type mismatches out of correctly-corresponding members. An options object is an unordered keyword bag in TS -- member order carries no caller-visible meaning -- so realigning it would be cosmetic churn in the source to satisfy a positional comparison. Same values, keyword-passed; the serverless return is a typed ServerlessResponse|void where Python is Optional[dict|str] (the precise serialized shape, same JSON).
+signalwire.rest._request_options.RequestOptions.merge: ts-init-type-vocabulary: the override param is typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) so a caller passes a plain object; the reference types it as RequestOptions. Same shallow-merge semantics over an identical field set. This is the named-init-type vocabulary question, not an options-object unfold.
+signalwire.rest._request_options.resolve: ts-init-type-vocabulary: the client_default/per_request params are typed as RequestOptionsInit (the object-literal init of the RequestOptions value class) vs the reference's RequestOptions; identical fields, identical resolve-over-default semantics.
+signalwire.core.function_result.FunctionResult.pay: ts-typed-list-elements: after the options-object unfold, `parameters` and `prompts` compare as list<PaymentParameter>/list<PaymentPrompt> (named element interfaces) against the reference's list<dict<string,string>>/list<dict<string,any>>. The port is STRICTER: the named interfaces enumerate exactly the keys the reference documents for those dicts, and the emitted wire is the same JSON array of objects. Named-class-type vocabulary, tracked with the `stricter/superset` bucket.
+signalwire.core.function_result.FunctionResult.join_conference: ts-optional-any-erasure: after the options-object unfold, the `result` member records as bare `any` where the reference records `optional<any>`. The TS declaration IS optional (`result?: unknown`), but `unknown`/`any` absorbs the optionality wrap in the enumerator's canonical type projection, so the `optional<>` shell is not emitted for an any-typed member. Same optional member, same wire.

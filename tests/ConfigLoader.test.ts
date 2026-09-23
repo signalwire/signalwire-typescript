@@ -75,7 +75,11 @@ describe('ConfigLoader', () => {
   it('interpolates env vars with defaults', () => {
     const config = new ConfigLoader(join(TEST_DIR, 'env-test.json'));
     expect(config.get('host')).toBe('localhost');
-    expect(config.get('port')).toBe('8080');
+    // NUMBER, not the string '8080': substituteVars re-types an all-digit result,
+    // exactly as the reference does (`if result.isdigit(): return int(result)` in
+    // config_loader.substitute_vars). Verified against the reference:
+    // ConfigLoader.get('port') on this same fixture returns int 8080.
+    expect(config.get('port')).toBe(8080);
     // secret has no default and no env var, so empty string
     expect(config.get('secret')).toBe('');
   });
@@ -87,6 +91,30 @@ describe('ConfigLoader', () => {
       expect(config.get('host')).toBe('myhost.com');
     } finally {
       delete process.env['TEST_CONFIG_HOST'];
+    }
+  });
+
+  // Regression guard for the windows-latest nightly failure. A `${VAR}` whose value
+  // contains backslashes (i.e. EVERY Windows absolute path) used to break the load
+  // outright, because interpolation ran on the raw JSON TEXT before JSON.parse: the
+  // spliced-in `D:\a\...` produced `\a` / `\_`, which are not legal JSON escapes, so
+  // JSON.parse threw "Bad escaped character in JSON" and the whole config silently
+  // failed to load (in SecurityConfig that meant TLS quietly staying OFF). Expanding
+  // on the PARSED VALUE instead — what the reference does — is escape-proof.
+  //
+  // The literal below is a WINDOWS path on purpose and the assertion is
+  // platform-independent, so this test covers the Windows failure from any host.
+  it('interpolates a value containing backslashes (Windows path) without breaking the parse', () => {
+    const winPath = 'D:\\a\\signalwire-typescript\\tmp\\cert.pem';
+    const file = join(TEST_DIR, 'winpath.json');
+    writeFileSync(file, JSON.stringify({ tls: { cert: '${TEST_WIN_CERT}' } }));
+    process.env['TEST_WIN_CERT'] = winPath;
+    try {
+      const config = new ConfigLoader(file);
+      expect(config.get('tls.cert')).toBe(winPath);
+      expect(config.getSection('tls')).toEqual({ cert: winPath });
+    } finally {
+      delete process.env['TEST_WIN_CERT'];
     }
   });
 

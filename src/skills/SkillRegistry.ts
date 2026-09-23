@@ -1,17 +1,16 @@
 /**
  * SkillRegistry - Global singleton registry for discovering and loading skills.
  *
- * Matches Python's `skills/registry.py:SkillRegistry`: the registry stores
- * **class references** keyed by each class's static `SKILL_NAME`, and reads
- * metadata (description, version, required packages/env vars,
- * multi-instance support) by direct static-attribute access.
+ * The registry stores **class references** keyed by each class's static
+ * `SKILL_NAME`, and reads metadata (description, version, required
+ * packages/env vars, multi-instance support) by direct static-attribute access.
  *
  * Registration via `register(SkillClass)` validates that the class defines
- * `SKILL_NAME`, that `getParameterSchema()` is callable and returns a
- * non-empty object (Python `register_skill` at `registry.py:132-194`).
+ * `SKILL_NAME`, and that `getParameterSchema()` is callable and returns a
+ * non-empty object.
  *
  * Supports the `SIGNALWIRE_SKILL_PATHS` environment variable for custom
- * skill directories, matching Python's discovery search path.
+ * skill directories on the discovery search path.
  */
 
 import { SkillBase, type SkillConfig, type ParameterSchemaEntry } from './SkillBase.js';
@@ -21,9 +20,8 @@ import { existsSync, statSync } from 'node:fs';
 const log = getLogger('SkillRegistry');
 
 /**
- * Metadata exposed for a registered skill. Shape matches Python's
- * `SkillRegistry.list_skills()` / `get_all_skills_schema()` return values
- * (`skills/registry.py:205-227`, `229-296`).
+ * Metadata exposed for a registered skill — the element shape returned by
+ * {@link SkillRegistry.listSkills} and {@link SkillRegistry.getAllSkillsSchema}.
  */
 export interface SkillSchemaInfo {
   /** The skill's registered name (from `SkillBase.SKILL_NAME`). */
@@ -50,19 +48,16 @@ let _instance: SkillRegistry | null = null;
  * Global singleton registry for registering and instantiating skills.
  *
  * Skills can be registered programmatically via `register(SkillClass)`.
- * Matches Python's `skill_registry` global (`skills/registry.py:481`).
  */
 export class SkillRegistry {
   /**
-   * Map from `SKILL_NAME` to class reference. Matches Python's
-   * `self._skills: Dict[str, Type[SkillBase]]` (`registry.py:26`).
+   * Map from `SKILL_NAME` to class reference.
    */
   private registry: Map<string, typeof SkillBase> = new Map();
   private lockedNames: Set<string> = new Set();
   private searchPaths: string[];
   /**
    * External skill directories registered via {@link addSkillDirectory}.
-   * Mirrors Python's `SkillRegistry._external_paths` (`registry.py:373`).
    */
   private externalPaths: string[] = [];
 
@@ -91,9 +86,8 @@ export class SkillRegistry {
 
   /**
    * Register a skill class. The skill name is read from the class's static
-   * `SKILL_NAME`. Mirrors Python's `register_skill(skill_class)`
-   * (`skills/registry.py:132-194`) — including the schema-non-empty check
-   * and the protection against overwriting locked skills.
+   * `SKILL_NAME`. Enforces the schema-non-empty check and protects against
+   * overwriting locked skills.
    *
    * @param SkillClass - A concrete subclass of `SkillBase` with a
    *   non-empty `SKILL_NAME`.
@@ -102,8 +96,7 @@ export class SkillRegistry {
     const name = SkillClass.SKILL_NAME;
     if (!name) {
       throw new Error(
-        `${SkillClass.name} must define static SKILL_NAME before registration ` +
-          `(Python equivalent: registry.py:150 SKILL_NAME validation).`,
+        `${SkillClass.name} must define a non-empty static SKILL_NAME before registration.`,
       );
     }
     if (this.lockedNames.has(name)) {
@@ -151,9 +144,8 @@ export class SkillRegistry {
   }
 
   /**
-   * Create a new skill instance by looking up its class in the registry.
-   * Matches Python's `skill_manager.load_skill(name)` class-lookup + instantiate
-   * flow (`skill_manager.py:97`: `skill_instance = skill_class(self.agent, params)`).
+   * Create a new skill instance by looking up its class in the registry and
+   * instantiating it with the given config.
    *
    * @param name - The registered skill name.
    * @param config - Optional configuration to pass to the skill constructor.
@@ -172,8 +164,7 @@ export class SkillRegistry {
   }
 
   /**
-   * Get the registered skill class by name. Matches Python's
-   * `get_skill_class(skill_name)` (`registry.py:196-203`).
+   * Get the registered skill class by name.
    * @param name - The registered skill name.
    * @returns The skill class reference, or undefined if not registered.
    */
@@ -199,9 +190,7 @@ export class SkillRegistry {
   }
 
   /**
-   * List all registered skills with their full metadata. Matches Python's
-   * `list_skills()` shape (`registry.py:205-227`) plus TS-idiomatic
-   * camelCase keys.
+   * List all registered skills with their full metadata (camelCase keys).
    * @returns Array of skill metadata objects.
    */
   listSkills(): SkillSchemaInfo[] {
@@ -229,15 +218,11 @@ export class SkillRegistry {
   /**
    * Add a directory to search for skills.
    *
-   * Mirrors Python's
-   * `signalwire.skills.registry.SkillRegistry.add_skill_directory`
-   * (`registry.py:350-375`): validate that the path exists and is a
-   * directory, then append it (de-duplicated) to `externalPaths`. Throws
-   * `Error` (the JS analog of Python's `ValueError`) for non-existent
-   * paths or non-directories. Distinct from `addSearchPath`, which
-   * silently accepts anything; `addSkillDirectory` is the strict
-   * Python-equivalent surface and the recommended entry point for
-   * registering third-party skill directories.
+   * Validates that the path exists and is a directory, then appends it
+   * (de-duplicated) to `externalPaths`. Throws for non-existent paths or
+   * non-directories. Distinct from `addSearchPath`, which silently accepts
+   * anything; `addSkillDirectory` is the strict, validating surface and the
+   * recommended entry point for registering third-party skill directories.
    *
    * @param path - Absolute or relative path to a directory containing
    *   skill subdirectories.
@@ -257,8 +242,7 @@ export class SkillRegistry {
 
   /**
    * Returns a copy of the external skill directories registered via
-   * {@link addSkillDirectory}. The equivalent of Python's
-   * `_external_paths`.
+   * {@link addSkillDirectory}.
    */
   getExternalPaths(): string[] {
     return [...this.externalPaths];
@@ -349,9 +333,8 @@ export class SkillRegistry {
   }
 
   /**
-   * Get the combined schema info for a registered skill.
-   * Matches Python `get_all_skills_schema` per-skill shape
-   * (`registry.py:287-295`).
+   * Get the combined schema info for a registered skill — the same per-skill
+   * shape {@link getAllSkillsSchema} returns for every entry.
    * @param name - The registered skill name to query.
    * @returns The skill's schema info, or undefined if not found.
    */
@@ -383,12 +366,12 @@ export class SkillRegistry {
   }
 
   /**
-   * Group registered skill names by source category. Matches Python's
-   * `list_all_skill_sources` (`skills/registry.py:436-478`).
+   * Group registered skill names by source category.
    *
-   * Current TS implementation treats every registered skill as "registered"
-   * (the only category that fits — filesystem-based discovery is optional
-   * and entry-points don't apply to Node the way they do to Python).
+   * Every registered skill is reported under the single `"registered"`
+   * category — the only one that fits, since filesystem-based discovery is
+   * optional and Node has no package entry-point mechanism to attribute a
+   * skill to.
    *
    * @returns Record mapping source categories to arrays of skill names.
    */

@@ -47,8 +47,31 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const SRC_REST = path.join(REPO_ROOT, 'src', 'rest');
 const TESTS_REST = path.join(REPO_ROOT, 'tests', 'rest');
 
-// porting-sdk is adjacent to this repo (the same adjacency contract the mock harness uses).
-const PORTING_SDK = path.resolve(REPO_ROOT, '..', 'porting-sdk');
+// $PORTING_SDK / $PORTING_SDK_PATH first, adjacency only as a fallback.
+//
+// Adjacency alone is FALSE IN CI. This repo is checked out INSIDE porting-sdk's workspace
+// there, so `REPO_ROOT/../porting-sdk` resolved to
+// `<runner-workspace>/porting-sdk/porting-sdk/porting-sdk/rest-apis` -- note the tripled
+// segment -- and GEN-FRESH-TESTS reported `STALE (exit 2)` when nothing was stale at all.
+// exit 2 is this script's missing-input code; a genuine staleness exits 1.
+//
+// run-ci.sh already exports BOTH names for exactly this reason (see its comment: "so the tsx
+// subprocesses ... find porting-sdk instead of falling back to a hardcoded absolute path"),
+// and three workflows set PORTING_SDK_PATH. enumerate-signatures.ts reads PORTING_SDK,
+// enumerate-surface.ts / enumerate-doc-surface.ts read PORTING_SDK_PATH, and emit-skills.ts
+// takes env-then-adjacency. This script was the one tsx entry point honouring neither, so it
+// was the only one that broke when the checkout layout changed.
+const PORTING_SDK =
+  [
+    process.env['PORTING_SDK'],
+    process.env['PORTING_SDK_PATH'],
+    path.resolve(REPO_ROOT, '..', 'porting-sdk'),
+  ]
+    .filter((p): p is string => Boolean(p))
+    .find((p) => fs.existsSync(path.join(p, 'rest-apis'))) ??
+  // Keep the adjacent guess when nothing resolves, so the error below names the conventional
+  // location rather than `undefined`.
+  path.resolve(REPO_ROOT, '..', 'porting-sdk');
 const REST_APIS = path.join(PORTING_SDK, 'rest-apis');
 
 // The path-param sentinel the route registry substitutes back to {id}.
@@ -468,7 +491,10 @@ interface RowWithCall extends JoinedRow {
 async function main(): Promise<number> {
   const check = process.argv.includes('--check');
   if (!fs.existsSync(REST_APIS)) {
-    process.stderr.write(`rest-apis not found at ${REST_APIS} (clone porting-sdk adjacent)\n`);
+    process.stderr.write(
+      `rest-apis not found at ${REST_APIS} ` +
+        `(set PORTING_SDK or PORTING_SDK_PATH, or clone porting-sdk adjacent)\n`,
+    );
     return 2;
   }
 

@@ -70,11 +70,10 @@ const logger = getLogger('relay_client');
  * When the env var names a CA bundle it becomes the RELAY WebSocket transport's
  * TLS trust root (`ws` forwards `ca` to the underlying `tls.connect`), the exact
  * RELAY half of the fleet pair (`SIGNALWIRE_REST_CA_FILE` is the REST half).
- * Unset → node's default trust store (`{}`). Mirrors the python reference
- * (`relay/client.py:134` `_build_relay_ssl_context` → `websockets.connect(ssl=)`).
+ * Unset → node's default trust store (`{}`).
  *
  * Read at connect time (not module load) so a var set after import is honored,
- * matching the REST half. Returns `{}` when unset or the file can't be read.
+ * as with the REST half. Returns `{}` when unset or the file can't be read.
  */
 function relayCaWsOptions(): { ca?: Buffer } {
   const caFile = process.env['SIGNALWIRE_RELAY_CA_FILE'];
@@ -329,7 +328,7 @@ export class RelayClient {
   }
 
   /**
-   * Async disposable support — equivalent to Python's `__aexit__`.
+   * Async disposable support — disconnects the client on scope exit.
    *
    * Enables usage with `await using`:
    * ```ts
@@ -490,12 +489,12 @@ export class RelayClient {
    * Return a log-safe repr of a raw RELAY frame with credential VALUES masked.
    *
    * SECRET-SCRUB (enterprise F3.1/F3.2): a `SIGNALWIRE_LOG_LEVEL=debug` session
-   * must never emit live credentials or the re-auth blob. Mirrors the python
-   * reference `_scrub_frame` (key-shape mask of "token"/"project"/"jwt_token"/
-   * "authorization_state" JSON values) composed with `_scrub_log` (verbatim
-   * masking of THIS connection's live credential values wherever they appear —
-   * e.g. a project value the server reflects into a non-credential `identity`
-   * field). Never a no-op: the raw frame + the identity diagnostic are the two
+   * must never emit live credentials or the re-auth blob. Two masks compose: a
+   * key-shape mask of the "token"/"project"/"jwt_token"/"authorization_state"
+   * JSON values, and verbatim masking of THIS connection's live credential
+   * values wherever they appear — e.g. a project value the server reflects
+   * into a non-credential `identity` field. Never a no-op: the raw frame + the
+   * identity diagnostic are the two
    * enterprise-flagged leak sites.
    */
   private _scrubLog(text: string): string {

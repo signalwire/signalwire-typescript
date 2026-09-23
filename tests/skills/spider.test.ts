@@ -105,6 +105,51 @@ describe('SpiderSkill', () => {
     expect(res.response).toMatch(/Invalid URL/i);
   });
 
+  // Mirrors python `test_remove_xpaths_populated` — the list is PREFILLED, not
+  // empty, and carries the same XPath spelling as the reference.
+  it('should expose a prefilled removeXpaths list', () => {
+    const skill = new SpiderSkill();
+    expect(skill.removeXpaths.length).toBeGreaterThan(0);
+    expect(skill.removeXpaths).toEqual([
+      '//script',
+      '//style',
+      '//nav',
+      '//header',
+      '//footer',
+      '//aside',
+      '//noscript',
+    ]);
+  });
+
+  // The field is load-bearing, not decorative: text extraction strips exactly
+  // what removeXpaths names, so mutating it changes the extracted text.
+  it('should drive noise stripping off removeXpaths', async () => {
+    type Extractor = { _fastTextExtract(r: { url: string; status: number; body: string }): string };
+    const response = {
+      url: 'https://example.com',
+      status: 200,
+      body:
+        '<html><body><script>SCRIPTNOISE</script><p>keep me</p>' +
+        '<aside>ASIDENOISE</aside></body></html>',
+    };
+
+    const skill = new SpiderSkill();
+    await skill.setup();
+    const withDefaults = (skill as unknown as Extractor)._fastTextExtract(response);
+    expect(withDefaults).toContain('keep me');
+    expect(withDefaults).not.toContain('SCRIPTNOISE');
+    expect(withDefaults).not.toContain('ASIDENOISE');
+
+    // Drop `//aside` from the list and its text survives — proof the loop reads
+    // the field rather than a hardcoded tag set.
+    const narrowed = new SpiderSkill();
+    await narrowed.setup();
+    narrowed.removeXpaths.splice(narrowed.removeXpaths.indexOf('//aside'), 1);
+    const withoutAside = (narrowed as unknown as Extractor)._fastTextExtract(response);
+    expect(withoutAside).toContain('ASIDENOISE');
+    expect(withoutAside).not.toContain('SCRIPTNOISE');
+  });
+
   it('should require selectors for extract_structured_data', async () => {
     const skill = new SpiderSkill();
     await skill.setup();

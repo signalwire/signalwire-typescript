@@ -2,9 +2,8 @@
  * SurveyAgent - A prefab agent that conducts surveys with branching logic,
  * scoring, and conditional question flow.
  *
- * Ported from the Python SDK `signalwire.prefabs.survey.SurveyAgent`. Keeps
- * TS-specific enhancements (per-call session state, branching via
- * `nextQuestion`, answer scoring via `points`) alongside the Python surface.
+ * Includes per-call session state, branching via `nextQuestion`, and answer
+ * scoring via `points`.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -26,12 +25,11 @@ export interface SurveyQuestion {
   options?: string[];
   /**
    * For `rating` questions, the upper bound of the scale (1..scale).
-   * Defaults to 5 (matching the Python prefab) when unspecified.
+   * Defaults to 5 when unspecified.
    */
   scale?: number;
   /**
    * Whether the question requires an answer. Defaults to `true`.
-   * Mirrors the Python `required` flag on each question dict.
    */
   required?: boolean;
   /**
@@ -55,11 +53,11 @@ export interface SurveyConfig {
   surveyName: string;
   /** Ordered list of survey questions. */
   questions: SurveyQuestion[];
-  /** Opening message before the first question (matches Python `introduction`). */
+  /** Opening message before the first question. */
   introduction?: string;
-  /** Message after the survey is complete (matches Python `conclusion`). */
+  /** Message after the survey is complete. */
   conclusion?: string;
-  /** Brand or company name the agent represents (matches Python `brand_name`). */
+  /** Brand or company name the agent represents. */
   brandName?: string;
   /** Maximum number of times to retry invalid answers. Defaults to 2. */
   maxRetries?: number;
@@ -112,7 +110,7 @@ interface SurveySession {
 export class SurveyAgent extends AgentBase {
   /** Human-readable survey name. */
   public surveyName: string;
-  /** The configured survey questions (public, matching Python). */
+  /** The configured survey questions (public). */
   public questions: SurveyQuestion[];
   /** Brand/company name used in prompts. */
   public brandName: string;
@@ -351,8 +349,8 @@ export class SurveyAgent extends AgentBase {
   }
 
   /**
-   * Validate an answer against the question's type and constraints.
-   * Mirrors the Python `validate_response` tool body.
+   * Validate an answer against the question's type and constraints — the body
+   * behind the `validate_response` tool.
    * @returns error message string if invalid, or `null` if valid.
    */
   private validateAnswer(question: SurveyQuestion, answer: string): string | null {
@@ -408,8 +406,8 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * Register SWAIG tools:
-   *   - Tools matching the Python SDK: `validate_response`, `log_response`
-   *   - TS-specific session tools: `answer_question`, `get_current_question`, `get_survey_progress`
+   *   - Answer-handling tools: `validate_response`, `log_response`
+   *   - Session tools: `answer_question`, `get_current_question`, `get_survey_progress`
    */
   protected override defineTools(): void {
     // Tool: validate_response (Python parity)
@@ -608,7 +606,7 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * SWAIG handler for `validate_response`: check whether a response satisfies a
-   * question's type/constraints. Mirrors Python `SurveyAgent.validate_response`.
+   * question's type/constraints.
    */
   validateResponse(
     args: Record<string, unknown>,
@@ -629,7 +627,7 @@ export class SurveyAgent extends AgentBase {
 
   /**
    * SWAIG handler for `log_response`: record a validated response on the per-call
-   * session. Mirrors Python `SurveyAgent.log_response`.
+   * session.
    */
   logResponse(args: Record<string, unknown>, rawData: Record<string, unknown>): FunctionResult {
     const questionId = (args['question_id'] as string) ?? '';
@@ -650,13 +648,13 @@ export class SurveyAgent extends AgentBase {
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
-   * Process the survey results summary returned at the end of a call.
-   * Mirrors Python `on_summary`: structured (dict-like) summaries are logged
-   * as JSON; unstructured summaries are logged verbatim.
+   * Process the survey results summary returned at the end of a call:
+   * structured (dict-like) summaries are logged as JSON; unstructured
+   * summaries are logged verbatim.
    *
    * The parameter type widens the base `AgentBase.onSummary` signature to
-   * accept string payloads as well, matching Python's `isinstance(summary, dict)`
-   * branch even though the current framework only surfaces object summaries.
+   * accept string payloads as well, so the unstructured branch stays reachable
+   * even though the current framework only surfaces object summaries.
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,

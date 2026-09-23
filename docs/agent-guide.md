@@ -484,8 +484,8 @@ agent.addLanguage({
   voice: 'en-US-Neural2-F',
   engine: 'google',
   speechModel: 'enhanced',
-  fillers: { thinking: ['Let me check on that...', 'One moment please...'] },
-  functionFillers: { get_weather: { 'en-US': ['Checking the forecast...'] } },
+  speechFillers: ['Let me check on that...', 'One moment please...'],
+  functionFillers: ['Checking the forecast...'],
 });
 
 agent.addLanguage({

@@ -20,7 +20,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import * as ts from 'typescript';
+import { diagnosticsByLine } from './tscProbe.js';
 import {
   getLogger,
   setGlobalLogLevel,
@@ -57,28 +57,7 @@ function realLogLevelUnion(): string {
 
 function typeCheckLines(body: string): Map<number, string> {
   const virtual = path.resolve(__dirname, '__loglevel_probe__.ts');
-  const source = `type LogLevel = ${realLogLevelUnion()};\n${body}\n`;
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    types: [],
-    typeRoots: [],
-    target: ts.ScriptTarget.ES2022,
-  };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  const byLine = new Map<number, string>();
-  for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
-    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
-    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-  }
-  return byLine;
+  return diagnosticsByLine(virtual, `type LogLevel = ${realLogLevelUnion()};\n${body}\n`);
 }
 
 // ---------------------------------------------------------------------------

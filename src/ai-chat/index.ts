@@ -1,7 +1,6 @@
 /**
  * Async client for the SignalWire AI Chat service — see {@link AIChatClient}
- * for the full protocol notes. Mirrors the python reference
- * `signalwire.ai_chat` package surface.
+ * for the full protocol notes.
  */
 
 export {

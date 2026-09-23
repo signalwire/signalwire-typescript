@@ -2,8 +2,6 @@
  * ConciergeAgent - Prefab agent that acts as a virtual concierge for a venue
  * or business, providing information about services, amenities, and hours,
  * and answering availability and directions questions.
- *
- * Ported from the Python SDK `signalwire.prefabs.concierge.ConciergeAgent`.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -243,7 +241,7 @@ export class ConciergeAgent extends AgentBase {
 
   /**
    * SWAIG handler for `check_availability`: check whether a service is available
-   * on a given date/time. Mirrors Python `ConciergeAgent.check_availability`.
+   * on a given date/time.
    */
   checkAvailability(
     args: Record<string, unknown>,
@@ -268,7 +266,7 @@ export class ConciergeAgent extends AgentBase {
 
   /**
    * SWAIG handler for `get_directions`: provide directions to a location or
-   * amenity. Mirrors Python `ConciergeAgent.get_directions`.
+   * amenity.
    */
   getDirections(args: Record<string, unknown>, _rawData: Record<string, unknown>): FunctionResult {
     const location = ((args['location'] as string) ?? '').toLowerCase();

@@ -9,6 +9,7 @@ import {
   setGlobalLogStream,
   resetLoggingConfiguration,
   getExecutionMode,
+  stripControlChars,
 } from '../src/Logger.js';
 
 describe('Logger', () => {
@@ -470,6 +471,32 @@ describe('Logger', () => {
       resetLoggingConfiguration();
       const log = new Logger('empty-level');
       expect(widensToDebug(log)).toBe(false);
+    });
+  });
+  // --- control-char scrub: WIRING ------------------------------------------
+  //
+  // typescript is the ONE port where the scrub was already on the emission path
+  // (Logger.log calls stripControlChars before merging) — but nothing tested
+  // that, so the protection was real yet unguarded. rust/cpp/java each shipped
+  // the same function with ZERO call sites; the only assertion that can tell the
+  // difference is one that reads what the logger ACTUALLY emitted.
+  describe('control-character scrub on the emission path', () => {
+    it('strips control characters from emitted log data', () => {
+      getLogger('inject.test').info('msg', { field: 'user\u0000said\u001b[31mRED\u0007' });
+
+      expect(spyInfo).toHaveBeenCalled();
+      const emitted = JSON.stringify(spyInfo.mock.calls);
+      expect(emitted).not.toContain('\u0000');
+      expect(emitted).not.toContain('\u001b');
+      expect(emitted).not.toContain('\u0007');
+      expect(emitted).toContain('usersaid[31mRED');
+    });
+
+    it('keeps tab/newline/carriage-return, which are legal in a log line', () => {
+      // A scrub that ate these would satisfy "no control chars" above while
+      // mangling every multi-line message.
+      const legal = 'line1\tcol\nline2\r end';
+      expect(stripControlChars({ field: legal })).toEqual({ field: legal });
     });
   });
 });

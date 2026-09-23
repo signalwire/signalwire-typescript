@@ -48,9 +48,8 @@ import type { ServerlessPlatform } from '../ServerlessAdapter.js';
  * meaningless as an explicit `--simulate-serverless` target.
  *
  * This is the canonical "supported set" the CLI validates `--simulate-serverless`
- * against — mirroring the Go port's `supportedSimulatePlatforms` in
- * `cmd/swaig-test/simulate.go`. Adding an entry here without a real adapter path
- * would be a lie that silently passes a bogus `--simulate-serverless <x>`.
+ * against. Adding an entry here without a real adapter path would be a lie that
+ * silently passes a bogus `--simulate-serverless <x>`.
  */
 const SUPPORTED_SIMULATE_PLATFORMS: readonly Exclude<ServerlessPlatform, 'auto'>[] = [
   'lambda',
@@ -61,10 +60,9 @@ const SUPPORTED_SIMULATE_PLATFORMS: readonly Exclude<ServerlessPlatform, 'auto'>
 
 /**
  * Validate a user-supplied `--simulate-serverless` platform against what this
- * port actually implements. Returns the narrowed platform on success; throws a
+ * SDK actually implements. Returns the narrowed platform on success; throws a
  * descriptive Error (naming the supported set) otherwise — never a silent
- * fallback. Matches the Go port's `validateSimulatePlatform` error shape so the
- * cross-port SWAIG-CLI contract gate sees a consistent reject-don't-fallback.
+ * fallback. The reject-don't-fallback behavior is the SWAIG-CLI contract.
  */
 function validateSimulatePlatform(platform: string): ServerlessPlatform {
   if (!platform) {

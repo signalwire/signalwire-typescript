@@ -40,9 +40,10 @@ import type {
   EventHandler,
   PlayItem,
 } from './types.js';
-// Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
-// *.params.json — the switchblade source). Method params index into these so
-// callers get the real field-level types instead of Record<string, unknown>.
+// Canonical RELAY wire param shapes (generated from the params_dto shapes in
+// porting-sdk/combined-specs/relay.yaml — the switchblade source). Method params
+// index into these so callers get the real field-level types instead of
+// Record<string, unknown>.
 // The SDK fills node_id/call_id/control_id internally, so methods take only the
 // payload-specific members.
 import type {
@@ -573,8 +574,7 @@ export class Call {
    * Play text-to-speech. Typed convenience over {@link play}.
    *
    * Builds the `{ type: 'tts', params: { text, language?, gender?, voice? } }`
-   * media entry so callers don't hand-assemble it. Mirrors Python's
-   * `call.play_tts(text, *, language, gender, voice, volume)`.
+   * media entry so callers don't hand-assemble it.
    *
    * @param text - Text to speak.
    * @param options - TTS options.
@@ -636,7 +636,6 @@ export class Call {
    * Play silence for `duration` seconds. Typed convenience over {@link play}.
    *
    * Builds the `{ type: 'silence', params: { duration } }` media entry.
-   * Mirrors Python's `call.play_silence(duration)`.
    *
    * @param duration - Length of silence in seconds.
    * @param options - Playback options.
@@ -657,7 +656,6 @@ export class Call {
    * Play a named ringtone by country code. Typed convenience over {@link play}.
    *
    * Builds the `{ type: 'ringtone', params: { name, duration? } }` media entry.
-   * Mirrors Python's `call.play_ringtone(name, *, duration, volume)`.
    *
    * @param name - Ringtone name / country code (e.g. `"us"`, `"gb"`).
    * @param options - Ringtone options.
@@ -751,8 +749,7 @@ export class Call {
    * Play TTS then collect input. Typed media over {@link playAndCollect}.
    *
    * Builds the `{ type: 'tts', params: { text, language?, gender?, voice? } }`
-   * play media and forwards the caller's `collect` config. Mirrors Python's
-   * `call.prompt_tts(text, collect, *, language, gender, voice, volume)`.
+   * play media and forwards the caller's `collect` config.
    *
    * @param text - Text to speak before collecting.
    * @param collect - Platform-shaped collect config (`digits`, `speech`, etc.).
@@ -790,8 +787,7 @@ export class Call {
    * Play an audio file then collect input. Typed media over {@link playAndCollect}.
    *
    * Builds the `{ type: 'audio', params: { url } }` play media and forwards
-   * the caller's `collect` config. Mirrors Python's
-   * `call.prompt_audio(url, collect, *, volume)`.
+   * the caller's `collect` config.
    *
    * @param url - URL of the audio file to play before collecting.
    * @param collect - Platform-shaped collect config (`digits`, `speech`, etc.).
@@ -954,7 +950,6 @@ export class Call {
    * Detect DTMF digits. Typed convenience over {@link detect}.
    *
    * Builds the `{ type: 'digit', params: { digits? } }` detect object.
-   * Mirrors Python's `call.detect_digit(*, digits, timeout)`.
    *
    * @param options - Digit-detection options.
    * @param options.digits - Restrict detection to this DTMF digit set (nested in detect params).
@@ -985,11 +980,8 @@ export class Call {
    * Detect human vs answering machine (AMD). Typed convenience over {@link detect}.
    *
    * Builds the `{ type: 'machine', params: { ...only-provided... } }` detect
-   * object — only the options the caller supplies are emitted, matching
-   * Python's behaviour. Mirrors Python's `call.detect_answering_machine(*,
-   * initial_timeout, end_silence_timeout, machine_voice_threshold,
-   * machine_words_threshold, detect_interruptions, detect_message_end,
-   * timeout)`.
+   * object — only the options the caller supplies are emitted; unset options
+   * are omitted from the wire payload entirely.
    *
    * @param options - AMD options.
    * @param options.initialTimeout - Seconds to wait for initial voice.

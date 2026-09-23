@@ -1,18 +1,16 @@
 /**
  * Native Vector Search Skill - Document search over a local or remote index.
  *
- * Port of the Python `NativeVectorSearchSkill`. Supports three backends in
- * Python (SQLite `.swsearch`, PostgreSQL `pgvector`, and a remote HTTP
- * search server). This TypeScript implementation provides:
+ * Provides two search backends:
  *
  * - In-memory TF-IDF search over `documents` passed via config (fast path
  *   that needs no additional deps), and
- * - Remote HTTP search via a configured `remote_url` (compatible with the
- *   Python SDK's `sw-search` remote protocol).
+ * - Remote HTTP search via a configured `remote_url`, speaking the `sw-search`
+ *   remote protocol.
  *
- * The SQLite/pgvector backends require native Python dependencies and are
- * not available here; their schema entries are preserved so configuration
- * written for the Python SDK remains valid.
+ * The SQLite (`.swsearch`) and PostgreSQL `pgvector` backends are NOT available
+ * here; their config-schema entries are still accepted so existing
+ * configuration remains valid.
  */
 
 import { SkillBase, defineSkillTool } from '../SkillBase.js';
@@ -32,21 +30,19 @@ const log = getLogger('NativeVectorSearchSkill');
 /**
  * Callback signature for customizing the formatted search response.
  *
- * The context object is the TypeScript idiom for Python's positional-args
- * convention: `(response, agent, query, results, args)`. All Python fields are
- * present plus TS-specific additions (`count`, `skill`):
+ * The callback receives a single context object:
  *
- * - `response`  — pre-formatted response string (same as Python arg 1)
- * - `agent`     — the AgentBase instance that owns this skill (same as Python arg 2)
- * - `query`     — the search query string (same as Python arg 3)
- * - `results`   — array of search results (same as Python arg 4)
- * - `args`      — raw tool call arguments (same as Python arg 5)
- * - `count`     — requested result count (TS addition)
- * - `skill`     — this skill instance (TS addition)
+ * - `response`  — pre-formatted response string
+ * - `agent`     — the AgentBase instance that owns this skill
+ * - `query`     — the search query string
+ * - `results`   — array of search results
+ * - `args`      — raw tool call arguments
+ * - `count`     — requested result count
+ * - `skill`     — this skill instance
  */
 export type ResponseFormatCallback = (ctx: {
   response: string;
-  /** The AgentBase instance that owns this skill. Equivalent to Python's `agent` positional arg. */
+  /** The AgentBase instance that owns this skill. */
   agent?: AgentBase;
   query: string;
   results: Array<{ content: string; score: number; metadata: Record<string, unknown> }>;

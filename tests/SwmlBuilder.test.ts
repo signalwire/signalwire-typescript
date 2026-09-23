@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import * as ts from 'typescript';
+import { diagnosticsByLine } from './tscProbe.js';
 import { SwmlBuilder } from '../src/SwmlBuilder.js';
 import { SchemaValidationError } from '../src/SchemaUtils.js';
 import type { TtsGender } from '../src/relay/closedSets.js';
@@ -32,28 +32,7 @@ function extractUnion(aliasName: string): string {
 /** Compile `type TtsGender = ...;` + body; return diagnostics keyed by body line (body line N → file line N+1). */
 function typeCheckSayGender(body: string): Map<number, string> {
   const virtual = path.resolve(__dirname, '__say_gender_probe__.ts');
-  const source = `type TtsGender = ${extractUnion('TtsGender')};\n` + `${body}\n`;
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    types: [],
-    typeRoots: [],
-    target: ts.ScriptTarget.ES2022,
-  };
-  const host = ts.createCompilerHost(options);
-  const origRead = host.readFile.bind(host);
-  host.readFile = (f) => (path.resolve(f) === virtual ? source : origRead(f));
-  const origExists = host.fileExists.bind(host);
-  host.fileExists = (f) => (path.resolve(f) === virtual ? true : origExists(f));
-  const program = ts.createProgram([virtual], options, host);
-  const byLine = new Map<number, string>();
-  for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || path.resolve(d.file.fileName) !== virtual || d.start == null) continue;
-    const { line } = d.file.getLineAndCharacterOfPosition(d.start);
-    byLine.set(line, ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-  }
-  return byLine;
+  return diagnosticsByLine(virtual, `type TtsGender = ${extractUnion('TtsGender')};\n${body}\n`);
 }
 
 describe('SwmlBuilder — verb auto-vivification', () => {
@@ -483,19 +462,47 @@ describe('SwmlBuilder — verb auto-vivification', () => {
   });
 
   describe('hangup reason', () => {
-    // The `reason` param TYPE is widened to `string` for ergonomics, but at
-    // RUNTIME the SWML schema closes it to the documented enum
-    // (hangup/busy/decline) — the strict-render contract: the port matches the
-    // python reference, which raises on an off-enum reason. So a widened type is
-    // a compile-time convenience, not a licence to emit off-spec values.
+    // `$defs/Hangup.reason` is a CLOSED set of six values, because that is what
+    // the engine enforces: mod_infrastructure/relay_apis.c:1105 states
+    //   JSON_CHECK_STRING_MATCHES_OPTIONAL(reason, "hangup,cancel,busy,noAnswer,decline,error")
+    // and a non-match is a hard reject. The SWML layer types the field as a bare
+    // string and forwards it verbatim into the `end` RPC on the same call, so
+    // the contract a document must satisfy is the COMPOSITION of the two layers.
+    //
+    // This block previously asserted that an arbitrary off-enum reason is
+    // accepted, on the strength of an `x-sdk-widen` marker in the vendored
+    // schema. That marker told the SDK to stop validating a field the engine
+    // DOES validate, so honouring it shipped documents the server refuses. The
+    // marker and the SDK's widen transform are both gone; emitting a reason the
+    // engine will reject now fails locally, where the caller can see it.
     it('accepts a documented enum reason', () => {
       builder.hangup({ reason: 'busy' });
       const doc = builder.build() as { sections: { main: unknown[] } };
       expect(doc.sections.main[0]).toEqual({ hangup: { reason: 'busy' } });
     });
 
-    it('rejects an arbitrary off-enum reason at render (parity with python)', () => {
-      expect(() => builder.hangup({ reason: 'custom_reason' })).toThrow(SchemaValidationError);
+    it('accepts every engine value, including the three the old union omitted', () => {
+      // cancel, noAnswer and error are engine-valid and were absent from the
+      // old hangup|busy|decline union.
+      for (const reason of ['hangup', 'cancel', 'busy', 'noAnswer', 'decline', 'error']) {
+        const b = new SwmlBuilder();
+        b.hangup({ reason });
+        const doc = b.build() as { sections: { main: unknown[] } };
+        expect(doc.sections.main[0]).toEqual({ hangup: { reason } });
+      }
+    });
+
+    it('rejects an off-enum reason — the engine refuses it', () => {
+      // 'no_answer' is the snake_case near-miss; the engine spells it 'noAnswer'.
+      for (const reason of ['custom_reason', 'no_answer']) {
+        expect(() => new SwmlBuilder().hangup({ reason })).toThrow(SchemaValidationError);
+      }
+    });
+
+    it('still rejects a wrong-TYPED reason', () => {
+      expect(() => builder.hangup({ reason: 42 as unknown as string })).toThrow(
+        SchemaValidationError,
+      );
     });
   });
 

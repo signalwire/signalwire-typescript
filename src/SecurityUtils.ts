@@ -145,8 +145,7 @@ export async function resolveAndValidateUrl(url: string, allowPrivate = false): 
 /**
  * Validate that a URL is safe to fetch (not pointing to private/internal resources).
  *
- * Matches Python's `validate_url(url, allow_private=False) -> bool` — returns `true`
- * if the URL is safe, `false` otherwise (never throws).
+ * Returns `true` if the URL is safe, `false` otherwise (never throws).
  *
  * @param url - The URL to validate.
  * @param allowPrivate - When true, allow private IP ranges (default false).

@@ -39,8 +39,14 @@ export interface ServerlessEvent {
   path?: string;
   /** Raw request path (AWS API Gateway v2). */
   rawPath?: string;
-  /** Query string parameters as key-value pairs. */
+  /** Query string parameters as key-value pairs (REST API v1 and HTTP API v2). */
   queryStringParameters?: Record<string, string>;
+  /**
+   * Raw `a=b&c=d` query string. AWS HTTP API v2 may deliver the query this way
+   * INSTEAD of the parsed `queryStringParameters` mapping, so a request whose
+   * credential rides here is not a request without a credential.
+   */
+  rawQueryString?: string;
   /** Platform-specific request context metadata. */
   requestContext?: Record<string, unknown>;
 }
@@ -158,10 +164,23 @@ export class ServerlessAdapter {
       ? 'https'
       : (headers['x-forwarded-proto'] ?? 'https');
     let url = `${proto}://${host}${path}`;
-    if (event.queryStringParameters) {
-      const qs = new URLSearchParams(event.queryStringParameters).toString();
-      if (qs) url += `?${qs}`;
-    }
+    // Both lambda payload shapes are reachable here and they carry the query
+    // differently: REST API v1 (and HTTP API v2) provide the PARSED
+    // `queryStringParameters` mapping, while HTTP API v2 may instead provide only
+    // the RAW `rawQueryString`. Reading just the parsed mapping dropped the query
+    // entirely on the raw-only shape — and since the SWAIG `__token` rides the
+    // query string, that silently turned a genuinely-credentialed request into an
+    // untokened one, which the secure-tool check then correctly refused. The
+    // failure therefore looked like over-strict validation while the real defect
+    // was here, in the carry. Prefer the parsed mapping, fall back to the raw
+    // string (mirrors the reference's `_token_from_params(...) or
+    // _token_from_query_string(...)`, core/mixins/serverless_mixin.py:152-154).
+    const parsedQs = event.queryStringParameters
+      ? new URLSearchParams(event.queryStringParameters).toString()
+      : '';
+    // A leading '?' is stripped so a full "?a=b" fragment parses like "a=b".
+    const qs = parsedQs || (event.rawQueryString ?? '').replace(/^\?/, '');
+    if (qs) url += `?${qs}`;
 
     // Build body. AWS API Gateway proxy events set isBase64Encoded=true and pass
     // the body base64-encoded; decode it back to the raw payload before routing
@@ -276,7 +295,7 @@ export class ServerlessAdapter {
     };
   }
 
-  /** Maximum CGI request body size (10MB), matching Python's `MAX_CGI_BODY_SIZE`. */
+  /** Maximum CGI request body size (10MB). */
   static readonly MAX_CGI_BODY_SIZE = 10 * 1024 * 1024;
 
   /**
@@ -286,7 +305,7 @@ export class ServerlessAdapter {
    * (`REQUEST_METHOD`, `PATH_INFO`, `QUERY_STRING`, `CONTENT_TYPE`, `HTTP_*`) and
    * the body arrives on stdin. This reconstructs the normalized event so a CGI
    * invocation dispatches through the same Hono routing as Lambda/GCF/Azure
-   * (mirrors Python `serverless_mixin` CGI mode: `PATH_INFO` + stdin body).
+   * (CGI mode: `PATH_INFO` + stdin body).
    *
    * @param env - The process environment (defaults to `process.env`).
    * @param body - The already-read request body from stdin (optional).

@@ -44,6 +44,7 @@ process.env['SIGNALWIRE_LOG_MODE'] ??= 'off';
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
+import { createServer as createHttpServer, type Server as HttpServer } from 'node:http';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,7 +97,31 @@ interface Case {
   /** RequestOptions to pass for this call (absent => port default, retries 0). */
   requestOptions?: CaseRequestOptions;
   transport?: boolean;
+  /**
+   * When set ('ctx' | 'signal' | 'both'), this is a cancellation-COMPOSITION case
+   * (PSDK-4c) whose artifact is the compose classification
+   * {ctx_cancel_honored, signal_cancel_honored, both_compose} rather than the
+   * error-envelope artifact — the differ dispatches on the corpus case's
+   * `observe.kind === 'compose'`. These cases drive a SLOW (3s) response and
+   * assert the request is cancelled within COMPOSE_WINDOW_MS by the intended
+   * source. See runComposeCase.
+   */
+  composeLeg?: 'ctx' | 'signal' | 'both';
 }
+
+// Compose timing knobs — MUST match diff_port_envelope.py's _drive_compose
+// (_COMPOSE_WINDOW_S / _COMPOSE_SHORT_TIMEOUT / _COMPOSE_LONG_TIMEOUT and the
+// corpus scenario's delay_ms). These are a CONTRACT with the differ, not
+// arbitrary numbers: the short timeout must be < the slow delay so it fires, and
+// the long timeout must be > it so the SIGNAL is what cancels.
+/** Bounded iff cancelled within this window (ms). */
+const COMPOSE_WINDOW_MS = 1500;
+/** Per-request timeout (seconds) shorter than the 3s delay: it FIRES. */
+const COMPOSE_SHORT_TIMEOUT_S = 0.5;
+/** Per-request timeout (seconds) longer than the 3s delay: the SIGNAL fires, not this. */
+const COMPOSE_LONG_TIMEOUT_S = 10.0;
+/** The armed slow-response delay (ms). */
+const COMPOSE_SLOW_DELAY_MS = 3000;
 
 // Mirror of porting-sdk/scripts/envelope_corpus.py CORPUS.
 const GET_CALL: CaseCall = { method: 'GET', path: PATH };
@@ -207,6 +232,33 @@ const CORPUS: Case[] = [
       response: { errors: [{ code: 'UNAVAILABLE', message: 'throttled' }] },
     },
     requestOptions: { retries: 1, retry_backoff: 0 },
+  },
+
+  // ---- timeout / abortSignal COMPOSITION (PSDK-4c). The two cancellation
+  // sources must COMPOSE (merge, never replace): a cancel from EITHER cancels
+  // the request. TypeScript merges them in HttpClient._attemptSignal via
+  // AbortSignal.any([abortSignal, timeoutSignal]), so all three legs hold.
+  // The artifact is the compose classification, not the envelope artifact.
+  {
+    id: 'compose_ctx_timeout_alone',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: null,
+    composeLeg: 'ctx',
+  },
+  {
+    id: 'compose_abort_signal_alone',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: null,
+    composeLeg: 'signal',
+  },
+  {
+    id: 'compose_ctx_and_signal_both',
+    endpoint: ENDPOINT,
+    call: GET_CALL,
+    scenario: null,
+    composeLeg: 'both',
   },
 ];
 
@@ -451,12 +503,99 @@ async function runCase(server: MockServer, c: Case): Promise<Artifact> {
   return artifact;
 }
 
+/**
+ * The compose-case artifact the differ byte-compares against the python golden
+ * {ctx_cancel_honored, signal_cancel_honored, both_compose}.
+ */
+interface ComposeClassification {
+  ctx_cancel_honored: boolean;
+  signal_cancel_honored: boolean;
+  both_compose: boolean;
+}
+
+/**
+ * Drive one composition leg against a local HTTP server that delays its 200 by
+ * COMPOSE_SLOW_DELAY_MS, and report whether the request was cancelled inside
+ * COMPOSE_WINDOW_MS by the intended source.
+ *
+ * The "ctx" source in TypeScript is `RequestOptions.timeout` — TS has no
+ * `context.Context`; the per-request wall-clock deadline is the timeout field,
+ * exactly as in the Python oracle (`_drive_compose` arms it the same way). The
+ * "signal" source is the native `AbortSignal`. Both are passed as ordinary
+ * RequestOptions through the public verb API, and `HttpClient._attemptSignal`
+ * merges them with `AbortSignal.any` — so neither replaces the other.
+ *
+ * A cancellation surfaces as `RestTransportError` (a member of the typed
+ * RestError family), which the SDK raises both pre-attempt (already-aborted
+ * signal) and on the fetch rejection (timeout / in-flight abort). Any other
+ * bounded error still counts as cut, mirroring the differ's broad except.
+ */
+async function runComposeCase(c: Case): Promise<ComposeClassification> {
+  const httpServer: HttpServer = createHttpServer((_req, res) => {
+    setTimeout(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ data: [] }));
+    }, COMPOSE_SLOW_DELAY_MS);
+  });
+  await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', () => resolve()));
+  const addr = httpServer.address();
+  const port = addr && typeof addr === 'object' ? addr.port : 0;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  // Run one GET and report whether it returned (was cancelled) within the window.
+  const bounded = async (
+    timeout: number,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<boolean> => {
+    const client: HttpClientType = new HttpClient({ baseUrl, project: PROJECT, token: TOKEN });
+    const opts: RequestOptionsInit = { timeout, retries: 0 };
+    if (abortSignal !== undefined) opts.abortSignal = abortSignal;
+    const t0 = Date.now();
+    try {
+      await client.get(c.call.path, undefined, opts);
+      return false; // ran to completion — nothing cancelled it
+    } catch {
+      // Any raised error is a cut; it counts only if it landed in-window.
+      return Date.now() - t0 < COMPOSE_WINDOW_MS;
+    }
+  };
+
+  const out: ComposeClassification = {
+    ctx_cancel_honored: false,
+    signal_cancel_honored: false,
+    both_compose: false,
+  };
+
+  try {
+    if (c.composeLeg === 'ctx') {
+      // SHORT timeout vs the slow response, NO signal: the timeout must cut it.
+      out.ctx_cancel_honored = await bounded(COMPOSE_SHORT_TIMEOUT_S, undefined);
+    } else if (c.composeLeg === 'signal') {
+      // GENEROUS timeout, a PRE-ABORTED signal: the SIGNAL must cut it.
+      const ctrl = new AbortController();
+      ctrl.abort();
+      out.signal_cancel_honored = await bounded(COMPOSE_LONG_TIMEOUT_S, ctrl.signal);
+    } else {
+      // BOTH a short timeout AND a live (un-aborted) signal armed. Cancel-from-
+      // either: here the TIMEOUT is what fires, proving the timeout is NOT
+      // dropped when a signal coexists (the go GO-5 replace-instead-of-merge bug).
+      const ctrl = new AbortController();
+      out.both_compose = await bounded(COMPOSE_SHORT_TIMEOUT_S, ctrl.signal);
+    }
+  } finally {
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
   const server = await startMock();
-  const out: Record<string, Artifact> = {};
+  const out: Record<string, Artifact | ComposeClassification> = {};
   try {
     for (const c of CORPUS) {
-      out[c.id] = await runCase(server, c);
+      // Composition cases have a DIFFERENT artifact and drive their own local
+      // slow server — they never touch the shared mock.
+      out[c.id] = c.composeLeg ? await runComposeCase(c) : await runCase(server, c);
     }
   } finally {
     stopMock(server);

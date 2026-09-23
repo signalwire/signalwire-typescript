@@ -140,6 +140,209 @@ export function refName(ref: string): string {
   return tsName(ref.slice(ref.lastIndexOf('/') + 1));
 }
 
+// ---- cross-file $ref resolution --------------------------------------------
+// A `<file>.yaml#/components/schemas/<Name>` ref points at a schema owned by a
+// SIBLING spec file, so the type is declared in a different generated MODULE and
+// the emitting module needs an `import type`. Resolving these by last-pointer-
+// segment alone (refName) silently emits an undefined type name — which is
+// exactly the defect the Python generator's resolve_cross_file_ref fixed
+// (porting-sdk 4ddda70): it verifies the file exists AND declares the schema,
+// AND records the import. This is the TS analog, kept deliberately identical in
+// behaviour so the two generators cannot drift.
+
+/**
+ * Spec FILE NAME → the generated TS module (import specifier, relative to `src/`)
+ * that hosts its schemas. A cross-file ref into an UNREGISTERED file is an error,
+ * not a silent widening to `Record<string, unknown>` — adding a new cross-file
+ * link is a deliberate act. Mirrors the Python CROSS_FILE_MODULES table.
+ */
+const CROSS_FILE_MODULES: Record<string, string> = {
+  // Both swaig-request.yaml and swaig-response.yaml resolve INTO the two committed
+  // SWAIG modules. SwaigRequest is co-located in SwaigContracts.generated.ts (the
+  // module that also owns post-prompt.yaml), so a ref to it from that same module
+  // needs no import — recordCrossFileRef() drops a self-ref (see `selfModule`).
+  'swaig-request.yaml': './SwaigContracts.generated.js',
+  'swaig-response.yaml': './SwaigActions.generated.js',
+};
+
+/** Directories (relative to the resolved porting-sdk) searched for a ref target. */
+const CROSS_FILE_SEARCH_DIRS = ['swaig-specs'];
+
+export class CrossFileRefError extends Error {}
+
+const _crossFileSpecCache = new Map<string, OpenApiDoc>();
+// Populated by tsType() while one module is being emitted; the emitter reads it to
+// write the import block and clears it before the next module.
+let _crossFileImports = new Map<string, Set<string>>();
+let _crossFileSelfModule: string | null = null;
+
+// ---- SAME-file $ref resolution ---------------------------------------------
+// The mirror of the block above, for `#/components/schemas/<Name>` (no file part).
+// The cross-file path verifies its target and fails loud; the same-file path used
+// to return refName() unconditionally — the bare leaf name, with NOTHING checking
+// that this module ever declares it. A generator does not emit every schema in the
+// document: generate-swaig-payloads emits one <Verb>Action per object-shaped action
+// value plus two envelopes, so a same-file ref to any OTHER components/schemas entry
+// produces a dangling identifier that only tsc catches.
+//
+// Found live 2026-08-05. porting-sdk d8e5787 re-vendored swaig-response.yaml and
+// gave context_switch's system_pom/user_pom a real shape whose `pom` items
+// `$ref: '#/components/schemas/PromptPomSection'`. PromptPomSection IS declared in
+// that document (and is recursive), but no generator emits it, so the regen wrote
+//     pom?: PromptPomSection[];
+// twice into SwaigActions.generated.ts and LINT died with two TS2304 "Cannot find
+// name 'PromptPomSection'". The generated tree was byte-fresh per GEN-FRESH and did
+// not compile — the two gates disagreeing is the signal that the emit, not the
+// tree, was wrong.
+//
+// So: a same-file ref must name something this module DECLARES. The emitter
+// registers its declared names; an unregistered target is an error naming both the
+// ref and the fix, never a silent dangling name.
+let _sameFileDeclared: Set<string> | null = null;
+let _sameFileFallback: string | null = null;
+
+/**
+ * Declare the type names the module currently being emitted will contain, so a
+ * same-file `$ref` can be checked against them. Call before resolving types.
+ *
+ * `undeclaredAs` is what an UNDECLARED target folds to. Supply it when the
+ * reference generator does not descend to that ref either, so the port and the
+ * reference compare equal — `'Record<string, unknown>'` is the TS analog of the
+ * Python emitter's `dict[str, Any]`. Omit it to make an undeclared target a hard
+ * error instead, for a generator that should be able to name every ref it reaches.
+ *
+ * Passing nothing (or never calling it) leaves same-file refs UNCHECKED, which is
+ * the historical behaviour — generators that emit every schema in their document
+ * have no dangling-name risk and need no registration.
+ */
+export function setSameFileDeclared(names?: Iterable<string>, undeclaredAs?: string): void {
+  _sameFileDeclared = names ? new Set(names) : null;
+  _sameFileFallback = undeclaredAs ?? null;
+}
+
+/**
+ * `#/components/schemas/<Name>` → the TS type name, verified against the emitting
+ * module's declared names when the emitter registered them. An undeclared target
+ * folds to the registered fallback, or raises when there is none — either way it
+ * never returns a name nothing declares.
+ */
+export function resolveSameFileRef(ref: string): string {
+  const resolved = refName(ref);
+  if (_sameFileDeclared && !_sameFileDeclared.has(resolved)) {
+    if (_sameFileFallback !== null) return _sameFileFallback;
+    const declared = [..._sameFileDeclared].sort().join(', ') || '<none>';
+    throw new CrossFileRefError(
+      `same-file $ref '${ref}' resolves to type '${resolved}', which this module ` +
+        `does not declare (it declares: ${declared}). Emitting it would write a ` +
+        `dangling type name that only tsc catches. Either emit '${resolved}' from ` +
+        `this generator, or register a fold via setSameFileDeclared's undeclaredAs.`,
+    );
+  }
+  return resolved;
+}
+
+/**
+ * Start recording cross-file refs for a fresh output module. `selfModule` is the
+ * module specifier being emitted; refs that resolve to it are same-module and
+ * recorded as no import.
+ */
+export function resetCrossFileImports(selfModule?: string): void {
+  _crossFileImports = new Map();
+  _crossFileSelfModule = selfModule ?? null;
+  // Starting a new module also clears the previous module's same-file declared
+  // set. Tied to THIS reset rather than left to each caller so a generator that
+  // registers names cannot leak them into the next module emitted in the same
+  // process — which would let a dangling ref pass by matching a name only the
+  // PREVIOUS module declared.
+  _sameFileDeclared = null;
+  _sameFileFallback = null;
+}
+
+/**
+ * The `import type` statements for every cross-file name resolved since the last
+ * reset, or `''` when there were none. Type-only imports: these names appear
+ * exclusively in annotations, so a value import would be a needless (and
+ * potentially circular) runtime dependency — the TS analog of Python's
+ * `if TYPE_CHECKING:` block.
+ */
+export function crossFileImportBlock(): string {
+  if (!_crossFileImports.size) return '';
+  const lines: string[] = [];
+  for (const mod of [..._crossFileImports.keys()].sort()) {
+    const names = [...(_crossFileImports.get(mod) ?? [])].sort();
+    lines.push(`import type { ${names.join(', ')} } from '${mod}';`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function loadCrossFileSpec(fileName: string): OpenApiDoc {
+  const cached = _crossFileSpecCache.get(fileName);
+  if (cached) return cached;
+  const psdk = resolvePortingSdk();
+  if (!psdk) {
+    throw new CrossFileRefError(
+      `cannot resolve cross-file $ref target ${fileName}: porting-sdk not found ` +
+        `(set $PORTING_SDK or clone adjacent)`,
+    );
+  }
+  for (const dir of CROSS_FILE_SEARCH_DIRS) {
+    const candidate = path.join(psdk, dir, fileName);
+    if (fs.existsSync(candidate)) {
+      const doc = yaml.load(fs.readFileSync(candidate, 'utf-8')) as OpenApiDoc;
+      _crossFileSpecCache.set(fileName, doc);
+      return doc;
+    }
+  }
+  throw new CrossFileRefError(
+    `cross-file $ref target ${fileName} not found under ` +
+      `${CROSS_FILE_SEARCH_DIRS.map((d) => `${d}/`).join(', ')} of the resolved porting-sdk`,
+  );
+}
+
+/**
+ * `<file>.yaml#/components/schemas/<Name>` → the TS type name for `<Name>`.
+ *
+ * Verifies the file exists AND declares the schema, records the import the
+ * emitting module needs, and returns the resolved name. Throws CrossFileRefError
+ * — naming the file and the schema — on any of the three failure modes, rather
+ * than silently widening to an opaque record or emitting an undefined name.
+ */
+export function resolveCrossFileRef(ref: string): string {
+  const hash = ref.indexOf('#');
+  const filePart = ref.slice(0, hash);
+  const pointer = ref.slice(hash);
+  if (!pointer.startsWith('#/components/schemas/')) {
+    throw new CrossFileRefError(
+      `unsupported cross-file $ref pointer '${pointer}' in '${ref}'; only ` +
+        `'#/components/schemas/<Name>' is resolvable`,
+    );
+  }
+  const schemaName = pointer.slice(pointer.lastIndexOf('/') + 1);
+  const module = CROSS_FILE_MODULES[filePart];
+  if (module === undefined) {
+    throw new CrossFileRefError(
+      `cross-file $ref into unregistered spec file '${filePart}' (schema ` +
+        `'${schemaName}'); add it to CROSS_FILE_MODULES with the generated module ` +
+        `that hosts its schemas`,
+    );
+  }
+  const schemas = loadCrossFileSpec(filePart).components?.schemas ?? {};
+  if (!(schemaName in schemas)) {
+    const declared = Object.keys(schemas).sort().join(', ') || '<none>';
+    throw new CrossFileRefError(
+      `cross-file $ref names schema '${schemaName}' which does not exist in ` +
+        `'${filePart}' (it declares: ${declared})`,
+    );
+  }
+  const resolved = tsName(schemaName);
+  if (module !== _crossFileSelfModule) {
+    const set = _crossFileImports.get(module) ?? new Set<string>();
+    set.add(resolved);
+    _crossFileImports.set(module, set);
+  }
+  return resolved;
+}
+
 // ---- schema → TS type expression ------------------------------------------
 
 export function tsType(schema: Schema | undefined, indent = 0): string {
@@ -163,7 +366,16 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
     if (!schema.$ref.startsWith('#/') && schema.$ref.endsWith('.json')) {
       return 'Record<string, unknown>';
     }
-    return refName(schema.$ref);
+    // A cross-file ref into a SIBLING spec (`<file>.yaml#/components/schemas/X`)
+    // is resolved through the registry, which verifies the target and records the
+    // `import type` the emitting module needs. refName() alone would emit an
+    // undefined type name by discarding the file part.
+    if (!schema.$ref.startsWith('#/')) {
+      return resolveCrossFileRef(schema.$ref);
+    }
+    // A SAME-file ref must name a type this module actually declares; see
+    // resolveSameFileRef. refName() alone emits a dangling name (PromptPomSection).
+    return resolveSameFileRef(schema.$ref);
   }
 
   // const → literal

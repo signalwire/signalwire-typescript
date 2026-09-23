@@ -12,7 +12,9 @@ import { AgentBase, FunctionResult } from '../src/index.js';
 export const agent = new AgentBase({
   name: 'custom-path-agent',
   route: '/my-custom-agent',
-  port: 3000,
+  // Fall back to the PORT env var (used by CI / the EXAMPLES-RUN harness) and
+  // finally to 3000 for local interactive use.
+  port: parseInt(process.env['PORT'] ?? '3000', 10),
   basicAuth: [
     process.env['SWML_BASIC_AUTH_USER'] ?? 'user',
     process.env['SWML_BASIC_AUTH_PASSWORD'] ?? 'pass',

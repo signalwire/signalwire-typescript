@@ -43,10 +43,9 @@ interface QuestionDefinition {
 /**
  * Collects answers to a configurable list of questions, one at a time.
  *
- * Mirrors Python `InfoGathererSkill` exactly: the same required
- * `questions` config, the same `prefix` / `completion_message` options,
- * the same two tools (`start_questions`, `submit_answer`), and the same
- * state shape in `global_data`.
+ * Takes a required `questions` config plus optional `prefix` /
+ * `completion_message` options, registers two tools (`start_questions`,
+ * `submit_answer`), and keeps its state in `global_data`.
  *
  * @example
  * ```ts
@@ -113,8 +112,7 @@ export class InfoGathererSkill extends SkillBase {
 
   /**
    * Instance key for the SkillManager. When `prefix` is configured, returns
-   * `info_gatherer_<prefix>` to support multi-instance use. Matches Python's
-   * `get_instance_key()` (skill.py:81-85).
+   * `info_gatherer_<prefix>` to support multi-instance use.
    */
   override getInstanceKey(): string {
     const prefix = this.getConfig<string>('prefix', '');
@@ -163,12 +161,11 @@ export class InfoGathererSkill extends SkillBase {
 
   /**
    * Seed SWAIG `global_data` with the initial question state under this
-   * skill's namespace. Mirrors Python `get_global_data()` (skill.py:127-135).
+   * skill's namespace.
    *
    * Defensive no-op when the skill was not successfully set up (empty
-   * `questions`). Python relies on the SkillManager to skip unloaded skills;
-   * TS adds this guard so `getGlobalData()` called without a successful
-   * `setup()` returns `{}` instead of a malformed state payload.
+   * `questions`): `getGlobalData()` called without a successful `setup()`
+   * returns `{}` rather than a malformed state payload.
    */
   override getGlobalData(): Record<string, unknown> {
     if (this.questions.length === 0) {
@@ -184,8 +181,7 @@ export class InfoGathererSkill extends SkillBase {
   }
 
   /**
-   * Register the two sequential-flow tools. Mirrors Python
-   * `register_tools()` (skill.py:162-184). Returns an empty array when
+   * Register the two sequential-flow tools. Returns an empty array when
    * `setup()` did not complete (no questions) so the skill never exposes
    * half-initialized tools.
    */
@@ -224,8 +220,7 @@ export class InfoGathererSkill extends SkillBase {
 
   /**
    * Handle the `start_questions` tool: read state from global_data and return
-   * an instruction for the first question. Mirrors Python
-   * `_handle_start_questions` (skill.py:190-208).
+   * an instruction for the first question.
    */
   private _handleStartQuestions(
     _args: Record<string, unknown>,
@@ -255,8 +250,7 @@ export class InfoGathererSkill extends SkillBase {
   /**
    * Handle the `submit_answer` tool: validate confirmation, record the answer,
    * advance the index, and either return the next question or the completion
-   * message (disabling both tools on completion). Mirrors Python
-   * `_handle_submit_answer` (skill.py:210-262).
+   * message (disabling both tools on completion).
    */
   private _handleSubmitAnswer(
     args: Record<string, unknown>,
@@ -361,8 +355,7 @@ export class InfoGathererSkill extends SkillBase {
 
   /**
    * Validate that `questions` is a non-empty array of objects each having
-   * `key_name` and `question_text`. Throws on invalid input. Mirrors Python
-   * `_validate_questions` (skill.py:299-311).
+   * `key_name` and `question_text`. Throws on invalid input.
    */
   private static _validateQuestions(questions: unknown): void {
     // Python order (skill.py:301-304): emptiness / falsy check BEFORE type
@@ -390,8 +383,7 @@ export class InfoGathererSkill extends SkillBase {
   }
 
   /**
-   * Prompt section describing the question flow to the agent. Mirrors Python
-   * `_get_prompt_sections` (skill.py:141-156).
+   * Prompt section describing the question flow to the agent.
    */
   protected override _getPromptSections(): SkillPromptSection[] {
     return [

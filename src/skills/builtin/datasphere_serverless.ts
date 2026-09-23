@@ -1,12 +1,11 @@
 /**
  * DataSphere Serverless Skill - Searches SignalWire DataSphere using a DataMap.
  *
- * Tier 3 built-in skill. Matches the Python SDK's param-driven design: all
- * credentials (`space_name`, `project_id`, `token`) are supplied via skill
- * params. At `setup()` time the skill resolves these params, composes the
- * full DataSphere API URL and a base64 Basic-auth header, and bakes both as
- * literal values into the emitted DataMap SWAIG JSON (mirrors Python
- * `skills/datasphere_serverless/skill.py:152-157, 182-201`).
+ * Tier 3 built-in skill with a param-driven design: all credentials
+ * (`space_name`, `project_id`, `token`) are supplied via skill params. At
+ * `setup()` time the skill resolves these params, composes the full DataSphere
+ * API URL and a base64 Basic-auth header, and bakes both as literal values into
+ * the emitted DataMap SWAIG JSON.
  */
 
 import { SkillBase } from '../SkillBase.js';
@@ -129,7 +128,7 @@ export class DataSphereServerlessSkill extends SkillBase {
 
   /**
    * Instance key for the SkillManager. Defaults to
-   * `datasphere_serverless_search_knowledge`, matching the Python SDK default.
+   * `datasphere_serverless_search_knowledge`.
    * When `tool_name` is set, uses `datasphere_serverless_<tool_name>`.
    */
   override getInstanceKey(): string {
@@ -140,8 +139,8 @@ export class DataSphereServerlessSkill extends SkillBase {
   /**
    * Validate required configuration parameters before the skill becomes active.
    *
-   * Mirrors Python's `setup()` which checks `space_name`, `project_id`, `token`,
-   * and `document_id` and returns `False` (logging an error) if any are absent.
+   * Checks `space_name`, `project_id`, `token`, and `document_id`, and returns
+   * `false` (logging an error) if any are absent.
    * @returns `true` if all required params are present, `false` otherwise.
    */
   override async setup(): Promise<boolean> {
@@ -157,9 +156,8 @@ export class DataSphereServerlessSkill extends SkillBase {
   }
 
   /**
-   * Global data injected into the agent's SWML/SWAIG context. Matches
-   * Python's `get_global_data()` shape so downstream consumers can
-   * detect DataSphere availability.
+   * Global data injected into the agent's SWML/SWAIG context, so downstream
+   * consumers can detect DataSphere availability.
    */
   override getGlobalData(): Record<string, unknown> {
     return {
@@ -171,7 +169,7 @@ export class DataSphereServerlessSkill extends SkillBase {
 
   /**
    * Resolve the tool name used in DataMap registration. Defaults to
-   * `search_knowledge` to match the Python SDK default.
+   * `search_knowledge`.
    */
   private getToolName(): string {
     return this.getConfig<string>('tool_name', 'search_knowledge');

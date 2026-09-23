@@ -1,24 +1,20 @@
 /**
  * Custom error class for RELAY protocol errors.
  *
- * Thrown when the server returns a non-2xx JSON-RPC result code. Mirrors the
- * Python SDK signature: `RelayError(code, message)`.
+ * Thrown when the server returns a non-2xx JSON-RPC result code.
  */
 export class RelayError extends Error {
   /** Numeric RELAY result code returned by the server. */
   readonly code: number;
   /**
-   * The RAW server message, undecorated — the reference's public `self.message`
-   * (`relay/client.py:1332`).
+   * The RAW server message, undecorated.
    *
    * Kept as its own property because JS `Error` owns `message` and `super(...)`
-   * fills it with the DECORATED text (`"RELAY error {code}: {message}"`, the
-   * reference's `super().__init__` on line 1333). A caller who wants the server's
-   * own wording — to match on it, surface it in a UI, or forward it — reads this;
-   * `message` gives the decorated form, matching Python's `str(exc)`.
+   * fills it with the DECORATED text (`"RELAY error {code}: {message}"`). A
+   * caller who wants the server's own wording — to match on it, surface it in a
+   * UI, or forward it — reads this; `message` gives the decorated form.
    *
-   * Same spelling and rationale as {@link AIChatError.serverMessage}. The surface
-   * enumerator folds it onto the reference's `message` attribute.
+   * Same spelling and rationale as {@link AIChatError.serverMessage}.
    */
   readonly serverMessage: string;
 

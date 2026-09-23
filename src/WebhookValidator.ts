@@ -58,7 +58,8 @@ function safeEq(a: string, b: string): boolean {
   }
 }
 
-/** Stringify a single value the way the JS reference implementation does. */
+/** Stringify a single form-param value: null/undefined become `''`, strings pass
+ *  through unchanged, everything else goes through `String()`. */
 function stringifyParamValue(v: FormParamValue): string {
   if (v === null || v === undefined) return '';
   if (typeof v === 'string') return v;
@@ -356,10 +357,7 @@ export function validateWebhookSignature(
  * pre-parsed form params and runs Scheme B directly (with URL port
  * normalization and optional bodySHA256 fallback).
  *
- * The parameter type matches Python's
- * ``Union[str, Mapping[str, Any], List[Tuple[str, Any]], None]`` for
- * a consistent cross-SDK signature. ``Map<string, unknown>`` is also
- * accepted at runtime for ergonomic TS usage.
+ * ``Map<string, unknown>`` is also accepted at runtime for ergonomic TS usage.
  *
  * @param signingKey Customer's Signing Key. Empty / null throws Error.
  * @param signature Header value. Missing / empty returns false.

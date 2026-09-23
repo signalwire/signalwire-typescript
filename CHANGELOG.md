@@ -40,9 +40,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - `paginate()` guards against a repeating server cursor (no infinite loop).
 - SWAIG `/swaig` handlers receive the unwrapped `argument.parsed` flat args.
 
-## 3.2.0
+## 3.0.0
 
-Adds the **Messages** REST resource (send + redact).
+The first release of the generated-REST surface, and the fleet-wide convergence
+version: every SignalWire SDK port declares 3.0.0. Nothing in the 3.x range was
+ever published — the TypeScript port's published tags top out at `v2.0.5` — so
+the previously-drafted unreleased 3.0.2 / 3.1.0 / 3.2.0 entries are consolidated
+here rather than shipped as a staggered series.
 
 ### Added
 
@@ -52,31 +56,11 @@ Adds the **Messages** REST resource (send + redact).
   `porting-sdk/rest-apis/messages` via the spec-discovery REST generator.
   Distinct from the message **logs** namespace (`client.logs.messages`, read-only
   `/api/messaging/logs`).
-
-### Fixed
-
-- REST generator: a spec field literally named `body` (the Messages create/redact
-  bodies) no longer collides with the assembled request-body local variable — the
-  local falls back to `body_` when a `body` parameter is emitted.
-
-## 3.1.0
-
-Adds the plural **Projects** REST resource.
-
-### Added
-
 - `client.projects` — full-CRUD `Projects` resource bound to `/api/projects`
   (list, get, create, update, delete) plus `rotateSigningKey` (POST
   `/{id}/signing-key/rotate`). Generated from `porting-sdk/rest-apis/projects`
   via the spec-discovery REST generator. Distinct from the singular
   `project` token namespace (`/api/project/tokens`).
-
-## 3.0.2
-
-Release-readiness milestone for the TypeScript SDK.
-
-### Added
-
 - `exports` map in `package.json` exposing the public entry point and the
   `@signalwire/sdk/livewire` subpath (previously importable only from the source
   tree), plus `package.json` self-export for tooling.
@@ -84,6 +68,12 @@ Release-readiness milestone for the TypeScript SDK.
 - `port_signatures.baseline.json` — the committed public-API surface floor that
   the SEMVER-DIFF gate diffs the working tree against.
 - This CHANGELOG.
+
+### Fixed
+
+- REST generator: a spec field literally named `body` (the Messages create/redact
+  bodies) no longer collides with the assembled request-body local variable — the
+  local falls back to `body_` when a `body` parameter is emitted.
 
 ### Notes
 

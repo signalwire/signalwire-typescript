@@ -34,9 +34,9 @@ interface PreConfiguredFile {
  * Controls background audio playback during calls via SWML actions.
  *
  * Tier 2 built-in skill with no external dependencies. Requires a non-empty
- * `files` array (matching the Python skill, which raises if `files` is empty);
- * emits a single configurable tool whose `action` enum maps to `start_<key>` /
- * `stop` values that trigger the corresponding pre-configured file playback.
+ * `files` array; emits a single configurable tool whose `action` enum maps to
+ * `start_<key>` / `stop` values that trigger the corresponding pre-configured
+ * file playback.
  *
  * @example
  * ```ts
@@ -104,12 +104,10 @@ export class PlayBackgroundFileSkill extends SkillBase {
   }
 
   /**
-   * Validate configuration. Mirrors Python `_validate_config()`
-   * (skill.py:106), which raises `ValueError("files parameter must be a
-   * non-empty list")` when no files are configured — the Python skill cannot
-   * operate without pre-configured files. Returning `false` here is the TS
-   * equivalent: the SkillManager treats a falsy `setup()` as fatal and refuses
-   * to register the skill (skill_manager.ts loadSkill contract).
+   * Validate configuration. The skill cannot operate without pre-configured
+   * files, so it returns `false` when none are configured: the SkillManager
+   * treats a falsy `setup()` as fatal and refuses to register the skill
+   * (SkillManager `loadSkill` contract).
    */
   override async setup(): Promise<boolean> {
     if (this._getFiles().length === 0) {
@@ -134,10 +132,9 @@ export class PlayBackgroundFileSkill extends SkillBase {
 
   /**
    * @returns A single enum-based tool whose `action` selects a pre-configured
-   *   file (`start_<key>`) or stops playback (`stop`). Matches the Python
-   *   skill, which only ever emits this one tool. `setup()` has already
-   *   guaranteed `files` is non-empty, so the skill is never registered with
-   *   an empty list.
+   *   file (`start_<key>`) or stops playback (`stop`). This skill only ever
+   *   emits this one tool. `setup()` has already guaranteed `files` is
+   *   non-empty, so the skill is never registered with an empty list.
    */
   getTools(): SkillToolDefinition[] {
     return this._getPreConfiguredTools(this._getFiles());

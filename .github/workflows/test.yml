@@ -69,6 +69,26 @@ jobs:
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
+      # scripts/run-py-lint.sh and run-py-format.sh fail LOUD when ruff is
+      # absent rather than skipping, so PY-LINT/PY-FMT cannot pass vacuously on
+      # a runner that lacks it — hence this explicit install rather than relying
+      # on it being preinstalled. Without it the gates red with "ruff not found
+      # on PATH", which is a missing CI dep, not a code finding.
+      #
+      # PINNED EXACT. An unbounded `pip install ruff` resolves whatever is newest
+      # at CI time, so a ruff release that adds a rule or changes a format
+      # heuristic turns PY-LINT/PY-FMT red on a commit that was green locally —
+      # the VERSION changed, not the code. 0.15.21 is the fleet-wide ruff
+      # (signalwire-python/perl/php pin the same). Bump it in every port at once,
+      # with the resulting fixes in the same commit.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: |
+          pip install "ruff==0.15.21"
+          # Assert the pin actually took: pip can satisfy a spec from an
+          # unexpected index or cache, so verify rather than assume.
+          ruff --version
+          ruff --version | grep -qw '0\.15\.21' || { echo "FATAL: ruff is not the pinned 0.15.21" >&2; exit 1; }
+
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: |
           if python -c "import signalwire.core.function_result" 2>/dev/null; then
@@ -90,11 +110,18 @@ jobs:
       # binary and fails LOUD when it is absent (never a silent skip), so install
       # it before run-ci. Official installer drops the binary in the cwd; move it
       # onto PATH.
+      #
+      # VERSION PINNED. With no version argument the installer takes `latest`, so
+      # a new actionlint release (they add checks regularly) fails the ACTIONLINT
+      # gate on an UNCHANGED workflow file, while local dev — on whatever
+      # `brew install actionlint` last fetched — still passes. Keep in lockstep
+      # with SW_ACTIONLINT_VERSION in scripts/_env.sh.
       - name: Install actionlint (ACTIONLINT gate)
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.12
           sudo mv ./actionlint /usr/local/bin/actionlint
           actionlint --version
+          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned 1.7.12" >&2; exit 1; }
 
       - name: npm ci
         working-directory: signalwire-typescript

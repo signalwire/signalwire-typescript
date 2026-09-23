@@ -42,6 +42,49 @@ describe('SWMLService.handleRequest', () => {
     expect(status).toBe(200);
   });
 
+  // ── RFC 7235 auth-scheme case-insensitivity (SWMLService basic path) ──
+  // The reference compares `scheme.lower() != "basic"`, so a legal lowercase
+  // scheme token authenticates. A case-sensitive port 401s it.
+
+  it('passes with a lowercase `basic` scheme token', async () => {
+    const svc = new SWMLService({ name: 'ivr', basicAuth: ['admin', 'secret'] });
+    const cred = Buffer.from('admin:secret').toString('base64');
+    const [status] = await svc.handleRequest('GET', 'http://localhost:3000/', {
+      authorization: `basic ${cred}`,
+    });
+    expect(status).toBe(200);
+  });
+
+  it('passes with a mixed-case `BaSiC` scheme token', async () => {
+    const svc = new SWMLService({ name: 'ivr', basicAuth: ['admin', 'secret'] });
+    const cred = Buffer.from('admin:secret').toString('base64');
+    const [status] = await svc.handleRequest('GET', 'http://localhost:3000/', {
+      authorization: `BaSiC ${cred}`,
+    });
+    expect(status).toBe(200);
+  });
+
+  it('still 401s wrong schemes and a colon-less payload', async () => {
+    const svc = new SWMLService({ name: 'ivr', basicAuth: ['admin', 'secret'] });
+    const cred = Buffer.from('admin:secret').toString('base64');
+    const noColon = Buffer.from('admin').toString('base64');
+    for (const header of [
+      `Digest ${cred}`,
+      `Negotiate ${cred}`,
+      `Basicx ${cred}`,
+      `basicx ${cred}`,
+      `Bearer ${cred}`,
+      `${cred}`,
+      `Basic ${noColon}`,
+      `basic ${noColon}`,
+    ]) {
+      const [status] = await svc.handleRequest('GET', 'http://localhost:3000/', {
+        authorization: header,
+      });
+      expect(status).toBe(401);
+    }
+  });
+
   it('invokes a routing callback with (body, headers) and 307-redirects on a route', async () => {
     const svc = new SWMLService({ name: 'ivr' });
     let seenHeaders: Record<string, string> | undefined;
@@ -93,6 +136,47 @@ describe('AgentBase.handleRequest (override)', () => {
     const [status, headers] = await agent.handleRequest('GET', 'http://localhost:3000/', {});
     expect(status).toBe(401);
     expect(headers['WWW-Authenticate']).toBe('Basic');
+  });
+
+  // ── RFC 7235 auth-scheme case-insensitivity (AgentBase basic path) ────
+
+  it('renders SWML with a lowercase `basic` scheme token', async () => {
+    const agent = new AgentBase({ name: 'demo', basicAuth: ['u', 'p'] });
+    const cred = Buffer.from('u:p').toString('base64');
+    const [status] = await agent.handleRequest('GET', 'http://localhost:3000/', {
+      authorization: `basic ${cred}`,
+    });
+    expect(status).toBe(200);
+  });
+
+  it('renders SWML with a mixed-case `BaSiC` scheme token', async () => {
+    const agent = new AgentBase({ name: 'demo', basicAuth: ['u', 'p'] });
+    const cred = Buffer.from('u:p').toString('base64');
+    const [status] = await agent.handleRequest('GET', 'http://localhost:3000/', {
+      authorization: `BaSiC ${cred}`,
+    });
+    expect(status).toBe(200);
+  });
+
+  it('still 401s wrong schemes and a colon-less payload', async () => {
+    const agent = new AgentBase({ name: 'demo', basicAuth: ['u', 'p'] });
+    const cred = Buffer.from('u:p').toString('base64');
+    const noColon = Buffer.from('u').toString('base64');
+    for (const header of [
+      `Digest ${cred}`,
+      `Negotiate ${cred}`,
+      `Basicx ${cred}`,
+      `basicx ${cred}`,
+      `Bearer ${cred}`,
+      `${cred}`,
+      `Basic ${noColon}`,
+      `basic ${noColon}`,
+    ]) {
+      const [status] = await agent.handleRequest('GET', 'http://localhost:3000/', {
+        authorization: header,
+      });
+      expect(status).toBe(401);
+    }
   });
 
   it('307-redirects from a routing callback receiving (body, headers)', async () => {

@@ -1,5 +1,52 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { SchemaUtils } from '../src/SchemaUtils.js';
+
+/**
+ * The verb used to stand in for "docs chose not to enrich this one". Any verb
+ * works -- `hangup` is picked because it has no required inner properties, so
+ * the un-enriched copy still validates against an empty config and the test can
+ * show that dropping the prose degrades nothing else.
+ */
+const UNENRICHED_VERB = 'hangup';
+
+/**
+ * Find the PascalCase `$defs` key that declares `verbName`, by walking
+ * `SWMLMethod.anyOf` the way SchemaUtils' own loader does. Derived rather than
+ * hardcoded so the helper does not pin a second fixture spelling.
+ */
+function schemaDefKeyForVerb(schemaDoc: Record<string, unknown>, verbName: string): string {
+  const defs = schemaDoc['$defs'] as Record<string, Record<string, unknown>>;
+  const anyOf = (defs['SWMLMethod'] as Record<string, unknown>)['anyOf'] as Record<
+    string,
+    unknown
+  >[];
+  for (const ref of anyOf) {
+    const key = (ref['$ref'] as string).split('/').pop()!;
+    const props = defs[key]?.['properties'] as Record<string, unknown> | undefined;
+    if (props && Object.keys(props)[0] === verbName) return key;
+  }
+  throw new Error(`no $defs entry declares verb '${verbName}'`);
+}
+
+/** Ajv's ESM/CJS interop default, as SchemaUtils itself resolves it. */
+const AjvCtor = ((Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ??
+  Ajv2020) as unknown as new (o: object) => object;
+
+/** A minimal VALID config for each verb that reaches the unbundled external $ref. */
+const legitConfigs: Record<string, unknown> = {
+  ai: { prompt: { text: 'hello' } },
+  ai_sidecar: { prompt: { text: 'hello' }, lang: 'en' },
+  amazon_bedrock: { prompt: { text: 'hello' } },
+  cond: [{ when: 'x == 1', then: [{ hangup: {} }] }],
+  connect: { to: 'sip:alice@example.com' },
+  execute: { dest: 'main' },
+  join_conference: { name: 'room1' },
+  switch: { variable: 'x', case: { a: [{ hangup: {} }] } },
+};
 
 describe('SchemaUtils — verb extraction and validation', () => {
   let schema: SchemaUtils;
@@ -107,20 +154,132 @@ describe('SchemaUtils — verb extraction and validation', () => {
     });
   });
 
+  // getVerbDescription is an ACCESSOR over whatever prose the schema happens to
+  // carry -- it is not a wire fact. Descriptions are editorial: the docs pipeline
+  // may reword a verb's text, or legitimately decline to enrich a verb at all (a
+  // deprecated or internal one), and neither is a defect in this SDK. So these
+  // tests assert ACCESSOR properties, driven from the fixture rather than from
+  // prose spelled out here: surfaces exactly the schema's text when present,
+  // returns '' when absent, never throws, never returns undefined. Pinning the
+  // literal English (previously `toContain('End the call')` for hangup) turned a
+  // copy edit in another repo into a red port, and requiring a specific verb to be
+  // enriched (previously `length > 0` for tap) turned an editorial decision into
+  // a failing build.
   describe('getVerbDescription()', () => {
-    it('returns description for hangup', () => {
-      const desc = schema.getVerbDescription('hangup');
-      expect(desc).toContain('End the call');
+    /** The description the schema itself records for a verb, or '' when unenriched. */
+    const fixtureDescription = (verbName: string): string => {
+      const inner = schema.getVerbProperties(verbName) as Record<string, unknown>;
+      const d = inner['description'];
+      return typeof d === 'string' ? d : '';
+    };
+
+    it('surfaces exactly the schema description for every enriched verb', () => {
+      const enriched = schema.getVerbNames().filter((v) => fixtureDescription(v) !== '');
+      // Guard against a vacuous pass: if the schema carried no prose at all this
+      // assertion loop would be empty and prove nothing. It is not a claim that
+      // any PARTICULAR verb is enriched -- only that when some are, we check them.
+      expect(enriched.length).toBeGreaterThan(0);
+      for (const verbName of enriched) {
+        expect(schema.getVerbDescription(verbName)).toBe(fixtureDescription(verbName));
+      }
     });
 
-    it('returns description for tap', () => {
-      const desc = schema.getVerbDescription('tap');
-      expect(desc.length).toBeGreaterThan(0);
+    it('returns empty string for every verb the schema does not enrich', () => {
+      const unenriched = schema.getVerbNames().filter((v) => fixtureDescription(v) === '');
+      for (const verbName of unenriched) {
+        expect(schema.getVerbDescription(verbName)).toBe('');
+      }
+    });
+
+    it('returns a string -- never undefined -- for every verb in the schema', () => {
+      for (const verbName of schema.getVerbNames()) {
+        expect(typeof schema.getVerbDescription(verbName)).toBe('string');
+      }
     });
 
     it('returns empty string for unknown verb', () => {
       const desc = schema.getVerbDescription('nonexistent');
       expect(desc).toBe('');
+    });
+
+    it('does not throw for an unknown verb or an empty name', () => {
+      expect(() => schema.getVerbDescription('nonexistent')).not.toThrow();
+      expect(() => schema.getVerbDescription('')).not.toThrow();
+      expect(schema.getVerbDescription('')).toBe('');
+    });
+
+    // The scenario the accessor exists to tolerate: the verb IS in the schema, but
+    // the docs pipeline chose not to enrich it (deprecated / internal / unwritten).
+    // The bundled schema currently enriches all of its verbs, so the only way to
+    // exercise this branch is against a schema that deliberately omits the prose.
+    describe('a verb that exists but is deliberately not enriched', () => {
+      let tmpRoot: string;
+      let deprosedPath: string;
+      let deprosed: SchemaUtils;
+
+      beforeEach(() => {
+        // Repo-local scratch (gitignored .sw-tmp/), derived from this test file's
+        // own location so it is CWD-independent -- not a machine-wide temp dir.
+        const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+        const scratch = join(repoRoot, '.sw-tmp');
+        mkdirSync(scratch, { recursive: true });
+        tmpRoot = mkdtempSync(join(scratch, 'swts_deprosed_'));
+        deprosedPath = join(tmpRoot, 'schema.json');
+
+        // Start from the real bundled schema and strip the description from ONE
+        // verb, so the file differs from the shipped one in exactly that respect.
+        const bundled = JSON.parse(
+          readFileSync(fileURLToPath(new URL('../src/schema.json', import.meta.url)), 'utf8'),
+        ) as Record<string, unknown>;
+        const defs = bundled['$defs'] as Record<string, Record<string, unknown>>;
+        const target = defs[schemaDefKeyForVerb(bundled, UNENRICHED_VERB)]!;
+        const outer = target['properties'] as Record<string, Record<string, unknown>>;
+        delete outer[UNENRICHED_VERB]!['description'];
+
+        writeFileSync(deprosedPath, JSON.stringify(bundled));
+        deprosed = new SchemaUtils({ schemaPath: deprosedPath });
+      });
+
+      afterEach(() => {
+        rmSync(tmpRoot, { recursive: true, force: true });
+      });
+
+      it('loaded the de-prosed schema, not the bundled one', () => {
+        // Load-failure is SILENT: loadSchema() falls back to the bundled schema
+        // while `schemaPath` still reads back whatever was passed in (verified:
+        // a bogus path yields schemaPath='/nonexistent/xyz.json' AND the full
+        // 39-verb bundled schema). So the readback proves nothing on its own --
+        // assert against the CONTENT that was actually loaded, otherwise this
+        // whole block could pass while testing the bundled schema.
+        const loaded = deprosed.loadSchema()!;
+        const defs = loaded['$defs'] as Record<string, Record<string, unknown>>;
+        const inner = defs[schemaDefKeyForVerb(loaded, UNENRICHED_VERB)]!['properties'] as Record<
+          string,
+          Record<string, unknown>
+        >;
+        expect(inner[UNENRICHED_VERB]).not.toHaveProperty('description');
+        // ...and the bundled schema DOES enrich it, so the absence above is the
+        // de-prosed copy and not a property the schema never had.
+        expect(schema.getVerbDescription(UNENRICHED_VERB)).not.toBe('');
+        expect(deprosed.hasVerb(UNENRICHED_VERB)).toBe(true);
+      });
+
+      it('returns empty string and does not throw', () => {
+        expect(() => deprosed.getVerbDescription(UNENRICHED_VERB)).not.toThrow();
+        expect(deprosed.getVerbDescription(UNENRICHED_VERB)).toBe('');
+      });
+
+      it('still exposes the verb and validates it normally', () => {
+        // Declining to document a verb must not degrade any other behaviour.
+        expect(deprosed.getVerbNames()).toContain(UNENRICHED_VERB);
+        expect(deprosed.getVerbProperties(UNENRICHED_VERB)).toHaveProperty('type', 'object');
+        expect(deprosed.validateVerb(UNENRICHED_VERB, {}).valid).toBe(true);
+      });
+
+      it('leaves other verbs unaffected', () => {
+        const other = schema.getVerbNames().find((v) => v !== UNENRICHED_VERB)!;
+        expect(deprosed.getVerbDescription(other)).toBe(schema.getVerbDescription(other));
+      });
     });
   });
 
@@ -188,6 +347,89 @@ describe('SchemaUtils — verb extraction and validation', () => {
     });
   });
 
+  // A verb whose $defs subtree transitively reaches `SWMLAction` hits the
+  // schema's one unbundled external `$ref` (`SWMLObject.json`). Ajv resolves
+  // refs EAGERLY, so compiling those verbs used to THROW; `getVerbValidator`'s
+  // bare catch swallowed it and `validateVerb` fell through to the permissive
+  // lightweight check — so a config nobody validated came back
+  // `{valid: true, errors: []}`. Measured on main @6a2aa09:
+  //   validateVerb('connect', {to, zzz_not_a_real_key}) -> {"valid":true,"errors":[]}
+  // 8 of 39 verbs degraded this way, all via
+  // `… -> Action -> SWMLAction -> SWMLObject.json`.
+  describe('unbundled external $ref must not silently disable validation', () => {
+    // Every verb that reached SWMLAction, i.e. the full blast radius.
+    const previouslyDegraded = [
+      'ai',
+      'ai_sidecar',
+      'amazon_bedrock',
+      'cond',
+      'connect',
+      'execute',
+      'join_conference',
+      'switch',
+    ];
+
+    // Compiling all 39 verbs eagerly is a test-only sweep and costs ~2.5s: the 7
+    // verbs that recurse through `SWMLMethod` are ~200-400ms each (they were
+    // "free" before only because they threw immediately). Real callers compile
+    // lazily and cache — one cold verb is ~330ms, warm is ~0.02ms.
+    it('compiles a validator for EVERY verb in the schema', () => {
+      expect(schema.precompileVerbValidators()).toEqual({});
+    }, 30_000);
+
+    it('rejects an unknown key on connect (the reported case)', () => {
+      const result = schema.validateVerb('connect', {
+        to: 'sip:alice@example.com',
+        zzz_not_a_real_key: 1,
+      });
+      expect(result.valid).toBe(false);
+    });
+
+    it('still accepts a legitimate connect config', () => {
+      expect(schema.validateVerb('connect', { to: 'sip:alice@example.com' }).valid).toBe(true);
+    });
+
+    it.each(previouslyDegraded)('rejects an unknown key on %s', (verb) => {
+      // `cond` takes an ARRAY of CondParams; inject the bogus key into an element.
+      const config: Record<string, unknown> | unknown[] =
+        verb === 'cond'
+          ? [{ when: 'x == 1', then: [{ hangup: {} }], zzz_not_a_real_key: 1 }]
+          : { ...(legitConfigs[verb] as object), zzz_not_a_real_key: 1 };
+      expect(schema.validateVerb(verb, config).valid).toBe(false);
+    });
+
+    it.each(previouslyDegraded)('still accepts a legitimate %s config', (verb) => {
+      expect(schema.validateVerb(verb, legitConfigs[verb]).valid).toBe(true);
+    });
+
+    // The ref policy is the root fix; THIS is the backstop. Even if a verb's
+    // schema someday fails to compile for an unrelated reason, the caller must
+    // be told validation did not happen rather than handed a false pass.
+    it('reports a refusal, never `valid: true`, when a verb fails to compile', () => {
+      const su = new SchemaUtils();
+      su.getVerbNames();
+      // Reinstate the pre-fix condition: an Ajv instance with no placeholder
+      // registered for the unbundled external ref.
+      const internals = su as unknown as {
+        ajv: unknown;
+        verbValidators: Map<string, unknown>;
+        compileFailures: Map<string, string>;
+      };
+      internals.verbValidators.clear();
+      internals.compileFailures.clear();
+      internals.ajv = new AjvCtor({ allErrors: true, strict: false, logger: false });
+
+      const result = su.validateVerb('connect', {
+        to: 'sip:alice@example.com',
+        zzz_not_a_real_key: 1,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toContain('failed to compile');
+      expect(result.errors[0]).toContain('NOT validated');
+      expect(Object.keys(su.compileFailedVerbs)).toContain('connect');
+    });
+  });
+
   describe('SWML_SKIP_SCHEMA_VALIDATION', () => {
     it('skips validation when skipValidation is true', () => {
       const skipped = new SchemaUtils({ skipValidation: true });
@@ -210,5 +452,78 @@ describe('SchemaUtils — verb extraction and validation', () => {
         }
       }
     });
+  });
+});
+
+// ── hangup.reason: the SDK validates the value set the ENGINE validates ──────
+//
+// The engine's contract is stated once, in C, at
+// mod_infrastructure/relay_apis.c:1105:
+//
+//   JSON_CHECK_STRING_MATCHES_OPTIONAL(reason, "hangup,cancel,busy,noAnswer,decline,error")
+//
+// and a non-match is a hard reject (libks ks_json_check.h sets *error_msg and
+// returns 0). The SWML layer types the field as a bare string
+// (swml_schema.c:1571) and swml.c forwards it verbatim into the `end` RPC on
+// the same call, so the contract a document must satisfy is the COMPOSITION of
+// the two layers — exactly these six values.
+//
+// This replaces the previous `x-sdk-widen` suite, which asserted the OPPOSITE:
+// that 'user_hangup', 'no_answer' and 'anything-at-all' must validate. The
+// engine refuses all three, so those rows pinned a bug. The bundled schema had
+// listed only hangup|busy|decline and carried the marker, and the SDK stripped
+// the value set before compiling — which accepted the three engine values the
+// schema omitted, but accepted everything else too.
+describe('SchemaUtils — hangup.reason matches the engine value set', () => {
+  const su = new SchemaUtils();
+
+  // The six values from relay_apis.c:1105, in source order. Note the camelCase
+  // 'noAnswer' — 'no_answer' is NOT an engine value in any spelling.
+  const ENGINE_REASONS = ['hangup', 'cancel', 'busy', 'noAnswer', 'decline', 'error'];
+
+  // Guard the artifact itself, so a re-vendor that reintroduces the three-value
+  // union or the marker is caught here rather than only through behaviour.
+  it('the bundled schema publishes the six engine values and no widen marker', () => {
+    const schema = su.loadSchema() as Record<string, unknown>;
+    const defs = schema['$defs'] as Record<string, Record<string, unknown>>;
+    const hangup = defs['Hangup']!['properties'] as Record<string, Record<string, unknown>>;
+    const reason = (hangup['hangup']!['properties'] as Record<string, Record<string, unknown>>)[
+      'reason'
+    ]!;
+    expect(reason['x-sdk-widen']).toBeUndefined();
+    expect(reason['enum']).toEqual(ENGINE_REASONS);
+  });
+
+  it('accepts every value the engine accepts', () => {
+    // cancel, noAnswer and error were absent from the old three-const union and
+    // validated only because widen removed the constraint altogether.
+    for (const reason of ENGINE_REASONS) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${reason} errors=${JSON.stringify(result.errors)}`).toBe(true);
+    }
+  });
+
+  it('rejects a value the engine refuses', () => {
+    // The behaviour change, and it is intended: these previously validated.
+    // Rejecting locally is STRICTER and correct — the caller gets a clear
+    // client-side error instead of an opaque server-side call failure.
+    for (const reason of ['user_hangup', 'no_answer', 'anything-at-all', 'HANGUP', '']) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${reason} unexpectedly accepted`).toBe(false);
+    }
+  });
+
+  it('still rejects the wrong TYPE', () => {
+    for (const reason of [42, true, { nested: 'object' }, ['array']]) {
+      const result = su.validateVerb('hangup', { reason });
+      expect(result.valid, `reason=${JSON.stringify(reason)} unexpectedly accepted`).toBe(false);
+    }
+  });
+
+  it('leaves other verbs alone', () => {
+    // Blast-radius check: removing the widen transform must not have changed
+    // validation anywhere else.
+    const result = su.validateVerb('play', { url: 12345 });
+    expect(result.valid).toBe(false);
   });
 });

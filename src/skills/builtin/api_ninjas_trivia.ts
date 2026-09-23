@@ -105,11 +105,10 @@ export class ApiNinjasTriviaSkill extends SkillBase {
   }
 
   /**
-   * Produce a compound instance key matching Python `get_instance_key`
-   * (skill.py:139-146): `f"{SKILL_NAME}_{self.tool_name}"` with
-   * `tool_name` defaulting to `'get_trivia'` (skill.py:95). The base
+   * Produce a compound instance key of the form `<skillName>_<tool_name>`,
+   * with `tool_name` defaulting to `'get_trivia'`. The base
    * `SkillBase.getInstanceKey` uses `this.skillName` as the fallback,
-   * so we override to match Python's `'get_trivia'` default.
+   * so this override supplies the `'get_trivia'` default.
    */
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', 'get_trivia');

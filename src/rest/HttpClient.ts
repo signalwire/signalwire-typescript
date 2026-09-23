@@ -30,7 +30,6 @@ const logger = getLogger('rest_client');
  * so a shipped example runs verbatim against the local mock
  * (SIGNALWIRE_SPACE=127.0.0.1:<port>) without a code change. A real SignalWire
  * space (`<name>.signalwire.com`) is never loopback, so production is unaffected.
- * Mirrors the python reference `rest/_base.py:_is_loopback_host`.
  *
  * Module-private (not exported) — an internal transport helper, not public API
  * surface. RestClient reaches it by passing `host` to this HttpClient rather
@@ -50,7 +49,7 @@ function isLoopbackHost(host: string): boolean {
  * REST client User-Agent, derived at runtime from the installed package version
  * so it can never drift from a hardcoded literal (the token used to be a stale
  * `@signalwire/sdk-ts/2.0.0` while the package moved on). The product token is
- * `signalwire-typescript`, mirroring the Python reference's `signalwire-python/<v>`.
+ * `signalwire-typescript`, giving the SignalWire `<product>/<version>` form.
  *
  * `../../package.json` resolves identically in both layouts — from `src/rest/`
  * during dev (tsx) and from `dist/rest/` when installed — since package.json
@@ -76,8 +75,7 @@ const USER_AGENT = buildUserAgent();
  * no aliases). When the env var names a CA bundle, it becomes the REST HTTP
  * client's TLS trust root — the exact REST half of the fleet pair
  * (`SIGNALWIRE_RELAY_CA_FILE` is the RELAY half). Unset → node's default trust
- * store (no dispatcher attached). Mirrors the python reference
- * (`rest/_base.py:163` — `session.verify = SIGNALWIRE_REST_CA_FILE`).
+ * store (no dispatcher attached).
  *
  * The result is cached per resolved file path so repeated requests reuse one
  * connection pool. Returns `undefined` when the env var is unset (or the file

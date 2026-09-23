@@ -28,7 +28,6 @@ declare global {
   - [parameter](#parameter)
 - [Webhooks](#webhooks)
   - [webhook](#webhook)
-  - [body](#body)
   - [params](#params)
   - [Webhook Headers](#webhook-headers)
 - [Expressions](#expressions)
@@ -253,43 +252,14 @@ const tool2 = new DataMap('create_ticket')
 
 ---
 
-### body
-
-Set the JSON body for the most recently added webhook. Must be called after `webhook()`.
-
-<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
-```typescript
-body(data: Record<string, unknown>): this
-```
-
-| Parameter | Type                       | Description                |
-|-----------|----------------------------|----------------------------|
-| `data`    | `Record<string, unknown>`  | The request body object.   |
-
-**Throws:** `Error` if no webhook has been added yet.
-
-**Returns:** `this` for chaining.
-
-```typescript
-const tool = new DataMap('create_ticket')
-  .purpose('Create a support ticket')
-  .parameter('subject', 'string', 'Ticket subject', { required: true })
-  .parameter('priority', 'string', 'Priority level', { enum: ['low', 'medium', 'high'] })
-  .webhook('POST', 'https://api.helpdesk.example.com/tickets', {
-    headers: { 'Authorization': 'Bearer my-api-key' },
-  })
-  .body({
-    subject: '${args.subject}',
-    priority: '${args.priority}',
-    source: 'phone-call',
-  });
-```
-
----
-
 ### params
 
-Set query or form parameters for the most recently added webhook. Must be called after `webhook()`.
+Set query or form parameters for the most recently added webhook — including POST/PUT
+request data. Must be called after `webhook()`.
+
+> There is no `body()` builder. `params` is the only request-data key in the webhook
+> contract: `schema.json` `$defs/Webhook` permits exactly ten properties and forbids
+> everything else, and the engine's webhook readers look up `params`, never `body`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -442,7 +412,7 @@ const tool = new DataMap('urgent_alert')
   .purpose('Send an urgent alert')
   .parameter('message', 'string', 'Alert message', { required: true })
   .webhook('POST', 'https://api.alerts.example.com/send')
-  .body({ message: '${args.message}' })
+  .params({ message: '${args.message}' })
   .output(
     new FunctionResult('Alert sent: ${response.alert_id}')
       .setMetadata({ alert_id: '${response.alert_id}' }),
@@ -826,7 +796,6 @@ createSimpleApiTool(opts: {
   }>;
   method?: string;
   headers?: Record<string, string>;
-  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap
 ```
@@ -839,7 +808,6 @@ createSimpleApiTool(opts: {
 | `opts.parameters`       | `Record<string, {...}>`    | --        | Parameter definitions.                            |
 | `opts.method`           | `string`                   | `'GET'`   | HTTP method.                                      |
 | `opts.headers`          | `Record<string, string>`   | --        | Request headers.                                  |
-| `opts.body`             | `Record<string, unknown>`  | --        | Request body (for POST/PUT).                      |
 | `opts.errorKeys`        | `string[]`                 | --        | Response keys indicating errors.                  |
 
 **Returns:** A configured `DataMap` instance ready for registration.
@@ -868,10 +836,6 @@ const searchTool = createSimpleApiTool({
   },
   headers: {
     'Authorization': 'Bearer my-token',
-  },
-  body: {
-    q: '${args.query}',
-    max: '${args.limit}',
   },
   errorKeys: ['error'],
 });
@@ -1070,7 +1034,7 @@ const ticketTool = new DataMap('create_ticket')
       'Content-Type': 'application/json',
     },
   })
-  .body({
+  .params({
     subject: '${args.subject}',
     priority: '${args.priority}',
     description: '${args.description}',

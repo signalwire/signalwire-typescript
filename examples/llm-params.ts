@@ -35,15 +35,15 @@ agent.setParams({
   background_file_volume: 10,
 });
 
-// Language with function-level fillers (keyed by category → phrases)
+// Language with both filler lists. `speechFillers` play between conversational
+// turns; `functionFillers` play while a SWAIG function runs. Both are flat string
+// lists, matching `speech_fillers` / `function_fillers` in the SWML schema.
 agent.addLanguage({
   name: 'English',
   code: 'en-US',
   voice: 'rachel',
-  fillers: { thinking: ['one moment please', 'let me check that for you', 'just a second'] },
-  functionFillers: {
-    check_availability: { 'en-US': ['looking that up now', 'searching our records'] },
-  },
+  speechFillers: ['one moment please', 'let me check that for you', 'just a second'],
+  functionFillers: ['looking that up now', 'searching our records'],
 });
 
 // Post-prompt for structured call summary
