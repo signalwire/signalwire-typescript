@@ -116,6 +116,15 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- The per-request copy of an agent loaded every skill again, running each
+  skill's `setup()` on every request, and its skill list was empty while
+  that finished. It now starts with the skills the agent loaded, without
+  setting them up again. Removing one from the copy leaves the agent's
+  instance alone.
+- With a dynamic config callback, an agent's structured (POM) prompt was
+  rendered to text on the per-request copy, and a section the callback added
+  with `promptAddSection()` was lost. The copy now keeps the POM sections, so
+  the prompt stays structured and includes the callback's sections.
 - `LOG_LEVEL` is case-insensitive and an unknown value falls back to `info`
   (never `debug`).
 - `paginate()` guards against a repeating server cursor (no infinite loop).

@@ -38,6 +38,21 @@ export class PromptManager {
   }
 
   /**
+   * A copy of this manager's prompt state (raw text, post-prompt and POM
+   * sections) owned by `agent`, for a per-request copy of the agent. The POM
+   * sections are copied, not rendered to text, so the copy still emits a
+   * structured prompt and can add sections of its own.
+   * @internal
+   */
+  _copyFor(agent?: AgentBase): PromptManager {
+    const copy = new PromptManager(this.usePom, agent);
+    copy.rawText = this.rawText;
+    copy.postPrompt = this.postPrompt;
+    copy.pom = this.pom ? PomBuilder.fromSections(this.pom.toDict()) : null;
+    return copy;
+  }
+
+  /**
    * Sets the raw prompt text, bypassing POM rendering.
    * @param text - The raw prompt string.
    */

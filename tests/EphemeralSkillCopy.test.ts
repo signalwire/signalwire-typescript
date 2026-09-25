@@ -114,4 +114,73 @@ describe('Ephemeral Skill Copy', () => {
     expect(ephTool).toBeDefined();
     expect(ephTool!.wait_file).toBe('hold.mp3');
   });
+
+  describe('the copy inherits loaded skills', () => {
+    class CountingSkill extends SkillBase {
+      static override SKILL_NAME = 'counting_skill';
+      static override SKILL_DESCRIPTION = 'Counts setup calls';
+      static setups = 0;
+      static cleanups = 0;
+      override async setup(): Promise<boolean> {
+        CountingSkill.setups++;
+        return true;
+      }
+      override async cleanup(): Promise<void> {
+        CountingSkill.cleanups++;
+      }
+      getTools(): SkillToolDefinition[] {
+        return [
+          { name: 'counted', description: 'counted', handler: () => new FunctionResult('ok') },
+        ];
+      }
+    }
+
+    const auth = { Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64') };
+
+    it("runs a skill's setup once, however many requests are served", async () => {
+      CountingSkill.setups = 0;
+      const agent = new AgentBase({ name: 'inherit', route: '/', basicAuth: ['user', 'pass'] });
+      agent.setPromptText('inherit');
+      await agent.addSkill(new CountingSkill());
+      const seen: string[][] = [];
+      agent.setDynamicConfigCallback((_q, _b, _h, copy) => {
+        seen.push(copy.listSkills().map((s) => s.name));
+      });
+      for (let i = 0; i < 3; i++) {
+        expect((await agent.getApp().request('/', { headers: auth })).status).toBe(200);
+      }
+      expect(CountingSkill.setups).toBe(1);
+      expect(seen).toEqual([['counting_skill'], ['counting_skill'], ['counting_skill']]);
+    });
+
+    it('removing an inherited skill on the copy leaves the agent and the instance alone', async () => {
+      CountingSkill.cleanups = 0;
+      const agent = new AgentBase({ name: 'inherit2', route: '/', basicAuth: ['user', 'pass'] });
+      agent.setPromptText('inherit');
+      await agent.addSkill(new CountingSkill());
+      agent.setDynamicConfigCallback(async (_q, _b, _h, copy) => {
+        await copy.removeSkillByName('counting_skill');
+      });
+      await agent.getApp().request('/', { headers: auth });
+      expect(agent.hasSkill('counting_skill')).toBe(true);
+      expect(CountingSkill.cleanups).toBe(0);
+    });
+  });
+
+  it('keeps a POM prompt structured on the copy, with the sections a callback adds', async () => {
+    const agent = new AgentBase({ name: 'pom-copy', route: '/', basicAuth: ['user', 'pass'] });
+    agent.promptAddSection('Role', { body: 'You help.' });
+    agent.setDynamicConfigCallback((_q, _b, _h, copy) => {
+      copy.promptAddSection('Tenant', { body: 'Acme' });
+    });
+    const res = await agent.getApp().request('/', {
+      headers: { Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64') },
+    });
+    const swml = await res.json();
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    expect(ai.prompt.text).toBeUndefined();
+    expect(ai.prompt.pom.map((s: { title: string }) => s.title)).toEqual(['Role', 'Tenant']);
+    // The agent's own prompt is unchanged.
+    expect(agent.getPromptPom()!.map((s) => s['title'])).toEqual(['Role']);
+  });
 });

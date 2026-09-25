@@ -2619,15 +2619,11 @@ export class AgentBase extends SWMLService {
     // contexts builder's back-reference) are redirected to the copy.
     const memo = new Map<object, unknown>([[this, copy]]);
     const clone = <T>(value: T): T => deepCloneState(value, memo);
-    // The back-reference must point at the COPY, not `this` — an ephemeral
-    // per-request clone whose manager still pointed at the original would read
-    // back the wrong agent (the clone-drops-configuration defect class).
-    copy._promptManager = new PromptManager(true, copy);
-    // Carry over the current prompt
-    const p = this.getPrompt();
-    if (p) copy._promptManager.setPromptText(p);
-    const pp = this.getPostPrompt();
-    if (pp) copy._promptManager.setPostPrompt(pp);
+    // The copy's own prompt state, with the POM sections copied rather than
+    // rendered to text, so it still emits a structured prompt and a callback
+    // can add sections to it. The back-reference points at the COPY, not
+    // `this` (the clone-drops-configuration defect class).
+    copy._promptManager = this._promptManager._copyFor(copy);
     copy.toolRegistry = new Map(this.toolRegistry);
     copy.hints = clone(this.hints);
     copy.languages = clone(this.languages);
@@ -2652,65 +2648,12 @@ export class AgentBase extends SWMLService {
     // Back-reference points at the COPY, not `this` (see _promptManager above).
     copy.swmlBuilder = new SwmlBuilder({ service: copy });
 
-    // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
-    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    // The copy starts with the skills this agent loaded. Their tools, hints,
+    // prompt sections and global data are already in the state copied above,
+    // so they aren't set up again: running every skill's setup() on every
+    // request was slow, and left the copy's skill list empty until it finished.
     copy._skillManager = new SkillManager(copy);
-    for (const entry of this._skillManager.getLoadedSkillEntries()) {
-      try {
-        // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
-        // registry only ever holds concrete subclasses, so widen to a
-        // constructable signature before instantiating.
-        const SkillCtor = entry.SkillClass as unknown as new (config?: SkillConfig) => SkillBase;
-        const skill = new SkillCtor(entry.config);
-        skill.setAgent(copy);
-        // Synchronous re-add: mark initialized, register tools/prompts/hints/data
-        skill.markInitialized();
-        copy._skillManager.addSkill(skill).catch((err: unknown) => {
-          // Swallow re-add errors in the cloning path — the primary agent already
-          // validated env vars / packages / schema / setup when this skill was first
-          // added, and the clone inherits that validation. Python's equivalent at
-          // skill_manager.py:161-170 specifically swallows "already exists"
-          // ValueErrors during cloning; TS has no such error class (toolRegistry
-          // uses Map.set which silently overwrites), so the blanket swallow is
-          // the closest parity. Log at debug so the error isn't entirely lost.
-          this.log.debug('Skipping re-add error during agent clone', {
-            skill: entry.skillName,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        });
-
-        for (const toolDef of skill.getTools()) {
-          copy.defineTool(toolDef);
-          const fn = copy.toolRegistry.get(toolDef.name);
-          if (fn instanceof SwaigFunction) {
-            if (Object.keys(skill.swaigFields).length > 0) {
-              safeAssign(fn.extraFields, skill.swaigFields);
-            }
-            if (toolDef.wait_for_fillers !== undefined) {
-              fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
-            }
-            if (toolDef.skip_fillers !== undefined) {
-              fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
-            }
-            if (toolDef.isHangupHook) {
-              fn.extraFields['is_hangup_hook'] = true;
-            }
-          }
-        }
-        for (const dmFn of skill.getDataMapTools()) {
-          copy.registerSwaigFunction(dmFn);
-        }
-        for (const section of skill.getPromptSections()) {
-          copy.promptAddSection(section.title, section);
-        }
-        const hints = skill.getHints();
-        if (hints.length) copy.addHints(hints);
-        const globalData = skill.getGlobalData();
-        if (Object.keys(globalData).length) copy.updateGlobalData(globalData);
-      } catch (e) {
-        this.log.warn(`Failed to replay skill '${entry.skillName}' in ephemeral copy: ${e}`);
-      }
-    }
+    copy._skillManager._inheritFrom(this._skillManager);
 
     return copy;
   }

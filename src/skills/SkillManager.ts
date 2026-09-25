@@ -49,6 +49,8 @@ interface SkillMetaEntry {
 export class SkillManager {
   private skills: Map<string, SkillBase> = new Map();
   private skillMeta: Map<string, SkillMetaEntry> = new Map();
+  /** Instance keys taken over from another manager by {@link _inheritFrom}. */
+  private inherited: Set<string> = new Set();
   /**
    * The agent this manager belongs to (the reference's public `self.agent`), or
    * `undefined` when the manager is used standalone (a bare `new SkillManager()`,
@@ -62,6 +64,23 @@ export class SkillManager {
    */
   constructor(agent?: AgentBase) {
     this.agent = agent;
+  }
+
+  /**
+   * Start with the skills another manager has loaded, for a per-request copy
+   * of its agent. The skill instances are shared and not set up again: their
+   * tools, hints, prompt sections and global data are already in the agent
+   * the copy was made from. Removing an inherited skill from this manager
+   * drops it here without cleaning up the shared instance.
+   * @internal
+   */
+  _inheritFrom(other: SkillManager): void {
+    for (const [key, skill] of other.skills) {
+      this.skills.set(key, skill);
+      const meta = other.skillMeta.get(key);
+      if (meta) this.skillMeta.set(key, meta);
+      this.inherited.add(key);
+    }
   }
 
   /**
@@ -183,7 +202,8 @@ export class SkillManager {
 
     if (!skill) return false;
 
-    await skill.cleanup();
+    // An inherited instance still belongs to the agent it came from.
+    if (!this.inherited.delete(key)) await skill.cleanup();
     this.skills.delete(key);
     this.skillMeta.delete(key);
     log.debug(`Removed skill '${skill.skillName}' (${key})`);
@@ -445,10 +465,11 @@ export class SkillManager {
    * Remove all skills and clean up.
    */
   async clear(): Promise<void> {
-    for (const skill of this.skills.values()) {
-      await skill.cleanup();
+    for (const [key, skill] of this.skills) {
+      if (!this.inherited.has(key)) await skill.cleanup();
     }
     this.skills.clear();
     this.skillMeta.clear();
+    this.inherited.clear();
   }
 }
