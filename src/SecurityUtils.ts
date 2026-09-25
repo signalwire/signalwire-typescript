@@ -6,6 +6,7 @@
  */
 
 import { lookup } from 'node:dns/promises';
+import { BlockList, isIP } from 'node:net';
 import { getExecutionMode } from './Logger.js';
 
 /** Maximum allowed input length for skill handler arguments (characters). */
@@ -79,67 +80,156 @@ export function isValidHostname(host: string): boolean {
   return !/[\s/\\]/.test(host) && !/[\x00-\x1f\x7f]/.test(host);
 }
 
+/** Private and reserved networks a user-supplied URL must not reach. */
+const BLOCKED_NETWORKS = (() => {
+  const list = new BlockList();
+  list.addSubnet('10.0.0.0', 8, 'ipv4');
+  list.addSubnet('172.16.0.0', 12, 'ipv4');
+  list.addSubnet('192.168.0.0', 16, 'ipv4');
+  list.addSubnet('127.0.0.0', 8, 'ipv4');
+  list.addSubnet('169.254.0.0', 16, 'ipv4'); // link-local, including cloud metadata
+  list.addSubnet('0.0.0.0', 8, 'ipv4');
+  list.addAddress('::1', 'ipv6');
+  list.addSubnet('fc00::', 7, 'ipv6'); // IPv6 private
+  list.addSubnet('fe80::', 10, 'ipv6'); // IPv6 link-local
+  return list;
+})();
+
 /**
- * Check whether an IP address belongs to a private/reserved range.
- * Covers RFC1918, loopback, link-local, IPv6 private (fc/fd, ::1, fe80).
- * @param ip - The IP address string to check.
- * @returns True if the IP is private/reserved.
+ * Expand an IPv6 address to its eight 16-bit groups, or `null` if it isn't
+ * one. Handles `::` compression and a trailing dotted IPv4 part.
  */
-export function isPrivateIp(ip: string): boolean {
-  // IPv4
-  if (/^127\./.test(ip)) return true;
-  if (/^10\./.test(ip)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
-  if (/^192\.168\./.test(ip)) return true;
-  if (/^169\.254\./.test(ip)) return true;
-  if (ip === '0.0.0.0') return true;
-
-  // IPv6
-  if (ip === '::1') return true;
-  if (/^f[cd]/i.test(ip)) return true;
-  if (/^fe80/i.test(ip)) return true;
-
-  return false;
+function ipv6Groups(addr: string): number[] | null {
+  if (isIP(addr) !== 6) return null;
+  // Rewrite a trailing dotted IPv4 part (::ffff:1.2.3.4) as two hex groups.
+  const text = addr.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/, (_m, a, b, c, d) => {
+    const hi = ((Number(a) << 8) | Number(b)).toString(16);
+    const lo = ((Number(c) << 8) | Number(d)).toString(16);
+    return `${hi}:${lo}`;
+  });
+  const parse = (part: string) => (part ? part.split(':').map((g) => parseInt(g, 16)) : []);
+  let groups: number[];
+  if (text.includes('::')) {
+    const [head = '', tail = ''] = text.split('::');
+    const left = parse(head);
+    const right = parse(tail);
+    groups = [...left, ...new Array(8 - left.length - right.length).fill(0), ...right];
+  } else {
+    groups = parse(text);
+  }
+  return groups.length === 8 ? groups : null;
 }
 
 /**
- * DNS-resolve a URL's hostname and reject it if it points to a private IP.
+ * Check whether an address is one a user-supplied URL must not reach: a
+ * private, loopback, link-local or reserved address, or the unspecified
+ * address (`0.0.0.0` or `::`), which connects to the local host.
+ *
+ * Accepts IPv6 in brackets (as `URL.hostname` gives it) and with a zone id.
+ * An IPv4-mapped IPv6 address (`::ffff:169.254.169.254`, in any spelling)
+ * reaches the IPv4 host, so the IPv4 address it carries is what's checked.
+ * A string that isn't an IP address returns `false`.
+ *
+ * @param ip - The IP address string to check.
+ * @returns True if the address is private, internal or unspecified.
+ */
+export function isPrivateIp(ip: string): boolean {
+  let addr = ip.trim();
+  if (addr.startsWith('[') && addr.endsWith(']')) addr = addr.slice(1, -1);
+  const zone = addr.indexOf('%');
+  if (zone !== -1) addr = addr.slice(0, zone);
+
+  const family = isIP(addr);
+  if (family === 4) return BLOCKED_NETWORKS.check(addr, 'ipv4');
+  if (family !== 6) return false;
+
+  const groups = ipv6Groups(addr);
+  if (!groups) return false;
+  if (groups.every((g) => g === 0)) return true;
+  const mapped = groups.slice(0, 5).every((g) => g === 0) && groups[5] === 0xffff;
+  if (mapped) {
+    const v4 = [groups[6]! >> 8, groups[6]! & 0xff, groups[7]! >> 8, groups[7]! & 0xff].join('.');
+    return BLOCKED_NETWORKS.check(v4, 'ipv4');
+  }
+  return BLOCKED_NETWORKS.check(addr, 'ipv6');
+}
+
+/** True when the caller or `SWML_ALLOW_PRIVATE_URLS` (1/true/yes) permits private addresses. */
+export function _privateUrlsAllowed(allowPrivate = false): boolean {
+  if (allowPrivate) return true;
+  const env = (process.env['SWML_ALLOW_PRIVATE_URLS'] ?? '').toLowerCase();
+  return env === '1' || env === 'true' || env === 'yes';
+}
+
+/** A DNS lookup returning every address for a hostname (`dns.promises.lookup` with `all`). */
+export type _LookupAll = (hostname: string) => Promise<{ address: string; family: number }[]>;
+
+const lookupAll: _LookupAll = (hostname) => lookup(hostname, { all: true });
+
+/**
+ * Check a URL a user or the model supplied before fetching it. Throws with a
+ * reason when the URL isn't http(s), has no hostname, can't be resolved, or
+ * resolves to any private or internal address. Shared by
+ * {@link resolveAndValidateUrl} and the SDK's URL-fetching skills.
+ *
+ * @param url - The URL to check.
+ * @param allowPrivate - Skip the address checks (so does `SWML_ALLOW_PRIVATE_URLS`).
+ * @param resolve - The DNS lookup to use; tests pass their own.
+ */
+export async function _checkUrl(
+  url: string,
+  allowPrivate = false,
+  resolve: _LookupAll = lookupAll,
+): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid URL: ${redactUrl(url)}`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`URL rejected: invalid scheme ${parsed.protocol}`);
+  }
+  let hostname = parsed.hostname;
+  if (hostname.startsWith('[') && hostname.endsWith(']')) hostname = hostname.slice(1, -1);
+  if (!hostname) throw new Error('URL rejected: no hostname');
+
+  if (_privateUrlsAllowed(allowPrivate)) return;
+
+  if (isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      throw new Error(`URL rejected: ${hostname} is a private IP address`);
+    }
+    return;
+  }
+
+  let addresses: { address: string }[];
+  try {
+    addresses = await resolve(hostname);
+  } catch {
+    throw new Error(`URL rejected: could not resolve hostname ${hostname}`);
+  }
+  for (const { address } of addresses) {
+    if (isPrivateIp(address)) {
+      throw new Error(`URL rejected: ${hostname} resolves to private IP ${address}`);
+    }
+  }
+}
+
+/**
+ * Check that a URL is safe to fetch, and throw if it isn't.
+ *
+ * The URL must be http or https, and its hostname must resolve, with every
+ * address it resolves to outside the private and internal ranges (see
+ * {@link isPrivateIp}). A hostname that can't be resolved is refused.
+ *
  * @param url - The full URL to validate.
  * @param allowPrivate - When true, skip the private-IP check (default false).
- * @throws If the resolved IP is private and `allowPrivate` is false.
+ *   `SWML_ALLOW_PRIVATE_URLS` (1/true/yes) does the same.
+ * @throws If the URL is invalid, can't be resolved, or reaches a private address.
  */
 export async function resolveAndValidateUrl(url: string, allowPrivate = false): Promise<void> {
-  // Env-var escape hatch, matching Python's validate_url (utils/url_validator.py:59):
-  // SWML_ALLOW_PRIVATE_URLS in (1/true/yes) permits private/loopback URLs (e.g. a
-  // local search server in dev or tests).
-  const allowEnv = (process.env['SWML_ALLOW_PRIVATE_URLS'] ?? '').toLowerCase();
-  if (allowPrivate || allowEnv === '1' || allowEnv === 'true' || allowEnv === 'yes') return;
-
-  let hostname: string;
-  try {
-    hostname = new URL(url).hostname;
-  } catch {
-    throw new Error(`Invalid URL: ${url}`);
-  }
-
-  // Direct IP check first
-  if (isPrivateIp(hostname)) {
-    throw new Error(`URL resolves to a private IP address: ${hostname}`);
-  }
-
-  // DNS resolution
-  try {
-    const result = await lookup(hostname);
-    if (isPrivateIp(result.address)) {
-      throw new Error(`URL hostname '${hostname}' resolves to private IP: ${result.address}`);
-    }
-  } catch (err) {
-    // Re-throw our own errors; DNS failures are allowed (host may not resolve in test)
-    if (err instanceof Error && err.message.includes('private IP')) {
-      throw err;
-    }
-    // DNS lookup failure - let the actual HTTP request handle it
-  }
+  await _checkUrl(url, allowPrivate);
 }
 
 /**

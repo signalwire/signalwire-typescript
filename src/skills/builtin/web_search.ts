@@ -15,6 +15,7 @@ import type {
   ParameterSchemaEntry,
 } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import { _publicFetch } from '../../PublicFetch.js';
 import { MAX_SKILL_INPUT_LENGTH, validateUrl } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 // cheerio is an OPTIONAL dependency (only the web_search / spider scraping
@@ -848,7 +849,8 @@ export class WebSearchSkill extends SkillBase {
       const { signal, dispose } = WebSearchSkill._fetchSignal(timeoutMs, externalSignal);
       let response: Response;
       try {
-        response = await fetch(jsonUrl, {
+        // _publicFetch checks every redirect and the connected address.
+        response = await _publicFetch(jsonUrl, {
           signal,
           headers: { 'User-Agent': 'SignalWire-WebSearch/2.0' },
         });
@@ -993,7 +995,8 @@ export class WebSearchSkill extends SkillBase {
     // own per-page timeout.
     const { signal, dispose } = WebSearchSkill._fetchSignal(timeoutMs, externalSignal);
     try {
-      const response = await fetch(url, {
+      // _publicFetch checks every redirect and the connected address.
+      const response = await _publicFetch(url, {
         signal,
         headers: {
           'User-Agent':

@@ -59,6 +59,20 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   root, but a `POST` to one skipped the webhook signature check. With a
   signing key set, it now needs a valid signature like the root; a `GET`
   stays unsigned.
+- The spider and web_search skills checked a URL before fetching it, then
+  followed redirects, so a public page that redirected to an internal
+  address, such as a cloud metadata service, was fetched and returned. A
+  hostname whose DNS answer changed between the check and the connection had
+  the same effect. They now check every request, redirects included (up to
+  10), and refuse a connection to a private or internal address. A redirect
+  to another origin drops the `Authorization` and `Cookie` headers.
+- `isPrivateIp()`, `validateUrl()` and `resolveAndValidateUrl()` let through
+  every IPv6 literal written in URL brackets (`http://[::1]/`), IPv4-mapped
+  addresses such as `::ffff:169.254.169.254`, the unspecified address `::`,
+  and `0.0.0.0/8`. They now block all of them. `validateUrl()` also refuses
+  a URL that isn't http or https, and a hostname that doesn't resolve (it
+  used to allow a DNS failure), and checks every address a hostname resolves
+  to, not only the first.
 
 ### Fixed
 
@@ -66,6 +80,23 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   (never `debug`).
 - `paginate()` guards against a repeating server cursor (no infinite loop).
 - SWAIG `/swaig` handlers receive the unwrapped `argument.parsed` flat args.
+
+### Notes for upgraders
+
+- A secure SWAIG function called directly, for example with `curl`, now
+  needs the token from its `web_hook_url` in the SWML, fetched with
+  `GET /?call_id=<id>`. SignalWire's own requests already carry it, and
+  `swaig-test` is unaffected.
+- A `POST` to the post-prompt endpoint needs the token from the SWML's
+  `post_prompt_url`; SignalWire's requests already carry it.
+- An MCP client that calls an agent's `/mcp` endpoint must send the agent's
+  basic auth credentials.
+- The spider and web_search skills fetch pages directly, ignoring any
+  environment proxy. Set `SWML_URL_FETCH_USE_PROXY` to fetch through a proxy
+  that blocks private destinations itself.
+- `validateUrl()` refuses a hostname that doesn't resolve. Code that relied on
+  it passing unresolvable hosts, such as tests that stub `fetch`, can set
+  `SWML_ALLOW_PRIVATE_URLS` while testing.
 
 ## 3.2.0
 

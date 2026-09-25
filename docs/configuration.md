@@ -137,7 +137,8 @@ Read by the `RelayClient` constructor. Credentials (`SIGNALWIRE_PROJECT_ID`, `SI
 | `SWML_TRUST_PROXY_HEADERS` | `"true"` | `false` (disabled) | When `"true"`, trusts `X-Forwarded-*` proxy headers for the client's scheme/host/IP. Enable only behind a trusted reverse proxy. |
 | `SWML_USE_HSTS` | `"true" \| "false"` | on when SSL enabled | Overrides whether the `Strict-Transport-Security` (HSTS) response header is emitted. |
 | `SWML_HSTS_MAX_AGE` | `number` | SDK default | `max-age` (seconds) for the `Strict-Transport-Security` header when HSTS is active. |
-| `SWML_ALLOW_PRIVATE_URLS` | `"true"` | `false` (blocked) | When `"true"`, allows the SDK (SSRF guard, spider skill) to fetch private / loopback / link-local URLs. Leave unset in production. |
+| `SWML_ALLOW_PRIVATE_URLS` | `"1"`, `"true"` or `"yes"` | unset (blocked) | Allows the URL-fetching skills (spider, web_search) and the SDK's URL checks to reach private, loopback, link-local and unspecified addresses. Leave unset in production. |
+| `SWML_URL_FETCH_USE_PROXY` | `"1"`, `"true"` or `"yes"` | unset (direct) | The spider and web_search skills fetch pages directly, so they can refuse a connection to a private or internal address. Set this to send those fetches through Node's global `fetch`, which uses a proxy only when Node's own proxy support is on (`NODE_USE_ENV_PROXY`). Through a proxy the connection check can't apply, so use a proxy that blocks private destinations itself. Each URL and redirect is still checked. |
 
 ### SSL/TLS
 

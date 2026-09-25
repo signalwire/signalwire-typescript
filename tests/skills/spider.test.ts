@@ -2,11 +2,14 @@
  * Individual tests for the Spider skill.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { SpiderSkill, createSpiderSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { _setPublicFetchTransport } from '../../src/PublicFetch.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -114,5 +117,64 @@ describe('SpiderSkill', () => {
     // Either SSRF validation or missing selectors should trigger an error
     expect(typeof res.response).toBe('string');
     expect(res.response.length).toBeGreaterThan(0);
+  });
+});
+
+describe('SpiderSkill SSRF protection', () => {
+  afterEach(() => {
+    _setPublicFetchTransport(null);
+    delete process.env['SPIDER_BASE_URL'];
+  });
+
+  async function scrape(url: string): Promise<string> {
+    const skill = new SpiderSkill({ cache_enabled: false });
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    return ((await handler({ url }, {})) as FunctionResult).response;
+  }
+
+  it.each([
+    'http://127.0.0.1/admin',
+    'http://169.254.169.254/latest/meta-data',
+    'http://[::ffff:169.254.169.254]/latest/meta-data',
+    'http://[::1]:8080/',
+  ])('refuses %s before fetching it', async (url) => {
+    const sent: string[] = [];
+    _setPublicFetchTransport(async (u) => {
+      sent.push(u);
+      return new Response('secret');
+    });
+    expect(await scrape(url)).toContain('URL rejected');
+    expect(sent).toEqual([]);
+  });
+
+  it('does not follow a public page that redirects to the metadata service', async () => {
+    const sent: string[] = [];
+    _setPublicFetchTransport(async (u) => {
+      sent.push(u);
+      return new Response(null, {
+        status: 302,
+        headers: { location: 'http://169.254.169.254/latest/meta-data' },
+      });
+    });
+    const response = await scrape('http://203.0.113.10/page');
+    expect(response).toContain('Failed to fetch');
+    expect(response).not.toContain('secret');
+    expect(sent).toEqual(['http://203.0.113.10/page']);
+  });
+
+  it('fetches through an operator-set SPIDER_BASE_URL, keeping the path', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'content-type': 'text/html' });
+      res.end(`<html><body>fixture page at ${req.url}</body></html>`);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const port = (server.address() as AddressInfo).port;
+      process.env['SPIDER_BASE_URL'] = `http://127.0.0.1:${port}`;
+      expect(await scrape('https://audit.example/page')).toContain('fixture page at /page');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });

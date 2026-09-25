@@ -15,6 +15,7 @@
 import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type { SkillToolDefinition, SkillConfig, ParameterSchemaEntry } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import { _publicFetch } from '../../PublicFetch.js';
 import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 // cheerio is an OPTIONAL dependency (only the scraping skills use it). Import
@@ -384,6 +385,22 @@ export class SpiderSkill extends SkillBase {
     }
   }
 
+  /**
+   * Whether a URL the caller supplied may be fetched: it must not be private
+   * or internal (`SWML_ALLOW_PRIVATE_URLS` allows it). With `SPIDER_BASE_URL`
+   * set, the fetch goes to that operator-configured base instead of the URL's
+   * host, so the host isn't checked.
+   */
+  private static async _targetAllowed(url: string): Promise<boolean> {
+    if (SpiderSkill._redirectForAudit(url) !== url) return true;
+    try {
+      await resolveAndValidateUrl(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** Fetch a URL with caching and timeout handling. Returns null on failure. */
   private async _fetchUrl(url: string): Promise<CachedResponse | null> {
     if (this.cacheEnabled && this.cache?.has(url)) {
@@ -400,10 +417,14 @@ export class SpiderSkill extends SkillBase {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
     try {
-      const response = await fetch(fetchUrl, {
+      // _publicFetch checks the URL and every redirect, and refuses a
+      // connection to a private or internal address. An operator-set
+      // SPIDER_BASE_URL is a trusted target, so its fetches skip the check.
+      const response = await _publicFetch(fetchUrl, {
         method: 'GET',
         headers: this.headers,
         signal: controller.signal,
+        allowPrivate: fetchUrl !== url,
       });
 
       if (!response.ok) {
@@ -642,10 +663,7 @@ export class SpiderSkill extends SkillBase {
     }
 
     // SSRF protection
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(url, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(url))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
@@ -698,10 +716,7 @@ export class SpiderSkill extends SkillBase {
       return new FunctionResult(`Invalid URL: ${startUrl}`);
     }
 
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(startUrl, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(startUrl))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
@@ -841,10 +856,7 @@ export class SpiderSkill extends SkillBase {
       return new FunctionResult(`Invalid URL: ${url}`);
     }
 
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(url, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(url))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
