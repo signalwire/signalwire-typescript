@@ -1919,6 +1919,20 @@ export class AgentBase extends SWMLService {
     return false;
   }
 
+  /**
+   * A tool handler that calls `fn` with the agent running the call: with a
+   * dynamic config callback, the request's configured copy (so the handler
+   * sees what the callback configured), otherwise this agent. For handlers
+   * that read the agent's own state; the SDK's prefabs register theirs this
+   * way. A plain handler gets the same agent as its third argument.
+   * @internal
+   */
+  protected _onCallAgent<A, R>(
+    fn: (self: this, args: A, rawData: SwaigRequest) => R,
+  ): (args: A, rawData: SwaigRequest, agent?: AgentBase) => R {
+    return (args, rawData, agent) => fn((agent as this | undefined) ?? this, args, rawData);
+  }
+
   // ── Dynamic config ──────────────────────────────────────────────────
 
   /**
@@ -1939,6 +1953,12 @@ export class AgentBase extends SWMLService {
    * adds, a skill instance, or an object inside the configuration that isn't
    * plain data (a `URL`, a class instance). Assigning a new value to such a
    * field on the copy is safe; mutating a shared object in place is not.
+   *
+   * A handler that captured this agent (an arrow function, or a method passed
+   * with `.bind(this)`) still sees this agent, not the copy: read per-call
+   * configuration from the handler's third argument. A subclass's JavaScript
+   * `#private` fields aren't on the copy, so its methods that read them
+   * throw there; use TypeScript `private` fields.
    *
    * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)` where
    *   `agent` is the ephemeral `AgentBase` copy to mutate. May be async.

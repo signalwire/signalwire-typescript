@@ -14,6 +14,7 @@
 
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
+import { FAQBotAgent } from '../src/prefabs/FAQBotAgent.js';
 
 const AUTH = 'Basic ' + Buffer.from('u:p').toString('base64');
 
@@ -177,5 +178,36 @@ describe('summaries run on the configured copy', () => {
     agent.conversation = { conversation_summary: 'restored conversation' };
     const res = await deliver(agent, { action: 'fetch_conversation' });
     expect(await res.json()).toEqual({ conversation_summary: 'restored conversation' });
+  });
+});
+
+describe('prefab tool handlers run on the configured copy', () => {
+  it("FAQBotAgent's search_faqs searches the FAQs the callback set for the call", async () => {
+    const agent = new FAQBotAgent({
+      name: 'faq',
+      route: '/',
+      faqs: [{ question: 'What are your hours?', answer: 'The default hours are 9 to 5.' }],
+      agentOptions: { basicAuth: ['u', 'p'] },
+    });
+    agent.setDynamicConfigCallback((_q, _b, _h, copy) => {
+      (copy as FAQBotAgent).faqs = [
+        { question: 'What are the tenant desk hours?', answer: 'The tenant desk is open 10 to 6.' },
+      ];
+    });
+    const ai = await aiFor(agent, '?call_id=c1');
+    const withQuery = await agent.getApp().request(`/swaig${webhookQuery(ai, 'search_faqs')}`, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        function: 'search_faqs',
+        call_id: 'c1',
+        argument: { parsed: [{ query: 'tenant desk hours' }] },
+      }),
+    });
+    expect(withQuery.status).toBe(200);
+    const text = ((await withQuery.json()) as { response: string }).response;
+    // The tool lists the matching FAQ questions from the copy's catalog.
+    expect(text).toContain('tenant desk hours');
+    expect(text).not.toContain('What are your hours');
   });
 });

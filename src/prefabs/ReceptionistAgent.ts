@@ -288,13 +288,13 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData: SwaigRequest) => {
+      handler: this._onCallAgent((self, args, rawData: SwaigRequest) => {
         const departmentName = (args.department ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
         const name = (callerInfo['name'] as string) ?? 'the caller';
 
-        const dept = this.departments.find((d) => d.name === departmentName);
+        const dept = self.departments.find((d) => d.name === departmentName);
         if (!dept) {
           return new FunctionResult(`Sorry, I couldn't find the ${departmentName} department.`);
         }
@@ -307,7 +307,7 @@ export class ReceptionistAgent extends AgentBase {
         );
         result.connect(dept.number, true);
         return result;
-      },
+      }),
     });
 
     // Tool: check_in_visitor (TS-specific; only if checkInEnabled)
@@ -334,7 +334,7 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args, rawData: SwaigRequest) => {
+        handler: this._onCallAgent(async (self, args, rawData: SwaigRequest) => {
           const visitorName = args.visitor_name;
           const purpose = args.purpose;
           const visiting = args.visiting;
@@ -352,22 +352,22 @@ export class ReceptionistAgent extends AgentBase {
             checked_in_at: new Date().toISOString(),
           };
 
-          const session = this.getSession(rawData);
+          const session = self.getSession(rawData);
           session.visitors.push(visitorRecord);
 
-          if (this.onVisitorCheckInCallback) {
+          if (self.onVisitorCheckInCallback) {
             try {
-              await this.onVisitorCheckInCallback(visitorRecord);
+              await self.onVisitorCheckInCallback(visitorRecord);
             } catch (err) {
-              this.log.error(`onVisitorCheckIn callback error: ${err}`);
+              self.log.error(`onVisitorCheckIn callback error: ${err}`);
             }
           }
 
-          const companyPart = this.companyName ? ` Welcome to ${this.companyName}!` : '';
+          const companyPart = self.companyName ? ` Welcome to ${self.companyName}!` : '';
           return new FunctionResult(
             `Visitor checked in successfully! Name: ${visitorName}, Purpose: ${purpose}, Visiting: ${visiting}.${companyPart}`,
           );
-        },
+        }),
       });
     }
   }

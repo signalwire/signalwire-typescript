@@ -124,6 +124,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- The prefab agents' tool handlers (FAQ bot, info gatherer, receptionist,
+  survey, concierge) run on the agent running the call, so a dynamic config
+  callback that changes their data (a tenant's FAQs, say) takes effect in
+  the tools too. They were bound to the agent itself.
 - `onSwmlRequest(requestData, callbackPath, context)` receives the Hono
   context on a served request, as documented; it was always undefined.
 - A plain `SWMLService`'s `/swaig` answered `{}` for an `async` tool
@@ -189,10 +193,18 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - Basic auth credentials in a config file now win over
   `SWML_BASIC_AUTH_USER`/`SWML_BASIC_AUTH_PASSWORD`.
 - With a dynamic config callback set, a function call runs on the
-  request's configured copy of the agent, and so does `onSummary`. State a
-  handler or `onSummary` keeps by assigning to the agent (`this.count += 1`)
-  now lands on the copy and is gone after the request; keep it in an object
-  the agent already holds, or in your own storage.
+  request's configured copy of the agent, and so does `onSummary`. A handler
+  gets the copy as its third argument; a handler that captured the agent (an
+  arrow function, or a method passed with `.bind(this)`) still sees the agent
+  itself, so read per-call configuration from the third argument. The SDK's
+  prefabs do. State `onSummary` keeps by assigning to the agent
+  (`this.count += 1`) now lands on the copy and is gone after the request;
+  keep it in an object the agent already holds, or in your own storage.
+- An agent subclass with JavaScript `#private` fields can't be copied per
+  request (a copy doesn't carry them), so with a dynamic config callback its
+  methods that read them throw on the copy. Use TypeScript `private` fields.
+- An exception from `onSummary` is logged, and the post-prompt endpoint
+  answers `{ success: true }`, as the reference does; it used to answer 500.
 - The post-prompt endpoint answers a delivered summary with
   `{ success: true }` instead of `{ ok: true }`.
 - A secure SWAIG function called directly, for example with `curl`, now

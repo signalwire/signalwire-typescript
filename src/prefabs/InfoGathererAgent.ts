@@ -291,7 +291,7 @@ export class InfoGathererAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: this.startQuestions.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.startQuestions(args, rawData)),
     });
 
     // Tool: submit_answer
@@ -307,7 +307,7 @@ export class InfoGathererAgent extends AgentBase {
           },
         },
       },
-      handler: this.submitAnswer.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.submitAnswer(args, rawData)),
     });
   }
 
