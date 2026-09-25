@@ -225,6 +225,16 @@ describe('SecurityUtils', () => {
       // lives after the first `/` is path data, not credentials.
       expect(redactUrl('https://host.com/a:b@c')).toBe('https://host.com/a:b@c');
     });
+
+    it('redacts a password with an empty user', () => {
+      expect(redactUrl('http://:SECRET@host/x')).toBe('http://:****@host/x');
+    });
+
+    it('redacts every URL in a message, not only the first', () => {
+      expect(redactUrl('from http://a:one@h1/x to http://b:two@h2/y')).toBe(
+        'from http://a:****@h1/x to http://b:****@h2/y',
+      );
+    });
   });
 
   // ── isValidHostname ─────────────────────────────────────────────────

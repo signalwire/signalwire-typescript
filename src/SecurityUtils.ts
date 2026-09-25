@@ -60,12 +60,14 @@ export function filterSensitiveHeaders(headers: Record<string, string>): Record<
 
 /**
  * Redact credentials embedded in a URL (e.g. `https://user:secret@host` -> `https://user:****@host`).
- * Returns the URL unchanged if no credentials are present.
- * @param url - The URL string to redact.
- * @returns The URL with the password portion replaced by `****`.
+ * Masks the password of every URL in the string, including one with an empty
+ * user (`http://:secret@host`). Returns the string unchanged if no credentials
+ * are present.
+ * @param url - The URL string (or a message containing URLs) to redact.
+ * @returns The string with each URL's password replaced by `****`.
  */
 export function redactUrl(url: string): string {
-  return url.replace(/:\/\/([^:@/]+):([^@/]+)@/, '://$1:****@');
+  return url.replace(/:\/\/([^:@/]*):([^@/]*)@/g, '://$1:****@');
 }
 
 /**

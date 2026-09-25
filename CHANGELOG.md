@@ -88,6 +88,15 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   falls back to the SHA-1 header so existing deployments keep working. New
   exports: `validateWebhookSignatureSha256()` and
   `SIGNALWIRE_SHA256_SIGNATURE_HEADER`.
+- `redactUrl()` left the password in a URL with an empty user
+  (`http://:secret@host`), and masked only the first URL in a string. It now
+  masks both.
+- native_vector_search: a `remote_url` with only a user or only a password
+  kept its credentials in the URL, so the request failed and the error, which
+  quoted the whole URL, was logged at ERROR. Either one is now sent as basic
+  auth and removed from the URL. ERROR logs record only an error's type; its
+  message, which can echo the caller's query, a remote error or a URL, is
+  logged at DEBUG with URLs redacted.
 
 ### Fixed
 

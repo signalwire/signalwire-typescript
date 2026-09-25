@@ -25,9 +25,21 @@ import type {
 import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
-import { validateUrl } from '../../SecurityUtils.js';
+import { redactUrl, validateUrl } from '../../SecurityUtils.js';
 
 const log = getLogger('NativeVectorSearchSkill');
+
+/**
+ * Log a failure at ERROR with only the error's type, and its message at DEBUG.
+ * A message can echo the caller's query, a remote server's error body, or a
+ * URL, so it stays out of error logs and alerting.
+ */
+function logErrorType(message: string, err: unknown): void {
+  log.error(message, { error_type: err instanceof Error ? err.name : typeof err });
+  log.debug(`${message} (detail)`, {
+    error: redactUrl(err instanceof Error ? err.message : String(err)),
+  });
+}
 
 /**
  * Callback signature for customizing the formatted search response.
@@ -521,23 +533,23 @@ export class NativeVectorSearchSkill extends SkillBase {
     this.remoteUrl = this.getConfig<string | undefined>('remote_url', undefined);
     this.indexName = this.getConfig<string>('index_name', 'default');
 
-    // Parse auth from URL if present
+    // Parse auth from URL if present. remoteBaseUrl never carries the
+    // credentials, so it's the form to log and to build request URLs from. A
+    // user or a password alone is still credentials (http://:secret@host).
     if (this.remoteUrl) {
       try {
         const parsed = new URL(this.remoteUrl);
-        if (parsed.username && parsed.password) {
+        if (parsed.username || parsed.password) {
           this.remoteAuth = {
             user: decodeURIComponent(parsed.username),
             pass: decodeURIComponent(parsed.password),
           };
           parsed.username = '';
           parsed.password = '';
-          this.remoteBaseUrl = parsed.toString().replace(/\/+$/, '');
-        } else {
-          this.remoteBaseUrl = this.remoteUrl.replace(/\/+$/, '');
         }
+        this.remoteBaseUrl = parsed.toString().replace(/\/+$/, '');
       } catch {
-        this.remoteBaseUrl = this.remoteUrl;
+        this.remoteBaseUrl = redactUrl(this.remoteUrl);
       }
     }
 
@@ -551,7 +563,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       const urlToValidate = this.remoteBaseUrl ?? this.remoteUrl;
       if (!(await validateUrl(urlToValidate))) {
         log.error('native_vector_search: remote_url rejected by SSRF protection', {
-          url: urlToValidate,
+          url: redactUrl(urlToValidate),
         });
         return false;
       }
@@ -580,9 +592,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         }
         this.searchAvailable = false;
       } catch (err) {
-        log.error('native_vector_search: failed to connect to remote', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        logErrorType('native_vector_search: failed to connect to remote', err);
         this.searchAvailable = false;
       }
       return this.searchAvailable;
@@ -747,9 +757,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         results = this._searchLocal(query, count);
       }
     } catch (err) {
-      log.error('native_vector_search: search error', {
-        error: err instanceof Error ? err.message : String(err),
-      });
+      logErrorType('native_vector_search: search error', err);
       return new FunctionResult(
         "I'm sorry, I encountered an issue while searching. Please try rephrasing your question.",
       );
@@ -773,9 +781,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           });
           if (typeof formatted === 'string') msg = formatted;
         } catch (err) {
-          log.error('native_vector_search: response_format_callback error (no results)', {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          logErrorType('native_vector_search: response_format_callback error (no results)', err);
         }
       }
       return new FunctionResult(msg);
@@ -831,9 +837,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           log.warn('native_vector_search: response_format_callback returned non-string');
         }
       } catch (err) {
-        log.error('native_vector_search: response_format_callback error', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        logErrorType('native_vector_search: response_format_callback error', err);
       }
     }
 
@@ -926,9 +930,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         metadata: r.metadata,
       }));
     } catch (err) {
-      log.error('native_vector_search: remote search error', {
-        error: err instanceof Error ? err.message : String(err),
-      });
+      logErrorType('native_vector_search: remote search error', err);
       return [];
     }
   }
