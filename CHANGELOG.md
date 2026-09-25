@@ -33,6 +33,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   BOTH `verify_ssl=false` AND `allow_insecure_tls=true`; the secure default
   (verification ON) is preserved and a lone `verify_ssl=false` is ignored.
 
+### Security
+
+- The agent's `/mcp` endpoint (`enableMcpServer()`) had no authentication, so
+  anyone who could reach the server could run the agent's tools, secure ones
+  included. It now requires the agent's basic auth credentials, and lists and
+  calls only the tools the agent runs itself, not external webhook tools. An
+  MCP client must now send an `Authorization` header.
+
 ### Fixed
 
 - `LOG_LEVEL` is case-insensitive and an unknown value falls back to `info`

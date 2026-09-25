@@ -78,24 +78,37 @@ agent.defineTool({
 });
 ```
 
-The `/mcp` endpoint handles:
-- `initialize` -- protocol version and capability negotiation
-- `notifications/initialized` -- ready signal
-- `tools/list` -- returns all tools in MCP format
-- `tools/call` -- invokes the handler and returns the result
-- `ping` -- keepalive
+The `/mcp` endpoint handles these JSON-RPC methods:
+- `initialize`: protocol version and capability negotiation
+- `notifications/initialized`: ready signal
+- `tools/list`: returns the agent's tools in MCP format
+- `tools/call`: invokes the handler and returns the result
+- `ping`: keepalive
 
-### Connecting from Claude Desktop
+The endpoint lists and calls only the tools the agent runs itself. DataMap tools run on SignalWire and external webhook tools run on another server, so `/mcp` doesn't expose them.
+
+### Authentication
+
+The `/mcp` endpoint runs your agent's tools, so it requires the agent's basic auth credentials, the same ones `/swaig` uses. A request without them gets `401`. The credentials come from the `basicAuth` option or the `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD` environment variables. If you set neither, the agent generates a password at startup; set your own so MCP clients can use it.
+
+### Connecting an MCP client
+
+An MCP client that supports remote HTTP servers needs the endpoint URL and an `Authorization` header. The header value is `Basic` followed by the base64 encoding of `user:password`. A client configuration looks like this:
 
 ```json
 {
     "mcpServers": {
         "my-agent": {
-            "url": "https://your-server.com/agent/mcp"
+            "url": "https://your-server.com/agent/mcp",
+            "headers": {
+                "Authorization": "Basic <base64 of user:password>"
+            }
         }
     }
 }
 ```
+
+The exact configuration format depends on the client. Check your client's documentation for how it accepts remote servers and headers.
 
 ## Using Both Together
 

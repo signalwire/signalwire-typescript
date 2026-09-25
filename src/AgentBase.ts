@@ -1352,6 +1352,8 @@ export class AgentBase extends SWMLService {
   /**
    * Expose this agent's tools as an MCP server endpoint at /mcp.
    * Adds a JSON-RPC 2.0 endpoint that MCP clients (Claude Desktop, other agents) can connect to.
+   * The endpoint requires the agent's basic auth credentials, and lists and
+   * calls only the tools the agent runs itself (not DataMap or external webhook tools).
    * @returns This agent instance for chaining
    */
   enableMcpServer(): this {
@@ -1369,11 +1371,20 @@ export class AgentBase extends SWMLService {
     return [...this._mcpServers];
   }
 
+  /**
+   * Whether the /mcp endpoint may list and call this tool: only tools this
+   * agent runs itself. DataMap tools run on SignalWire and external webhook
+   * tools run on another server, so neither has a handler here.
+   */
+  private isMcpCallable(fn: unknown): fn is SwaigFunction {
+    return fn instanceof SwaigFunction && !fn.isExternal;
+  }
+
   /** Build MCP tool list from registered tools. */
   private buildMcpToolList(): Record<string, unknown>[] {
     const tools: Record<string, unknown>[] = [];
     for (const [name, fn] of this.toolRegistry) {
-      if (fn instanceof SwaigFunction) {
+      if (this.isMcpCallable(fn)) {
         const tool: Record<string, unknown> = {
           name,
           description: fn.description || name,
@@ -1429,7 +1440,7 @@ export class AgentBase extends SWMLService {
       const args = (params['arguments'] as Record<string, unknown>) || {};
 
       const fn = this.toolRegistry.get(toolName);
-      if (!fn || !(fn instanceof SwaigFunction)) {
+      if (!this.isMcpCallable(fn)) {
         return {
           jsonrpc: '2.0',
           id: reqId,
@@ -2929,9 +2940,11 @@ export class AgentBase extends SWMLService {
 
     app.post(`${basePath}/debug_events`, authMw, handleDebugEvents);
 
-    // MCP server endpoint (JSON-RPC 2.0)
+    // MCP server endpoint (JSON-RPC 2.0). It runs the agent's tools, so it
+    // takes the same basic auth as /swaig. MCP clients don't sign requests,
+    // so there is no webhook signature check here.
     if (this._mcpServerEnabled) {
-      app.post(`${basePath}/mcp`, async (c: Context) => {
+      app.post(`${basePath}/mcp`, authMw, async (c: Context) => {
         let body: Record<string, unknown>;
         try {
           body = await c.req.json();
