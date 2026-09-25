@@ -132,7 +132,10 @@ export function parsePostPromptData(data: unknown): Record<string, unknown> {
     // Prose instead of JSON. Still a summary.
     return { summary: unfenced };
   }
-  return isPlainObject(loaded) ? loaded : { summary: String(loaded) };
+  if (isPlainObject(loaded)) return loaded;
+  // A JSON string is the summary itself; any other value (a list, a number)
+  // is kept as its JSON text rather than lost to String()'s "[object Object]".
+  return { summary: typeof loaded === 'string' ? loaded : JSON.stringify(loaded) };
 }
 
 /**

@@ -51,6 +51,12 @@ describe('parsePostPromptData', () => {
     });
   });
 
+  it('keeps a JSON list as its JSON text', () => {
+    expect(parsePostPromptData({ raw: '[{"answer":42}]' })).toEqual({
+      summary: '[{"answer":42}]',
+    });
+  });
+
   it('wraps JSON that is not an object', () => {
     expect(parsePostPromptData({ raw: '"just a string"' })).toEqual({ summary: 'just a string' });
   });

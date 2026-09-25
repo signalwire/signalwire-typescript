@@ -42,6 +42,12 @@ describe('declaredCapabilities', () => {
     expect([...declaredCapabilities(BODY)].sort()).toEqual(['display_content', 'transcript']);
   });
 
+  it('does not treat an empty list or object as a declaration', () => {
+    expect([
+      ...declaredCapabilities({ capabilities: { a: [], b: {}, c: [1], d: { x: 1 } } }),
+    ]).toEqual(['c', 'd']);
+  });
+
   it('does not treat false as a declaration', () => {
     expect(declaredCapabilities(BODY).has('chat_handoff')).toBe(false);
   });

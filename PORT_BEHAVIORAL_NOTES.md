@@ -176,3 +176,10 @@ divergence.
 - Verdict: **KEEP**, by the SDK owner's decision; recorded so the difference
   isn't silent.
 
+### Post-prompt summary that isn't a JSON object — KEEP
+- When `post_prompt_data.raw` parses to JSON that isn't an object (a list, a
+  number), Python's `parse_post_prompt_data` returns `{"summary": str(value)}`,
+  Python's `repr` of it (`[{'answer': 42}]`). TS returns the value's JSON text
+  (`[{"answer":42}]`); a JSON string is returned as it is in both.
+- Verdict: **KEEP**. Reproducing Python's `repr` in TS has no use to a
+  caller; both keep the content.

@@ -300,6 +300,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- A `FunctionResult`'s structured response (`setToolResponse()`, or the
+  constructor's third and fourth arguments) is sent by `toDict()`; the
+  `response` property stays the plain string. `setResponse()` clears the
+  structured form; assigning `response` directly doesn't.
 - Adding an `execute`, `connect`, `cond`, `switch`, `join_conference`,
   `ai_sidecar` or `amazon_bedrock` verb with an unknown or mistyped key
   now fails schema validation, where it used to pass. The first of these

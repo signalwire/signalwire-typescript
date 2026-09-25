@@ -76,7 +76,14 @@ export function declaredCapabilities(bodyParams: unknown): ReadonlySet<string> {
   if (!isPlainObject(capabilities)) return new Set();
   return new Set(
     Object.entries(capabilities)
-      .filter(([, value]) => Boolean(value))
+      // Truthy as the reference means it: an empty list or object is no.
+      .filter(([, value]) =>
+        Array.isArray(value)
+          ? value.length > 0
+          : isPlainObject(value)
+            ? Object.keys(value).length > 0
+            : Boolean(value),
+      )
       .map(([name]) => name),
   );
 }
