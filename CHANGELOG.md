@@ -124,6 +124,18 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `AgentServer` served an agent under its route twice (`/sales/sales`),
+  so `register(agent)` answered `404` at the agent's own route.
+  `asRouter()` now returns the agent's routes relative to its root, like the
+  reference's `as_router()`, and `AgentServer` mounts it under the route;
+  `getApp()` still serves them under the agent's route.
+- An agent's app and `AgentServer` serve a path with a trailing slash or
+  repeated slashes (`/agent/swaig/`, `/agent//swaig`) like the plain path,
+  with the same auth and signature checks; they answered `404`. `asRouter()`
+  registers `/swaig/`, `/post_prompt/` and routing-callback paths with a
+  trailing slash too, for a host app with strict routing.
+- `AgentServer.getApp()` threw ("Can not add a route since the matcher is
+  already built") when called again after the server had handled a request.
 - Constructor arguments take precedence over an agent's config file, as
   documented. The file's `service.name` always replaced the `name` passed to
   `AgentBase`, and its route and host replaced a `route: '/'` or
@@ -162,6 +174,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- `asRouter()` returns routes relative to the agent's root. Mount it under
+  the agent's route: `hostApp.route(agent.route, agent.asRouter())`. Code
+  that mounted it at `/` to get the routes under the agent's route should use
+  `getApp()`, or mount it at the route.
 - A subclass that passes its own default (say `route: '/'`) to `AgentBase`
   now overrides a route set in the config file even when its caller didn't
   pass one. Forward only the options the caller gave.

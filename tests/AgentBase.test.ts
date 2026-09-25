@@ -384,16 +384,19 @@ describe('AgentBase', () => {
 
   // ── asRouter (host-app mounting) ──────────────────────────────────
 
-  it('asRouter returns the same wired Hono app as getApp', () => {
-    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+  it("asRouter serves the agent's routes relative to its root; getApp under its route", async () => {
+    const agent = new AgentBase({ name: 'test', route: '/sales', basicAuth: ['u', 'p'] });
     agent.setPromptText('hello');
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    // asRouter is the "embed my routes in a host app" handle, route-relative
+    // like the reference's as_router(): the host picks the mount path.
     const router = agent.asRouter();
-    // asRouter is the "embed my routes in a host app" handle; it is the same
-    // fully-wired Hono app getApp() builds (idempotent build), returned for
-    // mounting instead of serving.
-    expect(router).toBe(agent.getApp());
     expect(typeof router.request).toBe('function');
-    expect(typeof router.route).toBe('function');
+    expect((await router.request('/', { headers: auth })).status).toBe(200);
+    expect((await router.request('/sales', { headers: auth })).status).toBe(404);
+    // getApp serves the same routes under the agent's route.
+    expect((await agent.getApp().request('/sales', { headers: auth })).status).toBe(200);
+    expect(agent.asRouter()).toBe(router);
   });
 
   it('asRouter serves the agent SWML route when mounted into a host app', async () => {

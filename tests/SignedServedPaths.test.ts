@@ -3,15 +3,14 @@
  * signing key is set, however the agent is served.
  *
  * Mirrors signalwire-python's TestEveryServedPathIsSigned (db618a9): an
- * unsigned POST must never reach a handler. The reference answers 403 on every
- * spelling, slash variants included, because it serves them through catch-all
- * routes; this port routes strictly, so a slash variant it doesn't serve gets
- * 404, which also never reaches a handler.
+ * unsigned POST must never reach a handler, and gets 403 on every spelling,
+ * slash variants included.
  */
 
 import { createHmac } from 'node:crypto';
 import { Hono } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
+import { AgentServer } from '../src/AgentServer.js';
 
 const KEY = 'PSKtest1234567890abcdef';
 const AUTH = 'Basic ' + Buffer.from('u:p').toString('base64');
@@ -43,9 +42,15 @@ const SERVERS: Record<string, (agent: AgentBase) => Send> = {
     (await agent.getApp().request(path, { method: 'POST', headers, body: BODY })).status,
   asRouter: (agent) => {
     const host = new Hono();
-    host.route('/', agent.asRouter() as unknown as Hono);
+    host.route('/agent', agent.asRouter());
     return async (path, headers) =>
       (await host.request(path, { method: 'POST', headers, body: BODY })).status;
+  },
+  AgentServer: (agent) => {
+    const server = new AgentServer();
+    server.register(agent);
+    return async (path, headers) =>
+      (await server.getApp().request(path, { method: 'POST', headers, body: BODY })).status;
   },
   runServerless: (agent) => async (path, headers) =>
     (
@@ -77,31 +82,45 @@ const UNSIGNED_PATHS = [
 
 const baseHeaders = { Authorization: AUTH, 'Content-Type': 'application/json' };
 
+/**
+ * Spellings a mode doesn't serve. asRouter() is mounted in the host's own Hono
+ * app, whose router decides these: Hono folds a sub-app's `/` into the mount
+ * path (no `/agent/`), and a default host doesn't collapse repeated slashes.
+ * getApp(), AgentServer and runServerless own their routing and serve all.
+ */
+const HOST_ROUTED: Record<string, Set<string>> = {
+  asRouter: new Set(['/agent/', '/agent//swaig', '/agent/swaig//', '/agent//cb']),
+};
+const served = (kind: string, paths: string[]) => paths.filter((p) => !HOST_ROUTED[kind]?.has(p));
+
 describe.each(Object.keys(SERVERS))('served through %s', (kind) => {
-  it.each(UNSIGNED_PATHS)('refuses an unsigned POST to %s', async (path) => {
+  it.each(served(kind, UNSIGNED_PATHS))('refuses an unsigned POST to %s', async (path) => {
     const status = await SERVERS[kind]!(makeAgent())(path, baseHeaders);
-    expect([403, 404]).toContain(status);
+    expect(status).toBe(403);
   });
 
-  it.each(UNSIGNED_PATHS)('refuses a POST to %s signed for another path', async (path) => {
-    const headers = { ...baseHeaders, 'X-SignalWire-Signature': sign('http://localhost/other') };
-    const status = await SERVERS[kind]!(makeAgent())(path, headers);
-    expect([403, 404]).toContain(status);
-  });
+  it.each(served(kind, UNSIGNED_PATHS))(
+    'refuses a POST to %s signed for another path',
+    async (path) => {
+      const headers = { ...baseHeaders, 'X-SignalWire-Signature': sign('http://localhost/other') };
+      const status = await SERVERS[kind]!(makeAgent())(path, headers);
+      expect(status).toBe(403);
+    },
+  );
 });
 
-// Every serving mode in SERVERS must also pass these signed controls, so a
-// 404 in the refusal cases above can't hide a route that isn't served at all.
+// Every serving mode in SERVERS must also pass these signed controls, so the
+// refusals above can't come from a route that isn't served at all.
 describe.each(Object.keys(SERVERS))('signed requests through %s', (kind) => {
-  it.each(['/agent', '/agent/cb'])('lets a signed POST to %s reach the handler', async (path) => {
-    const headers = { ...baseHeaders, 'X-SignalWire-Signature': sign(`http://localhost${path}`) };
-    const status = await SERVERS[kind]!(makeAgent())(path, headers);
-    expect(status).toBe(200);
-  });
+  it.each(served(kind, ['/agent', '/agent/', '/agent/cb', '/agent/cb/', '/agent//cb']))(
+    'lets a signed POST to %s reach the handler',
+    async (path) => {
+      const headers = {
+        ...baseHeaders,
+        'X-SignalWire-Signature': sign(`http://localhost${path}`),
+      };
+      const status = await SERVERS[kind]!(makeAgent())(path, headers);
+      expect(status).toBe(200);
+    },
+  );
 });
-
-// AgentServer serves an agent routed at /agent under /agent/agent (a routing
-// defect fixed separately), so its /agent/... routes 404 and would pass the
-// refusal cases without testing anything. Add it to SERVERS once it serves the
-// agent's own route.
-it.todo('served through AgentServer, once it serves an agent at its own route');

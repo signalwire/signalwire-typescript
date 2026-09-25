@@ -6,6 +6,7 @@
  */
 
 import { Hono } from 'hono';
+import { getPathNoStrict } from 'hono/utils/url';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
@@ -1373,6 +1374,7 @@ export class AgentBase extends SWMLService {
     // _app is non-nullable on the parent (SWMLService); rebuild fresh.
     this._app = new Hono();
     this._appBuiltByAgent = false;
+    this._routerApp = null;
     return this;
   }
 
@@ -2753,8 +2755,30 @@ export class AgentBase extends SWMLService {
     // Service's constructor eagerly initialised _app; AgentBase rebuilds it
     // here with its own middleware stack and route handlers on first call.
     if (this._appBuiltByAgent) return this._app;
+    this._app = this.buildApp(this.route === '/' ? '' : this.route);
+    this._appBuiltByAgent = true;
+    return this._app;
+  }
 
-    const app = new Hono();
+  /**
+   * Build the Hono app serving this agent's routes under `basePath` ('' for
+   * route-relative routes, as {@link asRouter} returns them).
+   *
+   * Paths are matched without regard to a trailing slash or repeated slashes
+   * (`/agent/swaig/`, `/agent//swaig`), as the reference's router and
+   * catch-all routes accept them; the signature check still covers the URL
+   * as the request spelled it.
+   */
+  private buildApp(basePath: string): Hono {
+    // getPathNoStrict drops a trailing slash; repeated slashes are collapsed
+    // too. (Hono ignores a custom getPath when `strict: false` is passed.)
+    const app = new Hono({
+      getPath: (req: Request) => getPathNoStrict(req).replace(/\/{2,}/g, '/'),
+    });
+    // Each path with and without a trailing slash, so a host app that mounts
+    // asRouter() with strict routing still serves `/swaig/` (as the
+    // reference's router registers both).
+    const withSlash = (path: string): string[] => [path, `${path}/`];
 
     // Security headers
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
@@ -2871,8 +2895,6 @@ export class AgentBase extends SWMLService {
           })
         : null;
 
-    const basePath = this.route === '/' ? '' : this.route;
-
     // Root - returns SWML. Delegates the auth / routing-callback / dynamic-config
     // / render DECISION to handleRequest (the decomposed core), then marshals the
     // [status, headers, body] triple back — so serve()/asRouter() honor the
@@ -2972,11 +2994,12 @@ export class AgentBase extends SWMLService {
 
     // A GET renders the SWML, like the agent's root (with ?call_id= for a
     // call's tokens); only a POST runs a function.
-    app.get(`${basePath}/swaig`, authMw, (c: Context) => this.serveViaHandleRequest(c));
+    const swaigPaths = withSlash(`${basePath}/swaig`);
+    app.on('GET', swaigPaths, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
-      app.post(`${basePath}/swaig`, authMw, sigMw, handleSwaig);
+      app.on('POST', swaigPaths, authMw, sigMw, handleSwaig);
     } else {
-      app.post(`${basePath}/swaig`, authMw, handleSwaig);
+      app.on('POST', swaigPaths, authMw, handleSwaig);
     }
 
     // Post-prompt handler
@@ -3049,11 +3072,12 @@ export class AgentBase extends SWMLService {
 
     // A GET renders the SWML, like the agent's root; only a POST delivers a
     // summary.
-    app.get(`${basePath}/post_prompt`, authMw, (c: Context) => this.serveViaHandleRequest(c));
+    const postPromptPaths = withSlash(`${basePath}/post_prompt`);
+    app.on('GET', postPromptPaths, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
-      app.post(`${basePath}/post_prompt`, authMw, sigMw, handlePostPrompt);
+      app.on('POST', postPromptPaths, authMw, sigMw, handlePostPrompt);
     } else {
-      app.post(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+      app.on('POST', postPromptPaths, authMw, handlePostPrompt);
     }
 
     // Debug events handler
@@ -3155,11 +3179,12 @@ export class AgentBase extends SWMLService {
       // A routing-callback path renders SWML like the root, so a POST to it
       // needs a signature like the root when a signing key is set. A GET
       // (the platform's SWML probe) stays unsigned, as it is on the root.
-      app.get(fullPath, authMw, handleRouting);
+      const callbackPaths = withSlash(fullPath);
+      app.on('GET', callbackPaths, authMw, handleRouting);
       if (sigMw) {
-        app.post(fullPath, authMw, sigMw, handleRouting);
+        app.on('POST', callbackPaths, authMw, sigMw, handleRouting);
       } else {
-        app.post(fullPath, authMw, handleRouting);
+        app.on('POST', callbackPaths, authMw, handleRouting);
       }
     }
 
@@ -3167,24 +3192,30 @@ export class AgentBase extends SWMLService {
     app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
 
-    this._app = app;
-    this._appBuiltByAgent = true;
     return app;
   }
+
+  /** The route-relative app {@link asRouter} returns, built on first use. */
+  private _routerApp: Hono | null = null;
 
   /**
    * Get a router to embed this agent's routes in a host web app.
    *
-   * Returns the fully-wired Hono app (routes for `/`, `/swaig`, `/post_prompt`,
-   * plus any routing callbacks) as a mountable sub-app. The host mounts it with
-   * `hostApp.route(path, agent.asRouter())`. This is the TypeScript realization
-   * of Python's `as_router()`; the named {@link HostAppRouter} type is the
-   * cross-port "embed my routes in a host app" contract.
+   * Returns a Hono sub-app with this agent's routes relative to its root
+   * (`/`, `/swaig`, `/post_prompt`, plus any routing callbacks), for the host
+   * to mount under the agent's route: `hostApp.route(agent.route,
+   * agent.asRouter())`. This is the TypeScript realization of Python's
+   * `as_router()`, which is route-relative the same way; the named
+   * {@link HostAppRouter} type is the cross-port "embed my routes in a host
+   * app" contract. {@link getApp} serves the same routes under the agent's
+   * route.
    *
    * @returns A mountable Hono sub-app carrying this agent's routes.
    */
   asRouter(): HostAppRouter {
-    return this.getApp();
+    this.ensureToolsDefined();
+    this._routerApp ??= this.buildApp('');
+    return this._routerApp;
   }
 
   /**

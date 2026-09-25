@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { getPathNoStrict } from 'hono/utils/url';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
@@ -99,7 +100,12 @@ export class AgentServer {
     this.port = opts?.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
     this.logLevel = (opts?.logLevel ?? 'info').toLowerCase();
     setGlobalLogLevel(this.logLevel as 'debug' | 'info' | 'warn' | 'error');
-    this._app = new Hono();
+    // Match paths without regard to a trailing slash or repeated slashes, as
+    // an agent's own app does, so a mounted agent answers /route/swaig/ too.
+    // (Hono ignores a custom getPath when `strict: false` is passed.)
+    this._app = new Hono({
+      getPath: (req: Request) => getPathNoStrict(req).replace(/\/{2,}/g, '/'),
+    });
 
     // Security headers
     this._app.use('*', async (c, next) => {
@@ -163,13 +169,10 @@ export class AgentServer {
       agent.registerRoutingCallback(callbackFn, path);
     }
 
-    // Mount the agent's (now fully-wired) Hono app at the route prefix
-    const agentApp = agent.getApp();
-    if (r === '/') {
-      this._app.route('/', agentApp);
-    } else {
-      this._app.route(r, agentApp);
-    }
+    // Mount the agent's (now fully-wired) route-relative router at the route
+    // prefix. getApp() would serve the routes under the agent's own route
+    // already, so mounting it here served them twice over (/sales/sales).
+    this._app.route(r, agent.asRouter());
 
     this.log.info(`Registered '${agent.name}' at ${r}`);
   }
@@ -407,25 +410,28 @@ export class AgentServer {
    * @returns The fully configured Hono app.
    */
   getApp(): Hono {
-    // Add root listing (registered after agents so it doesn't shadow them)
-    const listing = [...this.agents.entries()].map(([route, agent]) => ({
-      name: agent.name,
-      route,
-    }));
-
-    // We create a response for the root that lists agents
-    // Only if no agent is mounted at /
-    if (!this.agents.has('/')) {
+    // Add the root listing once (after the agents, so it doesn't shadow one
+    // mounted at /). It lists the agents registered when it's requested.
+    // Adding it on every call threw once the app had served a request, since
+    // Hono can't add a route after its matcher is built.
+    if (!this._rootListingAdded && !this.agents.has('/')) {
+      this._rootListingAdded = true;
       this._app.get('/', (c) =>
         c.json({
           service: 'SignalWire AI Agents',
-          agents: listing,
+          agents: [...this.agents.entries()].map(([route, agent]) => ({
+            name: agent.name,
+            route,
+          })),
         }),
       );
     }
 
     return this._app;
   }
+
+  /** Whether {@link getApp} has added the root listing route. */
+  private _rootListingAdded = false;
 
   /**
    * Start the HTTP server and begin listening for requests.
