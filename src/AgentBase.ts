@@ -2353,8 +2353,9 @@ export class AgentBase extends SWMLService {
     } else {
       reqLog.warn('token_invalid');
     }
+    // The reference's exact wording: the refusal is part of the SWAIG wire contract.
     return new FunctionResult(
-      'The security token for this function is invalid or expired. This action cannot be completed.',
+      "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
     ).toDict();
   }
 
