@@ -188,6 +188,16 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- The joke skill's result now tells the model to tell the joke
+  (`Tell this joke to the user: ...`). Given only the joke, the model
+  answered it instead of relaying it. The tool description is `Get a joke
+  to tell the caller`.
+- `native_vector_search`: `keyword_weight` is described as what it does
+  here, in-memory ranking only, and setting it with `remote_url` logs a
+  warning, since the server ranks remote results. `model_name` is
+  described as having no effect in this SDK. (The Python SDK deprecated
+  `keyword_weight` because its engine ignores it; this SDK's in-memory
+  ranking uses it.)
 - The spider skill advertised settings it didn't honor. `follow_robots_txt`
   was never checked: with it on, `scrape_url`, `extract_structured_data`
   and `crawl_site` now skip pages the site's robots.txt disallows for

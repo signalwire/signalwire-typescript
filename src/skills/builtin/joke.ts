@@ -143,7 +143,7 @@ export class JokeSkill extends SkillBase {
     return [
       defineSkillTool({
         name: toolName,
-        description: 'Get a random joke.',
+        description: 'Get a joke to tell the caller',
         parameters: {
           type: {
             type: 'string',
@@ -167,7 +167,12 @@ export class JokeSkill extends SkillBase {
 
           const joke = pool[Math.floor(Math.random() * pool.length)]!;
 
-          return new FunctionResult(`${joke.setup} ... ${joke.punchline}`);
+          // A SWAIG result is a prompt the model reasons over, so it has to
+          // direct, not narrate: given only the joke, the model answers it
+          // instead of telling it.
+          return new FunctionResult(
+            `Tell this joke to the user: ${joke.setup} ... ${joke.punchline}`,
+          );
         },
       }),
     ];

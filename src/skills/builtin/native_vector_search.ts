@@ -434,14 +434,16 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       keyword_weight: {
         type: 'number',
-        description: 'Manual keyword weight (0.0-1.0). Overrides automatic weight detection',
+        description:
+          'In-memory mode only: how much keyword overlap counts against TF-IDF in the score (0.0-1.0, default 0.3). Has no effect with remote_url, where the server ranks results',
         required: false,
         min: 0.0,
         max: 1.0,
       },
       model_name: {
         type: 'string',
-        description: 'Embedding model to use',
+        description:
+          "Accepted for compatibility with the Python SDK, and has no effect here: in-memory mode ranks with TF-IDF, and a remote server uses its index's own model",
         default: 'mini',
         required: false,
       },
@@ -556,6 +558,11 @@ export class NativeVectorSearchSkill extends SkillBase {
     // Remote mode — validate and skip heavy local setup
     if (this.remoteUrl) {
       this.useRemote = true;
+      if (this.keywordWeight !== null) {
+        log.warn(
+          'native_vector_search: keyword_weight has no effect with remote_url; the server ranks results',
+        );
+      }
 
       // SSRF protection — match Python skills/native_vector_search/skill.py:292-293
       // which calls validate_url(self.remote_url) and refuses to connect to
