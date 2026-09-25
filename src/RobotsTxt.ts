@@ -27,14 +27,17 @@ function quote(s: string): string {
     .replace(/%2F/g, '/');
 }
 
-/** Decode percent-escapes, leaving a malformed one as it is. */
+const UTF8 = new TextDecoder('utf-8');
+
+/**
+ * Decode percent-escapes as Python's `urllib.parse.unquote` does: each run
+ * of escapes is UTF-8, and bytes that aren't valid UTF-8 become U+FFFD.
+ */
 function unquote(s: string): string {
   return s.replace(/(%[0-9A-Fa-f]{2})+/g, (run) => {
-    try {
-      return decodeURIComponent(run);
-    } catch {
-      return run;
-    }
+    const bytes = new Uint8Array(run.length / 3);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(run.slice(i * 3 + 1, i * 3 + 3), 16);
+    return UTF8.decode(bytes);
   });
 }
 

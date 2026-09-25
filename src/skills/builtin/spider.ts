@@ -41,6 +41,9 @@ interface CachedResponse {
 
 const WHITESPACE_REGEX = /\s+/g;
 
+/** Headers that carry credentials for one origin (as _publicFetch treats them). */
+const ORIGIN_BOUND_HEADERS = new Set(['authorization', 'cookie', 'proxy-authorization']);
+
 /**
  * Fast web scraping skill optimized for speed and token efficiency.
  *
@@ -421,6 +424,17 @@ export class SpiderSkill extends SkillBase {
    * the test URL to resolve.
    * Preserves the path (and any query/fragment) from the original target.
    */
+  /** Whether a URL is on the operator-set SPIDER_BASE_URL's origin, a trusted target. */
+  private static _isAuditOrigin(target: string): boolean {
+    const base = process.env['SPIDER_BASE_URL'];
+    if (!base) return false;
+    try {
+      return new URL(target).origin === new URL(base).origin;
+    } catch {
+      return false;
+    }
+  }
+
   private static _redirectForAudit(target: string): string {
     const base = process.env['SPIDER_BASE_URL'];
     if (!base) return target;
@@ -461,11 +475,18 @@ export class SpiderSkill extends SkillBase {
    * kept for {@link ROBOTS_TTL}. A server error or failed request disallows
    * this page without keeping anything, so the next request tries again.
    */
-  private async _allowedByRobots(url: string): Promise<boolean> {
+  private async _allowedByRobots(
+    url: string,
+    opts: { withoutCredentials?: boolean } = {},
+  ): Promise<boolean> {
     if (!this.followRobotsTxt) return true;
     let origin: string;
     try {
-      origin = new URL(url).origin;
+      // Check the URL as it will be requested: fetch normalizes it, so
+      // /public/../private is a request for /private.
+      const parsed = new URL(url);
+      url = parsed.href;
+      origin = parsed.origin;
     } catch {
       return false;
     }
@@ -475,6 +496,14 @@ export class SpiderSkill extends SkillBase {
 
     const robotsUrl = `${origin}/robots.txt`;
     const fetchUrl = SpiderSkill._redirectForAudit(robotsUrl);
+    // Credentials for the page's origin don't go to another origin's
+    // robots.txt, as _publicFetch drops them on a redirect there.
+    const headers = { ...this.headers };
+    if (opts.withoutCredentials) {
+      for (const name of Object.keys(headers)) {
+        if (ORIGIN_BOUND_HEADERS.has(name.toLowerCase())) delete headers[name];
+      }
+    }
     let status: number;
     let body = '';
     const controller = new AbortController();
@@ -482,9 +511,9 @@ export class SpiderSkill extends SkillBase {
     try {
       const response = await _publicFetch(fetchUrl, {
         method: 'GET',
-        headers: this.headers,
+        headers,
         signal: controller.signal,
-        allowPrivate: fetchUrl !== robotsUrl,
+        allowPrivate: fetchUrl !== robotsUrl || SpiderSkill._isAuditOrigin(robotsUrl),
       });
       status = response.status;
       body = await response.text();
@@ -516,6 +545,8 @@ export class SpiderSkill extends SkillBase {
     // a `https://audit.example/page` target and expects the skill to hit
     // `http://127.0.0.1:NNNN/page` — preserving the path after the host.
     const fetchUrl = SpiderSkill._redirectForAudit(url);
+    const startOrigin = new URL(fetchUrl).origin;
+    let crossedOrigin = false;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
@@ -529,7 +560,14 @@ export class SpiderSkill extends SkillBase {
         signal: controller.signal,
         allowPrivate: fetchUrl !== url,
         // Each redirect's target needs its own robots.txt check.
-        allowRedirect: this.followRobotsTxt ? (target) => this._allowedByRobots(target) : undefined,
+        allowRedirect: this.followRobotsTxt
+          ? (target) => {
+              // Once a redirect leaves the page's origin, _publicFetch has
+              // dropped the credentials for good, and so does robots.txt.
+              if (new URL(target).origin !== startOrigin) crossedOrigin = true;
+              return this._allowedByRobots(target, { withoutCredentials: crossedOrigin });
+            }
+          : undefined,
       });
 
       if (!response.ok) {

@@ -1,8 +1,8 @@
 /**
  * _RobotsRules against Python's urllib.robotparser. The spider skill in each
  * SDK must allow and refuse the same pages for the same robots.txt; the
- * fixture's answers were produced by `RobotFileParser.can_fetch` (regenerate
- * with the script in the commit that added it).
+ * fixture's answers were produced by `RobotFileParser.can_fetch`; regenerate
+ * them with tests/fixtures/robots_oracle.py.
  */
 
 import { readFileSync } from 'node:fs';

@@ -372,3 +372,67 @@ describe('SpiderSkill follow_robots_txt', () => {
     expect(sent).not.toContain(`${HOST}/private/page`);
   });
 });
+
+describe('SpiderSkill follow_robots_txt, found in review', () => {
+  afterEach(() => {
+    _setPublicFetchTransport(null);
+    delete process.env['SPIDER_BASE_URL'];
+  });
+
+  const scrapeWith = async (config: Record<string, unknown>, url: string) => {
+    const skill = new SpiderSkill({ follow_robots_txt: true, cache_enabled: false, ...config });
+    await skill.setup();
+    const handler = skill.getTools().find((t) => t.name === 'scrape_url')!.handler;
+    return ((await handler({ url }, {})) as FunctionResult).response;
+  };
+
+  it("doesn't send the page's credentials to another origin's robots.txt on a redirect", async () => {
+    const leaked: string[] = [];
+    _setPublicFetchTransport(async (url, init) => {
+      if (
+        url.includes('203.0.113.11') &&
+        (init.headers['authorization'] || init.headers['cookie'])
+      ) {
+        leaked.push(url);
+      }
+      if (url.endsWith('/robots.txt')) return new Response('User-agent: *\nAllow: /');
+      if (url === 'http://203.0.113.10/page') {
+        return new Response(null, {
+          status: 302,
+          headers: { location: 'http://203.0.113.11/result' },
+        });
+      }
+      return new Response('<html><body>public content</body></html>');
+    });
+    const response = await scrapeWith(
+      { headers: { Authorization: 'Bearer synthetic-secret', Cookie: 'session=synthetic' } },
+      'http://203.0.113.10/page',
+    );
+    expect(response).toContain('public content');
+    expect(leaked).toEqual([]);
+  });
+
+  it('checks the path the request will use, not the path as written', async () => {
+    const sent: string[] = [];
+    _setPublicFetchTransport(async (url) => {
+      sent.push(url);
+      if (url.endsWith('/robots.txt')) return new Response('User-agent: *\nDisallow: /private');
+      return new Response('<html><body>private content</body></html>');
+    });
+    const response = await scrapeWith({}, 'http://203.0.113.10/public/../private');
+    expect(response).toContain('robots.txt disallows');
+    expect(sent.filter((u) => u.includes('private'))).toEqual([]);
+  });
+
+  it('follows an allowed relative redirect through SPIDER_BASE_URL', async () => {
+    process.env['SPIDER_BASE_URL'] = 'http://127.0.0.1:12345';
+    _setPublicFetchTransport(async (url) => {
+      if (url.endsWith('/robots.txt')) return new Response('User-agent: *\nAllow: /');
+      if (url.endsWith('/entry')) {
+        return new Response(null, { status: 302, headers: { location: '/allowed' } });
+      }
+      return new Response('<html><body>ALLOWED_AUDIT_CONTENT</body></html>');
+    });
+    expect(await scrapeWith({}, 'https://audit.example/entry')).toContain('ALLOWED_AUDIT_CONTENT');
+  });
+});

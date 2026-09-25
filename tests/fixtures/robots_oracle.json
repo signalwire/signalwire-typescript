@@ -1,5 +1,5 @@
 {
- "_generated_by": "Python 3.12.5 urllib.robotparser.RobotFileParser.can_fetch; see tests/RobotsTxt.test.ts",
+ "_generated_by": "tests/fixtures/robots_oracle.py, Python 3.12.5",
  "robots": {
   "star": "User-agent: *\nDisallow: /private\n",
   "specific": "User-agent: Spider\nDisallow: /nospider\n\nUser-agent: *\nDisallow: /\n",
@@ -10,6 +10,7 @@
   "orphan_agent": "User-agent: Spider\n\nUser-agent: *\nDisallow: /x\n",
   "multi_agent": "User-agent: other\nUser-agent: spider\nDisallow: /m\n",
   "encoded": "User-agent: *\nDisallow: /caf%C3%A9\nDisallow: /q?x=1\n",
+  "invalid_utf8": "User-agent: *\nDisallow: /caf%E9\n",
   "crawl_delay_group": "User-agent: *\nCrawl-delay: 5\nUser-agent: spider\nDisallow: /cd\n",
   "no_groups": "Disallow: /nothing\n",
   "crlf": "User-agent: *\r\nDisallow: /private\r\n"
@@ -84,6 +85,18 @@
   [
    "star",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "star",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "star",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -180,6 +193,18 @@
   [
    "star",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "star",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "star",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -276,6 +301,18 @@
   [
    "specific",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "specific",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "specific",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -372,6 +409,18 @@
   [
    "specific",
    "Other/2.0",
+   "http://h/caf%E9",
+   false
+  ],
+  [
+   "specific",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   false
+  ],
+  [
+   "specific",
+   "Other/2.0",
    "http://h/q?x=1",
    false
   ],
@@ -468,6 +517,18 @@
   [
    "allow_first",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "allow_first",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "allow_first",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -564,6 +625,18 @@
   [
    "allow_first",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "allow_first",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "allow_first",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -660,6 +733,18 @@
   [
    "disallow_first",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "disallow_first",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "disallow_first",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -756,6 +841,18 @@
   [
    "disallow_first",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "disallow_first",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "disallow_first",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -852,6 +949,18 @@
   [
    "empty_disallow",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "empty_disallow",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "empty_disallow",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -948,6 +1057,18 @@
   [
    "empty_disallow",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "empty_disallow",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "empty_disallow",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -1044,6 +1165,18 @@
   [
    "comments",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "comments",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "comments",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -1140,6 +1273,18 @@
   [
    "comments",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "comments",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "comments",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -1236,6 +1381,18 @@
   [
    "orphan_agent",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "orphan_agent",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "orphan_agent",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -1332,6 +1489,18 @@
   [
    "orphan_agent",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "orphan_agent",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "orphan_agent",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -1428,6 +1597,18 @@
   [
    "multi_agent",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "multi_agent",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "multi_agent",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -1524,6 +1705,18 @@
   [
    "multi_agent",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "multi_agent",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "multi_agent",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -1620,6 +1813,18 @@
   [
    "encoded",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "encoded",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "encoded",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    false
   ],
@@ -1716,6 +1921,18 @@
   [
    "encoded",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "encoded",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "encoded",
+   "Other/2.0",
    "http://h/q?x=1",
    false
   ],
@@ -1744,6 +1961,222 @@
    true
   ],
   [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/private",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/private/ok",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/private/other",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/public",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/nospider/x",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/a",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/x",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/m",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf\u00e9",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%C3%A9/z",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   false
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   false
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/q?x=1",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/q?x=2",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/cd",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/nothing",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/private",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/private/ok",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/private/other",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/public",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/nospider/x",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/a",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/x",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/m",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/caf\u00e9",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/caf%C3%A9/z",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/caf%E9",
+   false
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   false
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/q?x=1",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/q?x=2",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/cd",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h/nothing",
+   true
+  ],
+  [
+   "invalid_utf8",
+   "Other/2.0",
+   "http://h",
+   true
+  ],
+  [
    "crawl_delay_group",
    "Spider/1.0 (SignalWire AI Agent)",
    "http://h/",
@@ -1807,6 +2240,18 @@
    "crawl_delay_group",
    "Spider/1.0 (SignalWire AI Agent)",
    "http://h/caf%C3%A9/z",
+   true
+  ],
+  [
+   "crawl_delay_group",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "crawl_delay_group",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
    true
   ],
   [
@@ -1908,6 +2353,18 @@
   [
    "crawl_delay_group",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "crawl_delay_group",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "crawl_delay_group",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -2004,6 +2461,18 @@
   [
    "no_groups",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "no_groups",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "no_groups",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -2100,6 +2569,18 @@
   [
    "no_groups",
    "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "no_groups",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "no_groups",
+   "Other/2.0",
    "http://h/q?x=1",
    true
   ],
@@ -2196,6 +2677,18 @@
   [
    "crlf",
    "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "crlf",
+   "Spider/1.0 (SignalWire AI Agent)",
+   "http://h/caf%EF%BF%BD",
+   true
+  ],
+  [
+   "crlf",
+   "Spider/1.0 (SignalWire AI Agent)",
    "http://h/q?x=1",
    true
   ],
@@ -2287,6 +2780,18 @@
    "crlf",
    "Other/2.0",
    "http://h/caf%C3%A9/z",
+   true
+  ],
+  [
+   "crlf",
+   "Other/2.0",
+   "http://h/caf%E9",
+   true
+  ],
+  [
+   "crlf",
+   "Other/2.0",
+   "http://h/caf%EF%BF%BD",
    true
   ],
   [
