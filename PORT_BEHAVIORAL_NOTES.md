@@ -165,8 +165,8 @@ divergence.
   `async` handlers.
 
 ### SDK logging is on by default — KEEP (owner decision, 2026-09-25)
-- Python 3.5 makes SDK loggers silent until `configure_logging()` runs (as
-  `serve()`/`run()` do) or the host app configures logging, so an app that
+- Python 3.5 makes SDK loggers silent until logging is configured (its
+  `serve()` and `run()` do it) or the host app configures logging, so an app that
   embeds an agent with `get_app()`/`as_router()` gets no SDK output on
   stdout by default.
 - TS keeps logging at `info` by default (`src/Logger.ts`), so an app that
