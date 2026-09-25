@@ -58,6 +58,65 @@ export interface VerbDefinition {
   definition: Record<string, unknown>;
 }
 
+type AjvLike = { compile: (s: object) => ValidateFunction; addSchema: (s: object) => unknown };
+
+/**
+ * Compiled validators, shared by every SchemaUtils instance using the same
+ * schema object (the bundled schema is one object, so a service or builder
+ * created per request doesn't recompile it).
+ */
+const COMPILED = new WeakMap<
+  object,
+  {
+    ajv: AjvLike;
+    validators: Map<string, ValidateFunction | null>;
+    registered: boolean;
+    needsDocument?: Set<string>;
+  }
+>();
+
+/**
+ * The `$defs` entries that refer, directly or through other definitions, to a
+ * schema outside the document (the document schema itself, by its `$id`).
+ * Those need the registered document schema to compile; the rest compile
+ * alone, which is much cheaper.
+ */
+function defsNeedingDocument(defs: Record<string, unknown>): Set<string> {
+  const direct = new Map<string, { local: string[]; external: boolean }>();
+  for (const [name, def] of Object.entries(defs)) {
+    const local: string[] = [];
+    let external = false;
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+      } else if (node && typeof node === 'object') {
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+          if (k === '$ref' && typeof v === 'string') {
+            if (v.startsWith('#/$defs/')) local.push(v.slice('#/$defs/'.length));
+            else if (!v.startsWith('#')) external = true;
+          } else {
+            walk(v);
+          }
+        }
+      }
+    };
+    walk(def);
+    direct.set(name, { local, external });
+  }
+  const needs = new Set<string>();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [name, { local, external }] of direct) {
+      if (!needs.has(name) && (external || local.some((ref) => needs.has(ref)))) {
+        needs.add(name);
+        changed = true;
+      }
+    }
+  }
+  return needs;
+}
+
 // Basic SWML structure expectations
 const REQUIRED_TOP_LEVEL = ['version', 'sections'];
 const VALID_VERSIONS = ['1.0.0'];
@@ -80,7 +139,7 @@ export class SchemaUtils {
    *  `null` entry means a validator couldn't be built for that verb (fall back
    *  to lightweight). Shared Ajv instance is created once. */
   private verbValidators: Map<string, ValidateFunction | null> = new Map();
-  private ajv: { compile: (s: object) => ValidateFunction } | null | undefined = undefined;
+  private ajv: AjvLike | null | undefined = undefined;
 
   /**
    * Create a SchemaUtils instance.
@@ -118,8 +177,9 @@ export class SchemaUtils {
    * @returns The loaded schema object, or `null` if it could not be loaded.
    */
   loadSchema(): Record<string, unknown> | null {
-    // A (re)load may change the schema; drop any compiled verb validators.
-    this.verbValidators.clear();
+    // A (re)load may change the schema; forget the compiled verb validators
+    // (the shared cache keeps them for the schema object they belong to).
+    this.verbValidators = new Map();
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this._schemaPath) {
@@ -318,11 +378,55 @@ export class SchemaUtils {
         }
         return `${path} ${e.message ?? ''}`.trim();
       };
-      // Prefer a `required` diagnostic (the missing-key name is the most
-      // informative), else the first reported error.
-      const required = errs.filter((e) => e.keyword === 'required');
-      const picked = required.length ? required : errs;
-      const raw = picked.map(fmt).join('; ');
+      // Report the deepest failing path: with anyOf alternatives (a prompt's
+      // text or pom form), a shallower `required` error usually comes from the
+      // alternative the config isn't using. At that depth, prefer a `required`
+      // diagnostic (the missing key's name is the most informative); otherwise
+      // collapse a failed list of allowed constants into one message, and
+      // report a property as unknown only when every alternative rejected it
+      // (it's flagged the most times), since `text` is unknown to the pom form.
+      const depth = (e: (typeof errs)[number]) => e.instancePath.split('/').length;
+      const maxDepth = Math.max(...errs.map(depth));
+      const deepest = errs.filter((e) => depth(e) === maxDepth && e.keyword !== 'anyOf');
+      const required = deepest.filter((e) => e.keyword === 'required');
+      const isUnknown = (e: (typeof errs)[number]) =>
+        e.keyword === 'not' && e.schemaPath.endsWith('unevaluatedProperties/not');
+      let parts: string[];
+      if (required.length) {
+        parts = required.map(fmt);
+      } else {
+        parts = [];
+        const allowed = new Map<string, string[]>();
+        for (const e of deepest.filter((x) => x.keyword === 'const')) {
+          const list = allowed.get(e.instancePath) ?? [];
+          list.push(String((e.params as { allowedValue?: unknown }).allowedValue));
+          allowed.set(e.instancePath, list);
+        }
+        for (const [path, values] of allowed) {
+          parts.push(`${path || '/'} must be one of: ${[...new Set(values)].join(', ')}`);
+        }
+        parts.push(...deepest.filter((e) => e.keyword !== 'const' && !isUnknown(e)).map(fmt));
+        const unknownCounts = new Map<string, number>();
+        for (const e of errs.filter(isUnknown)) {
+          unknownCounts.set(e.instancePath, (unknownCounts.get(e.instancePath) ?? 0) + 1);
+        }
+        // Each alternative reports its own copy of an error, so the most
+        // copies of any one error is the number of alternatives evaluated.
+        const copies = new Map<string, number>();
+        for (const e of errs) {
+          const key = `${e.keyword}|${e.instancePath}|${e.schemaPath}|${JSON.stringify(e.params)}`;
+          copies.set(key, (copies.get(key) ?? 0) + 1);
+        }
+        const most = Math.max(1, ...copies.values());
+        for (const [path, count] of unknownCounts) {
+          if (count === most)
+            parts.push(
+              `${path.slice(0, path.lastIndexOf('/')) || '/'} unknown property '${path.slice(path.lastIndexOf('/') + 1)}'`,
+            );
+        }
+        if (parts.length === 0) parts = errs.map(fmt);
+      }
+      const raw = [...new Set(parts)].join('; ');
       const msg = raw.length > 500 ? raw.slice(0, 500) + '...' : raw;
       return {
         valid: false,
@@ -339,12 +443,18 @@ export class SchemaUtils {
    * — a partial/mocked schema) so callers fall back to lightweight validation,
    * the TS mirror of Python's `_validate_verb_full` guard.
    */
-  private getAjv(): { compile: (s: object) => ValidateFunction } | null {
+  private getAjv(): AjvLike | null {
     if (this.ajv !== undefined) return this.ajv;
     const props = (this.schema?.['properties'] as Record<string, unknown> | undefined) ?? {};
     if (!this.schema || !('sections' in props)) {
       this.ajv = null;
       return null;
+    }
+    const shared = COMPILED.get(this.schema);
+    if (shared) {
+      this.ajv = shared.ajv;
+      this.verbValidators = shared.validators;
+      return this.ajv;
     }
     // Draft 2020-12 (the SWML schema's `$schema`). `strict: false` so unknown
     // formats like "uri" are tolerated rather than throwing at compile time;
@@ -353,12 +463,30 @@ export class SchemaUtils {
     // stderr with one warning per field). We validate structure/keys, not
     // formats.
     const AjvCtor = (Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ?? Ajv2020;
-    this.ajv = new (AjvCtor as new (o: object) => { compile: (s: object) => ValidateFunction })({
+    // `code.optimize: false` roughly halves compile time, which dominates:
+    // the document schema a SWML-embedding verb needs takes the better part of
+    // a second to compile, and verb configs are small to validate.
+    const ajv = new (AjvCtor as new (o: object) => AjvLike)({
       allErrors: true,
       strict: false,
       logger: false,
+      code: { optimize: false },
     });
+    this.ajv = ajv;
+    COMPILED.set(this.schema, { ajv, validators: this.verbValidators, registered: false });
     return this.ajv;
+  }
+
+  /**
+   * Whether a verb's definition refers, directly or through other definitions,
+   * to the document schema: verbs that embed SWML (execute, connect, switch,
+   * cond, amazon_bedrock and others) do, through SWML actions. Computed once
+   * per schema.
+   */
+  private needsDocument(schemaName: string, defs: Record<string, unknown>): boolean {
+    const shared = COMPILED.get(this.schema!);
+    if (shared && !shared.needsDocument) shared.needsDocument = defsNeedingDocument(defs);
+    return (shared?.needsDocument ?? defsNeedingDocument(defs)).has(schemaName);
   }
 
   /**
@@ -372,8 +500,11 @@ export class SchemaUtils {
   private getVerbValidator(verbName: string): ValidateFunction | null {
     const cached = this.verbValidators.get(verbName);
     if (cached !== undefined) return cached;
-    let built: ValidateFunction | null = null;
     const ajv = this.getAjv();
+    // getAjv() may have switched to the shared validator cache.
+    const shared = this.verbValidators.get(verbName);
+    if (shared !== undefined) return shared;
+    let built: ValidateFunction | null = null;
     const verb = this.verbs.get(verbName);
     const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
     if (ajv && verb && defs) {
@@ -381,7 +512,19 @@ export class SchemaUtils {
         // Compile the verb's own definition (which is `{ properties: { <verb>:
         // <config-schema> }, ... }`) with $defs present so cross-verb $refs
         // resolve. Give it a fresh $id so repeat compiles never collide.
-        built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
+        const id = this.schema?.['$id'];
+        const shared = COMPILED.get(this.schema!);
+        if (typeof id === 'string' && shared && this.needsDocument(verb.schemaName, defs)) {
+          // Verbs that embed SWML compile against the document schema,
+          // registered once and shared by every such verb.
+          if (!shared.registered) {
+            ajv.addSchema(this.schema!);
+            shared.registered = true;
+          }
+          built = ajv.compile({ $ref: `${id}#/$defs/${verb.schemaName}` });
+        } else {
+          built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
+        }
       } catch {
         built = null;
       }

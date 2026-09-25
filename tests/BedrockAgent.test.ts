@@ -6,21 +6,8 @@
  * verb is validated against the SWML schema.
  */
 
-import { readFileSync } from 'node:fs';
-import Ajv2020 from 'ajv/dist/2020.js';
 import { BedrockAgent } from '../src/agents/BedrockAgent.js';
-
-/**
- * The whole rendered document against the SWML schema, as the reference's
- * validate_document does. SchemaUtils.validateVerb can't be used here: for a
- * verb whose schema refers back to the document schema (amazon_bedrock, among
- * others) it falls back to checking required properties only.
- */
-const validateDocument = (() => {
-  const schema = JSON.parse(readFileSync(new URL('../src/schema.json', import.meta.url), 'utf8'));
-  const Ajv = (Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ?? Ajv2020;
-  return new Ajv({ allErrors: true, strict: false, logger: false }).compile(schema);
-})();
+import { SchemaUtils } from '../src/SchemaUtils.js';
 
 type Doc = { sections: { main: Record<string, unknown>[] } };
 
@@ -89,13 +76,15 @@ describe('BedrockAgent prompt', () => {
     );
   });
 
-  it('renders a document the SWML schema accepts', () => {
-    expect(validateDocument(JSON.parse(makeAgent().renderSwml()))).toBe(true);
+  it('renders a verb the SWML schema accepts', () => {
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(makeAgent()));
+    expect(result.errors).toEqual([]);
   });
 
   it('fails schema validation with a voice Bedrock does not offer', () => {
     const agent = new BedrockAgent({ voiceId: 'inworld.Mark' });
     agent.setPromptText('You are a helpful assistant.');
-    expect(validateDocument(JSON.parse(agent.renderSwml()))).toBe(false);
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
+    expect(result.errors[0]).toContain('voice_id must be one of');
   });
 });

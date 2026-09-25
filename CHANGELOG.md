@@ -188,6 +188,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- Schema validation of `amazon_bedrock`, `cond`, `connect`, `execute`,
+  `ai_sidecar`, `join_conference` and `switch` checked only their required
+  properties: their schemas refer back to the document schema, the
+  per-verb validator couldn't compile, and validation silently fell back.
+  They're now fully validated, like the other verbs and as the Python SDK
+  validates them. A failed choice among allowed values names them
+  (`voice_id must be one of: tiffany, matthew, ...`).
 - The joke skill's result now tells the model to tell the joke
   (`Tell this joke to the user: ...`). Given only the joke, the model
   answered it instead of relaying it. The tool description is `Get a joke
@@ -290,6 +297,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- Adding an `execute`, `connect`, `cond`, `switch`, `join_conference`,
+  `ai_sidecar` or `amazon_bedrock` verb with an unknown or mistyped key
+  now fails schema validation, where it used to pass. The first of these
+  verbs validated in a process compiles the document schema, which takes
+  up to about a second; `SWML_SKIP_SCHEMA_VALIDATION=true` turns
+  validation off.
 - `FunctionResult.tap({ direction: 'hear' })` now throws; use `'listen'`.
 - `rpcAiMessage()` throws when given neither message text nor global data.
 - `asRouter()` returns routes relative to the agent's root. Mount it under
