@@ -185,3 +185,25 @@ describe('conversation id warning', () => {
     }
   });
 });
+
+describe('idle timeout with a transport that ignores the abort signal (found in review)', () => {
+  it('stops waiting for headers that never come', async () => {
+    const fetchImpl = (() => new Promise<Response>(() => undefined)) as unknown as typeof fetch;
+    await expect(client(fetchImpl, 0.05).rawPost('chat', { id: 'c' })).rejects.toThrow(/no data/);
+  });
+
+  it('abandons headers that arrive after the timeout, and cancels their body', async () => {
+    let cancelled = false;
+    const fetchImpl = (async () => {
+      await sleep(120);
+      const body = new ReadableStream<Uint8Array>({
+        pull: () => new Promise<void>(() => undefined),
+        cancel: () => void (cancelled = true),
+      });
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    await expect(client(fetchImpl, 0.05).rawPost('chat', { id: 'c' })).rejects.toThrow(/no data/);
+    await sleep(150);
+    expect(cancelled).toBe(true);
+  });
+});

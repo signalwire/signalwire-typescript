@@ -628,3 +628,45 @@ describe('mounted on an agent', () => {
     expect(r.headers.get('x-chat-handle')).toBeTruthy();
   });
 });
+
+describe('upstream failures (found in review)', () => {
+  it('answers a failed chat service call with 502 and the CORS headers', async () => {
+    const failing = (async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { id: string };
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          error: { code: -32005, message: 'rate limited' },
+          id: body.id,
+        }),
+      );
+    }) as unknown as typeof fetch;
+    const client = new AIChatClient({
+      project: 'p',
+      token: 't',
+      url: 'http://svc/',
+      fetchImpl: failing,
+    });
+    const gw = new ChatGateway({ configUrl: CONFIG_URL, key: KEY, allowedOrigins: [SHOP], client });
+    const r = await http(gw)({ method: 'start' });
+    expect(r.status).toBe(502);
+    expect(await r.json()).toEqual({ error: 'chat service error' });
+    expect(r.headers.get('access-control-allow-origin')).toBe(SHOP);
+  });
+
+  it('answers a chat service that cannot be reached with 502, before streaming', async () => {
+    const down = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const client = new AIChatClient({
+      project: 'p',
+      token: 't',
+      url: 'http://svc/',
+      fetchImpl: down,
+    });
+    const gw = new ChatGateway({ configUrl: CONFIG_URL, key: KEY, allowedOrigins: [SHOP], client });
+    const r = await http(gw)({ message: 'hi' });
+    expect(r.status).toBe(502);
+    expect(r.headers.get('access-control-allow-origin')).toBe(SHOP);
+  });
+});

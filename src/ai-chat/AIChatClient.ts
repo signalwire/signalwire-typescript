@@ -369,36 +369,43 @@ export class AIChatClient {
     };
     const failure = (err: unknown) => (controller.signal.aborted ? controller.signal.reason : err);
 
-    arm();
-    let response: Response;
-    try {
-      response = await this._fetch(this.url, {
-        method: 'POST',
-        headers: {
-          Authorization: this._authHeader,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'User-Agent': _userAgent(),
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-    } catch (err) {
-      disarm();
-      throw failure(err);
-    }
-    disarm();
-    if (!response.body || seconds <= 0) return response;
-
-    const reader = response.body.getReader();
-    // Each read also races the abort, so a transport that ignores the signal
-    // still stops waiting.
+    // Every wait (for headers, then each body chunk) races the abort, so a
+    // transport that ignores the signal still stops waiting.
     const aborted = new Promise<never>((_resolve, reject) => {
       controller.signal.addEventListener('abort', () => reject(controller.signal.reason), {
         once: true,
       });
     });
     aborted.catch(() => undefined);
+
+    arm();
+    let response: Response;
+    const pending = this._fetch(this.url, {
+      method: 'POST',
+      headers: {
+        Authorization: this._authHeader,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'User-Agent': _userAgent(),
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    try {
+      response = await Promise.race([pending, aborted]);
+    } catch (err) {
+      disarm();
+      // Headers that arrive after the timeout are discarded.
+      pending.then(
+        (late) => late.body?.cancel().catch(() => undefined),
+        () => undefined,
+      );
+      throw failure(err);
+    }
+    disarm();
+    if (!response.body || seconds <= 0) return response;
+
+    const reader = response.body.getReader();
     const body = new ReadableStream<Uint8Array>({
       async pull(stream) {
         arm();

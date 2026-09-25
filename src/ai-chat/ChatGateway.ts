@@ -68,7 +68,10 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { getLogger } from '../Logger.js';
 import { AIChatClient } from './AIChatClient.js';
+
+const logger = getLogger('ai_chat.gateway');
 
 /** Seconds a handle stays valid: past a page refresh, not overnight. */
 export const DEFAULT_HANDLE_TTL = 24 * 60 * 60;
@@ -587,7 +590,9 @@ export class ChatGateway {
    * `start` returns `{ greeting, status, timeout }`, `log` returns
    * `{ messages, timeout, last_activity }` with only the visible dialogue,
    * and `end` returns `{ status: 'ended' }`. A refusal returns
-   * `{ error: reason }` with the rejection's status.
+   * `{ error: reason }` with the rejection's status, and a failure reaching
+   * the chat service before any reply is sent returns 502
+   * `{ error: 'chat service error' }`, with CORS headers either way.
    *
    * @returns The Hono app.
    */
@@ -644,49 +649,72 @@ export class ChatGateway {
       }
       const id = params['id'] as string;
 
-      if (method === 'end_conversation') {
-        await this._client.end(id);
-        return c.json({ status: 'ended' }, 200, corsHeaders);
-      }
-
-      if (method === 'create_conversation') {
-        // prepare() decides whether a timeout applies; it has to reach the
-        // service, or the browser is told one number and the service keeps another.
-        const info = await this._client.createConversation(id, {
-          configUrl: params['config_url'] as string,
-          timeout: params['conversation_timeout'] as number | undefined,
-          userMetadata: params['user_meta_data'] as Record<string, unknown> | undefined,
+      try {
+        return await this._forward(c, method, id, params, minted, corsHeaders);
+      } catch (err) {
+        // Before any of the reply was sent: answer with the CORS headers, so
+        // the widget can read the refusal. (A failure after streaming
+        // started can only end the stream.) Only the error's type is logged.
+        logger.error('chat_gateway_upstream_failed', {
+          method,
+          error_type: err instanceof Error ? err.name : typeof err,
         });
-        const headers = minted ? { ...corsHeaders, 'X-Chat-Handle': minted } : corsHeaders;
-        return c.json(
-          { greeting: info.initialMessage, status: info.status, timeout: this.effectiveTimeout },
-          200,
-          headers,
-        );
+        return c.json({ error: 'chat service error' }, 502, corsHeaders);
       }
-
-      if (method === 'chat_log') {
-        const log = await this._client.log(id);
-        return c.json(
-          {
-            messages: ChatGateway.visibleMessages(log.messages),
-            timeout: this.effectiveTimeout,
-            last_activity: ChatGateway.lastActivity(log.messages),
-          },
-          200,
-          corsHeaders,
-        );
-      }
-
-      const upstream = await this._client.rawPost(method, params);
-      const headers: Record<string, string> = {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      };
-      if (minted) headers['X-Chat-Handle'] = minted;
-      return new Response(upstream.body, { status: 200, headers });
     });
 
     return router;
+  }
+
+  /** Send a prepared call to the chat service and build the browser's answer. */
+  private async _forward(
+    c: Context,
+    method: string,
+    id: string,
+    params: Record<string, unknown>,
+    minted: string | null,
+    corsHeaders: Record<string, string>,
+  ): Promise<Response> {
+    if (method === 'end_conversation') {
+      await this._client.end(id);
+      return c.json({ status: 'ended' }, 200, corsHeaders);
+    }
+
+    if (method === 'create_conversation') {
+      // prepare() decides whether a timeout applies; it has to reach the
+      // service, or the browser is told one number and the service keeps another.
+      const info = await this._client.createConversation(id, {
+        configUrl: params['config_url'] as string,
+        timeout: params['conversation_timeout'] as number | undefined,
+        userMetadata: params['user_meta_data'] as Record<string, unknown> | undefined,
+      });
+      const headers = minted ? { ...corsHeaders, 'X-Chat-Handle': minted } : corsHeaders;
+      return c.json(
+        { greeting: info.initialMessage, status: info.status, timeout: this.effectiveTimeout },
+        200,
+        headers,
+      );
+    }
+
+    if (method === 'chat_log') {
+      const log = await this._client.log(id);
+      return c.json(
+        {
+          messages: ChatGateway.visibleMessages(log.messages),
+          timeout: this.effectiveTimeout,
+          last_activity: ChatGateway.lastActivity(log.messages),
+        },
+        200,
+        corsHeaders,
+      );
+    }
+
+    const upstream = await this._client.rawPost(method, params);
+    const headers: Record<string, string> = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    };
+    if (minted) headers['X-Chat-Handle'] = minted;
+    return new Response(upstream.body, { status: 200, headers });
   }
 }
