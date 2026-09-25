@@ -97,6 +97,19 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   auth and removed from the URL. ERROR logs record only an error's type; its
   message, which can echo the caller's query, a remote error or a URL, is
   logged at DEBUG with URLs redacted.
+- Serverless signature checks now use the URL SignalWire signed: the URL the
+  platform was called on, with its query, and the raw body. They used the URL
+  the adapter built for routing, so with a signing key set, signed requests
+  got `403` behind an API Gateway stage, a CGI script path or an Azure
+  function app, on Google Cloud Functions (the query was dropped and the
+  parsed body re-serialized), and on API Gateway REST (its `Host` header was
+  missed). API Gateway REST events, which lose the query's original encoding,
+  are checked with both the `+` and `%20` forms. Behind a trusted forwarded
+  host, the platform's path prefix is kept.
+- Azure Functions requests, whose URL is absolute, are routed by the path
+  below `/api/<function>`; they got `404`.
+- `run()` and `runServerless()` in CGI mode read the request body from stdin
+  and write the CGI response to stdout. They read no body and wrote nothing.
 
 ### Fixed
 

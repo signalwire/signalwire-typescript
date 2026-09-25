@@ -3272,19 +3272,20 @@ export class AgentBase extends SWMLService {
     const adapter = new ServerlessAdapter(platform ?? 'auto');
     const app = this.getApp();
     // Wrap Hono's fetch (which returns `Response | Promise<Response>`) into a plain
-    // `Promise<Response>` so it satisfies ServerlessAdapter.handleRequest's type constraint.
-    const fetchFn = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
+    // `Promise<Response>`. The adapter passes an `env` carrying the URL the
+    // platform was called on, for the webhook signature check; forward it.
+    const fetchFn = (req: Request, env?: Record<string, unknown>): Promise<Response> =>
+      Promise.resolve(app.fetch(req, env));
 
     // CGI has no event object — the request lives in the environment + stdin.
-    // When dispatched in CGI mode with no explicit event, reconstruct it from
-    // the CGI environment so the request routes through the same Hono path as
-    // the other platforms (mirrors Python serverless_mixin CGI mode).
-    let resolvedEvent = event;
+    // When dispatched in CGI mode with no explicit event, read the request from
+    // the CGI environment and stdin, and write the CGI response to stdout, as a
+    // CGI program must (mirrors Python serverless_mixin CGI mode).
     if (adapter.getPlatform() === 'cgi' && (event == null || Object.keys(event).length === 0)) {
-      resolvedEvent = ServerlessAdapter.buildCgiEvent();
+      return adapter._runCgi({ fetch: fetchFn }, process.env);
     }
 
-    return adapter.handleRequest({ fetch: fetchFn }, resolvedEvent);
+    return adapter.handleRequest({ fetch: fetchFn }, event);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────
