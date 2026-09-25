@@ -25,7 +25,7 @@ import {
   type SwaigErrorHandler,
 } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
-import { FunctionResult } from './FunctionResult.js';
+import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { ContextBuilder } from './ContextBuilder.js';
 import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
@@ -2131,8 +2131,17 @@ export class AgentBase extends SWMLService {
       return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
     }
 
-    // call_id: from the body for POST, absent otherwise.
+    // call_id: from the body for POST, from the `call_id` query parameter for
+    // GET. The GET form is how a caller outside SignalWire fetches the SWML (and
+    // so the per-function `__token`s) for a known call.
     let callId: string | undefined;
+    if (method === 'GET') {
+      try {
+        callId = new URL(url, 'http://localhost').searchParams.get('call_id') ?? undefined;
+      } catch {
+        callId = undefined;
+      }
+    }
     if (method === 'POST' && Object.keys(parsedBody).length > 0) {
       callId = (parsedBody['call_id'] as string | undefined) ?? undefined;
       if (!callId && parsedBody['call'] && typeof parsedBody['call'] === 'object') {
@@ -2274,6 +2283,40 @@ export class AgentBase extends SWMLService {
    * @param reqLog - Request-scoped logger for the raw-parse-error path.
    * @returns The extracted argument object (empty object when none present).
    */
+  /**
+   * Check a SWAIG request's token before a function runs.
+   *
+   * A secure function runs only with a valid token minted for that function
+   * and call. The token is in the `web_hook_url` the agent rendered, so a
+   * request without one didn't come from that SWML: a missing token, or a
+   * missing `call_id`, is refused like a wrong token. A non-secure function
+   * runs without a token.
+   *
+   * @returns The SWAIG response to send instead of running the function, or
+   *   `null` when the function may run.
+   */
+  private swaigTokenRefusal(
+    fn: SwaigFunction,
+    token: string | null,
+    callId: string,
+    reqLog: Logger,
+  ): SwaigResultDict | null {
+    if (!fn.secure) return null;
+    if (!token) {
+      reqLog.warn('token_missing');
+    } else if (!callId) {
+      reqLog.warn('token_rejected_no_call_id');
+    } else if (this.sessionManager.validateToken(callId, fn.name, token)) {
+      reqLog.debug('token_valid');
+      return null;
+    } else {
+      reqLog.warn('token_invalid');
+    }
+    return new FunctionResult(
+      'The security token for this function is invalid or expired. This action cannot be completed.',
+    ).toDict();
+  }
+
   private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
     const isPlainObject = (v: unknown): v is Record<string, unknown> =>
       v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -2839,25 +2882,10 @@ export class AgentBase extends SWMLService {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
 
-      // Validate the security token IF PRESENT. Parity with the reference
-      // (agent_base.py:1413-1445): a token that is supplied must be valid for a
-      // secure function — an invalid/expired one is refused — but a MISSING
-      // token does not by itself block dispatch here. The transport already
-      // gates this endpoint (basic auth), and the per-tool `__token` minted into
-      // the rendered `web_hook_url` is what the platform round-trips.
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-      if (token) {
-        reqLog.debug('token_found');
-        if (fn.secure && !this.sessionManager.validateToken(callIdStr, fnName, token)) {
-          reqLog.warn('token_invalid');
-          const result = new FunctionResult(
-            'The security token for this function is invalid or expired. This action cannot be completed.',
-          );
-          return c.json(result.toDict());
-        }
-        reqLog.debug('token_valid');
-      }
+      const refusal = this.swaigTokenRefusal(fn, token, callIdStr, reqLog);
+      if (refusal) return c.json(refusal);
 
       const args = this.extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });

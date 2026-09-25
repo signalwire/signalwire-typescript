@@ -1109,7 +1109,7 @@ describe('AgentBase', () => {
     expect(text).not.toContain('real_tool');
   });
 
-  it('invalid token returns 200 with FunctionResult (not 403)', async () => {
+  it('refuses a secure function with a missing or invalid token, as a 200 FunctionResult', async () => {
     const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
     agent.defineTool({
       name: 'secure_fn',
@@ -1119,37 +1119,29 @@ describe('AgentBase', () => {
       secure: true,
     });
     const app = agent.getApp();
+    const headers = {
+      Authorization: 'Basic ' + btoa('u:p'),
+      'Content-Type': 'application/json',
+    };
 
-    // Missing token: dispatch proceeds. Parity with the reference
-    // (agent_base.py:1413 `if token:`) — a token is validated only when one is
-    // supplied; absence alone does not refuse the call, since basic auth already
-    // gates this endpoint. The per-tool `__token` is minted into the rendered
-    // web_hook_url for the platform to round-trip (see Contract 9).
+    // Missing token: refused. The token is in the web_hook_url the agent
+    // rendered, so a request without one didn't come from that SWML.
     const res1 = await app.request('/swaig', {
       method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + btoa('u:p'),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ function: 'secure_fn', argument: {} }),
+      headers,
+      body: JSON.stringify({ function: 'secure_fn', call_id: 'c1', argument: {} }),
     });
     expect(res1.status).toBe(200);
-    const body1 = await res1.json();
-    expect(body1.response).toBe('ok');
+    expect((await res1.json()).response).toContain('security token');
 
-    // Invalid token — a SUPPLIED token must be valid: refused, but as a 200
-    // FunctionResult (not a 403), which is what this test pins.
+    // Invalid token: refused the same way (a 200 FunctionResult, not a 403).
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + btoa('u:p'),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ function: 'secure_fn', argument: {} }),
+      headers,
+      body: JSON.stringify({ function: 'secure_fn', call_id: 'c1', argument: {} }),
     });
     expect(res2.status).toBe(200);
-    const body2 = await res2.json();
-    expect(body2.response).toContain('security token');
+    expect((await res2.json()).response).toContain('security token');
   });
 
   it('rejects function names with invalid characters', async () => {

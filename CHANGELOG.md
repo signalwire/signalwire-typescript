@@ -40,6 +40,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   included. It now requires the agent's basic auth credentials, and lists and
   calls only the tools the agent runs itself, not external webhook tools. An
   MCP client must now send an `Authorization` header.
+- A secure SWAIG function ran when the request carried no token at all;
+  only a wrong token was refused. Now a secure function runs only with a valid
+  token for that function and call, and a request with no token or no
+  `call_id` is refused like a wrong one.
+- Tokens for a call whose id contains a dot (composed conversation ids such as
+  `root.2`) never validated, so that call's secure functions were refused.
+- `GET /?call_id=<id>` now mints the SWML's function tokens for that call. It
+  used to ignore the query and mint them for a random session.
 
 ### Fixed
 

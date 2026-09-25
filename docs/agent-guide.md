@@ -367,7 +367,9 @@ agent.defineTool({
 });
 ```
 
-When `secure: true` is set, the SWML document includes a `__token` query parameter in the tool's webhook URL. On each `/swaig` request, the SDK validates the token's HMAC signature, call ID binding, and expiry before executing the handler.
+When `secure: true` is set, the SWML document includes a `__token` query parameter in the tool's webhook URL. On each `/swaig` request, the SDK validates the token's HMAC signature, call ID binding, and expiry before executing the handler. A request with no token, or with no `call_id` in its body, is refused the same way as a wrong token. Tools are secure unless you pass `secure: false`.
+
+SignalWire's requests already carry the token. To call a secure tool yourself, for example with `curl`, first fetch the SWML for the call with `GET /?call_id=<id>` and take the token from that tool's `web_hook_url`. `swaig-test --exec` runs the handler directly and doesn't need a token.
 
 ### FunctionResult
 
