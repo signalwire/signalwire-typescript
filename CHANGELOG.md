@@ -124,6 +124,18 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- Constructor arguments take precedence over an agent's config file, as
+  documented. The file's `service.name` always replaced the `name` passed to
+  `AgentBase`, and its route and host replaced a `route: '/'` or
+  `host: '0.0.0.0'` passed on purpose; now the file fills in only what the
+  caller left out.
+- `AgentBase` ignored basic auth credentials in its config file. Credentials
+  now resolve as: constructor, config file, environment, generated.
+  `getBasicAuthCredentials(true)` reports `'config file'` for the file's
+  (`SWMLService` reported them as `'environment'`), and the file's
+  `security.auth.basic` key is read as well as `security.basicAuth`. A
+  password set without a user (in the file or `SWML_BASIC_AUTH_PASSWORD`)
+  gets the user `signalwire`.
 - A tool handler gets the agent running the call as a third argument,
   `(args, rawData, agent)`: with a dynamic config callback, the request's
   configured copy, so the handler sees what the callback set up. `onSummary`
@@ -150,6 +162,11 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- A subclass that passes its own default (say `route: '/'`) to `AgentBase`
+  now overrides a route set in the config file even when its caller didn't
+  pass one. Forward only the options the caller gave.
+- Basic auth credentials in a config file now win over
+  `SWML_BASIC_AUTH_USER`/`SWML_BASIC_AUTH_PASSWORD`.
 - With a dynamic config callback set, a function call runs on the
   request's configured copy of the agent, and so does `onSummary`. State a
   handler or `onSummary` keeps by assigning to the agent (`this.count += 1`)

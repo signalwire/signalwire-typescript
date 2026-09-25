@@ -82,6 +82,12 @@ export class SecurityConfig {
   basicAuthUser: string | null;
   /** Basic auth password from config, or null. */
   basicAuthPassword: string | null;
+  /**
+   * Where {@link basicAuthPassword} came from: `'environment'`
+   * (`SWML_BASIC_AUTH_PASSWORD`), `'config file'` (which takes precedence), or
+   * `null` when neither set one.
+   */
+  basicAuthSource: 'environment' | 'config file' | null;
   /** Allowed request hosts (`['*']` = allow all). */
   allowedHosts: string[];
   /** Allowed CORS origins. */
@@ -102,8 +108,9 @@ export class SecurityConfig {
     this.domain = this.sslConfig.domain;
 
     // Auth + host/CORS/HSTS defaults from env vars
-    this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] ?? null;
-    this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] ?? null;
+    this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] || null;
+    this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] || null;
+    this.basicAuthSource = this.basicAuthPassword ? 'environment' : null;
     this.allowedHosts = ['*'];
     this.corsOrigins = ['*'];
     this.useHsts = true;
@@ -155,20 +162,30 @@ export class SecurityConfig {
         if (typeof ssl['keyPath'] === 'string') this.sslKeyPath = ssl['keyPath'];
         if (typeof ssl['domain'] === 'string') this.domain = ssl['domain'];
       }
-      const auth = loader.get('security.basicAuth') as Record<string, unknown> | undefined;
-      if (auth) {
+      // `security.auth.basic` is the reference's key; `security.basicAuth` is
+      // this SDK's earlier spelling, still read. The config file takes
+      // precedence over the environment.
+      for (const key of ['security.basicAuth', 'security.auth.basic']) {
+        const auth = loader.get(key) as Record<string, unknown> | undefined;
+        if (!auth || typeof auth !== 'object') continue;
         if (typeof auth['user'] === 'string') this.basicAuthUser = auth['user'];
-        if (typeof auth['password'] === 'string') this.basicAuthPassword = auth['password'];
+        if (typeof auth['password'] === 'string') {
+          this.basicAuthPassword = auth['password'];
+          this.basicAuthSource = 'config file';
+        }
       }
     } catch {
       // Config file load failures are non-fatal
     }
   }
 
-  /** Get basic auth credentials from security config, or null if not configured. */
+  /**
+   * Get basic auth credentials from the config file or environment, or null
+   * when no password is configured. The user defaults to `signalwire`.
+   */
   getBasicAuth(): [string, string] | null {
-    if (this.basicAuthUser && this.basicAuthPassword) {
-      return [this.basicAuthUser, this.basicAuthPassword];
+    if (this.basicAuthPassword) {
+      return [this.basicAuthUser || 'signalwire', this.basicAuthPassword];
     }
     return null;
   }
@@ -366,7 +383,7 @@ export class SWMLService {
   protected _server: Server | null = null;
   protected onRequestCallback?: OnRequestCallback;
   protected authCredentials?: [string, string];
-  protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
+  protected authSource: 'provided' | 'environment' | 'config file' | 'generated' = 'generated';
 
   /** Validate provided basic-auth credentials against the configured ones
    * using a constant-time comparison. (Python equivalent:
@@ -427,7 +444,7 @@ export class SWMLService {
     // Verb handler registry
     this.verbRegistry = new VerbHandlerRegistry();
 
-    // Auth resolution: provided > env > security config > generated
+    // Auth resolution: provided > config file > environment > generated
     // Track whether auth was explicitly provided (enforced on HTTP) vs auto-generated (available but not enforced)
     let enforceAuth = false;
     if (opts?.basicAuth) {
@@ -435,25 +452,19 @@ export class SWMLService {
       this.authSource = 'provided';
       enforceAuth = true;
     } else {
-      const envUser = process.env['SWML_BASIC_AUTH_USER'];
-      const envPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
-      if (envUser && envPass) {
-        this.authCredentials = [envUser, envPass];
-        this.authSource = 'environment';
+      // The config file, then the environment: SecurityConfig applies that
+      // precedence and records which one supplied the password.
+      const configured = this.security.getBasicAuth();
+      if (configured) {
+        this.authCredentials = configured;
+        this.authSource = this.security.basicAuthSource ?? 'environment';
         enforceAuth = true;
       } else {
-        const fromConfig = this.security.getBasicAuth();
-        if (fromConfig) {
-          this.authCredentials = fromConfig;
-          this.authSource = 'environment';
-          enforceAuth = true;
-        } else {
-          // Auto-generate credentials like AgentBase does
-          const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-          this.authCredentials = [username, randomBytes(16).toString('hex')];
-          this.authSource = 'generated';
-          // Not enforced on HTTP — available via getBasicAuthCredentials()
-        }
+        // Auto-generate credentials like AgentBase does
+        const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        this.authCredentials = [username, randomBytes(16).toString('hex')];
+        this.authSource = 'generated';
+        // Not enforced on HTTP — available via getBasicAuthCredentials()
       }
     }
 
@@ -1175,10 +1186,10 @@ export class SWMLService {
   getBasicAuthCredentials(includeSource?: false): [string, string];
   getBasicAuthCredentials(
     includeSource: true,
-  ): [string, string, 'provided' | 'environment' | 'generated'];
+  ): [string, string, 'provided' | 'environment' | 'config file' | 'generated'];
   getBasicAuthCredentials(
     includeSource?: boolean,
-  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'config file' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;
