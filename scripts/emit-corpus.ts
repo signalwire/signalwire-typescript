@@ -383,6 +383,45 @@ const corpus: Entry[] = [
     id: 'execute_swml.json_string',
     build: () => fr('').executeSwml('{"version": "1.0.0", "sections": {"main": [{"hangup": {}}]}}'),
   },
+
+  // ---- structured tool response (tool_result / tool_prompt) ---------------
+  {
+    id: 'tool_response.ctor',
+    build: () =>
+      new FunctionResult(
+        undefined,
+        false,
+        'Order 1042 placed.',
+        'Tell the caller their order number.',
+      ),
+  },
+  {
+    id: 'tool_response.set',
+    build: () => fr('').setToolResponse('Balance is $12.50.', 'Read the balance to the caller.'),
+  },
+  { id: 'tool_response.result_only', build: () => fr('').setToolResponse('Saved.') },
+
+  // ---- hold with a prompt and step routing --------------------------------
+  { id: 'hold.prompt', build: () => fr('').hold('Please hold while I check.') },
+  {
+    id: 'hold.routing',
+    build: () => fr('').hold('One moment.', 60, 'resume', 'timed_out'),
+  },
+
+  // ---- RPC global data ----------------------------------------------------
+  {
+    id: 'rpc_ai_message.global_data',
+    build: () =>
+      fr('').rpcAiMessage('call-abc', 'The caller is back.', 'system', { status: 'returned' }),
+  },
+  {
+    id: 'rpc_ai_message.data_only',
+    build: () => fr('').rpcAiMessage('call-abc', undefined, 'system', { order_id: '1042' }),
+  },
+  {
+    id: 'rpc_ai_global_data',
+    build: () => fr('').rpcAiGlobalData('call-abc', { order_id: '1042', paid: true }),
+  },
 ];
 
 function main(): void {
