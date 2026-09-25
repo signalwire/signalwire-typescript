@@ -166,3 +166,95 @@ describe('SessionManager dotted call ids', () => {
     expect(info.components?.function).toBe('fn');
   });
 });
+
+describe('post-prompt token', () => {
+  /** An agent with a post prompt that records every onSummary call. */
+  function makeSummaryAgent() {
+    const summaries: unknown[] = [];
+    class SummaryAgent extends AgentBase {
+      override onSummary(summary: unknown): void {
+        summaries.push(summary);
+      }
+    }
+    const agent = new SummaryAgent({ name: 'pp', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('summary test');
+    agent.setPostPrompt('Summarize the call.');
+    return { agent, summaries };
+  }
+
+  /** Fetch the SWML for a call and return its post_prompt_url. */
+  async function postPromptUrl(agent: AgentBase, callId: string): Promise<URL> {
+    const res = await agent.getApp().request(`/?call_id=${encodeURIComponent(callId)}`, {
+      headers: { Authorization: AUTH },
+    });
+    const swml = await res.json();
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    return new URL(ai.post_prompt_url);
+  }
+
+  function postSummary(agent: AgentBase, query: string, body: Record<string, unknown>) {
+    return agent.getApp().request(`/post_prompt${query}`, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  const summaryBody = (callId: string) => ({
+    call_id: callId,
+    post_prompt_data: { raw: 'the summary' },
+  });
+
+  it('delivers the summary with the token from the rendered post_prompt_url', async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const url = await postPromptUrl(agent, 'c1');
+    const res = await postSummary(agent, url.search, summaryBody('c1'));
+    expect(res.status).toBe(200);
+    expect(summaries).toEqual(['the summary']);
+  });
+
+  it('refuses a summary with no token and does not call onSummary', async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const res = await postSummary(agent, '', summaryBody('c1'));
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'Invalid or missing token' });
+    expect(summaries).toEqual([]);
+  });
+
+  it("refuses another call's post-prompt token", async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const url = await postPromptUrl(agent, 'c1');
+    const res = await postSummary(agent, url.search, summaryBody('c2'));
+    expect(res.status).toBe(403);
+    expect(summaries).toEqual([]);
+  });
+
+  it('refuses a request whose URL and body name different calls', async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const url = await postPromptUrl(agent, 'c1');
+    url.searchParams.set('call_id', 'c1');
+    const res = await postSummary(agent, url.search, summaryBody('c2'));
+    expect(res.status).toBe(400);
+    expect(summaries).toEqual([]);
+  });
+
+  it('uses the URL call_id when the body names none', async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const url = await postPromptUrl(agent, 'c1');
+    url.searchParams.set('call_id', 'c1');
+    const res = await postSummary(agent, url.search, { post_prompt_data: { raw: 'from url' } });
+    expect(res.status).toBe(200);
+    expect(summaries).toEqual(['from url']);
+  });
+
+  it('GET /post_prompt renders SWML and does not call onSummary', async () => {
+    const { agent, summaries } = makeSummaryAgent();
+    const res = await agent.getApp().request('/post_prompt', {
+      headers: { Authorization: AUTH },
+    });
+    expect(res.status).toBe(200);
+    const swml = await res.json();
+    expect(swml.sections.main.some((v: Record<string, unknown>) => 'ai' in v)).toBe(true);
+    expect(summaries).toEqual([]);
+  });
+});

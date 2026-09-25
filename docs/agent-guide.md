@@ -875,7 +875,7 @@ Each agent exposes the following HTTP endpoints (all relative to the agent's `ro
 |--------|------|------|-------------|
 | GET / POST | `/` | Basic Auth | Returns the rendered SWML document. Triggers proxy detection and dynamic config callback. |
 | GET / POST | `/swaig` | Basic Auth | SWAIG function dispatcher. Receives `{ "function": "name", "argument": {...} }`, validates tokens for secure tools, calls `onFunctionCall`, executes the handler. |
-| GET / POST | `/post_prompt` | Basic Auth | Receives post-prompt summary data. Extracts the summary and calls `onSummary`. |
+| GET / POST | `/post_prompt` | Basic Auth, plus the post-prompt token on POST | POST receives the call's summary, extracts it and calls `onSummary`. It needs the `__token` from the SWML's `post_prompt_url` for that call; a missing or wrong token gets `403`. GET returns the SWML document. |
 | POST | `/debug_events` | Basic Auth | Receives debug event webhooks (when `enableDebugEvents()` is active). |
 | GET | `/health` | None | Returns `{ "status": "ok" }`. |
 | GET | `/ready` | None | Returns `{ "status": "ready" }`. |

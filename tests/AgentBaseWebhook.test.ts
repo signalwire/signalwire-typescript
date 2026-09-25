@@ -12,6 +12,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 
+import { SessionManager } from '../src/SessionManager.js';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
@@ -173,11 +174,15 @@ describe('AgentBase — webhook signature validation', () => {
     });
 
     const app = agent.getApp();
-    const body = JSON.stringify({ post_prompt_data: { summary: 'ok' } });
-    const url = 'http://localhost/post_prompt';
+    // A summary needs the post-prompt token for its call, and the signature
+    // covers the full URL, query string included.
+    const sm = (agent as unknown as { sessionManager: SessionManager }).sessionManager;
+    const token = encodeURIComponent(sm.createToolToken('post_prompt', 'c1'));
+    const body = JSON.stringify({ call_id: 'c1', post_prompt_data: { summary: 'ok' } });
+    const url = `http://localhost/post_prompt?__token=${token}`;
     const sig = schemeASig(KEY, url, body);
 
-    const res = await app.request('/post_prompt', {
+    const res = await app.request(`/post_prompt?__token=${token}`, {
       method: 'POST',
       headers: {
         Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),

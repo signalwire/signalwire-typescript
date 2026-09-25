@@ -2932,8 +2932,32 @@ export class AgentBase extends SWMLService {
         /* empty */
       }
 
-      const callId = (body['call_id'] as string) || undefined;
+      // A POST delivers a call's summary, so like a secure SWAIG function it
+      // needs the token minted into the post-prompt URL for that call. The
+      // call is the one the body names, or the URL's call_id when the body
+      // names none; when they disagree the request is refused, so a token for
+      // one call can't deliver another call's summary.
+      const url = new URL(c.req.url);
+      const queryCallId = url.searchParams.get('call_id') || undefined;
+      const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
+      const rawBodyCallId = (body as Record<string, unknown>)['call_id'];
+      const bodyCallId =
+        typeof rawBodyCallId === 'string' && rawBodyCallId ? rawBodyCallId : undefined;
+      if (queryCallId && bodyCallId && queryCallId !== bodyCallId) {
+        reqLog.warn('call_id_mismatch');
+        return c.json({ error: 'The call_id in the URL and the body differ' }, 400);
+      }
+      const callId = bodyCallId ?? queryCallId;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
+
+      if (!token) {
+        reqLog.warn('token_missing');
+        return c.json({ error: 'Invalid or missing token' }, 403);
+      }
+      if (!callId || !this.sessionManager.validateToken(callId, 'post_prompt', token)) {
+        reqLog.warn('invalid_token');
+        return c.json({ error: 'Invalid or missing token' }, 403);
+      }
 
       reqLog.info('post_prompt_received');
 
@@ -2942,7 +2966,9 @@ export class AgentBase extends SWMLService {
       return c.json({ ok: true });
     };
 
-    app.get(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+    // A GET renders the SWML, like the agent's root; only a POST delivers a
+    // summary.
+    app.get(`${basePath}/post_prompt`, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
       app.post(`${basePath}/post_prompt`, authMw, sigMw, handlePostPrompt);
     } else {

@@ -449,14 +449,22 @@ describe('AgentBase', () => {
     });
     expect(swaigRes.status).toBe(404);
 
-    // /post_prompt accepts the call summary callback.
-    const ppRes = await router.request('/post_prompt', {
+    // /post_prompt accepts the call summary callback, with the post-prompt
+    // token from the SWML the router serves for that call.
+    agent.setPostPrompt('Summarize.');
+    const swmlRes = await router.request('/?call_id=c1', {
+      headers: { Authorization: 'Basic ' + btoa('u:p') },
+    });
+    const swml = await swmlRes.json();
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    const ppQuery = new URL(ai.post_prompt_url).search;
+    const ppRes = await router.request(`/post_prompt${ppQuery}`, {
       method: 'POST',
       headers: {
         Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
-      body: '{}',
+      body: JSON.stringify({ call_id: 'c1' }),
     });
     expect(ppRes.status).toBe(200);
   });

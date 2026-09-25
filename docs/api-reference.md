@@ -663,7 +663,7 @@ Get or lazily create the Hono HTTP application with all routes, middleware, auth
 |----------|--------|-------------|
 | `{route}` | GET/POST | Returns rendered SWML |
 | `{route}/swaig` | GET/POST | SWAIG function dispatcher |
-| `{route}/post_prompt` | GET/POST | Post-prompt handler |
+| `{route}/post_prompt` | GET/POST | POST delivers the call summary (needs the post-prompt token); GET returns the SWML |
 | `{route}/debug_events` | POST | Debug event handler |
 | `{route}/health` | GET | Health check (`{ status: 'ok' }`) |
 | `{route}/ready` | GET | Readiness check (`{ status: 'ready' }`) |

@@ -48,6 +48,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   `root.2`) never validated, so that call's secure functions were refused.
 - `GET /?call_id=<id>` now mints the SWML's function tokens for that call. It
   used to ignore the query and mint them for a random session.
+- A `POST` to the post-prompt endpoint delivered a summary to `onSummary`
+  with no token; the token minted into the post-prompt URL was never checked.
+  It now needs that token for the call (`403` otherwise), and a request whose
+  URL and body name different calls gets `400`, so one call's token can't
+  deliver another call's summary.
+- A `GET` to the post-prompt endpoint called `onSummary` with an empty
+  summary. It now returns the SWML document, like the agent's root.
 
 ### Fixed
 
