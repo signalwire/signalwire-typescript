@@ -119,4 +119,31 @@ describe('native_vector_search remote credentials and logs', () => {
     }
     expect(lines.some((l) => l.line.includes('SECRET-PW'))).toBe(false);
   });
+
+  it('logs a thrown error at ERROR by its type only, whatever its message carries', async () => {
+    const logs = captureLogs();
+    try {
+      const skill = new NativeVectorSearchSkill({
+        remote_url: `http://user:SECRET-PW@127.0.0.1:${port}`,
+        response_format_callback: ({ query }: { query: string }) => {
+          throw new Error(`could not format "${query}" from http://user:SECRET-PW@127.0.0.1/x`);
+        },
+      });
+      expect(await skill.setup()).toBe(true);
+      const handler = skill.getTools()[0]!.handler;
+      await handler({ query: 'my account number is 4242' }, {});
+    } finally {
+      logs.restore();
+    }
+    const errors = logs.lines.filter((l) => l.level === 'error');
+    expect(errors.some((l) => l.line.includes('response_format_callback error'))).toBe(true);
+    for (const l of errors) {
+      expect(l.line).not.toContain('4242');
+      expect(l.line).not.toContain('SECRET-PW');
+    }
+    // The detail is at DEBUG, with the URL's password masked.
+    const detail = logs.lines.find((l) => l.line.includes('could not format'));
+    expect(detail?.level).toBe('debug');
+    expect(logs.lines.some((l) => l.line.includes('SECRET-PW'))).toBe(false);
+  });
 });

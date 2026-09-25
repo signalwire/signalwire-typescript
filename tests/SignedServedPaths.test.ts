@@ -12,7 +12,6 @@
 import { createHmac } from 'node:crypto';
 import { Hono } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
-import { AgentServer } from '../src/AgentServer.js';
 
 const KEY = 'PSKtest1234567890abcdef';
 const AUTH = 'Basic ' + Buffer.from('u:p').toString('base64');
@@ -47,12 +46,6 @@ const SERVERS: Record<string, (agent: AgentBase) => Send> = {
     host.route('/', agent.asRouter() as unknown as Hono);
     return async (path, headers) =>
       (await host.request(path, { method: 'POST', headers, body: BODY })).status;
-  },
-  AgentServer: (agent) => {
-    const server = new AgentServer();
-    server.register(agent);
-    return async (path, headers) =>
-      (await server.getApp().request(path, { method: 'POST', headers, body: BODY })).status;
   },
   runServerless: (agent) => async (path, headers) =>
     (
@@ -97,12 +90,18 @@ describe.each(Object.keys(SERVERS))('served through %s', (kind) => {
   });
 });
 
-// AgentServer is left out here: it serves an agent routed at /agent under
-// /agent/agent (a known routing defect, fixed separately), so /agent/... 404s.
-describe.each(['getApp', 'asRouter', 'runServerless'])('signed requests through %s', (kind) => {
+// Every serving mode in SERVERS must also pass these signed controls, so a
+// 404 in the refusal cases above can't hide a route that isn't served at all.
+describe.each(Object.keys(SERVERS))('signed requests through %s', (kind) => {
   it.each(['/agent', '/agent/cb'])('lets a signed POST to %s reach the handler', async (path) => {
     const headers = { ...baseHeaders, 'X-SignalWire-Signature': sign(`http://localhost${path}`) };
     const status = await SERVERS[kind]!(makeAgent())(path, headers);
     expect(status).toBe(200);
   });
 });
+
+// AgentServer serves an agent routed at /agent under /agent/agent (a routing
+// defect fixed separately), so its /agent/... routes 404 and would pass the
+// refusal cases without testing anything. Add it to SERVERS once it serves the
+// agent's own route.
+it.todo('served through AgentServer, once it serves an agent at its own route');
