@@ -271,3 +271,67 @@ describe('mounted beside the gateway on an agent', () => {
     expect(preflight.headers.get('access-control-allow-origin')).toBe('http://localhost:3000');
   });
 });
+
+describe('found in review', () => {
+  it("doesn't let concurrent /say requests exceed the per-call cap", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => (release = r));
+    const sent: string[] = [];
+    const router = new HandoffRouter({
+      gateway: makeGateway(),
+      sendMessage: async (_callId, text) => {
+        await gate;
+        sent.push(text);
+        return true;
+      },
+      maxMessagesPerCall: 1,
+    });
+    router.register('n', { conversationId: 'c', callId: 'call-1' });
+    const results = Promise.all([1, 2, 3, 4, 5].map((i) => router.say('n', `m${i}`)));
+    release();
+    expect((await results).filter(Boolean)).toHaveLength(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("treats a sender returning false as not delivered, and doesn't count it", async () => {
+    let result = false;
+    const router = new HandoffRouter({
+      gateway: makeGateway(),
+      sendMessage: () => result,
+      maxMessagesPerCall: 1,
+    });
+    router.register('n', { conversationId: 'c', callId: 'call-1' });
+    expect(await router.say('n', 'one')).toBe(false);
+    result = true;
+    expect(await router.say('n', 'one')).toBe(true);
+  });
+
+  it('answers preflights and sends CORS headers to an allowed origin on every route', async () => {
+    const gateway = makeGateway(['https://shop.example.com']);
+    const handoff = new HandoffRouter({ gateway, sendMessage: () => true });
+    handoff.register('n1', { conversationId: 'conv', callId: 'call-1' });
+    const app = new Hono().route('/chat', handoff.router());
+    const origin = 'https://shop.example.com';
+    for (const path of ['/handoff', '/escalate', '/say']) {
+      const preflight = await app.request(`/chat${path}`, {
+        method: 'OPTIONS',
+        headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' },
+      });
+      expect(preflight.status, path).toBe(204);
+      expect(preflight.headers.get('access-control-allow-origin'), path).toBe(origin);
+      expect(preflight.headers.get('access-control-allow-headers'), path).toContain('Content-Type');
+    }
+    const said = await app.request('/chat/say', {
+      method: 'POST',
+      headers: { Origin: origin, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nonce: 'n1', text: 'hi' }),
+    });
+    expect(said.status).toBe(200);
+    expect(said.headers.get('access-control-allow-origin')).toBe(origin);
+    const refused = await app.request('/chat/handoff', {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil.test' },
+    });
+    expect(refused.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});

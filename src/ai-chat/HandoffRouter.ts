@@ -335,7 +335,8 @@ export class HandoffRouter {
    *
    * @param nonce - The nonce the browser presented.
    * @param text - The typed text; surrounding whitespace is removed.
-   * @returns True when the text was delivered.
+   * @returns True when the text was delivered: `sendMessage` neither threw
+   *   nor returned false.
    */
   async say(nonce: string, text: string): Promise<boolean> {
     if (!this.sendMessage) return false;
@@ -347,16 +348,20 @@ export class HandoffRouter {
       logger.warn('handoff_say_cap_reached', { call_id: entry.callId });
       return false;
     }
+    // Take the slot before waiting on delivery, so concurrent requests can't
+    // all pass the check; give it back if the message isn't delivered.
+    entry.messages += 1;
+    let delivered: boolean;
     try {
-      await this.sendMessage(entry.callId, cleaned);
+      delivered = (await this.sendMessage(entry.callId, cleaned)) !== false;
     } catch (err) {
       logger.error('handoff_say_failed', {
         error: err instanceof Error ? err.message : String(err),
       });
-      return false;
+      delivered = false;
     }
-    entry.messages += 1;
-    return true;
+    if (!delivered) entry.messages -= 1;
+    return delivered;
   }
 
   // ── HTTP ─────────────────────────────────────────────────────────
@@ -376,12 +381,27 @@ export class HandoffRouter {
    * - `/say` takes `{ nonce, text }` and returns `{ ok: true }`.
    *
    * Each returns 403 for a refused origin, and 404 `{ error: 'not found' }`
-   * when the nonce or handle doesn't verify.
+   * when the nonce or handle doesn't verify. Each answers its own CORS
+   * preflight, and sends CORS headers to an origin the gateway allows.
    *
    * @returns The Hono app.
    */
   router(): Hono {
     const router = new Hono();
+
+    // CORS for origins the gateway allows, so a widget on another origin can
+    // call these routes and read the answers; the agent's own CORS handling
+    // doesn't apply to a mounted app.
+    const cors = (c: Context): Record<string, string> => {
+      const origin = c.req.header('origin');
+      if (origin === undefined) return {};
+      try {
+        this.gateway.checkOrigin(origin);
+      } catch {
+        return {};
+      }
+      return { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' };
+    };
 
     const forbiddenOrigin = (c: Context): Response | null => {
       try {
@@ -391,6 +411,24 @@ export class HandoffRouter {
       }
       return null;
     };
+
+    // Every answer carries the CORS headers, refusals included.
+    router.use('*', async (c, next) => {
+      await next();
+      for (const [name, value] of Object.entries(cors(c))) c.res.headers.set(name, value);
+    });
+
+    for (const path of ['/handoff', '/escalate', '/say']) {
+      router.options(path, (c: Context) => {
+        const headers = cors(c);
+        if (Object.keys(headers).length > 0) {
+          headers['Access-Control-Allow-Headers'] = 'Content-Type';
+          headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+          headers['Access-Control-Max-Age'] = '600';
+        }
+        return c.body(null, 204, headers);
+      });
+    }
 
     const readBody = async (c: Context): Promise<Record<string, unknown>> => {
       try {

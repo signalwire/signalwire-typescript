@@ -68,8 +68,11 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   SignalWire address widget calls beside a gateway, to move a conversation
   between a call and chat and to type into a live call. The browser proves
   which call it's on with a single-use nonce the application registers from
-  the dial; the application's callbacks capture each leg before the next
-  medium starts.
+  the dial. The next medium starts after the application's callback
+  captures the previous leg, or after `captureTimeout` if the capture fails
+  or takes too long. Typing is capped per call; a `sendMessage` that
+  throws or returns `false` doesn't count. The routes answer their own
+  CORS preflights for origins the gateway allows.
 - `AIChatClient.rawPost(method, params)` returns the response with its body
   unread, for a proxy that streams it through.
 - `AIChatClient` reads a service URL from `RAILS_DEV_MODE` (a boolean value
