@@ -50,6 +50,25 @@ export interface _PublicFetchInit {
   signal?: AbortSignal;
   /** Skip the address checks, as `SWML_ALLOW_PRIVATE_URLS` does. */
   allowPrivate?: boolean;
+  /**
+   * Called with each redirect's target before it's requested; returning false
+   * stops the fetch with a {@link _RedirectRefused} error. The address checks
+   * still apply to a target it allows.
+   */
+  allowRedirect?: (target: string) => boolean | Promise<boolean>;
+}
+
+/** Thrown by {@link _publicFetch} when `allowRedirect` refuses a redirect. */
+export class _RedirectRefused extends Error {
+  /** The redirect target that was refused. */
+  readonly target: string;
+
+  /** @param target - The redirect target that was refused. */
+  constructor(target: string) {
+    super(`Redirect to ${redactUrl(target)} refused`);
+    this.name = '_RedirectRefused';
+    this.target = target;
+  }
 }
 
 /** Sends one request without following redirects. Tests replace it. */
@@ -242,11 +261,13 @@ export function _proxiedByNode(url: string): boolean {
  * 301/302 answering a POST, is followed with a GET, as browsers do.
  *
  * @param url - The URL to fetch.
- * @param init - Method, headers, body, abort signal and `allowPrivate`.
+ * @param init - Method, headers, body, abort signal, `allowPrivate` and
+ *   `allowRedirect`.
  * @returns The final response, which is not a redirect unless it had no
  *   `Location` header.
- * @throws If the URL or a redirect is refused, there are too many redirects,
- *   or the request fails.
+ * @throws If the URL or a redirect is refused ({@link _RedirectRefused} when
+ *   `allowRedirect` refuses it), there are too many redirects, or the
+ *   request fails.
  */
 export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Promise<Response> {
   const allowPrivate = _privateUrlsAllowed(init.allowPrivate ?? false);
@@ -299,5 +320,8 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
       for (const name of ORIGIN_BOUND_HEADERS) delete headers[name];
     }
     current = next.toString();
+    if (init.allowRedirect && !(await init.allowRedirect(current))) {
+      throw new _RedirectRefused(current);
+    }
   }
 }

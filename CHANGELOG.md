@@ -188,6 +188,18 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- The spider skill advertised settings it didn't honor. `follow_robots_txt`
+  was never checked: with it on, `scrape_url`, `extract_structured_data`
+  and `crawl_site` now skip pages the site's robots.txt disallows for
+  `user_agent`, check each redirect's target too, and keep a site's rules
+  for 24 hours (a robots.txt that fails with a server or network error is
+  tried again on the next request). The schema's defaults now match the
+  skill's (`max_text_length` 3000, `follow_robots_txt` false,
+  `user_agent` `Spider/1.0 (SignalWire AI Agent)`), and `extract_type`
+  lists `fast_text`, `markdown` and `structured`. The never-implemented
+  `clean_text`, `full_text`, `html` and `custom` still run as `fast_text`,
+  with a warning; any other value fails setup. `concurrent_requests` is
+  deprecated and has no effect.
 - `BedrockAgent` rendered its `amazon_bedrock` prompt without
   `max_tokens`, which the constructor and `setInferenceParams()` stored, and
   dropped `presence_penalty` and `frequency_penalty`, which the Bedrock

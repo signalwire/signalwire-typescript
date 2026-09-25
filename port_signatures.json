@@ -383,7 +383,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "_params",
+                  "name": "params",
                   "type": "dict<string,any>",
                   "required": true
                 }

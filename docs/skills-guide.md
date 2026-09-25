@@ -257,7 +257,7 @@ These skills involve complex integrations, multiple API calls, or advanced proce
 | `datasphere` | `DataSphereSkill` | SignalWire DataSphere semantic search | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `datasphere_serverless` | `DataSphereServerlessSkill` | DataSphere via server-side DataMap | `search_datasphere` | `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE` | `count`, `distance`, `document_id`, `tags`, `language`, `pos_to_expand`, `max_synonyms`, `no_results_message` |
 | `native_vector_search` | `NativeVectorSearchSkill` | In-memory TF-IDF document search | `search_documents` | None | `documents` |
-| `spider` | `SpiderSkill` | Web page scraping via Spider API | `scrape_url` | `SPIDER_API_KEY` | `max_content_length` |
+| `spider` | `SpiderSkill` | Fetches and extracts web pages | `scrape_url`, `crawl_site`, `extract_structured_data` | None (needs the `cheerio` package) | `extract_type`, `max_text_length`, `max_pages`, `max_depth`, `selectors`, `follow_robots_txt`, `user_agent` |
 | `claude_skills` | `ClaudeSkillsSkill` | Load Claude SKILL.md files as tools | (dynamic) | None | `skills_path`, `include`, `exclude`, `tool_prefix` |
 | `ask_claude` | `AskClaudeSkill` | Anthropic Claude AI sub-queries | `ask_claude` | `ANTHROPIC_API_KEY` | `model`, `max_tokens` |
 | `mcp_gateway` | `McpGatewaySkill` | MCP protocol gateway (placeholder) | `mcp_invoke` | None | None |
@@ -321,12 +321,14 @@ await agent.addSkill(new NativeVectorSearchSkill({
 }));
 ```
 
-**spider** -- Scrapes webpage content using the Spider API. Extracts text, markdown, or HTML from any public URL with optional CSS selector filtering.
+**spider** -- Fetches public web pages itself and extracts their text (`extract_type: 'fast_text'`), markdown (`'markdown'`), or the values of configured CSS selectors (`'structured'`). `crawl_site` follows links from a start page, up to `max_pages` and `max_depth`. It refuses private and internal addresses, including through redirects. With `follow_robots_txt: true` it skips pages the site's robots.txt disallows for `user_agent` (default `Spider/1.0 (SignalWire AI Agent)`), checking each redirect too and keeping a site's rules for 24 hours. It needs the optional `cheerio` package.
 
 ```typescript
 import { SpiderSkill } from '@signalwire/sdk';
 await agent.addSkill(new SpiderSkill({
-  max_content_length: 5000,
+  extract_type: 'markdown',
+  max_text_length: 5000,
+  follow_robots_txt: true,
 }));
 ```
 
@@ -881,6 +883,5 @@ This two-layer approach (warn at registration, error at call time) allows agents
 | `SIGNALWIRE_PROJECT_ID` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_API_TOKEN` | `datasphere`, `datasphere_serverless` |
 | `SIGNALWIRE_SPACE` | `datasphere`, `datasphere_serverless` |
-| `SPIDER_API_KEY` | `spider` |
 | `ANTHROPIC_API_KEY` | `ask_claude` |
 | `SIGNALWIRE_SKILL_PATHS` | `SkillRegistry` (directory discovery) |
