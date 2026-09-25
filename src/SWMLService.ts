@@ -1005,7 +1005,9 @@ export class SWMLService {
     } catch {
       /* bare path — use as-is */
     }
-    const trimmed = path.replace(/^\/+|\/+$/g, '');
+    // Collapse repeated slashes, as the router does when it picks the route,
+    // so /agent/handoff//next finds the callback registered at /handoff/next.
+    const trimmed = path.replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '');
     const normalized = trimmed ? `/${trimmed}` : path.replace(/\/+$/, '');
     for (const cbPath of this._routingCallbacks.keys()) {
       if (normalized === cbPath || normalized.endsWith(cbPath)) return cbPath;

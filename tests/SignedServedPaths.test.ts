@@ -124,3 +124,26 @@ describe.each(Object.keys(SERVERS))('signed requests through %s', (kind) => {
     },
   );
 });
+
+describe('a routing callback runs for every spelling of its path', () => {
+  it.each(['/agent/handoff/next', '/agent/handoff/next/', '/agent/handoff//next'])(
+    'redirects %s through the callback',
+    async (path) => {
+      const agent = new AgentBase({
+        name: 'handoff',
+        route: '/agent',
+        basicAuth: ['u', 'p'],
+        signingKey: KEY,
+      });
+      agent.setPromptText('handoff');
+      agent.registerRoutingCallback(() => '/elsewhere', '/handoff/next');
+      const res = await agent.getApp().request(path, {
+        method: 'POST',
+        headers: { ...baseHeaders, 'X-SignalWire-Signature': sign(`http://localhost${path}`) },
+        body: BODY,
+      });
+      expect(res.status).toBe(307);
+      expect(res.headers.get('location')).toBe('/elsewhere');
+    },
+  );
+});
