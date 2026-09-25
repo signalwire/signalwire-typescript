@@ -84,6 +84,15 @@ export class SkillManager {
   }
 
   /**
+   * Whether `skill`'s instance is one {@link _inheritFrom} took over, so
+   * adding it again is a no-op.
+   * @internal
+   */
+  _inherits(skill: SkillBase): boolean {
+    return this.inherited.has(skill.getInstanceKey());
+  }
+
+  /**
    * Public read-only view of all loaded skill instances, keyed by instance key.
    * Python equivalent: `self.loaded_skills` (public `Dict[str, SkillBase]`).
    *
@@ -112,6 +121,13 @@ export class SkillManager {
     const name = skill.skillName;
     const instanceKey = skill.getInstanceKey();
     const SkillClass = skill.constructor as typeof SkillBase;
+
+    // A skill the per-request copy inherited is already loaded: adding it
+    // again is a no-op, as in the reference, not a duplicate error.
+    if (this.inherited.has(instanceKey)) {
+      log.debug(`Skill '${name}' (${instanceKey}) is inherited; not adding it again`);
+      return;
+    }
 
     // Duplicate detection using instance key
     if (this.skills.has(instanceKey)) {

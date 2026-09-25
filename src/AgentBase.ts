@@ -1787,6 +1787,9 @@ export class AgentBase extends SWMLService {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
+    // On a per-request copy, a skill it inherited from the agent is already
+    // loaded, with its tools, prompts, hints and data: nothing to add.
+    if (this._skillManager._inherits(skill)) return this;
     skill.setAgent(this);
     await this._skillManager.addSkill(skill);
 

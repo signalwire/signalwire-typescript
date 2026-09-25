@@ -153,15 +153,34 @@ describe('Ephemeral Skill Copy', () => {
       expect(seen).toEqual([['counting_skill'], ['counting_skill'], ['counting_skill']]);
     });
 
+    it('adding an inherited skill again is a no-op that lets the callback go on', async () => {
+      CountingSkill.setups = 0;
+      const agent = new AgentBase({ name: 'readd', route: '/', basicAuth: ['user', 'pass'] });
+      agent.setPromptText('readd');
+      await agent.addSkill(new CountingSkill());
+      agent.setDynamicConfigCallback(async (_q, _b, _h, copy) => {
+        await copy.addSkill(new CountingSkill());
+        copy.setPromptText('configured after the skill');
+      });
+      const res = await agent.getApp().request('/', { headers: auth });
+      const swml = await res.json();
+      const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+      expect(ai.prompt.text).toBe('configured after the skill');
+      expect(CountingSkill.setups).toBe(1);
+    });
+
     it('removing an inherited skill on the copy leaves the agent and the instance alone', async () => {
       CountingSkill.cleanups = 0;
       const agent = new AgentBase({ name: 'inherit2', route: '/', basicAuth: ['user', 'pass'] });
       agent.setPromptText('inherit');
       await agent.addSkill(new CountingSkill());
+      let removedOnCopy: boolean | undefined;
       agent.setDynamicConfigCallback(async (_q, _b, _h, copy) => {
         await copy.removeSkillByName('counting_skill');
+        removedOnCopy = !copy.hasSkill('counting_skill');
       });
       await agent.getApp().request('/', { headers: auth });
+      expect(removedOnCopy).toBe(true);
       expect(agent.hasSkill('counting_skill')).toBe(true);
       expect(CountingSkill.cleanups).toBe(0);
     });
