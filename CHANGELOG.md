@@ -73,6 +73,15 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   a URL that isn't http or https, and a hostname that doesn't resolve (it
   used to allow a DNS failure), and checks every address a hostname resolves
   to, not only the first.
+- The per-request copy of an agent that a dynamic config callback configures
+  shared many fields with the agent itself, so what one call's callback
+  changed reached every later call. A query param added with
+  `addSwaigQueryParams()` (a tenant id, say) appeared in the next caller's
+  webhook URLs; `addMcpServer()`, `addFunctionInclude()` and
+  `addInternalFiller()` accumulated on the agent; `setPromptLlmParams()`
+  changed the agent's own settings; and `resetContexts()` cleared the agent's
+  contexts. The copy now has its own copies of all of these, and of the SIP
+  usernames, routing callbacks, verbs, params and global data.
 
 ### Fixed
 

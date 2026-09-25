@@ -65,6 +65,47 @@ export type RoutingCallback = (
 ) => string | null | undefined | Promise<string | null | undefined>;
 
 /**
+ * Deep-copy agent configuration for a per-request copy. Arrays, Maps, Sets,
+ * plain objects and class instances (such as a ContextBuilder and its steps)
+ * are copied with their prototypes; functions and binary data are shared.
+ * `memo` maps originals to their copies, so shared references stay shared
+ * and a reference to the agent can be redirected to the copy.
+ */
+function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
+  if (value === null || typeof value !== 'object') return value;
+  const obj = value as unknown as object;
+  if (memo.has(obj)) return memo.get(obj) as T;
+  if (ArrayBuffer.isView(obj) || obj instanceof ArrayBuffer) return value;
+  if (obj instanceof Date) return new Date(obj.getTime()) as T;
+  if (Array.isArray(obj)) {
+    const out: unknown[] = [];
+    memo.set(obj, out);
+    for (const item of obj) out.push(deepCloneState(item, memo));
+    return out as T;
+  }
+  if (obj instanceof Map) {
+    const out = new Map<unknown, unknown>();
+    memo.set(obj, out);
+    for (const [k, v] of obj) out.set(deepCloneState(k, memo), deepCloneState(v, memo));
+    return out as T;
+  }
+  if (obj instanceof Set) {
+    const out = new Set<unknown>();
+    memo.set(obj, out);
+    for (const v of obj) out.add(deepCloneState(v, memo));
+    return out as T;
+  }
+  const out = Object.create(Object.getPrototypeOf(obj)) as object;
+  memo.set(obj, out);
+  for (const key of Reflect.ownKeys(obj)) {
+    const desc = Object.getOwnPropertyDescriptor(obj, key)!;
+    if ('value' in desc) desc.value = deepCloneState(desc.value, memo);
+    Object.defineProperty(out, key, desc);
+  }
+  return out as T;
+}
+
+/**
  * Core agent class that composes an HTTP server, prompt management, session handling,
  * SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
  *
@@ -2550,7 +2591,14 @@ export class AgentBase extends SWMLService {
   private createEphemeralCopy(): AgentBase {
     const copy = Object.create(Object.getPrototypeOf(this)) as AgentBase;
     Object.assign(copy, this);
-    // Deep-copy mutable state
+    // Every field starts as a reference to this agent's. The configuration a
+    // per-request callback can change is then replaced with independent
+    // copies, so a callback's changes stay on this request: without that, one
+    // caller's query params, MCP servers or context edits would reach every
+    // later call. References to this agent inside the copied state (the
+    // contexts builder's back-reference) are redirected to the copy.
+    const memo = new Map<object, unknown>([[this, copy]]);
+    const clone = <T>(value: T): T => deepCloneState(value, memo);
     // The back-reference must point at the COPY, not `this` — an ephemeral
     // per-request clone whose manager still pointed at the original would read
     // back the wrong agent (the clone-drops-configuration defect class).
@@ -2561,15 +2609,26 @@ export class AgentBase extends SWMLService {
     const pp = this.getPostPrompt();
     if (pp) copy._promptManager.setPostPrompt(pp);
     copy.toolRegistry = new Map(this.toolRegistry);
-    copy.hints = [...this.hints];
-    copy.languages = [...this.languages];
-    copy.multilingual = { ...this.multilingual };
-    copy.pronounce = [...this.pronounce];
-    copy.params = { ...this.params };
-    copy.globalData = { ...this.globalData };
-    copy.preAnswerVerbs = [...this.preAnswerVerbs];
-    copy.postAnswerVerbs = [...this.postAnswerVerbs];
-    copy.postAiVerbs = [...this.postAiVerbs];
+    copy.hints = clone(this.hints);
+    copy.languages = clone(this.languages);
+    copy.multilingual = clone(this.multilingual);
+    copy.pronounce = clone(this.pronounce);
+    copy.params = clone(this.params);
+    copy.globalData = clone(this.globalData);
+    copy.functionIncludes = clone(this.functionIncludes);
+    copy.promptLlmParams = clone(this.promptLlmParams);
+    copy.postPromptLlmParams = clone(this.postPromptLlmParams);
+    copy.internalFillers = clone(this.internalFillers);
+    copy.preAnswerVerbs = clone(this.preAnswerVerbs);
+    copy.answerConfig = clone(this.answerConfig);
+    copy.postAnswerVerbs = clone(this.postAnswerVerbs);
+    copy.postAiVerbs = clone(this.postAiVerbs);
+    copy.swaigQueryParams = clone(this.swaigQueryParams);
+    copy._nativeFunctions = clone(this._nativeFunctions);
+    copy._mcpServers = clone(this._mcpServers);
+    copy._sipUsernames = this._sipUsernames ? new Map(this._sipUsernames) : null;
+    copy._routingCallbacks = new Map(this._routingCallbacks);
+    copy.contextsBuilder = clone(this.contextsBuilder);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
     copy.swmlBuilder = new SwmlBuilder({ service: copy });
 
