@@ -12,6 +12,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentBase } from '../src/AgentBase.js';
+import { SWMLService } from '../src/SWMLService.js';
 
 let dir: string;
 const savedEnv = { ...process.env };
@@ -111,5 +112,19 @@ describe('basic auth credential source', () => {
   it("reports generated credentials as 'generated'", () => {
     const agent = new AgentBase({ name: 'a' });
     expect(agent.getBasicAuthCredentials(true)[2]).toBe('generated');
+  });
+
+  it('ignores an empty config-file password rather than dropping the environment one', async () => {
+    process.env['SWML_BASIC_AUTH_USER'] = 'envuser';
+    process.env['SWML_BASIC_AUTH_PASSWORD'] = 'envpass';
+    const path = configFile({ security: { auth: { basic: { user: 'cfg', password: '' } } } });
+    const svc = new SWMLService({ name: 'svc', configFile: path });
+    svc.addVerb('hangup', {});
+    // The file's user applies; the password still comes from the environment,
+    // as in the reference, and the service still enforces it.
+    expect(svc.getBasicAuthCredentials(true)).toEqual(['cfg', 'envpass', 'environment']);
+    expect((await svc.getApp().request('/')).status).toBe(401);
+    const agent = new AgentBase({ name: 'a', configFile: path });
+    expect(agent.getBasicAuthCredentials(true)).toEqual(['cfg', 'envpass', 'environment']);
   });
 });

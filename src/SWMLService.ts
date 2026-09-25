@@ -168,8 +168,11 @@ export class SecurityConfig {
       for (const key of ['security.basicAuth', 'security.auth.basic']) {
         const auth = loader.get(key) as Record<string, unknown> | undefined;
         if (!auth || typeof auth !== 'object') continue;
-        if (typeof auth['user'] === 'string') this.basicAuthUser = auth['user'];
-        if (typeof auth['password'] === 'string') {
+        // An empty value sets nothing: an empty password would otherwise
+        // erase a working one from the environment and leave the service
+        // with no configured credentials.
+        if (typeof auth['user'] === 'string' && auth['user']) this.basicAuthUser = auth['user'];
+        if (typeof auth['password'] === 'string' && auth['password']) {
           this.basicAuthPassword = auth['password'];
           this.basicAuthSource = 'config file';
         }
