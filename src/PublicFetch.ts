@@ -10,10 +10,12 @@
  * internal addresses, so the address it connects to is the one it checked.
  *
  * It connects directly, ignoring any environment proxy, because through a
- * proxy the connection check can't apply. Set `SWML_URL_FETCH_USE_PROXY` to
- * send through Node's global `fetch` instead (which uses a proxy only when
- * Node's own proxy support is on), with a proxy that restricts destinations
- * itself. `SWML_ALLOW_PRIVATE_URLS` turns the address checks off.
+ * proxy the connection check can't apply. With `SWML_URL_FETCH_USE_PROXY` set,
+ * a request that Node's global `fetch` would send through a proxy (Node's
+ * proxy support on, a proxy set for the scheme, the host not in `NO_PROXY`)
+ * goes through it instead; use a proxy that restricts destinations itself.
+ * Every other request still connects directly through the guarded lookup.
+ * `SWML_ALLOW_PRIVATE_URLS` turns the address checks off.
  *
  * Internal to the SDK: the skills that fetch URLs a caller or the model
  * supplied (spider, web_search) use it. Mirrors signalwire-python's
@@ -24,7 +26,7 @@ import dns from 'node:dns';
 import http from 'node:http';
 import https from 'node:https';
 import type { LookupFunction } from 'node:net';
-import { Readable } from 'node:stream';
+import { Readable, pipeline } from 'node:stream';
 import zlib from 'node:zlib';
 import { _checkUrl, _privateUrlsAllowed, isPrivateIp, redactUrl } from './SecurityUtils.js';
 
@@ -87,13 +89,21 @@ const guardedLookup: LookupFunction = (hostname, options, callback) => {
   });
 };
 
-/** Wrap a decoded response body stream for a `Response`. */
+/**
+ * The response body, decompressed when it's encoded. `pipeline` carries an
+ * error in the connection (a reset mid-body) to the decompressor, so reading
+ * the body fails instead of waiting forever.
+ */
 function decodeBody(res: http.IncomingMessage): Readable {
   const encoding = (res.headers['content-encoding'] ?? '').toLowerCase();
-  if (encoding === 'gzip' || encoding === 'x-gzip') return res.pipe(zlib.createGunzip());
-  if (encoding === 'deflate') return res.pipe(zlib.createInflate());
-  if (encoding === 'br') return res.pipe(zlib.createBrotliDecompress());
-  return res;
+  let decoder: zlib.Gunzip | zlib.Inflate | zlib.BrotliDecompress | null = null;
+  if (encoding === 'gzip' || encoding === 'x-gzip') decoder = zlib.createGunzip();
+  else if (encoding === 'deflate') decoder = zlib.createInflate();
+  else if (encoding === 'br') decoder = zlib.createBrotliDecompress();
+  if (!decoder) return res;
+  return pipeline(res, decoder, () => {
+    // Errors reach the consumer through the decoder, which pipeline destroys.
+  });
 }
 
 /**
@@ -118,27 +128,39 @@ export const _nodeTransport: _PublicFetchTransport = (url, init, guard) =>
         ...(guard ? { lookup: guardedLookup } : {}),
       },
       (res) => {
-        const status = res.statusCode ?? 0;
-        const headers = new Headers();
-        for (let i = 0; i < res.rawHeaders.length; i += 2) {
-          const name = res.rawHeaders[i]!.toLowerCase();
-          if (name === 'content-encoding' || name === 'content-length') continue;
-          headers.append(res.rawHeaders[i]!, res.rawHeaders[i + 1]!);
+        // The server chose the status and headers, so anything that can't
+        // become a Response (a status outside 200-599, a malformed header)
+        // must reject this request: thrown here, in an event callback, it
+        // would escape the promise and crash the process.
+        try {
+          const status = res.statusCode ?? 0;
+          if (status < 200 || status > 599) {
+            throw new Error(`Invalid HTTP status ${status} from ${target.host}`);
+          }
+          const headers = new Headers();
+          for (let i = 0; i < res.rawHeaders.length; i += 2) {
+            const name = res.rawHeaders[i]!.toLowerCase();
+            if (name === 'content-encoding' || name === 'content-length') continue;
+            headers.append(res.rawHeaders[i]!, res.rawHeaders[i + 1]!);
+          }
+          const noBody = init.method === 'HEAD' || [204, 205, 304].includes(status);
+          let body: ReadableStream | null = null;
+          if (noBody) {
+            res.resume();
+          } else {
+            body = Readable.toWeb(decodeBody(res)) as ReadableStream;
+          }
+          const response = new Response(body, {
+            status,
+            statusText: res.statusMessage ?? '',
+            headers,
+          });
+          Object.defineProperty(response, 'url', { value: target.toString() });
+          resolve(response);
+        } catch (err) {
+          res.destroy();
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
-        const noBody = init.method === 'HEAD' || [204, 205, 304].includes(status);
-        let body: ReadableStream | null = null;
-        if (noBody) {
-          res.resume();
-        } else {
-          body = Readable.toWeb(decodeBody(res)) as ReadableStream;
-        }
-        const response = new Response(body, {
-          status,
-          statusText: res.statusMessage ?? '',
-          headers,
-        });
-        Object.defineProperty(response, 'url', { value: target.toString() });
-        resolve(response);
       },
     );
     req.on('error', reject);
@@ -170,10 +192,44 @@ export function _setPublicFetchTransport(transport: _PublicFetchTransport | null
   transportOverride = transport;
 }
 
+const truthy = (value: string | undefined) =>
+  ['1', 'true', 'yes'].includes((value ?? '').toLowerCase());
+
 /** True when `SWML_URL_FETCH_USE_PROXY` (1/true/yes) lets these fetches use a proxy. */
 function proxyAllowed(): boolean {
-  const env = (process.env['SWML_URL_FETCH_USE_PROXY'] ?? '').toLowerCase();
-  return env === '1' || env === 'true' || env === 'yes';
+  return truthy(process.env['SWML_URL_FETCH_USE_PROXY']);
+}
+
+/**
+ * Whether Node's global fetch would send a request for `url` through an
+ * environment proxy: Node's proxy support is on (`NODE_USE_ENV_PROXY` or
+ * `--use-env-proxy`), a proxy is set for the URL's scheme, and `NO_PROXY`
+ * doesn't exclude the host. When it wouldn't, the connection is direct and
+ * must go through the guarded transport. `NO_PROXY` is matched loosely (any
+ * entry that could cover the host counts), which errs toward the guard.
+ */
+export function _proxiedByNode(url: string): boolean {
+  const env = process.env;
+  const nodeProxySupport =
+    truthy(env['NODE_USE_ENV_PROXY']) || process.execArgv.includes('--use-env-proxy');
+  if (!nodeProxySupport) return false;
+  const target = new URL(url);
+  const proxy =
+    target.protocol === 'https:'
+      ? (env['HTTPS_PROXY'] ?? env['https_proxy'])
+      : (env['HTTP_PROXY'] ?? env['http_proxy']);
+  if (!proxy) return false;
+  const host = target.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const noProxy = (env['NO_PROXY'] ?? env['no_proxy'] ?? '')
+    .split(/[\s,]+/)
+    .map((e) => e.trim().toLowerCase().replace(/:\d+$/, ''))
+    .filter(Boolean);
+  for (const entry of noProxy) {
+    if (entry === '*') return false;
+    const bare = entry.replace(/^\*?\./, '');
+    if (host === bare || host.endsWith(`.${bare}`)) return false;
+  }
+  return true;
 }
 
 /**
@@ -194,9 +250,13 @@ function proxyAllowed(): boolean {
  */
 export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Promise<Response> {
   const allowPrivate = _privateUrlsAllowed(init.allowPrivate ?? false);
-  const transport =
-    transportOverride ?? (proxyAllowed() && !allowPrivate ? globalFetchTransport : _nodeTransport);
   const guard = !allowPrivate;
+  // Through a proxy the connection check can't apply, so the global fetch is
+  // used only when the request will really go through one; a direct
+  // connection always goes through the guarded transport.
+  const transportFor = (target: string): _PublicFetchTransport =>
+    transportOverride ??
+    (guard && proxyAllowed() && _proxiedByNode(target) ? globalFetchTransport : _nodeTransport);
 
   let method = (init.method ?? 'GET').toUpperCase();
   let body = init.body;
@@ -212,7 +272,7 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
       throw new Error(`Refused to fetch ${redactUrl(current)}: ${reason}`, { cause: err });
     }
 
-    const response = await transport(
+    const response = await transportFor(current)(
       current,
       { method, headers, body, signal: init.signal },
       guard,

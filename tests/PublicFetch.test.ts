@@ -8,10 +8,13 @@
  */
 
 import http from 'node:http';
+import net from 'node:net';
 import type { AddressInfo } from 'node:net';
+import { randomBytes } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import {
   _nodeTransport,
+  _proxiedByNode,
   _publicFetch,
   _setPublicFetchTransport,
   type _PublicFetchTransport,
@@ -201,5 +204,95 @@ describe('_nodeTransport connection check', () => {
     const res = await _publicFetch(`http://localhost:${port}/`, { allowPrivate: true });
     expect(await res.text()).toBe('local body');
     expect(hits).toBe(1);
+  });
+});
+
+describe('_nodeTransport with a misbehaving server', () => {
+  let server: net.Server;
+  let port = 0;
+  let reply: (socket: net.Socket) => void = () => undefined;
+
+  beforeAll(async () => {
+    server = net.createServer((socket) => {
+      socket.once('data', () => reply(socket));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    port = (server.address() as AddressInfo).port;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('rejects a status outside 200-599 instead of crashing the process', async () => {
+    reply = (socket) => socket.end('HTTP/1.1 600 Weird\r\nContent-Length: 2\r\n\r\nhi');
+    await expect(
+      _nodeTransport(`http://localhost:${port}/`, { method: 'GET', headers: {} }, false),
+    ).rejects.toThrow(/Invalid HTTP status 600/);
+  });
+
+  it('fails, rather than hangs, reading a gzip body cut off mid-stream', async () => {
+    // Random bytes don't compress, so 100 bytes is a small part of the stream.
+    const gz = gzipSync(randomBytes(50_000));
+    reply = (socket) => {
+      socket.write(
+        'HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\n' + `Content-Length: ${gz.length}\r\n\r\n`,
+      );
+      socket.write(gz.subarray(0, 100));
+      setTimeout(() => socket.destroy(), 20);
+    };
+    const res = await _nodeTransport(
+      `http://localhost:${port}/`,
+      { method: 'GET', headers: {} },
+      false,
+    );
+    await expect(res.text()).rejects.toBeDefined();
+  });
+});
+
+describe('_proxiedByNode', () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+  });
+
+  function setEnv(vars: Record<string, string | undefined>) {
+    for (const k of [
+      'NODE_USE_ENV_PROXY',
+      'HTTP_PROXY',
+      'http_proxy',
+      'HTTPS_PROXY',
+      'https_proxy',
+      'NO_PROXY',
+      'no_proxy',
+    ]) {
+      delete process.env[k];
+    }
+    for (const [k, v] of Object.entries(vars)) if (v !== undefined) process.env[k] = v;
+  }
+
+  it("is false when Node's proxy support is off, even with HTTP_PROXY set", () => {
+    setEnv({ HTTP_PROXY: 'http://proxy.example.com:3128' });
+    expect(_proxiedByNode('http://203.0.113.10/')).toBe(false);
+  });
+
+  it('is true when Node proxies the scheme and NO_PROXY does not exclude the host', () => {
+    setEnv({ NODE_USE_ENV_PROXY: '1', HTTP_PROXY: 'http://proxy.example.com:3128' });
+    expect(_proxiedByNode('http://203.0.113.10/')).toBe(true);
+    expect(_proxiedByNode('https://203.0.113.10/')).toBe(false);
+  });
+
+  it('is false for a host NO_PROXY covers', () => {
+    setEnv({
+      NODE_USE_ENV_PROXY: '1',
+      HTTPS_PROXY: 'http://proxy.example.com:3128',
+      NO_PROXY: 'internal.example, .corp.example:8443',
+    });
+    expect(_proxiedByNode('https://api.internal.example/')).toBe(false);
+    expect(_proxiedByNode('https://x.corp.example/')).toBe(false);
+    expect(_proxiedByNode('https://public.example/')).toBe(true);
+    setEnv({ NODE_USE_ENV_PROXY: '1', HTTPS_PROXY: 'http://p:1', NO_PROXY: '*' });
+    expect(_proxiedByNode('https://public.example/')).toBe(false);
   });
 });

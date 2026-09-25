@@ -129,8 +129,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - An MCP client that calls an agent's `/mcp` endpoint must send the agent's
   basic auth credentials.
 - The spider and web_search skills fetch pages directly, ignoring any
-  environment proxy. Set `SWML_URL_FETCH_USE_PROXY` to fetch through a proxy
-  that blocks private destinations itself.
+  environment proxy. To fetch through a proxy that blocks private
+  destinations itself, set `SWML_URL_FETCH_USE_PROXY` and turn on Node's proxy
+  support (`NODE_USE_ENV_PROXY=1`) with `HTTP_PROXY`/`HTTPS_PROXY`; a request
+  that `NO_PROXY` exempts still connects directly, with the address check.
 - `validateUrl()` refuses a hostname that doesn't resolve. Code that relied on
   it passing unresolvable hosts, such as tests that stub `fetch`, can set
   `SWML_ALLOW_PRIVATE_URLS` while testing.
