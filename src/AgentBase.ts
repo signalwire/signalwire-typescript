@@ -26,7 +26,13 @@ import {
 } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
-import { ContextBuilder } from './ContextBuilder.js';
+import {
+  Context as ConversationContext,
+  ContextBuilder,
+  GatherInfo,
+  GatherQuestion,
+  Step,
+} from './ContextBuilder.js';
 import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
@@ -64,10 +70,21 @@ export type RoutingCallback = (
   headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
+/** SDK classes whose instances a per-request copy duplicates field by field. */
+const CLONEABLE_CLASSES = new Set<unknown>([
+  ContextBuilder,
+  ConversationContext,
+  Step,
+  GatherInfo,
+  GatherQuestion,
+]);
+
 /**
  * Deep-copy agent configuration for a per-request copy. Arrays, Maps, Sets,
- * plain objects and class instances (such as a ContextBuilder and its steps)
- * are copied with their prototypes; functions and binary data are shared.
+ * Dates, plain objects and the contexts classes (a ContextBuilder and its
+ * contexts, steps and gather questions) are copied. Anything else (a URL, a
+ * RegExp, a class with private fields, a function) is shared as is: it can't
+ * be rebuilt field by field, since its state lives in internal slots.
  * `memo` maps originals to their copies, so shared references stay shared
  * and a reference to the agent can be redirected to the copy.
  */
@@ -75,7 +92,6 @@ function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
   if (value === null || typeof value !== 'object') return value;
   const obj = value as unknown as object;
   if (memo.has(obj)) return memo.get(obj) as T;
-  if (ArrayBuffer.isView(obj) || obj instanceof ArrayBuffer) return value;
   if (obj instanceof Date) return new Date(obj.getTime()) as T;
   if (Array.isArray(obj)) {
     const out: unknown[] = [];
@@ -95,7 +111,10 @@ function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
     for (const v of obj) out.add(deepCloneState(v, memo));
     return out as T;
   }
-  const out = Object.create(Object.getPrototypeOf(obj)) as object;
+  const proto = Object.getPrototypeOf(obj) as { constructor?: unknown } | null;
+  const plain = proto === null || proto === Object.prototype;
+  if (!plain && !CLONEABLE_CLASSES.has(proto?.constructor)) return value;
+  const out = Object.create(proto) as object;
   memo.set(obj, out);
   for (const key of Reflect.ownKeys(obj)) {
     const desc = Object.getOwnPropertyDescriptor(obj, key)!;

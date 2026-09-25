@@ -81,7 +81,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   `addInternalFiller()` accumulated on the agent; `setPromptLlmParams()`
   changed the agent's own settings; and `resetContexts()` cleared the agent's
   contexts. The copy now has its own copies of all of these, and of the SIP
-  usernames, routing callbacks, verbs, params and global data.
+  usernames, routing callbacks, verbs, params and global data. Plain data,
+  arrays, Maps, Sets, Dates and contexts are copied; other objects in them
+  (a `URL`, a `RegExp`, a class instance) are shared with the agent, so
+  don't mutate one of those in place from a callback.
 - Webhook signature validation accepts the stronger
   `X-SignalWire-Sha256-Signature` header (hex HMAC-SHA256 of the URL and raw
   body), preferred over the SHA-1 `X-SignalWire-Signature` when present, and

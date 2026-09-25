@@ -107,4 +107,36 @@ describe('per-request copy isolation', () => {
     expect(JSON.stringify(again.contexts)).toContain('per-call text');
     expect(ownRender(agent)).toContain('original text');
   });
+
+  it('shares values it cannot copy (URL, RegExp, private fields) instead of breaking them', async () => {
+    class Secretive {
+      #token = 'kept';
+      reveal(): string {
+        return this.#token;
+      }
+    }
+    const endpoint = new URL('https://example.com/resource');
+    const secretive = new Secretive();
+    const seen: unknown[] = [];
+    const agent = makeAgent((_q, _b, _h, copy) => {
+      const data = (copy as unknown as { globalData: Record<string, unknown> }).globalData;
+      seen.push((data['endpoint'] as URL).href, (data['helper'] as Secretive).reveal());
+      seen.push((data['pattern'] as RegExp).test('abc'));
+    });
+    agent.setGlobalData({ endpoint, helper: secretive, pattern: /b/, nested: { n: 1 } });
+    const ai = await aiFor(agent);
+    expect(ai.global_data.endpoint).toBe('https://example.com/resource');
+    expect(seen).toEqual(['https://example.com/resource', 'kept', true]);
+  });
+
+  it('still copies plain nested data, so a callback edit stays on its request', async () => {
+    const agent = makeAgent((_q, _b, _h, copy) => {
+      const data = (copy as unknown as { globalData: Record<string, unknown> }).globalData;
+      (data['profile'] as Record<string, unknown>)['tier'] = 'gold';
+    });
+    agent.setGlobalData({ profile: { tier: 'basic' } });
+    const ai = await aiFor(agent);
+    expect(ai.global_data.profile.tier).toBe('gold');
+    expect(ownRender(agent)).toContain('"tier":"basic"');
+  });
 });
