@@ -55,6 +55,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   deliver another call's summary.
 - A `GET` to the post-prompt endpoint called `onSummary` with an empty
   summary. It now returns the SWML document, like the agent's root.
+- Routing-callback paths (`registerRoutingCallback`) render SWML like the
+  root, but a `POST` to one skipped the webhook signature check. With a
+  signing key set, it now needs a valid signature like the root; a `GET`
+  stays unsigned.
 
 ### Fixed
 

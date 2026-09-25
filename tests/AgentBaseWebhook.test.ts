@@ -194,6 +194,61 @@ describe('AgentBase — webhook signature validation', () => {
     expect(res.status).toBe(200);
   });
 
+  describe('routing-callback paths', () => {
+    /** An agent with a signing key and a routing callback at /cb that never redirects. */
+    function routedAgent() {
+      const agent = new AgentBase({
+        name: 'sig-agent',
+        route: '/',
+        basicAuth: ['u', 'p'],
+        signingKey: KEY,
+      });
+      agent.setPromptText('routed');
+      const seen: unknown[] = [];
+      agent.registerRoutingCallback((body) => {
+        seen.push(body);
+        return null;
+      }, '/cb');
+      return { agent, seen };
+    }
+    const auth = 'Basic ' + Buffer.from('u:p').toString('base64');
+    const body = JSON.stringify({ call_id: 'c1' });
+
+    it('refuses an unsigned POST and does not run the callback', async () => {
+      const { agent, seen } = routedAgent();
+      const res = await agent.getApp().request('/cb', {
+        method: 'POST',
+        headers: { Authorization: auth, 'Content-Type': 'application/json' },
+        body,
+      });
+      expect(res.status).toBe(403);
+      expect(seen).toEqual([]);
+    });
+
+    it('accepts a signed POST and renders SWML', async () => {
+      const { agent, seen } = routedAgent();
+      const sig = schemeASig(KEY, 'http://localhost/cb', body);
+      const res = await agent.getApp().request('/cb', {
+        method: 'POST',
+        headers: {
+          Authorization: auth,
+          'X-SignalWire-Signature': sig,
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+      expect(res.status).toBe(200);
+      expect(seen).toHaveLength(1);
+      expect((await res.json()).sections).toBeDefined();
+    });
+
+    it('serves an unsigned GET, like the root SWML probe', async () => {
+      const { agent } = routedAgent();
+      const res = await agent.getApp().request('/cb', { headers: { Authorization: auth } });
+      expect(res.status).toBe(200);
+    });
+  });
+
   it('with explicit signingKey: GET / (SWML probe) is unsigned and still works', async () => {
     // GET / is the SignalWire platform's static-SWML probe. It carries no body
     // and is not signed by the platform; we must NOT 403 it.

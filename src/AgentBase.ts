@@ -3071,8 +3071,15 @@ export class AgentBase extends SWMLService {
         return this.serveViaHandleRequest(c);
       };
 
+      // A routing-callback path renders SWML like the root, so a POST to it
+      // needs a signature like the root when a signing key is set. A GET
+      // (the platform's SWML probe) stays unsigned, as it is on the root.
       app.get(fullPath, authMw, handleRouting);
-      app.post(fullPath, authMw, handleRouting);
+      if (sigMw) {
+        app.post(fullPath, authMw, sigMw, handleRouting);
+      } else {
+        app.post(fullPath, authMw, handleRouting);
+      }
     }
 
     // Health / Ready
