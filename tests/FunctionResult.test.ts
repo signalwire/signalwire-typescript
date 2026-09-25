@@ -351,8 +351,10 @@ describe('FunctionResult', () => {
     const swml = JSON.stringify({ version: '1.0.0', sections: { main: [] } });
     const r = new FunctionResult('ok').executeSwml(swml, true);
     const acts = r.toDict().action as Record<string, unknown>[];
-    const action = acts[0]!['SWML'] as Record<string, unknown>;
-    expect(action['transfer']).toBe('true');
+    // transfer rides beside the SWML document (as connect() emits it), not inside it.
+    expect(acts[0]!['transfer']).toBe('true');
+    expect((acts[0]!['SWML'] as Record<string, unknown>)['transfer']).toBeUndefined();
+    expect((acts[0]!['SWML'] as Record<string, unknown>)['version']).toBe('1.0.0');
   });
 
   it('executeSwml with valid object is unchanged (regression for the bad-type guard)', () => {

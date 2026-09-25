@@ -1542,7 +1542,10 @@ export class AgentBase extends SWMLService {
           argument: { parsed: [args] },
         } as unknown as SwaigRequest;
         const resultDict = await fn._executeAs(this, args, rawData, this._onError);
-        const responseText = (resultDict['response'] as string) ?? '';
+        // MCP content is text: a structured { tool_result, tool_prompt }
+        // response goes as its JSON.
+        const response = resultDict['response'] ?? '';
+        const responseText = typeof response === 'string' ? response : JSON.stringify(response);
         return {
           jsonrpc: '2.0',
           id: reqId,

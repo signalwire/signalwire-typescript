@@ -21,8 +21,12 @@ export type SwaigAction = Record<string, unknown>;
  * so the shape is closed (no index signature).
  */
 export interface SwaigResultDict {
-  /** Text response returned to the AI agent. Omitted when empty (unless it is the sole fallback). */
-  response?: string;
+  /**
+   * Returned to the AI agent: a prompt string, or `{ tool_result, tool_prompt }`
+   * separating what the tool did from what the model should say. Omitted when
+   * empty (unless it is the sole fallback).
+   */
+  response?: string | { tool_result?: string; tool_prompt?: string };
   /** Ordered list of actions to execute. Omitted when there are none. */
   action?: SwaigAction[];
   /** Present (and `true`) only when post-processing is enabled and actions exist. */
@@ -60,9 +64,18 @@ export interface PaymentParameter {
 /**
  * Builder for SWAIG function responses.
  *
- * Carries response text (what the AI says to the caller) and a list of structured
- * actions (connect, hangup, SMS, record, transfer, etc.) that the SignalWire platform
- * executes after the AI speaks. Every mutating method returns `this` for fluent chaining.
+ * Carries a response and a list of structured actions (connect, hangup, SMS,
+ * record, transfer, etc.) that the SignalWire platform executes. Every mutating
+ * method returns `this` for fluent chaining.
+ *
+ * The response is a prompt for the model, not speech played to the caller: facts
+ * the model reasons from, or an instruction it follows ("Tell the caller their
+ * order shipped."), in the second person. The model reads it and decides what to
+ * say. To keep a status line from being read aloud, and an instruction from being
+ * taken as data, split them with {@link setToolResponse}:
+ * `tool_result` is what the tool did, `tool_prompt` is what to say next. Set
+ * `postProcess` when the caller must hear something before an action lands
+ * (hold, connect, transfer, hangup).
  *
  * Return an instance (or a promise that resolves to one) from any SWAIG tool handler.
  *
@@ -72,7 +85,7 @@ export interface PaymentParameter {
  *   name: 'say_hi',
  *   description: 'Say hello.',
  *   parameters: { type: 'object', properties: {} },
- *   handler: () => new FunctionResult('Hello there!'),
+ *   handler: () => new FunctionResult('Greet the caller warmly.'),
  * });
  * ```
  *
@@ -83,13 +96,15 @@ export interface PaymentParameter {
  *   description: 'Forward the caller to sales.',
  *   parameters: { type: 'object', properties: {} },
  *   handler: () =>
- *     new FunctionResult('Connecting you to sales now.').connect('+15551112222'),
+ *     new FunctionResult('Tell the caller you are connecting them to sales.', true).connect(
+ *       '+15551112222',
+ *     ),
  * });
  * ```
  *
  * @example Chained actions
  * ```ts
- * new FunctionResult("Thanks, you're all set.")
+ * new FunctionResult('Tell the caller they are all set and say goodbye.', true)
  *   .sendSms({ toNumber: '+15551234567', fromNumber: '+15559998888', body: 'Confirmation!' })
  *   .hangup();
  * ```
@@ -98,21 +113,44 @@ export interface PaymentParameter {
  * @see {@link DataMap} — alternative for purely data-driven (no handler) tools
  */
 export class FunctionResult {
-  /** The text response returned to the AI agent. */
+  /**
+   * The response text returned to the AI agent: a prompt for the model. When
+   * the structured form is set ({@link setToolResponse}), that is sent instead.
+   */
   response: string;
+  /** The structured response set by {@link setToolResponse}, sent instead of `response`. */
+  private _toolResponse: { tool_result?: string; tool_prompt?: string } | null = null;
   /** Ordered list of actions to execute after the response. */
   action: SwaigAction[];
   /** Whether actions should be post-processed after the AI responds. */
   postProcess: boolean;
 
   /**
-   * @param response - Initial response text; defaults to empty string.
-   * @param postProcess - Whether to enable post-processing of actions.
+   * @param response - Initial response: a prompt for the model, or the
+   *   structured `{ tool_result, tool_prompt }` form; defaults to empty string.
+   * @param postProcess - Whether the model takes one more turn before the
+   *   actions execute (set it when the caller must hear something first).
+   * @param toolResult - Sets the structured response's `tool_result` (see
+   *   {@link setToolResponse}).
+   * @param toolPrompt - Sets the structured response's `tool_prompt`.
    */
-  constructor(response?: string, postProcess = false) {
-    this.response = response ?? '';
+  constructor(
+    response?: string | { tool_result?: string; tool_prompt?: string },
+    postProcess = false,
+    toolResult?: string,
+    toolPrompt?: string,
+  ) {
     this.action = [];
     this.postProcess = postProcess;
+    if (typeof response === 'object' && response !== null) {
+      this.response = '';
+      this._toolResponse = { ...response };
+    } else {
+      this.response = response ?? '';
+    }
+    if (toolResult !== undefined || toolPrompt !== undefined) {
+      this.setToolResponse(toolResult, toolPrompt);
+    }
   }
 
   // ── Core ────────────────────────────────────────────────────────────
@@ -124,6 +162,34 @@ export class FunctionResult {
    */
   setResponse(response: string): this {
     this.response = response;
+    this._toolResponse = null;
+    return this;
+  }
+
+  /**
+   * Set the structured response, separating outcome from instruction:
+   * `{ tool_result, tool_prompt }`.
+   *
+   * - `toolResult`: what the tool DID. A factual status line for the model to
+   *   reason from ("hold initiated", "payment declined", "3 seats left").
+   * - `toolPrompt`: what the model should now SAY. An instruction, in the
+   *   second person, like the string form of the response.
+   *
+   * Splitting them keeps the model from reading a status line aloud, and keeps
+   * the instruction from being mistaken for data.
+   *
+   * @param toolResult - Factual outcome of the call; omit if there is nothing
+   *   to report beyond the instruction.
+   * @param toolPrompt - Instruction for what to say next; omit for a silent,
+   *   status-only result.
+   * @returns This instance for chaining.
+   */
+  setToolResponse(toolResult?: string, toolPrompt?: string): this {
+    const payload: { tool_result?: string; tool_prompt?: string } = {};
+    if (toolResult !== undefined) payload.tool_result = toolResult;
+    if (toolPrompt !== undefined) payload.tool_prompt = toolPrompt;
+    this._toolResponse = payload;
+    this.response = '';
     return this;
   }
 
@@ -211,12 +277,53 @@ export class FunctionResult {
   }
 
   /**
-   * Place the call on hold for a specified duration.
-   * @param timeout - Hold duration in seconds, clamped to 0-900.
+   * Put the call on hold, optionally announcing it and routing what happens next.
+   *
+   * The hold action carries no prompt of its own, and during a hold speech
+   * detection is paused and the agent doesn't respond, so anything the caller
+   * needs to hear has to be said before the hold lands. Passing `prompt` does
+   * that: it becomes the structured response's `tool_prompt` (with
+   * `tool_result: "status: on hold"`) and turns on `postProcess`, so the model
+   * speaks before the hold executes.
+   *
+   * `step` and `timeoutStep` move the call to a step when the hold ends:
+   * `step` when it's taken off hold, `timeoutStep` when the hold times out.
+   * They fire when the hold ends, unlike {@link swmlChangeStep}, which applies
+   * at once and would move the caller before the hold begins. Omitting both
+   * emits the bare timeout, and the caller resumes where they were.
+   *
+   * @example
+   * ```ts
+   * new FunctionResult().hold('Tell the caller you are checking if they are available.', 300,
+   *   'back_with_agent', 'take_a_message');
+   * ```
+   *
+   * @param prompt - Instruction for the model to deliver before the hold. A
+   *   number here is taken as `timeout`, so `hold(120)` keeps working.
+   * @param timeout - Hold duration in seconds, clamped to 0-900 (default 300).
+   * @param step - Step to move to when the call is taken off hold.
+   * @param timeoutStep - Step to move to when the hold times out.
    * @returns This instance for chaining.
    */
-  hold(timeout = 300): this {
-    return this.addAction('hold', Math.max(0, Math.min(timeout, 900)));
+  hold(prompt?: string | number, timeout = 300, step?: string, timeoutStep?: string): this {
+    let text: string | undefined;
+    if (typeof prompt === 'number') {
+      timeout = prompt;
+    } else {
+      text = prompt;
+    }
+    if (text !== undefined) {
+      this.setToolResponse('status: on hold', text);
+      this.postProcess = true;
+    }
+    const clamped = Math.max(0, Math.min(timeout, 900));
+    if (step === undefined && timeoutStep === undefined) {
+      return this.addAction('hold', clamped);
+    }
+    const config: Record<string, unknown> = { timeout: clamped };
+    if (step !== undefined) config['step'] = step;
+    if (timeoutStep !== undefined) config['timeout_step'] = timeoutStep;
+    return this.addAction('hold', config);
   }
 
   /**
@@ -394,10 +501,13 @@ export class FunctionResult {
       // for every SWML helper, so a bad value must fail loudly rather than spread.
       throw new Error('swml_content must be string, dict, or SWML object');
     }
-    if (transfer) {
-      swmlData['transfer'] = 'true';
-    }
-    return this.addAction('SWML', swmlData);
+    // transfer rides BESIDE the SWML document, not inside it: the same shape
+    // connect() and swmlTransfer() emit. Inside the document it isn't a SWML
+    // key, and the call never leaves the agent.
+    const action: SwaigAction = { SWML: swmlData };
+    if (transfer) action['transfer'] = 'true';
+    this.action.push(action);
+    return this;
   }
 
   /**
@@ -614,19 +724,29 @@ export class FunctionResult {
   tap(opts: {
     uri: string;
     controlId?: string;
-    direction?: 'speak' | 'hear' | 'both';
+    /** `speak` (what the party says), `listen` (what it hears) or `both` (default). */
+    direction?: 'speak' | 'listen' | 'both';
     codec?: 'PCMU' | 'PCMA';
     rtpPtime?: number;
     statusUrl?: string;
   }): this {
-    // Runtime guard matching the Python reference: the literal-union types cover
-    // direction/codec but cannot express the numeric range (rtp_ptime > 0).
+    // Runtime guards matching the Python reference: a JS caller can pass any
+    // string, and the types can't express rtp_ptime > 0.
+    const direction = opts.direction ?? 'both';
+    if (!['speak', 'listen', 'both'].includes(direction)) {
+      throw new Error("direction must be one of ['speak', 'listen', 'both']");
+    }
+    if (opts.codec !== undefined && !['PCMU', 'PCMA'].includes(opts.codec)) {
+      throw new Error("codec must be one of ['PCMU', 'PCMA']");
+    }
     if (opts.rtpPtime !== undefined && opts.rtpPtime <= 0) {
       throw new Error('rtp_ptime must be a positive integer');
     }
     const params: Record<string, unknown> = { uri: opts.uri };
     if (opts.controlId) params['control_id'] = opts.controlId;
-    if (opts.direction && opts.direction !== 'both') params['direction'] = opts.direction;
+    // Always sent: the verb's own default is "speak", not this helper's
+    // "both", so leaving it out would tap less than the caller asked for.
+    params['direction'] = direction;
     if (opts.codec && opts.codec !== 'PCMU') params['codec'] = opts.codec;
     if (opts.rtpPtime && opts.rtpPtime !== 20) params['rtp_ptime'] = opts.rtpPtime;
     if (opts.statusUrl) params['status_url'] = opts.statusUrl;
@@ -820,18 +940,49 @@ export class FunctionResult {
   }
 
   /**
-   * Send an AI message to another call via RPC.
+   * Send a message and/or global data to an AI agent on another call.
+   *
+   * Two payloads, either or both: `messageText` lands as a turn in the other
+   * agent's conversation, where it competes with everything else arriving at
+   * that moment; `globalData` is merged into the other call's global data,
+   * where it stays silent until a prompt expands it with
+   * `${global_data.your_key}`. That makes data the better channel for content a
+   * later step needs to say.
+   *
    * @param callId - The target call ID.
-   * @param messageText - The message text to inject.
-   * @param role - The message role (defaults to "system").
+   * @param messageText - Message to inject into the other conversation.
+   * @param role - The message role (defaults to "system"); sent with the message.
+   * @param globalData - Object merged into the target call's global data.
+   * @returns This instance for chaining.
+   * @throws Error when neither `messageText` nor `globalData` is given.
+   */
+  rpcAiMessage(
+    callId: string,
+    messageText?: string | null,
+    role = 'system',
+    globalData?: Record<string, unknown>,
+  ): this {
+    const params: Record<string, unknown> = {};
+    if (messageText !== undefined && messageText !== null) {
+      params['role'] = role;
+      params['message_text'] = messageText;
+    }
+    if (globalData !== undefined) params['global_data'] = globalData;
+    if (Object.keys(params).length === 0) {
+      throw new Error('rpc_ai_message needs message_text, global_data, or both');
+    }
+    return this.executeRpc({ method: 'ai_message', callId, params });
+  }
+
+  /**
+   * Merge data into another call's global data, with no conversation turn.
+   * The other call's prompt reads it back with `${global_data.key}`.
+   * @param callId - The target call ID.
+   * @param data - Object merged into that call's global data.
    * @returns This instance for chaining.
    */
-  rpcAiMessage(callId: string, messageText: string, role = 'system'): this {
-    return this.executeRpc({
-      method: 'ai_message',
-      callId,
-      params: { role, message_text: messageText },
-    });
+  rpcAiGlobalData(callId: string, data: Record<string, unknown>): this {
+    return this.rpcAiMessage(callId, undefined, 'system', data);
   }
 
   /**
@@ -961,7 +1112,11 @@ export class FunctionResult {
    */
   toDict(): SwaigResultDict {
     const result: SwaigResultDict = {};
-    if (this.response) {
+    // The structured form counts only when it has a field, as an empty dict
+    // is falsy in the reference.
+    if (this._toolResponse && Object.keys(this._toolResponse).length > 0) {
+      result.response = { ...this._toolResponse };
+    } else if (this.response) {
       result.response = this.response;
     }
     if (this.action.length > 0) {

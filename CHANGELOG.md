@@ -13,6 +13,19 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Added
 
+- `FunctionResult` can separate what a tool did from what the model should
+  say: `setToolResponse(toolResult, toolPrompt)` (or the constructor's third
+  and fourth arguments) sends `response` as
+  `{ tool_result, tool_prompt }`, so a status line isn't read aloud and an
+  instruction isn't taken for data. The plain string form is unchanged.
+- `FunctionResult.hold(prompt, timeout, step, timeoutStep)`: a prompt is
+  delivered before the hold lands (it sets the structured response and
+  `postProcess`), and `step`/`timeoutStep` move the call to a step when it's
+  taken off hold or the hold times out. `hold()` and `hold(120)` are
+  unchanged.
+- `FunctionResult.rpcAiMessage()` takes `globalData`, merged into the other
+  call's global data, and its message text is optional;
+  `rpcAiGlobalData(callId, data)` sends data only.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
   `get` / `create` / `update` / `delete` / `list_addresses` and every generated
   operation / command-dispatch / set-method now accepts a trailing optional
@@ -124,6 +137,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `FunctionResult.executeSwml(swml, true)` put `transfer` inside the SWML
+  document, where it isn't a SWML key, so the call never left the agent. It
+  now goes beside the document, as `connect()` sends it.
+- `FunctionResult.tap()` accepted `direction: 'hear'`, which the engine
+  rejects, and left the direction out for the default `both`, so the verb's
+  own default (`speak`) tapped less than asked. Directions are now
+  `speak`/`listen`/`both` (`TAP_DIRECTIONS` too), and the direction is
+  always sent.
 - The prefab agents' tool handlers (FAQ bot, info gatherer, receptionist,
   survey, concierge) run on the agent running the call, so a dynamic config
   callback that changes their data (a tenant's FAQs, say) takes effect in
@@ -183,6 +204,8 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- `FunctionResult.tap({ direction: 'hear' })` now throws; use `'listen'`.
+- `rpcAiMessage()` throws when given neither message text nor global data.
 - `asRouter()` returns routes relative to the agent's root. Mount it under
   the agent's route: `hostApp.route(agent.route, agent.asRouter())`. Code
   that mounted it at `/` to get the routes under the agent's route should use

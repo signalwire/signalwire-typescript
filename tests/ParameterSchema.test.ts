@@ -162,9 +162,9 @@ describe('ParameterSchema (Tier-1 closed-set convenience → enum:[...])', () =>
     expect(built.properties['dir']!['enum']).toEqual([...RECORD_DIRECTIONS]);
   });
 
-  it('tapDirection bakes in {speak,hear,both} (uses hear, NOT listen)', () => {
+  it('tapDirection bakes in {speak,listen,both}, the directions the engine accepts', () => {
     const built = paramSchema().tapDirection('dir').build();
-    expect(built.properties['dir']!['enum']).toEqual(['speak', 'hear', 'both']);
+    expect(built.properties['dir']!['enum']).toEqual(['speak', 'listen', 'both']);
     expect(built.properties['dir']!['enum']).toEqual([...TAP_DIRECTIONS]);
   });
 
@@ -174,13 +174,10 @@ describe('ParameterSchema (Tier-1 closed-set convenience → enum:[...])', () =>
     expect(built.properties['media_codec']!['enum']).toEqual([...TAP_CODECS]);
   });
 
-  it('the three direction/codec vocabularies stay distinct (never unified)', () => {
-    // record uses `listen`; tap uses `hear`; they must differ.
-    expect([...RECORD_DIRECTIONS]).not.toEqual([...TAP_DIRECTIONS]);
+  it('tap directions are speak/listen/both, never hear', () => {
+    expect(TAP_DIRECTIONS.includes('listen' as never)).toBe(true);
+    expect(TAP_DIRECTIONS.includes('hear' as never)).toBe(false);
     expect(RECORD_DIRECTIONS.includes('listen' as never)).toBe(true);
-    expect(TAP_DIRECTIONS.includes('hear' as never)).toBe(true);
-    expect(RECORD_DIRECTIONS.includes('hear' as never)).toBe(false);
-    expect(TAP_DIRECTIONS.includes('listen' as never)).toBe(false);
     // SWAIG tap codec is exactly 2 values (not the 7-value RELAY superset).
     expect(TAP_CODECS.length).toBe(2);
   });

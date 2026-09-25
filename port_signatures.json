@@ -3814,7 +3814,7 @@
                 },
                 {
                   "name": "response",
-                  "type": "optional<string>",
+                  "type": "optional<union<string,dict<string,any>>>",
                   "required": false,
                   "default": null
                 },
@@ -3823,6 +3823,18 @@
                   "type": "bool",
                   "required": false,
                   "default": false
+                },
+                {
+                  "name": "tool_result",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "tool_prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -4046,10 +4058,28 @@
                   "kind": "self"
                 },
                 {
+                  "name": "prompt",
+                  "type": "optional<union<string,float>>",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "timeout",
                   "type": "float",
                   "required": false,
                   "default": 300
+                },
+                {
+                  "name": "step",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout_step",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4198,6 +4228,25 @@
               ],
               "returns": "string"
             },
+            "rpc_ai_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "rpc_ai_message": {
               "params": [
                 {
@@ -4211,14 +4260,21 @@
                 },
                 {
                   "name": "message_text",
-                  "type": "string",
-                  "required": true
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "role",
                   "type": "string",
                   "required": false,
                   "default": "system"
+                },
+                {
+                  "name": "global_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4361,6 +4417,27 @@
                   "name": "milliseconds",
                   "type": "float",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_tool_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "tool_result",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "tool_prompt",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -32030,6 +32107,14 @@
           "required": false
         },
         "response": {
+          "type": "optional<union<string,dict<string,any>>>",
+          "required": false
+        },
+        "tool_prompt": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "tool_result": {
           "type": "optional<string>",
           "required": false
         }

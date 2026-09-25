@@ -263,8 +263,8 @@ const corpus: Entry[] = [
     build: () => fr('').tap({ uri: 'ws://ex.com/tap', direction: 'speak', codec: 'PCMA' }),
   },
   {
-    id: 'tap.hear_pcmu',
-    build: () => fr('').tap({ uri: 'wss://ex.com/tap', direction: 'hear', codec: 'PCMU' }),
+    id: 'tap.listen_pcmu',
+    build: () => fr('').tap({ uri: 'wss://ex.com/tap', direction: 'listen', codec: 'PCMU' }),
   },
   {
     id: 'tap.both_full',

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 452d1630fe73a452c5705b9209ed3976581cc2f1",
+  "generated_from": "signalwire-typescript @ 5e559a705b6ac4e914929002d03c3919d3fa9a42",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -404,6 +404,7 @@
           "remove_metadata",
           "replace_in_history",
           "response",
+          "rpc_ai_global_data",
           "rpc_ai_message",
           "rpc_ai_unhold",
           "rpc_dial",
@@ -414,6 +415,7 @@
           "set_post_process",
           "set_response",
           "set_speech_event_timeout",
+          "set_tool_response",
           "simulate_user_input",
           "sip_refer",
           "stop",
