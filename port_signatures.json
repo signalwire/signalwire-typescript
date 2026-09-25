@@ -2144,6 +2144,45 @@
         }
       }
     },
+    "signalwire.core.capabilities": {
+      "functions": {
+        "declared_capabilities": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
+        },
+        "has_capability": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "user_variables": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        }
+      }
+    },
     "signalwire.core.config_loader": {
       "classes": {
         "ConfigLoader": {
@@ -6158,6 +6197,146 @@
               "returns": "class:signalwire.core.pom_builder.PomSectionData"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "fields",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "call_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "conversation_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "dialogue": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
+            },
+            "medium": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "raw": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            }
+          }
+        }
+      },
+      "functions": {
+        "dialogue_turns": {
+          "params": [
+            {
+              "name": "call_log",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "roles",
+              "type": "list<string>",
+              "required": false,
+              "default": null,
+              "kind": "keyword"
+            },
+            {
+              "name": "drop_echo",
+              "type": "optional<string>",
+              "required": false,
+              "default": null,
+              "kind": "keyword"
+            },
+            {
+              "name": "kwargs",
+              "kind": "var_keyword",
+              "type": "any",
+              "required": false,
+              "default": {}
+            }
+          ],
+          "returns": "list<dict<string,any>>"
+        },
+        "normalize_post_prompt": {
+          "params": [
+            {
+              "name": "body",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "class:signalwire.core.post_prompt.NormalizedPostPrompt"
+        },
+        "parse_post_prompt_data": {
+          "params": [
+            {
+              "name": "data",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "strip_json_fence": {
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
         }
       }
     },
@@ -32215,6 +32394,14 @@
         },
         "title": {
           "type": "optional<string>",
+          "required": false
+        }
+      }
+    },
+    "signalwire.core.post_prompt.NormalizedPostPrompt": {
+      "params": {
+        "fields": {
+          "type": "dict<string,any>",
           "required": false
         }
       }

@@ -42,6 +42,17 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - `FunctionResult.rpcAiMessage()` takes `globalData`, merged into the other
   call's global data, and its message text is optional;
   `rpcAiGlobalData(callId, data)` sends data only.
+- `userVariables`, `declaredCapabilities` and `hasCapability` read the
+  capabilities a browser client declares in its user variables, such as
+  `display_content`. A capability counts only when declared truthy; a missing
+  or malformed declaration means not declared. They're hints about what the
+  client can render, not permissions, since the caller sets them.
+- `normalizePostPrompt(body)` returns one `NormalizedPostPrompt` for a
+  post-prompt from either the voice or the chat engine: the medium, the
+  conversation and call IDs, the parsed summary, and the user and assistant
+  turns with tool calls and the chat engine's summary echo removed.
+  `parsePostPromptData`, `dialogueTurns` and `stripJsonFence` are exported for
+  the individual steps. None of them throws on malformed input.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
   `get` / `create` / `update` / `delete` / `list_addresses` and every generated
   operation / command-dispatch / set-method now accepts a trailing optional

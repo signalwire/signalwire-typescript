@@ -413,3 +413,15 @@ export function registerSkill(skillClass: typeof _SkillBase): void {
 export function addSkillDirectory(path: string): void {
   _SkillRegistry.getInstance().addSearchPath(path);
 }
+
+// Client capabilities and post-prompt normalization
+export { userVariables, declaredCapabilities, hasCapability } from './capabilities.js';
+export {
+  DIALOGUE_ROLES,
+  NormalizedPostPrompt,
+  dialogueTurns,
+  normalizePostPrompt,
+  parsePostPromptData,
+  stripJsonFence,
+} from './PostPrompt.js';
+export type { DialogueTurn } from './PostPrompt.js';

@@ -95,6 +95,8 @@ signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature foll
 signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.post_prompt.NormalizedPostPrompt.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.post_prompt.dialogue_turns: roles is a readonly string[]; the reference records Python's variadic tuple[str, ...] as tuple<string,any>, which is a list of strings (oracle canonicalization pending in the porting-sdk companion)
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.security_config.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs

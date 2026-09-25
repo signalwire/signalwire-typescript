@@ -90,6 +90,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  'src/capabilities.ts': 'signalwire.core.capabilities',
+  'src/PostPrompt.ts': 'signalwire.core.post_prompt',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
@@ -378,6 +380,8 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.core.contexts.Context.add_step',
   // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
   'signalwire.core.agent_base.AgentBase.mount',
+  // dialogue_turns — Python's roles/drop_echo are keyword-only.
+  'signalwire.core.post_prompt.dialogue_turns',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',

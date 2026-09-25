@@ -208,6 +208,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // `signalwire.rest.namespaces.swml_webhooks_types_generated`.
   'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  'src/capabilities.ts': 'signalwire.core.capabilities',
+  'src/PostPrompt.ts': 'signalwire.core.post_prompt',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',

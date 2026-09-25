@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ ad00acf3e963e05bb15e613639181a6a45215122",
+  "generated_from": "signalwire-typescript @ 4959b300595e481950d0ef7d07425f846366917e",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -224,6 +224,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.capabilities": {
+      "classes": {},
+      "functions": [
+        "declared_capabilities",
+        "has_capability",
+        "user_variables"
+      ]
     },
     "signalwire.core.config_loader": {
       "classes": {
@@ -613,6 +621,24 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": [
+          "call_id",
+          "conversation_id",
+          "dialogue",
+          "medium",
+          "raw",
+          "summary"
+        ]
+      },
+      "functions": [
+        "dialogue_turns",
+        "normalize_post_prompt",
+        "parse_post_prompt_data",
+        "strip_json_fence"
+      ]
     },
     "signalwire.core.post_prompt_generated": {
       "classes": {
