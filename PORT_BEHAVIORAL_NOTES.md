@@ -183,3 +183,15 @@ divergence.
   (`[{"answer":42}]`); a JSON string is returned as it is in both.
 - Verdict: **KEEP**. Reproducing Python's `repr` in TS has no use to a
   caller; both keep the content.
+
+### Serverless base URL from FUNCTION_URL / AZURE_FUNCTION_URL — KEEP
+- The reference's `get_full_url` builds a Google Cloud Function's URL from the
+  project, region and service, and an Azure Function's from the site and
+  function names; it never reads `FUNCTION_URL` or `AZURE_FUNCTION_URL`,
+  although its own swaig-test `--gcp-function-url` and `--azure-function-url`
+  set them, so those flags have no effect there.
+- TS uses `FUNCTION_URL` and `AZURE_FUNCTION_URL` first when set, then builds
+  the URL as the reference does.
+- Verdict: **KEEP**. It makes the swaig-test flags do what they say; with the
+  variables unset the two SDKs build the same URL.
+

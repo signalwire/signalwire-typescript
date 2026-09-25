@@ -97,6 +97,15 @@ export interface _SignatureTarget {
 /** The Hono `env` key under which the adapter passes {@link _SignatureTarget}s. */
 export const _SIGNATURE_TARGETS_ENV_KEY = 'signalwireSignatureTargets';
 
+/**
+ * The Hono `env` key under which the adapter passes the base URL the platform
+ * serves the function on, when the request shows it (Azure's
+ * `https://<app>.azurewebsites.net/api/<function>`, a Google Cloud Function's
+ * origin). An agent renders its webhook URLs from it, unless
+ * `SWML_PROXY_URL_BASE` is set.
+ */
+export const _PLATFORM_BASE_ENV_KEY = 'signalwirePlatformBase';
+
 /** One serverless request, reduced to what routing and signature checks need. */
 interface PlatformRequest {
   method: string;
@@ -112,6 +121,8 @@ interface PlatformRequest {
   headers: Record<string, string>;
   /** The raw request body. */
   body: string | undefined;
+  /** The base URL the function is served on, when the request shows it. */
+  platformBase?: string;
 }
 
 /** Headers as a plain object with lower-case names. */
@@ -350,7 +361,9 @@ export class ServerlessAdapter {
 
     log.debug(`Handling ${req.method} ${path} on ${this.platform}`);
 
-    const response = await app.fetch(request, { [_SIGNATURE_TARGETS_ENV_KEY]: targets });
+    const env: Record<string, unknown> = { [_SIGNATURE_TARGETS_ENV_KEY]: targets };
+    if (req.platformBase) env[_PLATFORM_BASE_ENV_KEY] = req.platformBase;
+    const response = await app.fetch(request, env);
 
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((v, k) => {
@@ -448,6 +461,8 @@ export class ServerlessAdapter {
       query,
       queryVariants: [],
       platformUrl: headers['host'] ? `${proto}://${headers['host']}${relative}` : '',
+      // The origin, as the reference's Cloud Functions handler takes it.
+      platformBase: headers['host'] ? `${proto}://${headers['host']}` : undefined,
       headers,
       body: rawBodyText(req.rawBody, req.body),
     };
@@ -463,6 +478,8 @@ export class ServerlessAdapter {
     const raw = req.url ?? '/';
     let path = '/';
     let query = '';
+    let platformBase: string | undefined;
+    const absolute = /^https?:\/\//.test(raw);
     try {
       const parsed = new URL(raw, 'http://localhost');
       query = parsed.search.replace(/^\?/, '');
@@ -470,8 +487,12 @@ export class ServerlessAdapter {
       if (belowApi !== undefined) {
         const slash = belowApi.indexOf('/');
         path = slash === -1 ? '/' : belowApi.slice(slash) || '/';
+        const fn = slash === -1 ? belowApi : belowApi.slice(0, slash);
+        // The function's own URL, as the reference's Azure handler takes it.
+        if (absolute) platformBase = `${parsed.origin}/api/${fn}`.replace(/\/+$/, '');
       } else {
         path = parsed.pathname || '/';
+        if (absolute) platformBase = `${parsed.origin}/api`;
       }
     } catch {
       /* keep the defaults */
@@ -481,7 +502,8 @@ export class ServerlessAdapter {
       path,
       query,
       queryVariants: [],
-      platformUrl: /^https?:\/\//.test(raw) ? raw : '',
+      platformUrl: absolute ? raw : '',
+      platformBase,
       headers,
       body: rawBodyText(req.rawBody, req.body),
     };

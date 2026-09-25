@@ -35,7 +35,7 @@ import {
   GatherQuestion,
   Step,
 } from './ContextBuilder.js';
-import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
+import { getExecutionMode, getLogger, suppressAllLogs, type Logger } from './Logger.js';
 import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
@@ -47,6 +47,7 @@ import {
   type ServerlessResponse,
 } from './ServerlessAdapter.js';
 import { webhookValidationMiddleware } from './WebhookMiddleware.js';
+import { _PLATFORM_BASE_ENV_KEY } from './ServerlessAdapter.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -149,6 +150,48 @@ function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
     Object.defineProperty(out, key, desc);
   }
   return out as T;
+}
+
+/**
+ * The base URL a serverless platform serves the function on, built from the
+ * platform's environment as the reference's `get_full_url` builds it, or null
+ * in server mode. `FUNCTION_URL` (Google Cloud) and `AZURE_FUNCTION_URL`,
+ * which swaig-test's platform flags set, are used when present.
+ */
+function serverlessBaseUrl(): string | null {
+  const env = process.env;
+  switch (getExecutionMode()) {
+    case 'cgi': {
+      const protocol = env['HTTPS'] === 'on' ? 'https' : 'http';
+      const host = env['HTTP_HOST'] || env['SERVER_NAME'] || 'localhost';
+      return `${protocol}://${host}${env['SCRIPT_NAME'] ?? ''}`.replace(/\/+$/, '');
+    }
+    case 'lambda': {
+      if (env['AWS_LAMBDA_FUNCTION_URL']) return env['AWS_LAMBDA_FUNCTION_URL'].replace(/\/+$/, '');
+      const region = env['AWS_REGION'] || 'us-east-1';
+      const fn = env['AWS_LAMBDA_FUNCTION_NAME'] || 'unknown';
+      return `https://${fn}.lambda-url.${region}.on.aws`;
+    }
+    case 'google_cloud_function': {
+      if (env['FUNCTION_URL']) return env['FUNCTION_URL'].replace(/\/+$/, '');
+      const project = env['GOOGLE_CLOUD_PROJECT'] || env['GCP_PROJECT'];
+      const region = env['FUNCTION_REGION'] || env['GOOGLE_CLOUD_REGION'] || 'us-central1';
+      const service = env['K_SERVICE'] || env['FUNCTION_TARGET'] || 'unknown';
+      return project
+        ? `https://${region}-${project}.cloudfunctions.net/${service}`
+        : 'https://localhost:8080';
+    }
+    case 'azure_function': {
+      if (env['AZURE_FUNCTION_URL']) return env['AZURE_FUNCTION_URL'].replace(/\/+$/, '');
+      const app = env['WEBSITE_SITE_NAME'] || env['AZURE_FUNCTIONS_APP_NAME'];
+      const fn = env['AZURE_FUNCTION_NAME'] || 'unknown';
+      return app
+        ? `https://${app}.azurewebsites.net/api/${fn}`
+        : `https://localhost:7071/api/${fn}`;
+    }
+    default:
+      return null;
+  }
 }
 
 /** The agent's own route paths in each app buildApp() makes, normalized. */
@@ -2292,6 +2335,16 @@ export class AgentBase extends SWMLService {
       if (this.route && this.route !== '/') base += this.route;
       return base;
     }
+    // Serverless: the URL the platform serves the function on, from its
+    // environment, as the reference builds it.
+    const platformBase = serverlessBaseUrl();
+    if (platformBase) {
+      let base = includeAuth ? this.insertAuth(platformBase) : platformBase;
+      if (this.route && this.route !== '/' && !base.endsWith(this.route)) {
+        base = `${base}/${this.route.replace(/^\/+/, '')}`;
+      }
+      return base;
+    }
     const protocol = this._enforceHttps ? 'https' : 'http';
     const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
     let base = `${protocol}://${hostPart}:${this.port}`;
@@ -2927,6 +2980,13 @@ export class AgentBase extends SWMLService {
    */
   private async serveViaHandleRequest(c: Context): Promise<Response> {
     this.detectProxyFromRequest(c);
+    // A serverless adapter passes the base URL the platform was called on
+    // (Azure's /api/<function>, say), so the SWML's webhook URLs point back
+    // there. SWML_PROXY_URL_BASE still wins.
+    const platformBase = (c.env as Record<string, unknown> | undefined)?.[_PLATFORM_BASE_ENV_KEY];
+    if (typeof platformBase === 'string' && platformBase && !this._proxyUrlBaseFromEnv) {
+      this._proxyUrlBase = platformBase.replace(/\/+$/, '');
+    }
 
     let body: Record<string, unknown> | null = null;
     try {

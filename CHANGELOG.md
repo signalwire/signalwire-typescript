@@ -191,6 +191,15 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- On a serverless platform, the SWML's webhook URLs pointed at
+  `http://localhost:3000` unless `SWML_PROXY_URL_BASE` was set. They now use
+  the URL the platform serves the function on, as the Python SDK does: a
+  Lambda function URL (`AWS_LAMBDA_FUNCTION_URL`), the CGI script's URL, a
+  Google Cloud Function's URL (`FUNCTION_URL`, or built from the project,
+  region and service), or an Azure Function's (`AZURE_FUNCTION_URL`, or
+  built from `WEBSITE_SITE_NAME` and `AZURE_FUNCTION_NAME`). Behind Azure
+  and Google Cloud Functions handlers, the URL the request arrived on is
+  used. `SWML_PROXY_URL_BASE` still takes precedence.
 - Schema validation of `amazon_bedrock`, `cond`, `connect`, `execute`,
   `ai_sidecar`, `join_conference` and `switch` checked only their required
   properties: their schemas refer back to the document schema, the
