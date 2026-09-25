@@ -132,3 +132,30 @@ describe('onSwmlRequest receives the request context', () => {
     expect(agent.seen).toEqual(['acme', undefined]);
   });
 });
+
+describe('a subclass handleRequest() override decides served requests', () => {
+  class PolicyAgent extends AgentBase {
+    override async handleRequest(
+      method: string,
+      url: string,
+      headers: Record<string, string>,
+      body?: Record<string, unknown> | null,
+    ): Promise<[number, Record<string, string>, string]> {
+      if (new URL(url).searchParams.get('blocked') === '1') return [403, {}, '{"error":"denied"}'];
+      return super.handleRequest(method, url, headers, body);
+    }
+    seen: (string | null | undefined)[] = [];
+    override onSwmlRequest(_raw: SwmlRequestData, _path?: string, context?: Context): void {
+      this.seen.push(context ? (context.req.query('tenant') ?? null) : undefined);
+    }
+  }
+
+  it('applies the override over HTTP, and super still passes the context through', async () => {
+    const agent = new PolicyAgent({ name: 'policy', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('policy');
+    const auth = { Authorization: 'Basic ' + Buffer.from('u:p').toString('base64') };
+    expect((await agent.getApp().request('/?blocked=1', { headers: auth })).status).toBe(403);
+    expect((await agent.getApp().request('/?tenant=acme', { headers: auth })).status).toBe(200);
+    expect(agent.seen).toEqual(['acme']);
+  });
+});

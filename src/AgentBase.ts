@@ -5,6 +5,7 @@
  * into a single HTTP-servable agent.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Hono } from 'hono';
 import { getPathNoStrict } from 'hono/utils/url';
 import type { Context } from 'hono';
@@ -92,6 +93,9 @@ function headersOf(c: Context): Record<string, string> {
   });
   return headers;
 }
+
+/** The Hono context of the served request being handled, for onSwmlRequest. */
+const servedRequestContext = new AsyncLocalStorage<Context>();
 
 /** SDK classes whose instances a per-request copy duplicates field by field. */
 const CLONEABLE_CLASSES = new Set<unknown>([
@@ -2226,21 +2230,10 @@ export class AgentBase extends SWMLService {
     headers: Record<string, string>,
     body?: Record<string, unknown> | null,
   ): Promise<[number, Record<string, string>, string]> {
-    return this.dispatchSwmlRequest(method, url, headers, body);
-  }
-
-  /**
-   * {@link handleRequest}, with the Hono context of a served request, which
-   * {@link onSwmlRequest} receives as its third argument (undefined on the
-   * primitive path).
-   */
-  private async dispatchSwmlRequest(
-    method: string,
-    url: string,
-    headers: Record<string, string>,
-    body?: Record<string, unknown> | null,
-    context?: Context,
-  ): Promise<[number, Record<string, string>, string]> {
+    // The Hono context of a served request (see serveViaHandleRequest), which
+    // onSwmlRequest receives as its third argument; undefined on the
+    // primitive path.
+    const context = servedRequestContext.getStore();
     const parsedBody: Record<string, unknown> = body ?? {};
     const callbackPath = this._callbackPathForUrl(url);
 
@@ -2746,12 +2739,10 @@ export class AgentBase extends SWMLService {
       headers[k] = v;
     });
 
-    const [status, respHeaders, bodyStr] = await this.dispatchSwmlRequest(
-      c.req.method,
-      c.req.url,
-      headers,
-      body,
-      c,
+    // Through the public handleRequest(), so a subclass override still
+    // decides served requests; the Hono context rides along for onSwmlRequest.
+    const [status, respHeaders, bodyStr] = await servedRequestContext.run(c, () =>
+      this.handleRequest(c.req.method, c.req.url, headers, body),
     );
 
     // 307 routing redirect — real redirect status + Location, empty body.
