@@ -139,6 +139,7 @@ Read by the `RelayClient` constructor. Credentials (`SIGNALWIRE_PROJECT_ID`, `SI
 | `SWML_HSTS_MAX_AGE` | `number` | SDK default | `max-age` (seconds) for the `Strict-Transport-Security` header when HSTS is active. |
 | `SWML_ALLOW_PRIVATE_URLS` | `"1"`, `"true"` or `"yes"` | unset (blocked) | Allows the URL-fetching skills (spider, web_search) and the SDK's URL checks to reach private, loopback, link-local and unspecified addresses. Leave unset in production. |
 | `SWML_URL_FETCH_USE_PROXY` | `"1"`, `"true"` or `"yes"` | unset (direct) | The spider and web_search skills fetch pages directly, so they can refuse a connection to a private or internal address. With this set, a fetch that Node's global `fetch` would send through a proxy goes through it: Node's proxy support must be on (`NODE_USE_ENV_PROXY=1`), a proxy set for the URL's scheme (`HTTP_PROXY` or `HTTPS_PROXY`), and the host not in `NO_PROXY`. Through a proxy the connection check can't apply, so use a proxy that blocks private destinations itself. Every other fetch still connects directly with the check, and each URL and redirect is still checked. |
+| `SIGNALWIRE_SWAIG_SECRET` | `string` | -- (random per process) | Secret that signs SWAIG function tokens, used when the `swaigSecret` option isn't set. Set the same value on every replica, so a token minted by one replica, or before a restart, validates on another. Without it each process generates its own, and tokens stop validating across replicas and restarts. |
 
 ### SSL/TLS
 
@@ -156,6 +157,16 @@ Read by the `RelayClient` constructor. Credentials (`SIGNALWIRE_PROJECT_ID`, `SI
 | `SIGNALWIRE_SKILL_PATHS` | `string` | -- | Colon-separated list of directories to scan for skill modules. |
 | `SWML_SKILL_DISCOVERY_ENABLED` | `"true"` | `false` (disabled) | When `"true"`, enables filesystem discovery of skill modules on the skill search paths. |
 | `SWML_ALLOW_CUSTOM_HANDLER_CODE` | `"true"` | `false` (blocked) | When `"true"`, permits skills to register custom handler code strings. Leave unset unless you fully trust the skill source. |
+
+### AI Chat
+
+Read by `AIChatClient`, `ChatGateway` and `HandoffRouter`. `AIChatClient` also reads `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN` and `SIGNALWIRE_SPACE` when the matching option is omitted; `SIGNALWIRE_SPACE` may be a space name (`example`) or hostname (`example.signalwire.com`).
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `RAILS_DEV_MODE` | `string` | -- | A full URL here is the chat service URL for `AIChatClient`, unless the `url` option is set. A boolean value (`true`, `1`, `on`, `false` and so on) is ignored. |
+| `SIGNALWIRE_CHAT_GATEWAY_KEY` | `string` | -- (generated) | The publishable key a `ChatGateway` accepts, used when the `key` option isn't set. Without either, the gateway generates one per process. |
+| `SIGNALWIRE_CHAT_GATEWAY_SECRET` | `string` | -- (random per process) | Secret that signs `ChatGateway` conversation handles, used when the `secret` option isn't set. Set the same value on every replica; without it, handles stop verifying across replicas and restarts. |
 
 ### Schema Validation
 

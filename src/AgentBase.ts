@@ -2104,8 +2104,8 @@ export class AgentBase extends SWMLService {
    *   fetch handler `(request) => Response` (mounted at `prefix`, which it
    *   doesn't see).
    * @param opts - `prefix`: the path to mount at, from the host root (a
-   *   trailing slash is dropped; default the root). `name`: accepted for
-   *   parity with the reference, where it names an ASGI mount; unused here.
+   *   trailing slash is dropped; default the root). `name`: accepted so
+   *   code written for the Python SDK works; it has no effect here.
    * @returns This agent instance for chaining.
    *
    * @example
@@ -2117,7 +2117,7 @@ export class AgentBase extends SWMLService {
     appOrRouter: Hono | ((req: Request) => Response | Promise<Response>),
     opts: { prefix?: string; name?: string } = {},
   ): this {
-    // opts.name is accepted for parity; the reference uses it to name an ASGI mount.
+    // opts.name is accepted but unused; the Python SDK names an ASGI mount with it.
     const clean = (opts.prefix ?? '').replace(/\/+$/, '');
     this.mounts = [...this.mounts, { app: appOrRouter, prefix: clean }];
     // Rebuild the apps on next use, with the mount.
