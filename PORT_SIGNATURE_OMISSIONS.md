@@ -90,11 +90,16 @@ fall into these named categories:
 ## Idiom: TS constructors
 
 signalwire.agent_server.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.ai_chat.gateway.ChatGateway.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.ai_chat.handoff.HandoffRouter.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.agent_base.AgentBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.agent_base.AgentBase.on_call_end: the handler's rawData is typed as the generated SwaigRequest payload, the same request dict the reference passes as dict[str, Any], with its fields typed
 signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.function_result.FunctionResult.response: TS keeps response a string so existing reads of it still type-check; the structured { tool_result, tool_prompt } form set by setToolResponse() or the constructor is held separately, and toDict() emits the same wire shape as the reference
+signalwire.core.mixins.web_mixin.WebMixin.add_per_call_config: TS callback's 2nd arg is typed SwmlRequestData (canonical dynamic-SWML request) and its 4th the AgentBase copy; Python types them dict[str,Any] and Any. Same callback contract as set_dynamic_config_callback, TS stricter payload.
 signalwire.core.post_prompt.NormalizedPostPrompt.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.post_prompt.dialogue_turns: roles is a readonly string[]; the reference records Python's variadic tuple[str, ...] as tuple<string,any>, which is a list of strings (oracle canonicalization pending in the porting-sdk companion)
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs

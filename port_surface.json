@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 4959b300595e481950d0ef7d07425f846366917e",
+  "generated_from": "signalwire-typescript @ e83cbda598acce130cd284c30e98ba80fe783e92",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -74,6 +74,7 @@
           "delete",
           "end",
           "log",
+          "raw_post",
           "summarize",
           "url"
         ],
@@ -90,6 +91,65 @@
         "ChatLog": [
           "call_timeline",
           "messages"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.ai_chat.gateway": {
+      "classes": {
+        "GatewayRejection": [
+          "__init__",
+          "reason",
+          "status"
+        ],
+        "ChatGateway": [
+          "__init__",
+          "allowed_origins",
+          "check_key",
+          "check_origin",
+          "close",
+          "config_url",
+          "conversation_timeout",
+          "effective_timeout",
+          "handle_ttl",
+          "key",
+          "last_activity",
+          "max_new_conversations",
+          "max_turns",
+          "mint_handle",
+          "prepare",
+          "read_handle",
+          "read_user_metadata",
+          "router",
+          "visible_messages",
+          "window_seconds"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.ai_chat.handoff": {
+      "classes": {
+        "NonceEntry": [
+          "call_id",
+          "conversation_id",
+          "issued_at",
+          "messages"
+        ],
+        "HandoffRouter": [
+          "__init__",
+          "capture_leg",
+          "capture_timeout",
+          "end_call",
+          "escalate",
+          "gateway",
+          "max_messages_per_call",
+          "next_conversation_id",
+          "nonce_ttl",
+          "redeem",
+          "register",
+          "router",
+          "say",
+          "send_message"
         ]
       },
       "functions": []

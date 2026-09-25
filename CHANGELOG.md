@@ -53,6 +53,30 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   turns with tool calls and the chat engine's summary echo removed.
   `parsePostPromptData`, `dialogueTurns` and `stripJsonFence` are exported for
   the individual steps. None of them throws on malformed input.
+- `ChatGateway`: lets a browser chat widget use the AI Chat service
+  through your app without holding an API token. The widget presents a
+  publishable key; the gateway checks it and the page's origin, keeps the
+  conversation id in a signed handle, sends its own `config_url`, and caps
+  new conversations per window and turns per conversation. `router()` is a
+  Hono app for `agent.mount(gateway.router(), { prefix: '/chat' })`; a chat
+  reply is streamed through, keepalive padding included. `start` opens a
+  conversation so the agent speaks first, and `log` returns only the user
+  and assistant turns. The browser's `user_meta_data` is forwarded, limited
+  to 8 KiB. `SIGNALWIRE_CHAT_GATEWAY_KEY` and
+  `SIGNALWIRE_CHAT_GATEWAY_SECRET` supply the key and handle secret.
+- `HandoffRouter`: the `/handoff`, `/escalate` and `/say` routes the
+  SignalWire address widget calls beside a gateway, to move a conversation
+  between a call and chat and to type into a live call. The browser proves
+  which call it's on with a single-use nonce the application registers from
+  the dial; the application's callbacks capture each leg before the next
+  medium starts.
+- `AIChatClient.rawPost(method, params)` returns the response with its body
+  unread, for a proxy that streams it through.
+- `AIChatClient` reads a service URL from `RAILS_DEV_MODE` (a boolean value
+  is ignored), accepts a space hostname (`example.signalwire.com`) in
+  `space`/`SIGNALWIRE_SPACE` as the REST client does (#186), sends the SDK's
+  User-Agent, and warns when a conversation id holds characters the service
+  will strip.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
   `get` / `create` / `update` / `delete` / `list_addresses` and every generated
   operation / command-dispatch / set-method now accepts a trailing optional
@@ -164,6 +188,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `AIChatClient`'s read timeout (`readIdleTimeoutSeconds`, default 60) was
+  a limit on the whole request, so a slow reply the service kept alive with
+  keepalive padding was cut off at 60 seconds. It's now an idle timeout that
+  every chunk restarts.
 - `FunctionResult.executeSwml(swml, true)` put `transfer` inside the SWML
   document, where it isn't a SWML key, so the call never left the agent. It
   now goes beside the document, as `connect()` sends it.

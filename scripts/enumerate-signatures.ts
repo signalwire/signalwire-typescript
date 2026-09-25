@@ -69,6 +69,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // to the reference module ``signalwire.ai_chat.client`` (else it falls back
   // to ``signalwire.ai_chat.ai_chat_client``).
   'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
+  'src/ai-chat/ChatGateway.ts': 'signalwire.ai_chat.gateway',
+  'src/ai-chat/HandoffRouter.ts': 'signalwire.ai_chat.handoff',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -382,6 +384,8 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.core.agent_base.AgentBase.mount',
   // dialogue_turns — Python's roles/drop_echo are keyword-only.
   'signalwire.core.post_prompt.dialogue_turns',
+  'signalwire.ai_chat.gateway.ChatGateway.prepare',
+  'signalwire.ai_chat.handoff.HandoffRouter.register',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',
