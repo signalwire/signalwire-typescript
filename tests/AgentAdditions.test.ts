@@ -162,6 +162,39 @@ describe('onCallEnd', () => {
   });
 });
 
+describe('onCallEnd on the per-call copy (found in review)', () => {
+  it("runs handlers the per-call config added, beside the agent's own", async () => {
+    const agent = agentWith();
+    const ran: string[] = [];
+    agent.onCallEnd(() => void ran.push('agent'));
+    agent.addPerCallConfig((_q, _b, _h, copy) => {
+      copy.onCallEnd(() => void ran.push('tenant'));
+    });
+    const q = tokenQuery(aiOf(await swml(agent, '?call_id=c1')), 'hangup_hook');
+    await callSwaig(agent, q, {
+      function: 'hangup_hook',
+      call_id: 'c1',
+      argument: { parsed: [{}] },
+    });
+    expect(ran).toEqual(['agent', 'tenant']);
+  });
+
+  it('reads raw_call_log when call_log is empty', async () => {
+    const agent = agentWith();
+    let got: unknown[] = [];
+    agent.onCallEnd((log) => void (got = log));
+    const q = tokenQuery(aiOf(await swml(agent, '?call_id=c1')), 'hangup_hook');
+    await callSwaig(agent, q, {
+      function: 'hangup_hook',
+      call_id: 'c1',
+      argument: { parsed: [{}] },
+      call_log: [],
+      raw_call_log: [{ role: 'user', content: 'x' }],
+    });
+    expect(got).toHaveLength(1);
+  });
+});
+
 describe('mount', () => {
   function chatApp(): Hono {
     const chat = new Hono();

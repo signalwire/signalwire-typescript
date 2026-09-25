@@ -2092,11 +2092,17 @@ export class AgentBase extends SWMLService {
       name: 'hangup_hook',
       description: 'Internal: fires when the call ends.',
       parameters: {},
-      handler: async (_args, rawData) => {
+      handler: async (_args, rawData, running) => {
         const raw = (rawData ?? {}) as Record<string, unknown>;
-        // Both spellings are seen, depending on the engine.
-        const callLog = (raw['call_log'] ?? raw['raw_call_log'] ?? []) as Record<string, unknown>[];
-        for (const callback of this.callEndHandlers) {
+        // Both spellings are seen, depending on the engine; an empty log
+        // counts as absent, so the other spelling is tried.
+        const log = (v: unknown) =>
+          Array.isArray(v) && v.length > 0 ? (v as Record<string, unknown>[]) : null;
+        const callLog = log(raw['call_log']) ?? log(raw['raw_call_log']) ?? [];
+        // The handlers of the agent running the call: a per-call copy may
+        // have added its own.
+        const agent = running instanceof AgentBase ? running : this;
+        for (const callback of agent.callEndHandlers) {
           // Each handler is isolated, so one failure doesn't stop the others.
           try {
             await callback(callLog, rawData);
