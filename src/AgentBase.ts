@@ -151,6 +151,27 @@ function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
   return out as T;
 }
 
+/** The agent's own route paths in each app buildApp() makes, normalized. */
+const AGENT_PATHS = new WeakMap<object, Set<string>>();
+
+/** A path with repeated slashes collapsed and no trailing slash, as routing matches it. */
+function normalizePath(path: string): string {
+  return path.replace(/\/{2,}/g, '/').replace(/(.)\/$/, '$1') || '/';
+}
+
+/**
+ * A request path relative to where the app handling it is mounted: a
+ * middleware registered as `*` reports `routePath` `/agent/*` when its app is
+ * mounted at `/agent`, and `*` or `/*` at the root.
+ */
+function relativePath(path: string, routePath: string): string {
+  const base = normalizePath(routePath.replace(/\/?\*$/, '') || '/');
+  const normalized = normalizePath(path);
+  if (base === '/') return normalized;
+  if (normalized === base) return '/';
+  return normalized.startsWith(`${base}/`) ? normalized.slice(base.length) : normalized;
+}
+
 /**
  * Core agent class that composes an HTTP server, prompt management, session handling,
  * SWAIG tool registry, and 5-phase SWML rendering into a single deployable unit.
@@ -2979,12 +3000,20 @@ export class AgentBase extends SWMLService {
     // its own CORS preflights, so the agent's header, CORS and CSRF
     // middleware leave paths under a mount prefix alone. (A mounted page
     // couldn't work under default-src 'none'.)
-    const mountPrefixes = this.mounts.map((m) => m.prefix).filter((p) => p !== '');
-    const underMount = (path: string) =>
-      mountPrefixes.some((p) => path === p || path.startsWith(`${p}/`));
+    //
+    // The decision follows dispatch: the agent's own routes are registered
+    // first and win, so a path they serve keeps its protection even under a
+    // mount prefix. Paths are compared relative to where this app is
+    // mounted (routePath), so asRouter() under AgentServer works the same.
+    const agentPaths = new Set<string>();
+    AGENT_PATHS.set(app, agentPaths);
+    const underMount = (c: Context) =>
+      this._servedByMount(relativePath(c.req.path, c.req.routePath), agentPaths);
     app.use('*', async (c, next) => {
+      // routePath names the handler after next(), so decide first.
+      const mounted = underMount(c);
       await next();
-      if (underMount(c.req.path)) return;
+      if (mounted) return;
       c.res.headers.set('X-Content-Type-Options', 'nosniff');
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
@@ -3054,7 +3083,7 @@ export class AgentBase extends SWMLService {
     const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
     const corsCredentials = corsOrigin !== '*';
     const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
-    app.use('*', (c, next) => (underMount(c.req.path) ? next() : corsMw(c, next)));
+    app.use('*', (c, next) => (underMount(c) ? next() : corsMw(c, next)));
 
     // CSRF protection (optional, gated by env)
     if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
@@ -3062,7 +3091,7 @@ export class AgentBase extends SWMLService {
         ? new Set(corsOrigins.split(',').map((o) => o.trim().toLowerCase()))
         : null;
       app.use('*', async (c, next) => {
-        if (c.req.method === 'POST' && !underMount(c.req.path)) {
+        if (c.req.method === 'POST' && !underMount(c)) {
           const origin = c.req.header('origin');
           if (origin && allowedOrigins && !allowedOrigins.has(origin.toLowerCase())) {
             return c.json({ error: 'Origin not allowed' }, 403);
@@ -3394,6 +3423,11 @@ export class AgentBase extends SWMLService {
     app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
 
+    // The agent's own paths, for the mount exemption above.
+    for (const r of app.routes) {
+      if (!r.path.includes('*')) agentPaths.add(normalizePath(r.path));
+    }
+
     // Mounted apps (see mount()), after the agent's own routes so those win.
     for (const m of this.mounts) {
       if (typeof m.app === 'function') {
@@ -3427,6 +3461,26 @@ export class AgentBase extends SWMLService {
     this.ensureToolsDefined();
     this._routerApp ??= this.buildApp('');
     return this._routerApp;
+  }
+
+  /**
+   * Whether a request path is served by an app added with {@link mount}
+   * rather than by the agent's own routes, so the agent's security headers,
+   * CORS and CSRF handling should leave it alone. Internal; AgentServer uses
+   * it for the agents it serves.
+   *
+   * @param path - The path relative to the agent's route-relative router
+   *   (or to the host root for an app from {@link getApp}).
+   * @param agentPaths - The agent's own paths in the same coordinates; the
+   *   route-relative router's when omitted.
+   */
+  _servedByMount(path: string, agentPaths?: ReadonlySet<string>): boolean {
+    const prefixes = this.mounts.map((m) => m.prefix).filter((p) => p !== '');
+    if (prefixes.length === 0) return false;
+    const own = agentPaths ?? AGENT_PATHS.get(this.asRouter() as Hono) ?? new Set<string>();
+    const normalized = normalizePath(path);
+    if (own.has(normalized)) return false;
+    return prefixes.some((p) => normalized === p || normalized.startsWith(`${p}/`));
   }
 
   /**

@@ -107,9 +107,12 @@ export class AgentServer {
       getPath: (req: Request) => getPathNoStrict(req).replace(/\/{2,}/g, '/'),
     });
 
-    // Security headers
+    // Security headers. A path an agent serves through mount() (a chat
+    // gateway, say) sets its own headers and answers its own CORS preflights.
     this._app.use('*', async (c, next) => {
+      const mounted = this._servedByMount(c.req.path);
       await next();
+      if (mounted) return;
       c.res.headers.set('X-Content-Type-Options', 'nosniff');
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
@@ -122,11 +125,23 @@ export class AgentServer {
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
     const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
     const corsCredentials = corsOrigin !== '*';
-    this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
+    const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
+    this._app.use('*', (c, next) => (this._servedByMount(c.req.path) ? next() : corsMw(c, next)));
 
     // Global health endpoints
     this._app.get('/health', (c) => c.json({ status: 'ok' }));
     this._app.get('/ready', (c) => c.json({ status: 'ready' }));
+  }
+
+  /** Whether a path belongs to an app one of the served agents added with mount(). */
+  private _servedByMount(path: string): boolean {
+    const normalized = path.replace(/\/{2,}/g, '/');
+    for (const [route, agent] of this.agents) {
+      const base = route === '/' ? '' : route.replace(/\/+$/, '');
+      if (base && normalized !== base && !normalized.startsWith(`${base}/`)) continue;
+      if (agent._servedByMount(normalized.slice(base.length) || '/')) return true;
+    }
+    return false;
   }
 
   /**

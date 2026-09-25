@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
+import { AgentServer } from '../src/AgentServer.js';
 
 const AUTH = 'Basic ' + Buffer.from('u:p').toString('base64');
 
@@ -203,5 +204,50 @@ describe('mount', () => {
     agent.registerRoutingCallback(() => null, '/sip');
     const res = await agent.getApp().request('/static/page.html');
     expect(await res.text()).toBe('handled /page.html');
+  });
+
+  describe('the exemption follows which routes serve the request', () => {
+    const saved = { ...process.env };
+    beforeEach(() => {
+      process.env['SWML_CSRF_PROTECTION'] = 'true';
+      process.env['SWML_CORS_ORIGINS'] = 'https://ok.example';
+    });
+    afterEach(() => {
+      for (const k of ['SWML_CSRF_PROTECTION', 'SWML_CORS_ORIGINS']) {
+        if (saved[k] === undefined) delete process.env[k];
+        else process.env[k] = saved[k];
+      }
+    });
+
+    it("keeps the agent's CSRF check and headers on its own route under a mount prefix", async () => {
+      const agent = agentWith({ route: '/agent' }).mount(chatApp(), { prefix: '/agent' });
+      const res = await agent.getApp().request('/agent', {
+        method: 'POST',
+        headers: { Authorization: AUTH, Origin: 'https://evil.example' },
+      });
+      expect(res.status).toBe(403);
+      expect(res.headers.get('content-security-policy')).toContain("default-src 'none'");
+    });
+
+    it("leaves a mounted app to its own CORS and headers under AgentServer, at the agent's route", async () => {
+      const agent = agentWith({ route: '/agent' }).mount(chatApp(), { prefix: '/chat' });
+      const server = new AgentServer();
+      server.register(agent);
+      const app = server.getApp();
+      const preflight = await app.request('/agent/chat', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://site.example', 'Access-Control-Request-Method': 'POST' },
+      });
+      expect(preflight.status).toBe(204);
+      expect(preflight.headers.get('access-control-allow-origin')).toBe('https://site.example');
+      const ping = await app.request('/agent/chat/ping', {
+        headers: { Origin: 'https://site.example' },
+      });
+      expect(ping.status).toBe(200);
+      expect(ping.headers.get('content-security-policy')).toBeNull();
+      // The agent's own route keeps its protection.
+      const root = await app.request('/agent', { headers: { Authorization: AUTH } });
+      expect(root.headers.get('content-security-policy')).toContain("default-src 'none'");
+    });
   });
 });
