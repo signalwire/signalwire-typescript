@@ -188,6 +188,15 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `BedrockAgent` rendered its `amazon_bedrock` prompt without
+  `max_tokens`, which the constructor and `setInferenceParams()` stored, and
+  dropped `presence_penalty` and `frequency_penalty`, which the Bedrock
+  prompt defines. `setPromptLlmParams()` now works: `temperature`, `top_p`
+  and `max_tokens` update the inference settings, and `confidence` and the
+  two penalties go into the prompt; any other setting, such as
+  `barge_confidence`, is ignored with a warning. The documented example
+  voice is one Bedrock offers (`tiffany`, `matthew`, `amy`, `lupe` or
+  `carlos`).
 - `AIChatClient`'s read timeout (`readIdleTimeoutSeconds`, default 60) was
   a limit on the whole request, so a slow reply the service kept alive with
   keepalive padding was cut off at 60 seconds. It's now an idle timeout that

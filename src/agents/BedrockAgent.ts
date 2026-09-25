@@ -13,6 +13,9 @@
 import { AgentBase } from '../AgentBase.js';
 import type { AgentOptions } from '../types.js';
 
+/** Prompt settings the Bedrock prompt object defines, besides the inference settings. */
+const BEDROCK_PROMPT_PARAMS = ['confidence', 'presence_penalty', 'frequency_penalty'] as const;
+
 /** Configuration for the {@link BedrockAgent}. */
 export interface BedrockAgentConfig {
   /** Agent display name (defaults to `"bedrock_agent"`). */
@@ -21,7 +24,7 @@ export interface BedrockAgentConfig {
   route?: string;
   /** Initial system prompt (can be overridden later with `setPromptText`). */
   systemPrompt?: string;
-  /** Bedrock voice ID (defaults to `"matthew"`). */
+  /** Bedrock voice: `tiffany`, `matthew`, `amy`, `lupe` or `carlos` (defaults to `"matthew"`). */
   voiceId?: string;
   /** Generation temperature (0-1). Defaults to 0.7. */
   temperature?: number;
@@ -46,7 +49,7 @@ export interface BedrockAgentConfig {
  *
  * const agent = new BedrockAgent({
  *   systemPrompt: 'You are a helpful voice assistant.',
- *   voiceId: 'joanna',
+ *   voiceId: 'tiffany',
  * });
  *
  * agent.setInferenceParams(0.5, 0.95, 2048);
@@ -134,21 +137,21 @@ export class BedrockAgent extends AgentBase {
    */
   private addVoiceToPrompt(promptConfig: Record<string, unknown>): Record<string, unknown> {
     const filtered: Record<string, unknown> = {};
-    // Skip text-model-specific parameters that don't apply to Bedrock's
-    // voice-to-voice model.
-    const skip = new Set(['barge_confidence', 'presence_penalty', 'frequency_penalty']);
+    // Everything the Bedrock prompt object defines passes through, including
+    // presence_penalty and frequency_penalty; barge_confidence isn't one of them.
     for (const [key, value] of Object.entries(promptConfig)) {
-      if (skip.has(key)) continue;
+      if (key === 'barge_confidence') continue;
       filtered[key] = value;
     }
     filtered['voice_id'] = this._voiceId;
     filtered['temperature'] = this._temperature;
     filtered['top_p'] = this._topP;
+    filtered['max_tokens'] = this._maxTokens;
     return filtered;
   }
 
   /**
-   * Set the Bedrock voice ID (e.g. `"matthew"`, `"joanna"`).
+   * Set the Bedrock voice: `tiffany`, `matthew`, `amy`, `lupe` or `carlos`.
    * Mirrors Python `set_voice`.
    */
   setVoice(voiceId: string): this {
@@ -202,11 +205,39 @@ export class BedrockAgent extends AgentBase {
   }
 
   /**
-   * Set prompt LLM parameters — use {@link setInferenceParams} instead for
-   * Bedrock. Logs a warning. Mirrors Python `set_prompt_llm_params`.
+   * Set the prompt settings Bedrock's prompt object defines.
+   *
+   * `temperature`, `top_p` and `max_tokens` update the inference settings, as
+   * {@link setInferenceParams} does. `confidence`, `presence_penalty` and
+   * `frequency_penalty` go into the prompt object. Anything else, such as
+   * `barge_confidence`, isn't part of the Bedrock prompt, so it's ignored
+   * with a warning. Mirrors Python `set_prompt_llm_params`.
+   *
+   * @param params - Prompt settings, with their SWML names.
+   * @returns This agent, for chaining.
    */
-  setPromptLlmParams(_params: Record<string, unknown>): this {
-    this.log.warn('setPromptLlmParams() called - use setInferenceParams() for Bedrock');
+  override setPromptLlmParams(params: Record<string, unknown>): this {
+    const rest = { ...params };
+    const take = (key: string): number | undefined => {
+      const value = rest[key];
+      delete rest[key];
+      return typeof value === 'number' ? value : undefined;
+    };
+    this.setInferenceParams(take('temperature'), take('top_p'), take('max_tokens'));
+    const promptParams: Record<string, unknown> = {};
+    for (const key of BEDROCK_PROMPT_PARAMS) {
+      if (key in rest) {
+        promptParams[key] = rest[key];
+        delete rest[key];
+      }
+    }
+    if (Object.keys(promptParams).length > 0) super.setPromptLlmParams(promptParams);
+    const ignored = Object.keys(rest).sort();
+    if (ignored.length > 0) {
+      this.log.warn(
+        `setPromptLlmParams(): Bedrock's prompt doesn't define ${ignored.join(', ')}, so they're ignored`,
+      );
+    }
     return this;
   }
 }
