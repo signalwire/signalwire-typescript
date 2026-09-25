@@ -183,4 +183,41 @@ describe('Ephemeral Skill Copy', () => {
     // The agent's own prompt is unchanged.
     expect(agent.getPromptPom()!.map((s) => s['title'])).toEqual(['Role']);
   });
+
+  describe('the POM copy is independent and complete', () => {
+    const auth = { Authorization: 'Basic ' + Buffer.from('user:pass').toString('base64') };
+    const promptText = async (agent: AgentBase, query = '') => {
+      const res = await agent.getApp().request(`/${query}`, { headers: auth });
+      const swml = await res.json();
+      return JSON.stringify(
+        swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai.prompt,
+      );
+    };
+
+    it("doesn't carry a bullet one request added into the next request or the agent", async () => {
+      const agent = new AgentBase({ name: 'bullets', route: '/', basicAuth: ['user', 'pass'] });
+      agent.promptAddSection('Rules', { bullets: ['be polite'] });
+      agent.setDynamicConfigCallback((query, _b, _h, copy) => {
+        if (query['note']) copy.promptAddToSection('Rules', { bullet: query['note'] });
+      });
+      expect(await promptText(agent, '?note=caller-a-secret')).toContain('caller-a-secret');
+      expect(await promptText(agent)).not.toContain('caller-a-secret');
+      expect(JSON.stringify(agent.getPromptPom())).not.toContain('caller-a-secret');
+    });
+
+    it('keeps subsections at every depth, with their numbering', async () => {
+      const agent = new AgentBase({ name: 'deep', route: '/', basicAuth: ['user', 'pass'] });
+      agent.promptAddSection('Top', { body: 'top' });
+      agent.promptManager
+        .getPomBuilder()!
+        .getSection('Top')!
+        .addSubsection({ title: 'Child', body: 'child', numbered: true })
+        .addSubsection({ title: 'Grandchild', body: 'MANDATORY_DEEP_INSTRUCTION' });
+      const before = JSON.stringify(agent.getPromptPom());
+      agent.setDynamicConfigCallback(() => undefined);
+      const served = await promptText(agent);
+      expect(served).toContain('MANDATORY_DEEP_INSTRUCTION');
+      expect(served).toContain(JSON.stringify(JSON.parse(before)).slice(1, -1));
+    });
+  });
 });

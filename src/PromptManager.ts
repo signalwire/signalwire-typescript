@@ -40,15 +40,16 @@ export class PromptManager {
   /**
    * A copy of this manager's prompt state (raw text, post-prompt and POM
    * sections) owned by `agent`, for a per-request copy of the agent. The POM
-   * sections are copied, not rendered to text, so the copy still emits a
-   * structured prompt and can add sections of its own.
+   * sections are deep-copied (every depth, every bullet list), not rendered to
+   * text, so the copy still emits a structured prompt, and nothing the copy
+   * changes reaches this manager.
    * @internal
    */
   _copyFor(agent?: AgentBase): PromptManager {
     const copy = new PromptManager(this.usePom, agent);
     copy.rawText = this.rawText;
     copy.postPrompt = this.postPrompt;
-    copy.pom = this.pom ? PomBuilder.fromSections(this.pom.toDict()) : null;
+    copy.pom = this.pom ? this.pom._clone() : null;
     return copy;
   }
 
