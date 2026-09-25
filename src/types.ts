@@ -21,6 +21,13 @@ export interface AgentOptions {
   usePom?: boolean;
   /** Session token expiry in seconds (defaults to 3600). */
   tokenExpirySecs?: number;
+  /**
+   * Secret that signs this agent's per-call SWAIG function tokens. Falls back
+   * to `SIGNALWIRE_SWAIG_SECRET`. Set the same secret on every replica, and
+   * keep it across restarts, so a token minted by one process validates on
+   * another; when neither is set, each process generates its own.
+   */
+  swaigSecret?: string;
   /** Whether to automatically insert an "answer" verb in the SWML call flow (defaults to true). */
   autoAnswer?: boolean;
   /** Whether to record the call (defaults to false). */

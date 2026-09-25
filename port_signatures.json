@@ -1757,6 +1757,20 @@
               ],
               "returns": "list<string>"
             },
+            "on_call_end": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "handler",
+                  "type": "callable<list<list<dict<string,any>>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<void,void>>",
+                  "required": true
+                }
+              ],
+              "returns": "callable<list<list<dict<string,any>>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<void,void>>"
+            },
             "on_debug_event": {
               "params": [
                 {
@@ -5739,6 +5753,55 @@
                   "name": "cb",
                   "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>,class:signalwire.core.agent_base.AgentBase>,union<void,void>>",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "add_per_call_config": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "cb",
+                  "type": "callable<list<dict<string,any>,class:signalwire.platform_contracts.generated.SwmlRequestData,dict<string,any>,class:signalwire.core.agent_base.AgentBase>,union<void,void>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "mount": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "app_or_router",
+                  "type": "union<any,callable<list<any>,union<any,any>>>",
+                  "required": true
+                },
+                {
+                  "name": "prefix",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "name",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -31992,6 +32055,10 @@
         },
         "suppress_logs": {
           "type": "optional<bool>",
+          "required": false
+        },
+        "swaig_secret": {
+          "type": "optional<string>",
           "required": false
         },
         "token_expiry_secs": {

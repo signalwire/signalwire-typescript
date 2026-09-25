@@ -13,6 +13,22 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Added
 
+- `AgentBase` option `swaigSecret` (or `SIGNALWIRE_SWAIG_SECRET`): the
+  secret that signs SWAIG function tokens, so a token minted by one replica,
+  or before a restart, still validates. Without it each process generates
+  its own.
+- `AgentBase.addPerCallConfig(cb)`: per-request configuration callbacks that
+  accumulate and run in order on the same copy, so separate pieces of code
+  can each configure what they own. `setDynamicConfigCallback` replaces the
+  whole chain.
+- `AgentBase.onCallEnd(handler)`: run handlers with the transcript when the
+  call ends. It registers the platform's reserved `hangup_hook` function and
+  turns on `swaig_post_conversation`, without which the hook carries no
+  transcript.
+- `AgentBase.mount(appOrRouter, { prefix })`: serve another Hono app or a
+  fetch handler alongside the agent's routes. The mount survives the agent
+  rebuilding its app, answers its own CORS preflights and sets its own
+  headers, and isn't behind the agent's basic auth.
 - `FunctionResult` can separate what a tool did from what the model should
   say: `setToolResponse(toolResult, toolPrompt)` (or the constructor's third
   and fourth arguments) sends `response` as

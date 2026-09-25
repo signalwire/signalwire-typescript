@@ -255,7 +255,18 @@ export class AgentBase extends SWMLService {
   private postAiVerbs: [string, Record<string, unknown>][] = [];
 
   // Dynamic config
-  private dynamicConfigCallback: DynamicConfigCallback | null = null;
+  /** Per-request configuration callbacks, run in order on each request's copy. */
+  private perCallConfigs: DynamicConfigCallback[] = [];
+  /** Handlers registered with {@link onCallEnd}. */
+  private callEndHandlers: ((
+    callLog: Record<string, unknown>[],
+    rawData: SwaigRequest,
+  ) => void | Promise<void>)[] = [];
+  /** Apps and routers added with {@link mount}, replayed on every app build. */
+  private mounts: {
+    app: Hono | ((req: Request) => Response | Promise<Response>);
+    prefix: string;
+  }[] = [];
   private swaigQueryParams: Record<string, string> = {};
 
   // Webhook URL overrides
@@ -427,7 +438,12 @@ export class AgentBase extends SWMLService {
     }
 
     this._promptManager = new PromptManager(opts.usePom ?? true, this);
-    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
+    // A shared secret (option, then SIGNALWIRE_SWAIG_SECRET) lets tokens minted
+    // by one process validate on another replica or after a restart.
+    this.sessionManager = new SessionManager(
+      opts.tokenExpirySecs ?? 3600,
+      opts.swaigSecret || process.env['SIGNALWIRE_SWAIG_SECRET'] || undefined,
+    );
     // swmlBuilder is inherited from SWMLService (initialized via super()).
 
     // Setup auth — populate the legacy basicAuthCreds/basicAuthSource
@@ -1978,7 +1994,136 @@ export class AgentBase extends SWMLService {
    * ```
    */
   setDynamicConfigCallback(cb: DynamicConfigCallback): this {
-    this.dynamicConfigCallback = cb;
+    // Replaces the whole chain, including callbacks from addPerCallConfig.
+    this.perCallConfigs = [cb];
+    return this;
+  }
+
+  /**
+   * Register a per-request configuration callback, keeping any already set.
+   *
+   * Same signature and contract as {@link setDynamicConfigCallback}, except
+   * that callbacks accumulate instead of replacing each other. They run in
+   * registration order on the same per-request copy, so a later one sees what
+   * an earlier one configured. This is the composable form: a base class and a
+   * subclass, or an agent and a helper, can each register what they own
+   * without knowing about each other. `setDynamicConfigCallback` replaces
+   * every callback registered so far.
+   *
+   * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)`,
+   *   where `agent` is the per-request copy. Configure that, never the agent
+   *   itself, or the configuration leaks across callers. May be async.
+   * @returns This agent instance for chaining.
+   */
+  addPerCallConfig(cb: DynamicConfigCallback): this {
+    // Rebind rather than push: a per-request copy shares this array.
+    this.perCallConfigs = [...this.perCallConfigs, cb];
+    return this;
+  }
+
+  /**
+   * Register a handler that runs when the call ends, with the transcript.
+   *
+   * Handlers run in registration order with `(callLog, rawData)`: the
+   * conversation as the platform recorded it, and the whole SWAIG request
+   * (with `global_data` and `call_id`). This wraps the platform's reserved
+   * `hangup_hook` function, which fires on hangup and is never offered to the
+   * model, so it can't be called early or skipped.
+   *
+   * Registering a handler also turns on the `swaig_post_conversation`
+   * parameter: without it the hook still fires, but carries no transcript,
+   * and the handler gets an empty list with nothing to say why. If that
+   * parameter is explicitly `false`, it's left alone and a warning is logged.
+   *
+   * A handler's return value is ignored (the call is over), and an exception
+   * is logged, not raised, so a failing handler doesn't stop the others.
+   *
+   * @param handler - Called with `(callLog, rawData)`; may be async.
+   * @returns The handler.
+   *
+   * @example
+   * ```ts
+   * agent.onCallEnd((callLog, rawData) => {
+   *   archive(rawData.global_data?.['conversation_id'], callLog);
+   * });
+   * ```
+   */
+  onCallEnd(
+    handler: (callLog: Record<string, unknown>[], rawData: SwaigRequest) => void | Promise<void>,
+  ): (callLog: Record<string, unknown>[], rawData: SwaigRequest) => void | Promise<void> {
+    const first = this.callEndHandlers.length === 0;
+    // Rebind rather than push: a per-request copy shares this array.
+    this.callEndHandlers = [...this.callEndHandlers, handler];
+    if (first) this.ensureCallEndHook();
+    return handler;
+  }
+
+  /** Register the reserved hangup_hook tool once, and turn on its transcript. */
+  private ensureCallEndHook(): void {
+    if (this.params['swaig_post_conversation'] === false) {
+      this.log.warn(
+        '[signalwire] onCallEnd handlers are registered but swaig_post_conversation is explicitly false -- they will receive an empty call_log',
+      );
+    } else if (!('swaig_post_conversation' in this.params)) {
+      this.params['swaig_post_conversation'] = true;
+    }
+    this.defineTool({
+      name: 'hangup_hook',
+      description: 'Internal: fires when the call ends.',
+      parameters: {},
+      handler: async (_args, rawData) => {
+        const raw = (rawData ?? {}) as Record<string, unknown>;
+        // Both spellings are seen, depending on the engine.
+        const callLog = (raw['call_log'] ?? raw['raw_call_log'] ?? []) as Record<string, unknown>[];
+        for (const callback of this.callEndHandlers) {
+          // Each handler is isolated, so one failure doesn't stop the others.
+          try {
+            await callback(callLog, rawData);
+          } catch (err) {
+            this.log.error('call_end_handler_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        return new FunctionResult('');
+      },
+    });
+  }
+
+  /**
+   * Mount an extra Hono app, or a fetch handler, alongside this agent's routes.
+   *
+   * Use this instead of adding routes to {@link getApp}'s app by hand: the
+   * agent rebuilds its app when its routes change (a routing callback, say),
+   * and a mount is replayed on every build. A mounted app answers its own
+   * CORS preflights (the agent's CORS and CSRF middleware don't apply to it),
+   * sets its own security headers, and isn't behind the agent's basic auth.
+   * Mount before calling `serve()`.
+   *
+   * @param appOrRouter - A Hono app (its routes are added under `prefix`) or a
+   *   fetch handler `(request) => Response` (mounted at `prefix`, which it
+   *   doesn't see).
+   * @param opts - `prefix`: the path to mount at, from the host root (a
+   *   trailing slash is dropped; default the root). `name`: accepted for
+   *   parity with the reference, where it names an ASGI mount; unused here.
+   * @returns This agent instance for chaining.
+   *
+   * @example
+   * ```ts
+   * agent.mount(gateway.router(), { prefix: '/chat' });
+   * ```
+   */
+  mount(
+    appOrRouter: Hono | ((req: Request) => Response | Promise<Response>),
+    opts: { prefix?: string; name?: string } = {},
+  ): this {
+    // opts.name is accepted for parity; the reference uses it to name an ASGI mount.
+    const clean = (opts.prefix ?? '').replace(/\/+$/, '');
+    this.mounts = [...this.mounts, { app: appOrRouter, prefix: clean }];
+    // Rebuild the apps on next use, with the mount.
+    this._appBuiltByAgent = false;
+    this._routerApp = null;
+    this.log.info('agent_route_mounted', { prefix: clean || '/' });
     return this;
   }
 
@@ -2333,10 +2478,13 @@ export class AgentBase extends SWMLService {
     body: Record<string, unknown>,
     headers: Record<string, string>,
   ): Promise<AgentBase> {
-    if (!this.dynamicConfigCallback) return this;
+    if (this.perCallConfigs.length === 0) return this;
     const copy = this.createEphemeralCopy();
+    const safeHeaders = filterSensitiveHeaders(headers);
     try {
-      await this.dynamicConfigCallback(queryParams, body, filterSensitiveHeaders(headers), copy);
+      for (const cb of this.perCallConfigs) {
+        await cb(queryParams, body, safeHeaders, copy);
+      }
     } catch (err) {
       this.log.error(
         `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
@@ -2827,8 +2975,16 @@ export class AgentBase extends SWMLService {
 
     // Security headers
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
+    // A mounted app (see mount()) sets its own security headers and answers
+    // its own CORS preflights, so the agent's header, CORS and CSRF
+    // middleware leave paths under a mount prefix alone. (A mounted page
+    // couldn't work under default-src 'none'.)
+    const mountPrefixes = this.mounts.map((m) => m.prefix).filter((p) => p !== '');
+    const underMount = (path: string) =>
+      mountPrefixes.some((p) => path === p || path.startsWith(`${p}/`));
     app.use('*', async (c, next) => {
       await next();
+      if (underMount(c.req.path)) return;
       c.res.headers.set('X-Content-Type-Options', 'nosniff');
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
@@ -2897,7 +3053,8 @@ export class AgentBase extends SWMLService {
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
     const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
     const corsCredentials = corsOrigin !== '*';
-    app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
+    const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
+    app.use('*', (c, next) => (underMount(c.req.path) ? next() : corsMw(c, next)));
 
     // CSRF protection (optional, gated by env)
     if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
@@ -2905,7 +3062,7 @@ export class AgentBase extends SWMLService {
         ? new Set(corsOrigins.split(',').map((o) => o.trim().toLowerCase()))
         : null;
       app.use('*', async (c, next) => {
-        if (c.req.method === 'POST') {
+        if (c.req.method === 'POST' && !underMount(c.req.path)) {
           const origin = c.req.header('origin');
           if (origin && allowedOrigins && !allowedOrigins.has(origin.toLowerCase())) {
             return c.json({ error: 'Origin not allowed' }, 403);
@@ -3236,6 +3393,15 @@ export class AgentBase extends SWMLService {
     // Health / Ready
     app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
+
+    // Mounted apps (see mount()), after the agent's own routes so those win.
+    for (const m of this.mounts) {
+      if (typeof m.app === 'function') {
+        app.mount(m.prefix || '/', m.app);
+      } else {
+        app.route(m.prefix || '/', m.app);
+      }
+    }
 
     return app;
   }

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 5e559a705b6ac4e914929002d03c3919d3fa9a42",
+  "generated_from": "signalwire-typescript @ ad00acf3e963e05bb15e613639181a6a45215122",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -187,6 +187,7 @@
           "handle_request",
           "is_mcp_server_enabled",
           "native_functions",
+          "on_call_end",
           "on_debug_event",
           "on_error",
           "on_summary",
@@ -566,10 +567,12 @@
     "signalwire.core.mixins.web_mixin": {
       "classes": {
         "WebMixin": [
+          "add_per_call_config",
           "as_router",
           "enable_debug_routes",
           "get_app",
           "manual_set_proxy_url",
+          "mount",
           "on_request",
           "on_swml_request",
           "register_routing_callback",

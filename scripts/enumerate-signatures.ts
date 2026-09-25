@@ -338,6 +338,8 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'run',
       'serve',
       'set_dynamic_config_callback',
+      'add_per_call_config',
+      'mount',
       'on_request',
       'on_swml_request',
     ],
@@ -374,6 +376,8 @@ const SKIP_METHOD_NAMES = new Set([
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   // Context.add_step — Python keyword-only step config (task/bullets/criteria/…).
   'signalwire.core.contexts.Context.add_step',
+  // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
+  'signalwire.core.agent_base.AgentBase.mount',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',
