@@ -111,6 +111,7 @@ export function defineSkillTool<
     handler: (
       args: ToolArgs<P, R>,
       rawData: SwaigRequest,
+      agent?: AgentBase,
     ) =>
       | FunctionResult
       | Record<string, unknown>

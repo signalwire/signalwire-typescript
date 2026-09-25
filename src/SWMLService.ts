@@ -6,6 +6,7 @@
  * Uses SwmlBuilder for verb methods and Hono for HTTP serving.
  */
 
+import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { HostAppRouter } from './web.js';
@@ -623,6 +624,7 @@ export class SWMLService {
       handler: (
         args: ToolArgs<P, R>,
         rawData: SwaigRequest,
+        agent?: AgentBase,
       ) =>
         | FunctionResult
         | Record<string, unknown>

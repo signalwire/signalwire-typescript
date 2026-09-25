@@ -6,6 +6,7 @@ import Ajv from 'ajv';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
 import type { SwaigRequest } from './SwaigContracts.js';
+import type { AgentBase } from './AgentBase.js';
 
 const ajv = new Ajv({ allErrors: true });
 
@@ -75,11 +76,16 @@ export function normalizeParameters(
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
+ * @param agent - The agent running the call. With a dynamic config callback
+ *   set, this is the request's configured copy, so the handler sees what the
+ *   callback configured (the reference passes it as `self`). Undefined when a
+ *   caller runs {@link SwaigFunction.execute} directly.
  * @returns A FunctionResult, a plain object with a response key, a string, or a Promise of any of these.
  */
 export type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: SwaigRequest,
+  agent?: AgentBase,
 ) =>
   | FunctionResult
   | Record<string, unknown>
@@ -338,11 +344,26 @@ export class SwaigFunction {
     rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
+    return this._executeAs(undefined, args, rawData, agentOnError);
+  }
+
+  /**
+   * {@link execute}, passing `agent` to the handler as its third argument: the
+   * agent running the call, which with a dynamic config callback is the
+   * request's configured copy.
+   * @internal
+   */
+  async _executeAs(
+    agent: AgentBase | undefined,
+    args: Record<string, unknown>,
+    rawData?: SwaigRequest,
+    agentOnError?: SwaigErrorHandler,
+  ): Promise<SwaigResultDict> {
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always sends the full payload, but
       // `execute` allows callers to omit it (e.g. CLI/test harnesses).
-      const result = await this.handler(args, rawData ?? ({} as SwaigRequest));
+      const result = await this.handler(args, rawData ?? ({} as SwaigRequest), agent);
       if (result instanceof FunctionResult) {
         return result.toDict();
       }

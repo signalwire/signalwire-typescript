@@ -70,6 +70,28 @@ export type RoutingCallback = (
   headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
 
+/** A URL's query parameters as a plain object (the last value of a repeated key wins). */
+function queryParamsOf(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  try {
+    new URL(url, 'http://localhost').searchParams.forEach((v, k) => {
+      params[k] = v;
+    });
+  } catch {
+    /* not a URL: no query params */
+  }
+  return params;
+}
+
+/** A Hono request's headers as a plain object with lower-case names. */
+function headersOf(c: Context): Record<string, string> {
+  const headers: Record<string, string> = {};
+  c.req.raw.headers.forEach((v: string, k: string) => {
+    headers[k] = v;
+  });
+  return headers;
+}
+
 /** SDK classes whose instances a per-request copy duplicates field by field. */
 const CLONEABLE_CLASSES = new Set<unknown>([
   ContextBuilder,
@@ -1515,7 +1537,7 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequest;
-        const resultDict = await fn.execute(args, rawData, this._onError);
+        const resultDict = await fn._executeAs(this, args, rawData, this._onError);
         const responseText = (resultDict['response'] as string) ?? '';
         return {
           jsonrpc: '2.0',
@@ -2096,6 +2118,12 @@ export class AgentBase extends SWMLService {
    * @param _rawData - Full raw post-prompt payload received from the platform,
    *   including call metadata, conversation history, and the summary text.
    *
+   * With a dynamic config callback set, this runs on the request's configured
+   * copy of the agent. For a request whose `action` is `fetch_conversation`,
+   * an override may return the conversation (for example
+   * `{ conversation_summary: '...' }`); the post-prompt endpoint sends that
+   * back instead of `{ success: true }`.
+   *
    * @example
    * ```ts
    * class MyAgent extends AgentBase {
@@ -2110,7 +2138,10 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(_summary: PostPromptData | null, _rawData: PostPrompt): void | Promise<void> {
+  onSummary(
+    _summary: PostPromptData | null,
+    _rawData: PostPrompt,
+  ): void | Record<string, unknown> | Promise<void | Record<string, unknown>> {
     // Default no-op
   }
 
@@ -2235,37 +2266,37 @@ export class AgentBase extends SWMLService {
       );
     }
 
-    // Per-request dynamic config: render from an ephemeral copy so the Hono and
-    // primitive paths produce identical SWML. Mirrors the Hono root handler and
-    // Python's _render_swml (which applies the dynamic-config callback inline).
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
-    let agentToUse: AgentBase = this;
-    if (this.dynamicConfigCallback) {
-      agentToUse = this.createEphemeralCopy();
-      const queryParams: Record<string, string> = {};
-      try {
-        new URL(url).searchParams.forEach((v, k) => {
-          queryParams[k] = v;
-        });
-      } catch {
-        /* bare path — no query params to extract */
-      }
-      try {
-        await this.dynamicConfigCallback(
-          queryParams,
-          parsedBody,
-          filterSensitiveHeaders(headers),
-          agentToUse,
-        );
-      } catch (err) {
-        this.log.error(
-          `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-
+    // Per-request dynamic config: render from the configured copy, so the Hono
+    // and primitive paths produce identical SWML.
+    const agentToUse = await this.perCallAgent(queryParamsOf(url), parsedBody, headers);
     const swml = agentToUse.renderSwml(callId, modifications || undefined);
     return [200, {}, swml];
+  }
+
+  /**
+   * The agent a request runs on: this agent, or, when a dynamic config
+   * callback is set, a per-request copy that the callback configured from the
+   * request's query parameters, body and headers (credential-bearing headers
+   * removed). Rendering SWML, running a SWAIG function and delivering a
+   * summary all use it, so a tool the callback registers or secures is the one
+   * that runs, and is checked, when the call invokes it. Mirrors the
+   * reference's `_per_call_agent`.
+   */
+  private async perCallAgent(
+    queryParams: Record<string, string>,
+    body: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<AgentBase> {
+    if (!this.dynamicConfigCallback) return this;
+    const copy = this.createEphemeralCopy();
+    try {
+      await this.dynamicConfigCallback(queryParams, body, filterSensitiveHeaders(headers), copy);
+    } catch (err) {
+      this.log.error(
+        `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return copy;
   }
 
   /** Validate basic-auth against AgentBase's `basicAuthCreds` from a plain
@@ -2898,7 +2929,16 @@ export class AgentBase extends SWMLService {
       const callIdStr = (body['call_id'] as string) ?? '';
       if (callIdStr) reqLog = reqLog.bind({ call_id: callIdStr });
 
-      const fn = this.toolRegistry.get(fnName);
+      // The function runs on the agent the call's SWML came from: with a
+      // dynamic config callback, the request's configured copy. So a tool the
+      // callback registered or secured is found, and its token checked, here.
+      const target = await this.perCallAgent(
+        queryParamsOf(c.req.url),
+        body as unknown as Record<string, unknown>,
+        headersOf(c),
+      );
+
+      const fn = target.toolRegistry.get(fnName);
       if (!fn || !(fn instanceof SwaigFunction)) {
         reqLog.warn('function_not_found', { requested: fnName });
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
@@ -2906,12 +2946,12 @@ export class AgentBase extends SWMLService {
 
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-      const refusal = this.swaigTokenRefusal(fn, token, callIdStr, reqLog);
+      const refusal = target.swaigTokenRefusal(fn, token, callIdStr, reqLog);
       if (refusal) return c.json(refusal);
 
       const args = this.extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
-      const hookResult = await this.onFunctionCall(fnName, args, body);
+      const hookResult = await target.onFunctionCall(fnName, args, body);
 
       // If onFunctionCall returned a result, use it (dispatch interception)
       if (hookResult !== undefined && hookResult !== null) {
@@ -2920,7 +2960,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn.execute(args, body, this._onError);
+        const result = await fn._executeAs(target, args, body, target._onError);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
@@ -2932,7 +2972,9 @@ export class AgentBase extends SWMLService {
       }
     };
 
-    app.get(`${basePath}/swaig`, authMw, handleSwaig);
+    // A GET renders the SWML, like the agent's root (with ?call_id= for a
+    // call's tokens); only a POST runs a function.
+    app.get(`${basePath}/swaig`, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
       app.post(`${basePath}/swaig`, authMw, sigMw, handleSwaig);
     } else {
@@ -2983,9 +3025,28 @@ export class AgentBase extends SWMLService {
 
       reqLog.info('post_prompt_received');
 
-      const summary = this.findSummary(body);
-      await this.onSummary(summary, body);
-      return c.json({ ok: true });
+      // The summary goes to the agent the call ran on: with a dynamic config
+      // callback, the request's configured copy.
+      const target = await this.perCallAgent(
+        queryParamsOf(c.req.url),
+        body as unknown as Record<string, unknown>,
+        headersOf(c),
+      );
+      const summary = target.findSummary(body);
+      let result: unknown;
+      try {
+        // onSummary is declared to return nothing, but an override may return
+        // the conversation for a fetch_conversation request.
+        result = await (target.onSummary(summary, body) as unknown);
+      } catch (err) {
+        reqLog.error('error_in_summary_handler', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+      if ((body as Record<string, unknown>)['action'] === 'fetch_conversation' && result != null) {
+        return c.json(result as Record<string, unknown>);
+      }
+      return c.json({ success: true });
     };
 
     // A GET renders the SWML, like the agent's root; only a POST delivers a

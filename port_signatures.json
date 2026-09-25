@@ -1351,7 +1351,7 @@
               "required": true
             }
           ],
-          "returns": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
+          "returns": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest,class:signalwire.core.agent_base.AgentBase>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
         },
         "infer_schema": {
           "params": [
@@ -1802,7 +1802,7 @@
                   "required": true
                 }
               ],
-              "returns": "union<void,void>"
+              "returns": "union<void,dict<string,any>,union<void,dict<string,any>>>"
             },
             "pom": {
               "params": [
@@ -7243,7 +7243,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
+              "returns": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest,class:signalwire.core.agent_base.AgentBase>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>"
             },
             "is_typed_handler": {
               "params": [
@@ -32154,7 +32154,7 @@
           "required": false
         },
         "handler": {
-          "type": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>",
+          "type": "callable<list<dict<string,any>,class:signalwire.swaig_contracts.generated.SwaigRequest,class:signalwire.core.agent_base.AgentBase>,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult,union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>>>",
           "required": true
         },
         "is_typed_handler": {

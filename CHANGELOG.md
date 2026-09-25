@@ -35,6 +35,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Security
 
+- With a dynamic config callback set, only SWML rendering used the
+  callback's per-request copy of the agent; SWAIG function calls and summary
+  deliveries ran on the agent itself. A tool the callback made `secure` ran
+  the agent's own unsecured tool with no token, and a tool the callback
+  registered was advertised in the SWML but answered `404`. A function call
+  and a summary now run on a copy the callback configured from that request,
+  so the tool that runs, and whose token is checked, is the one the SWML
+  advertised.
 - The agent's `/mcp` endpoint (`enableMcpServer()`) had no authentication, so
   anyone who could reach the server could run the agent's tools, secure ones
   included. It now requires the agent's basic auth credentials, and lists and
@@ -116,6 +124,16 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- A tool handler gets the agent running the call as a third argument,
+  `(args, rawData, agent)`: with a dynamic config callback, the request's
+  configured copy, so the handler sees what the callback set up. `onSummary`
+  runs on that copy too. Existing two-argument handlers are unaffected.
+- A `fetch_conversation` request to the post-prompt endpoint now gets back
+  what `onSummary` returns, as the platform expects; the endpoint answered
+  `{ ok: true }` either way. Other deliveries now answer `{ success: true }`,
+  as the reference does.
+- `GET /swaig` (with `?call_id=` for a call's tokens) returns the SWML
+  document, like the agent's root; it answered `400`.
 - The per-request copy of an agent loaded every skill again, running each
   skill's `setup()` on every request, and its skill list was empty while
   that finished. It now starts with the skills the agent loaded, without
@@ -132,6 +150,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- With a dynamic config callback set, a function call runs on the
+  request's configured copy of the agent, and so does `onSummary`. State a
+  handler or `onSummary` keeps by assigning to the agent (`this.count += 1`)
+  now lands on the copy and is gone after the request; keep it in an object
+  the agent already holds, or in your own storage.
+- The post-prompt endpoint answers a delivered summary with
+  `{ success: true }` instead of `{ ok: true }`.
 - A secure SWAIG function called directly, for example with `curl`, now
   needs the token from its `web_hook_url` in the SWML, fetched with
   `GET /?call_id=<id>`. SignalWire's own requests already carry it, and
