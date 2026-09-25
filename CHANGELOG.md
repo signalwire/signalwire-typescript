@@ -124,6 +124,11 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `onSwmlRequest(requestData, callbackPath, context)` receives the Hono
+  context on a served request, as documented; it was always undefined.
+- A plain `SWMLService`'s `/swaig` answered `{}` for an `async` tool
+  handler, since it didn't await the result. It now awaits it, and returns a
+  `FunctionResult` or string result as a SWAIG response.
 - `AgentServer` served an agent under its route twice (`/sales/sales`),
   so `register(agent)` answered `404` at the agent's own route.
   `asRouter()` now returns the agent's routes relative to its root, like the

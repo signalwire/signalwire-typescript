@@ -587,10 +587,13 @@ export class SWMLService {
       if (shortCircuit !== null && shortCircuit !== undefined) {
         return c.json(shortCircuit);
       }
-      const result = target.onFunctionCall(fnName, args, payload);
+      // A handler may be async: await it, or its Promise serializes as {}.
+      const result = await target.onFunctionCall(fnName, args, payload);
       if (result === null || result === undefined) {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
+      if (result instanceof FunctionResult) return c.json(result.toDict());
+      if (typeof result === 'string') return c.json(new FunctionResult(result).toDict());
       return c.json(result);
     };
     this._app.get(swaigPath, swaigHandler);
