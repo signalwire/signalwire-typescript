@@ -170,12 +170,17 @@ export {
 } from './SecurityUtils.js';
 
 // Webhook signature validation
-export { validateWebhookSignature, validateRequest } from './WebhookValidator.js';
+export {
+  validateWebhookSignature,
+  validateWebhookSignatureSha256,
+  validateRequest,
+} from './WebhookValidator.js';
 export type { FormParams, FormParamValue } from './WebhookValidator.js';
 export {
   webhookValidationMiddleware,
   validate,
   SIGNALWIRE_SIGNATURE_HEADER,
+  SIGNALWIRE_SHA256_SIGNATURE_HEADER,
   TWILIO_COMPAT_SIGNATURE_HEADER,
 } from './WebhookMiddleware.js';
 export type { WebhookValidationOptions, WebhookRejection } from './WebhookMiddleware.js';

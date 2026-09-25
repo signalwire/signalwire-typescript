@@ -82,6 +82,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   changed the agent's own settings; and `resetContexts()` cleared the agent's
   contexts. The copy now has its own copies of all of these, and of the SIP
   usernames, routing callbacks, verbs, params and global data.
+- Webhook signature validation accepts the stronger
+  `X-SignalWire-Sha256-Signature` header (hex HMAC-SHA256 of the URL and raw
+  body), preferred over the SHA-1 `X-SignalWire-Signature` when present, and
+  falls back to the SHA-1 header so existing deployments keep working. New
+  exports: `validateWebhookSignatureSha256()` and
+  `SIGNALWIRE_SHA256_SIGNATURE_HEADER`.
 
 ### Fixed
 

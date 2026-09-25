@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 296713627867367d7c521f4d02079f8418fcbe00",
+  "generated_from": "signalwire-typescript @ 452d1630fe73a452c5705b9209ed3976581cc2f1",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -683,7 +683,8 @@
       "classes": {},
       "functions": [
         "validate_request",
-        "validate_webhook_signature"
+        "validate_webhook_signature",
+        "validate_webhook_signature_sha256"
       ]
     },
     "signalwire.core.security_config": {

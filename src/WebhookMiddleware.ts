@@ -30,10 +30,12 @@
 
 import type { Context, MiddlewareHandler } from 'hono';
 
-import { validateWebhookSignature } from './WebhookValidator.js';
+import { validateWebhookSignature, validateWebhookSignatureSha256 } from './WebhookValidator.js';
 
 /** Canonical lowercase header names (Hono's c.req.header() is case-insensitive). */
 export const SIGNALWIRE_SIGNATURE_HEADER = 'x-signalwire-signature';
+/** The HMAC-SHA256 signature header, preferred over the SHA-1 one when present. */
+export const SIGNALWIRE_SHA256_SIGNATURE_HEADER = 'x-signalwire-sha256-signature';
 export const TWILIO_COMPAT_SIGNATURE_HEADER = 'x-twilio-signature';
 
 /**
@@ -72,6 +74,9 @@ function headerLookup(headers: Record<string, string>, name: string): string | u
  *
  * Behavior mirrors the SignalWire webhook signature-validation contract:
  *
+ *   - A valid ``X-SignalWire-Sha256-Signature`` (HMAC-SHA256) → ``null`` (pass).
+ *     This stronger header is checked first; when it is missing or doesn't
+ *     match, the SHA-1 header decides.
  *   - Missing ``X-SignalWire-Signature`` (or the ``X-Twilio-Signature`` alias)
  *     → reject ``[403, {}, 'Forbidden']`` (never throws for a missing header).
  *   - Bad signature → reject ``[403, {}, 'Forbidden']``.
@@ -103,6 +108,19 @@ export function validate(
   void method; // signature is over url + body, not the method
   if (!signingKey || typeof signingKey !== 'string') {
     throw new Error('signingKey is required');
+  }
+
+  // Prefer the stronger SHA-256 signature when the platform sends it: the same
+  // Scheme A message, hashed with SHA-256. Fall back to the SHA-1 header below,
+  // so deployments on older platform builds, and the cXML/form Scheme B path,
+  // keep validating.
+  const sha256Signature = headerLookup(headers, SIGNALWIRE_SHA256_SIGNATURE_HEADER);
+  if (sha256Signature) {
+    try {
+      if (validateWebhookSignatureSha256(signingKey, sha256Signature, url, body)) return null;
+    } catch {
+      // Fall back to the SHA-1 header.
+    }
   }
 
   const signature =
@@ -203,8 +221,8 @@ function reconstructUrl(c: Context, opts: { trustProxy: boolean }): string {
  *   1. Captures the raw body (``await c.req.text()``) BEFORE any other
  *      consumer reads the stream. The string is stashed at ``c.set('rawBody')``
  *      so the downstream handler can re-parse without re-reading the stream.
- *   2. Pulls the ``X-SignalWire-Signature`` header (or the ``X-Twilio-Signature``
- *      alias).
+ *   2. Pulls the ``X-SignalWire-Sha256-Signature`` header and the
+ *      ``X-SignalWire-Signature`` header (or the ``X-Twilio-Signature`` alias).
  *   3. Reconstructs the public URL (``SWML_PROXY_URL_BASE`` env > forwarded
  *      headers when ``trustProxy`` > raw request URL).
  *   4. Calls {@link validateWebhookSignature}.
@@ -239,6 +257,10 @@ export function webhookValidationMiddleware(opts: WebhookValidationOptions): Mid
     // adapter and the decomposed cross-port contract share one implementation.
     const headers: Record<string, string> = {};
     if (signature !== null) headers[SIGNALWIRE_SIGNATURE_HEADER] = signature;
+    const sha256Signature = c.req.header(SIGNALWIRE_SHA256_SIGNATURE_HEADER);
+    if (sha256Signature !== undefined) {
+      headers[SIGNALWIRE_SHA256_SIGNATURE_HEADER] = sha256Signature;
+    }
     const rejection = validate(c.req.method, url, headers, rawBody, signingKey);
 
     if (rejection !== null) {

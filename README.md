@@ -211,6 +211,13 @@ If you want the lower-level primitive (compute/compare a single signature over a
 raw body), `validateWebhookSignature(signingKey, signature, url, rawBody)` is
 also exported.
 
+SignalWire also sends an HMAC-SHA256 signature in the
+`X-SignalWire-Sha256-Signature` header on JSON and SWML webhooks. It signs the
+same message, the URL followed by the raw body, and you can check it with
+`validateWebhookSignatureSha256(signingKey, signature, url, rawBody)`. An
+agent's built-in validation, and `webhookValidationMiddleware`, check that
+header first when it's present and fall back to `X-SignalWire-Signature`.
+
 ---
 
 ## Installation

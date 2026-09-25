@@ -13,7 +13,11 @@ import { describe, it, expect } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import { validateRequest, validateWebhookSignature } from '../src/WebhookValidator.js';
+import {
+  validateRequest,
+  validateWebhookSignature,
+  validateWebhookSignatureSha256,
+} from '../src/WebhookValidator.js';
 
 // ---------------------------------------------------------------------------
 // Canonical test vectors from porting-sdk/webhooks.md
@@ -113,6 +117,53 @@ describe('WebhookValidator — Scheme A (RELAY/JSON, hex)', () => {
 // ---------------------------------------------------------------------------
 // Scheme B — Compat/cXML (base64 form)
 // ---------------------------------------------------------------------------
+
+describe('WebhookValidator — Scheme A with SHA-256 (X-SignalWire-Sha256-Signature)', () => {
+  const sign = (key: string, url: string, body: string) =>
+    createHmac('sha256', key)
+      .update(url + body, 'utf8')
+      .digest('hex');
+
+  it('validates a correctly built SHA-256 signature', () => {
+    const sig = sign(VECTOR_A.signingKey, VECTOR_A.url, VECTOR_A.rawBody);
+    expect(sig).toHaveLength(64);
+    expect(
+      validateWebhookSignatureSha256(VECTOR_A.signingKey, sig, VECTOR_A.url, VECTOR_A.rawBody),
+    ).toBe(true);
+  });
+
+  it('does not accept the SHA-1 digest through the SHA-256 path', () => {
+    expect(
+      validateWebhookSignatureSha256(
+        VECTOR_A.signingKey,
+        VECTOR_A.expected,
+        VECTOR_A.url,
+        VECTOR_A.rawBody,
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects a tampered body and a wrong key', () => {
+    const sig = sign(VECTOR_A.signingKey, VECTOR_A.url, VECTOR_A.rawBody);
+    const tampered = VECTOR_A.rawBody.replace('answered', 'ringing');
+    expect(tampered).not.toBe(VECTOR_A.rawBody);
+    expect(validateWebhookSignatureSha256(VECTOR_A.signingKey, sig, VECTOR_A.url, tampered)).toBe(
+      false,
+    );
+    expect(validateWebhookSignatureSha256('wrong-key', sig, VECTOR_A.url, VECTOR_A.rawBody)).toBe(
+      false,
+    );
+  });
+
+  it('returns false for a missing signature and throws for a missing key', () => {
+    expect(
+      validateWebhookSignatureSha256(VECTOR_A.signingKey, '', VECTOR_A.url, VECTOR_A.rawBody),
+    ).toBe(false);
+    expect(() =>
+      validateWebhookSignatureSha256('', 'deadbeef', VECTOR_A.url, VECTOR_A.rawBody),
+    ).toThrow('signingKey is required');
+  });
+});
 
 describe('WebhookValidator — Scheme B (Compat/cXML, base64)', () => {
   it('positive: canonical form Vector B with raw body', () => {

@@ -143,6 +143,31 @@ describe('AgentBase — webhook signature validation', () => {
     expect(res.status).toBe(200);
   });
 
+  it('with explicit signingKey: POST / signed only with X-SignalWire-Sha256-Signature is accepted', async () => {
+    const agent = new AgentBase({
+      name: 'sig-agent',
+      route: '/',
+      basicAuth: ['u', 'p'],
+      signingKey: KEY,
+    });
+    agent.setPromptText('hello');
+
+    const body = JSON.stringify({ call_id: 'abc-123' });
+    const sig = createHmac('sha256', KEY)
+      .update('http://localhost/' + body, 'utf8')
+      .digest('hex');
+    const res = await agent.getApp().request('/', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
+        'X-SignalWire-Sha256-Signature': sig,
+        'Content-Type': 'application/json',
+      },
+      body,
+    });
+    expect(res.status).toBe(200);
+  });
+
   it('with explicit signingKey: POST / with bogus sig → 403', async () => {
     const agent = new AgentBase({
       name: 'sig-agent',
