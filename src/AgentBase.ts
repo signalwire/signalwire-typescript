@@ -2214,6 +2214,21 @@ export class AgentBase extends SWMLService {
     headers: Record<string, string>,
     body?: Record<string, unknown> | null,
   ): Promise<[number, Record<string, string>, string]> {
+    return this.dispatchSwmlRequest(method, url, headers, body);
+  }
+
+  /**
+   * {@link handleRequest}, with the Hono context of a served request, which
+   * {@link onSwmlRequest} receives as its third argument (undefined on the
+   * primitive path).
+   */
+  private async dispatchSwmlRequest(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: Record<string, unknown> | null,
+    context?: Context,
+  ): Promise<[number, Record<string, string>, string]> {
     const parsedBody: Record<string, unknown> = body ?? {};
     const callbackPath = this._callbackPathForUrl(url);
 
@@ -2256,10 +2271,10 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    // Subclass modification hook (primitive path passes no Hono context).
+    // Subclass modification hook, with the Hono context on the served path.
     let modifications: Record<string, unknown> | void = undefined;
     try {
-      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined);
+      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined, context);
     } catch (err) {
       this.log.error(
         `error_in_request_modifier error=${err instanceof Error ? err.message : String(err)}`,
@@ -2719,11 +2734,12 @@ export class AgentBase extends SWMLService {
       headers[k] = v;
     });
 
-    const [status, respHeaders, bodyStr] = await this.handleRequest(
+    const [status, respHeaders, bodyStr] = await this.dispatchSwmlRequest(
       c.req.method,
       c.req.url,
       headers,
       body,
+      c,
     );
 
     // 307 routing redirect — real redirect status + Location, empty body.

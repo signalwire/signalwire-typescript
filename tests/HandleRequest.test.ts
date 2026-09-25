@@ -7,6 +7,8 @@
 
 import { SWMLService } from '../src/SWMLService.js';
 import { AgentBase } from '../src/AgentBase.js';
+import type { Context } from 'hono';
+import type { SwmlRequestData } from '../src/PlatformContracts.js';
 
 beforeEach(() => {
   delete process.env['SWML_BASIC_AUTH_USER'];
@@ -110,5 +112,23 @@ describe('AgentBase.handleRequest (override)', () => {
     );
     expect(status).toBe(307);
     expect(headers['Location']).toBe('/next');
+  });
+});
+
+describe('onSwmlRequest receives the request context', () => {
+  class ContextAgent extends AgentBase {
+    seen: (string | undefined | null)[] = [];
+    override onSwmlRequest(_raw: SwmlRequestData, _path?: string, context?: Context): void {
+      this.seen.push(context ? (context.req.query('tenant') ?? null) : undefined);
+    }
+  }
+
+  it('gets the Hono context on a served request, and undefined on the primitive path', async () => {
+    const agent = new ContextAgent({ name: 'ctx', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('ctx');
+    const auth = 'Basic ' + Buffer.from('u:p').toString('base64');
+    await agent.getApp().request('/?tenant=acme', { headers: { Authorization: auth } });
+    await agent.handleRequest('GET', 'http://localhost/?tenant=acme', { authorization: auth });
+    expect(agent.seen).toEqual(['acme', undefined]);
   });
 });
