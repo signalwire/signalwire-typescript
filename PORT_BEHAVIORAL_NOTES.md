@@ -145,3 +145,34 @@ the emitted SWAIG `parameters`/`required` match, the model sees the same tool;
 the execution model (server-evaluated vs SDK-evaluated) differs. This is tracked
 as OPEN where it applies but is lower-stakes than a parameter-contract
 divergence.
+
+---
+
+## Runtime model divergences from Python 3.5
+
+### Synchronous handlers in worker threads — KEEP (not applicable to Node)
+- Python 3.5 runs synchronous (`def`) tool handlers and callbacks in AnyIO
+  worker threads (`61a57c2`), so one slow handler no longer holds up other
+  calls' requests on the event loop.
+- Node has one JavaScript thread. An `async` handler that awaits I/O (fetch,
+  a database client) doesn't block other requests, which is the idiomatic TS
+  shape; a handler that does CPU-heavy or synchronous blocking work (a busy
+  loop, `readFileSync` on a large file, `execSync`) blocks every request on
+  the server, as any Node request handler does. Move such work to a
+  `worker_threads` Worker or a child process.
+- Verdict: **KEEP**. There's no thread pool to port; the observable contract
+  (other calls keep being served while a handler waits on I/O) holds for
+  `async` handlers.
+
+### SDK logging is on by default — KEEP (owner decision, 2026-09-25)
+- Python 3.5 makes SDK loggers silent until `configure_logging()` runs (as
+  `serve()`/`run()` do) or the host app configures logging, so an app that
+  embeds an agent with `get_app()`/`as_router()` gets no SDK output on
+  stdout by default.
+- TS keeps logging at `info` by default (`src/Logger.ts`), so an app that
+  embeds an agent with `getApp()`/`asRouter()` does see SDK log lines.
+  `SIGNALWIRE_LOG_MODE=off`, `SIGNALWIRE_LOG_LEVEL` and `suppressAllLogs()`
+  control it.
+- Verdict: **KEEP**, by the SDK owner's decision; recorded so the difference
+  isn't silent.
+

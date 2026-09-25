@@ -1915,11 +1915,23 @@ export class AgentBase extends SWMLService {
   // ── Dynamic config ──────────────────────────────────────────────────
 
   /**
-   * Set a callback invoked on each SWML request to dynamically modify an ephemeral agent copy.
+   * Set a callback that configures a per-request copy of this agent.
    *
-   * The callback receives a clone of this agent — mutations apply only to the current
-   * request, so you can vary prompt, tools, languages, params, or global data per call
-   * without affecting the long-lived agent instance.
+   * On each request that renders SWML, runs a SWAIG function or delivers a
+   * summary, the SDK makes a copy of this agent, calls the callback with the
+   * request's query parameters, body and headers (credential-bearing headers
+   * removed) and the copy, and handles the request with the copy. Tool
+   * handlers get the copy as their third argument, and `onSummary` runs on it.
+   *
+   * The copy has its own prompt, tools, skills list, hints, languages,
+   * pronunciations, params, global data, function includes, LLM params,
+   * fillers, call-flow verbs, SWAIG query params, native functions, MCP
+   * servers, SIP usernames, routing callbacks and contexts, so changing any of
+   * them with the agent's methods affects only this request. Anything else is
+   * shared with this agent and every request in flight: a field a subclass
+   * adds, a skill instance, or an object inside the configuration that isn't
+   * plain data (a `URL`, a class instance). Assigning a new value to such a
+   * field on the copy is safe; mutating a shared object in place is not.
    *
    * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)` where
    *   `agent` is the ephemeral `AgentBase` copy to mutate. May be async.
