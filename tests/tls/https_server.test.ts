@@ -64,9 +64,11 @@ function httpsGet(
 }
 
 describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
-  const certPath = join(certs!, 'server.crt');
-  const keyPath = join(certs!, 'server.key');
-  const caBuf = ready ? readFileSync(join(certs!, 'ca.crt')) : Buffer.alloc(0);
+  // vitest still runs a skipped describe body to collect its tests, so these
+  // must not touch `certs` when porting-sdk is absent (certs === null).
+  const certPath = certs ? join(certs, 'server.crt') : '';
+  const keyPath = certs ? join(certs, 'server.key') : '';
+  const caBuf = certs ? readFileSync(join(certs, 'ca.crt')) : Buffer.alloc(0);
 
   let svc: WebService | null = null;
   let baseUrl = '';
