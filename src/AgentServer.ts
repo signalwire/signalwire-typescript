@@ -99,7 +99,10 @@ export class AgentServer {
     this.host = opts?.host ?? '0.0.0.0';
     this.port = opts?.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
     this.logLevel = (opts?.logLevel ?? 'info').toLowerCase();
-    setGlobalLogLevel(this.logLevel as 'debug' | 'info' | 'warn' | 'error');
+    // swaig-test sets its own log level before loading a file; leave it.
+    if (process.env['SWAIG_CLI_MODE'] !== 'true') {
+      setGlobalLogLevel(this.logLevel as 'debug' | 'info' | 'warn' | 'error');
+    }
     // Match paths without regard to a trailing slash or repeated slashes, as
     // an agent's own app does, so a mounted agent answers /route/swaig/ too.
     // (Hono ignores a custom getPath when `strict: false` is passed.)

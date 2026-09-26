@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 9651162aa145f1f296e2e46479ea7d03acb71a35",
+  "generated_from": "signalwire-typescript @ b4213b0c2d3e323abba238b88ffcedd88c72afff",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -157,15 +157,45 @@
     "signalwire.cli.core.agent_loader": {
       "classes": {},
       "functions": [
+        "describe_agents",
         "list_agents",
         "load_agent"
       ]
     },
-    "signalwire.cli.simulation.mock_env": {
+    "signalwire.cli.datamap_exec": {
       "classes": {},
       "functions": [
-        "generate_fake_post_data",
-        "generate_minimal_post_data"
+        "execute_data_map",
+        "expand_template",
+        "expand_value"
+      ]
+    },
+    "signalwire.cli.function_args": {
+      "classes": {},
+      "functions": [
+        "parse_function_arguments",
+        "schema_properties",
+        "undeclared_argument_warnings"
+      ]
+    },
+    "signalwire.cli.simulation": {
+      "classes": {
+        "ServerlessSimulator": [
+          "__init__",
+          "activate",
+          "deactivate",
+          "environment"
+        ]
+      },
+      "functions": [
+        "apply_convenience_mappings",
+        "apply_overrides",
+        "comprehensive_post_data",
+        "fake_swml_post_data",
+        "load_env_file",
+        "minimal_post_data",
+        "parse_override_value",
+        "set_nested"
       ]
     },
     "signalwire.core.agent.prompt.manager": {

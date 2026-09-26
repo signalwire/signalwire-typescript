@@ -254,7 +254,6 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // CLI
   'src/cli/swaig-test.ts': 'signalwire.cli.test_swaig',
   'src/cli/agent-loader.ts': 'signalwire.cli.core.agent_loader',
-  'src/cli/mock-data.ts': 'signalwire.cli.simulation.mock_env',
   // index.ts barrel exports — top-level module functions go under `signalwire`.
   'src/index.ts': 'signalwire',
 };

@@ -67,6 +67,26 @@ Most additions below fall into three buckets:
 
 ## Skill-specific additions
 
+signalwire.cli.core.agent_loader.describe_agents: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.execute_data_map: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_template: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.parse_function_arguments: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.schema_properties: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.undeclared_argument_warnings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.__init__: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.activate: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.deactivate: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.environment: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_convenience_mappings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_overrides: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.comprehensive_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.fake_swml_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.load_env_file: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.minimal_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.parse_override_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.set_nested: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_hints: TS-specific skill helper method or class
 signalwire.skills.api_ninjas_trivia.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.ask_claude.skill.AskClaudeSkill: TS-specific skill helper method or class
@@ -429,8 +449,6 @@ signalwire.core.swml_service.SWMLService.swaig_pre_dispatch: TS SWMLService exte
 
 signalwire.cli.core.agent_loader.list_agents: TS CLI helper exposed by the TS swaig-test wrapper
 signalwire.cli.core.agent_loader.load_agent: TS CLI helper exposed by the TS swaig-test wrapper
-signalwire.cli.simulation.mock_env.generate_fake_post_data: TS CLI helper exposed by the TS swaig-test wrapper
-signalwire.cli.simulation.mock_env.generate_minimal_post_data: TS CLI helper exposed by the TS swaig-test wrapper
 
 ## DataMap port-specific
 

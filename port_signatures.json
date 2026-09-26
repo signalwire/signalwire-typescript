@@ -1435,6 +1435,16 @@
     },
     "signalwire.cli.agent_loader": {
       "functions": {
+        "describe_agents": {
+          "params": [
+            {
+              "name": "agent_path",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<class:signalwire.cli.agent_loader.AgentDescription>"
+        },
         "list_agents": {
           "params": [
             {
@@ -1457,46 +1467,310 @@
               "type": "optional<string>",
               "required": false,
               "default": null
+            },
+            {
+              "name": "opts",
+              "type": "class:signalwire.cli.agent_loader.LoadAgentOptions",
+              "required": false,
+              "default": {}
             }
           ],
           "returns": "any"
         }
       }
     },
-    "signalwire.cli.mock_data": {
+    "signalwire.cli.datamap_exec": {
       "functions": {
-        "generate_fake_post_data": {
+        "execute_data_map": {
           "params": [
             {
+              "name": "fn",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "args",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
               "name": "opts",
-              "type": "class:signalwire.cli.mock_data.MockCallOptions",
+              "type": "class:signalwire.cli.datamap_exec.DataMapExecOptions",
               "required": false,
-              "default": null
+              "default": {}
+            }
+          ],
+          "returns": "any"
+        },
+        "expand_template": {
+          "params": [
+            {
+              "name": "template",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "data",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "expand_value": {
+          "params": [
+            {
+              "name": "value",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "data",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
+    "signalwire.cli.function_args": {
+      "functions": {
+        "parse_function_arguments": {
+          "params": [
+            {
+              "name": "tokens",
+              "type": "list<string>",
+              "required": true
+            },
+            {
+              "name": "parameters",
+              "type": "any",
+              "required": true
             }
           ],
           "returns": "dict<string,any>"
         },
-        "generate_minimal_post_data": {
+        "schema_properties": {
           "params": [
             {
-              "name": "fn_name",
+              "name": "parameters",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "undeclared_argument_warnings": {
+          "params": [
+            {
+              "name": "args",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "parameters",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "cli_options",
+              "type": "list<string>",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
+        }
+      }
+    },
+    "signalwire.cli.simulation": {
+      "classes": {
+        "ServerlessSimulator": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "platform",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "overrides",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "activate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "deactivate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "environment": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            }
+          }
+        }
+      },
+      "functions": {
+        "apply_convenience_mappings": {
+          "params": [
+            {
+              "name": "data",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "flags",
+              "type": "class:signalwire.cli.simulation.ConvenienceFlags",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "apply_overrides": {
+          "params": [
+            {
+              "name": "data",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "overrides",
+              "type": "list<string>",
+              "required": true
+            },
+            {
+              "name": "json_overrides",
+              "type": "list<string>",
+              "required": true
+            },
+            {
+              "name": "warn",
+              "type": "callable<list<string>,void>",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "comprehensive_post_data": {
+          "params": [
+            {
+              "name": "function_name",
               "type": "string",
               "required": true
             },
             {
               "name": "args",
               "type": "dict<string,any>",
-              "required": false,
-              "default": null
+              "required": true
             },
             {
-              "name": "opts",
-              "type": "optional<dict<string,any>>",
+              "name": "custom_data",
+              "type": "dict<string,any>",
               "required": false,
               "default": null
             }
           ],
-          "returns": "class:signalwire.swaig_contracts.generated.SwaigRequest"
+          "returns": "dict<string,any>"
+        },
+        "fake_swml_post_data": {
+          "params": [
+            {
+              "name": "call_type",
+              "type": "string",
+              "required": false,
+              "default": "webrtc"
+            },
+            {
+              "name": "call_direction",
+              "type": "string",
+              "required": false,
+              "default": "inbound"
+            },
+            {
+              "name": "call_state",
+              "type": "string",
+              "required": false,
+              "default": "created"
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "load_env_file": {
+          "params": [
+            {
+              "name": "file_path",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "minimal_post_data": {
+          "params": [
+            {
+              "name": "args",
+              "type": "dict<string,any>",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "parse_override_value": {
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "set_nested": {
+          "params": [
+            {
+              "name": "data",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "path",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "value",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "bool"
         }
       }
     },
@@ -32822,6 +33096,18 @@
         "messages": {
           "type": "float",
           "required": false
+        }
+      }
+    },
+    "signalwire.cli.simulation.ServerlessSimulator": {
+      "params": {
+        "overrides": {
+          "type": "dict<string,any>",
+          "required": false
+        },
+        "platform": {
+          "type": "string",
+          "required": true
         }
       }
     },

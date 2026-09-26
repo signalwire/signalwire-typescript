@@ -80,6 +80,29 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   `space`/`SIGNALWIRE_SPACE` as the REST client does (#186), sends the SDK's
   User-Agent, and warns when a conversation id holds characters the service
   will strip.
+- `swaig-test` sends its requests through the agent's own HTTP app, as
+  SignalWire would: the SWML is fetched with a simulated call (so basic
+  auth, signatures, the dynamic config callback and webhook tokens run as on
+  a server, and the callback runs once for `--dump-swml`), and `--exec`
+  calls a function at the `web_hook_url` its SWML gives it. It gains the
+  Python SDK's options:
+  - Function arguments after `--exec <function>` as `--name value`, typed by
+    the function's schema, with a warning for an argument the function
+    doesn't declare (`--arg name=value` still works).
+  - A DataMap simulator, so `--exec` runs a DataMap function; external
+    webhook functions are called at their URL.
+  - `--query-params`, `--header`, `--body`, `--method`, `--user-vars`,
+    `--custom-data`, `--minimal`, `--fake-full-data`, `--override-json`,
+    `--project-id`, `--space-id`, `--help-platforms` and `--help-examples`.
+  - Serverless simulation that runs any action with the platform's
+    environment, with `--aws-*`, `--cgi-*`, `--gcp-*` and `--azure-*`
+    options (`--aws-api-gateway-id` and `--aws-stage` give an API Gateway
+    URL), and the Python platform names `cloud_function` and
+    `azure_function`.
+  - `--list-tools` lists DataMap and external functions with their
+    parameters.
+  - It finds an agent the file constructs without exporting (the
+    quickstart's), and `--route` picks a service in a file with several.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
   `get` / `create` / `update` / `delete` / `list_addresses` and every generated
   operation / command-dispatch / set-method now accepts a trailing optional
@@ -191,6 +214,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `swaig-test --exec` ignored `--call-state`, and an `--override` key
+  nothing read was accepted silently (#188). The call data flags now apply
+  to every action, `--override` takes a dotted path (`call.state=answered`),
+  and an override whose path isn't in the simulated request gets a warning.
+- The `DataMap` class's doc example passed `true` as `parameter()`'s fourth
+  argument, which drops `required`; it takes `{ required: true }`.
 - On a serverless platform, the SWML's webhook URLs pointed at
   `http://localhost:3000` unless `SWML_PROXY_URL_BASE` was set. They now use
   the URL the platform serves the function on, as the Python SDK does: a
@@ -309,6 +338,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- `swaig-test`: everything after `--exec <function>` is now an argument
+  for the function, so put the CLI's own options (`--raw`, `--verbose`)
+  before `--exec`. `--route` now picks the service with that route instead
+  of changing the agent's route. `--call-state` defaults to `created`. The
+  output of `--dump-swml` is the JSON document alone, and `--exec` prints
+  `RESULT:` and the response. `--simulate-serverless` runs the chosen
+  action with the platform's environment instead of printing a simulated
+  platform response.
 - A `FunctionResult`'s structured response (`setToolResponse()`, or the
   constructor's third and fourth arguments) is sent by `toDict()`; the
   `response` property stays the plain string. `setResponse()` clears the

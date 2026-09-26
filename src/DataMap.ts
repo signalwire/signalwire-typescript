@@ -70,7 +70,7 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
  *
  * const weather = new DataMap('get_weather')
  *   .purpose('Look up the current weather for a city')
- *   .parameter('city', 'string', 'The city name', true)
+ *   .parameter('city', 'string', 'The city name', { required: true })
  *   .webhook('GET', 'https://api.example.com/weather?city=${args.city}')
  *   .output(new FunctionResult('In ${city} it is ${response.temp}°F and ${response.condition}.'));
  *
@@ -82,7 +82,7 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
  * ```ts
  * new DataMap('classify_intent')
  *   .purpose('Route callers to the right department.')
- *   .parameter('utterance', 'string', 'What the caller said', true)
+ *   .parameter('utterance', 'string', 'What the caller said', { required: true })
  *   .expression('${args.utterance}', /billing|invoice|charge/i, new FunctionResult('billing'))
  *   .expression('${args.utterance}', /tech|broken|error/i, new FunctionResult('support'));
  * ```

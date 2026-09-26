@@ -1,15 +1,19 @@
 /**
  * Agent discovery via dynamic import for swaig-test CLI.
  *
- * Tries multiple strategies to find an AgentBase instance:
- * 1. Named export `agent`
- * 2. Default export
- * 3. Any exported AgentBase instance (duck-typed)
- * 4. Any exported AgentBase subclass (instantiated)
+ * Finds the AgentBase or SWMLService to test, in this order:
+ * 1. The export named by `--agent-class` (an instance, or a class to instantiate).
+ * 2. With `--route`, the service whose route it is.
+ * 3. Named export `agent`, then the default export, then any exported
+ *    instance, then an exported class (instantiated).
+ * 4. A service the file constructed without exporting it (the quickstart's
+ *    `const agent = new AgentBase(...)`; `agent.run()`), found because
+ *    SWMLService records itself while the CLI imports a file.
  */
 
 import { resolve, extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { _takeCliLoadedServices } from '../SWMLService.js';
 
 /** Allowed file extensions for agent loading. */
 const ALLOWED_EXTENSIONS = new Set(['.ts', '.js', '.mjs', '.mts']);
@@ -48,13 +52,21 @@ function isSWMLServiceInstance(obj: unknown): boolean {
   );
 }
 
+const isService = (obj: unknown) => isAgentInstance(obj) || isSWMLServiceInstance(obj);
+
+/** A loaded module, plus the services it constructed while it was imported. */
+interface LoadedModule {
+  exports: Record<string, unknown>;
+  constructed: unknown[];
+}
+
 /**
  * Import a module by path after validating the file extension.
  *
  * **Security note:** Only `.ts`, `.js`, `.mjs`, and `.mts` extensions are allowed
  * to prevent loading unexpected file types via dynamic import.
  */
-async function importModule(agentPath: string): Promise<Record<string, unknown>> {
+async function importModule(agentPath: string): Promise<LoadedModule> {
   const absPath = resolve(agentPath);
   const ext = extname(absPath).toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext)) {
@@ -67,9 +79,12 @@ async function importModule(agentPath: string): Promise<Record<string, unknown>>
 
   // Suppress server startup: agent files call .serve() at module scope,
   // but the CLI only needs the configured agent instance, not a running server.
+  // In this mode, every SWMLService constructed also records itself.
   process.env['SWAIG_CLI_MODE'] = 'true';
+  _takeCliLoadedServices();
   try {
-    return await import(fileUrl);
+    const exports = (await import(fileUrl)) as Record<string, unknown>;
+    return { exports, constructed: _takeCliLoadedServices() };
   } catch (err) {
     throw new Error(`Failed to import agent file: ${absPath}\n${err}`, { cause: err });
   } finally {
@@ -77,14 +92,31 @@ async function importModule(agentPath: string): Promise<Record<string, unknown>>
   }
 }
 
+/** Options for {@link loadAgent}. */
+export interface LoadAgentOptions {
+  /** The route of the service to use, when the file has several. */
+  route?: string;
+}
+
+const routeOf = (obj: unknown): string | undefined => (obj as { route?: string } | null)?.route;
+
+/** Routes compare without a trailing slash. */
+const sameRoute = (a: string | undefined, b: string) =>
+  a !== undefined && (a.replace(/\/+$/, '') || '/') === (b.replace(/\/+$/, '') || '/');
+
 /**
  * Dynamically import an agent file and resolve an AgentBase instance using duck-typing heuristics.
  * @param agentPath - Path to the agent module file.
  * @param agentClass - Optional name of a specific exported class or instance to use.
+ * @param opts - `route`: pick the service with this route.
  * @returns The resolved AgentBase instance.
  */
-export async function loadAgent(agentPath: string, agentClass?: string): Promise<unknown> {
-  const mod = await importModule(agentPath);
+export async function loadAgent(
+  agentPath: string,
+  agentClass?: string,
+  opts: LoadAgentOptions = {},
+): Promise<unknown> {
+  const { exports: mod, constructed } = await importModule(agentPath);
 
   // If a specific class name is requested
   if (agentClass) {
@@ -92,7 +124,7 @@ export async function loadAgent(agentPath: string, agentClass?: string): Promise
     if (!target) {
       throw new Error(`Export '${agentClass}' not found in ${agentPath}`);
     }
-    if (isAgentInstance(target)) return target;
+    if (isService(target)) return target;
     if (isAgentClass(target)) {
       const Cls = target as new (opts: { name: string }) => unknown;
       return new Cls({ name: agentClass.toLowerCase() });
@@ -100,25 +132,40 @@ export async function loadAgent(agentPath: string, agentClass?: string): Promise
     throw new Error(`Export '${agentClass}' is not an AgentBase instance or class`);
   }
 
-  // 1. Named export `agent`
-  if (mod['agent'] && isAgentInstance(mod['agent'])) {
-    return mod['agent'];
+  // Every service the file has, exported or only constructed.
+  const candidates: unknown[] = [];
+  for (const value of [...Object.values(mod), ...constructed]) {
+    if (isService(value) && !candidates.includes(value)) candidates.push(value);
   }
 
-  // 2. Default export (instance)
-  if (mod['default'] && isAgentInstance(mod['default'])) {
-    return mod['default'];
+  if (opts.route) {
+    const match = candidates.find((s) => sameRoute(routeOf(s), opts.route!));
+    if (match) return match;
+    for (const value of Object.values(mod)) {
+      if (!isAgentClass(value)) continue;
+      const instance = new (value as new (o: { name: string }) => unknown)({ name: 'cli-agent' });
+      if (sameRoute(routeOf(instance), opts.route)) return instance;
+    }
+    const routes = candidates.map(routeOf).filter(Boolean);
+    throw new Error(
+      `No service found with route '${opts.route}'` +
+        (routes.length ? `. Available routes: ${routes.join(', ')}` : ''),
+    );
   }
+
+  // 1. Named export `agent`
+  if (isAgentInstance(mod['agent'])) return mod['agent'];
+
+  // 2. Default export (instance)
+  if (isAgentInstance(mod['default'])) return mod['default'];
 
   // 3. Any exported AgentBase instance
   for (const key of Object.keys(mod)) {
-    if (isAgentInstance(mod[key])) {
-      return mod[key];
-    }
+    if (isAgentInstance(mod[key])) return mod[key];
   }
 
   // 4. Default export (class) - instantiate
-  if (mod['default'] && isAgentClass(mod['default'])) {
+  if (isAgentClass(mod['default'])) {
     const Cls = mod['default'] as new (opts: { name: string }) => unknown;
     return new Cls({ name: 'cli-agent' });
   }
@@ -131,16 +178,20 @@ export async function loadAgent(agentPath: string, agentClass?: string): Promise
     }
   }
 
-  // 6. Named export `agent` as SWMLService
-  if (mod['agent'] && isSWMLServiceInstance(mod['agent'])) {
-    return mod['agent'];
+  // 6. An exported SWMLService
+  if (isSWMLServiceInstance(mod['agent'])) return mod['agent'];
+  for (const key of Object.keys(mod)) {
+    if (isSWMLServiceInstance(mod[key])) return mod[key];
   }
 
-  // 7. Any exported SWMLService instance
-  for (const key of Object.keys(mod)) {
-    if (isSWMLServiceInstance(mod[key])) {
-      return mod[key];
-    }
+  // 7. A service the file constructed without exporting it
+  const unexported = constructed.filter(isService);
+  if (unexported.length === 1) return unexported[0];
+  if (unexported.length > 1) {
+    throw new Error(
+      `Multiple services found in ${resolve(agentPath)}; choose one with --route.\n` +
+        `Available routes: ${unexported.map(routeOf).join(', ')}`,
+    );
   }
 
   throw new Error(
@@ -149,20 +200,49 @@ export async function loadAgent(agentPath: string, agentClass?: string): Promise
   );
 }
 
+/** One service a file has, as {@link describeAgents} reports it. */
+export interface AgentDescription {
+  /** The export name, or the service's own name when it isn't exported. */
+  name: string;
+  /** Whether it's an instance or a class. */
+  kind: 'instance' | 'class';
+  /** The service's name, for an instance. */
+  agentName?: string;
+  /** The service's route, for an instance. */
+  route?: string;
+}
+
+/**
+ * Describe every service a file has: exported instances and classes, and
+ * instances it constructed without exporting.
+ * @param agentPath - Path to the agent module file.
+ */
+export async function describeAgents(agentPath: string): Promise<AgentDescription[]> {
+  const { exports: mod, constructed } = await importModule(agentPath);
+  const out: AgentDescription[] = [];
+  const seen = new Set<unknown>();
+  const describe = (name: string, value: unknown) => {
+    const { name: agentName, route } = value as { name?: string; route?: string };
+    out.push({ name, kind: 'instance', agentName, route });
+    seen.add(value);
+  };
+  for (const [key, value] of Object.entries(mod)) {
+    if (isService(value)) describe(key, value);
+    else if (isAgentClass(value)) out.push({ name: key, kind: 'class' });
+  }
+  for (const value of constructed) {
+    if (isService(value) && !seen.has(value)) {
+      describe((value as { name?: string }).name ?? 'service', value);
+    }
+  }
+  return out;
+}
+
 /**
  * List all exported agent instances and classes in a module.
  * @param agentPath - Path to the agent module file.
  * @returns Array of export names that are AgentBase instances or subclasses.
  */
 export async function listAgents(agentPath: string): Promise<string[]> {
-  const mod = await importModule(agentPath);
-  const agents: string[] = [];
-
-  for (const key of Object.keys(mod)) {
-    if (isAgentInstance(mod[key]) || isAgentClass(mod[key]) || isSWMLServiceInstance(mod[key])) {
-      agents.push(key);
-    }
-  }
-
-  return agents;
+  return (await describeAgents(agentPath)).map((a) => a.name);
 }

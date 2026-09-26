@@ -458,7 +458,7 @@ adapter.generateUrl({
 
 ## CLI Testing
 
-You can test serverless deployments locally using the `swaig-test` CLI tool. While there is no dedicated `--simulate-serverless` flag, you can test agent functionality locally before deploying:
+You can test a serverless deployment locally with the `swaig-test` CLI. `--simulate-serverless lambda|cgi|gcf|azure` loads and runs the agent with that platform's environment, so the SWML's webhook URLs are the platform's; see the [CLI guide](cli-guide.md#serverless-simulation) for each platform's options. Without it, you can test the agent's functions before deploying:
 
 ### Testing Tools Locally
 

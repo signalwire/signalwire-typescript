@@ -352,6 +352,25 @@ export interface SWMLServiceOptions {
  * @see {@link SwmlBuilder} — the underlying SWML document builder
  * @see {@link AgentBase} — AI-powered alternative
  */
+/**
+ * Services constructed while swaig-test imports a file (SWAIG_CLI_MODE). Kept
+ * on globalThis under a registered symbol, so it's one list even when the
+ * agent file loads its own copy of the SDK (a CommonJS file, or another
+ * build of the package) from the one swaig-test runs.
+ */
+const cliLoadedServices: SWMLService[] = ((globalThis as Record<symbol, unknown>)[
+  Symbol.for('signalwire.swaigTest.loadedServices')
+] ??= []) as SWMLService[];
+
+/**
+ * The services constructed since the last call, while swaig-test was
+ * importing a file, in construction order; clears the list. Internal to the
+ * CLI's loader.
+ */
+export function _takeCliLoadedServices(): SWMLService[] {
+  return cliLoadedServices.splice(0);
+}
+
 export class SWMLService {
   /** Service display name. */
   readonly name: string;
@@ -417,6 +436,8 @@ export class SWMLService {
   /** @deprecated Prefer passing an options object with a required `name`. The no-arg form defaults name to 'swml-service'. */
   constructor(opts?: Partial<SWMLServiceOptions>);
   constructor(opts?: Partial<SWMLServiceOptions>) {
+    // swaig-test finds services a file constructs without exporting them.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') cliLoadedServices.push(this);
     this.name = opts?.name ?? 'swml-service';
     this.route = opts?.route ?? '/';
     this.host = opts?.host ?? '0.0.0.0';
