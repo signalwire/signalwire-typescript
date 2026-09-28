@@ -1,29 +1,37 @@
 # FunctionResult Reference
 
-Complete API reference for the `FunctionResult` class in the SignalWire AI Agents TypeScript SDK.
+This page is the API reference for the `FunctionResult` class in the SignalWire AI Agents TypeScript SDK. `FunctionResult` is what a SWAIG tool handler returns.
+
+The examples on this page assume this import and agent:
 
 <!-- snippet-setup -->
 ```ts
-export {}; // treat each runnable example as a module
-// `FunctionResult` and a shared `agent` are assumed by the runnable examples below
-// (imported/constructed in the Basic usage example). Declared ambiently so each
-// `new FunctionResult(...)` fragment resolves without repeating the import.
-declare const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
-declare const agent: import('@signalwire/sdk').AgentBase;
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+
+const agent = new AgentBase({ name: 'support-agent' });
 ```
 
 ---
 
 ## Table of Contents
 
+The reference groups the methods by what they do:
+
 - [Overview](#overview)
+  - [Basic usage](#basic-usage)
+  - [Writing the response](#writing-the-response)
+  - [Returning a result from a handler](#returning-a-result-from-a-handler)
+  - [How serialization works](#how-serialization-works)
+  - [Properties](#properties)
 - [Core Methods](#core-methods)
   - [constructor](#constructor)
   - [setResponse](#setresponse)
+  - [setToolResponse](#settoolresponse)
   - [setPostProcess](#setpostprocess)
   - [addAction](#addaction)
   - [addActions](#addactions)
   - [toDict](#todict)
+  - [toJSON](#tojson)
 - [Call Control](#call-control)
   - [connect](#connect)
   - [swmlTransfer](#swmltransfer)
@@ -73,64 +81,105 @@ declare const agent: import('@signalwire/sdk').AgentBase;
   - [executeRpc](#executerpc)
   - [rpcDial](#rpcdial)
   - [rpcAiMessage](#rpcaimessage)
+  - [rpcAiGlobalData](#rpcaiglobaldata)
   - [rpcAiUnhold](#rpcaiunhold)
 - [Payments](#payments)
   - [pay](#pay)
   - [createPaymentPrompt (static)](#createpaymentprompt-static)
   - [createPaymentAction (static)](#createpaymentaction-static)
   - [createPaymentParameter (static)](#createpaymentparameter-static)
+  - [Full payment example](#full-payment-example)
 - [Fluent Chaining](#fluent-chaining)
 
 ---
 
 ## Overview
 
-`FunctionResult` is the return type for SWAIG tool handlers. It carries two pieces of information back to the SignalWire AI engine:
+`FunctionResult` is the return type for SWAIG tool handlers. It carries two things back to SignalWire:
 
-1. **Response text** -- A string the AI uses as the tool's output. The AI reads this text and incorporates it into its conversation with the caller.
-2. **Actions** -- An ordered list of structured commands (hangup, connect, play audio, send SMS, etc.) that the platform executes as side effects.
+1. **Response**: context for the model. The model reads it and decides what to say next. It isn't played to the caller.
+2. **Actions**: an ordered list of structured commands (hangup, connect, send SMS and others) that the platform carries out.
 
-When a tool handler runs, it constructs a `FunctionResult`, optionally adds actions, and returns it. The SDK serializes it via `toDict()` and sends it back to SignalWire.
+A handler builds a `FunctionResult`, adds any actions, and returns it. The SDK serializes it with `toDict()` and sends it to SignalWire as the response to the `/swaig` request.
 
 ### Basic usage
 
+This tool records a transfer reason and connects the caller to a support line:
+
 ```typescript
-import { AgentBase } from '@signalwire/sdk';
-
-const myAgent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
-
-myAgent.defineTool({
-  name: 'transfer_call',
-  description: 'Transfer the caller to a human agent',
+agent.defineTool({
+  name: 'transfer_to_support',
+  description: 'Transfer the caller to a human support agent',
   parameters: {},
   handler: () => {
-    return new FunctionResult('Transferring you now.')
+    return new FunctionResult('Tell the caller you are connecting them to support.', true)
       .connect('+15551234567');
   },
 });
 ```
+
+The second constructor argument turns on post-processing, so the model gets one more turn to tell the caller before the transfer runs.
+
+### Writing the response
+
+The response is context for the model, not a script. The model reads it, then decides what to say. It can hold facts, an instruction, or both.
+
+The clearest form keeps facts and instruction apart. Pass them as the constructor's `toolResult` and `toolPrompt`, or with [setToolResponse](#settoolresponse), and the SDK sends `{ tool_result, tool_prompt }`:
+
+```typescript
+const structured = new FunctionResult(
+  undefined,
+  false,
+  'Order 1234 shipped Tuesday.',
+  'Tell the caller when their order shipped.',
+);
+```
+
+A plain string works too, as facts or as an instruction:
+
+```typescript
+const facts = new FunctionResult('Order 1234 shipped Tuesday.');
+const instruction = new FunctionResult('Tell the caller their order shipped Tuesday.');
+```
+
+Avoid a line written for the caller, such as `'Your order shipped Tuesday.'`. The model tends to repeat it, but it interprets the line rather than speaking it, so the wording can drift or merge with other context. To speak exact words, use [say](#say).
+
+### Returning a result from a handler
+
+A tool handler receives `(args, rawData, agent)`. `args` holds the parsed arguments, and `rawData` is the full SWAIG request body. `agent` is the agent the request was configured on: the per-request copy when a dynamic config callback or `addPerCallConfig()` is in use.
+
+The SDK handles these return values:
+
+- A `FunctionResult`, or a promise that resolves to one: serialized with `toDict()`.
+- A plain object with a `response` key: sent as it is.
+- A plain object without a `response` key: replaced by `{ response: "Function completed successfully" }`.
+- Any other value, such as a string: converted to a string and sent as the response, with a logged warning.
+
+If the handler throws, the SDK logs the error. It then returns the result of the tool's `onError` hook, or of the agent's `onError()` handler, when either returns a `FunctionResult`. Otherwise it returns the tool's `errorMessage`, or a default apology message.
+
+Tools registered with `defineTool()` are secure by default. The SWML the agent renders gives each secure tool a per-call token (`__token`). The agent runs the handler only when a `/swaig` request carries a valid token for that function and call. Otherwise it returns a refusal response. Set `swaigSecret` or `SIGNALWIRE_SWAIG_SECRET` so tokens survive a restart and work across replicas. For details, see [Secure Tools (HMAC Tokens)](security.md#secure-tools-hmac-tokens).
 
 ### How serialization works
 
 When the handler returns, the SDK calls `toDict()` to produce a plain object:
 
 ```typescript
-const result = new FunctionResult('Done').hangup();
+const result = new FunctionResult('Order 1234 is cancelled.').hangup();
 console.log(result.toDict());
-// { response: "Done", action: [{ hangup: true }] }
+// { response: 'Order 1234 is cancelled.', action: [ { hangup: true } ] }
 ```
 
-If both `response` and `action` are empty, `toDict()` returns `{ response: "Action completed." }` as a fallback so the AI always receives a valid response.
+If the response is empty and there are no actions, `toDict()` returns `{ response: "Action completed." }`, so the model always receives a response.
 
 ### Properties
 
+The class has three public properties:
+
 | Property      | Type                        | Description                                                  |
 |---------------|-----------------------------|--------------------------------------------------------------|
-| `response`    | `string`                    | Text returned to the AI engine.                              |
-| `action`      | `Record<string, unknown>[]` | Ordered list of action objects to execute.                    |
-| `postProcess` | `boolean`                   | When `true`, actions execute after the AI formulates its reply. |
-
----
+| `response`    | `string`                    | The string response. Empty when the structured form is set.  |
+| `action`      | `Record<string, unknown>[]` | Ordered list of action objects.                              |
+| `postProcess` | `boolean`                   | When `true`, the model takes one more turn before the actions run. |
 
 ## Core Methods
 
@@ -140,56 +189,101 @@ Create a new `FunctionResult`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-constructor(response?: string, postProcess?: boolean)
+constructor(
+  response?: string | { tool_result?: string; tool_prompt?: string },
+  postProcess?: boolean,
+  toolResult?: string,
+  toolPrompt?: string,
+)
 ```
 
-| Parameter     | Type      | Default | Description                                    |
-|---------------|-----------|---------|------------------------------------------------|
-| `response`    | `string`  | `''`    | Initial response text for the AI.              |
-| `postProcess` | `boolean` | `false` | Whether actions should be post-processed.      |
+| Parameter     | Type                                                | Default | Description                                                  |
+|---------------|-----------------------------------------------------|---------|--------------------------------------------------------------|
+| `response`    | `string \| { tool_result?: string; tool_prompt?: string }` | `''` | The response: a string, or the structured form.     |
+| `postProcess` | `boolean`                                           | `false` | Whether the model takes one more turn before the actions run. |
+| `toolResult`  | `string`                                            | none    | Sets `tool_result`, as [setToolResponse](#settoolresponse) does. |
+| `toolPrompt`  | `string`                                            | none    | Sets `tool_prompt`, as [setToolResponse](#settoolresponse) does. |
+
+When `toolResult` or `toolPrompt` is given, the structured form replaces a string `response`.
 
 **Returns:** A new `FunctionResult` instance.
 
+**Example:**
+
 ```typescript
-// Empty result (will serialize as "Action completed.")
+// Empty result (serializes as "Action completed.")
 const r1 = new FunctionResult();
 
-// With response text
-const r2 = new FunctionResult('Order placed successfully.');
+// Facts as a string
+const r2 = new FunctionResult('Order 1234 was placed.');
 
-// With post-processing enabled
-const r3 = new FunctionResult('Processing payment...', true);
+// Post-processing on, so the model speaks before the actions run
+const r3 = new FunctionResult('Tell the caller the payment is being processed.', true);
+
+// Structured form as the first argument
+const r4 = new FunctionResult({
+  tool_result: 'Payment declined.',
+  tool_prompt: 'Ask the caller for another card.',
+});
 ```
-
----
 
 ### setResponse
 
-Set or replace the response text.
+Set or replace the string response. It also clears a structured response set earlier.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 setResponse(response: string): this
 ```
 
-| Parameter  | Type     | Description               |
-|------------|----------|---------------------------|
-| `response` | `string` | The new response text.    |
+| Parameter  | Type     | Description                            |
+|------------|----------|----------------------------------------|
+| `response` | `string` | The new response: facts or an instruction. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
 const result = new FunctionResult()
-  .setResponse('Your balance is $42.50');
+  .setResponse('The account balance is $42.50.');
 ```
 
----
+### setToolResponse
+
+Set the structured response, which keeps facts and instruction apart. The SDK sends `response` as `{ tool_result, tool_prompt }`, with only the fields you pass. It replaces any string response.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+setToolResponse(toolResult?: string, toolPrompt?: string): this
+```
+
+| Parameter    | Type     | Description                                                          |
+|--------------|----------|----------------------------------------------------------------------|
+| `toolResult` | `string` | What the tool did or found: facts for the model to reason from.     |
+| `toolPrompt` | `string` | What the model should do next: an instruction.                      |
+
+**Returns:** `this` for chaining.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult()
+  .setToolResponse('3 seats left on the 7:40 flight.', 'Tell the caller how many seats are left.');
+console.log(result.toDict());
+// {
+//   response: {
+//     tool_result: '3 seats left on the 7:40 flight.',
+//     tool_prompt: 'Tell the caller how many seats are left.'
+//   }
+// }
+```
 
 ### setPostProcess
 
-Enable or disable post-processing of actions.
+Enable or disable post-processing.
 
-When post-processing is enabled, the actions are executed **after** the AI has formulated its spoken response to the caller, rather than before. This is useful when you want the AI to speak first and then perform side effects (like hanging up).
+With post-processing on, the model takes one more turn before the actions run. Use it when the caller must hear something before an action takes effect, such as a hangup, hold or transfer. The SDK includes `post_process: true` in the result only when there are actions.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -202,18 +296,18 @@ setPostProcess(postProcess: boolean): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Goodbye!')
+const result = new FunctionResult('Tell the caller goodbye.')
   .setPostProcess(true)
   .hangup();
-// The AI says "Goodbye!" first, then the hangup executes.
+// The model gets one more turn to say goodbye, then the hangup runs.
 ```
-
----
 
 ### addAction
 
-Append a single named action to the action list. This is the low-level method used internally by most other methods. You can use it directly for custom or undocumented actions.
+Append a single named action to the action list. Most helper methods use it. Use it directly for an action that has no helper.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -222,22 +316,22 @@ addAction(name: string, data: unknown): this
 
 | Parameter | Type      | Description                             |
 |-----------|-----------|-----------------------------------------|
-| `name`    | `string`  | The action name (e.g., `"hangup"`).     |
+| `name`    | `string`  | The action name (for example `"say"`).  |
 | `data`    | `unknown` | The action payload.                     |
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Done')
-  .addAction('custom_action', { key: 'value' });
-// action: [{ custom_action: { key: "value" } }]
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('Order 1234 is confirmed.')
+  .addAction('say', 'Your order is confirmed.');
+// action: [{ say: "Your order is confirmed." }], the same as .say(...)
+```
 
 ### addActions
 
-Append multiple action objects at once. Each object in the array should be a single-key record mapping an action name to its payload.
+Append several action objects at once. Each object maps an action name to its payload.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -250,54 +344,78 @@ addActions(actions: Record<string, unknown>[]): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Multi-step')
+const result = new FunctionResult('The survey is complete.')
   .addActions([
-    { say: 'Step one complete.' },
-    { say: 'Step two complete.' },
+    { say: 'Thank you for taking the survey.' },
     { hangup: true },
   ]);
 ```
 
----
-
 ### toDict
 
-Serialize the result to a plain object for the SWAIG response wire format.
+Serialize the result to a plain object in the SWAIG response format.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-toDict(): Record<string, unknown>
+toDict(): {
+  response?: string | { tool_result?: string; tool_prompt?: string };
+  action?: Record<string, unknown>[];
+  post_process?: boolean;
+}
 ```
 
-**Returns:** A dictionary with `response`, `action`, and optionally `post_process` fields.
+**Returns:** An object with `response`, `action` and `post_process` fields, each present only when it applies.
 
-**Behavior:**
-- If `response` is non-empty, it is included as `response`.
-- If `action` has entries, they are included as `action`.
-- If `postProcess` is `true` and there are actions, `post_process: true` is included.
-- If both `response` and `action` are empty, the result falls back to `{ response: "Action completed." }`.
+These rules decide which fields appear:
+
+- A structured response with at least one field is sent as `response`. Otherwise a non-empty string response is.
+- A non-empty action list is included as `action`.
+- `post_process: true` is included only when `postProcess` is `true` and there are actions.
+- When none of these fields is set, the result is `{ response: "Action completed." }`.
+
+**Example:**
 
 ```typescript
-const result = new FunctionResult('Hello').say('Welcome!');
+const result = new FunctionResult('The caller is verified.').say('Thank you, you are verified.');
 console.log(result.toDict());
 // {
-//   response: "Hello",
-//   action: [{ say: "Welcome!" }]
+//   response: 'The caller is verified.',
+//   action: [ { say: 'Thank you, you are verified.' } ]
 // }
 
 const empty = new FunctionResult();
 console.log(empty.toDict());
-// { response: "Action completed." }
+// { response: 'Action completed.' }
 ```
 
----
+### toJSON
+
+Return the same object as `toDict()`, so `JSON.stringify(result)` produces the wire format.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+toJSON(): {
+  response?: string | { tool_result?: string; tool_prompt?: string };
+  action?: Record<string, unknown>[];
+  post_process?: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+console.log(JSON.stringify(new FunctionResult('Order 1234 is cancelled.').hangup()));
+// {"response":"Order 1234 is cancelled.","action":[{"hangup":true}]}
+```
 
 ## Call Control
 
 ### connect
 
-Connect (transfer) the call to another destination using SWML. This generates an inline SWML document with a `connect` verb.
+Connect (transfer) the call to another destination. The SDK emits an inline SWML document with a `connect` verb, and a `transfer` key beside it set to `"true"` or `"false"`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -306,31 +424,43 @@ connect(destination: string, final?: boolean, fromAddr?: string): this
 
 | Parameter     | Type      | Default | Description                                              |
 |---------------|-----------|---------|----------------------------------------------------------|
-| `destination` | `string`  | --      | Phone number or SIP URI to connect to.                   |
-| `final`       | `boolean` | `true`  | If `true`, the AI session ends after the transfer.       |
-| `fromAddr`    | `string`  | --      | Optional caller ID for the outbound leg.                 |
+| `destination` | `string`  | none    | Phone number or SIP address to connect to.               |
+| `final`       | `boolean` | `true`  | `true` for a permanent transfer: the call leaves the agent. `false` returns the call to the agent when the far end hangs up. |
+| `fromAddr`    | `string`  | none    | Caller ID for the outbound leg. Without it, the current call's from address is used. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Simple transfer
-const result = new FunctionResult('Connecting you to support.')
+// Permanent transfer
+const result = new FunctionResult('Tell the caller you are connecting them to support.', true)
   .connect('+15551234567');
 
-// Non-final transfer (AI continues after the connected call ends)
-const result2 = new FunctionResult('Let me conference in my manager.')
+// Temporary transfer: the call returns to the agent afterwards
+const result2 = new FunctionResult('Tell the caller you are bringing in a manager.', true)
   .connect('+15559876543', false);
 
-// Transfer with custom caller ID
-const result3 = new FunctionResult('Transferring...')
+// Transfer with a custom caller ID
+const result3 = new FunctionResult('Tell the caller you are transferring them.', true)
   .connect('+15551234567', true, '+15550001111');
 ```
 
----
+The emitted action for the first example has this shape:
+
+```json
+{
+  "SWML": {
+    "sections": { "main": [{ "connect": { "to": "+15551234567" } }] },
+    "version": "1.0.0"
+  },
+  "transfer": "true"
+}
+```
 
 ### swmlTransfer
 
-Transfer the call to a SWML destination with a custom AI response set before transferring. Unlike `connect`, this uses the SWML `transfer` verb with a `set` verb to inject an AI response.
+Transfer the call with an inline SWML document. The document sets `ai_response` with the `set` verb, then runs the `transfer` verb. Like `connect`, the action carries `transfer: "true"` or `"false"` beside the document.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -339,18 +469,22 @@ swmlTransfer(dest: string, aiResponse: string, final?: boolean): this
 
 | Parameter    | Type      | Default | Description                                        |
 |--------------|-----------|---------|----------------------------------------------------|
-| `dest`       | `string`  | --      | The transfer destination.                          |
-| `aiResponse` | `string`  | --      | AI response text to set before transferring.       |
-| `final`      | `boolean` | `true`  | Whether this is a final transfer.                  |
+| `dest`       | `string`  | none    | The transfer destination, such as a SWML URL or SIP address. |
+| `aiResponse` | `string`  | none    | Stored as `ai_response`, for the agent to use when a non-final transfer returns the call. |
+| `final`      | `boolean` | `true`  | `true` for a permanent transfer, `false` to return to the agent. |
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Transfer initiated.')
-  .swmlTransfer('sip:support@example.com', 'Call is being transferred to support.');
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('Tell the caller you are transferring them to billing.', true)
+  .swmlTransfer(
+    'https://example.com/billing-swml',
+    'The billing call is complete. Ask whether the caller needs anything else.',
+    false,
+  );
+```
 
 ### hangup
 
@@ -363,42 +497,83 @@ hangup(): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Thank you for calling. Goodbye!')
+const result = new FunctionResult('Thank the caller and say goodbye.')
   .setPostProcess(true)
   .hangup();
 ```
 
----
-
 ### hold
 
-Place the call on hold for a specified duration. The timeout is clamped between 0 and 900 seconds (15 minutes).
+Put the call on hold. During a hold, speech detection is paused and the agent doesn't respond to the caller. The platform plays hold music while the call waits.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-hold(timeout?: number): this
+hold(prompt?: string | number, timeout?: number, step?: string, timeoutStep?: string): this
 ```
 
-| Parameter | Type     | Default | Description                          |
-|-----------|----------|---------|--------------------------------------|
-| `timeout` | `number` | `300`   | Hold duration in seconds (0--900).   |
+| Parameter     | Type               | Default | Description                                                 |
+|---------------|--------------------|---------|-------------------------------------------------------------|
+| `prompt`      | `string \| number` | none    | Instruction for the model to act on before the hold. A number here is read as `timeout`. |
+| `timeout`     | `number`           | `300`   | Hold duration in seconds, clamped to 0 through 900.         |
+| `step`        | `string`           | none    | Step to move to when the call is taken off hold.            |
+| `timeoutStep` | `string`           | none    | Step to move to when the hold times out.                    |
 
 **Returns:** `this` for chaining.
 
-```typescript
-// Hold for default 5 minutes
-const result = new FunctionResult('Please hold.').hold();
+The hold action carries no announcement of its own, so say anything the caller needs to hear before the hold takes effect. Passing `prompt` does that for you. It sets the structured response to `tool_result: "status: on hold"` with your prompt as `tool_prompt`, and turns on `postProcess`. The model then takes one more turn, and can tell the caller, before the hold runs.
 
-// Hold for 60 seconds
-const result2 = new FunctionResult('Brief hold.').hold(60);
+A number as the first argument is the timeout, so `hold(120)` means a 120-second hold with no prompt:
+
+```typescript
+const shortHold = new FunctionResult('The caller is waiting for a supervisor.').hold(120);
+// action: [{ hold: 120 }]
 ```
 
----
+`step` and `timeoutStep` choose the step the call moves to when the hold ends. `step` applies when someone takes the call off hold, for example with [rpcAiUnhold](#rpcaiunhold). `timeoutStep` applies when the timeout passes with nobody releasing the call. Leave one out, and a hold that ends that way resumes in the current step.
+
+Both transitions wait for the hold to end. [swmlChangeStep](#swmlchangestep) applies at once instead. Returning it with a hold moves the caller before the hold begins.
+
+This example announces the hold and routes the call when the hold ends:
+
+```typescript
+const routed = new FunctionResult().hold(
+  'Tell the caller you are checking whether someone is available.',
+  60,
+  'human_available',
+  'take_message',
+);
+console.log(JSON.stringify(routed.toDict(), null, 2));
+```
+
+The result carries the prompt, the routing and `post_process`:
+
+```json
+{
+  "response": {
+    "tool_result": "status: on hold",
+    "tool_prompt": "Tell the caller you are checking whether someone is available."
+  },
+  "action": [
+    {
+      "hold": {
+        "timeout": 60,
+        "step": "human_available",
+        "timeout_step": "take_message"
+      }
+    }
+  ],
+  "post_process": true
+}
+```
+
+Without `step` and `timeoutStep`, the action is the bare timeout, such as `{ hold: 300 }`.
 
 ### waitForUser
 
-Wait for user input before continuing. Supports multiple modes: simple enable/disable, a timeout, or an "answer first" mode.
+Emit a `wait_for_user` action, which controls how the agent waits for the caller's input.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -411,36 +586,36 @@ waitForUser(opts?: {
 
 | Parameter          | Type      | Default | Description                                      |
 |--------------------|-----------|---------|--------------------------------------------------|
-| `opts.enabled`     | `boolean` | --      | Enable or disable waiting for user input.        |
-| `opts.timeout`     | `number`  | --      | Timeout in seconds to wait for user input.       |
-| `opts.answerFirst` | `boolean` | --      | If `true`, wait for the call to be answered first. |
+| `opts.enabled`     | `boolean` | none    | Enable or disable waiting for user input. Emits the boolean. |
+| `opts.timeout`     | `number`  | none    | Seconds to wait for user input. Emits the number. |
+| `opts.answerFirst` | `boolean` | none    | When `true`, emits the string `"answer_first"`.   |
 
-**Priority:** `answerFirst` > `timeout` > `enabled`. If no options are provided, `wait_for_user` is set to `true`.
+**Priority:** `answerFirst` > `timeout` > `enabled`. With no options, the SDK emits `wait_for_user: true`.
 
 **Returns:** `this` for chaining.
 
-```typescript
-// Simple wait
-const r1 = new FunctionResult('Go ahead.').waitForUser();
+**Example:**
 
-// Wait with timeout
-const r2 = new FunctionResult('I will wait 10 seconds.')
+```typescript
+// Wait for the caller
+const r1 = new FunctionResult('Ask the caller to take their time.').waitForUser();
+
+// Wait up to 10 seconds
+const r2 = new FunctionResult('The caller is looking for their account number.')
   .waitForUser({ timeout: 10 });
 
-// Answer-first mode
-const r3 = new FunctionResult('Waiting for answer.')
+// answer_first mode
+const r3 = new FunctionResult('The caller has not spoken yet.')
   .waitForUser({ answerFirst: true });
 
-// Disable waiting
-const r4 = new FunctionResult('Continuing.')
+// Stop waiting
+const r4 = new FunctionResult('Continue with the next question.')
   .waitForUser({ enabled: false });
 ```
 
----
-
 ### stop
 
-Stop the AI session entirely. Adds a `{ stop: true }` action.
+Stop the AI conversation. Adds a `{ stop: true }` action.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -449,17 +624,17 @@ stop(): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Session ended.').stop();
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('The session is complete.').stop();
+```
 
 ## Audio
 
 ### say
 
-Speak text to the caller via text-to-speech (TTS).
+Speak text to the caller with text-to-speech. Unlike the response, which the model interprets, this text is spoken to the caller. Adds a `{ say: text }` action.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -472,12 +647,12 @@ say(text: string): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Info retrieved.')
+const result = new FunctionResult('Order 12345 was found.')
   .say('Your order number is 12345.');
 ```
-
----
 
 ### playBackgroundFile
 
@@ -490,26 +665,28 @@ playBackgroundFile(filename: string, wait?: boolean): this
 
 | Parameter  | Type      | Default | Description                                        |
 |------------|-----------|---------|----------------------------------------------------|
-| `filename` | `string`  | --      | URL or path of the audio file.                     |
-| `wait`     | `boolean` | `false` | If `true`, block until playback completes.         |
+| `filename` | `string`  | none    | URL or path of the audio file.                     |
+| `wait`     | `boolean` | `false` | When `true`, wait for the file to finish playing before continuing. |
+
+With `wait` false, the action is `{ playback_bg: filename }`. With `wait` true, it's `{ playback_bg: { file: filename, wait: true } }`.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Play background music (non-blocking)
-const result = new FunctionResult('Playing hold music.')
+// Play background music
+const result = new FunctionResult('Hold music is playing.')
   .playBackgroundFile('https://example.com/hold-music.mp3');
 
-// Play and wait for completion
-const result2 = new FunctionResult('Listen to this announcement.')
+// Play and wait for the file to finish
+const result2 = new FunctionResult('The announcement is playing.')
   .playBackgroundFile('https://example.com/announcement.wav', true);
 ```
 
----
-
 ### stopBackgroundFile
 
-Stop any currently playing background audio file.
+Stop the background audio file that is playing. Adds a `{ stop_playback_bg: true }` action.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -518,18 +695,18 @@ stopBackgroundFile(): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Stopping music.')
+const result = new FunctionResult('The music is stopped.')
   .stopBackgroundFile();
 ```
-
----
 
 ## Speech
 
 ### addDynamicHints
 
-Add dynamic speech recognition hints to improve transcription accuracy for specific words or phrases. Hints can be plain strings or pattern-replacement objects.
+Add speech recognition hints during the call, to improve recognition of specific words or phrases. A hint is a string, or a pattern object that replaces matching recognized text.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -544,24 +721,24 @@ addDynamicHints(
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Simple word hints
-const result = new FunctionResult('Ready.')
+// Word hints
+const result = new FunctionResult('Hints are added.')
   .addDynamicHints(['SignalWire', 'SWML', 'SWAIG']);
 
 // Pattern-replacement hints
-const result2 = new FunctionResult('Ready.')
+const result2 = new FunctionResult('Hints are added.')
   .addDynamicHints([
     { pattern: 'signal wire', replace: 'SignalWire', ignore_case: true },
     { pattern: 'swiggy', replace: 'SWAIG' },
   ]);
 ```
 
----
-
 ### clearDynamicHints
 
-Remove all previously added dynamic speech recognition hints.
+Remove all hints added with `addDynamicHints()`. Adds a `{ clear_dynamic_hints: {} }` action.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -570,16 +747,16 @@ clearDynamicHints(): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Hints cleared.')
+const result = new FunctionResult('Hints are cleared.')
   .clearDynamicHints();
 ```
 
----
-
 ### setEndOfSpeechTimeout
 
-Set the silence duration that marks the end of a user's speech. A shorter timeout makes the AI respond more quickly after the user stops talking; a longer timeout allows for natural pauses.
+Set how many milliseconds of silence after detected speech finalize speech recognition (`end_of_speech_timeout`). A shorter timeout ends the caller's turn sooner. A longer one allows for pauses.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -592,16 +769,16 @@ setEndOfSpeechTimeout(milliseconds: number): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Adjusted speech timeout.')
-  .setEndOfSpeechTimeout(500);  // 500ms of silence = end of speech
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('The speech timeout is adjusted.')
+  .setEndOfSpeechTimeout(500);  // 500 ms of silence ends the caller's turn
+```
 
 ### setSpeechEventTimeout
 
-Set the timeout for speech event detection.
+Set how many milliseconds after the last speech detection event recognition is finalized (`speech_event_timeout`). It works better than the end-of-speech timeout in noisy environments.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -614,18 +791,18 @@ setSpeechEventTimeout(milliseconds: number): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Event timeout set.')
+const result = new FunctionResult('The event timeout is set.')
   .setSpeechEventTimeout(3000);
 ```
-
----
 
 ## Data Management
 
 ### updateGlobalData
 
-Merge key-value pairs into the global data store. The global data store is shared across all SWAIG functions during a call and persists for the call's lifetime.
+Merge key-value pairs into the call's global data (`set_global_data`). Global data lasts for the AI session. Every function can read it, and prompts can expand it with `${global_data.key}`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -638,16 +815,16 @@ updateGlobalData(data: Record<string, unknown>): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Data saved.')
+const result = new FunctionResult('The customer record is loaded.')
   .updateGlobalData({ customer_id: 'C-123', tier: 'premium' });
 ```
 
----
-
 ### removeGlobalData
 
-Remove one or more keys from the global data store.
+Remove one or more keys from the global data (`unset_global_data`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -660,21 +837,21 @@ removeGlobalData(keys: string | string[]): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
 // Remove a single key
-const r1 = new FunctionResult('Removed.')
+const r1 = new FunctionResult('The temporary token is removed.')
   .removeGlobalData('temp_token');
 
-// Remove multiple keys
-const r2 = new FunctionResult('Cleaned up.')
+// Remove several keys
+const r2 = new FunctionResult('The session cache is cleared.')
   .removeGlobalData(['temp_token', 'session_cache']);
 ```
 
----
-
 ### setMetadata
 
-Set metadata key-value pairs on the current call. Metadata is attached to the call record and can be used for reporting, billing tags, or downstream processing.
+Set metadata (`set_meta_data`) scoped to the current function's `meta_data_token`. Functions that share a token share the metadata. Without a token, the scope is the function.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -687,16 +864,16 @@ setMetadata(data: Record<string, unknown>): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Metadata set.')
-  .setMetadata({ department: 'sales', priority: 'high' });
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('The lookup is saved.')
+  .setMetadata({ last_action: 'lookup', retry_count: 2 });
+```
 
 ### removeMetadata
 
-Remove metadata keys from the current call.
+Remove metadata keys (`unset_meta_data`) from the current function's `meta_data_token` scope.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -709,37 +886,48 @@ removeMetadata(keys: string | string[]): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Metadata removed.')
+const result = new FunctionResult('The temporary metadata is removed.')
   .removeMetadata(['temp_flag', 'debug_info']);
 ```
-
----
 
 ## SWML Actions
 
 ### executeSwml
 
-Execute arbitrary SWML content as an action. Accepts either a JSON string or an object. If the string is not valid JSON, it is wrapped in a `{ raw_swml: ... }` object.
+Run arbitrary SWML content as an action.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 executeSwml(
-  swmlContent: string | Record<string, unknown>,
+  swmlContent: string | Record<string, unknown> | { toDict(): Record<string, unknown> },
   transfer?: boolean
 ): this
 ```
 
 | Parameter     | Type                                    | Default | Description                                       |
 |---------------|-----------------------------------------|---------|---------------------------------------------------|
-| `swmlContent` | `string \| Record<string, unknown>` | --      | SWML as a JSON string or object.                  |
-| `transfer`    | `boolean`                               | `false` | If `true`, the SWML execution transfers the call. |
+| `swmlContent` | `string \| Record<string, unknown> \| { toDict() }` | none | SWML as a JSON string, a plain object, or an object with a `toDict()` method. |
+| `transfer`    | `boolean`                               | `false` | When `true`, the call leaves the agent for this SWML. |
+
+The SDK normalizes `swmlContent` as follows:
+
+- A JSON string is parsed. A string that isn't valid JSON is sent as `{ raw_swml: <string> }`.
+- An object with a `toDict()` method is converted through it.
+- A plain object is copied, so the SDK never changes yours.
+- Any other value, such as a number, an array or `null`, throws an `Error`.
+
+The action is `{ SWML: <document> }`. With `transfer` set, the SDK adds `transfer: "true"` beside the `SWML` key, not inside the document. That is the same shape `connect()` and `swmlTransfer()` emit.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Execute SWML from an object
-const result = new FunctionResult('Executing custom flow.')
+// Run SWML from an object
+const result = new FunctionResult('A short announcement is playing.')
   .executeSwml({
     version: '1.0.0',
     sections: {
@@ -747,8 +935,8 @@ const result = new FunctionResult('Executing custom flow.')
     },
   });
 
-// Execute with transfer
-const result2 = new FunctionResult('Transferring via SWML.')
+// Run SWML and leave the agent
+const result2 = new FunctionResult('Tell the caller you are transferring them.', true)
   .executeSwml({
     version: '1.0.0',
     sections: {
@@ -757,11 +945,21 @@ const result2 = new FunctionResult('Transferring via SWML.')
   }, true);
 ```
 
----
+The second example emits this action:
+
+```json
+{
+  "SWML": {
+    "version": "1.0.0",
+    "sections": { "main": [{ "connect": { "to": "+15551234567" } }] }
+  },
+  "transfer": "true"
+}
+```
 
 ### switchContext
 
-Switch the AI context at runtime. This can change the system prompt, inject a user prompt, consolidate conversation history, or perform a full reset of the AI context.
+Replace the agent's prompt during the call (`context_switch`). It can set a new system prompt, add a user prompt, summarize the conversation so far, or reset the context completely.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -775,40 +973,40 @@ switchContext(opts?: {
 
 | Parameter           | Type      | Description                                                       |
 |---------------------|-----------|-------------------------------------------------------------------|
-| `opts.systemPrompt` | `string`  | New system prompt to switch to.                                   |
-| `opts.userPrompt`   | `string`  | User prompt to inject into the new context.                       |
-| `opts.consolidate`  | `boolean` | If `true`, summarize and carry over conversation history.         |
-| `opts.fullReset`    | `boolean` | If `true`, completely reset the AI context (clear all history).   |
+| `opts.systemPrompt` | `string`  | New system prompt.                                                |
+| `opts.userPrompt`   | `string`  | Text added as if the user had said it, to give the new prompt context. |
+| `opts.consolidate`  | `boolean` | When `true`, summarize the existing conversation.                 |
+| `opts.fullReset`    | `boolean` | When `true`, reset the context completely.                        |
 
-**Behavior:** If only `systemPrompt` is provided (no other options), the action uses a simple string value. Otherwise, it builds an object with the specified fields.
+**Behavior:** With only `systemPrompt`, the action value is the prompt string. Otherwise it's an object with the fields that are set.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Simple context switch -- just change the system prompt
-const r1 = new FunctionResult('Switching to billing mode.')
+// Change the system prompt only
+const r1 = new FunctionResult('The caller has a billing question.')
   .switchContext({ systemPrompt: 'You are a billing specialist.' });
 
-// Switch with consolidation (carry over conversation summary)
-const r2 = new FunctionResult('Escalating to supervisor.')
+// Change it and summarize the conversation so far
+const r2 = new FunctionResult('The call is escalated to a supervisor.')
   .switchContext({
     systemPrompt: 'You are a supervisor handling an escalated call.',
     consolidate: true,
   });
 
 // Full reset
-const r3 = new FunctionResult('Starting fresh.')
+const r3 = new FunctionResult('The caller wants to start over.')
   .switchContext({
     systemPrompt: 'You are a general assistant.',
     fullReset: true,
   });
 ```
 
----
-
 ### swmlChangeStep
 
-Change the current SWML step. Steps are named blocks within a SWML document that control call flow.
+Move the conversation to another step in the current context (`change_step`). The step must exist in the current context of the agent's contexts, which you define with `defineContexts()`. The change applies at once, and a change from a tool isn't limited by the step's `setValidSteps()` list.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -821,16 +1019,19 @@ swmlChangeStep(stepName: string): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Moving to verification.')
-  .swmlChangeStep('verify_identity');
-```
+The model reads the response before the new step's instructions, so put the reason for the move there. Pass values the step needs with `updateGlobalData()`, and expand them in the step's text.
 
----
+**Example:**
+
+```typescript
+const result = new FunctionResult('The premium plan is confirmed. Collect payment details next.')
+  .updateGlobalData({ plan: 'premium' })
+  .swmlChangeStep('collect_payment');
+```
 
 ### swmlChangeContext
 
-Change the current SWML context. Contexts are separate AI configurations that can be switched during a call.
+Move the conversation to another context (`change_context`). The context must exist in the agent's contexts, which you define with `defineContexts()`. A change from a tool isn't limited by `setValidContexts()`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -843,16 +1044,16 @@ swmlChangeContext(contextName: string): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Switching to Spanish.')
+const result = new FunctionResult('The caller asked for support in Spanish.')
   .swmlChangeContext('spanish_support');
 ```
 
----
-
 ### swmlUserEvent
 
-Emit a custom user event via SWML. User events can be consumed by external systems listening to the call's event stream.
+Send an event to the client connected to the call, such as a browser using the SignalWire browser SDK. The SDK wraps `eventData` in an inline SWML `user_event` verb, and the client receives it as a `user_event` event.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -865,8 +1066,10 @@ swmlUserEvent(eventData: Record<string, unknown>): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Event emitted.')
+const result = new FunctionResult('Order ORD-456 was placed.')
   .swmlUserEvent({
     type: 'order_placed',
     order_id: 'ORD-456',
@@ -874,13 +1077,11 @@ const result = new FunctionResult('Event emitted.')
   });
 ```
 
----
-
 ## Function Control
 
 ### toggleFunctions
 
-Enable or disable SWAIG functions by name at runtime. This allows dynamic control over which tools the AI can call based on the conversation state.
+Enable or disable SWAIG functions by name during the call (`toggle_functions`), to control which tools the model can call.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -894,9 +1095,11 @@ toggleFunctions(toggles: { function: string; active: boolean }[]): this
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// After authentication, enable account-specific tools
-const result = new FunctionResult('Identity verified.')
+// After verification, enable the account tools
+const result = new FunctionResult('The caller is verified.')
   .toggleFunctions([
     { function: 'check_balance', active: true },
     { function: 'make_payment', active: true },
@@ -904,11 +1107,9 @@ const result = new FunctionResult('Identity verified.')
   ]);
 ```
 
----
-
 ### enableFunctionsOnTimeout
 
-Control whether SWAIG functions can fire automatically when the speaker timeout triggers (i.e., when the caller is silent).
+Control whether the model can call functions on a speaker timeout, when the caller is silent (`functions_on_speaker_timeout`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -917,25 +1118,25 @@ enableFunctionsOnTimeout(enabled?: boolean): this
 
 | Parameter | Type      | Default | Description                                          |
 |-----------|-----------|---------|------------------------------------------------------|
-| `enabled` | `boolean` | `true`  | Whether to enable function execution on timeout.     |
+| `enabled` | `boolean` | `true`  | Whether functions can be called on speaker timeout.  |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Enable functions on speaker timeout
-const r1 = new FunctionResult('Monitoring silence.')
+// Allow functions on speaker timeout
+const r1 = new FunctionResult('The caller may go quiet while searching.')
   .enableFunctionsOnTimeout();
 
-// Disable functions on speaker timeout
-const r2 = new FunctionResult('Waiting patiently.')
+// Disallow them
+const r2 = new FunctionResult('Wait for the caller to answer.')
   .enableFunctionsOnTimeout(false);
 ```
 
----
-
 ### updateSettings
 
-Update AI engine settings at runtime. This allows dynamic modification of parameters like temperature, top_p, or any other engine setting.
+Update AI settings during the call (`settings`). The platform validates the keys. The Python SDK's reference lists `temperature`, `top-p`, `max-tokens`, `frequency-penalty`, `presence-penalty`, `confidence` and `barge-confidence`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -948,18 +1149,18 @@ updateSettings(settings: Record<string, unknown>): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Settings updated.')
-  .updateSettings({ temperature: 0.3, top_p: 0.9 });
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('The settings are updated.')
+  .updateSettings({ temperature: 0.3, 'top-p': 0.9 });
+```
 
 ## User Input and History
 
 ### simulateUserInput
 
-Inject text as if the user had spoken it. This is useful for programmatically driving the conversation flow.
+Queue text as if the caller had said it (`user_input`). Use it to drive the conversation from code.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -972,16 +1173,16 @@ simulateUserInput(text: string): this
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Proceeding with default.')
-  .simulateUserInput('Yes, please go ahead.');
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult('The caller accepted the default option.')
+  .simulateUserInput('Yes, go ahead with the default.');
+```
 
 ### enableExtensiveData
 
-Enable or disable extensive data reporting in function calls. When enabled, SWAIG function invocations include additional metadata about the call state.
+Send the full data to the model for this turn only, and a smaller replacement in later turns (`extensive_data`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -990,20 +1191,20 @@ enableExtensiveData(enabled?: boolean): this
 
 | Parameter | Type      | Default | Description                              |
 |-----------|-----------|---------|------------------------------------------|
-| `enabled` | `boolean` | `true`  | Whether to enable extensive data.        |
+| `enabled` | `boolean` | `true`  | Whether to send extensive data this turn. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Extensive data enabled.')
+const result = new FunctionResult('The full order history is attached.')
   .enableExtensiveData();
 ```
 
----
-
 ### replaceInHistory
 
-Replace the function call output in the conversation history. This controls what the AI "remembers" about this function invocation.
+After the first send, remove or replace this tool call and its result in the conversation history (`replace_in_history`). Use it when a function call is an implementation detail that would confuse the model if it stayed in context.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1012,27 +1213,27 @@ replaceInHistory(text?: string | boolean): this
 
 | Parameter | Type                  | Default | Description                                               |
 |-----------|-----------------------|---------|-----------------------------------------------------------|
-| `text`    | `string \| boolean` | `true`  | Replacement text, or `true` to replace with the response. |
+| `text`    | `string \| boolean` | `true`  | A string replaces the pair with an assistant message holding that text. `true` removes the pair. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Replace with the response text
-const r1 = new FunctionResult('Sensitive data redacted.')
+// Remove the tool call and result from the history
+const r1 = new FunctionResult('The answer is saved.')
   .replaceInHistory();
 
-// Replace with custom text
-const r2 = new FunctionResult('SSN verified.')
+// Replace them with an assistant message
+const r2 = new FunctionResult('The identity check passed.')
   .replaceInHistory('Identity verification completed.');
 ```
-
----
 
 ## Communication
 
 ### sendSms
 
-Send an SMS or MMS message from within the call flow. At least one of `body` or `media` must be provided.
+Send an SMS or MMS message from within the call flow. The SDK emits an inline SWML `send_sms` verb. Provide `body`, `media`, or both.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1048,20 +1249,22 @@ sendSms(opts: {
 
 | Parameter        | Type       | Description                                    |
 |------------------|------------|------------------------------------------------|
-| `opts.toNumber`  | `string`   | Recipient phone number.                        |
-| `opts.fromNumber` | `string`  | Sender phone number (must be a number you own).|
-| `opts.body`      | `string`   | SMS text body.                                 |
-| `opts.media`     | `string[]` | Array of media URLs for MMS.                   |
-| `opts.tags`      | `string[]` | Optional tags for the message.                 |
-| `opts.region`    | `string`   | Optional region for message routing.           |
+| `opts.toNumber`  | `string`   | Recipient phone number, in E.164 format.       |
+| `opts.fromNumber` | `string`  | Sender phone number, in E.164 format.          |
+| `opts.body`      | `string`   | Message text.                                  |
+| `opts.media`     | `string[]` | Media URLs for an MMS.                         |
+| `opts.tags`      | `string[]` | Tags for the message.                          |
+| `opts.region`    | `string`   | Region to send the message from.               |
 
 **Throws:** `Error` if neither `body` nor `media` is provided.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Send a text SMS
-const result = new FunctionResult('Confirmation sent.')
+// Send a text message
+const result = new FunctionResult('The confirmation text is sent.')
   .sendSms({
     toNumber: '+15551234567',
     fromNumber: '+15559876543',
@@ -1069,7 +1272,7 @@ const result = new FunctionResult('Confirmation sent.')
   });
 
 // Send an MMS with an image
-const result2 = new FunctionResult('Receipt sent.')
+const result2 = new FunctionResult('The receipt is sent.')
   .sendSms({
     toNumber: '+15551234567',
     fromNumber: '+15559876543',
@@ -1078,18 +1281,16 @@ const result2 = new FunctionResult('Receipt sent.')
   });
 ```
 
----
-
 ### recordCall
 
-Start recording the call with configurable options.
+Start a background recording of the call. The SDK emits an inline SWML `record_call` verb, and the call continues while it records.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 recordCall(opts?: {
   controlId?: string;
   stereo?: boolean;
-  format?: 'wav' | 'mp3';
+  format?: 'wav' | 'mp3' | 'mp4';
   direction?: 'speak' | 'listen' | 'both';
   terminators?: string;
   beep?: boolean;
@@ -1103,27 +1304,31 @@ recordCall(opts?: {
 
 | Parameter               | Type                            | Default  | Description                                     |
 |-------------------------|---------------------------------|----------|-------------------------------------------------|
-| `opts.controlId`        | `string`                        | --       | Identifier for this recording (for stop/status).|
-| `opts.stereo`           | `boolean`                       | `false`  | Record in stereo (separate channels).            |
-| `opts.format`           | `'wav' \| 'mp3'`             | `'wav'`  | Recording file format.                           |
-| `opts.direction`        | `'speak' \| 'listen' \| 'both'` | `'both'` | Which audio direction to record.               |
-| `opts.terminators`      | `string`                        | --       | DTMF keys that stop the recording.              |
-| `opts.beep`             | `boolean`                       | `false`  | Play a beep when recording starts.               |
-| `opts.inputSensitivity` | `number`                        | `44.0`   | Sensitivity for voice activity detection.        |
-| `opts.initialTimeout`   | `number`                        | --       | Seconds to wait for initial speech.              |
-| `opts.endSilenceTimeout`| `number`                        | --       | Seconds of silence before stopping.              |
-| `opts.maxLength`        | `number`                        | --       | Maximum recording length in seconds.             |
-| `opts.statusUrl`        | `string`                        | --       | Webhook URL for recording status callbacks.      |
+| `opts.controlId`        | `string`                        | none     | Identifier for this recording, for `stopRecordCall()`. |
+| `opts.stereo`           | `boolean`                       | `false`  | Record in stereo.                               |
+| `opts.format`           | `'wav' \| 'mp3' \| 'mp4'`       | `'wav'`  | Recording file format.                          |
+| `opts.direction`        | `'speak' \| 'listen' \| 'both'` | `'both'` | Audio to record: what the party says, hears, or both. |
+| `opts.terminators`      | `string`                        | none     | DTMF digits that stop the recording.            |
+| `opts.beep`             | `boolean`                       | `false`  | Play a beep before recording.                   |
+| `opts.inputSensitivity` | `number`                        | `44.0`   | Sensitivity of the voice activity detector to background noise, from 0 to 100. |
+| `opts.initialTimeout`   | `number`                        | none     | Seconds to wait for speech to start.            |
+| `opts.endSilenceTimeout`| `number`                        | none     | Seconds of silence before the recording ends.   |
+| `opts.maxLength`        | `number`                        | none     | Maximum recording length in seconds.            |
+| `opts.statusUrl`        | `string`                        | none     | URL that receives recording status events.      |
+
+The SDK always sends `stereo`, `format`, `direction`, `beep` and `input_sensitivity`, and sends the other options only when set.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Simple recording
-const result = new FunctionResult('Recording started.')
+// Record with the defaults
+const result = new FunctionResult('The recording has started.')
   .recordCall();
 
 // Stereo MP3 recording with a control ID
-const result2 = new FunctionResult('Recording...')
+const result2 = new FunctionResult('The recording has started.')
   .recordCall({
     controlId: 'main-recording',
     stereo: true,
@@ -1133,11 +1338,9 @@ const result2 = new FunctionResult('Recording...')
   });
 ```
 
----
-
 ### stopRecordCall
 
-Stop an active call recording.
+Stop a background recording (SWML `stop_record_call`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1146,27 +1349,27 @@ stopRecordCall(controlId?: string): this
 
 | Parameter   | Type     | Description                                      |
 |-------------|----------|--------------------------------------------------|
-| `controlId` | `string` | Optional control ID of the recording to stop.    |
+| `controlId` | `string` | Control ID of the recording to stop. Omit it to stop the most recent recording. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Recording stopped.')
+const result = new FunctionResult('The recording has stopped.')
   .stopRecordCall('main-recording');
 ```
 
----
-
 ### tap
 
-Start a media tap to stream audio to an external URI (e.g., for real-time transcription or monitoring).
+Start a background media tap, which streams the call's audio to a WebSocket or RTP destination, for example for real-time transcription or monitoring. The SDK emits an inline SWML `tap` verb.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
 tap(opts: {
   uri: string;
   controlId?: string;
-  direction?: 'speak' | 'hear' | 'both';
+  direction?: 'speak' | 'listen' | 'both';
   codec?: 'PCMU' | 'PCMA';
   rtpPtime?: number;
   statusUrl?: string;
@@ -1175,17 +1378,23 @@ tap(opts: {
 
 | Parameter        | Type                             | Default  | Description                                  |
 |------------------|----------------------------------|----------|----------------------------------------------|
-| `opts.uri`       | `string`                         | --       | Destination URI for the media stream.        |
-| `opts.controlId` | `string`                         | --       | Identifier for this tap (for stop/status).   |
-| `opts.direction` | `'speak' \| 'hear' \| 'both'` | `'both'` | Which audio direction to tap.                |
+| `opts.uri`       | `string`                         | none     | Destination of the stream: `ws://...`, `wss://...` or `rtp://IP:port`. |
+| `opts.controlId` | `string`                         | none     | Identifier for this tap, for `stopTap()`.    |
+| `opts.direction` | `'speak' \| 'listen' \| 'both'` | `'both'` | `speak` is what the party says, `listen` is what it hears, and `both` is both. |
 | `opts.codec`     | `'PCMU' \| 'PCMA'`            | `'PCMU'` | Audio codec for the stream.                  |
-| `opts.rtpPtime`  | `number`                         | `20`     | RTP packetization time in milliseconds.      |
-| `opts.statusUrl` | `string`                         | --       | Webhook URL for tap status callbacks.        |
+| `opts.rtpPtime`  | `number`                         | `20`     | RTP packetization time in milliseconds, for an `rtp://` destination. |
+| `opts.statusUrl` | `string`                         | none     | URL that receives tap status events.         |
+
+The SDK always sends `direction`, because the SWML `tap` verb defaults to `speak` when it's missing. It sends `codec` and `rtp_ptime` only when they differ from `PCMU` and 20.
+
+**Throws:** `Error` when `direction` or `codec` isn't one of the listed values, or `rtpPtime` isn't positive.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Tap started.')
+const result = new FunctionResult('The transcription stream has started.')
   .tap({
     uri: 'wss://transcription.example.com/stream',
     controlId: 'realtime-tap',
@@ -1193,11 +1402,9 @@ const result = new FunctionResult('Tap started.')
   });
 ```
 
----
-
 ### stopTap
 
-Stop an active media tap.
+Stop a media tap (SWML `stop_tap`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1206,22 +1413,22 @@ stopTap(controlId?: string): this
 
 | Parameter   | Type     | Description                                 |
 |-------------|----------|---------------------------------------------|
-| `controlId` | `string` | Optional control ID of the tap to stop.     |
+| `controlId` | `string` | Control ID of the tap to stop. Omit it to stop the most recent tap. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Tap stopped.')
+const result = new FunctionResult('The transcription stream has stopped.')
   .stopTap('realtime-tap');
 ```
-
----
 
 ## Rooms and Conferencing
 
 ### joinRoom
 
-Join a SignalWire room by name.
+Join a RELAY room by name (SWML `join_room`). The platform creates the room if it doesn't exist.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1230,20 +1437,20 @@ joinRoom(name: string): this
 
 | Parameter | Type     | Description           |
 |-----------|----------|-----------------------|
-| `name`    | `string` | The room name.        |
+| `name`    | `string` | The room name. Letters, digits, underscores and hyphens are allowed. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Joining the meeting room.')
+const result = new FunctionResult('The caller is joining the team meeting.')
   .joinRoom('team-standup');
 ```
 
----
-
 ### sipRefer
 
-Send a SIP REFER to transfer the call to another SIP endpoint.
+Send a SIP REFER to transfer the call to another SIP endpoint (SWML `sip_refer`).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1252,20 +1459,20 @@ sipRefer(toUri: string): this
 
 | Parameter | Type     | Description                           |
 |-----------|----------|---------------------------------------|
-| `toUri`   | `string` | The SIP URI to refer the call to.     |
+| `toUri`   | `string` | The SIP URI to send the REFER to.     |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Transferring via SIP.')
+const result = new FunctionResult('Tell the caller you are transferring them.', true)
   .sipRefer('sip:agent@pbx.example.com');
 ```
 
----
-
 ### joinConference
 
-Join a conference by name with optional configuration parameters.
+Join a conference by name (SWML `join_conference`), with optional settings.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1292,36 +1499,40 @@ joinConference(name: string, opts?: {
 
 | Parameter                              | Type                                        | Default             | Description                                          |
 |----------------------------------------|---------------------------------------------|---------------------|------------------------------------------------------|
-| `name`                                 | `string`                                    | --                  | Conference name.                                     |
-| `opts.muted`                           | `boolean`                                   | --                  | Join muted.                                          |
-| `opts.beep`                            | `'true' \| 'false' \| 'onEnter' \| 'onExit'` | `'true'`         | When to play the beep sound.                         |
+| `name`                                 | `string`                                    | none                | Conference name. Must not be blank.                  |
+| `opts.muted`                           | `boolean`                                   | `false`             | Join muted.                                          |
+| `opts.beep`                            | `'true' \| 'false' \| 'onEnter' \| 'onExit'` | `'true'`         | When to play the beep.                               |
 | `opts.startOnEnter`                    | `boolean`                                   | `true`              | Start the conference when this participant joins.    |
-| `opts.endOnExit`                       | `boolean`                                   | --                  | End the conference when this participant leaves.     |
-| `opts.waitUrl`                         | `string`                                    | --                  | URL to play while waiting for the conference to start.|
-| `opts.maxParticipants`                 | `number`                                    | `250`               | Maximum number of participants.                      |
+| `opts.endOnExit`                       | `boolean`                                   | `false`             | End the conference when this participant leaves.     |
+| `opts.waitUrl`                         | `string`                                    | none                | URL of media to play while the conference is on hold. |
+| `opts.maxParticipants`                 | `number`                                    | none                | Maximum number of participants. The SDK accepts 1 to 250, and leaves the key out when it's 250. |
 | `opts.record`                          | `'do-not-record' \| 'record-from-start'`  | `'do-not-record'`   | Recording mode.                                      |
-| `opts.region`                          | `string`                                    | --                  | Region for the conference.                           |
-| `opts.trim`                            | `'trim-silence' \| 'do-not-trim'`         | `'trim-silence'`    | Silence trimming mode for recordings.                |
-| `opts.coach`                           | `string`                                    | --                  | Call SID of participant to coach (whisper to).        |
-| `opts.statusCallbackEvent`             | `string`                                    | --                  | Events to trigger status callback.                   |
-| `opts.statusCallback`                  | `string`                                    | --                  | URL for status callback.                             |
-| `opts.statusCallbackMethod`            | `'GET' \| 'POST'`                         | `'POST'`            | HTTP method for status callback.                     |
-| `opts.recordingStatusCallback`         | `string`                                    | --                  | URL for recording status callback.                   |
-| `opts.recordingStatusCallbackMethod`   | `'GET' \| 'POST'`                         | `'POST'`            | HTTP method for recording status callback.           |
-| `opts.recordingStatusCallbackEvent`    | `string`                                    | `'completed'`       | Events to trigger recording status callback.         |
-| `opts.result`                          | `unknown`                                   | --                  | Custom result data.                                  |
+| `opts.region`                          | `string`                                    | none                | Region for the conference.                           |
+| `opts.trim`                            | `'trim-silence' \| 'do-not-trim'`         | `'trim-silence'`    | Silence trimming for recordings.                     |
+| `opts.coach`                           | `string`                                    | none                | Call SID of a call connected to the conference, to coach. |
+| `opts.statusCallbackEvent`             | `string`                                    | none                | Space-separated events to send to the status callback. |
+| `opts.statusCallback`                  | `string`                                    | none                | URL for status callbacks.                            |
+| `opts.statusCallbackMethod`            | `'GET' \| 'POST'`                         | `'POST'`            | HTTP method for status callbacks.                    |
+| `opts.recordingStatusCallback`         | `string`                                    | none                | URL for recording status callbacks.                  |
+| `opts.recordingStatusCallbackMethod`   | `'GET' \| 'POST'`                         | `'POST'`            | HTTP method for recording status callbacks.          |
+| `opts.recordingStatusCallbackEvent`    | `string`                                    | `'completed'`       | Events to send to the recording status callback.     |
+| `opts.result`                          | `unknown`                                   | none                | Actions to switch on by result, as the verb's `result` object. |
 
-**Behavior:** When only the `name` is provided (or all options are at their defaults), the `join_conference` action uses the name as a simple string value. When non-default options are specified, it uses an object with all the configured parameters.
+**Behavior:** The SDK leaves out any option set to its default value. When no option remains, the `join_conference` value is the name string. Otherwise it's an object with `name` and the other options.
+
+**Throws:** `Error` when `name` is blank, or `maxParticipants` is 0 or less, or more than 250.
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-// Simple conference join
-const result = new FunctionResult('Joining conference.')
+// Join with the defaults
+const result = new FunctionResult('The caller is joining the support conference.')
   .joinConference('support-queue');
 
-// Conference with options
-const result2 = new FunctionResult('Joining as listener.')
+// Join muted, recorded, and capped at 50 participants
+const result2 = new FunctionResult('The caller is joining as a listener.')
   .joinConference('all-hands', {
     muted: true,
     record: 'record-from-start',
@@ -1330,13 +1541,11 @@ const result2 = new FunctionResult('Joining as listener.')
   });
 ```
 
----
-
 ## RPC
 
 ### executeRpc
 
-Execute a SignalWire RPC method via SWML. This is the low-level RPC method; convenience wrappers like `rpcDial`, `rpcAiMessage`, and `rpcAiUnhold` are built on top of it.
+Run a SignalWire RPC method from an inline SWML `execute_rpc` verb. It's the low-level method under `rpcDial()`, `rpcAiMessage()`, `rpcAiGlobalData()` and `rpcAiUnhold()`, which use the `dial`, `ai_message` and `ai_unhold` methods.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1351,28 +1560,26 @@ executeRpc(opts: {
 | Parameter     | Type                       | Description                         |
 |---------------|----------------------------|-------------------------------------|
 | `opts.method` | `string`                   | The RPC method name.                |
-| `opts.params` | `Record<string, unknown>`  | Optional parameters for the method. |
-| `opts.callId` | `string`                   | Optional target call ID.            |
-| `opts.nodeId` | `string`                   | Optional target node ID.            |
+| `opts.params` | `Record<string, unknown>`  | Parameters for the method. An empty object is left out. |
+| `opts.callId` | `string`                   | Target call ID.                     |
+| `opts.nodeId` | `string`                   | Target node ID.                     |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('RPC executed.')
+const result = new FunctionResult('The other caller has been notified.')
   .executeRpc({
-    method: 'calling.play',
+    method: 'ai_message',
     callId: 'call-abc-123',
-    params: {
-      url: 'https://example.com/notification.mp3',
-    },
+    params: { role: 'system', message_text: 'The customer has been verified.' },
   });
 ```
 
----
-
 ### rpcDial
 
-Dial a number via RPC. This creates an outbound call using the SignalWire RPC mechanism.
+Dial out with the `dial` RPC method. Use it, for example, to hold the caller and dial a person whose call runs the SWML at `destSwml`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1386,47 +1593,87 @@ rpcDial(
 
 | Parameter    | Type     | Default   | Description                              |
 |--------------|----------|-----------|------------------------------------------|
-| `toNumber`   | `string` | --        | Destination phone number.                |
-| `fromNumber` | `string` | --        | Caller ID number.                        |
-| `destSwml`   | `string` | --        | SWML destination for the dialed call.    |
+| `toNumber`   | `string` | none      | Number to dial, in E.164 format.         |
+| `fromNumber` | `string` | none      | Caller ID, in E.164 format.              |
+| `destSwml`   | `string` | none      | URL of the SWML that handles the dialed call. |
 | `deviceType` | `string` | `'phone'` | Device type for the outbound leg.        |
 
 **Returns:** `this` for chaining.
 
-```typescript
-const result = new FunctionResult('Dialing out.')
-  .rpcDial('+15551234567', '+15559876543', 'https://example.com/swml');
-```
+**Example:**
 
----
+```typescript
+const result = new FunctionResult()
+  .hold('Tell the caller you are checking whether a manager is available.', 120)
+  .rpcDial('+15551234567', '+15559876543', 'https://example.com/manager-swml');
+```
 
 ### rpcAiMessage
 
-Send an AI message to another call via RPC. This injects a message into the target call's AI conversation.
+Send a message, global data, or both to the AI agent on another call, with the `ai_message` RPC method.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-rpcAiMessage(callId: string, messageText: string, role?: string): this
+rpcAiMessage(
+  callId: string,
+  messageText?: string | null,
+  role?: string,
+  globalData?: Record<string, unknown>
+): this
 ```
 
-| Parameter     | Type     | Default    | Description                          |
-|---------------|----------|------------|--------------------------------------|
-| `callId`      | `string` | --         | The target call ID.                  |
-| `messageText` | `string` | --         | The message text to inject.          |
-| `role`        | `string` | `'system'` | The message role.                    |
+| Parameter     | Type                      | Default    | Description                                     |
+|---------------|---------------------------|------------|-------------------------------------------------|
+| `callId`      | `string`                  | none       | The target call ID.                             |
+| `messageText` | `string \| null`          | none       | Message to add as a turn in the other conversation. |
+| `role`        | `string`                  | `'system'` | Role for the message. Sent only with `messageText`. |
+| `globalData`  | `Record<string, unknown>` | none       | Object merged into the target call's global data. |
+
+**Throws:** `Error` when neither `messageText` nor `globalData` is given.
 
 **Returns:** `this` for chaining.
 
+The two payloads behave differently. `messageText` arrives as a turn in the other conversation, alongside everything else arriving then. `globalData` is merged into the other call's global data without a turn, and a prompt there reads it with `${global_data.your_key}`. For content that a later step on the other call must say, prefer global data. [rpcAiGlobalData](#rpcaiglobaldata) sends global data only.
+
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Message sent to other call.')
-  .rpcAiMessage('call-abc-123', 'The customer has been verified.');
+const result = new FunctionResult('The manager declined the call.')
+  .rpcAiMessage('call-abc-123', 'No one is available. Take a message.')
+  .rpcAiUnhold('call-abc-123');
 ```
 
----
+### rpcAiGlobalData
+
+Merge data into another call's global data, with no conversation turn. It calls `rpcAiMessage(callId, undefined, 'system', data)`.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+rpcAiGlobalData(callId: string, data: Record<string, unknown>): this
+```
+
+| Parameter | Type                      | Description                                  |
+|-----------|---------------------------|----------------------------------------------|
+| `callId`  | `string`                  | The target call ID.                          |
+| `data`    | `Record<string, unknown>` | Object merged into that call's global data.  |
+
+**Returns:** `this` for chaining.
+
+This example sends a message for the held caller's agent and then releases the hold:
+
+```typescript
+const result = new FunctionResult('The manager declined the call.')
+  .rpcAiGlobalData('call-abc-123', {
+    decline_message: 'The manager is in a meeting until 3pm.',
+  })
+  .rpcAiUnhold('call-abc-123');
+```
+
+A step on the other call can then use the value, with text such as `Tell the caller: ${global_data.decline_message}`.
 
 ### rpcAiUnhold
 
-Unhold a call that was previously placed on hold, via RPC.
+Take another call off hold, with the `ai_unhold` RPC method. When that call's hold has a `step`, the call moves to that step. For more information, see [hold](#hold).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1435,22 +1682,22 @@ rpcAiUnhold(callId: string): this
 
 | Parameter | Type     | Description                    |
 |-----------|----------|--------------------------------|
-| `callId`  | `string` | The target call ID to unhold.  |
+| `callId`  | `string` | The ID of the call to take off hold. |
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Resuming the held call.')
+const result = new FunctionResult('The held caller is being reconnected.')
   .rpcAiUnhold('call-abc-123');
 ```
-
----
 
 ## Payments
 
 ### pay
 
-Initiate a payment collection flow on the call. The payment is collected via DTMF or speech and processed by the specified payment connector.
+Start a payment collection flow on the call. The SDK emits an inline SWML document that sets `ai_response` with the `set` verb and then runs the `pay` verb. The payment connector at `paymentConnectorUrl` processes the payment.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1479,30 +1726,34 @@ pay(opts: {
 
 | Parameter                  | Type                 | Default                               | Description                                                     |
 |----------------------------|----------------------|---------------------------------------|-----------------------------------------------------------------|
-| `opts.paymentConnectorUrl` | `string`             | --                                    | URL of the payment connector endpoint.                          |
-| `opts.inputMethod`         | `string`             | `'dtmf'`                             | Input method (`'dtmf'` or `'speech'`).                          |
-| `opts.statusUrl`           | `string`             | --                                    | Webhook URL for payment status callbacks.                       |
-| `opts.paymentMethod`       | `string`             | `'credit-card'`                      | Payment method type.                                            |
-| `opts.timeout`             | `number`             | `5`                                   | Timeout in seconds for each input step.                         |
-| `opts.maxAttempts`         | `number`             | `1`                                   | Maximum number of retry attempts.                               |
-| `opts.securityCode`        | `boolean`            | `true`                                | Whether to collect the security code (CVV).                     |
-| `opts.postalCode`          | `boolean \| string` | `true`                                | Whether to collect postal code, or a fixed postal code string.  |
-| `opts.minPostalCodeLength` | `number`             | `0`                                   | Minimum length for postal code input.                           |
-| `opts.tokenType`           | `string`             | `'reusable'`                         | Token type for tokenized payments.                              |
-| `opts.chargeAmount`        | `string`             | --                                    | Amount to charge (e.g., `'29.99'`).                             |
-| `opts.currency`            | `string`             | `'usd'`                              | Currency code.                                                  |
-| `opts.language`            | `string`             | `'en-US'`                            | Language for payment prompts.                                   |
-| `opts.voice`               | `string`             | `'woman'`                            | Voice for payment prompts.                                      |
-| `opts.description`         | `string`             | --                                    | Description of the payment.                                     |
-| `opts.validCardTypes`      | `string`             | `'visa mastercard amex'`             | Space-separated list of accepted card types.                    |
-| `opts.parameters`          | `PaymentParameter[]` | --                                    | Custom parameters for the payment connector.                    |
-| `opts.prompts`             | `PaymentPrompt[]`    | --                                    | Custom prompts for payment steps.                               |
-| `opts.aiResponse`          | `string`             | Template referencing `${pay_result}` | AI response set after payment completes.                        |
+| `opts.paymentConnectorUrl` | `string`             | none                                  | URL of the payment connector.                                   |
+| `opts.inputMethod`         | `string`             | `'dtmf'`                              | How the caller enters details. The SWML `pay` verb accepts only `'dtmf'`. |
+| `opts.statusUrl`           | `string`             | none                                  | URL that receives payment status events.                        |
+| `opts.paymentMethod`       | `string`             | `'credit-card'`                       | Payment method. The verb accepts only `'credit-card'`.          |
+| `opts.timeout`             | `number`             | `5`                                   | Seconds to wait for the next digit.                             |
+| `opts.maxAttempts`         | `number`             | `1`                                   | Number of times the `pay` verb retries collecting the details.  |
+| `opts.securityCode`        | `boolean`            | `true`                                | Whether to ask for the security code.                           |
+| `opts.postalCode`          | `boolean \| string` | `true`                                | Whether to ask for the postal code, or the postal code itself when it's known. |
+| `opts.minPostalCodeLength` | `number`             | `0`                                   | Minimum postal code length.                                     |
+| `opts.tokenType`           | `string`             | `'reusable'`                          | `'one-time'` or `'reusable'`.                                   |
+| `opts.chargeAmount`        | `string`             | none                                  | Amount to charge, as a decimal string (for example `'29.99'`). |
+| `opts.currency`            | `string`             | `'usd'`                               | ISO 4217 currency code.                                         |
+| `opts.language`            | `string`             | `'en-US'`                             | Language of the payment prompts.                                |
+| `opts.voice`               | `string`             | `'woman'`                             | Text-to-speech voice for the payment prompts.                   |
+| `opts.description`         | `string`             | none                                  | Description of the payment.                                     |
+| `opts.validCardTypes`      | `string`             | `'visa mastercard amex'`              | Space-separated list of accepted card types.                    |
+| `opts.parameters`          | `PaymentParameter[]` | none                                  | Name-value pairs for the payment connector.                     |
+| `opts.prompts`             | `PaymentPrompt[]`    | none                                  | Custom prompts for payment steps.                               |
+| `opts.aiResponse`          | `string`             | Text that references `${pay_result}`  | Set as `ai_response` before the `pay` verb runs.                |
+
+The SDK sends `timeout`, `max_attempts`, `min_postal_code_length` and `security_code` as strings, and `postal_code` as a string when it's a boolean. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
 
 **Returns:** `this` for chaining.
 
+**Example:**
+
 ```typescript
-const result = new FunctionResult('Collecting payment.')
+const result = new FunctionResult('Tell the caller you are starting the card payment.', true)
   .pay({
     paymentConnectorUrl: 'https://payments.example.com/connector',
     chargeAmount: '49.99',
@@ -1512,11 +1763,9 @@ const result = new FunctionResult('Collecting payment.')
   });
 ```
 
----
-
 ### createPaymentPrompt (static)
 
-Create a `PaymentPrompt` configuration object for use with the `pay()` method.
+Create a `PaymentPrompt` object for the `prompts` option of `pay()`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1530,25 +1779,25 @@ static createPaymentPrompt(
 
 | Parameter      | Type              | Description                                       |
 |----------------|-------------------|---------------------------------------------------|
-| `forSituation` | `string`          | The situation this prompt applies to.              |
-| `actions`      | `PaymentAction[]` | Actions to perform for this prompt.                |
-| `cardType`     | `string`          | Optional card type filter (e.g., `'visa'`).        |
-| `errorType`    | `string`          | Optional error type this prompt handles.           |
+| `forSituation` | `string`          | The payment step the prompt is for, such as `'payment-card-number'`, `'expiration-date'` or `'security-code'`. |
+| `actions`      | `PaymentAction[]` | Actions to perform for this prompt.               |
+| `cardType`     | `string`          | Space-separated card types the prompt applies to (for example `'visa'`). |
+| `errorType`    | `string`          | Space-separated error types the prompt applies to (for example `'invalid-card-number timeout'`). |
 
 **Returns:** A `PaymentPrompt` object.
+
+**Example:**
 
 ```typescript
 const prompt = FunctionResult.createPaymentPrompt(
   'payment-card-number',
-  [FunctionResult.createPaymentAction('say', 'Please enter your card number.')],
+  [FunctionResult.createPaymentAction('Say', 'Enter your card number.')],
 );
 ```
 
----
-
 ### createPaymentAction (static)
 
-Create a `PaymentAction` for use within a `PaymentPrompt`.
+Create a `PaymentAction` for a `PaymentPrompt`.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1557,23 +1806,23 @@ static createPaymentAction(actionType: string, phrase: string): PaymentAction
 
 | Parameter    | Type     | Description                              |
 |--------------|----------|------------------------------------------|
-| `actionType` | `string` | The action type (e.g., `'say'`, `'play'`). |
-| `phrase`     | `string` | The phrase or URL for this action.       |
+| `actionType` | `string` | `'Say'` to speak the phrase, or `'Play'` to play an audio file. The SWML `pay` verb accepts these two values. |
+| `phrase`     | `string` | The text to say, or for `'Play'` the URL of the audio file. |
 
 **Returns:** A `PaymentAction` object.
 
+**Example:**
+
 ```typescript
 const action = FunctionResult.createPaymentAction(
-  'say',
-  'Please enter your credit card number followed by the pound sign.',
+  'Say',
+  'Enter your credit card number, followed by the pound key.',
 );
 ```
 
----
-
 ### createPaymentParameter (static)
 
-Create a custom `PaymentParameter` for the payment connector.
+Create a `PaymentParameter`, a name-value pair for the payment connector.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1587,27 +1836,29 @@ static createPaymentParameter(name: string, value: string): PaymentParameter
 
 **Returns:** A `PaymentParameter` object.
 
+**Example:**
+
 ```typescript
 const param = FunctionResult.createPaymentParameter('merchant_id', 'MERCH-001');
 ```
 
----
-
 ### Full payment example
+
+This example sets custom prompts for three payment steps and passes a merchant ID to the connector:
 
 ```typescript
 const prompts = [
   FunctionResult.createPaymentPrompt(
     'payment-card-number',
-    [FunctionResult.createPaymentAction('say', 'Please enter your card number.')],
+    [FunctionResult.createPaymentAction('Say', 'Enter your card number.')],
   ),
   FunctionResult.createPaymentPrompt(
-    'payment-expiration-date',
-    [FunctionResult.createPaymentAction('say', 'Enter the expiration date.')],
+    'expiration-date',
+    [FunctionResult.createPaymentAction('Say', 'Enter the expiration date.')],
   ),
   FunctionResult.createPaymentPrompt(
-    'payment-security-code',
-    [FunctionResult.createPaymentAction('say', 'Enter the CVV on the back of your card.')],
+    'security-code',
+    [FunctionResult.createPaymentAction('Say', 'Enter the security code on the back of your card.')],
   ),
 ];
 
@@ -1615,7 +1866,7 @@ const params = [
   FunctionResult.createPaymentParameter('merchant_id', 'MERCH-001'),
 ];
 
-const result = new FunctionResult('Starting payment collection.')
+const result = new FunctionResult('Tell the caller you are starting the payment.', true)
   .pay({
     paymentConnectorUrl: 'https://payments.example.com/connector',
     chargeAmount: '99.95',
@@ -1628,11 +1879,9 @@ const result = new FunctionResult('Starting payment collection.')
   });
 ```
 
----
-
 ## Fluent Chaining
 
-Every mutating method on `FunctionResult` returns `this`, enabling fluent method chaining. You can compose complex multi-action responses in a single expression.
+Every mutating method on `FunctionResult` returns `this`, so you can build a result with several actions in one expression. This tool completes an order, stores data, texts a confirmation and switches the available tools:
 
 ```typescript
 agent.defineTool({
@@ -1644,21 +1893,21 @@ agent.defineTool({
   handler: (args) => {
     const orderId = args.order_id as string;
 
-    return new FunctionResult(`Order ${orderId} completed.`)
+    return new FunctionResult(`Order ${orderId} is complete.`)
       .setPostProcess(true)
       // Store data for other tools
       .updateGlobalData({ last_order: orderId, order_status: 'complete' })
-      // Tag the call
+      // Set metadata for this function
       .setMetadata({ order_id: orderId })
-      // Send SMS confirmation
+      // Send an SMS confirmation
       .sendSms({
         toNumber: '+15551234567',
         fromNumber: '+15559876543',
-        body: `Your order ${orderId} has been confirmed!`,
+        body: `Your order ${orderId} has been confirmed.`,
       })
       // Speak a confirmation
       .say(`Your order ${orderId} is confirmed.`)
-      // Emit a tracking event
+      // Send an event to the connected client
       .swmlUserEvent({ type: 'order_complete', order_id: orderId })
       // Disable the order tool, enable the feedback tool
       .toggleFunctions([
@@ -1669,17 +1918,17 @@ agent.defineTool({
 });
 ```
 
-The chained calls produce an `action` array in the order they were called. SignalWire executes them sequentially:
+For `order_id` `ORD-789`, the handler returns this result. The `action` array keeps the order of the calls:
 
 ```json
 {
-  "response": "Order ORD-789 completed.",
+  "response": "Order ORD-789 is complete.",
   "action": [
     { "set_global_data": { "last_order": "ORD-789", "order_status": "complete" } },
     { "set_meta_data": { "order_id": "ORD-789" } },
-    { "SWML": { "version": "1.0.0", "sections": { "main": [{ "send_sms": { "to_number": "+15551234567", "from_number": "+15559876543", "body": "Your order ORD-789 has been confirmed!" } }] } } },
+    { "SWML": { "version": "1.0.0", "sections": { "main": [{ "send_sms": { "to_number": "+15551234567", "from_number": "+15559876543", "body": "Your order ORD-789 has been confirmed." } }] } } },
     { "say": "Your order ORD-789 is confirmed." },
-    { "SWML": { "version": "1.0.0", "sections": { "main": [{ "user_event": { "event": { "type": "order_complete", "order_id": "ORD-789" } } }] } } },
+    { "SWML": { "sections": { "main": [{ "user_event": { "event": { "type": "order_complete", "order_id": "ORD-789" } } }] }, "version": "1.0.0" } },
     { "toggle_functions": [{ "function": "complete_order", "active": false }, { "function": "submit_feedback", "active": true }] }
   ],
   "post_process": true
