@@ -256,7 +256,7 @@ export class InfoGathererAgent extends AgentBase {
     // Build callback inputs from the incoming raw data. `rawData` is optional
     // on the base hook (the reference defaults it to None), so treat an absent
     // body as the empty request.
-    const body: SwmlRequestData = rawData ?? {};
+    const body = (rawData ?? {}) as SwmlRequestData & Record<string, unknown>;
     const queryParams = this.extractRecord(body['query_params']);
     const headers = this.extractRecord(body['headers']);
     const bodyParams = body;

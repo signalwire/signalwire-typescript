@@ -3266,13 +3266,17 @@
     },
     "signalwire.rest.namespaces.swml_webhooks_types_generated": {
       "classes": {
-        "SwaigRequestData": [],
-        "PostPromptParams": [],
-        "PostPromptConversationTurn": [],
-        "PostPromptFunctionCall": [],
         "SwmlRequestData": [],
         "SwmlRequestCall": [],
-        "SignalWireErrorBody": []
+        "SwmlRequestCallParent": [],
+        "SwmlRequestCallPeer": [],
+        "SwmlRequestCallPhone": [],
+        "SwmlRequestCallPhoneHeadersItem": [],
+        "SwmlRequestCallSip": [],
+        "SwmlRequestCallSipHeadersItem": [],
+        "SwmlRequestCallSipSipData": [],
+        "SwmlRequestCallWebrtc": [],
+        "SwmlRequestCallOther": []
       },
       "functions": []
     },

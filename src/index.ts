@@ -279,7 +279,7 @@ export type {
 // Platform-contract types — the webhook bodies the backend POSTs, referenced by
 // the public callback signatures above (DynamicConfigCallback → SwmlRequestData)
 // so a subclass/override can name them.
-export type { SwmlRequestData, SwmlRequestCall, SignalWireErrorBody } from './PlatformContracts.js';
+export type { SwmlRequestData, SwmlRequestCall } from './PlatformContracts.js';
 
 // Typed SWAIG wire payloads (SWAIG_PIPELINE §4), generated from the authoritative
 // porting-sdk/swaig-specs/ engine specs: SWAIG handlers receive `SwaigRequest`;
