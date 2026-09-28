@@ -6,9 +6,10 @@ export {}; // treat each example as a module (top-level await)
 declare global {
   const ServerlessAdapter: typeof import('@signalwire/sdk').ServerlessAdapter;
   const AgentBase: typeof import('@signalwire/sdk').AgentBase;
-  const readStdin: () => Promise<string>; // helper defined elsewhere in the CGI example
 }
 ```
+
+This guide shows how to run an agent on AWS Lambda, Google Cloud Functions, Azure Functions or as a CGI script. It also covers how the agent builds its webhook URLs and checks signatures on each platform.
 
 ## Table of Contents
 
@@ -18,6 +19,7 @@ declare global {
 - [Google Cloud Functions](#google-cloud-functions)
 - [Azure Functions](#azure-functions)
 - [CGI Mode](#cgi-mode)
+- [Webhook URLs and Signatures](#webhook-urls-and-signatures)
 - [Platform Detection](#platform-detection)
 - [URL Generation](#url-generation)
 - [CLI Testing](#cli-testing)
@@ -26,16 +28,20 @@ declare global {
 
 ## Overview
 
-The SignalWire AI Agents TypeScript SDK can be deployed to serverless platforms using the `ServerlessAdapter` class (`src/ServerlessAdapter.ts`). The adapter converts platform-specific event formats into standard `Request` objects, routes them through the Hono application, and returns normalized responses.
+`ServerlessAdapter` (`src/ServerlessAdapter.ts`) turns a platform's request into a standard `Request`, routes it through the agent's Hono app, and turns the `Response` back into the platform's format. The agent's routes, basic auth, signature check and other protections work as they do on a server.
 
-Supported platforms:
+Each platform has a factory method that returns a handler in that platform's shape:
 
 | Platform | Identifier | Factory Method |
 |---|---|---|
-| AWS Lambda | `lambda` | `ServerlessAdapter.createLambdaHandler()` |
-| Google Cloud Functions | `gcf` | `ServerlessAdapter.createGcfHandler()` |
-| Azure Functions | `azure` | `ServerlessAdapter.createAzureHandler()` |
-| CGI | `cgi` | Manual via `handleRequest()` |
+| AWS Lambda | `lambda` | `ServerlessAdapter.createLambdaHandler(app)` |
+| Google Cloud Functions | `gcf` | `ServerlessAdapter.createGcfHandler(app)` |
+| Azure Functions | `azure` | `ServerlessAdapter.createAzureHandler(app)` |
+| CGI | `cgi` | `ServerlessAdapter.createCgiHandler(app)`, or `agent.run()` |
+
+`app` is the agent's `getApp()`. `agent.runServerless(event, context, platform)` routes one Lambda-style event, and `agent.run()` calls it when it detects a serverless environment.
+
+Build the agent once, at module scope, so each warm invocation reuses it. Set `basicAuth` or `SWML_BASIC_AUTH_PASSWORD`: a generated password changes with every cold start, and SignalWire can't use it.
 
 ---
 
@@ -43,40 +49,46 @@ Supported platforms:
 
 ### Constructor
 
+The constructor takes the platform, or `'auto'` to detect it from the environment:
+
 ```typescript
 import { ServerlessAdapter } from '@signalwire/sdk';
 
-// Auto-detect platform from environment variables
+// Detect the platform from environment variables
 const adapter = new ServerlessAdapter();
 // or: new ServerlessAdapter('auto')
 
-// Explicit platform selection
+// Choose the platform
 const lambdaAdapter = new ServerlessAdapter('lambda');
 const gcfAdapter = new ServerlessAdapter('gcf');
 const azureAdapter = new ServerlessAdapter('azure');
 const cgiAdapter = new ServerlessAdapter('cgi');
 ```
 
-The `platform` parameter accepts `'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto'`. When set to `'auto'` (the default), the platform is detected from environment variables (see [Platform Detection](#platform-detection)).
+The `platform` parameter accepts `'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto'`. [Platform Detection](#platform-detection) lists the variables `'auto'` checks.
 
 ### Core Types
 
-**`ServerlessEvent`** -- Normalized incoming event:
+`ServerlessEvent` is the Lambda-style event that `handleRequest()` accepts:
 
 ```typescript
 interface ServerlessEvent {
-  httpMethod?: string;                         // HTTP method (AWS Lambda style)
-  method?: string;                             // HTTP method (GCF/Azure style)
-  headers?: Record<string, string>;            // Request headers
-  body?: string | Record<string, unknown>;     // Raw or parsed request body
-  path?: string;                               // Request path
-  rawPath?: string;                            // Raw path (AWS API Gateway v2)
-  queryStringParameters?: Record<string, string>; // Query parameters
-  requestContext?: Record<string, unknown>;     // Platform-specific context
+  httpMethod?: string;                          // HTTP method (API Gateway REST)
+  method?: string;                              // HTTP method (other callers)
+  headers?: Record<string, string>;             // Request headers
+  body?: string | Record<string, unknown>;      // Raw or parsed request body
+  isBase64Encoded?: boolean;                    // body is base64-encoded
+  path?: string;                                // Request path
+  rawPath?: string;                             // Raw path (HTTP API and function URLs)
+  queryStringParameters?: Record<string, string>;        // Decoded query parameters
+  multiValueQueryStringParameters?: Record<string, string[]>; // Repeated parameters (REST)
+  rawQueryString?: string;                      // Raw query (HTTP API and function URLs)
+  pathParameters?: Record<string, string>;      // `proxy` holds the path below a {proxy+} resource
+  requestContext?: Record<string, unknown>;     // Platform context: domainName, stage, http.method
 }
 ```
 
-**`ServerlessResponse`** -- Normalized outgoing response:
+`ServerlessResponse` is what every handler produces:
 
 ```typescript
 interface ServerlessResponse {
@@ -88,7 +100,7 @@ interface ServerlessResponse {
 
 ### handleRequest()
 
-The core method that processes any serverless event through a Hono app:
+`handleRequest(app, event)` routes one Lambda-style event through a Hono app:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `ServerlessAdapter` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -101,30 +113,34 @@ const response = await adapter.handleRequest(app, event);
 // response: { statusCode: 200, headers: {...}, body: '...' }
 ```
 
-**Processing steps:**
+It reads the event in these steps:
 
-1. Extract HTTP method from `event.httpMethod` (Lambda) or `event.method` (GCF/Azure), defaulting to `POST`.
-2. Extract path from `event.rawPath` (API Gateway v2) or `event.path`, defaulting to `/`.
-3. Build a full URL from the `host` and `x-forwarded-proto` headers.
-4. Append query string parameters if present.
-5. Create a standard `Request` object and route it through `app.fetch()`.
-6. Convert the `Response` back into a `ServerlessResponse`.
+1. The method comes from `httpMethod`, `method` or `requestContext.http.method`. Without one, it's `POST` when the event has a body and `GET` otherwise.
+2. The path comes from `rawPath` (with a non-default stage removed), then `pathParameters.proxy`, then `path`, then `/`.
+3. The query is `rawQueryString` when present. Otherwise it's built from `multiValueQueryStringParameters` or `queryStringParameters`.
+4. A base64-encoded body is decoded, and a parsed body is serialized to JSON.
+5. The request is routed through `app.fetch()`, which also receives the URL the platform was called on, for the signature check.
+6. The `Response` becomes a `ServerlessResponse`.
 
 ---
 
 ## AWS Lambda
 
-Use `ServerlessAdapter.createLambdaHandler()` to create a Lambda-compatible handler function.
+`ServerlessAdapter.createLambdaHandler(app)` returns a Lambda handler, `(event) => Promise<ServerlessResponse>`. It accepts events from a Lambda function URL, an API Gateway HTTP API and an API Gateway REST API.
 
 ### Example: Lambda Handler
 
+This handler file builds the agent once and exports the Lambda handler:
+
 ```typescript
 // handler.ts
-import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
+import { AgentBase, FunctionResult, ServerlessAdapter } from '@signalwire/sdk';
 
-const agent = new AgentBase({
+export const agent = new AgentBase({
   name: 'lambda-agent',
-  basicAuth: ['admin', process.env.AGENT_PASSWORD!],
+  basicAuth: ['admin', process.env.AGENT_PASSWORD ?? 'a-long-random-password'],
+  signingKey: process.env.SIGNALWIRE_SIGNING_KEY,
+  swaigSecret: process.env.SIGNALWIRE_SWAIG_SECRET,
 });
 
 agent.setPromptText('You are a helpful assistant deployed on AWS Lambda.');
@@ -138,61 +154,46 @@ agent.defineTool({
       system: { type: 'string', description: 'System name' },
     },
   },
-  handler: async (args) => {
-    const { FunctionResult } = await import('@signalwire/sdk');
-    const result = new FunctionResult();
-    result.setResponse(`System ${args.system} is operational.`);
-    return result;
-  },
+  handler: async (args) => new FunctionResult(`System ${args.system} is operational.`),
 });
 
-const app = agent.getApp();
-
-// Export the Lambda handler
-export const handler = ServerlessAdapter.createLambdaHandler(app);
+export const handler = ServerlessAdapter.createLambdaHandler(agent.getApp());
 ```
 
-### How It Works
+Every instance of the function must sign tool tokens with the same secret, so the example sets `swaigSecret`. Without it, each cold start generates a new secret, and a tool call that reaches another instance is refused. [Security](security.md#the-signing-secret) explains the token secret.
 
-`createLambdaHandler()` creates a new `ServerlessAdapter` instance with `platform: 'lambda'` and returns a function with the signature:
+### API Gateway REST APIs
 
-<!-- snippet: no-compile handler type signature shown for reference, not runnable code -->
-```typescript
-(event: ServerlessEvent) => Promise<ServerlessResponse>
-```
-
-This matches the AWS Lambda handler contract. The event object maps directly to API Gateway proxy integration events (both v1 and v2):
-
-- `event.httpMethod` -- HTTP method (v1)
-- `event.rawPath` -- Request path (v2, preferred)
-- `event.path` -- Request path (v1 fallback)
-- `event.headers` -- Request headers
-- `event.body` -- Request body (string)
-- `event.queryStringParameters` -- Query parameters
+An API Gateway REST API (payload version 1.0) passes the query parameters to Lambda decoded, so the adapter can't always rebuild the exact URL SignalWire signed. It tries the two common encodings, but a URL with several query parameters may still fail the signature check. To check signatures on Lambda, serve the agent from a Lambda function URL or an HTTP API (payload version 2.0), which pass the raw query string.
 
 ### Deployment
+
+These commands package the compiled code and create the function. The SDK needs Node.js 22 or later:
 
 ```bash
 # Build and package
 npm run build
 zip -r function.zip dist/ node_modules/ package.json
 
-# Deploy via AWS CLI
+# Create the function
 aws lambda create-function \
   --function-name my-agent \
-  --runtime nodejs20.x \
+  --runtime nodejs22.x \
   --handler dist/handler.handler \
   --zip-file fileb://function.zip \
-  --environment "Variables={AGENT_PASSWORD=s3cret}"
+  --role arn:aws:iam::123456789012:role/my-agent-role \
+  --environment "Variables={AGENT_PASSWORD=a-long-random-password,SIGNALWIRE_SWAIG_SECRET=a-long-random-secret}"
 ```
 
 ---
 
 ## Google Cloud Functions
 
-Use `ServerlessAdapter.createGcfHandler()` to create a GCF-compatible handler.
+`ServerlessAdapter.createGcfHandler(app)` returns an HTTP function for the Functions Framework, `(req, res) => Promise<void>`.
 
 ### Example: Cloud Function Handler
+
+This file exports the handler as the function's entry point:
 
 ```typescript
 // index.ts
@@ -200,54 +201,49 @@ import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'gcf-agent',
-  basicAuth: ['admin', process.env.AGENT_PASSWORD!],
+  basicAuth: ['admin', process.env.AGENT_PASSWORD ?? 'a-long-random-password'],
 });
 
 agent.setPromptText('You are a helpful assistant on Google Cloud Functions.');
 
-const app = agent.getApp();
-
-// Export the GCF handler
-export const agentHandler = ServerlessAdapter.createGcfHandler(app);
+export const agentHandler = ServerlessAdapter.createGcfHandler(agent.getApp());
 ```
 
 ### How It Works
 
-`createGcfHandler()` returns a function with the signature:
+The handler reads the Express-style request the Functions Framework passes:
 
-```typescript
-(req: any, res: any) => Promise<void>
-```
-
-This matches the Google Cloud Functions HTTP function contract. The adapter:
-
-1. Constructs a `ServerlessEvent` from the GCF `req` object:
-   - `req.method` -- HTTP method
-   - `req.headers` -- Request headers
-   - `req.body` -- Request body (already parsed by GCF)
-   - `req.path` or `req.url` -- Request path
-2. Routes through the Hono app via `handleRequest()`.
-3. Writes the response to `res` using `res.status()`, `res.set()`, and `res.send()`.
+1. `req.method` and `req.headers` give the method and headers.
+2. `req.rawBody`, the body as it arrived, is used when present, so the signature check sees the signed bytes. Otherwise `req.body` is used, serialized to JSON when it's parsed.
+3. `req.originalUrl` (or `req.url`, or `req.path`) gives the path and query.
+4. The response is written with `res.status()`, `res.set()` and `res.send()`.
 
 ### Deployment
 
+This command deploys the handler with the Node.js 22 runtime:
+
 ```bash
-# Deploy via gcloud CLI
 gcloud functions deploy agentHandler \
-  --runtime nodejs20 \
+  --runtime nodejs22 \
   --trigger-http \
   --entry-point agentHandler \
-  --set-env-vars AGENT_PASSWORD=s3cret \
+  --set-env-vars AGENT_PASSWORD=a-long-random-password \
   --allow-unauthenticated
 ```
+
+`--allow-unauthenticated` lets SignalWire reach the function without Google credentials. The agent's basic auth still applies.
 
 ---
 
 ## Azure Functions
 
-Use `ServerlessAdapter.createAzureHandler()` to create an Azure Functions-compatible handler.
+`ServerlessAdapter.createAzureHandler(app)` returns a handler with the Azure Functions programming model v3 signature, `(context, req) => Promise<void>`. It sets `context.res` with the status, headers and body.
+
+The v4 model's `app.http()` calls a handler with `(request, context)` and expects a returned response, so this handler doesn't fit it. Use the v3 model, with a `function.json` file.
 
 ### Example: Azure Function Handler
+
+This file exports the handler as the function's entry point:
 
 ```typescript
 // index.ts
@@ -255,45 +251,25 @@ import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'azure-agent',
-  basicAuth: ['admin', process.env.AGENT_PASSWORD!],
+  basicAuth: ['admin', process.env.AGENT_PASSWORD ?? 'a-long-random-password'],
 });
 
 agent.setPromptText('You are a helpful assistant on Azure Functions.');
 
-const app = agent.getApp();
-
-// Export the Azure handler
-const azureHandler = ServerlessAdapter.createAzureHandler(app);
-export default azureHandler;
+export default ServerlessAdapter.createAzureHandler(agent.getApp());
 ```
 
 ### How It Works
 
-`createAzureHandler()` returns a function with the signature:
+The handler reads the v3 request object:
 
-```typescript
-(context: any, req: any) => Promise<void>
-```
-
-This matches the Azure Functions HTTP trigger contract. The adapter:
-
-1. Constructs a `ServerlessEvent` from the Azure `req` object:
-   - `req.method` -- HTTP method
-   - `req.headers` -- Request headers
-   - `req.body` -- Request body
-   - `req.url` -- Request path
-2. Routes through the Hono app via `handleRequest()`.
-3. Sets `context.res` with `status`, `headers`, and `body`.
-
-### Deployment
-
-```bash
-# Deploy via Azure CLI
-func azure functionapp publish my-agent-app \
-  --typescript
-```
+1. `req.method` and `req.headers` give the method and headers.
+2. `req.rawBody` is used when present, so the signature check sees the signed bytes. Otherwise `req.body` is used.
+3. `req.url` is the absolute URL, such as `https://my-app.azurewebsites.net/api/agent/swaig?code=...`. The path below `/api/<function>` is routed, and the whole URL is what the signature covers.
 
 ### function.json
+
+The function's `function.json` binds an HTTP trigger for GET and POST:
 
 ```json
 {
@@ -303,7 +279,8 @@ func azure functionapp publish my-agent-app \
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["get", "post"]
+      "methods": ["get", "post"],
+      "route": "agent/{*path}"
     },
     {
       "type": "http",
@@ -314,52 +291,81 @@ func azure functionapp publish my-agent-app \
 }
 ```
 
+The `route` with a catch-all segment lets the one function receive `/api/agent`, `/api/agent/swaig` and `/api/agent/post_prompt`.
+
+### Deployment
+
+This command publishes the function app:
+
+```bash
+func azure functionapp publish my-agent-app
+```
+
 ---
 
 ## CGI Mode
 
-For traditional CGI environments, use the `ServerlessAdapter` with `platform: 'cgi'`:
+In a CGI environment, `agent.run()` handles the request. It detects CGI from `GATEWAY_INTERFACE`, and reads the request from the CGI variables: `REQUEST_METHOD`, `PATH_INFO`, `QUERY_STRING`, `CONTENT_TYPE` and the `HTTP_*` headers. It reads the body from stdin, up to `CONTENT_LENGTH` bytes. It writes a `Status:` line, the headers, a blank line and the body to stdout.
 
-<!-- snippet: no-run illustrative fragment: references the assumed `readStdin` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+This script is a complete CGI program:
+
+<!-- snippet: no-run a CGI program: reads the request from the CGI environment and stdin -->
 ```typescript
-import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
+// agent.cgi.ts
+import { AgentBase } from '@signalwire/sdk';
 
-const agent = new AgentBase({ name: 'cgi-agent' });
+const agent = new AgentBase({
+  name: 'cgi-agent',
+  basicAuth: ['admin', process.env.AGENT_PASSWORD ?? 'a-long-random-password'],
+});
 agent.setPromptText('You are a CGI-deployed assistant.');
 
-const adapter = new ServerlessAdapter('cgi');
-const app = agent.getApp();
-
-// Read CGI environment and stdin to build a ServerlessEvent
-const event = {
-  method: process.env.REQUEST_METHOD ?? 'GET',
-  headers: {
-    'content-type': process.env.CONTENT_TYPE ?? 'application/json',
-    host: process.env.HTTP_HOST ?? 'localhost',
-    authorization: process.env.HTTP_AUTHORIZATION ?? '',
-  },
-  path: process.env.PATH_INFO ?? '/',
-  body: await readStdin(),
-};
-
-const response = await adapter.handleRequest(app, event);
-
-// Write CGI response
-process.stdout.write(`Status: ${response.statusCode}\r\n`);
-for (const [key, value] of Object.entries(response.headers)) {
-  process.stdout.write(`${key}: ${value}\r\n`);
-}
-process.stdout.write('\r\n');
-process.stdout.write(response.body);
+await agent.run();
 ```
 
-CGI mode is auto-detected when the `GATEWAY_INTERFACE` environment variable is present (e.g., `GATEWAY_INTERFACE=CGI/1.1`).
+`ServerlessAdapter.createCgiHandler(app)` returns a function that does the same for any Hono app. The adapter refuses a body over 10 MB (`ServerlessAdapter.MAX_CGI_BODY_SIZE`) and handles the request without it.
+
+In CGI mode the SDK turns logging off by default, since stdout carries the response. The agent's credentials arrive in the `Authorization` header, which some web servers don't pass to CGI scripts by default. Apache passes it with `CGIPassAuth On`.
+
+---
+
+## Webhook URLs and Signatures
+
+The SWML the agent serves tells SignalWire where to send tool calls and the post-prompt summary. On a serverless platform, the agent builds those URLs from the platform, and checks signatures against the URL the platform received the request on.
+
+### Webhook URLs
+
+`SWML_PROXY_URL_BASE`, or a URL set with `manualSetProxyUrl()`, always wins. Without one, each platform's base URL comes from these sources:
+
+| Platform | Base URL |
+|---|---|
+| Lambda | `AWS_LAMBDA_FUNCTION_URL`. Without it, `https://<AWS_LAMBDA_FUNCTION_NAME>.lambda-url.<AWS_REGION>.on.aws`, which has the function name where a real function URL has its URL ID. Set `AWS_LAMBDA_FUNCTION_URL`, or behind API Gateway set `SWML_PROXY_URL_BASE`. |
+| Google Cloud Functions | `FUNCTION_URL` when set. Otherwise the request's host: a `cloudfunctions.net` host gets `/<K_SERVICE>` (or `/<FUNCTION_TARGET>`) added, and any other host, such as Cloud Run's, is used as it is. |
+| Azure Functions | The request's URL up to `/api/<function>`. Before the first request, `AZURE_FUNCTION_URL`, or `https://<WEBSITE_SITE_NAME>.azurewebsites.net/api/<AZURE_FUNCTION_NAME>`. |
+| CGI | `http://` (or `https://` when `HTTPS=on`) plus `HTTP_HOST` (or `SERVER_NAME`) plus `SCRIPT_NAME`. |
+
+The agent adds its route when it isn't `/`, then `/swaig` or `/post_prompt`, and puts its basic auth credentials in the URL. This is the default webhook URL `swaig-test` prints for `examples/simple-agent.ts` with `--simulate-serverless cgi --cgi-host example.com --cgi-https`:
+
+```text
+https://dev:w00t@example.com/cgi-bin/agent.cgi/swaig
+```
+
+### Signatures
+
+With a signing key set, the agent checks each POST's signature against the URL the platform received it on:
+
+- **Lambda**: `https://` plus `requestContext.domainName` (or the function URL's host), the path as called (with any API Gateway stage), and the query. [API Gateway REST APIs](#api-gateway-rest-apis) explains the limit on decoded queries.
+- **Google Cloud Functions**: the request's protocol and `Host` header, plus `req.originalUrl`.
+- **Azure Functions**: `req.url`.
+- **CGI**: the scheme, `HTTP_HOST` (or `SERVER_NAME`), and `REQUEST_URI` (or `SCRIPT_NAME`, `PATH_INFO` and `QUERY_STRING`).
+
+When `SWML_PROXY_URL_BASE` is set, the check uses it instead, joined with the path below the function and the query. If SignalWire's requests are refused with `403`, set `SWML_PROXY_URL_BASE` to the function's public base URL, including any stage or function path. [Security](security.md#webhook-signature-validation) describes the signature scheme.
 
 ---
 
 ## Platform Detection
 
-When the `ServerlessAdapter` is created with `platform: 'auto'` (the default), the platform is detected by checking for well-known environment variables in the following order:
+`new ServerlessAdapter('auto')` (the default) checks for these environment variables, in order:
 
 | Order | Environment Variables Checked | Detected Platform |
 |---|---|---|
@@ -369,24 +375,20 @@ When the `ServerlessAdapter` is created with `platform: 'auto'` (the default), t
 | 4 | `GATEWAY_INTERFACE` | `cgi` |
 | 5 | *(none matched)* | `lambda` (default fallback) |
 
-```typescript
-const adapter = new ServerlessAdapter('auto');
-console.log(adapter.getPlatform());
-// 'lambda', 'gcf', 'azure', or 'cgi'
-```
-
-The `detectPlatform()` method can also be called explicitly:
+`getPlatform()` returns the platform the adapter uses:
 
 ```typescript
 const adapter = new ServerlessAdapter('auto');
-const platform = adapter.detectPlatform();
+console.log(adapter.getPlatform()); // 'lambda', 'gcf', 'azure', or 'cgi'
 ```
+
+`agent.run()` treats the same variables (except `AZURE_FUNCTIONS_ENVIRONMENT`) as a serverless environment, and calls `runServerless()` instead of starting a server. Cloud Run sets `K_SERVICE`, so an agent that runs its own server there must call `serve()`, not `run()`.
 
 ---
 
 ## URL Generation
 
-The `generateUrl()` method constructs the expected invocation URL for a deployed function on each platform:
+`generateUrl()` returns the usual invocation URL of a function on the adapter's platform. It's a convenience for your own scripts; the agent doesn't use it for webhook URLs. This example builds an API Gateway URL:
 
 ```typescript
 const adapter = new ServerlessAdapter('lambda');
@@ -395,112 +397,94 @@ const url = adapter.generateUrl({
   apiId: 'abc123xyz',
   stage: 'prod',
 });
-// "https://abc123xyz.execute-api.us-west-2.amazonaws.com/prod"
+console.log(url); // https://abc123xyz.execute-api.us-west-2.amazonaws.com/prod
 ```
 
-### URL Formats by Platform
-
-**AWS Lambda (API Gateway)**
+The other platforms use these options:
 
 ```typescript
-const adapter = new ServerlessAdapter('lambda');
-adapter.generateUrl({
-  region: 'us-east-1',     // default: AWS_REGION env or 'us-east-1'
-  apiId: 'abc123',         // default: 'API_ID'
-  stage: 'prod',           // default: 'prod'
-});
-// "https://abc123.execute-api.us-east-1.amazonaws.com/prod"
-```
+new ServerlessAdapter('gcf').generateUrl({ projectId: 'my-project', region: 'us-central1', functionName: 'agent' });
+// https://us-central1-my-project.cloudfunctions.net/agent
 
-**Google Cloud Functions**
+new ServerlessAdapter('azure').generateUrl({ functionName: 'my-agent' });
+// https://my-agent.azurewebsites.net/api/my-agent
 
-```typescript
-const adapter = new ServerlessAdapter('gcf');
-adapter.generateUrl({
-  projectId: 'my-project', // default: GCLOUD_PROJECT env or 'PROJECT'
-  region: 'us-central1',   // default: FUNCTION_REGION env or 'us-central1'
-  functionName: 'agent',   // default: AWS_LAMBDA_FUNCTION_NAME env or 'agent'
-});
-// "https://us-central1-my-project.cloudfunctions.net/agent"
-```
-
-**Azure Functions**
-
-```typescript
-const adapter = new ServerlessAdapter('azure');
-adapter.generateUrl({
-  functionName: 'my-agent', // default: 'agent'
-});
-// "https://my-agent.azurewebsites.net/api/my-agent"
-```
-
-**CGI**
-
-```typescript
-const adapter = new ServerlessAdapter('cgi');
-adapter.generateUrl({
-  functionName: 'my-agent',
-});
-// "http://localhost/cgi-bin/my-agent"
+new ServerlessAdapter('cgi').generateUrl({ functionName: 'my-agent' });
+// http://localhost/cgi-bin/my-agent
 ```
 
 ### generateUrl() Options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `region` | `string` | Platform-specific env var or default | Cloud region for the function. |
-| `projectId` | `string` | `GCLOUD_PROJECT` env or `"PROJECT"` | GCP project ID (GCF only). |
-| `functionName` | `string` | `AWS_LAMBDA_FUNCTION_NAME` env or `"agent"` | Name of the deployed function. |
-| `stage` | `string` | `"prod"` | API Gateway stage (Lambda only). |
-| `apiId` | `string` | `"API_ID"` | API Gateway ID (Lambda only). |
+| `region` | `string` | `AWS_REGION` or `us-east-1` (Lambda); `FUNCTION_REGION` or `us-central1` (GCF) | Cloud region. |
+| `projectId` | `string` | `GCLOUD_PROJECT` or `PROJECT` | GCP project ID (GCF only). |
+| `functionName` | `string` | `AWS_LAMBDA_FUNCTION_NAME` or `agent` | Function name. Azure uses it for the app name too. |
+| `stage` | `string` | `prod` | API Gateway stage (Lambda only). |
+| `apiId` | `string` | `API_ID` | API Gateway ID (Lambda only). |
 
 ---
 
 ## CLI Testing
 
-You can test a serverless deployment locally with the `swaig-test` CLI. `--simulate-serverless lambda|cgi|gcf|azure` loads and runs the agent with that platform's environment, so the SWML's webhook URLs are the platform's; see the [CLI guide](cli-guide.md#serverless-simulation) for each platform's options. Without it, you can test the agent's functions before deploying:
+`swaig-test` runs an agent file with a serverless platform's environment when you pass `--simulate-serverless lambda|cgi|gcf|azure`, so the SWML's webhook URLs are the platform's. It clears `SWML_PROXY_URL_BASE` for the run. Put its options before `--exec`, since everything after the function name is an argument to the function.
+
+### Simulating a Platform
+
+These commands print the SWML, or call a function, with each platform's environment:
+
+```bash
+# Lambda, with your function URL
+npx tsx src/cli/swaig-test.ts handler.ts --simulate-serverless lambda \
+  --aws-function-url https://abc123.lambda-url.us-west-2.on.aws/ --dump-swml
+
+# CGI (--cgi-host is required)
+npx tsx src/cli/swaig-test.ts agent.cgi.ts --simulate-serverless cgi \
+  --cgi-host example.com --cgi-https --cgi-script-name /cgi-bin/agent.cgi --dump-swml
+
+# Google Cloud Functions
+npx tsx src/cli/swaig-test.ts index.ts --simulate-serverless gcf \
+  --gcp-project my-project --gcp-function-url https://us-central1-my-project.cloudfunctions.net/agent \
+  --exec get_status --system production
+
+# Azure Functions
+npx tsx src/cli/swaig-test.ts index.ts --simulate-serverless azure \
+  --azure-function-url https://my-app.azurewebsites.net/api/agent --dump-swml
+```
+
+The platform options are:
+
+| Platform | Options |
+|---|---|
+| `lambda` | `--aws-function-name`, `--aws-function-url`, `--aws-region`, `--aws-api-gateway-id`, `--aws-stage` |
+| `cgi` | `--cgi-host` (required), `--cgi-script-name`, `--cgi-https`, `--cgi-path-info` |
+| `gcf` | `--gcp-project`, `--gcp-function-url`, `--gcp-region`, `--gcp-service` |
+| `azure` | `--azure-env`, `--azure-function-url` |
+
+Each simulated platform starts from a preset environment. The Lambda preset includes a function URL, which wins over `--aws-function-name` and `--aws-region`, so pass `--aws-function-url` or `--aws-api-gateway-id` to set the URL. For the details, see the [CLI guide](cli-guide.md#serverless-simulation).
 
 ### Testing Tools Locally
+
+Without a simulated platform, `swaig-test` checks the agent's tools before you deploy:
 
 ```bash
 # List all registered tools
 npx tsx src/cli/swaig-test.ts handler.ts --list-tools
 
-# Dump the SWML document the agent generates
+# Print the SWML document the agent generates
 npx tsx src/cli/swaig-test.ts handler.ts --dump-swml
 
-# Execute a specific tool with arguments (--arg key=value, repeatable)
-npx tsx src/cli/swaig-test.ts handler.ts --exec get_status --arg system=production
+# Call a tool with an argument
+npx tsx src/cli/swaig-test.ts handler.ts --exec get_status --system production
 ```
 
-### Local Development Pattern
+### Running as a Server
 
-For local development and testing before deploying to a serverless platform, run the agent as a standard HTTP server:
-
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-// local-dev.ts
-import { AgentBase } from '@signalwire/sdk';
-
-const agent = new AgentBase({
-  name: 'my-agent',
-  port: 3000,
-});
-
-agent.setPromptText('You are a helpful assistant.');
-
-// In development, run as an HTTP server
-if (process.env.NODE_ENV !== 'production') {
-  agent.serve();
-}
-
-// Export the app for serverless deployment
-export const app = agent.getApp();
-```
+For development, you can also serve the same agent over HTTP. Export it from the handler module, and call `agent.serve()` from a separate script that imports it. Keep `serve()` out of the handler module itself, since a Lambda, Cloud Functions or Azure handler must not start a server.
 
 ### Simulating Serverless Events
 
-You can manually test the `ServerlessAdapter` with constructed events:
+You can also pass a hand-built event to the adapter. This example requests the SWML with a Lambda-style event:
 
 ```typescript
 import { AgentBase, ServerlessAdapter } from '@signalwire/sdk';
@@ -511,7 +495,6 @@ agent.setPromptText('Hello!');
 const adapter = new ServerlessAdapter('lambda');
 const app = agent.getApp();
 
-// Simulate a Lambda event
 const event = {
   httpMethod: 'POST',
   path: '/',
@@ -526,3 +509,12 @@ const response = await adapter.handleRequest(app, event);
 console.log('Status:', response.statusCode);
 console.log('Body:', response.body);
 ```
+
+It prints:
+
+```text
+Status: 200
+Body: {"version":"1.0.0","sections":{"main":[{"answer":{}},{"ai":{"prompt":{"text":"Hello!"}}}]}}
+```
+
+For the platform-specific steps on Google Cloud and Azure, see the [Cloud Functions Deployment Guide](cloud_functions_guide.md).
