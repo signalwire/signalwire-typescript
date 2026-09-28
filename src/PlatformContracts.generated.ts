@@ -8,9 +8,10 @@
 /** The JSON body the engine POSTs to a SWML webhook to fetch the next document. */
 export interface SwmlRequestData {
   call?: SwmlRequestCall;
-  vars: Record<string, unknown>;
+  vars?: Record<string, unknown>;
   envs?: Record<string, unknown>;
   params?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /** The `call` object of a SWML webhook request: one of its per-device-type variants. */
@@ -20,28 +21,30 @@ export type SwmlRequestCall =
 /** The `call.parent` object of a SWML webhook request. */
 export interface SwmlRequestCallParent {
   device_type?: string;
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
+  [key: string]: unknown;
 }
 
 /** The `call.peer` object of a SWML webhook request. */
 export interface SwmlRequestCallPeer {
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
+  [key: string]: unknown;
 }
 
 /** The `call` object of a SWML webhook request, `phone` device variant (engine: call -> device . type == RELAY_DEVICE_PHONE). */
 export interface SwmlRequestCallPhone {
   project_id?: string;
   space_id?: string;
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
   segment_id?: string;
   tag?: string;
-  call_state: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
+  call_state?: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
   parent?: SwmlRequestCallParent;
   peer?: SwmlRequestCallPeer;
-  direction: 'inbound' | 'outbound';
+  direction?: 'inbound' | 'outbound';
   end_reason?:
     | 'abandoned'
     | 'busy'
@@ -57,32 +60,34 @@ export interface SwmlRequestCallPhone {
   address_id?: string;
   subscriber_id?: string;
   subscriber_name?: string;
-  type: 'phone';
-  from: string;
-  to: string;
-  from_number: string;
-  to_number: string;
+  type?: 'phone';
+  from?: string;
+  to?: string;
+  from_number?: string;
+  to_number?: string;
   headers?: SwmlRequestCallPhoneHeadersItem[];
+  [key: string]: unknown;
 }
 
 /** The `call.phone.headers.items` object of a SWML webhook request. */
 export interface SwmlRequestCallPhoneHeadersItem {
-  name: 'Diversion';
-  value: string;
+  name?: 'Diversion';
+  value?: string;
+  [key: string]: unknown;
 }
 
 /** The `call` object of a SWML webhook request, `sip` device variant (engine: call -> device . type == RELAY_DEVICE_SIP). */
 export interface SwmlRequestCallSip {
   project_id?: string;
   space_id?: string;
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
   segment_id?: string;
   tag?: string;
-  call_state: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
+  call_state?: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
   parent?: SwmlRequestCallParent;
   peer?: SwmlRequestCallPeer;
-  direction: 'inbound' | 'outbound';
+  direction?: 'inbound' | 'outbound';
   end_reason?:
     | 'abandoned'
     | 'busy'
@@ -98,17 +103,19 @@ export interface SwmlRequestCallSip {
   address_id?: string;
   subscriber_id?: string;
   subscriber_name?: string;
-  type: 'sip';
-  from: string;
-  to: string;
+  type?: 'sip';
+  from?: string;
+  to?: string;
   headers?: SwmlRequestCallSipHeadersItem[];
   sip_data?: SwmlRequestCallSipSipData;
+  [key: string]: unknown;
 }
 
 /** The `call.sip.headers.items` object of a SWML webhook request. */
 export interface SwmlRequestCallSipHeadersItem {
-  name: string;
-  value: string;
+  name?: string;
+  value?: string;
+  [key: string]: unknown;
 }
 
 /** The `call.sip.sip_data` object of a SWML webhook request. */
@@ -131,20 +138,21 @@ export interface SwmlRequestCallSipSipData {
   sip_contact_params?: Record<string, string>;
   sip_req_params?: Record<string, string>;
   sip_p_asserted_identity?: string;
+  [key: string]: unknown;
 }
 
 /** The `call` object of a SWML webhook request, `webrtc` device variant (engine: call -> device . type == RELAY_DEVICE_WEBRTC). */
 export interface SwmlRequestCallWebrtc {
   project_id?: string;
   space_id?: string;
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
   segment_id?: string;
   tag?: string;
-  call_state: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
+  call_state?: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
   parent?: SwmlRequestCallParent;
   peer?: SwmlRequestCallPeer;
-  direction: 'inbound' | 'outbound';
+  direction?: 'inbound' | 'outbound';
   end_reason?:
     | 'abandoned'
     | 'busy'
@@ -160,23 +168,24 @@ export interface SwmlRequestCallWebrtc {
   address_id?: string;
   subscriber_id?: string;
   subscriber_name?: string;
-  type: 'webrtc';
-  from: string;
-  to: string;
+  type?: 'webrtc';
+  from?: string;
+  to?: string;
+  [key: string]: unknown;
 }
 
 /** The `call` object of a SWML webhook request, `other` device variant (engine: call -> device . type is one of RELAY_DEVICE_NONE, RELAY_DEVICE_TYPE_MAX). */
 export interface SwmlRequestCallOther {
   project_id?: string;
   space_id?: string;
-  call_id: string;
-  node_id: string;
+  call_id?: string;
+  node_id?: string;
   segment_id?: string;
   tag?: string;
-  call_state: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
+  call_state?: 'answered' | 'created' | 'ended' | 'ending' | 'ringing';
   parent?: SwmlRequestCallParent;
   peer?: SwmlRequestCallPeer;
-  direction: 'inbound' | 'outbound';
+  direction?: 'inbound' | 'outbound';
   end_reason?:
     | 'abandoned'
     | 'busy'
@@ -192,4 +201,5 @@ export interface SwmlRequestCallOther {
   address_id?: string;
   subscriber_id?: string;
   subscriber_name?: string;
+  [key: string]: unknown;
 }

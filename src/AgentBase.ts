@@ -2102,7 +2102,7 @@ export class AgentBase extends SWMLService {
     requestData?: SwmlRequestData | null,
     callbackPath?: string | null,
   ): Record<string, unknown> | void | Promise<Record<string, unknown> | void> {
-    return this.onSwmlRequest(requestData ?? ({} as SwmlRequestData), callbackPath ?? undefined);
+    return this.onSwmlRequest(requestData ?? {}, callbackPath ?? undefined);
   }
 
   /**
@@ -2151,9 +2151,6 @@ export class AgentBase extends SWMLService {
     body?: Record<string, unknown> | null,
   ): Promise<[number, Record<string, string>, string]> {
     const parsedBody: Record<string, unknown> = body ?? {};
-    // The same body typed as the engine's SWML webhook request (static-only: parsed
-    // JSON is not validated, so the cast states the contract, not a runtime check).
-    const requestBody = parsedBody as unknown as SwmlRequestData;
     const callbackPath = this._callbackPathForUrl(url);
 
     // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
@@ -2173,7 +2170,7 @@ export class AgentBase extends SWMLService {
       if (callbackPath && this._routingCallbacks.has(callbackPath)) {
         const callbackFn = this._routingCallbacks.get(callbackPath)!;
         try {
-          const route = await callbackFn(requestBody, headers);
+          const route = await callbackFn(parsedBody, headers);
           if (route != null) {
             this.log.info(`routing_request route=${route}`);
             return [307, { Location: route }, ''];
@@ -2189,7 +2186,7 @@ export class AgentBase extends SWMLService {
     // Subclass modification hook (primitive path passes no Hono context).
     let modifications: Record<string, unknown> | void = undefined;
     try {
-      modifications = await this.onSwmlRequest(requestBody, callbackPath ?? undefined);
+      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined);
     } catch (err) {
       this.log.error(
         `error_in_request_modifier error=${err instanceof Error ? err.message : String(err)}`,
@@ -2214,7 +2211,7 @@ export class AgentBase extends SWMLService {
       try {
         await this.dynamicConfigCallback(
           queryParams,
-          requestBody,
+          parsedBody,
           filterSensitiveHeaders(headers),
           agentToUse,
         );

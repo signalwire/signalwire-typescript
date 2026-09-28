@@ -2,8 +2,8 @@
  * Platform contract types — the request body the SignalWire engine POSTs to a
  * dynamic-SWML request handler.
  *
- * Generated from porting-sdk/rest-apis/swml-webhooks/openapi.yaml, which is itself
- * rendered from the engine-derived `webhook_request` contract (mod_infrastructure).
+ * Generated from the SWML webhook request contract, which is derived from the
+ * SignalWire engine's own request builder.
  * `SwmlRequestCall` is the union of the call object's per-device-type variants
  * (phone / sip / webrtc / other). This file is a thin barrel re-exporting the
  * generated types so every consumer keeps a stable `./PlatformContracts.js` import

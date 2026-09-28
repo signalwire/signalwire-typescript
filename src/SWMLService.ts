@@ -591,11 +591,7 @@ export class SWMLService {
       if (hookResult !== null) {
         doc = hookResult.build();
       } else if (this.onRequestCallback) {
-        const builder = await this.onRequestCallback(
-          queryParams,
-          bodyParams as unknown as SwmlRequestData,
-          headers,
-        );
+        const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
         doc = builder.build();
       } else {
         doc = this.swmlBuilder.build();
@@ -981,9 +977,6 @@ export class SWMLService {
     body?: Record<string, unknown> | null,
   ): Promise<[number, Record<string, string>, string]> {
     const parsedBody: Record<string, unknown> = body ?? {};
-    // Typed as the engine's SWML webhook request (static-only: parsed JSON is not
-    // validated, so the cast states the contract, not a runtime check).
-    const requestBody = parsedBody as unknown as SwmlRequestData;
     const callbackPath = this._callbackPathForUrl(url);
 
     // Auth check over primitives.
@@ -1001,7 +994,7 @@ export class SWMLService {
     ) {
       const callbackFn = this._routingCallbacks.get(callbackPath)!;
       try {
-        const route = await callbackFn(requestBody, headers);
+        const route = await callbackFn(parsedBody, headers);
         if (route != null) {
           this.log.info(`routing_request route=${route}`);
           return [307, { Location: route }, ''];
@@ -1115,7 +1108,7 @@ export class SWMLService {
 
     // Install an endpoint on the Hono app for this callback path
     const routeHandler = async (c: Context) => {
-      let body = {} as SwmlRequestData;
+      let body: SwmlRequestData = {};
       if (c.req.method === 'POST') {
         try {
           body = await c.req.json();

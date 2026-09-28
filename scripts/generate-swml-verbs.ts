@@ -90,7 +90,13 @@ async function generatePlatformContracts(specPath: string, outPath: string): Pro
   const doc = yaml.load(fs.readFileSync(specPath, 'utf-8')) as OpenApiDoc;
   const schemas = doc.components?.schemas ?? {};
   const taken = new Set(Object.keys(schemas).map(tsName));
-  const decls = Object.entries(schemas).map(([n, s]) => declaration(n, s));
+  // The SWML webhook request is a READ-SIDE payload (what a handler RECEIVES), so it is
+  // declared open-shaped exactly like the SWML verb read-side types (swmlDeclaration):
+  // every field optional and an open `[key: string]: unknown` tail. Field TYPES are the
+  // engine-derived ones (closed enums, the per-device-type `call` union); requiredness
+  // and closedness stay facts of the spec, not of the handler signature, so a partial
+  // or test body still type-checks -- mirroring Python's `total=False` TypedDicts.
+  const decls = Object.entries(schemas).map(([n, s]) => swmlDeclaration(n, s));
   const ops = operationAliases(doc, taken);
   const header = `// AUTO-GENERATED from porting-sdk/rest-apis/swml-webhooks/openapi.yaml — DO NOT EDIT.\n// Regenerate with: npx tsx scripts/generate-swml-verbs.ts\n//\n// Held to the same lint bar as hand-written source (no rule suppressions, no\n// loose types). If the generator cannot emit a clean faithful type, fix the\n// generator rather than weaken the output.\n\n`;
   const formatted = await formatTs(header + decls.join('\n') + '\n' + ops.join('\n'), outPath);
