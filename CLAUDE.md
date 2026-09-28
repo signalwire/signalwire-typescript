@@ -56,7 +56,7 @@ SignalWire ──POST /post_prompt──> AgentBase (receives call summary)
 
 ### Composition Architecture
 
-`AgentBase` is the central class. It uses **composition** (not inheritance) to assemble functionality from internal managers:
+`AgentBase` is the central class. It extends `SWMLService`, which provides the HTTP app, basic auth, the SWAIG function registry and SWML document building, and it composes the rest from internal managers:
 
 - **PromptManager** / **PomBuilder** — raw text or structured prompt rendering
 - **SwmlBuilder** — assembles the 5-phase SWML document
@@ -65,7 +65,7 @@ SignalWire ──POST /post_prompt──> AgentBase (receives call summary)
 - **SkillManager** — loads/unloads skill plugins that inject tools, prompts, and hints
 - **Hono App** — HTTP server with basicAuth, CORS, security headers, rate limiting
 
-This differs from the Python SDK which uses 8 mixins. The TS SDK composes everything inside AgentBase.
+The Python SDK assembles the same features from mixins; the TS SDK uses one base class and composed managers.
 
 ### SWML 5-Phase Rendering
 
