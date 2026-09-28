@@ -19,8 +19,9 @@
  * Mount it on the app an agent already serves:
  *
  * ```ts
- * import { ChatGateway } from '@signalwire/sdk';
+ * import { AgentBase, ChatGateway } from '@signalwire/sdk';
  *
+ * const agent = new AgentBase({ name: 'shop', route: '/swml' });
  * const gateway = new ChatGateway({
  *   configUrl: 'https://my-agent.example.com/swml',
  *   key: 'pk_live_...', // what the widget carries

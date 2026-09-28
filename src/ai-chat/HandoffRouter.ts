@@ -372,6 +372,15 @@ export class HandoffRouter {
    * paths from the gateway's URL:
    *
    * ```ts
+   * import { AgentBase, ChatGateway, HandoffRouter } from '@signalwire/sdk';
+   *
+   * const agent = new AgentBase({ name: 'shop', route: '/swml' });
+   * const gateway = new ChatGateway({
+   *   configUrl: 'https://my-agent.example.com/swml',
+   *   key: 'pk_live_...',
+   *   allowedOrigins: ['https://shop.example.com'],
+   * });
+   * const handoff = new HandoffRouter({ gateway });
    * agent.mount(gateway.router(), { prefix: '/chat' });
    * agent.mount(handoff.router(), { prefix: '/chat' });
    * ```

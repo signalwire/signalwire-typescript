@@ -492,7 +492,14 @@ export class AIChatClient {
    *
    * @example
    * ```ts
+   * import { Hono } from 'hono';
+   * import { AIChatClient } from '@signalwire/sdk';
+   *
+   * const client = new AIChatClient({ space: 'myspace' });
+   * const app = new Hono();
+   *
    * app.post('/chat', async (c) => {
+   *   const { id, message } = await c.req.json<{ id: string; message: string }>();
    *   const upstream = await client.rawPost('chat', { id, message });
    *   return new Response(upstream.body, {
    *     status: upstream.status,
