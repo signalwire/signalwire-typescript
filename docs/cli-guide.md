@@ -6,6 +6,8 @@
 
 ## Table of Contents
 
+The guide has these sections:
+
 - [Overview](#overview)
 - [Running It](#running-it)
 - [Finding the Agent](#finding-the-agent)
@@ -29,11 +31,11 @@
 
 `swaig-test` sends its requests through the agent's own HTTP app, as SignalWire would:
 
-- The SWML is requested with a simulated call, so basic auth, signature checks, a dynamic config callback and the tokens in the webhook URLs all run as they do on a server.
+- The SWML is requested with a simulated call. Basic auth, signature checks, a dynamic config callback and the tokens in the webhook URLs all run as they do on a server.
 - A function is called at the `web_hook_url` its SWML gives it, with that URL's token and query. A function that points at another server is called there.
 - A DataMap function runs in a local simulator of the platform's DataMap processing.
 
-Source files:
+The CLI's code is in these source files:
 
 - `src/cli/swaig-test.ts`: the command and its options.
 - `src/cli/agent-loader.ts`: finding the agent in a file.
@@ -109,7 +111,7 @@ This prints the SWML document the agent serves for a simulated call:
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --dump-swml
 ```
 
-The output is the JSON document alone, indented; `--raw` prints it on one line. SDK logging is off unless `--verbose` is given, so the output can be piped:
+The output is the JSON document alone, indented. `--raw` prints it on one line. SDK logging is off unless `--verbose` is given, so the output can be piped:
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --dump-swml --raw | jq '.sections.main'
@@ -117,26 +119,30 @@ npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --dump-swml --raw | jq '.
 
 ### --list-tools
 
-This lists the functions in the agent's SWML, with their parameters. A function's type follows its name: `(LOCAL webhook)` for a handler in the agent, `(EXTERNAL webhook)` for one on another server, and nothing for a DataMap function.
+This lists the functions in the agent's SWML, with their parameters. A function's type follows its name. `(LOCAL webhook)` marks a handler in the agent, and `(EXTERNAL webhook)` one on another server. A DataMap function has no marker.
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/datamap-tools.ts --list-tools
 ```
 
-The output looks like this:
+The output lists both of the file's DataMap functions:
 
 ```text
 Available SWAIG functions:
   get_weather - Get current weather for a city
     Parameters:
       city (string) (required): The city name
+  get_joke - Execute get_joke
+    Parameters: None
 ```
+
+`get_joke` has no description of its own, so the SDK's default, `Execute <name>`, appears.
 
 With `--raw` or `--format-json` the list is JSON, one object per function with `name`, `description`, `parameters` and `type` (`local`, `external` or `datamap`).
 
 ### --exec
 
-This calls one function and prints its result. Everything after the function name is an argument for the function; see [Function Arguments](#function-arguments).
+This calls one function and prints its result. Everything after the function name is an argument for the function. See [Function Arguments](#function-arguments).
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --exec get_time
@@ -146,7 +152,7 @@ The output starts with `RESULT:`, then the response and any actions:
 
 ```text
 RESULT:
-Response: The current date and time is 9/25/2026, 7:03:35 PM
+Response: The current date and time is 9/28/2026, 5:53:03 PM
 ```
 
 `--raw` or `--format-json` prints the SWAIG response as JSON instead. The exit status is 1 when the function isn't found, an argument doesn't fit, or the call fails.
@@ -177,18 +183,31 @@ Put the CLI's own options before `--exec`. After the function name, each `--name
 
 A dash in a name becomes an underscore, so `--max-results 5` sets `max_results`. `--arg name=value` also sets an argument, parsing the value as JSON when it can.
 
+These commands call `book_appointment` in `examples/typed-tools.ts`, whose `party_size` parameter is an integer:
+
 ```bash
-npx tsx src/cli/swaig-test.ts examples/my-agent.ts --exec search --query "password reset" --limit 5
-npx tsx src/cli/swaig-test.ts examples/my-agent.ts --exec search --arg 'filters={"lang":"en"}'
+npx tsx src/cli/swaig-test.ts examples/typed-tools.ts --exec book_appointment --service haircut --party-size 2 --notes "window seat"
+npx tsx src/cli/swaig-test.ts examples/typed-tools.ts --exec book_appointment --arg service=massage --arg party_size=3
 ```
 
-An argument the function doesn't declare is still passed, with a warning on stderr. When its name is one of the CLI's options, such as `--verbose`, the warning says to put it before `--exec`.
+The first command prints this result:
+
+```text
+RESULT:
+Response: Booked a haircut for 2 (window seat). See you soon!
+```
+
+A value that doesn't fit its type stops the run. `--party-size two` prints `Error parsing arguments: Parameter --party-size must be an integer, got: two`.
+
+An argument the function doesn't declare is still passed, with a warning on stderr. For `--foo bar`, the warning is `Warning: --foo isn't a parameter of this function; it was passed to the function anyway.`
+
+When an undeclared argument has the name of a CLI option, such as `--raw`, the warning says to put it before `--exec`. When that option ends the line with no value after it, as in `--exec get_time --verbose`, the CLI stops instead. It prints `Error parsing arguments: CLI flag --verbose must come BEFORE --exec, not after.` and exits with status 1. A function can declare a parameter with an option's name. `check_status` in `examples/typed-tools.ts` has a `verbose` parameter, so `--exec check_status --verbose` sets it.
 
 ---
 
 ## The Simulated Request
 
-`--dump-swml` and `--list-tools` send the SWML request SignalWire sends: a `call` object with the call's id, type, direction, state and addresses, `vars.userVariables`, and `envs`. `--exec` requests the SWML the same way, then calls the function with a request that has every key SignalWire may send (`call`, `vars`, `global_data`, `call_log`, `meta_data` and the rest); `--minimal` sends only the call id and the arguments.
+`--dump-swml` and `--list-tools` send the SWML request SignalWire sends: a `call` object with the call's id, type, direction, state and addresses, `vars.userVariables`, and `envs`. `--exec` requests the SWML the same way, then calls the function. Its request has every key SignalWire may send (`call`, `vars`, `global_data`, `call_log`, `meta_data` and the rest). `--minimal` sends only the call id and the arguments.
 
 These options set values in the request, for every action:
 
@@ -203,7 +222,7 @@ These options set values in the request, for every action:
 | `--user-vars JSON` | `vars.userVariables`. |
 | `--custom-data JSON` | Values merged into the function request. |
 
-`--override PATH=VALUE` sets any value by its dotted path, and `--override-json PATH=JSON` sets one to parsed JSON. A value of `true`, `false`, `null` or a number is typed; anything else is a string, or JSON when it parses.
+`--override PATH=VALUE` sets any value by its dotted path, and `--override-json PATH=JSON` sets one to parsed JSON. A value of `true`, `false`, `null` or a number is typed. Anything else is a string, or JSON when it parses. This command marks the call answered and sets a user variable:
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --override call.state=answered --override-json 'vars.userVariables={"vip":true}' --dump-swml
@@ -224,36 +243,63 @@ An agent with a dynamic config callback gets the request's query parameters, hea
 | `--body JSON` | Extra fields in the SWML request body. |
 | `--method POST\|GET` | The SWML request's method (default `POST`). |
 
-The callback runs once per request, on a copy of the agent, so it runs once for `--dump-swml`. A function call is a separate request: as on the platform, it carries only the query in its `web_hook_url`. A callback that needs a value from the SWML request when a function runs puts it there with `addSwaigQueryParams()`.
+The callback runs once per request, on a per-request copy of the agent, so it runs once for `--dump-swml`. A function call is a separate request: as on the platform, it carries only the query in its `web_hook_url`. A callback that needs a value from the SWML request when a function runs puts it there with `addSwaigQueryParams()`. The callback in `examples/dynamic-config.ts` reads `lang` and `name` from the query. This command sends both, and prints the prompt, languages and global data the callback set:
 
 ```bash
-npx tsx src/cli/swaig-test.ts examples/dynamic-config.ts --query-params '{"tier":"premium"}' --header X-Customer-ID=12345 --dump-swml
+npx tsx src/cli/swaig-test.ts examples/dynamic-config.ts --query-params '{"lang":"es","name":"Carlos"}' --dump-swml --raw | jq -c '.sections.main[] | select(.ai) | {prompt: .ai.prompt.text, lang: .ai.languages, gd: .ai.global_data}'
+```
+
+The output shows the Spanish voice and the caller's name:
+
+```json
+{"prompt":"You are a helpful assistant. The caller's name is Carlos. Greet them by name.","lang":[{"name":"Spanish","code":"es-ES","voice":"polly.Lucia"}],"gd":{"caller_name":"Carlos"}}
 ```
 
 ---
 
 ## DataMap Functions
 
-`--exec` runs a DataMap function in a local simulator that follows the platform's processing: its expressions, then its webhooks in order until one succeeds, then that webhook's `foreach` and `output`, or the DataMap's own `output` when every webhook failed.
+`--exec` runs a DataMap function in a local simulator that follows the platform's processing. It tries the expressions, then the webhooks in order until one succeeds. It then runs that webhook's `foreach` and `output`, or the DataMap's own `output` when every webhook failed.
 
-- A webhook's JSON object response is read from the root of the template data (`${current.temp_f}`); a JSON array response is under `array` (`${array[0].joke}`). When a template reads `${response.<field>}`, which doesn't resolve, the simulator says so on stderr.
+The simulator follows the platform's template rules:
+
+- A webhook's JSON object response is read from the root of the template data (`${current.temp_f}`). A JSON array response is under `array` (`${array[0].joke}`). When a template reads `${response.<field>}`, which doesn't resolve, the simulator says so on stderr.
 - Templates take the `lc` and `enc` (or `enc:url`) helpers, left to right, and nest: `${lc:enc:args.city}`.
 - A webhook fails on a status outside 200-299, a body that isn't JSON, or one of its `error_keys` in a JSON object response.
-- Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do.
+- Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
+
+This command runs the weather tool against the real wttr.in API and prints each step:
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/datamap-tools.ts --verbose --exec get_weather --city London
 ```
 
+With `--verbose`, the output ends with the DataMap steps: the request, the response status and the result.
+
+```text
+=== DataMap Function Execution ===
+Args: {"city":"London"}
+
+=== Webhook 1/1 ===
+GET https://wttr.in/london?format=j1
+Response status: 200
+RESULT:
+Response: Weather in London: 61°F, Overcast
+```
+
+A path that doesn't resolve shows as `<MISSING:path>` in the result. The simulator's other differences from the platform are listed in [Testing a DataMap](datamap-guide.md#testing-a-datamap).
+
 ---
 
 ## Environment Variables
 
-`--env KEY=VALUE` sets a variable before the agent file loads, and `--env-file FILE` loads `KEY=VALUE` lines from a file (`#` lines are skipped, and quotes around a value removed):
+`--env KEY=VALUE` sets a variable before the agent file loads. `--env-file FILE` loads `KEY=VALUE` lines from a file, skipping `#` lines and removing quotes around a value. This command sets the basic auth user and loads the rest from `.env` in the current directory:
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --env SWML_BASIC_AUTH_USER=admin --env-file .env --dump-swml
 ```
+
+Node.js 24 also reads `--env-file` itself, wherever it appears on the command line. When the file doesn't exist, Node stops before `swaig-test` runs, printing `node: .env: not found` with exit status 9.
 
 ---
 
@@ -276,7 +322,7 @@ Each platform's options set its variables:
 | `gcf` | `--gcp-project`, `--gcp-function-url`, `--gcp-region`, `--gcp-service` |
 | `azure` | `--azure-env`, `--azure-function-url` |
 
-An unknown platform is an error; the CLI never falls back to running as a server.
+An unknown platform is an error, and the CLI exits with status 2. It never falls back to running as a server.
 
 ---
 
