@@ -1,129 +1,131 @@
 # Skills Parameter Schema System
 
-This guide explains the parameter schema system for SignalWire AI Agents TypeScript SDK skills, which enables GUI configuration tools and programmatic skill discovery.
+Every skill in the SignalWire AI Agents TypeScript SDK describes its configuration parameters in a schema. This guide explains how to read the schemas of registered skills and how to declare one for your own skill.
 
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each example as a module so top-level `await` is allowed
-declare global {
-  // Node globals (tsconfig sets types:[], so declare them here).
-}
 ```
 
 ## Overview
 
-The parameter schema system lets skills declare their configurable parameters with metadata including types, descriptions, default values, and security hints. This enables:
+A skill's static `getParameterSchema()` returns one entry per parameter, with its type, description, default and a few hints. Tools can use the schema for these tasks:
 
-- **GUI Configuration Tools** - Automatically generate configuration forms
-- **API Documentation** - Document all available parameters
-- **Validation** - Type checking and constraint hints
-- **Security** - Mark sensitive parameters as hidden
-- **Environment Variables** - Indicate which parameters can be sourced from the environment
+- **Configuration forms**: build a form field for each parameter
+- **Documentation**: list every parameter with its default
+- **Pre-flight checks**: check a configuration before you construct the skill
+- **Secret handling**: mark a parameter as secret, so a form can mask it
+- **Environment variables**: record which variable can supply a value
+
+The schema is a description. The SDK checks only that it's a non-empty object, when the skill is registered or added. It doesn't check a configuration against it. A missing `required` parameter, a wrong type or an out-of-range value is caught only if the skill's own `setup()` checks it. `hidden` and `env_var` are hints for tools. They don't hide a value or read a variable themselves.
 
 ## Using the Schema System
 
 ### Getting All Skills Schema
 
-Use the `listSkillsWithParams()` function to get a complete schema of all registered skills,
-keyed by skill name:
-
-```typescript
-import { listSkillsWithParams } from '@signalwire/sdk';
-
-// Get complete schema for all skills
-const schema = listSkillsWithParams();
-
-// Example output structure:
-// {
-//   web_search: {
-//     name: 'web_search',
-//     description: 'Search the web using Google Custom Search',
-//     version: '1.0.0',
-//     parameters: {
-//       api_key: {
-//         type: 'string',
-//         description: 'Google Custom Search API key',
-//         required: true,
-//         hidden: true,
-//         env_var: 'GOOGLE_SEARCH_API_KEY',
-//       },
-//       search_engine_id: {
-//         type: 'string',
-//         description: 'Google Custom Search Engine ID',
-//         required: true,
-//         hidden: true,
-//         env_var: 'GOOGLE_SEARCH_ENGINE_ID',
-//       },
-//       num_results: {
-//         type: 'integer',
-//         description: 'Default number of search results to return',
-//         default: 1,
-//         required: false,
-//         min: 1,
-//         max: 10,
-//       },
-//     },
-//   },
-//   datetime: {
-//     name: 'datetime',
-//     description: 'Get current date, time, and timezone information',
-//     version: '1.0.0',
-//     parameters: {
-//       swaig_fields: {
-//         type: 'object',
-//         description: 'Additional SWAIG function metadata to merge into tool definitions',
-//         default: {},
-//         required: false,
-//       },
-//     },
-//   },
-// }
-```
-
-### Using Schema for GUI Configuration
-
-Here's an example of using the schema to generate a configuration form:
+`listSkillsWithParams()` returns the schema of every skill in the global `SkillRegistry`, keyed by skill name. The registry starts empty, so call `registerBuiltinSkills()` first to include the built-in skills:
 
 ```typescript
 import { listSkillsWithParams, registerBuiltinSkills } from '@signalwire/sdk';
 
-// Populate the registry with the built-in skills before introspecting it.
-await registerBuiltinSkills();
+registerBuiltinSkills();
+const schema = listSkillsWithParams();
+console.log(JSON.stringify(schema['datetime'], null, 2));
+```
+
+The script printed this entry for `datetime`, which has only the two base parameters:
+
+```json
+{
+  "name": "datetime",
+  "description": "Get current date, time, and timezone information",
+  "version": "1.0.0",
+  "supportsMultipleInstances": false,
+  "requiredEnvVars": [],
+  "requiredPackages": [],
+  "parameters": {
+    "swaig_fields": {
+      "type": "object",
+      "description": "Additional SWAIG fields to merge into each tool definition provided by this skill.",
+      "default": {},
+      "required": false
+    },
+    "skip_prompt": {
+      "type": "boolean",
+      "description": "When true, suppress all prompt sections from this skill.",
+      "default": false,
+      "required": false
+    }
+  }
+}
+```
+
+The `web_search` entry has more parameters. These are two of them, from the same run:
+
+```json
+{
+  "api_key": {
+    "type": "string",
+    "description": "Google Custom Search API key",
+    "required": true,
+    "hidden": true,
+    "env_var": "GOOGLE_SEARCH_API_KEY"
+  },
+  "num_results": {
+    "type": "integer",
+    "description": "Number of high-quality results to return",
+    "default": 3,
+    "required": false,
+    "min": 1,
+    "max": 10
+  }
+}
+```
+
+`SkillRegistry.getInstance().getSkillSchema(name)` returns one skill's entry, and `listSkills()` returns the same entries as an array.
+
+### Using Schema for GUI Configuration
+
+This example builds an HTML form from the `web_search` schema. It masks `hidden` fields and shows the `env_var` hint:
+
+```typescript
+import { listSkillsWithParams, registerBuiltinSkills, type ParameterSchemaEntry } from '@signalwire/sdk';
+
+registerBuiltinSkills();
 
 const schema = listSkillsWithParams();
 const webSearchSchema = schema['web_search'];
 
-function generateFormField(paramName: string, paramInfo: Record<string, unknown>): string {
+function generateFormField(paramName: string, paramInfo: ParameterSchemaEntry): string {
   let html = `<div class="form-group">\n`;
-  html += `  <label for="${paramName}">${paramInfo['description']}</label>\n`;
+  html += `  <label for="${paramName}">${paramInfo.description}</label>\n`;
 
-  const required = paramInfo['required'] ? 'required' : '';
-  // Hide sensitive fields
-  const inputType = paramInfo['hidden'] ? 'password' : 'text';
+  const required = paramInfo.required ? 'required' : '';
+  const inputType = paramInfo.hidden ? 'password' : 'text';
 
-  switch (paramInfo['type']) {
+  switch (paramInfo.type) {
     case 'string': {
-      const value = paramInfo['default'] ?? '';
-      html += `  <input type="${inputType}" id="${paramName}" name="${paramName}" value="${value}" ${required}>\n`;
+      const value = paramInfo.default ?? '';
+      html += `  <input type="${inputType}" id="${paramName}" name="${paramName}" value="${String(value)}" ${required}>\n`;
       break;
     }
     case 'integer':
     case 'number': {
-      const value = paramInfo['default'] ?? 0;
-      const min = 'min' in paramInfo ? `min="${paramInfo['min']}"` : '';
-      const max = 'max' in paramInfo ? `max="${paramInfo['max']}"` : '';
-      html += `  <input type="number" id="${paramName}" name="${paramName}" value="${value}" ${min} ${max} ${required}>\n`;
+      const value = paramInfo.default ?? 0;
+      const min = paramInfo.min !== undefined ? `min="${paramInfo.min}"` : '';
+      const max = paramInfo.max !== undefined ? `max="${paramInfo.max}"` : '';
+      html += `  <input type="number" id="${paramName}" name="${paramName}" value="${String(value)}" ${min} ${max} ${required}>\n`;
       break;
     }
     case 'boolean': {
-      const checked = paramInfo['default'] ? 'checked' : '';
+      const checked = paramInfo.default ? 'checked' : '';
       html += `  <input type="checkbox" id="${paramName}" name="${paramName}" ${checked}>\n`;
       break;
     }
   }
 
-  if ('env_var' in paramInfo) {
-    html += `  <small>Can also be set via the ${paramInfo['env_var']} environment variable</small>\n`;
+  if (paramInfo.env_var) {
+    html += `  <small>Can also be set with the ${paramInfo.env_var} environment variable</small>\n`;
   }
 
   html += '</div>\n';
@@ -131,97 +133,99 @@ function generateFormField(paramName: string, paramInfo: Record<string, unknown>
 }
 
 let form = '<form>\n';
-for (const [name, info] of Object.entries(webSearchSchema.parameters)) {
-  form += generateFormField(name, info as unknown as Record<string, unknown>);
+if (webSearchSchema) {
+  for (const [name, info] of Object.entries(webSearchSchema.parameters)) {
+    form += generateFormField(name, info);
+  }
 }
 form += '</form>';
+console.log(form);
 ```
+
+The form skips `object` and `array` parameters, such as `swaig_fields`, which need their own editors.
 
 ### Programmatic Skill Configuration
 
-Use the schema to validate configuration before adding a skill:
+The SDK doesn't enforce `required`, so a tool that assembles configurations can check it before it adds the skill. This example rejects a `web_search` configuration that's missing a required parameter:
 
 ```typescript
-import { AgentBase, listSkillsWithParams } from '@signalwire/sdk';
+import { AgentBase, listSkillsWithParams, registerBuiltinSkills } from '@signalwire/sdk';
 
-class MyAgent extends AgentBase {
-  static async create(): Promise<MyAgent> {
-    const agent = new MyAgent({ name: 'my-agent' });
+registerBuiltinSkills();
 
-    const schema = listSkillsWithParams();
+const webSearchParams: Record<string, unknown> = {
+  api_key: process.env['GOOGLE_SEARCH_API_KEY'],
+  search_engine_id: process.env['GOOGLE_SEARCH_ENGINE_ID'],
+  num_results: 3,
+  max_content_length: 3000,
+};
 
-    const webSearchParams: Record<string, unknown> = {
-      api_key: 'your-api-key',
-      search_engine_id: 'your-engine-id',
-      num_results: 3,
-      max_content_length: 3000,
-    };
+const parameters = listSkillsWithParams()['web_search']?.parameters ?? {};
+const missing = Object.entries(parameters)
+  .filter(([name, info]) => info.required && webSearchParams[name] === undefined)
+  .map(([name]) => name);
 
-    // Validate required parameters against the declared schema
-    const webSearchSchema = schema['web_search'].parameters;
-    for (const [param, info] of Object.entries(webSearchSchema)) {
-      if ((info as { required?: boolean }).required && !(param in webSearchParams)) {
-        throw new Error(`Missing required parameter: ${param}`);
-      }
-    }
-
-    // Add the skill with validated parameters
-    await agent.addSkillByName('web_search', webSearchParams);
-    return agent;
-  }
+if (missing.length > 0) {
+  console.error(`Missing required parameters: ${missing.join(', ')}`);
+} else {
+  const agent = new AgentBase({ name: 'my-agent' });
+  await agent.addSkillByName('web_search', webSearchParams);
 }
 ```
 
+The check reads only the configuration. Some skills fall back to an environment variable, and some have a `required` parameter they never read, as the [Skills System Guide](skills-guide.md#built-in-skills) notes for each skill.
+
 ## Parameter Schema Reference
 
-Each parameter in the schema (`ParameterSchemaEntry`) can have the following properties:
+Each parameter's entry (`ParameterSchemaEntry`) can have these properties:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | string | Parameter type: `"string"`, `"integer"`, `"number"`, `"boolean"`, `"object"`, `"array"` |
-| `description` | string | Human-readable description of the parameter |
-| `default` | any | Default value if not provided |
-| `required` | boolean | Whether the parameter is required (default: false) |
-| `hidden` | boolean | Whether to hide this field in UIs (for secrets/API keys) |
-| `env_var` | string | Environment variable that can provide this value |
-| `enum` | array | List of allowed values (for string types) |
-| `min` | number | Minimum value (for numeric types) |
-| `max` | number | Maximum value (for numeric types) |
+| `type` | string | `"string"`, `"integer"`, `"number"`, `"boolean"`, `"object"` or `"array"` (required) |
+| `description` | string | Description of the parameter (required) |
+| `default` | any | Value the skill uses when the parameter is absent |
+| `required` | boolean | Whether the parameter must be set. Absent means `false`. |
+| `hidden` | boolean | Whether a form should mask the value, as for a key or password |
+| `env_var` | string | Environment variable the skill reads when the parameter is absent |
+| `enum` | array | Allowed values |
+| `min` | number | Lowest allowed value, for numbers |
+| `max` | number | Highest allowed value, for numbers |
+| `items` | object | JSON Schema of each element, for arrays |
+
+`required`, `enum`, `min` and `max` describe the valid values. The SDK doesn't enforce them.
 
 ## Implementing Parameter Schema in Skills
 
-To add parameter-schema support to a skill, override the static `getParameterSchema()`
-method and spread the base schema from `super`:
+Override the static `getParameterSchema()` and spread the base schema from `super`, so the base parameters stay in it. This skill declares six parameters and reads them in `setup()`:
 
 ```typescript
 import { SkillBase, type ParameterSchemaEntry, type SkillToolDefinition } from '@signalwire/sdk';
 
 class MyCustomSkill extends SkillBase {
   static override SKILL_NAME = 'my_custom_skill';
-  static override SKILL_DESCRIPTION = 'My custom skill';
+  static override SKILL_DESCRIPTION = 'Looks up records in an inventory API';
   static override SKILL_VERSION = '1.0.0';
-  static override REQUIRED_ENV_VARS = [] as const;
 
-  private apiEndpoint?: string;
+  private apiEndpoint = 'https://api.example.com';
   private apiKey?: string;
   private timeout = 30;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
-      // Base schema includes common parameters (e.g. swaig_fields)
+      // swaig_fields and skip_prompt, plus tool_name for multi-instance skills
       ...super.getParameterSchema(),
       api_endpoint: {
         type: 'string',
         description: 'API endpoint URL',
-        required: true,
+        required: false,
         default: 'https://api.example.com',
       },
       api_key: {
         type: 'string',
         description: 'API authentication key',
         required: true,
-        hidden: true, // Mark as sensitive
-        env_var: 'MY_API_KEY', // Can be set via environment
+        hidden: true,
+        env_var: 'MY_API_KEY',
       },
       timeout: {
         type: 'integer',
@@ -256,10 +260,18 @@ class MyCustomSkill extends SkillBase {
   }
 
   override async setup(): Promise<boolean> {
-    // Access parameters via getConfig()
     this.apiEndpoint = this.getConfig<string>('api_endpoint', 'https://api.example.com');
-    this.apiKey = this.getConfig<string>('api_key', '') || process.env['MY_API_KEY'];
+    // The schema says MY_API_KEY can supply the key, so read it here.
+    this.apiKey = this.getConfig<string | undefined>('api_key') ?? process.env['MY_API_KEY'];
     this.timeout = this.getConfig<number>('timeout', 30);
+    if (!this.apiKey) {
+      this.logger.error('api_key or MY_API_KEY is required');
+      return false;
+    }
+    if (this.timeout < 1 || this.timeout > 300) {
+      this.logger.error('timeout must be from 1 to 300 seconds');
+      return false;
+    }
     return true;
   }
 
@@ -269,11 +281,13 @@ class MyCustomSkill extends SkillBase {
 }
 ```
 
+The `setup()` checks are what enforce `required`, `env_var` and the range. When `setup()` returns `false`, the skill isn't added.
+
 ## Common Parameter Patterns
 
 ### API Keys and Secrets
 
-Always mark sensitive parameters as `hidden` and provide an `env_var` option:
+Mark a key as `hidden`, and name the variable it can come from in `env_var`:
 
 <!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
@@ -286,9 +300,11 @@ api_key: {
 }
 ```
 
+Read the variable in `setup()` or the handler, because `env_var` doesn't read it for you.
+
 ### Numeric Parameters with Constraints
 
-Use `min` and `max` to document valid ranges:
+Use `min` and `max` to document the valid range, and check it in `setup()`:
 
 <!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
@@ -304,7 +320,7 @@ port: {
 
 ### Enumerated Values
 
-Use `enum` to restrict to specific values:
+Use `enum` to list the allowed values:
 
 <!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
@@ -319,7 +335,7 @@ log_level: {
 
 ### Optional Features
 
-Use boolean parameters for optional features:
+Use a boolean parameter to turn a feature on or off:
 
 <!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
@@ -333,49 +349,70 @@ enable_analytics: {
 
 ## Base Parameters
 
-All skills inherit base parameters from `SkillBase` via `super.getParameterSchema()`:
+`SkillBase.getParameterSchema()` returns these parameters, so every skill that spreads it has them:
 
-- **`swaig_fields`** (object) - Additional SWAIG function metadata merged into tool definitions.
+- **`swaig_fields`** (object, default `{}`): fields copied into every tool definition the skill registers
+- **`skip_prompt`** (boolean, default `false`): when `true`, the skill adds no prompt sections
+- **`tool_name`** (string, default the skill's `SKILL_NAME`): only for a class with `SUPPORTS_MULTIPLE_INSTANCES = true`, to tell instances apart
+
+A skill can redeclare a base parameter with its own description or default. `joke` and `swml_transfer`, for example, redeclare `tool_name`.
 
 ## Examples
 
-### Simple Skill (No Parameters)
+### Skill With No Extra Parameters
 
-Skills like `datetime` and `math` that don't need configuration just return the base schema:
+Skills such as `datetime` and `math` return the base schema:
 
 <!-- snippet: no-compile bare static-method fragment (class body context) -->
 ```typescript
 static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
-  return super.getParameterSchema();
+  return { ...super.getParameterSchema() };
 }
 ```
 
 ### Complex Skill (Many Parameters)
 
-Skills like `web_search` with multiple configuration options spread the base schema and add
-their own:
+A skill such as `web_search` spreads the base schema and adds its own parameters. This is part of its schema:
 
 <!-- snippet: no-compile bare static-method fragment (class body context) -->
 ```typescript
 static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
   return {
     ...super.getParameterSchema(),
-    // API credentials (hidden)
-    api_key: { type: 'string', required: true, hidden: true, env_var: 'GOOGLE_SEARCH_API_KEY' },
-    search_engine_id: { type: 'string', required: true, hidden: true, env_var: 'GOOGLE_SEARCH_ENGINE_ID' },
-    // Configuration options
-    num_results: { type: 'integer', default: 1, required: false, min: 1, max: 10 },
-    safe_search: { type: 'string', default: 'medium', enum: ['off', 'medium', 'high'] },
+    api_key: {
+      type: 'string',
+      description: 'Google Custom Search API key',
+      required: true,
+      hidden: true,
+      env_var: 'GOOGLE_SEARCH_API_KEY',
+    },
+    num_results: {
+      type: 'integer',
+      description: 'Number of high-quality results to return',
+      default: 3,
+      required: false,
+      min: 1,
+      max: 10,
+    },
+    safe_search: {
+      type: 'string',
+      description: 'Safe search level.',
+      default: 'medium',
+      enum: ['off', 'medium', 'high'],
+    },
   };
 }
 ```
 
 ## Best Practices
 
-1. **Always provide descriptions** - Make parameters self-documenting.
-2. **Set sensible defaults** - Allow skills to work with minimal configuration.
-3. **Mark secrets as hidden** - Protect sensitive information in UIs.
-4. **Use appropriate types** - Enable proper validation and UI controls.
-5. **Document environment variables** - Show alternative configuration methods.
-6. **Validate in `setup()`** - Ensure all required parameters are present.
-7. **Spread the base schema** - Always include `...super.getParameterSchema()`.
+These practices keep a schema accurate and useful:
+
+1. **Describe every parameter.** `description` is required, and forms show it as the label.
+2. **Set defaults that work.** A skill with sensible defaults loads with a short configuration.
+3. **Mark secrets as `hidden`.** A form can then mask them.
+4. **Use the narrowest type.** Use `integer` for whole numbers, and `enum` for a fixed set of strings.
+5. **Read every `env_var` you declare.** The schema only names the variable.
+6. **Check values in `setup()`.** The SDK doesn't enforce `required`, `enum`, `min` or `max`.
+7. **Spread the base schema.** Start the object with `...super.getParameterSchema()`.
+8. **Keep the schema and the code in step.** Use the same default in both places, so the schema reports what the skill does.
