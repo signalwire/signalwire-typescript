@@ -1,6 +1,6 @@
 # WebService Documentation
 
-The `WebService` class provides static file serving for the SignalWire AI Agents TypeScript SDK. It is a thin, security-conscious HTTP server built on [Hono](https://hono.dev/) that can run standalone or alongside your AI agents.
+The `WebService` class serves static files from local directories over HTTP or HTTPS. It's built on [Hono](https://hono.dev/) and runs on its own port, standalone or next to your agents.
 
 <!-- snippet-setup -->
 ```ts
@@ -20,36 +20,38 @@ declare global {
 - [API Endpoints](#api-endpoints)
 - [Usage Examples](#usage-examples)
 - [Deployment Patterns](#deployment-patterns)
+- [Best Practices](#best-practices)
+- [API Reference](#api-reference)
+- [Integration with SignalWire Agents](#integration-with-signalwire-agents)
 
 ## Overview
 
-WebService serves static files with configurable security features. It is useful for:
-- Serving agent documentation and API specs
-- Hosting static assets (images, CSS, JavaScript)
-- Serving generated reports and exports
-- Providing configuration files and templates
-- Hosting audio files referenced by an agent's SWML
+`WebService` serves files from local directories, each at its own URL prefix. You can use it to serve:
+- Audio files that an agent's SWML plays
+- Documentation, API specs and reports
+- Static assets such as images, CSS and JavaScript
 
-### Key Features
-- **Multiple directory mounting** - Serve different directories at different URL paths
-- **Security-first design** - Authentication, CORS, security headers, file filtering
-- **HTTPS support** - Full SSL/TLS support with PEM files
-- **Directory browsing** - Optional HTML directory listings
-- **MIME type handling** - Automatic content-type detection
-- **Path traversal protection** - Prevents access outside designated directories
-- **File filtering** - Allow/block specific file extensions
+It has these features:
+- Several directories, each mounted at its own URL prefix
+- Optional HTTP Basic Authentication, CORS and security headers
+- An allowlist and a blocklist of file extensions, and a maximum file size
+- Optional HTML directory listings
+- A content type chosen from the file extension
+- HTTPS from PEM certificate and key files
 
 ## Installation
 
-WebService is included in the core SignalWire AI Agents SDK:
+`WebService` is part of the SignalWire SDK package:
 
 ```bash
 npm install @signalwire/sdk
 ```
 
-It requires Node.js >= 22.
+The package requires Node.js 22 or later.
 
 ## Quick Start
+
+This service serves two directories on port 8002:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -69,28 +71,27 @@ await service.start();
 // Service available at http://localhost:8002
 ```
 
-`WebService` does not auto-generate basic-auth credentials. Auth is enabled only
-when you pass `basicAuth` or set the `SWML_BASIC_AUTH_USER` /
-`SWML_BASIC_AUTH_PASSWORD` environment variables.
+`WebService` doesn't read `SWML_BASIC_AUTH_USER` or `SWML_BASIC_AUTH_PASSWORD`, and doesn't generate credentials. It requires authentication only when you pass the `basicAuth` option.
 
 ## Configuration
 
-WebService can be configured through multiple methods (in order of priority):
-constructor options override values loaded from a config file.
+Constructor options override values from a config file. For each setting, the constructor option wins, then the config file, then the default.
 
 ### 1. Constructor Options
+
+The constructor takes a `WebServiceOptions` object:
 
 ```typescript
 const service = new WebService({
   port: 8002,                          // Port to bind to (default 8002)
-  directories: {                       // URL path to directory mappings
+  directories: {                       // URL prefix to directory mappings
     '/docs': './documentation',
     '/assets': './static',
   },
-  basicAuth: ['admin', 'secret'],      // Custom [username, password] auth
+  basicAuth: ['admin', 'a-long-random-password'], // [username, password]
   enableDirectoryBrowsing: true,       // Allow directory listings
   allowedExtensions: ['.html', '.css', '.js'], // Allowlist extensions
-  blockedExtensions: ['.env', '.key'],          // Blocklist extensions
+  blockedExtensions: ['.env', '.key'],          // Replaces the default blocklist
   maxFileSize: 100 * 1024 * 1024,      // Max file size (100 MB)
   enableCors: true,                    // Enable CORS headers (default true)
 });
@@ -98,12 +99,10 @@ const service = new WebService({
 
 ### 2. Environment Variables
 
-```bash
-# Basic authentication
-export SWML_BASIC_AUTH_USER="admin"
-export SWML_BASIC_AUTH_PASSWORD="secretpassword"
+`WebService` reads these environment variables:
 
-# SSL/HTTPS configuration (via SslConfig)
+```bash
+# SSL/HTTPS configuration (via SslConfig), used when the ssl option doesn't set them
 export SWML_SSL_ENABLED=true
 export SWML_SSL_CERT_PATH="/path/to/cert.pem"
 export SWML_SSL_KEY_PATH="/path/to/key.pem"
@@ -112,10 +111,11 @@ export SWML_SSL_KEY_PATH="/path/to/key.pem"
 export SWML_CORS_ORIGINS="https://app.example.com"
 ```
 
+It doesn't read `PORT`; set the `port` option or the config file's `service.port`.
+
 ### 3. Configuration File
 
-Pass `configFile` to load a JSON file. Values under the `service` key map to the
-constructor options:
+Pass `configFile` to load a JSON file. The values under the `service` key map to the constructor options:
 
 ```json
 {
@@ -135,41 +135,43 @@ constructor options:
 }
 ```
 
+This constructor loads that file:
+
 ```typescript
 const service = new WebService({ configFile: './web_service.json' });
 ```
+
+The file can't set `basicAuth` or `ssl`. Directories from the file and from the `directories` option are merged, and the option wins for the same prefix. Relative directory paths resolve against the process's working directory. A `configFile` that is missing or isn't valid JSON is skipped with a warning.
+
+Without `configFile`, the constructor looks for `web_service.json` in the working directory, `./config/`, `~/.signalwire/`, `./.swml/`, `~/.swml/` and `/etc/swml/`, and loads the first one it finds. See [Search Paths](configuration.md#search-paths) in the configuration guide.
 
 ## Security Features
 
 ### Basic Authentication
 
-WebService implements HTTP Basic Authentication. Credentials can be set via:
-
-1. **Constructor**: `basicAuth: ['username', 'password']`
-2. **Environment**: `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD`
-
-If no credentials are provided, the service runs without authentication.
+With the `basicAuth: ['username', 'password']` option, every route requires HTTP Basic Authentication, including `/health`. Without it, the service serves every route without authentication.
 
 ### File Security
 
-#### Default Blocked Extensions/Files
+#### Default Blocked Extensions and Files
+
+The default blocklist refuses these files:
 - `.env`, `.git`, `.gitignore`
 - `.key`, `.pem`, `.crt`
 - `.pyc`, `__pycache__`
 - `.DS_Store`, `.swp`
 
-#### Path Traversal Protection
-WebService rejects any request whose path contains `..` and double-checks that
-the resolved path stays within the mounted directory:
+An entry that starts with a dot matches a file extension or a whole file name. Any other entry matches a file name, or any part of the file's full path. Passing `blockedExtensions` replaces the default list, so include the defaults you still want.
 
-```text
-# These attempts return 403 Forbidden:
-# GET /docs/../../../etc/passwd
-# GET /docs/./././../config.json
-```
+#### Path Traversal Protection
+
+`WebService` refuses a path containing `..` with `403`, and checks that the resolved path is inside the mounted directory. A `..` segment in a request URL is resolved when the URL is parsed, before routing, so `GET /docs/../../etc/passwd` becomes `GET /etc/passwd`. That path matches no mount and gets `404`.
+
+The check compares paths and doesn't resolve symbolic links. A symbolic link inside a mounted directory serves the file it points to, even outside the directory. Don't mount a directory that contains links you don't control.
 
 #### File Size Limits
-The default maximum file size is 100 MB. Configure it with:
+
+A file larger than `maxFileSize` gets `403`, like a blocked file type. The default maximum is 100 MB. This service sets 50 MB:
 
 ```typescript
 const service = new WebService({ maxFileSize: 50 * 1024 * 1024 }); // 50 MB
@@ -177,21 +179,24 @@ const service = new WebService({ maxFileSize: 50 * 1024 * 1024 }); // 50 MB
 
 ### Security Headers
 
-Security headers are added to every response:
+Every response carries these headers:
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
 - `X-XSS-Protection: 1; mode=block`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`
-- `Strict-Transport-Security` (when HTTPS is enabled)
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`, when SSL is configured through the `ssl` option or the `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` variables
+
+With `enableCors` (the default), CORS allows the origins in `SWML_CORS_ORIGINS`, or any origin when it's unset.
 
 ## HTTPS/SSL Support
 
-WebService provides multiple ways to enable HTTPS.
+`WebService` serves HTTPS when SSL is enabled and both the certificate and the key files exist. If either file is missing, it serves plain HTTP. `start()` logs the scheme it uses.
 
 ### Method 1: Environment Variables
 
-SSL configuration is read from the environment via `SslConfig`:
+`SslConfig` reads the SSL settings from the environment:
 
 ```bash
 export SWML_SSL_ENABLED=true
@@ -199,7 +204,9 @@ export SWML_SSL_CERT_PATH="/path/to/cert.pem"
 export SWML_SSL_KEY_PATH="/path/to/key.pem"
 ```
 
-### Method 2: Constructor `ssl` option
+### Method 2: Constructor `ssl` Option
+
+The `ssl` option sets the same values. A field it leaves out falls back to its environment variable:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -211,9 +218,9 @@ await service.start();
 // Service available at https://localhost:8002
 ```
 
-### Method 3: `start()` parameters
+### Method 3: `start()` Parameters
 
-Pass the cert and key paths directly to `start(host, port, sslCert, sslKey)`:
+`start(host, port, sslCert, sslKey)` takes the certificate and key paths directly. They replace the other SSL settings for that server:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -221,9 +228,11 @@ const service = new WebService({ directories: { '/docs': './docs' } });
 await service.start('0.0.0.0', 8002, '/path/to/cert.pem', '/path/to/key.pem');
 ```
 
+With this method alone, responses don't carry the `Strict-Transport-Security` header, because that header depends on the `ssl` option or the environment variables.
+
 ### Generating Self-Signed Certificates
 
-For development/testing:
+For development and testing, `openssl` can create a self-signed certificate:
 
 ```bash
 # Generate a self-signed certificate
@@ -239,7 +248,8 @@ export SWML_SSL_KEY_PATH="key.pem"
 ## API Endpoints
 
 ### GET /health
-Health check endpoint (no authentication required when auth is disabled).
+
+`GET /health` reports the service's configuration. It requires authentication when `basicAuth` is set.
 
 **Response:**
 ```json
@@ -253,25 +263,24 @@ Health check endpoint (no authentication required when auth is disabled).
 ```
 
 ### GET /
-Root endpoint showing available directories.
 
-**Response:** HTML page listing all mounted directories.
+`GET /` returns an HTML page that links to each mounted directory. With no directories, it returns `{"service":"SignalWire Web Service","directories":[]}`.
 
 ### GET /{route}/{filePath}
-Serve files from mounted directories.
 
-**Parameters:**
-- `route`: The mounted directory route (e.g., `/docs`)
-- `filePath`: Path to a file within the directory
+`GET` on a mounted prefix serves a file from that directory. `route` is the mounted prefix (for example, `/docs`), and `filePath` is the path of a file inside the directory.
 
 **Response:**
-- File content with the appropriate MIME type
-- 404 if the file is not found
-- 403 if the file type is blocked or directory browsing is disabled
+- The file, with a content type from its extension (`application/octet-stream` for an unknown one) and `Cache-Control: public, max-age=3600`
+- `404` if the file doesn't exist
+- `403` if the path contains `..`, the file is blocked, isn't allowed, or is larger than `maxFileSize`
+- For a directory: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
 
 ## Usage Examples
 
 ### Basic File Serving
+
+This service serves two directories on the default port:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -293,6 +302,8 @@ await service.start();
 
 ### With Directory Browsing
 
+This service lists the contents of `./public`:
+
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({
@@ -306,6 +317,8 @@ await service.start();
 
 ### Restricted File Types
 
+This service serves only web assets:
+
 ```typescript
 // Only serve web assets
 const service = new WebService({
@@ -317,36 +330,40 @@ const service = new WebService({
 
 ### Dynamic Directory Management
 
+`addDirectory()` mounts a directory after construction. Call it before the service handles its first request: Hono can't add a route after that, and the call throws. `removeDirectory()` drops the prefix from `directories` and `/health`, but the route keeps serving files until the process restarts.
+
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService();
 
-// Add directories after construction
+// Add directories before the service handles a request
 service.addDirectory('/docs', './documentation');
 service.addDirectory('/reports', './generated/reports');
-
-// Remove a directory route
-service.removeDirectory('/reports');
 
 await service.start();
 ```
 
+`addDirectory()` throws if the directory doesn't exist or isn't a directory.
+
 ### With Custom Authentication
+
+This service requires basic auth on every route:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService({
   directories: { '/private': './sensitive-docs' },
-  basicAuth: ['admin', 'super-secret-password'],
+  basicAuth: ['admin', 'a-long-random-password'],
 });
 await service.start();
 ```
 
-### HTTPS with Let's Encrypt
+### HTTPS with an Existing Certificate
+
+This service uses certificate files from a certificate authority, passed to `start()`:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
-// Assuming you have Let's Encrypt certificates
 const service = new WebService({
   directories: { '/secure': './secure-files' },
 });
@@ -360,6 +377,8 @@ await service.start(
 ```
 
 ### Multi-Environment Configuration
+
+This setup serves HTTPS in production and a browsable directory in development:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -393,7 +412,7 @@ await service.start();
 
 ### Standalone Service
 
-Run WebService as a dedicated static file server (`web-server.ts`):
+This script (`web-server.ts`) runs `WebService` as a dedicated static file server:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -413,7 +432,7 @@ await service.start();
 
 ### Alongside AI Agents
 
-Run WebService alongside your AI agent on a different port (`main.ts`):
+This script (`main.ts`) runs `WebService` on one port and an agent on another:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -433,6 +452,8 @@ await agent.serve({ port: 3000 });
 ```
 
 ### Docker Deployment
+
+This Dockerfile runs the compiled `web-server.ts` from the standalone example. It assumes you compile it to `dist/web-server.js` before the build:
 
 ```dockerfile
 FROM node:22-slim
@@ -455,9 +476,11 @@ EXPOSE 8002
 CMD ["node", "dist/web-server.js"]
 ```
 
+The service finds `/app/web_service.json` because the working directory is `/app`.
+
 ### Nginx Reverse Proxy
 
-For production, put Nginx in front as a reverse proxy:
+For production, Nginx in front of the service can terminate TLS:
 
 ```nginx
 server {
@@ -487,31 +510,33 @@ server {
 
 ## Best Practices
 
-### Security
-1. **Always use HTTPS in production** - Protect data in transit.
-2. **Set explicit credentials** - Provide `basicAuth` or the auth env vars in production.
-3. **Restrict file types** - Use `allowedExtensions` to allowlist safe files.
-4. **Disable directory browsing** - Turn it off in production environments.
-5. **Use a reverse proxy** - Put Nginx/Apache in front for additional security.
+These practices apply to a production deployment:
 
-### Performance
-1. **Cache headers** - WebService adds a 1-hour `Cache-Control` header by default.
-2. **Limit file sizes** - Adjust `maxFileSize` based on your needs.
-3. **Use a CDN for static assets** - Offload traffic for better performance.
-
-### Organization
-1. **Separate content types** - Use different routes for different file types.
-2. **Version your assets** - Include a version in the path (e.g., `/assets/v1/`).
-3. **Use index.html** - Provide a default file for each directory.
+1. Serve HTTPS, from the service or from a proxy in front of it.
+2. Set `basicAuth` for anything that isn't public. Without it, every file the service can read is public.
+3. Use `allowedExtensions` to serve only the file types you intend.
+4. Turn off directory browsing.
+5. Mount only directories whose contents you control, because the service follows symbolic links.
+6. Tune `maxFileSize`, and use a CDN for large or busy static assets.
 
 ## API Reference
 
 ### WebService Class
 
+The class has these public members:
+
 <!-- snippet: no-compile class API-signature reference (declaration-only, no bodies), not runnable -->
 ```typescript
 class WebService {
   constructor(options?: WebServiceOptions);
+
+  readonly port: number;
+  readonly directories: Record<string, string>;
+  readonly enableDirectoryBrowsing: boolean;
+  readonly allowedExtensions: string[] | null;
+  readonly blockedExtensions: string[];
+  readonly maxFileSize: number;
+  readonly enableCors: boolean;
 
   addDirectory(route: string, directory: string): void;
   removeDirectory(route: string): void;
@@ -527,27 +552,29 @@ class WebService {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `port` | `number` | `8002` | Port to bind to. |
-| `directories` | `Record<string, string>` | `{}` | URL route prefix to local directory mappings. |
+| `directories` | `Record<string, string>` | `{}` | URL prefix to local directory mappings. |
 | `basicAuth` | `[string, string]` | none | `[username, password]` for basic auth. |
-| `configFile` | `string` | none | Path to a JSON config file. |
-| `enableDirectoryBrowsing` | `boolean` | `false` | Allow directory listings. |
-| `allowedExtensions` | `string[]` | all | Allowlist of file extensions. |
-| `blockedExtensions` | `string[]` | (defaults) | Blocklist of file extensions/names. |
+| `configFile` | `string` | none | Path to a JSON config file. Without it, the constructor searches for `web_service.json`. |
+| `enableDirectoryBrowsing` | `boolean` | `false` | Serve HTML listings for directories. |
+| `allowedExtensions` | `string[]` | all | Allowlist of file extensions, such as `.html`. |
+| `blockedExtensions` | `string[]` | (defaults) | Blocklist of extensions and names. Replaces the default list. |
 | `maxFileSize` | `number` | `104857600` | Maximum file size in bytes (100 MB). |
-| `enableCors` | `boolean` | `true` | Enable CORS headers. |
-| `ssl` | `SslOptions` | none | SSL/TLS configuration. |
+| `enableCors` | `boolean` | `true` | Add CORS headers. |
+| `ssl` | `SslOptions` | none | SSL settings: `enabled`, `certPath`, `keyPath`, `domain`, `hsts`, `hstsMaxAge`. |
 
 #### Methods
 
-- `addDirectory(route, directory)` — Mount a new directory at a route prefix. Throws if the directory does not exist.
-- `removeDirectory(route)` — Stop tracking a route (a restart is required for Hono to fully drop the route).
-- `getApp()` — Return the underlying Hono app for mounting or testing.
-- `start(host?, port?, sslCert?, sslKey?)` — Start the HTTP(S) server.
-- `stop()` — Stop the server and release resources.
+These methods manage the service:
+
+- `addDirectory(route, directory)`: Mount a directory at a URL prefix. Throws if the directory doesn't exist, or if the service has already handled a request.
+- `removeDirectory(route)`: Remove the prefix from `directories`. The route keeps serving until the process restarts.
+- `getApp()`: Return the underlying Hono app, to mount or test.
+- `start(host?, port?, sslCert?, sslKey?)`: Start the HTTP or HTTPS server. `host` defaults to `0.0.0.0`. With `SWAIG_CLI_MODE=true`, it does nothing.
+- `stop()`: Stop the server.
 
 ## Integration with SignalWire Agents
 
-WebService complements AI agents by serving static assets:
+An agent can point callers or the model at files the service serves. This agent's tool returns a documentation link, and the agent and the service run in the same process on different ports:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -582,8 +609,4 @@ agent.promptAddSection('Documentation', {
 await agent.serve({ port: 3000 });
 ```
 
-## Summary
-
-WebService provides a secure, configurable static file server that integrates with the
-SignalWire AI Agents SDK. It follows the same security patterns as `AgentBase` and
-`SWMLService`, making it familiar and easy to use alongside your voice agents.
+The tool's response is context for the model, not speech: the model decides how to pass the link on. For audio, a SWML `play` verb, or a `FunctionResult` action such as `playBackgroundFile()`, can use a URL the service serves.
