@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ b4213b0c2d3e323abba238b88ffcedd88c72afff",
+  "generated_from": "signalwire-typescript @ 2cf4a949a8967ef37364db0b4b1ec6c8de66529a",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -196,6 +196,74 @@
         "minimal_post_data",
         "parse_override_value",
         "set_nested"
+      ]
+    },
+    "signalwire.cli.tsdocs.agents_note": {
+      "classes": {},
+      "functions": [
+        "init",
+        "note"
+      ]
+    },
+    "signalwire.cli.tsdocs.api": {
+      "classes": {},
+      "functions": [
+        "close_matches",
+        "load_api_index",
+        "render_found",
+        "resolve_name",
+        "suggestions",
+        "summary",
+        "summary_of",
+        "use_api_index"
+      ]
+    },
+    "signalwire.cli.tsdocs.files": {
+      "classes": {},
+      "functions": [
+        "all_doc_files",
+        "code_files",
+        "grep_files",
+        "headings",
+        "is_doc_file",
+        "is_text",
+        "resolve_doc",
+        "section"
+      ]
+    },
+    "signalwire.cli.tsdocs.index": {
+      "classes": {},
+      "functions": [
+        "main"
+      ]
+    },
+    "signalwire.cli.tsdocs.live": {
+      "classes": {},
+      "functions": [
+        "render_live",
+        "scan_env_names"
+      ]
+    },
+    "signalwire.cli.tsdocs.locate": {
+      "classes": {},
+      "functions": [
+        "code_dir",
+        "find_package_root",
+        "package_root",
+        "read_package_json"
+      ]
+    },
+    "signalwire.cli.tsdocs.render": {
+      "classes": {},
+      "functions": [
+        "example_descriptions",
+        "expand_examples",
+        "render_examples",
+        "render_index",
+        "render_llms_txt",
+        "render_topic",
+        "render_topic_list",
+        "version"
       ]
     },
     "signalwire.core.agent.prompt.manager": {
