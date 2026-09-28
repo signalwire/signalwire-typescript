@@ -441,9 +441,12 @@ class Client {
         'Basic ' + Buffer.from(`${creds[0]}:${creds[1]}`).toString('base64');
     }
     // Signed as SignalWire signs it, when the agent checks signatures.
+    // Over the public URL the agent reconstructs: SWML_PROXY_URL_BASE and
+    // the path, or the URL as received.
     const key = this.target.signingKey;
     if (key) {
-      const signed = `http://localhost${pathAndQuery}${body ?? ''}`;
+      const proxyBase = process.env['SWML_PROXY_URL_BASE']?.replace(/\/+$/, '');
+      const signed = `${proxyBase ?? 'http://localhost'}${pathAndQuery}${body ?? ''}`;
       headers['X-SignalWire-Signature'] = createHmac('sha1', key).update(signed).digest('hex');
       headers['X-SignalWire-Sha256-Signature'] = createHmac('sha256', key)
         .update(signed)
@@ -756,20 +759,28 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
       }
       return 0;
     }
-    const tool = target.getTool?.(opts.execName!);
+    const tool = tools.find((t) => t.name === opts.execName);
     if (!tool) {
       io.out(`Error: Function '${opts.execName}' not found.`);
       return 1;
     }
-    const args = parseFunctionArguments(opts.functionTokens, tool.parameters);
+    let args: Data;
+    try {
+      args = parseFunctionArguments(opts.functionTokens, tool.parameters);
+    } catch (err) {
+      io.out(`Error parsing arguments: ${err instanceof Error ? err.message : err}`);
+      return 1;
+    }
     for (const w of undeclaredArgumentWarnings(args, tool.parameters, CLI_OPTIONS)) io.err(w);
-    const result = await tool.execute(args, minimalPostData(args) as never);
-    io.out(
-      opts.raw || opts.formatJson
-        ? JSON.stringify(result, null, 2)
-        : `RESULT:\n${formatResult(result)}`,
-    );
-    return 0;
+    // Through the service's own /swaig route, as a call would reach it.
+    const request = functionRequestData(opts, flags, io);
+    const body = JSON.stringify({
+      ...request,
+      params: args,
+      function: tool.name,
+      argument: { parsed: [args], raw: JSON.stringify(args) },
+    });
+    return printCallResult(await client.send('POST', `${client.prefix}/swaig`, body), opts, io);
   }
 
   if (opts.action === 'list-tools') {
@@ -807,22 +818,20 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
   }
 
   // --exec: the SWML for the call names the function and where to call it.
+  // The SWML request and the function request describe the same call.
   const name = opts.execName!;
-  const skeleton = opts.minimal
-    ? minimalPostData({})
-    : comprehensivePostData(name, {}, parseJsonOption('--custom-data', opts.customData, io));
-  const callData = applyOverrides(
-    applyConvenienceMappings(skeleton, flags),
-    opts.overrides,
-    opts.overrideJson,
-    io.err,
-  );
+  const callData = functionRequestData(opts, flags, io, name);
   const callId = String(
     callData['call_id'] ?? (callData['call'] as Data | undefined)?.['call_id'] ?? '',
   );
-  const swmlData = applyConvenienceMappings(
-    fakeSwmlPostData(opts.callType, opts.callDirection, opts.callState),
-    { ...flags, callId },
+  const swmlData = applyOverrides(
+    applyConvenienceMappings(fakeSwmlPostData(opts.callType, opts.callDirection, opts.callState), {
+      ...flags,
+      callId,
+    }),
+    opts.overrides,
+    opts.overrideJson,
+    () => undefined,
   );
   const doc = await fetchSwml(client, opts, swmlData, io);
   const { functions, defaultUrl } = swaigOf(doc);
@@ -862,29 +871,82 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
     const body = JSON.stringify(payload);
     io.verbose(`Request: ${body}`);
     const url = entry.web_hook_url ?? defaultUrl ?? '';
-    let res: Response;
     if (kind === 'local') {
-      res = await client.send('POST', localPath(target, client, url)!, body);
-    } else {
-      io.verbose(`External URL: ${url}`);
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': 'SignalWire-SWAIG-Test/1.0' },
-        body,
-      });
+      return printCallResult(
+        await client.send('POST', localPath(target, client, url)!, body),
+        opts,
+        io,
+      );
     }
-    const text = await res.text();
-    try {
-      result = JSON.parse(text) as unknown;
-    } catch {
-      result = { response: text };
-    }
-    if (!res.ok) {
-      io.out(`Error calling function: HTTP ${res.status}: ${text}`);
-      return 1;
-    }
+    io.verbose(`External URL: ${url}`);
+    return printCallResult(await postExternal(url, body), opts, io);
   }
 
+  if (opts.raw || opts.formatJson) io.out(JSON.stringify(result, null, 2));
+  else io.out(`RESULT:\n${formatResult(result)}`);
+  // Every webhook failed and there was no fallback output.
+  const r = (result ?? {}) as Data;
+  const failed =
+    r['status'] === 'failed' && String(r['error'] ?? '').startsWith('All webhooks failed');
+  return failed ? 1 : 0;
+}
+
+/** The function request for --exec: minimal or full, with the call flags and overrides. */
+function functionRequestData(
+  opts: CliOptions,
+  flags: Parameters<typeof applyConvenienceMappings>[1],
+  io: Io,
+  name = opts.execName ?? '',
+): Data {
+  const custom = parseJsonOption('--custom-data', opts.customData, io);
+  const skeleton = opts.minimal
+    ? { ...minimalPostData({}), ...custom }
+    : comprehensivePostData(name, {}, custom);
+  return applyOverrides(
+    applyConvenienceMappings(skeleton, flags),
+    opts.overrides,
+    opts.overrideJson,
+    io.err,
+  );
+}
+
+/** Seconds to wait for an external webhook. */
+const EXTERNAL_TIMEOUT = 30;
+
+/** POST to an external webhook; credentials in its URL become basic auth. */
+async function postExternal(url: string, body: string): Promise<Response> {
+  const target = new URL(url);
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'SignalWire-SWAIG-Test/1.0',
+  };
+  if (target.username || target.password) {
+    const creds = `${decodeURIComponent(target.username)}:${decodeURIComponent(target.password)}`;
+    headers['Authorization'] = 'Basic ' + Buffer.from(creds).toString('base64');
+    target.username = '';
+    target.password = '';
+  }
+  return fetch(target, {
+    method: 'POST',
+    headers,
+    body,
+    signal: AbortSignal.timeout(EXTERNAL_TIMEOUT * 1000),
+  });
+}
+
+/** Print the SWAIG response of a function call; exit status 1 unless it's 2xx. */
+async function printCallResult(res: Response, opts: CliOptions, io: Io): Promise<number> {
+  const text = await res.text();
+  if (!res.ok) {
+    io.out(`Error calling function: HTTP ${res.status}: ${text}`);
+    return 1;
+  }
+  let result: unknown;
+  try {
+    result = JSON.parse(text) as unknown;
+  } catch {
+    result = { response: text };
+  }
   if (opts.raw || opts.formatJson) io.out(JSON.stringify(result, null, 2));
   else io.out(`RESULT:\n${formatResult(result)}`);
   return 0;

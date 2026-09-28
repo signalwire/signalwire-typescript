@@ -347,6 +347,10 @@ export function applyConvenienceMappings(data: Data, flags: ConvenienceFlags): D
   if (flags.spaceId) setNested(out, 'call.space_id', flags.spaceId);
   if (flags.callState) setNested(out, 'call.state', flags.callState);
   if (flags.callDirection) setNested(out, 'call.direction', flags.callDirection);
+  // The call type as the SWML request reports it, so the function request matches.
+  if (flags.callType && isPlainObject(out['call'])) {
+    setNested(out, 'call.type', flags.callType === 'sip' ? 'phone' : 'webrtc');
+  }
   const address = (value: string, sipPrefix: string, callType?: string) => {
     if (value.startsWith('+') || /^\d+$/.test(value)) return value;
     return callType === 'sip' ? `${sipPrefix}${hex(7)}` : `${value}@test.domain`;
@@ -391,6 +395,7 @@ const PLATFORM_PRESETS: Record<string, Record<string, string>> = {
   },
   cloud_function: {
     GOOGLE_CLOUD_PROJECT: 'test-project',
+    FUNCTION_TARGET: 'agent',
     FUNCTION_URL: 'https://my-function-abc123.cloudfunctions.net',
     GOOGLE_CLOUD_REGION: 'us-central1',
     K_SERVICE: 'agent',
@@ -408,8 +413,37 @@ const PLATFORM_PRESETS: Record<string, Record<string, string>> = {
  * other platforms' variables and `SWML_PROXY_URL_BASE` cleared, so the
  * agent's webhook URLs are the platform's.
  */
+/** Every variable a platform is detected by or builds its URL from. */
+const PLATFORM_VARIABLES = [
+  'GATEWAY_INTERFACE',
+  'HTTP_HOST',
+  'SERVER_NAME',
+  'SCRIPT_NAME',
+  'HTTPS',
+  'PATH_INFO',
+  'AWS_LAMBDA_FUNCTION_NAME',
+  'AWS_LAMBDA_FUNCTION_URL',
+  'AWS_REGION',
+  'LAMBDA_TASK_ROOT',
+  '_HANDLER',
+  'FUNCTION_TARGET',
+  'FUNCTION_URL',
+  'FUNCTION_REGION',
+  'K_SERVICE',
+  'GOOGLE_CLOUD_PROJECT',
+  'GCP_PROJECT',
+  'GOOGLE_CLOUD_REGION',
+  'AZURE_FUNCTIONS_ENVIRONMENT',
+  'FUNCTIONS_WORKER_RUNTIME',
+  'WEBSITE_SITE_NAME',
+  'AZURE_FUNCTIONS_APP_NAME',
+  'AZURE_FUNCTION_NAME',
+  'AZURE_FUNCTION_URL',
+  'SWML_PROXY_URL_BASE',
+];
+
 export class ServerlessSimulator {
-  private readonly saved: Record<string, string | undefined> = {};
+  private snapshot: NodeJS.ProcessEnv | null = null;
 
   /**
    * @param platform - `lambda`, `cgi`, `cloud_function` or `azure_function`.
@@ -425,30 +459,31 @@ export class ServerlessSimulator {
     return { ...(PLATFORM_PRESETS[this.platform] ?? {}), ...this.overrides };
   }
 
-  /** Apply the platform's environment. */
+  /**
+   * Apply the platform's environment: every platform variable not in it is
+   * cleared, so an inherited one (LAMBDA_TASK_ROOT, say) can't make another
+   * platform win detection.
+   */
   activate(): void {
-    const others = Object.entries(PLATFORM_PRESETS)
-      .filter(([name]) => name !== this.platform)
-      .flatMap(([, preset]) => Object.keys(preset));
-    for (const key of [...others, 'SWML_PROXY_URL_BASE']) this.set(key, undefined);
-    for (const [key, value] of Object.entries(this.environment)) this.set(key, value);
+    this.snapshot = { ...process.env };
+    const environment = this.environment;
+    for (const key of PLATFORM_VARIABLES) {
+      if (!(key in environment)) delete process.env[key];
+    }
+    Object.assign(process.env, environment);
     if (this.platform === 'cgi' && !('SIGNALWIRE_LOG_MODE' in this.overrides)) {
-      this.set('SIGNALWIRE_LOG_MODE', 'off');
+      process.env['SIGNALWIRE_LOG_MODE'] = 'off';
     }
   }
 
-  /** Restore the environment as it was. */
+  /** Restore the environment as it was, removing what was added since. */
   deactivate(): void {
-    for (const [key, value] of Object.entries(this.saved)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
+    if (!this.snapshot) return;
+    for (const key of Object.keys(process.env)) {
+      if (!(key in this.snapshot)) delete process.env[key];
     }
-  }
-
-  private set(key: string, value: string | undefined): void {
-    if (!(key in this.saved)) this.saved[key] = process.env[key];
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    Object.assign(process.env, this.snapshot);
+    this.snapshot = null;
   }
 }
 

@@ -253,6 +253,8 @@ describe('SchemaUtils — verbs that embed SWML are fully validated', () => {
   it('shares compiled validators between instances using the bundled schema', () => {
     const a = new SchemaUtils() as unknown as { getVerbValidator(name: string): unknown };
     const b = new SchemaUtils() as unknown as { getVerbValidator(name: string): unknown };
-    expect(a.getVerbValidator('execute')).toBe(b.getVerbValidator('execute'));
+    const validator = a.getVerbValidator('execute');
+    expect(typeof validator).toBe('function');
+    expect(b.getVerbValidator('execute')).toBe(validator);
   });
 });

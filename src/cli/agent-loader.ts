@@ -80,6 +80,7 @@ async function importModule(agentPath: string): Promise<LoadedModule> {
   // Suppress server startup: agent files call .serve() at module scope,
   // but the CLI only needs the configured agent instance, not a running server.
   // In this mode, every SWMLService constructed also records itself.
+  const previousMode = process.env['SWAIG_CLI_MODE'];
   process.env['SWAIG_CLI_MODE'] = 'true';
   _takeCliLoadedServices();
   try {
@@ -88,7 +89,8 @@ async function importModule(agentPath: string): Promise<LoadedModule> {
   } catch (err) {
     throw new Error(`Failed to import agent file: ${absPath}\n${err}`, { cause: err });
   } finally {
-    delete process.env['SWAIG_CLI_MODE'];
+    if (previousMode === undefined) delete process.env['SWAIG_CLI_MODE'];
+    else process.env['SWAIG_CLI_MODE'] = previousMode;
   }
 }
 

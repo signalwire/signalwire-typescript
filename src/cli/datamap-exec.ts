@@ -50,6 +50,13 @@ function isPlainObject(value: unknown): value is Data {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Truthy as the platform (and Python) mean it: an empty list or object is false. */
+function present(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  if (isPlainObject(value)) return Object.keys(value).length > 0;
+  return Boolean(value);
+}
+
 /** The value at a dotted path with `[n]` indexes, or a `<MISSING:path>` marker. */
 function lookup(data: Data, path: string): unknown {
   let value: unknown = data;
@@ -124,6 +131,8 @@ export function expandValue(value: unknown, data: Data): unknown {
 export interface DataMapExecOptions {
   /** Print each step to `log`. */
   verbose?: boolean;
+  /** Seconds to wait for each webhook, body included (default 30). */
+  timeoutSeconds?: number;
   /** Where verbose output and hints go (default: stderr). */
   log?: (line: string) => void;
   /** Fetch implementation; defaults to the SDK's SSRF-guarded fetch. */
@@ -230,16 +239,27 @@ export async function executeDataMap(
 
     let responseData: unknown;
     let failed = false;
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      (opts.timeoutSeconds ?? HTTP_REQUEST_TIMEOUT) * 1000,
+    );
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), HTTP_REQUEST_TIMEOUT * 1000);
-      let response: Response;
-      try {
-        response = await fetchImpl(url, { method, headers, body, signal: controller.signal });
-      } finally {
-        clearTimeout(timer);
-      }
-      const raw = await response.text();
+      // The timeout covers the body too: headers can arrive and the body stall.
+      const response = await fetchImpl(url, { method, headers, body, signal: controller.signal });
+      const raw = await Promise.race([
+        response.text(),
+        new Promise<never>((_resolve, reject) => {
+          if (controller.signal.aborted) reject(new Error('webhook timed out'));
+          controller.signal.addEventListener(
+            'abort',
+            () => reject(new Error('webhook timed out')),
+            {
+              once: true,
+            },
+          );
+        }),
+      ]);
       say(`Response status: ${response.status}`);
       try {
         responseData = JSON.parse(raw);
@@ -267,7 +287,9 @@ export async function executeDataMap(
               ? configured
               : []),
         ];
-        const hit = errorKeys.find((k) => typeof k === 'string' && (responseData as Data)[k]);
+        const hit = errorKeys.find(
+          (k) => typeof k === 'string' && present((responseData as Data)[k]),
+        );
         if (hit) {
           failed = true;
           say(`Webhook failed: error key '${hit}' is set`);
@@ -280,6 +302,8 @@ export async function executeDataMap(
         error: err instanceof Error ? err.message : String(err),
       };
       say(`Webhook failed: ${(responseData as Data)['error']}`);
+    } finally {
+      clearTimeout(timer);
     }
 
     if (failed) {

@@ -249,3 +249,34 @@ describe('executeDataMap expressions', () => {
     expect(result).toBe('refused');
   });
 });
+
+describe('found in review', () => {
+  it('times out a webhook whose body stalls after the headers', async () => {
+    const fetchImpl = async () =>
+      new Response(new ReadableStream({ pull: () => new Promise<void>(() => undefined) }), {
+        status: 200,
+      });
+    const fn = {
+      data_map: {
+        webhooks: [{ url: 'https://slow', method: 'GET', output: 'ok' }],
+        output: { response: 'timed out' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, { fetchImpl, timeoutSeconds: 0.05 })).toEqual({
+      response: 'timed out',
+    });
+  });
+
+  it('treats an empty list or object under an error key as no error, as the reference does', async () => {
+    const fn = (payload: unknown) => ({
+      data_map: {
+        webhooks: [{ url: 'https://x', method: 'GET', error_keys: ['errors'], output: 'fine' }],
+        output: 'failed',
+      },
+      payload,
+    });
+    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: [] }))).toBe('fine');
+    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: {} }))).toBe('fine');
+    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: ['bad'] }))).toBe('failed');
+  });
+});

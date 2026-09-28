@@ -348,3 +348,124 @@ describe('help', () => {
     expect(stdout).toContain('parse OK');
   }, 70_000);
 });
+
+describe('found in review', () => {
+  it('signs over SWML_PROXY_URL_BASE when it is set', async () => {
+    const path = agentFile(`${TOOLS}\nexport default agent;`);
+    const { code, stdout } = await runCli([path, '--exec', 'count_things'], {
+      SIGNALWIRE_SIGNING_KEY: 'test-signing-key',
+      SWML_PROXY_URL_BASE: 'https://proxy.example/prefix',
+    });
+    expect(code).toBe(0);
+    expect(stdout).toContain('RESULT:');
+  }, 70_000);
+
+  it('sends the credentials in an external webhook URL as basic auth', async () => {
+    let auth: string | undefined;
+    const server = http.createServer((req, res) => {
+      auth = req.headers['authorization'];
+      req.resume();
+      req.on('end', () => res.end('{"response":"ok"}'));
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const path = agentFile(`
+const agent = new AgentBase({ name: 'ext', route: '/' });
+agent.setPromptText('hi');
+agent.defineTool({
+  name: 'remote', description: 'Remote', parameters: {},
+  webhookUrl: 'http://user:s3cret@127.0.0.1:${port}/hook',
+  handler: () => new FunctionResult('never'),
+});
+export default agent;`);
+      const { code } = await runCli([path, '--exec', 'remote']);
+      expect(code).toBe(0);
+      expect(auth).toBe('Basic ' + Buffer.from('user:s3cret').toString('base64'));
+    } finally {
+      server.close();
+    }
+  }, 70_000);
+
+  it('describes the same call when it finds the function and when it calls it', async () => {
+    const path = agentFile(`
+const agent = new AgentBase({ name: 'dyn', route: '/' });
+agent.setPromptText('hi');
+agent.setDynamicConfigCallback((_q, body, _h, copy) => {
+  const tenant = body?.vars?.userVariables?.tenant;
+  const type = body?.call?.type;
+  if (tenant === 'acme' && type === 'webrtc') {
+    copy.defineTool({
+      name: 'tenant_tool', description: 'per tenant', parameters: {},
+      handler: () => new FunctionResult('ran for ' + tenant),
+    });
+  }
+});
+export default agent;`);
+    const { code, stdout } = await runCli([
+      path,
+      '--call-type',
+      'webrtc',
+      '--override-json',
+      'vars.userVariables={"tenant":"acme"}',
+      '--exec',
+      'tenant_tool',
+    ]);
+    expect(code).toBe(0);
+    expect(stdout).toContain('Response: ran for acme');
+  }, 70_000);
+
+  it('runs a plain SWMLService function through its served /swaig route', async () => {
+    const path = agentFile(`
+class Service extends sw.SWMLService {
+  async onFunctionCall() { return { response: 'through the served path' }; }
+}
+const svc = new Service({ name: 'svc', route: '/svc' });
+svc.addVerb('answer', {});
+svc.defineTool({ name: 'ping', description: 'Ping', parameters: {}, handler: () => new FunctionResult('direct') });
+export default svc;`);
+    const { code, stdout } = await runCli([path, '--exec', 'ping']);
+    expect(code).toBe(0);
+    expect(stdout).toContain('through the served path');
+  }, 70_000);
+
+  it('exits 1 when a DataMap function fails with no fallback output', async () => {
+    const path = agentFile(`
+const agent = new AgentBase({ name: 'dm', route: '/' });
+agent.setPromptText('hi');
+agent.registerSwaigFunction(
+  new DataMap('lookup').description('Look up').webhook('GET', 'http://127.0.0.1:9/x')
+    .output(new FunctionResult('ok')).toSwaigFunction(),
+);
+export default agent;`);
+    const { code, stdout } = await runCli([path, '--exec', 'lookup']);
+    expect(code).toBe(1);
+    expect(stdout).toContain('All webhooks failed');
+  }, 70_000);
+
+  it("isolates the simulated platform from another platform's inherited variables", async () => {
+    const path = agentFile(`${TOOLS}\nexport default agent;`);
+    const { stdout } = await runCli(
+      [path, '--simulate-serverless', 'gcf', '--dump-swml', '--raw'],
+      { LAMBDA_TASK_ROOT: '/var/task' },
+    );
+    expect(stdout).toContain('my-function-abc123.cloudfunctions.net/agent/swaig');
+    expect(stdout).not.toContain('lambda-url');
+  }, 70_000);
+
+  it('does not handle a CGI request while loading a file that calls run()', async () => {
+    const path = agentFile(`${TOOLS}\nagent.run();`);
+    const { code, stdout } = await runCli([
+      path,
+      '--simulate-serverless',
+      'cgi',
+      '--cgi-host',
+      'example.com',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(code).toBe(0);
+    expect(() => JSON.parse(stdout)).not.toThrow();
+    expect(stdout).toContain('@example.com/cgi-bin/agent.cgi/agent/swaig');
+  }, 70_000);
+});

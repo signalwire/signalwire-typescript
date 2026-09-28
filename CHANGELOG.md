@@ -103,6 +103,17 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
     parameters.
   - It finds an agent the file constructs without exporting (the
     quickstart's), and `--route` picks a service in a file with several.
+  - The simulated call is the same when `--exec` finds the function and
+    when it calls it, so `--override`, `--override-json` and the call flags
+    reach a dynamic config callback both times. A plain `SWMLService`'s
+    function is called through its `/swaig` route.
+  - Requests are signed over `SWML_PROXY_URL_BASE` when it's set, as the
+    platform signs them. Credentials in an external webhook URL are sent as
+    basic auth.
+  - `--exec` exits `1` when every webhook of a DataMap function fails and
+    it has no fallback output. A webhook's timeout covers its body.
+  - A simulated platform's environment replaces other platforms' variables
+    the shell had set, and they're restored afterwards.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
   `get` / `create` / `update` / `delete` / `list_addresses` and every generated
   operation / command-dispatch / set-method now accepts a trailing optional
