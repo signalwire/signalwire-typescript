@@ -13,7 +13,6 @@
 import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
 import { RestError, RestTransportError } from './RestError.js';
-import type { SignalWireErrorBody } from '../PlatformContracts.js';
 import type { HttpClientOptions, QueryParams } from './types.js';
 import {
   resolve,
@@ -249,9 +248,10 @@ export class HttpClient {
           continue;
         }
         const text = await resp.text();
-        let errBody: string | SignalWireErrorBody = text;
+        let errBody: RestError['body'] = text;
         try {
-          errBody = JSON.parse(text) as SignalWireErrorBody;
+          // Any JSON value is a member of RestError['body'], so this cast is sound.
+          errBody = JSON.parse(text) as RestError['body'];
         } catch {
           // Response was not valid JSON — keep as plain string.
         }

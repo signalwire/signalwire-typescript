@@ -17843,7 +17843,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>",
+                  "type": "union<string,float,bool,list<any>,class:signalwire.rest.namespaces.voice_types_generated.Types_StatusCodes_StatusCode422,class:signalwire.rest.namespaces.relay_rest_types_generated.Types_StatusCodes_ValidationError,dict<string,any>>",
                   "required": true
                 },
                 {
@@ -17873,7 +17873,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>"
+              "returns": "union<string,float,bool,list<any>,class:signalwire.rest.namespaces.voice_types_generated.Types_StatusCodes_StatusCode422,class:signalwire.rest.namespaces.relay_rest_types_generated.Types_StatusCodes_ValidationError,dict<string,any>>"
             },
             "headers": {
               "params": [
@@ -41161,7 +41161,7 @@
     "signalwire.rest._base.SignalWireRestError": {
       "params": {
         "body": {
-          "type": "union<string,class:signalwire.rest.namespaces.swml_webhooks_types_generated.SignalWireErrorBody>",
+          "type": "union<string,float,bool,list<any>,class:signalwire.rest.namespaces.voice_types_generated.Types_StatusCodes_StatusCode422,class:signalwire.rest.namespaces.relay_rest_types_generated.Types_StatusCodes_ValidationError,dict<string,any>>",
           "required": true
         },
         "headers": {
