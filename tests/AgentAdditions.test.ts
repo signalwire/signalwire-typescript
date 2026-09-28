@@ -262,6 +262,46 @@ describe('mount', () => {
       expect(res.headers.get('content-security-policy')).toContain("default-src 'none'");
     });
 
+    it('leaves a root mount, and a POST where the agent only serves GET, to the mounted app', async () => {
+      const root = agentWith({ route: '/agent' }).mount(chatApp());
+      const preflight = await root.getApp().request('/', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://site.example', 'Access-Control-Request-Method': 'POST' },
+      });
+      expect(preflight.headers.get('access-control-allow-origin')).toBe('https://site.example');
+
+      const posts = new Hono();
+      posts.post('/agent/health', (c) => c.json({ mounted: true }));
+      const agent = agentWith({ route: '/agent' }).mount(posts);
+      const res = await agent.getApp().request('/agent/health', {
+        method: 'POST',
+        headers: { Origin: 'https://evil.example' },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ mounted: true });
+      // The agent's own GET there keeps its headers.
+      const get = await agent.getApp().request('/agent/health');
+      expect(get.headers.get('content-security-policy')).toContain("default-src 'none'");
+    });
+
+    it("doesn't apply a parent agent's CSRF check to a child agent's mount under AgentServer", async () => {
+      const parent = agentWith({ route: '/parent' });
+      const child = agentWith({ route: '/parent/child' });
+      const chat = new Hono();
+      chat.post('/', (c) => c.json({ chat: true }));
+      child.mount(chat, { prefix: '/chat' });
+      const server = new AgentServer();
+      // The parent first, so its middleware runs ahead of the child's routes.
+      server.register(parent);
+      server.register(child);
+      const res = await server.getApp().request('/parent/child/chat', {
+        method: 'POST',
+        headers: { Origin: 'https://site.example' },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ chat: true });
+    });
+
     it("leaves a mounted app to its own CORS and headers under AgentServer, at the agent's route", async () => {
       const agent = agentWith({ route: '/agent' }).mount(chatApp(), { prefix: '/chat' });
       const server = new AgentServer();

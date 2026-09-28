@@ -174,6 +174,9 @@ function serverlessBaseUrl(): string | null {
     }
     case 'google_cloud_function': {
       if (env['FUNCTION_URL']) return env['FUNCTION_URL'].replace(/\/+$/, '');
+      // K_SERVICE and GOOGLE_CLOUD_PROJECT are also set on Cloud Run and in
+      // Cloud Shell; the functions framework sets FUNCTION_TARGET.
+      if (!env['FUNCTION_TARGET']) return null;
       const project = env['GOOGLE_CLOUD_PROJECT'] || env['GCP_PROJECT'];
       const region = env['FUNCTION_REGION'] || env['GOOGLE_CLOUD_REGION'] || 'us-central1';
       const service = env['K_SERVICE'] || env['FUNCTION_TARGET'] || 'unknown';
@@ -194,8 +197,25 @@ function serverlessBaseUrl(): string | null {
   }
 }
 
-/** The agent's own route paths in each app buildApp() makes, normalized. */
-const AGENT_PATHS = new WeakMap<object, Set<string>>();
+/** The agent's own routes in an app buildApp() made: `METHOD path`, and the paths alone. */
+interface AgentRoutes {
+  byMethod: Set<string>;
+  paths: Set<string>;
+}
+
+/** The agent's own routes in each app buildApp() makes, normalized. */
+const AGENT_ROUTES = new WeakMap<object, AgentRoutes>();
+
+/**
+ * Whether the agent's own routes serve a request. HEAD counts as GET, and an
+ * OPTIONS preflight counts for a path the agent serves by any method.
+ */
+function ownsRoute(routes: AgentRoutes, method: string, path: string): boolean {
+  const p = normalizePath(path);
+  const m = method.toUpperCase() === 'HEAD' ? 'GET' : method.toUpperCase();
+  if (m === 'OPTIONS') return routes.paths.has(p);
+  return routes.byMethod.has(`${m} ${p}`) || routes.byMethod.has(`ALL ${p}`);
+}
 
 /** A path with repeated slashes collapsed and no trailing slash, as routing matches it. */
 function normalizePath(path: string): string {
@@ -321,6 +341,8 @@ export class AgentBase extends SWMLService {
   // Dynamic config
   /** Per-request configuration callbacks, run in order on each request's copy. */
   private perCallConfigs: DynamicConfigCallback[] = [];
+  /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
+  private _serving = false;
   /** Handlers registered with {@link onCallEnd}. */
   private callEndHandlers: ((
     callLog: Record<string, unknown>[],
@@ -2336,8 +2358,9 @@ export class AgentBase extends SWMLService {
       return base;
     }
     // Serverless: the URL the platform serves the function on, from its
-    // environment, as the reference builds it.
-    const platformBase = serverlessBaseUrl();
+    // environment, as the reference builds it. Not once serve() runs an HTTP
+    // server: a server on Cloud Run also has K_SERVICE set.
+    const platformBase = this._serving ? null : serverlessBaseUrl();
     if (platformBase) {
       let base = includeAuth ? this.insertAuth(platformBase) : platformBase;
       if (this.route && this.route !== '/' && !base.endsWith(this.route)) {
@@ -3062,19 +3085,17 @@ export class AgentBase extends SWMLService {
 
     // Security headers
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
-    // A mounted app (see mount()) sets its own security headers and answers
-    // its own CORS preflights, so the agent's header, CORS and CSRF
-    // middleware leave paths under a mount prefix alone. (A mounted page
-    // couldn't work under default-src 'none'.)
-    //
-    // The decision follows dispatch: the agent's own routes are registered
-    // first and win, so a path they serve keeps its protection even under a
-    // mount prefix. Paths are compared relative to where this app is
-    // mounted (routePath), so asRouter() under AgentServer works the same.
-    const agentPaths = new Set<string>();
-    AGENT_PATHS.set(app, agentPaths);
+    // The agent's header, CORS and CSRF middleware apply to the requests its
+    // own routes serve (by method and path), so a mounted app (see mount())
+    // keeps its own headers and CORS preflights, and so does another agent's
+    // route or mount below this one's under AgentServer. (A mounted page
+    // couldn't work under default-src 'none'.) Paths are compared relative
+    // to where this app is mounted (routePath), so asRouter() under
+    // AgentServer works the same.
+    const agentRoutes: AgentRoutes = { byMethod: new Set(), paths: new Set() };
+    AGENT_ROUTES.set(app, agentRoutes);
     const underMount = (c: Context) =>
-      this._servedByMount(relativePath(c.req.path, c.req.routePath), agentPaths);
+      !ownsRoute(agentRoutes, c.req.method, relativePath(c.req.path, c.req.routePath));
     app.use('*', async (c, next) => {
       // routePath names the handler after next(), so decide first.
       const mounted = underMount(c);
@@ -3491,7 +3512,10 @@ export class AgentBase extends SWMLService {
 
     // The agent's own paths, for the mount exemption above.
     for (const r of app.routes) {
-      if (!r.path.includes('*')) agentPaths.add(normalizePath(r.path));
+      if (r.path.includes('*')) continue;
+      const path = normalizePath(r.path);
+      agentRoutes.byMethod.add(`${r.method.toUpperCase()} ${path}`);
+      agentRoutes.paths.add(path);
     }
 
     // Mounted apps (see mount()), after the agent's own routes so those win.
@@ -3535,18 +3559,17 @@ export class AgentBase extends SWMLService {
    * CORS and CSRF handling should leave it alone. Internal; AgentServer uses
    * it for the agents it serves.
    *
-   * @param path - The path relative to the agent's route-relative router
-   *   (or to the host root for an app from {@link getApp}).
-   * @param agentPaths - The agent's own paths in the same coordinates; the
-   *   route-relative router's when omitted.
+   * @param path - The path relative to the agent's route-relative router.
+   * @param method - The request's method.
    */
-  _servedByMount(path: string, agentPaths?: ReadonlySet<string>): boolean {
-    const prefixes = this.mounts.map((m) => m.prefix).filter((p) => p !== '');
-    if (prefixes.length === 0) return false;
-    const own = agentPaths ?? AGENT_PATHS.get(this.asRouter() as Hono) ?? new Set<string>();
+  _servedByMount(path: string, method = 'GET'): boolean {
+    if (this.mounts.length === 0) return false;
+    const routes = AGENT_ROUTES.get(this.asRouter() as Hono);
+    if (routes && ownsRoute(routes, method, path)) return false;
     const normalized = normalizePath(path);
-    if (own.has(normalized)) return false;
-    return prefixes.some((p) => normalized === p || normalized.startsWith(`${p}/`));
+    return this.mounts.some(
+      (m) => m.prefix === '' || normalized === m.prefix || normalized.startsWith(`${m.prefix}/`),
+    );
   }
 
   /**
@@ -3574,6 +3597,9 @@ export class AgentBase extends SWMLService {
 
     const host = opts?.host ?? this.host;
     const port = opts?.port ?? this.port;
+    // Serving HTTP itself, the agent is a server whatever the environment
+    // says, so its webhook URLs are the host's (see getFullUrl).
+    this._serving = true;
 
     const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
@@ -3608,6 +3634,8 @@ export class AgentBase extends SWMLService {
     context?: unknown;
     platform?: 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto';
   }): Promise<void | ServerlessResponse> {
+    // Loaded by swaig-test: only the configuration is needed, never a request.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') return;
     const serverlessEnv =
       !!process.env['AWS_LAMBDA_FUNCTION_NAME'] ||
       !!process.env['_HANDLER'] ||

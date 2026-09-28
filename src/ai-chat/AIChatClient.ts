@@ -380,17 +380,23 @@ export class AIChatClient {
 
     arm();
     let response: Response;
-    const pending = this._fetch(this.url, {
-      method: 'POST',
-      headers: {
-        Authorization: this._authHeader,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'User-Agent': _userAgent(),
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+    let pending: Promise<Response>;
+    try {
+      pending = this._fetch(this.url, {
+        method: 'POST',
+        headers: {
+          Authorization: this._authHeader,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'User-Agent': _userAgent(),
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      disarm();
+      throw err;
+    }
     try {
       response = await Promise.race([pending, aborted]);
     } catch (err) {

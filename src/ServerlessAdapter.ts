@@ -125,6 +125,20 @@ interface PlatformRequest {
   platformBase?: string;
 }
 
+/**
+ * The base URL a Cloud Function was called on, or undefined to leave it to
+ * the environment. The platform strips the function's own path before the
+ * request reaches it, so the request shows only the host: a configured
+ * FUNCTION_URL wins, a `cloudfunctions.net` host gets the function's name,
+ * and any other host (Cloud Run's) is the base itself.
+ */
+function gcfBase(proto: string, host: string | undefined): string | undefined {
+  if (!host || process.env['FUNCTION_URL']) return undefined;
+  const origin = `${proto}://${host}`;
+  const name = process.env['K_SERVICE'] || process.env['FUNCTION_TARGET'];
+  return host.endsWith('.cloudfunctions.net') && name ? `${origin}/${name}` : origin;
+}
+
 /** Headers as a plain object with lower-case names. */
 function lowerHeaders(headers: Record<string, unknown> | undefined | null): Record<string, string> {
   const out: Record<string, string> = {};
@@ -461,8 +475,7 @@ export class ServerlessAdapter {
       query,
       queryVariants: [],
       platformUrl: headers['host'] ? `${proto}://${headers['host']}${relative}` : '',
-      // The origin, as the reference's Cloud Functions handler takes it.
-      platformBase: headers['host'] ? `${proto}://${headers['host']}` : undefined,
+      platformBase: gcfBase(proto, headers['host']),
       headers,
       body: rawBodyText(req.rawBody, req.body),
     };

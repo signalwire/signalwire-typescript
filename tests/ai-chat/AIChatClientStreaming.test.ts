@@ -207,3 +207,20 @@ describe('idle timeout with a transport that ignores the abort signal (found in 
     expect(cancelled).toBe(true);
   });
 });
+
+describe('a transport that throws synchronously (found in review)', () => {
+  it('leaves no idle timer running', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = (() => {
+        throw new TypeError('bad request construction');
+      }) as unknown as typeof fetch;
+      await expect(client(fetchImpl, 30).rawPost('chat', { id: 'c' })).rejects.toThrow(
+        'bad request construction',
+      );
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

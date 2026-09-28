@@ -228,7 +228,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   region and service), or an Azure Function's (`AZURE_FUNCTION_URL`, or
   built from `WEBSITE_SITE_NAME` and `AZURE_FUNCTION_NAME`). Behind Azure
   and Google Cloud Functions handlers, the URL the request arrived on is
-  used. `SWML_PROXY_URL_BASE` still takes precedence.
+  used. `SWML_PROXY_URL_BASE` still takes precedence. An agent running its
+  own server with `serve()` keeps its host and port, and a Google Cloud
+  Function is recognized by `FUNCTION_TARGET` (or `FUNCTION_URL`), so a
+  server on Cloud Run, which sets `K_SERVICE`, isn't taken for one.
 - Schema validation of `amazon_bedrock`, `cond`, `connect`, `execute`,
   `ai_sidecar`, `join_conference` and `switch` checked only their required
   properties: their schemas refer back to the document schema, the

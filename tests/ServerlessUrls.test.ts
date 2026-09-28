@@ -78,7 +78,12 @@ describe('getFullUrl on a serverless platform', () => {
     ],
     [
       'a Google Cloud Function',
-      { K_SERVICE: 'agent-svc', GOOGLE_CLOUD_PROJECT: 'proj', GOOGLE_CLOUD_REGION: 'europe-west1' },
+      {
+        K_SERVICE: 'agent-svc',
+        FUNCTION_TARGET: 'handler',
+        GOOGLE_CLOUD_PROJECT: 'proj',
+        GOOGLE_CLOUD_REGION: 'europe-west1',
+      },
       'https://europe-west1-proj.cloudfunctions.net/agent-svc/agent',
     ],
     [
@@ -168,6 +173,36 @@ describe('webhook URLs from the request a serverless adapter handles', () => {
       },
       { status: () => undefined, set: () => undefined, send: (b: string) => void (body = b) },
     );
-    expect(webhookUrl(body)).toMatch(/^https:\/\/u:p@region-proj\.cloudfunctions\.net\/swaig\?/);
+    expect(webhookUrl(body)).toMatch(
+      /^https:\/\/u:p@region-proj\.cloudfunctions\.net\/voice\/swaig\?/,
+    );
+  });
+
+  it('keeps a configured FUNCTION_URL, path and all, across requests (found in review)', async () => {
+    process.env['K_SERVICE'] = 'voice';
+    process.env['FUNCTION_TARGET'] = 'handler';
+    process.env['FUNCTION_URL'] = 'https://region-proj.cloudfunctions.net/voice';
+    const handler = ServerlessAdapter.createGcfHandler(toolAgent().getApp());
+    let body = '';
+    await handler(
+      {
+        method: 'GET',
+        path: '/',
+        originalUrl: '/?call_id=c1',
+        headers: { authorization: AUTH, host: 'region-proj.cloudfunctions.net' },
+      },
+      { status: () => undefined, set: () => undefined, send: (b: string) => void (body = b) },
+    );
+    expect(webhookUrl(body)).toMatch(
+      /^https:\/\/u:p@region-proj\.cloudfunctions\.net\/voice\/swaig\?/,
+    );
+  });
+});
+
+describe('server mode where serverless variables are set (found in review)', () => {
+  it('keeps host and port on Cloud Run, which sets K_SERVICE but not FUNCTION_TARGET', () => {
+    process.env['K_SERVICE'] = 'cloud-run-service';
+    process.env['GOOGLE_CLOUD_PROJECT'] = 'proj';
+    expect(agentAt('/agent').getFullUrl()).toBe('http://localhost:3000/agent');
   });
 });
