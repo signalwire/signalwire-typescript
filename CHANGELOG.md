@@ -225,6 +225,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- RELAY `Call.userEvent()` sent only `event` and dropped the other fields
+  its options accept. It sends them all, as the Python SDK does.
+- RELAY `sendMessage()` sent an empty `context` when the client had no
+  relay protocol yet, instead of `'default'`.
+- The RELAY outbound and messaging examples passed milliseconds to
+  `wait()`, which takes seconds.
 - Contexts and steps rendered as `ai.contexts`, beside the prompt. The
   platform reads them inside the prompt, as `ai.prompt.contexts`, which is
   where the Python SDK renders them; they now render there.

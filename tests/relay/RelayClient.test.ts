@@ -380,6 +380,27 @@ describe('RelayClient', () => {
       await client.disconnect();
     });
 
+    it("sends the 'default' context when there is no relay protocol, as the reference does", async () => {
+      const { client, ws } = createClient();
+      // Sent before connecting, the request queues while the protocol is ''.
+      expect(client.relayProtocol).toBe('');
+      const msgPromise = client.sendMessage({ toNumber: '+222', fromNumber: '+111', body: 'Hi' });
+      await client.connect();
+      try {
+        await new Promise((r) => setTimeout(r, 10));
+        const sendReq = ws.getAllSent().find((m) => m.method === 'messaging.send');
+        ws.receiveMessage({
+          jsonrpc: '2.0',
+          id: sendReq!.id,
+          result: { code: '200', message: 'OK', message_id: 'msg-2' },
+        });
+        await msgPromise;
+        expect((sendReq!.params as Record<string, unknown>)['context']).toBe('default');
+      } finally {
+        await client.disconnect();
+      }
+    });
+
     it('throws if no body or media', async () => {
       const { client } = createClient();
       await client.connect();

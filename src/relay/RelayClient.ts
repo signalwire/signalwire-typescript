@@ -157,7 +157,8 @@ type WsLike = {
  *
  * client.onCall(async (call) => {
  *   await call.answer();
- *   await call.playTTS('Thanks for calling!');
+ *   const played = await call.play([{ type: 'tts', text: 'Thanks for calling!' }]);
+ *   await played.wait();
  *   await call.hangup();
  * });
  *
@@ -784,7 +785,8 @@ export class RelayClient {
       throw new Error('At least one of body or media is required');
     }
 
-    const msgContext = options.context ?? this._relayProtocol ?? 'default';
+    // `||`, not `??`: the protocol is '' until the server assigns one.
+    const msgContext = options.context || this._relayProtocol || 'default';
     const params: Record<string, unknown> = {
       context: msgContext,
       to_number: options.toNumber,

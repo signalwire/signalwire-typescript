@@ -1741,8 +1741,12 @@ export class Call {
   async userEvent(
     options: { event?: string } & Record<string, unknown> = {},
   ): Promise<CallingUserEventResult> {
+    // Every field is sent, as the reference sends its **kwargs; `event` is
+    // left out when it isn't set.
     const params: Record<string, unknown> = {};
-    if (options.event != null) params.event = options.event;
+    for (const [key, value] of Object.entries(options)) {
+      if (key !== 'event' || value != null) params[key] = value;
+    }
     return this._execute<CallingUserEventResult>('user_event', params);
   }
 

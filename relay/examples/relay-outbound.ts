@@ -45,7 +45,7 @@ async function main() {
       { timeout: 10 },
     );
 
-    const detectEvent = await detectAction.wait(15_000);
+    const detectEvent = await detectAction.wait(15);
     const detect = detectEvent.params.detect as Record<string, unknown> | undefined;
     const machineEvent = (detect?.params as Record<string, unknown>)?.event ?? 'unknown';
     console.log(`Detection result: ${machineEvent}`);
