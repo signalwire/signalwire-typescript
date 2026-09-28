@@ -1,35 +1,49 @@
 # RestClient Reference
 
+This page lists the `RestClient` constructor options, the namespace properties on the client and the error classes it throws.
+
 ## Constructor
+
+This example passes every connection option explicitly. The comment on each line names the environment variable it falls back to:
 
 ```typescript
 import { RestClient } from '@signalwire/sdk';
 
 const client = new RestClient({
   project: 'your-project-id', // SIGNALWIRE_PROJECT_ID
-  token: 'your-api-token',    // SIGNALWIRE_API_TOKEN
-  host: 'example.signalwire.com', // SIGNALWIRE_SPACE
+  token: 'your-api-token', // SIGNALWIRE_API_TOKEN
+  host: 'example.signalwire.com', // SIGNALWIRE_REST_BASE_URL, then SIGNALWIRE_SPACE
 });
 ```
 
-All options fall back to their corresponding environment variables. An `Error` is thrown if any are missing.
+The constructor accepts these options:
 
-Authentication uses HTTP Basic Auth (`project:token`).
+| Option | Type | Description |
+|--------|------|-------------|
+| `project` | `string` | Project ID. Falls back to `SIGNALWIRE_PROJECT_ID`. |
+| `token` | `string` | API token. Falls back to `SIGNALWIRE_API_TOKEN`. |
+| `host` | `string` | A bare host (`example.signalwire.com`) or a full `http(s)://` URL. Falls back to `SIGNALWIRE_REST_BASE_URL`, then `SIGNALWIRE_SPACE`. |
+| `requestOptions` | `RequestOptionsInit` | Default timeout, retry and abort settings for every request. See [Request Options](guide.md#request-options-timeout-retries-abort). |
+| `fetchImpl` | `typeof fetch` | A replacement `fetch`, for tests. |
+
+If `project`, `token` or `host` is missing from both the options and the environment, the constructor throws an `Error`. Authentication uses HTTP Basic Auth with `project:token`.
+
+The `restClient(options?)` function, also exported from `@signalwire/sdk`, constructs the same client.
 
 ## Namespaces
 
-Every API surface is available as a namespace property on the client. There are 21 top-level namespaces.
+Each API area is a property on the client. Namespaces are properties, not methods: write `client.fabric`, not `client.fabric()`.
 
 ### Fabric API
 
-`client.fabric` has 16 sub-resources:
+`client.fabric` has these sub-resources:
 
 | Property | Description |
 |-----------|-------------|
 | `client.fabric.swmlScripts` | SWML script resources (CRUD + addresses) |
 | `client.fabric.swmlWebhooks` | SWML webhook resources |
 | `client.fabric.aiAgents` | AI agent resources |
-| `client.fabric.relayApplications` | Relay application resources |
+| `client.fabric.relayApplications` | RELAY application resources |
 | `client.fabric.callFlows` | Call flow resources (+ versions) |
 | `client.fabric.conferenceRooms` | Conference room resources |
 | `client.fabric.freeswitchConnectors` | FreeSWITCH connector resources |
@@ -40,46 +54,54 @@ Every API surface is available as a namespace property on the client. There are 
 | `client.fabric.cxmlWebhooks` | cXML webhook resources |
 | `client.fabric.cxmlApplications` | cXML application resources (no create) |
 | `client.fabric.resources` | Generic resource operations |
-| `client.fabric.addresses` | Fabric addresses (list/get only) |
-| `client.fabric.tokens` | Subscriber/guest/invite/embed token creation |
+| `client.fabric.addresses` | Fabric addresses (list and get only) |
+| `client.fabric.tokens` | Subscriber, guest, invite and embed tokens |
 
 ### Calling API
 
+The Calling API has one property:
+
 | Property | Description |
 |-----------|-------------|
-| `client.calling` | REST call control -- 37 commands via POST |
+| `client.calling` | REST call control; every command is a POST to `/api/calling/calls` |
 
 ### Relay REST Resources
 
+These properties wrap the `/api/relay/rest` endpoints:
+
 | Property | Description |
 |-----------|-------------|
-| `client.phoneNumbers` | Phone number management (+ search) |
+| `client.phoneNumbers` | Phone number management (+ search and call-handler helpers) |
 | `client.addresses` | Address management |
 | `client.queues` | Queue management (+ members) |
 | `client.recordings` | Recording management |
 | `client.numberGroups` | Number group management (+ memberships) |
 | `client.verifiedCallers` | Verified caller ID management (+ verification flow) |
-| `client.sipProfile` | Project SIP profile (get/update) |
+| `client.sipProfile` | Project SIP profile (get and update) |
 | `client.lookup` | Phone number lookup |
 | `client.shortCodes` | Short code management |
 | `client.importedNumbers` | Import external phone numbers |
-| `client.mfa` | Multi-factor authentication (SMS/call/verify) |
-| `client.registry` | 10DLC brand/campaign registry |
+| `client.mfa` | Multi-factor authentication (SMS, call, verify) |
+| `client.registry` | 10DLC brand and campaign registry |
 
 ### Other APIs
 
+These properties cover the remaining APIs:
+
 | Property | Description |
 |-----------|-------------|
+| `client.messages` | Send an SMS or MMS message, and redact a sent message |
 | `client.datasphere` | Datasphere document management and semantic search |
-| `client.video` | Video rooms, sessions, recordings, conferences |
-| `client.logs` | Message, voice, fax, and conference logs |
+| `client.video` | Video rooms, sessions, recordings, conferences, tokens and streams |
+| `client.logs` | Message, voice, fax and conference logs |
 | `client.project` | API token management |
+| `client.projects` | Project and subproject management (+ signing-key rotation) |
 | `client.pubsub` | PubSub token creation |
 | `client.chat` | Chat token creation |
 
-> Namespaces are properties, not methods — access them as `client.fabric`, never `client.fabric()`.
-
 ## Error Handling
+
+This example catches the error thrown by a failed request and reads its properties:
 
 ```typescript
 import { RestClient, SignalWireRestError } from '@signalwire/sdk';
@@ -90,28 +112,38 @@ try {
   await client.fabric.aiAgents.get('bad-id');
 } catch (err) {
   if (err instanceof SignalWireRestError) {
-    console.log(err.statusCode); // 404
-    console.log(err.body);       // {"error":"not found"}
-    console.log(err.url);        // "/api/fabric/resources/ai_agents/bad-id"
-    console.log(err.method);     // "GET"
+    console.log(err.statusCode); // for example 404
+    console.log(err.body); // parsed JSON, or the raw text
+    console.log(err.url); // the full request URL
+    console.log(err.method); // "GET"
+    console.log(err.requestId); // the platform request ID, or null
   }
 }
 ```
 
-`SignalWireRestError` is thrown on any non-2xx HTTP response. (It is also exported as `RestError`; the two names refer to the same class.)
+`SignalWireRestError` is thrown on any non-2xx HTTP response. It's also exported as `RestError`; the two names refer to the same class. Its message has the form `GET <url> returned 404: <body>`, followed by ` (request-id: <id>)` when the response carries a request ID.
+
+A request that gets no response throws `RestTransportError` (also exported as `SignalWireRestTransportError`). Examples are a refused connection, a DNS or TLS failure, a timeout, and cancellation through `abortSignal`. It extends `RestError`, so one `instanceof RestError` check catches both.
 
 ### Error Properties
 
+The error has these properties:
+
 | Property | Type | Description |
 |-----------|------|-------------|
-| `statusCode` | `number` | HTTP status code |
-| `body` | `object` or `string` | Response body (parsed JSON or raw text) |
-| `url` | `string` | Request path |
+| `statusCode` | `number \| null` | HTTP status code; `null` for a transport failure |
+| `body` | `object` or `string` | Response body (parsed JSON or raw text); the error message for a transport failure |
+| `url` | `string` | Full request URL |
 | `method` | `string` | HTTP method |
+| `headers` | `Record<string, string> \| null` | Response headers; `null` for a transport failure |
+| `requestId` | `string \| null` | The first of `x-request-id`, `x-signalwire-request-id`, `request-id` or `x-amzn-requestid` in the response headers |
 
 ## Client Behavior
 
-- A single `HttpClient` (using the global `fetch`) is shared across all namespaces.
-- Content-Type is `application/json` for JSON request bodies.
-- A custom `fetch` implementation can be injected via the `fetchImpl` option for testing.
-- The `host` is normalized to an `https://` base URL automatically.
+The client works this way:
+
+- One `HttpClient`, using the global `fetch`, is shared by all namespaces.
+- Requests send `Accept: application/json`, and a JSON body with `Content-Type: application/json`.
+- A `204 No Content` response, or an empty body, returns `{}`.
+- A bare `host` gets an `https://` base URL, or `http://` for a loopback host such as `127.0.0.1:8933`.
+- The `fetchImpl` option replaces `fetch`, for tests.
