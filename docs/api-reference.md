@@ -2554,7 +2554,7 @@ The package root also exports functions that use the singleton: `listSkills()`, 
 
 ## Prefab Agents
 
-Prefab agents are `AgentBase` subclasses with their own prompt sections and tools. Each takes a config object; `agentOptions` is passed to `AgentBase`. For examples, see the [prefabs guide](prefabs-guide.md).
+Prefab agents are `AgentBase` subclasses with their own prompt sections and tools. Each takes a config object; `agentOptions` is passed to `AgentBase`. For examples, see the [prefabs guide](prefabs-guide.md). `BedrockAgent`, which renders an `amazon_bedrock` verb instead of `ai`, has its own guide: [Bedrock Agent](bedrock_agent.md).
 
 ### InfoGathererAgent
 
@@ -2806,6 +2806,8 @@ The package root also exports the AI Chat client and two classes that let a brow
 - `AIChatClient`: a client for the SignalWire AI Chat service
 - `ChatGateway`: a proxy you mount in your app, so a browser widget can chat with an agent using a publishable key, not your API token
 - `HandoffRouter`: routes that move a conversation between a phone call and chat, and let a browser type into a live call
+
+For a guide to all three, see [AI Chat](ai_chat.md).
 
 ### ChatGateway
 

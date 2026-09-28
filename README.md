@@ -249,6 +249,9 @@ The [`docs/`](docs/) directory has these guides:
 - [Agent Guide](docs/agent-guide.md): creating agents, prompt configuration, dynamic setup
 - [Architecture](docs/architecture.md): SDK architecture and core concepts
 - [SDK Features](docs/sdk_features.md): feature overview, SDK vs raw SWML comparison
+- [Programmatically Governed Inference](docs/programmatically_governed_inference.md): why code, not the model, owns the rules of a call
+- [PGI Implementation Guide](docs/pgi_agent_guide.md): building a governed agent, with a tested reference implementation
+- [Developer Pain Points](docs/developer_pain_points.md): common problems in voice AI, and the SDK features that address them
 
 ### Core Features
 
@@ -264,6 +267,7 @@ The [`docs/`](docs/) directory has these guides:
 - [Third-Party Skills](docs/third_party_skills.md): creating and publishing custom skills
 - [MCP Gateway](docs/mcp_gateway_reference.md): Model Context Protocol integration
 - [MCP Integration](docs/mcp_integration.md): MCP agent setup and configuration
+- [AI Chat](docs/ai_chat.md): the AI Chat client, and the gateway and handoff routes for a browser chat widget
 
 ### Deployment
 
@@ -279,6 +283,7 @@ The [`docs/`](docs/) directory has these guides:
 - [Web Service](docs/web_service.md): HTTP server and endpoint details
 - [Skills Parameter Schema](docs/skills_parameter_schema.md): skill parameter definitions
 - [Prefabs Guide](docs/prefabs-guide.md): pre-built agents: InfoGatherer, Survey, FAQ, Concierge, Receptionist
+- [Bedrock Agent](docs/bedrock_agent.md): an agent that runs on Amazon Bedrock through the `amazon_bedrock` verb
 
 ## Environment Variables
 
