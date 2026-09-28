@@ -23,6 +23,7 @@ The guide has these sections:
 - [Environment Variables](#environment-variables)
 - [Serverless Simulation](#serverless-simulation)
 - [Output](#output)
+- [sw-tsdocs: The SDK's Installed Documentation](#sw-tsdocs-the-sdks-installed-documentation)
 - [Option Reference](#option-reference)
 
 ---
@@ -335,6 +336,29 @@ An unknown platform is an error, and the CLI exits with status 2. It never falls
 | `-v`, `--verbose` | Each step, the requests sent, and debug logging. |
 
 Warnings go to stderr, so they don't mix with JSON on stdout.
+
+---
+
+## sw-tsdocs: The SDK's Installed Documentation
+
+`sw-tsdocs` prints the SDK's documentation for the installed version. It's written for people and for coding agents: the output is Markdown, with full paths to the docs and examples installed with the package. Run it with `npx` in a project that depends on `@signalwire/sdk` (`node dist/cli/tsdocs/bin.js` in a built clone):
+
+```bash
+npx sw-tsdocs                          # the index: what the SDK does, where to start, every topic
+npx sw-tsdocs agents                   # one topic: concepts, files to read, examples, API names
+npx sw-tsdocs skills web_search        # a built-in skill's parameters
+npx sw-tsdocs api AgentBase            # a signature, JSDoc and members, from the installed declarations
+npx sw-tsdocs api FunctionResult.connect
+npx sw-tsdocs examples contexts        # the examples for a topic, or those matching a word
+npx sw-tsdocs grep "setFunctions"      # search the docs and examples; --code adds the SDK's code
+npx sw-tsdocs show agent-guide --toc   # a doc's headings; --section <heading> prints one section
+npx sw-tsdocs path                     # where the package and its docs are installed
+npx sw-tsdocs init                     # add a note about sw-tsdocs to this project's AGENTS.md
+```
+
+The topics are short and hand-written: they describe concepts and known mistakes, and point to the installed docs for the rest. The facts come from the installed package: the version, the commands, the built-in skills and their parameters, the prefabs, the REST namespaces, the environment variables the code reads, and every signature and JSDoc comment. `api` reads an index of the package's `.d.ts` files that the build writes, so it works without the TypeScript source.
+
+`sw-tsdocs init` adds a section to the project's `AGENTS.md` telling coding agents to use `sw-tsdocs`, and to `CLAUDE.md` if the project has one that doesn't import `AGENTS.md`. Run it again to update the section. `--skill` also writes an Agent Skills `SKILL.md` under `.agents/skills/` and `.claude/skills/`, `--dir` names the project, and `--print` prints the section without writing anything.
 
 ---
 

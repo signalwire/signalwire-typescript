@@ -59,8 +59,6 @@ would otherwise flag it.
 
 buildDocument: reader-authored doc example — method the swml_service_guide sample class defines on itself (this.buildDocument()), not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 buildVoicemailDocument: reader-authored doc example — helper defined within the swml_service_guide voicemail sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
-registerCustomerRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
-registerProductRoute: reader-authored doc example — helper in the swml_service_guide routing sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 handleWeather: reader-authored doc example — handler function in the third_party_skills sample, not SDK API; reason: example-local symbol absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 http: Azure Functions SDK app.http(...) call in cloud_functions_guide (external SDK), not a SignalWire symbol; reason: third-party framework API referenced in docs, absent from port_surface.json; approver: mike@signalwire.com; date: 2026-07-13
 
@@ -72,7 +70,7 @@ contains: illustrative pseudo-code err.contains(...) in CHECKLIST rule #7 descri
 
 ## PGI reference implementation (examples/pgi/, quoted in docs/pgi_agent_guide.md section 6)
 
-CaseHandlers#failure: defined in examples/pgi/support-agent.ts; turns a refused request into a result with no actions
-CaseHandlers#finish: defined in examples/pgi/support-agent.ts; the finish tool's handler
-CaseHandlers#submit: defined in examples/pgi/support-agent.ts; the submit_request tool's handler (MemoryCaseStore#submit in case-domain.ts shares the name)
-Number.isInteger: JavaScript built-in, used by examples/pgi/case-domain.ts
+CaseHandlers#failure: defined in examples/pgi/support-agent.ts; turns a refused request into a result with no actions; reason: a name from the PGI reference implementation or the JavaScript runtime, not SDK API, absent from port_surface.json; approver: anthm@signalwire.com; date: 2026-09-28
+CaseHandlers#finish: defined in examples/pgi/support-agent.ts; the finish tool's handler; reason: a name from the PGI reference implementation or the JavaScript runtime, not SDK API, absent from port_surface.json; approver: anthm@signalwire.com; date: 2026-09-28
+CaseHandlers#submit: defined in examples/pgi/support-agent.ts; the submit_request tool's handler (MemoryCaseStore#submit in case-domain.ts shares the name); reason: a name from the PGI reference implementation or the JavaScript runtime, not SDK API, absent from port_surface.json; approver: anthm@signalwire.com; date: 2026-09-28
+Number.isInteger: JavaScript built-in, used by examples/pgi/case-domain.ts; reason: a name from the PGI reference implementation or the JavaScript runtime, not SDK API, absent from port_surface.json; approver: anthm@signalwire.com; date: 2026-09-28

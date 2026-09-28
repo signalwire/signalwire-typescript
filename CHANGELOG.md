@@ -13,6 +13,19 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Added
 
+- `sw-tsdocs`: the SDK's documentation for the installed version, for people
+  and coding agents. With no arguments it prints an index; `sw-tsdocs <topic>`
+  covers an area, with the installed docs to read, examples and API names;
+  `sw-tsdocs api <name>` prints a signature, JSDoc, source location and members
+  from the package's declarations; `examples`, `grep`, `show` and `path` find
+  the installed files; and `sw-tsdocs init` adds a section to a project's
+  `AGENTS.md` that tells coding agents to use it. `swaig-test --help` points
+  to it, and the package's `dist/llms.txt` and `dist/AGENTS.md` list the docs.
+- The package ships its docs and examples: `docs/`, `examples/` (without the
+  audit harnesses), the RELAY, REST and LiveWire READMEs, docs and examples,
+  and `CHANGELOG.md`, in their repository layout. The examples import
+  `'@signalwire/sdk'`, so a copy runs as it is. The tarball grows from about
+  1.0 MB to 1.7 MB.
 - `AgentBase` option `swaigSecret` (or `SIGNALWIRE_SWAIG_SECRET`): the
   secret that signs SWAIG function tokens, so a token minted by one replica,
   or before a restart, still validates. Without it each process generates

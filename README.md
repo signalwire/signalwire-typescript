@@ -49,6 +49,14 @@ Install the SDK from npm:
 npm install @signalwire/sdk
 ```
 
+The package installs its own documentation. `npx sw-tsdocs` prints a map of the SDK for the installed version, with the docs and examples on disk, and `npx sw-tsdocs api <name>` reads signatures and JSDoc from the installed declarations. If you're a coding agent working with the SDK, start there:
+
+```bash
+npx sw-tsdocs                 # the map: what the SDK does and where to start
+npx sw-tsdocs agents          # one topic: concepts, files to read, examples, API
+npx sw-tsdocs api AgentBase   # a signature, JSDoc and members
+```
+
 ---
 
 ## AI Agents
@@ -242,7 +250,7 @@ npm install @signalwire/sdk
 
 The reference documentation is at **[developer.signalwire.com/sdks/agents-sdk](https://developer.signalwire.com/sdks/agents-sdk)**.
 
-The [`docs/`](docs/) directory has these guides:
+The [`docs/`](docs/) directory has these guides. They're installed with the package, with the examples: `npx sw-tsdocs path` prints where.
 
 ### Getting Started
 

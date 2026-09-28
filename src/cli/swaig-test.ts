@@ -330,7 +330,9 @@ Environment and serverless:
   --parse-only, --dry-run  Validate the arguments and exit without loading the agent
   --help-platforms       Serverless platform options
   --help-examples        Usage examples
-  -h, --help             This help`);
+  -h, --help             This help
+
+The SDK's documentation for the installed version: sw-tsdocs (npx sw-tsdocs).`);
 }
 
 function printHelpPlatforms(): void {

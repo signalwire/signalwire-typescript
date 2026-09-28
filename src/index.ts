@@ -5,6 +5,10 @@
  * [SWML](https://developer.signalwire.com/sdks/reference/swml/) documents
  * and handle SWAIG function callbacks from the SignalWire platform.
  *
+ * The documentation for the installed version ships with the package: run
+ * `npx sw-tsdocs` for a map of the SDK, its docs and examples, and
+ * `npx sw-tsdocs api <name>` for a signature and its JSDoc.
+ *
  * @example Minimal agent
  * ```ts
  * import { AgentBase, FunctionResult } from '@signalwire/sdk';
