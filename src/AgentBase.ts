@@ -2867,11 +2867,11 @@ export class AgentBase extends SWMLService {
       return obj;
     };
     if (this.contextsBuilder) {
-      const contextsDict = this.contextsBuilder.toDict();
-      aiConfig['prompt'] = buildPromptObj(
-        prompt || `You are ${this.name}, a helpful AI assistant.`,
-      );
-      aiConfig['contexts'] = contextsDict;
+      // Contexts live inside the prompt (`ai.prompt.contexts`), where the
+      // platform reads them and the reference SDK renders them.
+      const promptObj = buildPromptObj(prompt || `You are ${this.name}, a helpful AI assistant.`);
+      promptObj['contexts'] = this.contextsBuilder.toDict();
+      aiConfig['prompt'] = promptObj;
     } else {
       aiConfig['prompt'] = buildPromptObj(prompt);
     }

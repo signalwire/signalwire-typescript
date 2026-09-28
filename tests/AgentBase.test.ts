@@ -243,8 +243,9 @@ describe('AgentBase', () => {
     def.addStep('quiz', { task: 'Ask a quiz question' });
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main[1].ai;
-    expect(ai.contexts).toBeDefined();
-    expect(ai.contexts.default.steps.length).toBe(2);
+    // Contexts are inside the prompt, as the platform and the reference read them.
+    expect(ai.contexts).toBeUndefined();
+    expect(ai.prompt.contexts.default.steps.length).toBe(2);
   });
 
   it('contexts step functions whitelist rejects a dangling SWAIG ref', () => {

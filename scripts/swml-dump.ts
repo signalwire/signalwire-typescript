@@ -74,6 +74,14 @@ async function main(): Promise<void> {
 
   const out: Record<string, unknown> = {};
 
+  // swml_contexts_in_prompt: contexts render inside the prompt object.
+  {
+    const a = newAgent();
+    a.promptAddSection('Role', { body: 'You take orders.' });
+    a.defineContexts().addContext('default').addStep('greet').setText('Greet the caller.');
+    out['swml_contexts_in_prompt'] = pick(extract(render(a), 'ai.prompt'), ['contexts']);
+  }
+
   // swml_set_prompt_llm_params: two setPromptLlmParams calls MERGE.
   {
     const a = newAgent();

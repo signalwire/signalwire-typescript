@@ -225,6 +225,9 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- Contexts and steps rendered as `ai.contexts`, beside the prompt. The
+  platform reads them inside the prompt, as `ai.prompt.contexts`, which is
+  where the Python SDK renders them; they now render there.
 - `swaig-test --exec` ignored `--call-state`, and an `--override` key
   nothing read was accepted silently (#188). The call data flags now apply
   to every action, `--override` takes a dotted path (`call.state=answered`),

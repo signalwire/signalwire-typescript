@@ -100,11 +100,11 @@ describe('per-request copy isolation', () => {
     agent.defineContexts().addContext('default').addStep('greet').setText('original text');
 
     const ai = await aiFor(agent);
-    expect(JSON.stringify(ai.contexts)).toContain('per-call text');
+    expect(JSON.stringify(ai.prompt.contexts)).toContain('per-call text');
     expect(ownRender(agent)).toContain('original text');
 
     const again = await aiFor(agent);
-    expect(JSON.stringify(again.contexts)).toContain('per-call text');
+    expect(JSON.stringify(again.prompt.contexts)).toContain('per-call text');
     expect(ownRender(agent)).toContain('original text');
   });
 
