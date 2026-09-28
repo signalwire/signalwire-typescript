@@ -225,6 +225,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Fixed
 
+- `defineContexts()` called with no argument replaced the agent's contexts
+  with a new, empty builder. It returns the existing builder, creating one
+  on first use, as the Python SDK's `define_contexts()` does; pass a
+  `ContextBuilder` to replace the workflow.
 - RELAY `Call.userEvent()` sent only `event` and dropped the other fields
   its options accept. It sends them all, as the Python SDK does.
 - RELAY `sendMessage()` sent an empty `context` when the client had no

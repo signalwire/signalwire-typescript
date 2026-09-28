@@ -884,14 +884,18 @@ export class AgentBase extends SWMLService {
   // ── Contexts ────────────────────────────────────────────────────────
 
   /**
-   * Define or replace the contexts configuration for the AI verb.
-   * @param contexts - An existing ContextBuilder instance or a plain object; a new ContextBuilder is created if omitted.
+   * Get the agent's contexts builder, creating it on first use, or replace it.
+   *
+   * Called with no argument, it returns the builder the agent already has, so
+   * calling it again adds to the same workflow, as in the Python SDK.
+   *
+   * @param contexts - A ContextBuilder to use in place of the current one.
    * @returns The active ContextBuilder for further configuration.
    */
   defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder {
     if (contexts instanceof ContextBuilder) {
       this.contextsBuilder = contexts;
-    } else {
+    } else if (!this.contextsBuilder) {
       this.contextsBuilder = new ContextBuilder();
     }
     // Attach agent reference so ContextBuilder.validate() can check

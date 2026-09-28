@@ -1762,3 +1762,14 @@ describe('AgentBase', () => {
     });
   });
 });
+
+describe('defineContexts', () => {
+  it('returns the existing builder when called again, as the reference does', () => {
+    const agent = new AgentBase({ name: 'ctx', route: '/' });
+    agent.defineContexts().addContext('default').addStep('greet').setText('Hello.');
+    const again = agent.defineContexts();
+    again.getContext('default')!.addStep('ask').setText('Ask.');
+    const contexts = agent.getContexts() as Record<string, { steps: { name: string }[] }>;
+    expect(contexts['default']!.steps.map((s) => s.name)).toEqual(['greet', 'ask']);
+  });
+});
