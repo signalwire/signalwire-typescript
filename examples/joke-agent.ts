@@ -5,7 +5,7 @@
  * Run: npx tsx examples/joke-agent.ts
  */
 
-import { AgentBase, JokeSkill, DateTimeSkill } from '../src/index.js';
+import { AgentBase, JokeSkill, DateTimeSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'joke-agent',

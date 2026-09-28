@@ -14,7 +14,7 @@
  *   MSG_TO=+15551234567 MSG_FROM=+15559876543 npx tsx relay/examples/relay-messaging.ts
  */
 
-import { RelayClient, Message } from '../../src/relay/index.js';
+import { RelayClient, Message } from '@signalwire/sdk';
 
 const toEnv = process.env.MSG_TO;
 const fromEnv = process.env.MSG_FROM;

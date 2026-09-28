@@ -14,7 +14,7 @@
  *   DIAL_TO=+15551234567 DIAL_FROM=+15559876543 npx tsx relay/examples/relay-outbound.ts
  */
 
-import { RelayClient, RelayError } from '../../src/relay/index.js';
+import { RelayClient, RelayError } from '@signalwire/sdk';
 
 const to = process.env.DIAL_TO;
 const from = process.env.DIAL_FROM;

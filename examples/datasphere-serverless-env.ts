@@ -14,7 +14,7 @@
  * Run: npx tsx examples/datasphere-serverless-env.ts
  */
 
-import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '../src/index.js';
+import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '@signalwire/sdk';
 
 function requireEnv(name: string): string {
   const value = process.env[name];

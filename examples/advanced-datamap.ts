@@ -6,7 +6,7 @@
  * Run: npx tsx examples/advanced-datamap.ts
  */
 
-import { AgentBase, DataMap, FunctionResult, createExpressionTool } from '../src/index.js';
+import { AgentBase, DataMap, FunctionResult, createExpressionTool } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'advanced-datamap-agent',

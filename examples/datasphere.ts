@@ -6,7 +6,7 @@
  * Run: npx tsx examples/datasphere.ts
  */
 
-import { AgentBase, DataSphereSkill } from '../src/index.js';
+import { AgentBase, DataSphereSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'knowledge-agent',

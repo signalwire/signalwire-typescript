@@ -18,7 +18,7 @@ import {
   runApp,
   type RunContext,
   type JobContext,
-} from '../../src/livewire/index.js';
+} from '@signalwire/sdk/livewire';
 
 // Tool 1: Check order status
 const checkOrder = tool({

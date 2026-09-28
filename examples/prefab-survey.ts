@@ -7,7 +7,7 @@
  * Run: npx tsx examples/prefab-survey.ts
  */
 
-import { SurveyAgent } from '../src/index.js';
+import { SurveyAgent } from '@signalwire/sdk';
 
 export const agent = new SurveyAgent({
   name: 'csat-survey',

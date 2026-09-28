@@ -5,7 +5,8 @@
     "rootDir": ".",
     "types": ["node"],
     "paths": {
-      "@signalwire/sdk": ["./src/index.ts"]
+      "@signalwire/sdk": ["./src/index.ts"],
+      "@signalwire/sdk/livewire": ["./src/livewire/index.ts"]
     }
   },
   "include": [

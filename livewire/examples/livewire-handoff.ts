@@ -20,7 +20,7 @@ import {
   defineAgent,
   runApp,
   type JobContext,
-} from '../../src/livewire/index.js';
+} from '@signalwire/sdk/livewire';
 
 // ---------------------------------------------------------------------------
 // Sales Agent

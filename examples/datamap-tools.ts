@@ -10,7 +10,7 @@
  * Test: npx tsx src/cli/swaig-test.ts examples/datamap-tools.ts --exec get_weather --city London
  */
 
-import { AgentBase, DataMap, FunctionResult, createSimpleApiTool } from '../src/index.js';
+import { AgentBase, DataMap, FunctionResult, createSimpleApiTool } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'weather-agent',

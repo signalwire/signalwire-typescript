@@ -6,7 +6,7 @@
  * Run: npx tsx examples/skills-demo.ts
  */
 
-import { AgentBase, DateTimeSkill, MathSkill } from '../src/index.js';
+import { AgentBase, DateTimeSkill, MathSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'skilled-agent',

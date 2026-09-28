@@ -6,7 +6,7 @@
  * Run: npx tsx examples/mcp-gateway.ts
  */
 
-import { AgentBase, McpGatewaySkill } from '../src/index.js';
+import { AgentBase, McpGatewaySkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'mcp-agent',

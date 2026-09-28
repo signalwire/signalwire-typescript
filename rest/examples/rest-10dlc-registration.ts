@@ -14,7 +14,7 @@
  *   npx tsx rest/examples/rest-10dlc-registration.ts
  */
 
-import { RestClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '@signalwire/sdk';
 
 const client = new RestClient();
 

@@ -10,7 +10,7 @@
  *   npx tsx rest/examples/rest-datasphere-search.ts
  */
 
-import { RestClient } from '../../src/index.js';
+import { RestClient } from '@signalwire/sdk';
 
 const client = new RestClient();
 

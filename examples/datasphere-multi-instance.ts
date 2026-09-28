@@ -6,7 +6,7 @@
  * Run: npx tsx examples/datasphere-multi-instance.ts
  */
 
-import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '../src/index.js';
+import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'multi-datasphere',

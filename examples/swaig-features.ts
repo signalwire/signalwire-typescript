@@ -7,7 +7,7 @@
  * Run: npx tsx examples/swaig-features.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'features-agent',

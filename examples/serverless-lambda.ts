@@ -6,7 +6,7 @@
  * Run: npx tsx examples/serverless-lambda.ts
  */
 
-import { AgentBase, ServerlessAdapter, FunctionResult } from '../src/index.js';
+import { AgentBase, ServerlessAdapter, FunctionResult } from '@signalwire/sdk';
 
 // Create the agent as usual
 export const agent = new AgentBase({

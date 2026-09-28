@@ -24,7 +24,7 @@
  *         --exec lookup_competitor --arg competitor=ACME
  */
 
-import { SWMLService } from '../src/index.js';
+import { SWMLService } from '@signalwire/sdk';
 
 /** SWMLService that registers SWAIG tools and serves them on /swaig. */
 class StandaloneSwaig extends SWMLService {
