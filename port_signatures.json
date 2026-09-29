@@ -315,19 +315,19 @@
                 },
                 {
                   "name": "temperature",
-                  "type": "optional<float>",
+                  "type": "optional<union<float,string>>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "top_p",
-                  "type": "optional<float>",
+                  "type": "optional<union<float,string>>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "max_tokens",
-                  "type": "optional<float>",
+                  "type": "optional<union<float,string>>",
                   "required": false,
                   "default": null
                 }
@@ -356,7 +356,7 @@
                 },
                 {
                   "name": "temperature",
-                  "type": "float",
+                  "type": "union<float,string>",
                   "required": true
                 }
               ],
@@ -33420,7 +33420,7 @@
     "signalwire.agents.bedrock.BedrockAgent": {
       "params": {
         "max_tokens": {
-          "type": "optional<float>",
+          "type": "optional<union<float,string>>",
           "required": false
         },
         "name": {
@@ -33436,11 +33436,11 @@
           "required": false
         },
         "temperature": {
-          "type": "optional<float>",
+          "type": "optional<union<float,string>>",
           "required": false
         },
         "top_p": {
-          "type": "optional<float>",
+          "type": "optional<union<float,string>>",
           "required": false
         },
         "voice_id": {
