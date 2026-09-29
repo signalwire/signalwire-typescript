@@ -93,10 +93,10 @@ describe('optional dependencies', () => {
       expect(await skill.setup()).toBe(true);
     });
 
-    it('fails setup, instead of crashing, when allow_insecure_tls needs undici', async () => {
+    it('sets up with TLS verification off too, which needs no undici', async () => {
       const make = await loadWithoutUndici();
       const skill = make({ verify_ssl: false, allow_insecure_tls: true });
-      expect(await skill.setup()).toBe(false);
+      expect(await skill.setup()).toBe(true);
     });
   });
 });

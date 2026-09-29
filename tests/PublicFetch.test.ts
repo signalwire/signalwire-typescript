@@ -8,7 +8,10 @@
  */
 
 import http from 'node:http';
+import https from 'node:https';
 import net from 'node:net';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
@@ -19,6 +22,7 @@ import {
   _setPublicFetchTransport,
   type _PublicFetchTransport,
 } from '../src/PublicFetch.js';
+import { resolveTlsCerts } from './tls/support.js';
 
 interface Sent {
   url: string;
@@ -294,5 +298,88 @@ describe('_proxiedByNode', () => {
     expect(_proxiedByNode('https://public.example/')).toBe(true);
     setEnv({ NODE_USE_ENV_PROXY: '1', HTTPS_PROXY: 'http://p:1', NO_PROXY: '*' });
     expect(_proxiedByNode('https://public.example/')).toBe(false);
+  });
+});
+
+// Skipping certificate verification (mcp_gateway's verify_ssl=false +
+// allow_insecure_tls=true) must not skip the address checks: every hop is
+// still checked, and the connection still goes through the guarded lookup.
+describe('_publicFetch with insecureTls', () => {
+  it('passes insecureTls to every hop and still refuses a private redirect', async () => {
+    const flags: (boolean | undefined)[] = [];
+    _setPublicFetchTransport(async (url, init) => {
+      flags.push(init.insecureTls);
+      return url.endsWith('/start')
+        ? redirect(302, 'http://203.0.113.20/next')
+        : redirect(302, 'http://169.254.169.254/latest/meta-data/');
+    });
+    await expect(_publicFetch('https://203.0.113.10/start', { insecureTls: true })).rejects.toThrow(
+      /Refused to fetch/,
+    );
+    expect(flags).toEqual([true, true]);
+  });
+
+  it('leaves certificate verification on by default', async () => {
+    const flags: (boolean | undefined)[] = [];
+    _setPublicFetchTransport(async (_url, init) => {
+      flags.push(init.insecureTls);
+      return new Response('ok');
+    });
+    await _publicFetch('https://203.0.113.10/');
+    expect(flags).toEqual([false]);
+  });
+});
+
+const certs = resolveTlsCerts();
+
+describe.skipIf(certs === null)('_nodeTransport over TLS', () => {
+  let server: https.Server;
+  let port = 0;
+
+  beforeAll(async () => {
+    // The test CA's own certificate names no host, so a client connecting to
+    // localhost can't verify it (the test setup trusts the CA, so a signed
+    // leaf would verify).
+    server = https.createServer(
+      {
+        cert: readFileSync(join(certs!, 'ca.crt')),
+        key: readFileSync(join(certs!, 'ca.key')),
+      },
+      (_req, res) => {
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('tls body');
+      },
+    );
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    port = (server.address() as AddressInfo).port;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('refuses a certificate it cannot verify by default', async () => {
+    await expect(
+      _nodeTransport(`https://localhost:${port}/`, { method: 'GET', headers: {} }, false),
+    ).rejects.toThrow(/certificate/i);
+  });
+
+  it('accepts the certificate with insecureTls', async () => {
+    const res = await _nodeTransport(
+      `https://localhost:${port}/`,
+      { method: 'GET', headers: {}, insecureTls: true },
+      false,
+    );
+    expect(await res.text()).toBe('tls body');
+  });
+
+  it('still refuses a private address at connect time with insecureTls', async () => {
+    await expect(
+      _nodeTransport(
+        `https://localhost:${port}/`,
+        { method: 'GET', headers: {}, insecureTls: true },
+        true,
+      ),
+    ).rejects.toMatchObject({ code: 'ERR_SW_BLOCKED_ADDRESS' });
   });
 });

@@ -94,14 +94,14 @@ describe('McpGatewaySkill', () => {
   // TLS refactor (owner-ruled REFACTOR, not allowlist): TLS verification stays
   // ON unless the operator sets BOTH verify_ssl=false AND allow_insecure_tls=true.
   // Driven through the real setup() path with SSRF stubbed to pass and the health
-  // check stubbed to fail fast — the insecure undici Agent is created BEFORE the
-  // health check, so its presence (or absence) is the observable of the decision.
+  // check stubbed to fail fast. setup() records the decision before the health
+  // check, so the flag it sets is the observable.
   describe('TLS opt-in gating', () => {
     afterEach(() => {
       vi.restoreAllMocks();
     });
 
-    // Returns whether setup() built the SSL-bypass undici Agent for this config.
+    // Returns whether setup() turned certificate verification off for this config.
     const builtInsecureAgent = async (config: Record<string, unknown>): Promise<boolean> => {
       vi.spyOn(SecurityUtils, 'validateUrl').mockResolvedValue(true);
       const skill = new McpGatewaySkill({
@@ -109,21 +109,21 @@ describe('McpGatewaySkill', () => {
         auth_token: 'abc',
         ...config,
       });
-      // Stub the health check so setup() returns quickly (no network); the agent
-      // is created before this runs.
+      // Stub the health check so setup() returns quickly (no network); the
+      // decision is made before this runs.
       vi.spyOn(
         skill as unknown as { _makeRequest: () => Promise<Response> },
         '_makeRequest',
       ).mockResolvedValue(new Response(null, { status: 500 }));
       await skill.setup();
-      return (skill as unknown as { _undiciAgent: unknown })._undiciAgent !== undefined;
+      return (skill as unknown as { _insecureTls: boolean })._insecureTls;
     };
 
-    it('verify_ssl=false ALONE does not disable TLS (no insecure agent)', async () => {
+    it('verify_ssl=false ALONE does not disable TLS verification', async () => {
       expect(await builtInsecureAgent({ verify_ssl: false })).toBe(false);
     });
 
-    it('verify_ssl=false + allow_insecure_tls=true disables TLS (insecure agent built)', async () => {
+    it('verify_ssl=false + allow_insecure_tls=true disables TLS verification', async () => {
       expect(await builtInsecureAgent({ verify_ssl: false, allow_insecure_tls: true })).toBe(true);
     });
 
@@ -158,11 +158,13 @@ describe('McpGatewaySkill', () => {
   describe('requests go through the SSRF-checked fetch', () => {
     const GATEWAY = 'http://203.0.113.10';
     const sent: string[] = [];
+    const insecure: boolean[] = [];
 
     afterEach(() => {
       _setPublicFetchTransport(null);
       vi.unstubAllGlobals();
       sent.length = 0;
+      insecure.length = 0;
     });
 
     async function setUpSkill(
@@ -172,6 +174,7 @@ describe('McpGatewaySkill', () => {
           headers: { location: 'http://169.254.169.254/latest/meta-data' },
         }),
       retryAttempts = 1,
+      extra: Record<string, unknown> = {},
     ): Promise<McpGatewaySkill> {
       // The skill must not use the global fetch, which checks nothing.
       vi.stubGlobal('fetch', async (url: string) => {
@@ -179,6 +182,7 @@ describe('McpGatewaySkill', () => {
       });
       _setPublicFetchTransport(async (url, init) => {
         sent.push(`${init.method} ${url}`);
+        insecure.push(init.insecureTls === true);
         const path = new URL(url).pathname;
         if (path === '/health') return new Response('{}');
         if (path === '/services/svc/tools') {
@@ -192,6 +196,7 @@ describe('McpGatewaySkill', () => {
         auth_token: 'abc',
         services: [{ name: 'svc' }],
         retry_attempts: retryAttempts,
+        ...extra,
       });
       expect(await skill.setup()).toBe(true);
       return skill;
@@ -208,6 +213,27 @@ describe('McpGatewaySkill', () => {
       const result = (await tool.handler({}, { call_id: 'c1' })) as FunctionResult;
       expect(result.response).toMatch(/^Failed to call svc\.lookup: Refused to fetch/);
       expect(sent.some((r) => r.includes('169.254.169.254'))).toBe(false);
+    });
+
+    // Turning off certificate verification must not turn off the SSRF checks:
+    // the insecure-TLS requests go through the same guarded fetch, which skips
+    // only the certificate check.
+    it('refuses a redirect to a private address with TLS verification off', async () => {
+      const skill = await setUpSkill(undefined, 1, {
+        verify_ssl: false,
+        allow_insecure_tls: true,
+      });
+      const tool = skill.getTools().find((t) => t.name === 'mcp_svc_lookup')!;
+      const result = (await tool.handler({}, { call_id: 'c1' })) as FunctionResult;
+      expect(result.response).toMatch(/^Failed to call svc\.lookup: Refused to fetch/);
+      expect(sent.some((r) => r.includes('169.254.169.254'))).toBe(false);
+      expect(insecure.length).toBeGreaterThan(0);
+      expect(insecure.every(Boolean)).toBe(true);
+    });
+
+    it('keeps certificate verification on for verify_ssl=false alone', async () => {
+      await setUpSkill(undefined, 1, { verify_ssl: false });
+      expect(insecure).toEqual([false, false]);
     });
 
     it('retries a tool call whose connection fails', async () => {

@@ -17,8 +17,12 @@
  * Every other request still connects directly through the guarded lookup.
  * `SWML_ALLOW_PRIVATE_URLS` turns the address checks off.
  *
+ * The `insecureTls` option skips TLS certificate verification (for a trusted
+ * gateway with a self-signed certificate) and nothing else: every hop is still
+ * checked and every connection still goes through the guarded lookup.
+ *
  * Internal to the SDK: the skills that fetch URLs a caller or the model
- * supplied (spider, web_search) use it. Mirrors signalwire-python's
+ * supplied (spider, web_search, mcp_gateway) use it. Mirrors signalwire-python's
  * `_PublicSession` (signalwire/utils/url_validator.py).
  */
 
@@ -56,6 +60,13 @@ export interface _PublicFetchInit {
    * still apply to a target it allows.
    */
   allowRedirect?: (target: string) => boolean | Promise<boolean>;
+  /**
+   * Accept any TLS certificate (no verification) on every hop. The address
+   * checks still apply. Such a request always connects directly, through the
+   * guarded lookup, even with `SWML_URL_FETCH_USE_PROXY` set, since the proxy
+   * transport can't skip verification. Default `false`.
+   */
+  insecureTls?: boolean;
 }
 
 /** Thrown by {@link _publicFetch} when `allowRedirect` refuses a redirect. */
@@ -74,7 +85,14 @@ export class _RedirectRefused extends Error {
 /** Sends one request without following redirects. Tests replace it. */
 export type _PublicFetchTransport = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
+  init: {
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+    signal?: AbortSignal;
+    /** Skip TLS certificate verification (the address checks still apply). */
+    insecureTls?: boolean;
+  },
   guard: boolean,
 ) => Promise<Response>;
 
@@ -130,7 +148,8 @@ function decodeBody(res: http.IncomingMessage): Readable {
  * the hostname through {@link guardedLookup}, so a hostname that resolves to a
  * private address at connect time is refused even if it resolved to a public
  * one when the URL was checked. An IP-literal host skips DNS; {@link
- * _publicFetch} has already checked it.
+ * _publicFetch} has already checked it. With `init.insecureTls`, an HTTPS
+ * connection accepts any certificate; the lookup is guarded all the same.
  */
 export const _nodeTransport: _PublicFetchTransport = (url, init, guard) =>
   new Promise<Response>((resolve, reject) => {
@@ -145,6 +164,7 @@ export const _nodeTransport: _PublicFetchTransport = (url, init, guard) =>
         // A fresh agent, never a global one that an environment proxy configured.
         agent: false,
         ...(guard ? { lookup: guardedLookup } : {}),
+        ...(init.insecureTls ? { rejectUnauthorized: false } : {}),
       },
       (res) => {
         // The server chose the status and headers, so anything that can't
@@ -261,8 +281,8 @@ export function _proxiedByNode(url: string): boolean {
  * 301/302 answering a POST, is followed with a GET, as browsers do.
  *
  * @param url - The URL to fetch.
- * @param init - Method, headers, body, abort signal, `allowPrivate` and
- *   `allowRedirect`.
+ * @param init - Method, headers, body, abort signal, `allowPrivate`,
+ *   `allowRedirect` and `insecureTls`.
  * @returns The final response, which is not a redirect unless it had no
  *   `Location` header.
  * @throws If the URL or a redirect is refused ({@link _RedirectRefused} when
@@ -275,9 +295,14 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
   // Through a proxy the connection check can't apply, so the global fetch is
   // used only when the request will really go through one; a direct
   // connection always goes through the guarded transport.
+  // The global fetch can't skip certificate verification, so an insecureTls
+  // request always connects directly.
+  const insecureTls = init.insecureTls === true;
   const transportFor = (target: string): _PublicFetchTransport =>
     transportOverride ??
-    (guard && proxyAllowed() && _proxiedByNode(target) ? globalFetchTransport : _nodeTransport);
+    (guard && !insecureTls && proxyAllowed() && _proxiedByNode(target)
+      ? globalFetchTransport
+      : _nodeTransport);
 
   let method = (init.method ?? 'GET').toUpperCase();
   let body = init.body;
@@ -295,7 +320,7 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
 
     const response = await transportFor(current)(
       current,
-      { method, headers, body, signal: init.signal },
+      { method, headers, body, signal: init.signal, insecureTls },
       guard,
     );
     const location = response.headers.get('location');

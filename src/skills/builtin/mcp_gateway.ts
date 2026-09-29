@@ -22,9 +22,6 @@ import type { SwaigRequest } from '../../SwaigContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
 import { _publicFetch } from '../../PublicFetch.js';
-// undici isn't a dependency of the SDK (it comes with the optional cheerio),
-// so it's imported only when allow_insecure_tls needs its dispatcher: a static
-// import here would break importing the SDK without optional packages.
 
 const log = getLogger('McpGatewaySkill');
 
@@ -93,8 +90,8 @@ interface McpToolDefinition {
  */
 export class McpGatewaySkill extends SkillBase {
   // Python ground truth: skills/mcp_gateway/skill.py:~70-76
-  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses the built-in fetch, and
-  // loads undici only for allow_insecure_tls (see setup()).
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses the SDK's guarded
+  // fetch (_publicFetch), which needs no extra package.
   // Python does not set SUPPORTS_MULTIPLE_INSTANCES so it inherits the default (False).
   static override SKILL_NAME = 'mcp_gateway';
   static override SKILL_DESCRIPTION = 'Bridge MCP servers with SWAIG functions';
@@ -205,11 +202,11 @@ export class McpGatewaySkill extends SkillBase {
   private _discoveredTools: SkillToolDefinition[] = [];
   private _ready = false;
   /**
-   * Cached undici Agent used when `verify_ssl=false`. Created once in
-   * `setup()` and reused across every `_makeRequest` call to avoid
-   * connection-pool churn (Python reuses `requests.Session` implicitly).
+   * True when setup() found both `verify_ssl=false` and
+   * `allow_insecure_tls=true`: requests then skip certificate verification,
+   * and only that (the SSRF checks still apply).
    */
-  private _undiciAgent: unknown;
+  private _insecureTls = false;
 
   override async setup(): Promise<boolean> {
     this.authToken =
@@ -275,24 +272,7 @@ export class McpGatewaySkill extends SkillBase {
           'certificate; MITM-exposed).',
       );
     }
-    // Cache a single undici Agent only when verification is genuinely disabled,
-    // so each request reuses the same connection pool (parity with Python's
-    // requests.Session behavior).
-    if (!tlsRejectUnauthorized) {
-      let Agent: new (opts: unknown) => unknown;
-      try {
-        ({ Agent } = (await import('undici')) as { Agent: new (opts: unknown) => unknown });
-      } catch {
-        log.error(
-          'mcp_gateway: allow_insecure_tls needs the undici package, which is not ' +
-            'installed. Install it with `npm install undici`.',
-        );
-        return false;
-      }
-      this._undiciAgent = new Agent({
-        connect: { rejectUnauthorized: tlsRejectUnauthorized },
-      });
-    }
+    this._insecureTls = !tlsRejectUnauthorized;
 
     // Validate gateway connectivity
     try {
@@ -474,24 +454,18 @@ export class McpGatewaySkill extends SkillBase {
     const timer = setTimeout(() => controller.abort(), this.requestTimeout * 1000);
 
     try {
-      // Mirror Python `requests.request(..., verify=self.verify_ssl)`. With TLS
-      // verification off, the request goes through the undici Agent cached in
-      // setup(), the only way to turn it off for Node's fetch.
-      if (this._undiciAgent) {
-        const init: RequestInit & { dispatcher?: unknown } = {
-          method,
-          headers,
-          body,
-          signal: controller.signal,
-          dispatcher: this._undiciAgent,
-        };
-        return await fetch(url, init as RequestInit);
-      }
-      // Otherwise _publicFetch checks every request, and every redirect, as
-      // setup() checked gateway_url: a gateway that redirects to a private or
-      // internal address (a cloud metadata service), or a hostname that
-      // resolves to one later, is refused.
-      return await _publicFetch(url, { method, headers, body, signal: controller.signal });
+      // _publicFetch checks every request, and every redirect, as setup()
+      // checked gateway_url: a gateway that redirects to a private or internal
+      // address (a cloud metadata service), or a hostname that resolves to one
+      // later, is refused. With TLS verification off (Python's
+      // `verify=self.verify_ssl`), it skips only the certificate check.
+      return await _publicFetch(url, {
+        method,
+        headers,
+        body,
+        signal: controller.signal,
+        insecureTls: this._insecureTls,
+      });
     } finally {
       clearTimeout(timer);
     }

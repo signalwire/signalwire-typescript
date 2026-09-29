@@ -1,6 +1,7 @@
 # Security
 
 <!-- snippet-setup -->
+
 ```ts
 export {}; // treat each example as a module (top-level await)
 declare global {
@@ -72,6 +73,7 @@ Auth: my-agent:**** (source: generated)
 Set the credentials yourself for any agent SignalWire or another client calls. This example passes them to the constructor from environment variables your deployment defines, and refuses to start without them, so a missing variable can't leave a known password in place:
 
 <!-- snippet: no-run throws by design unless AGENT_USER and AGENT_PASSWORD are set -->
+
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
 
@@ -124,6 +126,7 @@ const auth = new AuthHandler({
 `middleware()` returns Hono middleware that answers a failed check with `401` and `{ "error": "Unauthorized" }`. `expressMiddleware()` does the same for Express-style apps. This fragment protects the routes under `/api/`:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `Hono` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+
 ```typescript
 const app = new Hono();
 app.use('/api/*', auth.middleware());
@@ -186,11 +189,11 @@ The SHA-1 header can carry either of two schemes, and the validator tries both:
 
 These test vectors come from the Python SDK's documentation, and the TypeScript validators accept them:
 
-| Scheme | Signing key | URL | Body | Signature |
-|---|---|---|---|---|
-| JSON, SHA-1 | `PSKtest1234567890abcdef` | `https://example.ngrok.io/webhook` | `{"event":"call.state","params":{"call_id":"abc-123","state":"answered"}}` | `c3c08c1fefaf9ee198a100d5906765a6f394bf0f` |
-| Form | `12345` | `https://mycompany.com/myapp.php?foo=1&bar=2` | `CallSid=CA1234567890ABCDE`, `Caller=+14158675309`, `Digits=1234`, `From=+14158675309`, `To=+18005551212` | `RSOYDt4T1cUTdK1PDd93/VVr8B8=` |
-| JSON on a form endpoint | `PSKtest1234567890abcdef` | `https://example.ngrok.io/webhook?bodySHA256=69f3cbfc18e386ef8236cb7008cd5a54b7fed637a8cb3373b5a1591d7f0fd5f4` | `{"event":"call.state"}` | `dfO9ek8mxyFtn2nMz24plPmPfIY=` |
+| Scheme                  | Signing key               | URL                                                                                                            | Body                                                                                                      | Signature                                  |
+| ----------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| JSON, SHA-1             | `PSKtest1234567890abcdef` | `https://example.ngrok.io/webhook`                                                                             | `{"event":"call.state","params":{"call_id":"abc-123","state":"answered"}}`                                | `c3c08c1fefaf9ee198a100d5906765a6f394bf0f` |
+| Form                    | `12345`                   | `https://mycompany.com/myapp.php?foo=1&bar=2`                                                                  | `CallSid=CA1234567890ABCDE`, `Caller=+14158675309`, `Digits=1234`, `From=+14158675309`, `To=+18005551212` | `RSOYDt4T1cUTdK1PDd93/VVr8B8=`             |
+| JSON on a form endpoint | `PSKtest1234567890abcdef` | `https://example.ngrok.io/webhook?bodySHA256=69f3cbfc18e386ef8236cb7008cd5a54b7fed637a8cb3373b5a1591d7f0fd5f4` | `{"event":"call.state"}`                                                                                  | `dfO9ek8mxyFtn2nMz24plPmPfIY=`             |
 
 `validateWebhookSignature()` accepts the first and third rows, and `validateRequest()` accepts the second, with the form parameters passed as an object. For the first row's URL and body, `validateWebhookSignatureSha256()` accepts `2a29f8a92b11df39da80c3b185fd62173d49c294184da585ff951eae4433571c`.
 
@@ -211,11 +214,15 @@ On a serverless platform, the adapter passes the URL the platform received the r
 Outside `AgentBase`, use `webhookValidationMiddleware()` on your Hono routes. It takes the same `signingKey` and `trustProxy` options, and throws at construction when the key is empty:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `Hono` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+
 ```typescript
 import { webhookValidationMiddleware } from '@signalwire/sdk';
 
 const app = new Hono();
-app.use('/webhook', webhookValidationMiddleware({ signingKey: process.env.SIGNALWIRE_SIGNING_KEY! }));
+app.use(
+  '/webhook',
+  webhookValidationMiddleware({ signingKey: process.env.SIGNALWIRE_SIGNING_KEY! }),
+);
 app.post('/webhook', (c: any) => c.json({ received: c.get('rawBody') }));
 ```
 
@@ -242,7 +249,9 @@ A tool is secure unless you pass `secure: false` to `defineTool()`. These steps 
 A missing token, a missing `call_id` or an invalid token gets the same refusal, returned as the tool's response with HTTP `200`:
 
 ```json
-{"response": "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action."}
+{
+  "response": "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action."
+}
 ```
 
 The handler doesn't run. A tool with `secure: false` runs for anyone who has the basic auth credentials. With a dynamic config callback or `addPerCallConfig()`, the agent checks the token on the per-request copy. A secure tool that the callback registers needs its token too.
@@ -278,13 +287,13 @@ A token is the base64url encoding of five dot-separated fields:
 base64url( callId.functionName.expiry.nonce.signature )
 ```
 
-| Field | Description |
-|---|---|
-| `callId` | The call the token is bound to. It may itself contain dots (a composed ID such as `root.2`), so the other four fields are read from the right. |
-| `functionName` | The tool the token authorizes. |
-| `expiry` | Unix time in seconds when the token stops being valid. |
-| `nonce` | 16 random hex characters. |
-| `signature` | The full 64-character hex HMAC-SHA256 of `callId:functionName:expiry:nonce`, compared in constant time. |
+| Field          | Description                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `callId`       | The call the token is bound to. It may itself contain dots (a composed ID such as `root.2`), so the other four fields are read from the right. |
+| `functionName` | The tool the token authorizes.                                                                                                                 |
+| `expiry`       | Unix time in seconds when the token stops being valid.                                                                                         |
+| `nonce`        | 16 random hex characters.                                                                                                                      |
+| `signature`    | The full 64-character hex HMAC-SHA256 of `callId:functionName:expiry:nonce`, compared in constant time.                                        |
 
 ### Token Lifetime
 
@@ -355,12 +364,12 @@ sm.deleteSessionMetadata('session-1');
 
 `SslConfig` (`src/SslConfig.ts`) holds the certificate settings the agents, `SWMLService.serve()` and `WebService` use to serve HTTPS, and that your own servers can use. It reads these variables when you don't pass the matching option:
 
-| Variable | Description |
-|---|---|
-| `SWML_SSL_ENABLED` | `true` enables SSL. |
+| Variable             | Description                               |
+| -------------------- | ----------------------------------------- |
+| `SWML_SSL_ENABLED`   | `true` enables SSL.                       |
 | `SWML_SSL_CERT_PATH` | Path to the PEM-encoded certificate file. |
-| `SWML_SSL_KEY_PATH` | Path to the PEM-encoded private key file. |
-| `SWML_SSL_DOMAIN` | Domain name for HSTS. |
+| `SWML_SSL_KEY_PATH`  | Path to the PEM-encoded private key file. |
+| `SWML_SSL_DOMAIN`    | Domain name for HSTS.                     |
 
 This example builds the configuration from options:
 
@@ -379,20 +388,21 @@ const ssl = new SslConfig({
 
 ### SslOptions Interface
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | `boolean` | `false` | Whether SSL is enabled. |
-| `certPath` | `string` | none | Path to the PEM certificate file. |
-| `keyPath` | `string` | none | Path to the PEM private key file. |
-| `domain` | `string` | none | Domain name for HSTS. |
-| `hsts` | `boolean` | `true` | Whether to emit HSTS headers. |
-| `hstsMaxAge` | `number` | `31536000` | HSTS `max-age` value in seconds. |
+| Property     | Type      | Default    | Description                       |
+| ------------ | --------- | ---------- | --------------------------------- |
+| `enabled`    | `boolean` | `false`    | Whether SSL is enabled.           |
+| `certPath`   | `string`  | none       | Path to the PEM certificate file. |
+| `keyPath`    | `string`  | none       | Path to the PEM private key file. |
+| `domain`     | `string`  | none       | Domain name for HSTS.             |
+| `hsts`       | `boolean` | `true`     | Whether to emit HSTS headers.     |
+| `hstsMaxAge` | `number`  | `31536000` | HSTS `max-age` value in seconds.  |
 
 ### Using SslConfig
 
 `isConfigured()` is true when SSL is enabled and both files exist. `getServerOptions()` reads them for `https.createServer()`, and `getHstsHeader()` returns the header value, or `null` when HSTS or SSL is off:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `ssl` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+
 ```typescript
 if (ssl.isConfigured()) {
   const serverOpts = ssl.getServerOptions(); // { cert: '...', key: '...' }
@@ -403,6 +413,7 @@ const hsts = ssl.getHstsHeader(); // "max-age=31536000; includeSubDomains"
 The agent doesn't send `Strict-Transport-Security`. To add it to your own Hono app, use `hstsMiddleware()`:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `app` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+
 ```typescript
 app.use('*', ssl.hstsMiddleware());
 ```
@@ -419,14 +430,14 @@ The bundle replaces Node's default trust store for that connection, so it must c
 
 `AgentBase` and `AgentServer` set these headers on the responses of the agent's own routes:
 
-| Header | Value |
-|---|---|
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
-| `X-XSS-Protection` | `1; mode=block` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| Header                    | Value                                        |
+| ------------------------- | -------------------------------------------- |
+| `X-Content-Type-Options`  | `nosniff`                                    |
+| `X-Frame-Options`         | `DENY`                                       |
+| `X-XSS-Protection`        | `1; mode=block`                              |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin`            |
 | `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| `Permissions-Policy`      | `camera=(), microphone=(), geolocation=()`   |
 
 They need no configuration. An app you add with `mount()` keeps its own headers, since a page couldn't load under `default-src 'none'`.
 
@@ -513,7 +524,7 @@ Some SDK features fetch URLs that a caller, the model or a skill's configuration
 - IPv6 unique local: `fc00::/7`
 - IPv4-mapped IPv6 addresses (`::ffff:169.254.169.254`), checked as the IPv4 address they carry
 
-The `web_search` and `spider` skills, and the `swaig-test` DataMap simulator, fetch pages through a guarded client. It checks the URL and every redirect (up to 10) before requesting it. It connects only to an address it checked, which also stops DNS rebinding. A redirect to another origin drops the `Authorization`, `Cookie` and `Proxy-Authorization` headers. The `mcp_gateway` skill and `native_vector_search` in remote mode send every request to `gateway_url` or `remote_url` through the same client. With `allow_insecure_tls` on, `mcp_gateway` uses its own TLS dispatcher, and only `gateway_url` is checked, at setup.
+The `web_search` and `spider` skills, and the `swaig-test` DataMap simulator, fetch pages through a guarded client. It checks the URL and every redirect (up to 10) before requesting it. It connects only to an address it checked, which also stops DNS rebinding. A redirect to another origin drops the `Authorization`, `Cookie` and `Proxy-Authorization` headers. The `mcp_gateway` skill and `native_vector_search` in remote mode send every request to `gateway_url` or `remote_url` through the same client. With `allow_insecure_tls` on, `mcp_gateway` still uses this client, which then skips only the certificate check.
 
 Two variables change this behavior:
 
