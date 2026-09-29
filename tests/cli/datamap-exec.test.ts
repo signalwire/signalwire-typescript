@@ -309,10 +309,10 @@ describe('fix pass', () => {
         {
           string: '${status}',
           pattern: '^shipped$',
-          output: { response: 'Order ${args.id} shipped: ${names}' },
+          output: { response: 'Order ${input.args.id} shipped: ${names}' },
         },
       ])
-      .output(new FunctionResult('Order ${args.id} is ${status}'))
+      .output(new FunctionResult('Order ${input.args.id} is ${status}'))
       .toSwaigFunction();
     const shipped = fakeFetch({ status: 'shipped', items: [{ name: 'tea' }] });
     expect(await executeDataMap(fn, { id: '7' }, shipped)).toEqual({
@@ -362,7 +362,7 @@ describe('fix pass', () => {
       .foreach({
         input_key: 'items',
         output_key: 'list',
-        append: '${this.n}${args.unit} of ${store}; ',
+        append: '${this.n}${input.args.unit} of ${store}; ',
       })
       .output(new FunctionResult('${list}'))
       .toSwaigFunction();
@@ -442,5 +442,126 @@ describe('fix pass', () => {
     // A /.../ pattern takes its own flags, so it is case-sensitive without i
     expect(await executeDataMap(fn('/^start/'), { cmd: 'START' })).toEqual({ response: 'no' });
     expect(await executeDataMap(fn('/^start/i'), { cmd: 'START' })).toEqual({ response: 'yes' });
+  });
+});
+
+/**
+ * The template data of each stage, as the platform builds it (mod_openai
+ * actions.c): url, params, top-level expressions and the data_map's own
+ * output read the call data, which has `args` at its root; a webhook's
+ * output, expressions and foreach read the response, with the call data
+ * under `input`.
+ */
+describe('stage template data, as the platform builds it', () => {
+  it("reads the arguments as ${input.args.x} in a webhook's output, where ${args.x} is missing", async () => {
+    const fn = weather({ response: '${input.args.city}: ${temp} [${args.city}]' });
+    const { fetchImpl } = fakeFetch({ temp: 61 });
+    expect(await executeDataMap(fn, { city: 'London' }, { fetchImpl })).toEqual({
+      response: 'London: 61 [<MISSING:args.city>]',
+    });
+  });
+
+  it('hints at ${input.args.x} when ${args.x} is missing in a webhook stage', async () => {
+    const lines: string[] = [];
+    await executeDataMap(
+      weather({ response: '${args.city}' }),
+      { city: 'x' },
+      { ...fakeFetch({}), log: (l) => void lines.push(l) },
+    );
+    expect(lines.join('\n')).toContain('${input.args.<name>}');
+  });
+
+  it("reads ${input.args.x} in a webhook's expressions and foreach", async () => {
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            foreach: {
+              input_key: 'items',
+              output_key: 'list',
+              append: '${this.n}${input.args.unit} ',
+            },
+            expressions: [
+              {
+                string: '${input.args.mode}',
+                pattern: '^list$',
+                output: { response: '${list}[${args.mode}]' },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const { fetchImpl } = fakeFetch({ items: [{ n: 1 }, { n: 2 }] });
+    expect(await executeDataMap(fn, { unit: 'kg', mode: 'list' }, { fetchImpl })).toEqual({
+      response: '1kg 2kg [<MISSING:args.mode>]',
+    });
+  });
+
+  it('reads ${args.x} in the url, params, top-level expressions and fallback output, where input is empty', async () => {
+    const { calls, fetchImpl } = fakeFetch('not json');
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x/${args.id}',
+            method: 'POST',
+            params: { id: '${args.id}', via_input: '${input.args.id}' },
+            output: { response: 'never' },
+          },
+        ],
+        output: { response: 'fallback ${args.id} [${input.args.id}]' },
+      },
+    };
+    expect(await executeDataMap(fn, { id: '7' }, { fetchImpl })).toEqual({
+      response: 'fallback 7 [<MISSING:input.args.id>]',
+    });
+    expect(calls[0]!.url).toBe('https://x/7');
+    expect(JSON.parse(calls[0]!.body!)).toEqual({ id: '7', via_input: '<MISSING:input.args.id>' });
+
+    const expr = {
+      data_map: {
+        expressions: [
+          { string: '${args.id}', pattern: '7', output: { response: 'id ${args.id}' } },
+        ],
+      },
+    };
+    expect(await executeDataMap(expr, { id: '7' })).toEqual({ response: 'id 7' });
+  });
+
+  it('does not put the arguments at the root', async () => {
+    const fn = {
+      data_map: {
+        expressions: [{ string: '${city}', pattern: '.*', output: { response: '[${city}]' } }],
+      },
+    };
+    expect(await executeDataMap(fn, { city: 'Paris' })).toEqual({ response: '[<MISSING:city>]' });
+  });
+
+  it('sends header values as written, without expanding templates', async () => {
+    const seen: Record<string, string>[] = [];
+    const fetchImpl = async (
+      _url: string,
+      init: { method: string; headers: Record<string, string> },
+    ) => {
+      seen.push(init.headers);
+      return new Response('{}');
+    };
+    const fn = {
+      data_map: {
+        webhooks: [
+          { url: 'https://x', headers: { 'X-Id': '${args.id}' }, output: { response: 'ok' } },
+        ],
+      },
+    };
+    await executeDataMap(fn, { id: '7' }, { fetchImpl });
+    expect(seen[0]!['X-Id']).toBe('${args.id}');
+  });
+
+  it('reads negative array indexes from the end', () => {
+    expect(expandTemplate('${array[-1].joke}', { array: [{ joke: 'a' }, { joke: 'b' }] })).toBe(
+      'b',
+    );
   });
 });

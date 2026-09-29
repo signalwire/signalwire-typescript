@@ -21,18 +21,37 @@
  * An `error_keys` on the data_map itself is ignored, as on the platform: only
  * a webhook's own `error_keys` fail it.
  *
- * Templates: `${path}` and `%{path}` read a dotted path (with `[n]` indexes)
- * from the template data. Prefix helpers apply left to right: `lc`
- * lowercases and `enc` (or `enc:url`) URL-encodes, so `${lc:enc:args.city}`
- * is the city, lowercased and encoded. Nested templates expand from the
- * inside out. An unresolved path becomes `<MISSING:path>`; `@{...}`
- * functions are left as they are.
+ * Template data, per stage, as the platform builds it:
  *
- * A webhook's JSON object response is read from the root of the template
- * data (`${current.temp_f}`), and a JSON array response is under `array`
- * (`${array[0].joke}`), as on the platform.
+ * - The call data: `args` (the function's arguments), `function`, and an
+ *   empty `input`. A webhook's `url` and `params`, the top-level
+ *   `expressions` and the data_map's own `output` read it, so they write an
+ *   argument as `${args.city}`.
+ * - A webhook's `foreach`, `expressions` and `output` read the webhook's
+ *   response instead: a JSON object's fields at the root (`${current.temp_f}`),
+ *   a JSON array under `array` (`${array[0].joke}`), and the call data under
+ *   `input`. The arguments are `${input.args.city}` there; `${args.city}`
+ *   doesn't resolve.
+ * - A webhook's `headers` are sent as written: the platform expands no
+ *   templates in them.
  *
- * Mirrors signalwire-python's `signalwire.cli.execution.datamap_exec`.
+ * Templates: `${path}` and `%{path}` read a dotted path (with `[n]` indexes,
+ * negative ones from the end) from the template data. Prefix helpers apply
+ * left to right: `lc` lowercases and `enc` (or `enc:url`) URL-encodes, so
+ * `${lc:enc:args.city}` is the city, lowercased and encoded. Nested
+ * templates expand from the inside out.
+ *
+ * Where the simulator differs from the platform, on purpose:
+ *
+ * - An unresolved path becomes `<MISSING:path>`, where the platform writes
+ *   nothing.
+ * - The call data has no `global_data`, `meta_data`, prompt variables or
+ *   call details, so templates that read them show as missing.
+ * - `@{...}` functions are left as they are.
+ * - Keys match exactly; the platform matches them case-insensitively.
+ *
+ * Mirrors signalwire-python's `signalwire.cli.execution.datamap_exec`, with
+ * the platform's (mod_openai's) stage template data.
  */
 
 import { _publicFetch } from '../PublicFetch.js';
@@ -65,13 +84,16 @@ function present(value: unknown): boolean {
   return Boolean(value);
 }
 
-/** The value at a dotted path with `[n]` indexes, or a `<MISSING:path>` marker. */
+/** The value at a dotted path with `[n]` (or `[-n]`) indexes, or a `<MISSING:path>` marker. */
 function lookup(data: Data, path: string): unknown {
   let value: unknown = data;
-  for (const part of path.match(/[^.[\]]+|\[\d+\]/g) ?? []) {
+  for (const part of path.match(/[^.[\]]+|\[-?\d+\]/g) ?? []) {
     if (part.startsWith('[')) {
-      const index = Number(part.slice(1, -1));
-      if (!Array.isArray(value) || index >= value.length) return `<MISSING:${path}>`;
+      if (!Array.isArray(value)) return `<MISSING:${path}>`;
+      let index = Number(part.slice(1, -1));
+      // As on the platform, a negative index counts from the end.
+      if (index < 0) index += value.length;
+      if (index < 0 || index >= value.length) return `<MISSING:${path}>`;
       value = value[index];
     } else if (isPlainObject(value) && part in value) {
       value = value[part];
@@ -240,22 +262,37 @@ export async function executeDataMap(
       }));
   const dataMap = (isPlainObject(fn['data_map']) ? fn['data_map'] : fn) as Data;
 
-  // Arguments are under `args`, and also at the root for older templates.
-  const context: Data = { args, ...args };
+  // The call data, as the platform has it for a data_map (mod_openai
+  // actions.c): the arguments under `args`, and an empty `input`. The url,
+  // params, top-level expressions and fallback output read it.
+  const callData: Data = {
+    ...(typeof fn['function'] === 'string' ? { function: fn['function'] } : {}),
+    args,
+    input: {},
+  };
   say('=== DataMap Function Execution ===');
   say(`Args: ${JSON.stringify(args)}`);
 
+  // Notes for the two templates that resolve against the wrong stage's data.
   const hint = (result: unknown) => {
-    if (JSON.stringify(result ?? '').includes('<MISSING:response.')) {
+    const shown = JSON.stringify(result ?? '');
+    if (shown.includes('<MISSING:response.')) {
       log(
         "Note: ${response.<field>} didn't resolve. The platform reads a webhook's JSON " +
           'response from the root: write ${<field>}, not ${response.<field>}.',
       );
     }
+    if (shown.includes('<MISSING:args.')) {
+      log(
+        "Note: ${args.<name>} didn't resolve. In a webhook's output, expressions and " +
+          'foreach the platform reads the response, with the arguments under input: ' +
+          'write ${input.args.<name>}.',
+      );
+    }
   };
 
   // 1. Expressions
-  const exprResult = runExpressions(dataMap['expressions'], context, say);
+  const exprResult = runExpressions(dataMap['expressions'], callData, say);
   if (exprResult.matched) return exprResult.output;
 
   // 2. Webhooks, in order, until one succeeds
@@ -263,13 +300,14 @@ export async function executeDataMap(
   for (const [i, webhook] of webhooks.entries()) {
     if (!isPlainObject(webhook)) continue;
     say(`\n=== Webhook ${i + 1}/${webhooks.length} ===`);
-    const url = expandTemplate(text(webhook['url'] ?? ''), context);
+    const url = expandTemplate(text(webhook['url'] ?? ''), callData);
     let method = text(webhook['method'] ?? 'POST').toUpperCase();
+    // The platform sends header values as written: it expands no templates in them.
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(
       isPlainObject(webhook['headers']) ? webhook['headers'] : {},
     )) {
-      headers[k] = expandTemplate(text(v), context);
+      if (typeof v === 'string') headers[k] = v;
     }
 
     // As on the platform, `params` (with the arguments merged in by
@@ -283,7 +321,7 @@ export async function executeDataMap(
     if (params) {
       if (method !== 'POST') say(`params is set, so the request is a POST, not ${method}`);
       method = 'POST';
-      body = JSON.stringify(expandValue(params, context));
+      body = JSON.stringify(expandValue(params, callData));
       const formParam = webhook['form_param'];
       if (typeof formParam === 'string' && formParam) {
         body = `${formParam}=${HELPERS['enc']!(body)}`;
@@ -291,8 +329,8 @@ export async function executeDataMap(
       }
     } else if (['POST', 'PUT', 'PATCH'].includes(method)) {
       const payload = webhook['body'] ?? webhook['data'];
-      if (typeof payload === 'string') body = expandTemplate(payload, context);
-      else if (payload !== undefined) body = JSON.stringify(expandValue(payload, context));
+      if (typeof payload === 'string') body = expandTemplate(payload, callData);
+      else if (payload !== undefined) body = JSON.stringify(expandValue(payload, callData));
     }
     if (
       body !== undefined &&
@@ -377,11 +415,17 @@ export async function executeDataMap(
       continue;
     }
 
-    // An object response's fields are at the root of the template data; an
-    // array response is under `array`.
-    const webhookContext: Data = Array.isArray(responseData)
-      ? { ...context, array: responseData }
-      : { ...context, ...(responseData as Data) };
+    // The webhook's template data: an object response's fields at the root,
+    // an array response under `array`, and the call data under `input`. The
+    // arguments are `${input.args.x}` here, not `${args.x}`.
+    const webhookContext: Data = {
+      input: callData,
+      ...(Array.isArray(responseData)
+        ? { array: responseData }
+        : isPlainObject(responseData)
+          ? responseData
+          : {}),
+    };
 
     // 3. foreach
     const foreach = webhook['foreach'];
@@ -395,7 +439,7 @@ export async function executeDataMap(
         webhookContext[outputKey] = items
           .slice(0, max)
           // As on the platform, append reads the webhook's template data
-          // (the response, the arguments) as well as the element as `this`.
+          // (the response, `input`) as well as the element as `this`.
           .map((item) =>
             expandTemplate(append, {
               ...webhookContext,
@@ -434,7 +478,7 @@ export async function executeDataMap(
   // data_map's own output
   if ('output' in dataMap) {
     say('No webhook produced a result; using the data_map output');
-    return expandValue(dataMap['output'], context);
+    return expandValue(dataMap['output'], callData);
   }
   return { error: 'All webhooks failed and no fallback output defined', status: 'failed' };
 }
