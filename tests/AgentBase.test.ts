@@ -778,6 +778,30 @@ describe('AgentBase', () => {
     }
   });
 
+  it('SWML_RATE_LIMIT keys each client by its socket address, not one shared bucket', async () => {
+    const saved = process.env['SWML_RATE_LIMIT'];
+    process.env['SWML_RATE_LIMIT'] = '1';
+    try {
+      const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+      agent.setPromptText('hello');
+      const app = agent.getApp();
+      // @hono/node-server passes the Node request as env.incoming.
+      const from = (remoteAddress: string) =>
+        app.request(
+          '/',
+          { headers: { Authorization: 'Basic ' + btoa('u:p') } },
+          { incoming: { socket: { remoteAddress } } },
+        );
+      expect((await from('10.0.0.1')).status).toBe(200);
+      expect((await from('10.0.0.1')).status).toBe(429);
+      // Another client isn't limited by the first one's requests.
+      expect((await from('10.0.0.2')).status).toBe(200);
+    } finally {
+      if (saved) process.env['SWML_RATE_LIMIT'] = saved;
+      else delete process.env['SWML_RATE_LIMIT'];
+    }
+  });
+
   it('SWML_RATE_LIMIT returns 429 when exceeded', async () => {
     const saved = process.env['SWML_RATE_LIMIT'];
     process.env['SWML_RATE_LIMIT'] = '2'; // 2 requests per minute

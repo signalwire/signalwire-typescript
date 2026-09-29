@@ -734,7 +734,7 @@ An app added with `mount()` sets its own headers and CORS, and isn't behind the 
 
 When `SWML_RATE_LIMIT` is set, it's the number of requests allowed per minute per client IP:
 
-- With `SWML_TRUST_PROXY_HEADERS=true`, the IP is the first `X-Forwarded-For` entry, else `X-Real-IP`. Without it, every request counts against one shared limit.
+- With `SWML_TRUST_PROXY_HEADERS=true`, the IP is the first `X-Forwarded-For` entry, else `X-Real-IP`, else the connection's address. Without it, the IP is the connection's address.
 - An in-memory `Map` counts requests per IP, in 60-second windows.
 - A request over the limit gets `429` `{"error":"Rate limit exceeded"}`.
 

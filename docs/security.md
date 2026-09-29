@@ -469,10 +469,10 @@ The limit applies per client key, and the counter for a key resets 60 seconds af
 
 The client key depends on `SWML_TRUST_PROXY_HEADERS`:
 
-- **Unset**: every request shares one key, so the limit applies to the agent's total traffic, SignalWire's included.
-- **`true`**: the key is the first address in `X-Forwarded-For`, then `X-Real-IP`. Set this only behind a proxy that sets those headers, since a client can send any value.
+- **Unset**: the key is the address of the connection. Behind a proxy, that's the proxy's address, so every client behind it shares one key.
+- **`true`**: the key is the first address in `X-Forwarded-For`, then `X-Real-IP`, then the connection's address. Set this only behind a proxy that sets those headers, since a client can send any value.
 
-Size the limit for all the traffic the agent serves, including SignalWire's requests during calls. When `SWML_RATE_LIMIT` is unset, no limit applies.
+Size the limit for the traffic one key sends, including SignalWire's requests during calls. When `SWML_RATE_LIMIT` is unset, no limit applies.
 
 ---
 

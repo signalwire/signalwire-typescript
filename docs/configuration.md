@@ -169,7 +169,7 @@ The logger reads these at startup:
 | `SWML_CORS_ORIGINS` | `string` | `*` | Comma-separated allowed CORS origins. With a list, CORS responses allow credentials. |
 | `SWML_ALLOWED_HOSTS` | `string` | none | Comma-separated host names. A request whose `Host` header (without the port) isn't listed gets `403`. |
 | `SWML_MAX_REQUEST_SIZE` | `number` | `1048576` | Largest `Content-Length`, in bytes. A larger or non-numeric value gets `413`. A request without `Content-Length` isn't checked. |
-| `SWML_RATE_LIMIT` | `number` | none | Requests per minute per client IP, answered with `429` past the limit. The IP comes from `X-Forwarded-For` or `X-Real-IP` only when `SWML_TRUST_PROXY_HEADERS=true`. Otherwise every request counts against one shared limit. |
+| `SWML_RATE_LIMIT` | `number` | none | Requests per minute per client IP, answered with `429` past the limit. The IP is the connection's address, or the `X-Forwarded-For` or `X-Real-IP` address when `SWML_TRUST_PROXY_HEADERS=true`. |
 | `SWML_CSRF_PROTECTION` | `"true"` | off | Refuse a `POST` whose `Origin` header isn't in `SWML_CORS_ORIGINS`, with `403`. Without `SWML_CORS_ORIGINS`, it checks nothing. |
 | `SWML_USE_HSTS` | `"true"` or `"false"` | `true` | Read into `SecurityConfig.useHsts`. Only `SecurityConfig.getSecurityHeaders()` uses it; no server in the SDK calls that method. |
 | `SWML_HSTS_MAX_AGE` | `number` | `31536000` | Read into `SecurityConfig.hstsMaxAge`, with the same limit as `SWML_USE_HSTS`. |

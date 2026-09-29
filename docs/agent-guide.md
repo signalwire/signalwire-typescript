@@ -1026,7 +1026,7 @@ The agent reads these variables. For the security settings, see the [Security Gu
 | `SWML_CSRF_PROTECTION` | `false` | Set to `true` to refuse a POST whose `Origin` isn't in `SWML_CORS_ORIGINS`, with `403`. |
 | `SWML_ALLOWED_HOSTS` | (none) | Comma-separated list of allowed `Host` values. Other hosts get `403`. |
 | `SWML_MAX_REQUEST_SIZE` | `1048576` | Largest `Content-Length`, in bytes. A larger request gets `413`. |
-| `SWML_RATE_LIMIT` | (none) | Requests per minute. A client over the limit gets `429`. Without `SWML_TRUST_PROXY_HEADERS=true`, all clients share one limit. |
+| `SWML_RATE_LIMIT` | (none) | Requests per minute. A client over the limit gets `429`. The limit is per client address: the connection's, or the forwarded one with `SWML_TRUST_PROXY_HEADERS=true`. |
 | `SWML_SKIP_SCHEMA_VALIDATION` | `false` | Set to `true` to skip SWML schema validation. |
 | `SIGNALWIRE_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
 | `SIGNALWIRE_LOG_MODE` | `auto` | `off` turns logging off, `stderr` writes to stderr, and `auto` decides from the environment. |

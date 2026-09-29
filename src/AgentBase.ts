@@ -3146,11 +3146,16 @@ export class AgentBase extends SWMLService {
       if (maxPerMinute > 0) {
         const hits = new Map<string, { count: number; resetAt: number }>();
         app.use('*', async (c, next) => {
+          // The connection's own address, as the reference keys on
+          // request.client.host; the forwarded headers only when trusted.
+          const socketIp =
+            (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming
+              ?.socket?.remoteAddress ?? 'unknown';
           const ip = this._trustProxyHeaders
             ? (c.req.header('x-forwarded-for')?.split(',')[0]!.trim() ??
               c.req.header('x-real-ip') ??
-              'unknown')
-            : 'unknown';
+              socketIp)
+            : socketIp;
           const now = Date.now();
           let entry = hits.get(ip);
           if (!entry || now >= entry.resetAt) {
