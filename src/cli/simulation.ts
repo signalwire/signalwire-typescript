@@ -448,15 +448,21 @@ export class ServerlessSimulator {
   /**
    * @param platform - `lambda`, `cgi`, `cloud_function` or `azure_function`.
    * @param overrides - Variables to set over the preset.
+   * @param omit - Preset variables to leave out, so the SDK builds that value
+   *   from the others (the preset's Lambda function URL, when the user gave a
+   *   function name or region).
    */
   constructor(
     readonly platform: string,
     readonly overrides: Record<string, string> = {},
+    readonly omit: string[] = [],
   ) {}
 
   /** The variables the simulation sets. */
   get environment(): Record<string, string> {
-    return { ...(PLATFORM_PRESETS[this.platform] ?? {}), ...this.overrides };
+    const preset = { ...(PLATFORM_PRESETS[this.platform] ?? {}) };
+    for (const key of this.omit) delete preset[key];
+    return { ...preset, ...this.overrides };
   }
 
   /**

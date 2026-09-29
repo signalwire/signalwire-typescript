@@ -318,6 +318,59 @@ export default agent;`);
     expect(stdout).toContain('abc123.execute-api.eu-west-1.amazonaws.com/prod/agent/swaig');
   }, 70_000);
 
+  it('builds the Lambda URL from --aws-function-name and --aws-region over the preset URL', async () => {
+    const path = agentFile(`${TOOLS}\nexport default agent;`);
+    const region = await runCli([
+      path,
+      '--simulate-serverless',
+      'lambda',
+      '--aws-region',
+      'us-west-2',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(region.stdout).toContain('test-agent-function.lambda-url.us-west-2.on.aws/agent/swaig');
+    const named = await runCli([
+      path,
+      '--simulate-serverless',
+      'lambda',
+      '--aws-function-name',
+      'prod-agent',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(named.stdout).toContain('prod-agent.lambda-url.us-east-1.on.aws/agent/swaig');
+    // An explicit function URL still wins.
+    const url = await runCli([
+      path,
+      '--simulate-serverless',
+      'lambda',
+      '--aws-region',
+      'us-west-2',
+      '--aws-function-url',
+      'https://xyz.lambda-url.eu-west-1.on.aws/',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(url.stdout).toContain('xyz.lambda-url.eu-west-1.on.aws/agent/swaig');
+  }, 70_000);
+
+  it('builds the Cloud Functions URL from --gcp-project, --gcp-region and --gcp-service', async () => {
+    const path = agentFile(`${TOOLS}\nexport default agent;`);
+    const { stdout } = await runCli([
+      path,
+      '--simulate-serverless',
+      'gcf',
+      '--gcp-project',
+      'my-proj',
+      '--gcp-region',
+      'europe-west1',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(stdout).toContain('@europe-west1-my-proj.cloudfunctions.net/agent/swaig');
+  }, 70_000);
+
   it('requires --cgi-host to simulate CGI', async () => {
     const { code, stderr } = await runCli(['x.ts', '--simulate-serverless', 'cgi', '--dump-swml']);
     expect(code).toBe(2);

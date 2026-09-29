@@ -652,7 +652,13 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
   const set = (key: string, value: string | undefined) => {
     if (value) env[key] = value;
   };
+  // The preset's function URL would win over the parts the user gave, so it
+  // is left out and the SDK builds the URL from them.
+  const omit: string[] = [];
   if (platform === 'lambda') {
+    if ((opts.awsFunctionName || opts.awsRegion) && !opts.awsFunctionUrl) {
+      omit.push('AWS_LAMBDA_FUNCTION_URL');
+    }
     set('AWS_LAMBDA_FUNCTION_NAME', opts.awsFunctionName);
     set('AWS_LAMBDA_FUNCTION_URL', opts.awsFunctionUrl);
     set('AWS_REGION', opts.awsRegion);
@@ -673,6 +679,9 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
     if (opts.cgiHttps) env['HTTPS'] = 'on';
     set('PATH_INFO', opts.cgiPathInfo);
   } else if (platform === 'cloud_function') {
+    if ((opts.gcpProject || opts.gcpRegion || opts.gcpService) && !opts.gcpFunctionUrl) {
+      omit.push('FUNCTION_URL');
+    }
     set('GOOGLE_CLOUD_PROJECT', opts.gcpProject);
     set('FUNCTION_URL', opts.gcpFunctionUrl);
     set('GOOGLE_CLOUD_REGION', opts.gcpRegion);
@@ -681,7 +690,7 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
     set('AZURE_FUNCTIONS_ENVIRONMENT', opts.azureEnv);
     set('AZURE_FUNCTION_URL', opts.azureFunctionUrl);
   }
-  const simulator = new ServerlessSimulator(platform, env);
+  const simulator = new ServerlessSimulator(platform, env, omit);
   simulator.activate();
   io.verbose(`Simulating ${platform}: ${JSON.stringify(simulator.environment)}`);
   return simulator;
