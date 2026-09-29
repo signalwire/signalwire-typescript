@@ -16,7 +16,7 @@ LiveWire lets you run agents written against the LiveKit agents API (`@livekit/a
 
 ## Quick Start
 
-This example defines a weather tool and an agent, then starts the app with `runApp()`:
+This example defines a weather tool and an agent, then starts the app with `runApp()`, which serves the agent over HTTP on port 3000 (or `PORT`):
 
 <!-- snippet: no-run imports the @signalwire/sdk/livewire subpath, which resolves only from the built+installed package, not from the source tree -->
 ```typescript
@@ -86,7 +86,7 @@ The table maps each LiveKit concept to what LiveWire does with it:
 | `llm.handoff()` | `handoff()` | Returns an `AgentHandoff`; LiveWire doesn't act on it |
 | `RunContext` | `RunContext` | Passed to tool handlers as `context.ctx` |
 | `defineAgent()` | `defineAgent()` | Returns the `{ entry, prewarm }` object unchanged |
-| `cli.runApp()` | `runApp()` | Prints a banner and a tip, runs prewarm, then calls the entry function |
+| `cli.runApp()` | `runApp()` | Prints a banner and a tip, runs prewarm, calls the entry function, then serves the agent of the session it started |
 | `stt: 'deepgram'` | Ignored (logged once) | The platform handles STT |
 | `tts: 'elevenlabs'` | Ignored (logged once) | The platform handles TTS |
 | `vad: plugins.SileroVAD.load()` | Ignored (logged once) | The platform handles VAD |
@@ -142,6 +142,16 @@ These examples are in the repository:
 - [livewire-basic-agent.ts](examples/livewire-basic-agent.ts): an agent with a single tool
 - [livewire-multi-tool.ts](examples/livewire-multi-tool.ts): an agent with several function tools and `RunContext`
 - [livewire-handoff.ts](examples/livewire-handoff.ts): several agents and handoff tools
+
+## Running the Agent
+
+`runApp()` calls the entry function. When the entry function returns, `runApp()` serves the SignalWire `AgentBase` built by the last `session.start()` the entry function called, and the HTTP server runs until the process exits. If the entry function starts no session, `runApp()` writes a message to stderr and serves nothing. Under the `swaig-test` CLI (`SWAIG_CLI_MODE=true`), it serves nothing, so the CLI can list and run the agent's tools:
+
+```bash
+npx swaig-test my-livewire-agent.ts --list-tools
+```
+
+A session started outside `runApp()` isn't served. Call `session.getSwAgent()` for its `AgentBase`, and serve that yourself.
 
 ## Environment Variables
 

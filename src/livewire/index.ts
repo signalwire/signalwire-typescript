@@ -8,6 +8,7 @@
  * once, so existing code keeps compiling.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { SwaigHandler } from '../SwaigFunction.js';
@@ -524,8 +525,10 @@ export class AgentSession<UserData = unknown> {
    * `attention_timeout` in milliseconds. Text queued with {@link say} becomes
    * an "Initial Greeting" prompt section.
    *
-   * This method doesn't start an HTTP server. {@link getSwAgent} returns the
-   * built `AgentBase`.
+   * This method doesn't start an HTTP server. Called from an entry function
+   * that {@link runApp} runs, it hands the built `AgentBase` to that job, and
+   * `runApp()` serves it once the entry function returns. {@link getSwAgent}
+   * returns the built `AgentBase`.
    *
    * @param params - Start parameters.
    * @param params.agent - The {@link Agent} to bind.
@@ -614,6 +617,11 @@ export class AgentSession<UserData = unknown> {
     }
 
     this._swAgent = swAgent;
+
+    // Inside a runApp() entry function, hand the agent to that job, which
+    // serves it once the entry function returns.
+    const job = currentJob.getStore();
+    if (job) job._swAgent = swAgent;
   }
 
   /**
@@ -867,7 +875,10 @@ export class JobContext {
   room: Room;
   /** A {@link JobProcess}. `runApp()` creates it separately from the one passed to prewarm. */
   proc: JobProcess;
-  /** @internal */
+  /**
+   * @internal The `AgentBase` of the last session started while this job's
+   * entry function ran; `runApp()` serves it.
+   */
   _swAgent?: AgentBase;
 
   constructor() {
@@ -901,6 +912,13 @@ export class JobContext {
     return { identity: options?.identity ?? 'caller' };
   }
 }
+
+/**
+ * The {@link JobContext} whose entry function is running, so that
+ * {@link AgentSession.start} can hand its agent to the job for
+ * {@link runApp} to serve.
+ */
+const currentJob = new AsyncLocalStorage<JobContext>();
 
 // ---------------------------------------------------------------------------
 // defineAgent
@@ -948,12 +966,18 @@ export function defineAgent(agent: AgentDefinition): AgentDefinition {
  * 3. Creates a new {@link JobContext}
  * 4. Prints a random tip
  * 5. Calls the entry function with the context
- * 6. When the entry function resolves, serves the `AgentBase` held by the
- *    context, if it holds one
+ * 6. When the entry function resolves, serves the `AgentBase` of the last
+ *    {@link AgentSession} the entry function started, by calling its
+ *    `serve()`. The server listens on `PORT` (default 3000), with the route
+ *    `/`, and runs until the process exits.
  *
  * It accepts an object `{ entry, prewarm? }`, a bare entry function, or an
  * {@link AgentServer} instance. Errors from the entry function are written to
- * stderr.
+ * stderr, as is a message when the entry function starts no session.
+ *
+ * When `SWAIG_CLI_MODE=true` is set as `runApp()` is called (the `swaig-test`
+ * CLI sets it while it imports an agent file), the entry function runs and
+ * nothing is served.
  *
  * @param options - Agent descriptor, entry function, or `AgentServer`.
  */
@@ -992,13 +1016,28 @@ export function runApp(
   // Print a random tip
   printTip();
 
-  // Call the entry function
+  // Read now: swaig-test sets SWAIG_CLI_MODE only while it imports the agent
+  // file, and the entry function's session is built after that.
+  const cliMode = process.env['SWAIG_CLI_MODE'] === 'true';
+
+  // Call the entry function. A session started inside it hands its agent to
+  // ctx (see AgentSession.start).
   const entryFn = def?.entry ?? agentDef;
   if (typeof entryFn === 'function') {
-    Promise.resolve((entryFn as (ctx: JobContext) => unknown)(ctx))
+    let result: unknown;
+    try {
+      result = currentJob.run(ctx, () => (entryFn as (ctx: JobContext) => unknown)(ctx));
+    } catch (err) {
+      result = Promise.reject(err);
+    }
+    Promise.resolve(result)
       .then(() => {
         // After entry completes, serve the AgentBase stored on ctx, if any.
-        if (ctx._swAgent) {
+        if (!ctx._swAgent) {
+          process.stderr.write(
+            '[LiveWire] no agent was started: call session.start({ agent }) in the entry function.\n',
+          );
+        } else if (!cliMode) {
           ctx._swAgent.serve().catch((err: Error) => {
             process.stderr.write(`[LiveWire] agent error: ${err.message}\n`);
           });

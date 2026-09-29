@@ -97,7 +97,7 @@ LiveWire doesn't convert a Zod schema to JSON Schema: it sends `parameters` to t
 
 ## Step 5: Update the Entrypoint
 
-The entry point keeps the LiveKit shape. `ctx.connect()` does nothing on SignalWire, and the `prewarm` callback still runs. Pass the definition to `runApp()`, which the complete example shows:
+The entry point keeps the LiveKit shape. `ctx.connect()` does nothing on SignalWire, and the `prewarm` callback still runs. Pass the definition to `runApp()`, which the complete example shows. When the entry function returns, `runApp()` serves the agent of the session it started:
 
 <!-- snippet: no-compile before/after comparison fused in one fence; two default exports and `defineAgent` is only imported in prose elsewhere -->
 ```typescript
@@ -151,7 +151,7 @@ export SIGNALWIRE_SPACE=example.signalwire.com
 
 ## Step 7: Deploy
 
-A LiveWire agent runs as a Node.js HTTP server. Compile it with the TypeScript compiler, then run the output:
+A LiveWire agent runs as a Node.js HTTP server, which `runApp()` starts. Compile the agent with the TypeScript compiler, then run the output:
 
 ```bash
 # Build
@@ -248,4 +248,4 @@ The two versions differ in these ways:
 1. One import path instead of several plugin packages
 2. Provider names are strings instead of class instances
 3. The tool's `parameters` is a JSON Schema object instead of a Zod schema
-4. The definition is passed to `runApp()`
+4. The definition is passed to `runApp()`, which serves the agent over HTTP
