@@ -108,30 +108,46 @@ export interface FabricDevice {
 /** Any device specification. */
 export type Device = PhoneDevice | SipDevice | FabricDevice | Record<string, unknown>;
 
-/** Options for the dial() method. */
+/** Options for `RelayClient.dial()`. */
 export interface DialOptions {
-  /** Caller ID / from number. */
-  from?: string;
-  /** Timeout in seconds for the dial. */
-  timeout?: number;
-  /** Maximum call duration in seconds. */
+  /**
+   * Client-provided tag for event correlation. Auto-generated (UUID) when
+   * omitted.
+   */
+  tag?: string;
+  /** Maximum call duration in **minutes** (sent as `max_duration`). */
   maxDuration?: number;
+  /**
+   * Seconds to wait for a device to answer before `dial()` rejects. Defaults
+   * to `120`.
+   */
+  dialTimeout?: number;
 }
 
-/** Options for the sendMessage() method. */
+/** Options for `RelayClient.sendMessage()`. */
 export interface SendMessageOptions {
   /** Destination phone number in E.164 format. */
   toNumber: string;
   /** Sender phone number in E.164 format. */
   fromNumber: string;
-  /** Message body text. */
-  body?: string;
-  /** Media URLs for MMS. */
-  media?: string[];
-  /** Context for the message. */
+  /**
+   * Context for receiving state events. Defaults to the negotiated relay
+   * protocol.
+   */
   context?: string;
-  /** Tags for the message. */
+  /** Message body text. At least one of `body` or `media` is required. */
+  body?: string;
+  /** Media URLs for MMS. At least one of `body` or `media` is required. */
+  media?: string[];
+  /** Tags attached to the message for correlation. */
   tags?: string[];
+  /** Origination region override. */
+  region?: string;
+  /**
+   * Callback fired once when the message reaches a terminal state
+   * (`delivered`, `undelivered` or `failed`).
+   */
+  onCompleted?: CompletedCallback;
 }
 
 /**

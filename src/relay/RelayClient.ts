@@ -48,11 +48,12 @@ import { RelayError } from './RelayError.js';
 import type { CallState, MessageState } from './closedSets.js';
 import type {
   CallHandler,
-  CompletedCallback,
+  DialOptions,
   Device,
   JsonRpcError,
   MessageHandler,
   RelayClientOptions,
+  SendMessageOptions,
 } from './types.js';
 
 /** Raw RELAY wire payload — an open JSON-RPC frame or `signalwire.event` dict. */
@@ -696,15 +697,7 @@ export class RelayClient {
    * @throws {Error} When the dial times out.
    * @throws {RelayError} When the server rejects the dial request.
    */
-  async dial(
-    devices: Record<string, unknown>[][],
-    options: {
-      tag?: string;
-      maxDuration?: number;
-      /** Dial timeout in seconds (default 120). */
-      dialTimeout?: number;
-    } = {},
-  ): Promise<Call> {
+  async dial(devices: Record<string, unknown>[][], options: DialOptions = {}): Promise<Call> {
     const dialTag = options.tag ?? randomUUID();
     const params: Record<string, unknown> = {
       tag: dialTag,
@@ -771,16 +764,7 @@ export class RelayClient {
    * @returns A {@link Message} tracking the outbound send.
    * @throws {RelayError} When the server rejects the send request.
    */
-  async sendMessage(options: {
-    toNumber: string;
-    fromNumber: string;
-    context?: string;
-    body?: string;
-    media?: string[];
-    tags?: string[];
-    region?: string;
-    onCompleted?: CompletedCallback;
-  }): Promise<Message> {
+  async sendMessage(options: SendMessageOptions): Promise<Message> {
     if (!options.body && (!options.media || options.media.length === 0)) {
       throw new Error('At least one of body or media is required');
     }
