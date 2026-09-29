@@ -2,7 +2,7 @@
  * Regression tests for LiveWire fixes: tools given as a name-keyed object,
  * LLM plugin objects as the `llm` option, and runApp() serving the agent.
  */
-import { Agent, AgentSession, tool } from '../../src/livewire/index.js';
+import { Agent, AgentSession, tool, plugins, inference } from '../../src/livewire/index.js';
 import type { AgentBase } from '../../src/AgentBase.js';
 
 interface AiBlock {
@@ -95,5 +95,33 @@ describe('LiveWire tools given as a name-keyed object (LiveKit agents-js shape)'
     });
     expect(res.status).toBe(200);
     expect(((await res.json()) as { response: string }).response).toBe('Sunny in Austin');
+  });
+});
+
+describe('LiveWire llm option given an LLM plugin object', () => {
+  async function servedModel(opts: { sessionLlm?: unknown; agentLlm?: unknown }): Promise<unknown> {
+    const session = new AgentSession({ llm: opts.sessionLlm });
+    await session.start({ agent: new Agent({ instructions: 'x', llm: opts.agentLlm }) });
+    return aiBlock(await fetchSwml(session.getSwAgent()!)).params?.['model'];
+  }
+
+  it('plugins.OpenAILLM({ model }) sets the model param to its model', async () => {
+    expect(await servedModel({ sessionLlm: new plugins.OpenAILLM({ model: 'gpt-4o' }) })).toBe(
+      'gpt-4o',
+    );
+  });
+
+  it('inference.LLM on the Agent sets the model param, without its provider prefix', async () => {
+    expect(await servedModel({ agentLlm: new inference.LLM('openai/gpt-4o-mini') })).toBe(
+      'gpt-4o-mini',
+    );
+  });
+
+  it('a plugin with no model leaves the model param unset', async () => {
+    expect(await servedModel({ sessionLlm: new plugins.OpenAILLM() })).toBeUndefined();
+  });
+
+  it('a model string still works', async () => {
+    expect(await servedModel({ sessionLlm: 'openai/gpt-4.1' })).toBe('gpt-4.1');
   });
 });

@@ -90,7 +90,7 @@ The table maps each LiveKit concept to what LiveWire does with it:
 | `stt: 'deepgram'` | Ignored (logged once) | The platform handles STT |
 | `tts: 'elevenlabs'` | Ignored (logged once) | The platform handles TTS |
 | `vad: plugins.SileroVAD.load()` | Ignored (logged once) | The platform handles VAD |
-| `llm: 'openai/gpt-4o'` | Sets the `model` AI param | The `openai/` prefix is removed |
+| `llm: 'openai/gpt-4o'` | Sets the `model` AI param | The `openai/` prefix is removed. An LLM plugin object sets it from its `model` |
 | `allowInterruptions: false` | Sets `barge_confidence` to 1.0 | |
 | `minEndpointingDelay` / `maxEndpointingDelay` | Set `end_of_speech_timeout` / `attention_timeout` | Seconds, converted to milliseconds; defaults 0.5 and 3.0 |
 | `AgentSession.interrupt()` | Does nothing (logged once) | The platform handles barge-in |
@@ -121,11 +121,11 @@ LiveWire includes stub classes for common LiveKit plugin providers:
 - `plugins.OpenAILLM`: LLM stub
 - `plugins.SileroVAD`: VAD stub
 
-These exist so that LiveKit code that creates provider instances still compiles. They have no effect at runtime. To choose the model, pass its name as a string in the `llm` option, not a `plugins.OpenAILLM` instance.
+These exist so that LiveKit code that creates provider instances still compiles. The STT, TTS and VAD stubs have no effect at runtime. A `plugins.OpenAILLM` instance passed as the `llm` option sets the `model` AI param from its `model` option, so `llm: new plugins.OpenAILLM({ model: 'gpt-4o' })` and `llm: 'openai/gpt-4o'` do the same thing.
 
 ## Inference Stubs
 
-LiveWire also includes stubs for LiveKit's `inference` classes. Each one stores the model name you pass and runs nothing:
+LiveWire also includes stubs for LiveKit's `inference` classes. Each one stores the model name you pass and runs nothing. An `inference.LLM` passed as the `llm` option sets the `model` AI param from that name:
 
 - `inference.STT`: STT model stub
 - `inference.LLM`: LLM model stub

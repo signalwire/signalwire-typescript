@@ -515,8 +515,10 @@ export class AgentSession<UserData = unknown> {
    * LiveKit-style options onto SignalWire AI params.
    *
    * The `AgentBase` gets the agent's instructions as its prompt, and a tool for
-   * each entry in the agent's and the session's tool lists. A string `llm`
-   * value (with any `provider/` prefix removed) sets the `model` param.
+   * each entry in the agent's and the session's tool lists. The `llm` value,
+   * a model name or an LLM plugin object such as `plugins.OpenAILLM` whose
+   * `model` is used, sets the `model` param, with any `provider/` prefix
+   * removed.
    * `allowInterruptions: false` sets `barge_confidence` to 1.0. The minimum and
    * maximum endpointing delays, in seconds, set `end_of_speech_timeout` and
    * `attention_timeout` in milliseconds. Text queued with {@link say} becomes
@@ -546,10 +548,17 @@ export class AgentSession<UserData = unknown> {
 
     swAgent.setPromptText(agent.instructions);
 
-    // Map LLM model if provided (session-level takes priority, then agent-level hint)
+    // Map LLM model if provided (session-level takes priority, then agent-level hint).
+    // An LLM plugin object (plugins.OpenAILLM, inference.LLM) carries its
+    // model name in `model`.
     const llmModel = this._llm ?? agent._llmHint;
-    if (llmModel != null) {
-      let model = String(llmModel);
+    let model: string | undefined;
+    if (typeof llmModel === 'string') {
+      model = llmModel;
+    } else if (llmModel != null && typeof (llmModel as { model?: unknown }).model === 'string') {
+      model = (llmModel as { model: string }).model;
+    }
+    if (model) {
       const slashIdx = model.indexOf('/');
       if (slashIdx >= 0) model = model.slice(slashIdx + 1);
       swAgent.setParam('model', model);
@@ -1156,8 +1165,9 @@ export namespace plugins {
   /**
    * LiveKit OpenAI-LLM plugin stub.
    *
-   * Captures the `model` string. Other options are ignored. To choose the
-   * model, pass its name as the `llm` option of `AgentSession` or `Agent`.
+   * Captures the `model` string. Passed as the `llm` option of
+   * `AgentSession` or `Agent`, it sets the `model` AI param. Other options
+   * are ignored.
    */
   export class OpenAILLM {
     /** Model identifier captured from the constructor options. */
@@ -1167,7 +1177,7 @@ export namespace plugins {
       this.model = (_opts as { model?: string })?.model ?? '';
       globalNoop.once(
         'openai_llm',
-        "OpenAILLM(): does nothing. To set the model, pass its name as the llm option, for example llm: 'openai/gpt-4o'.",
+        "OpenAILLM(): only its model option is used, to set the model AI param. SignalWire's control plane runs the LLM.",
       );
     }
   }
@@ -1247,7 +1257,10 @@ export namespace inference {
     }
   }
 
-  /** LiveKit inference-LLM stub. Captures the model name; runs no inference locally. */
+  /**
+   * LiveKit inference-LLM stub. Captures the model name; runs no inference
+   * locally. Passed as the `llm` option, it sets the `model` AI param.
+   */
   export class LLM {
     /** Model identifier captured from the constructor. */
     model: string;

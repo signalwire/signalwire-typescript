@@ -42,7 +42,7 @@ const agent = new Agent({ instructions: 'Hello' });
 
 ## Step 3: Update Session Options
 
-LiveWire accepts the same session options. It ignores the STT, TTS and VAD options, because SignalWire's control plane runs the media pipeline. Pass the model name as a string in `llm`; LiveWire removes any `provider/` prefix and sets the `model` AI param:
+LiveWire accepts the same session options. It ignores the STT, TTS and VAD options, because SignalWire's control plane runs the media pipeline. The `llm` option sets the `model` AI param. It takes a model name, from which LiveWire removes any `provider/` prefix, or an LLM plugin object such as `new plugins.OpenAILLM({ model: 'gpt-4o' })`, whose `model` it uses:
 
 <!-- snippet: no-compile before/after comparison; the "Before" half uses LiveKit plugin classes (DeepgramSTT/ElevenLabsTTS/SileroVAD/OpenAILLM) from external packages and redeclares `session` -->
 ```typescript
