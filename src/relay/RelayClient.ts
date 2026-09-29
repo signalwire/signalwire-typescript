@@ -1267,12 +1267,19 @@ export class RelayClient {
     const messageId = (params.message_id ?? '') as string;
     const message = this._messages.get(messageId);
     if (message) {
-      message._dispatchEvent(payload).catch((err) => {
-        logger.error(`Error dispatching message state for ${messageId}: ${err}`);
-      });
-      if (message.isDone) {
-        this._messages.delete(messageId);
-      }
+      // Check isDone only after dispatch settles: _dispatchEvent awaits the
+      // message's on() listeners before it resolves the terminal state, so a
+      // synchronous check would miss it and leave the message tracked forever.
+      message
+        ._dispatchEvent(payload)
+        .catch((err) => {
+          logger.error(`Error dispatching message state for ${messageId}: ${err}`);
+        })
+        .finally(() => {
+          if (message.isDone && this._messages.get(messageId) === message) {
+            this._messages.delete(messageId);
+          }
+        });
     } else {
       logger.debug(`State event for unknown message ${messageId}`);
     }

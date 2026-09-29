@@ -671,6 +671,48 @@ describe('RelayClient', () => {
 
       await client.disconnect();
     });
+
+    it('drops a terminal message from tracking even when it has an on() listener', async () => {
+      const { client, ws } = createClient();
+      await client.connect();
+
+      const msgPromise = client.sendMessage({ toNumber: '+222', fromNumber: '+111', body: 'Hi' });
+      await new Promise((r) => setTimeout(r, 10));
+      const sendReq = ws.getAllSent().find((m) => m.method === 'messaging.send');
+      ws.receiveMessage({
+        jsonrpc: '2.0',
+        id: sendReq!.id,
+        result: { code: '200', message_id: 'msg-listen' },
+      });
+      const msg = await msgPromise;
+
+      const seen: string[] = [];
+      msg.on(async (event) => {
+        await new Promise((r) => setTimeout(r, 5));
+        seen.push(event.params.message_state as string);
+      });
+
+      const tracked = (client as unknown as { _messages: Map<string, Message> })._messages;
+      expect(tracked.has('msg-listen')).toBe(true);
+
+      ws.receiveMessage({
+        jsonrpc: '2.0',
+        id: 'state-listen',
+        method: 'signalwire.event',
+        params: {
+          event_type: 'messaging.state',
+          params: { message_id: 'msg-listen', message_state: 'delivered' },
+        },
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(seen).toEqual(['delivered']);
+      expect(msg.isDone).toBe(true);
+      expect(tracked.has('msg-listen')).toBe(false);
+
+      await client.disconnect();
+    });
   });
 
   describe('jwtToken env precedence', () => {
