@@ -656,17 +656,40 @@ const URL_PARTS: Record<string, { url: string; parts: string[] }> = {
 };
 
 /**
+ * Variables the SDK reads for the same part of a function URL, the one it
+ * prefers first. A preset value under a preferred name would hide a value
+ * the user gave under a later one.
+ */
+const URL_PART_NAMES: Record<string, string[][]> = {
+  cloud_function: [
+    ['GOOGLE_CLOUD_PROJECT', 'GCP_PROJECT'],
+    ['FUNCTION_REGION', 'GOOGLE_CLOUD_REGION'],
+    ['K_SERVICE', 'FUNCTION_TARGET'],
+  ],
+  azure_function: [['WEBSITE_SITE_NAME', 'AZURE_FUNCTIONS_APP_NAME']],
+};
+
+/**
  * The preset variables to leave out of a serverless simulation, so the
  * user's values (`env`: flags, `--env` and `--env-file` merged) decide the
- * URL. The SDK uses a platform's function URL variable before it builds the
- * URL from the parts, so when the user sets a part without the URL, the
- * preset's URL is left out.
+ * URL:
+ *
+ * - The SDK uses a platform's function URL variable before it builds the URL
+ *   from the parts, so when the user sets a part without the URL, the
+ *   preset's URL is left out.
+ * - The SDK reads some parts under two names, preferring one. When the user
+ *   sets a part under the other name only, the preset's preferred one is
+ *   left out.
  */
 function presetVariablesToOmit(platform: string, env: Record<string, string>): string[] {
-  const omit: string[] = [];
+  const omit = new Set<string>();
   const spec = URL_PARTS[platform];
-  if (spec && !(spec.url in env) && spec.parts.some((part) => part in env)) omit.push(spec.url);
-  return omit;
+  if (spec && !(spec.url in env) && spec.parts.some((part) => part in env)) omit.add(spec.url);
+  for (const names of URL_PART_NAMES[platform] ?? []) {
+    const first = names.findIndex((name) => name in env);
+    if (first > 0) for (const name of names.slice(0, first)) omit.add(name);
+  }
+  return [...omit];
 }
 
 function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null {

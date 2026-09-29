@@ -97,3 +97,41 @@ describe('a serverless URL part given by --env or --env-file', () => {
     ).toBe('https://xyz.lambda-url.eu-west-1.on.aws/agent/swaig');
   }, 70_000);
 });
+
+/**
+ * The SDK reads some URL parts under two names, preferring one:
+ * GOOGLE_CLOUD_PROJECT over GCP_PROJECT, FUNCTION_REGION over
+ * GOOGLE_CLOUD_REGION, K_SERVICE over FUNCTION_TARGET, WEBSITE_SITE_NAME over
+ * AZURE_FUNCTIONS_APP_NAME. A part the user gives under the other name wins
+ * over the preset's value under the preferred one.
+ */
+describe('a serverless URL part given under its other name', () => {
+  it('reads GCP_PROJECT over the preset GOOGLE_CLOUD_PROJECT', async () => {
+    expect(await webhookUrl('gcf', ['--env', 'GCP_PROJECT=production'])).toBe(
+      'https://us-central1-production.cloudfunctions.net/agent/swaig',
+    );
+  }, 70_000);
+
+  it('reads FUNCTION_TARGET over the preset K_SERVICE', async () => {
+    expect(await webhookUrl('gcf', ['--env', 'FUNCTION_TARGET=handler'])).toBe(
+      'https://us-central1-test-project.cloudfunctions.net/handler/agent/swaig',
+    );
+  }, 70_000);
+
+  it('reads AZURE_FUNCTIONS_APP_NAME over the preset WEBSITE_SITE_NAME', async () => {
+    expect(await webhookUrl('azure', ['--env', 'AZURE_FUNCTIONS_APP_NAME=prod-app'])).toBe(
+      'https://prod-app.azurewebsites.net/api/agent/swaig',
+    );
+  }, 70_000);
+
+  it('keeps the preferred name when the user gives both', async () => {
+    expect(
+      await webhookUrl('gcf', [
+        '--env',
+        'GCP_PROJECT=other',
+        '--env',
+        'GOOGLE_CLOUD_PROJECT=preferred',
+      ]),
+    ).toBe('https://us-central1-preferred.cloudfunctions.net/agent/swaig');
+  }, 70_000);
+});

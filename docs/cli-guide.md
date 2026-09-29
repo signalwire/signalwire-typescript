@@ -340,6 +340,8 @@ Each platform's options set its variables:
 
 Each platform starts from a preset environment with a sample function URL. When you give a part of the URL without the URL itself, the preset URL is dropped and the URL is built from the parts. A part can come from a flag, `--env` or `--env-file`. For Lambda, `--aws-function-name` or `--aws-region` (`AWS_LAMBDA_FUNCTION_NAME`, `AWS_REGION`) without `--aws-function-url` (`AWS_LAMBDA_FUNCTION_URL`) gives `https://NAME.lambda-url.REGION.on.aws`, with `test-agent-function` and `us-east-1` for the part you leave out. So `--env AWS_REGION=eu-west-1` gives a URL in `eu-west-1`. In the same way, `--gcp-project`, `--gcp-region` or `--gcp-service` without `--gcp-function-url` gives `https://REGION-PROJECT.cloudfunctions.net/SERVICE`. The Azure preset's URL is `https://my-function-app.azurewebsites.net/api/agent`; `--azure-function-url` replaces it.
 
+The SDK reads some parts under two names, and prefers one: `GOOGLE_CLOUD_PROJECT` over `GCP_PROJECT`, `FUNCTION_REGION` over `GOOGLE_CLOUD_REGION`, `K_SERVICE` over `FUNCTION_TARGET`, and `WEBSITE_SITE_NAME` over `AZURE_FUNCTIONS_APP_NAME`. A part you give under the other name wins over the preset's value under the preferred one. So `--env GCP_PROJECT=production` gives a URL in the `production` project, and `--env AZURE_FUNCTIONS_APP_NAME=prod-app` one on `prod-app.azurewebsites.net`.
+
 An unknown platform is an error, and the CLI exits with status 2. It never falls back to running as a server.
 
 ---
