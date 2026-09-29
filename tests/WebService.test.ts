@@ -87,3 +87,67 @@ describe('WebService symbolic links', () => {
     expect(html).not.toContain('link.txt');
   });
 });
+
+describe('WebService runtime directory changes', () => {
+  it('addDirectory() after the first request serves the new route', async () => {
+    const web = new WebService();
+    const app = web.getApp();
+    expect((await app.request('/health')).status).toBe(200);
+
+    expect(() => web.addDirectory('/late', mount)).not.toThrow();
+    const res = await app.request('/late/inside.txt');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('inside');
+  });
+
+  it('removeDirectory() stops serving the route', async () => {
+    const web = new WebService({ directories: { '/docs': mount } });
+    const app = web.getApp();
+    expect((await app.request('/docs/inside.txt')).status).toBe(200);
+
+    web.removeDirectory('/docs');
+    expect((await app.request('/docs/inside.txt')).status).toBe(404);
+    const health = (await (await app.request('/health')).json()) as { directories: string[] };
+    expect(health.directories).not.toContain('/docs');
+  });
+
+  it('removeDirectory() accepts a route without its leading slash', async () => {
+    const web = new WebService({ directories: { '/docs': mount } });
+    web.removeDirectory('docs');
+    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(404);
+  });
+
+  it('matches a prefix only at a path segment boundary', async () => {
+    const web = new WebService({ directories: { '/docs': mount } });
+    expect((await web.getApp().request('/docsx/inside.txt')).status).toBe(404);
+  });
+
+  it('serves from the longest matching prefix', async () => {
+    writeFileSync(join(outside, 'inside.txt'), 'nested');
+    const web = new WebService({ directories: { '/docs': mount, '/docs/nested': outside } });
+    const res = await web.getApp().request('/docs/nested/inside.txt');
+    expect(await res.text()).toBe('nested');
+  });
+
+  it("serves a directory mounted at '/' without shadowing / and /health", async () => {
+    const web = new WebService({ directories: { '/': mount } });
+    const app = web.getApp();
+    const res = await app.request('/inside.txt');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('inside');
+    expect((await app.request('/health')).headers.get('content-type')).toContain(
+      'application/json',
+    );
+    expect(await (await app.request('/')).text()).toContain('SignalWire Web Service');
+  });
+});
+
+describe('WebService removeDirectory() route spelling', () => {
+  it('removes a route stored with a trailing slash', async () => {
+    const web = new WebService({ directories: { '/docs/': mount } });
+    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(200);
+    web.removeDirectory('/docs');
+    expect(web.directories).toEqual({});
+    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(404);
+  });
+});

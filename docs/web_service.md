@@ -330,18 +330,20 @@ const service = new WebService({
 
 ### Dynamic Directory Management
 
-`addDirectory()` mounts a directory after construction. Call it before the service handles its first request: Hono can't add a route after that, and the call throws. `removeDirectory()` drops the prefix from `directories` and `/health`, but the route keeps serving files until the process restarts.
+`addDirectory()` mounts a directory after construction, and `removeDirectory()` unmounts one. Both work on a running service and take effect from the next request.
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
 const service = new WebService();
-
-// Add directories before the service handles a request
 service.addDirectory('/docs', './documentation');
-service.addDirectory('/reports', './generated/reports');
-
 await service.start();
+
+// Later, while the service runs
+service.addDirectory('/reports', './generated/reports');
+service.removeDirectory('/docs'); // GET /docs/... now returns 404
 ```
+
+When prefixes overlap, the longest one that matches the request path serves it. A directory mounted at `/` serves every path except `/` and `/health`.
 
 `addDirectory()` throws if the directory doesn't exist or isn't a directory.
 
@@ -566,8 +568,8 @@ class WebService {
 
 These methods manage the service:
 
-- `addDirectory(route, directory)`: Mount a directory at a URL prefix. Throws if the directory doesn't exist, or if the service has already handled a request.
-- `removeDirectory(route)`: Remove the prefix from `directories`. The route keeps serving until the process restarts.
+- `addDirectory(route, directory)`: Mount a directory at a URL prefix, before or after the service starts. Throws if the directory doesn't exist or isn't a directory.
+- `removeDirectory(route)`: Unmount the prefix. Its route returns `404` from the next request.
 - `getApp()`: Return the underlying Hono app, to mount or test.
 - `start(host?, port?, sslCert?, sslKey?)`: Start the HTTP or HTTPS server. `host` defaults to `0.0.0.0`. With `SWAIG_CLI_MODE=true`, it does nothing.
 - `stop()`: Stop the server.

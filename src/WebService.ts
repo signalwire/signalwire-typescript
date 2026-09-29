@@ -189,7 +189,8 @@ export class WebService {
   // ── Public API ─────────────────────────────────────────────────────
 
   /**
-   * Add a new directory to serve at a URL route prefix.
+   * Add a new directory to serve at a URL route prefix. Works before or after
+   * the service starts; the route serves from the next request.
    * @param route - URL prefix (e.g. '/docs').
    * @param directory - Local directory path to serve.
    * @throws If the directory does not exist or is not a directory.
@@ -207,20 +208,18 @@ export class WebService {
     }
 
     this.directories[r] = directory;
-    this._mountSingleDirectory(r, directory);
+    this.log.info(`Serving static files from ${dirPath} at ${WebService._normalizeRoute(r)}`);
   }
 
   /**
-   * Remove a previously added directory route from the bookkeeping map.
-   *
-   * Note: Hono does not support dynamic route removal; a server restart
-   * is required for the route to fully stop responding.
+   * Stop serving a directory. The route stops responding at once, including
+   * on a running service.
    * @param route - The URL route prefix to remove.
    */
   removeDirectory(route: string): void {
-    const r = route.startsWith('/') ? route : `/${route}`;
-    if (r in this.directories) {
-      delete this.directories[r];
+    const r = WebService._normalizeRoute(route);
+    for (const key of Object.keys(this.directories)) {
+      if (WebService._normalizeRoute(key) === r) delete this.directories[key];
     }
   }
 
@@ -465,9 +464,19 @@ export class WebService {
       c.header('Content-Type', 'text/html');
       return c.body(html);
     });
+
+    // Mounted directories: one route that consults `directories` on each
+    // request, so mounts added or removed after the first request apply.
+    this._app.get('*', (c) => this._serveMounted(c));
   }
 
   // ── Directory mounting ─────────────────────────────────────────────
+
+  /** Normalize a route prefix: leading slash, no trailing slash ('/' stays '/'). */
+  private static _normalizeRoute(route: string): string {
+    const withSlash = route.startsWith('/') ? route : `/${route}`;
+    return withSlash.replace(/\/+$/, '') || '/';
+  }
 
   private _mountDirectories(): void {
     for (const [route, dir] of Object.entries(this.directories)) {
@@ -476,80 +485,96 @@ export class WebService {
         this.log.warn(`Directory does not exist: ${dir}`);
         continue;
       }
-      this._mountSingleDirectory(route, dir);
+      this.log.info(`Serving static files from ${dirPath} at ${WebService._normalizeRoute(route)}`);
     }
   }
 
-  private _mountSingleDirectory(route: string, directory: string): void {
-    const baseDir = resolve(directory);
-    const routePrefix = route.replace(/\/+$/, '') || '/';
+  /**
+   * Find the mount serving a request path: the longest route prefix in
+   * `directories` that equals the path or is followed by `/` in it. Consulted
+   * on every request, so `addDirectory()` and `removeDirectory()` take effect
+   * at once.
+   */
+  private _findMount(path: string): { prefix: string; directory: string } | null {
+    let best: { prefix: string; directory: string } | null = null;
+    for (const [route, directory] of Object.entries(this.directories)) {
+      const prefix = WebService._normalizeRoute(route);
+      const matches = prefix === '/' ? true : path === prefix || path.startsWith(`${prefix}/`);
+      if (matches && (!best || prefix.length > best.prefix.length)) {
+        best = { prefix, directory };
+      }
+    }
+    return best;
+  }
 
-    this._app.get(`${routePrefix}/*`, async (c) => {
-      const requestedPath = c.req.path.slice(routePrefix.length);
+  /** Serve a GET request under a mounted directory, or 404 when no mount matches. */
+  private async _serveMounted(c: Context): Promise<Response> {
+    const mount = this._findMount(c.req.path);
+    if (!mount) return c.notFound();
 
-      // Path traversal protection: reject any path containing ".."
-      if (requestedPath.includes('..')) {
+    const baseDir = resolve(mount.directory);
+    const requestedPath = mount.prefix === '/' ? c.req.path : c.req.path.slice(mount.prefix.length);
+
+    // Path traversal protection: reject any path containing ".."
+    if (requestedPath.includes('..')) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const normalizedPath = normalize(requestedPath);
+    const fullPath = resolve(join(baseDir, normalizedPath));
+
+    // Double-check the resolved path is within the base directory
+    if (!isWithin(fullPath, baseDir)) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    try {
+      // Symbolic links: the file actually read must be inside the mount's
+      // real root, so a link inside the mount can't serve a file outside it.
+      const realBase = await realpath(baseDir);
+      const realPath = await realpath(fullPath);
+      if (!isWithin(realPath, realBase)) {
         return c.json({ error: 'Forbidden' }, 403);
       }
 
-      const normalizedPath = normalize(requestedPath);
-      const fullPath = resolve(join(baseDir, normalizedPath));
+      const fileStat = await stat(fullPath);
 
-      // Double-check the resolved path is within the base directory
-      if (!isWithin(fullPath, baseDir)) {
-        return c.json({ error: 'Forbidden' }, 403);
-      }
-
-      try {
-        // Symbolic links: the file actually read must be inside the mount's
-        // real root, so a link inside the mount can't serve a file outside it.
-        const realBase = await realpath(baseDir);
-        const realPath = await realpath(fullPath);
-        if (!isWithin(realPath, realBase)) {
-          return c.json({ error: 'Forbidden' }, 403);
-        }
-
-        const fileStat = await stat(fullPath);
-
-        // Handle directory requests
-        if (fileStat.isDirectory()) {
-          if (!this.enableDirectoryBrowsing) {
-            // Try index.html fallback
-            const indexPath = join(fullPath, 'index.html');
-            try {
-              const idxStat = await stat(indexPath);
-              const idxReal = await realpath(indexPath);
-              if (
-                isWithin(idxReal, realBase) &&
-                idxStat.isFile() &&
-                this._isFileAllowed(indexPath, idxStat.size)
-              ) {
-                return this._serveFile(c, indexPath);
-              }
-            } catch {
-              // No index.html found
+      // Handle directory requests
+      if (fileStat.isDirectory()) {
+        if (!this.enableDirectoryBrowsing) {
+          // Try index.html fallback
+          const indexPath = join(fullPath, 'index.html');
+          try {
+            const idxStat = await stat(indexPath);
+            const idxReal = await realpath(indexPath);
+            if (
+              isWithin(idxReal, realBase) &&
+              idxStat.isFile() &&
+              this._isFileAllowed(indexPath, idxStat.size)
+            ) {
+              return this._serveFile(c, indexPath);
             }
-            return c.json({ error: 'Directory browsing disabled' }, 403);
+          } catch {
+            // No index.html found
           }
-          return this._serveDirectoryListing(c, fullPath, c.req.path);
+          return c.json({ error: 'Directory browsing disabled' }, 403);
         }
+        return this._serveDirectoryListing(c, fullPath, c.req.path);
+      }
 
-        // Regular file
-        if (!fileStat.isFile()) {
-          return c.json({ error: 'Not found' }, 404);
-        }
-
-        if (!this._isFileAllowed(fullPath, fileStat.size)) {
-          return c.json({ error: 'File type not allowed' }, 403);
-        }
-
-        return this._serveFile(c, fullPath);
-      } catch {
+      // Regular file
+      if (!fileStat.isFile()) {
         return c.json({ error: 'Not found' }, 404);
       }
-    });
 
-    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
+      if (!this._isFileAllowed(fullPath, fileStat.size)) {
+        return c.json({ error: 'File type not allowed' }, 403);
+      }
+
+      return this._serveFile(c, fullPath);
+    } catch {
+      return c.json({ error: 'Not found' }, 404);
+    }
   }
 
   // ── File checks ────────────────────────────────────────────────────
