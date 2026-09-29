@@ -218,11 +218,11 @@ agent.defineTool({
 // endregion: logging
 
 // region: request-logging
-// Runs on every request, on that request's copy of the agent. The headers
-// arrive with the credential-bearing ones already removed.
+// Runs on every request, on that request's copy of the agent. It logs names,
+// not values: the query can carry a SWAIG token, and the body caller data.
 agent.addPerCallConfig((query, body, headers) => {
   log.debug('request', {
-    query,
+    query_keys: Object.keys(query),
     body_keys: Object.keys(body ?? {}),
     user_agent: headers['user-agent'],
   });

@@ -108,7 +108,7 @@ await agent.addSkill(
 // Start the server only when this file is run, not when it's imported
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log('Starting PC Builder Sales Agent - Morgan (Enhanced)');
-  console.log(`Agent running at: http://localhost:${agent.port}/`);
+  console.log(`Agent running at: ${agent.getFullUrl()}/`);
   console.log('Knowledge base: sales_knowledge.md');
   console.log('Press Ctrl+C to stop');
   await agent.run();

@@ -1,34 +1,30 @@
-/**
- * Extending agents (Lesson 5)
- *
- * A custom skill, per-call and persistent state, multi-step workflows,
- * external services, personas, prompt techniques and resilience helpers.
- * Persistent state uses node:sqlite, which needs Node.js 22.13 or later
- * (22.5 through 22.12 need the --experimental-sqlite flag).
- *
- * Run: npx tsx tutorial/multi_agents/extending_agents.ts
- */
+# Lesson 5: Extending Your Agents
 
-import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { Hono } from 'hono';
-import {
-  AgentBase,
-  FunctionResult,
-  NativeVectorSearchSkill,
-  SkillBase,
-  getLogger,
-  type ParameterSchemaEntry,
-  type SkillPromptSection,
-  type SkillToolDefinition,
-} from '@signalwire/sdk';
-import { loadKnowledge } from './knowledge.js';
+This lesson adds capabilities to an agent: a skill of your own, state, multi-step workflows, and connections to other services. The examples are one agent, `tutorial/multi_agents/extending_agents.ts`, and its tests are in `tests/tutorial/multi_agents-lessons.test.ts`.
 
-const log = getLogger('extending_agents');
+## Table of Contents
 
-export const agent = new AgentBase({ name: 'Extended Agent', route: '/' });
+1. [Creating custom skills](#creating-custom-skills)
+2. [State management](#state-management)
+3. [Complex conversation flows](#complex-conversation-flows)
+4. [External service integration](#external-service-integration)
+5. [Custom voice personas](#custom-voice-personas)
+6. [Advanced prompt engineering](#advanced-prompt-engineering)
+7. [Common patterns](#common-patterns)
+8. [Summary](#summary)
 
-// region: weather-skill
+---
+
+## Creating custom skills
+
+A skill packages tools, prompt sections, speech hints and setup into one class that any agent can add. The built-in skills, such as `native_vector_search` and `swml_transfer`, are written the same way.
+
+### Basic skill structure
+
+A skill extends `SkillBase`, and sets a name and a description. This one looks up the weather with the WeatherAPI.com service:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#weather-skill -->
+```typescript
 /** Current weather and forecasts from WeatherAPI.com. */
 export class WeatherSkill extends SkillBase {
   static override SKILL_NAME = 'weather_lookup';
@@ -126,18 +122,53 @@ export class WeatherSkill extends SkillBase {
     ];
   }
 }
-// endregion: weather-skill
+```
 
-// region: use-skill
+The parts do these jobs:
+
+- `SKILL_NAME` and `SKILL_DESCRIPTION` are required, and the constructor throws without them.
+- `REQUIRED_ENV_VARS` lists variables that must be set. Adding the skill fails when one is missing.
+- `getParameterSchema()` describes the options the skill accepts. `getConfig()` reads them, with a default.
+- `setup()` runs once, when the skill is added. Returning `false` refuses the skill.
+- `getTools()` returns the tools, in the same shape `defineTool()` takes.
+- `_getPromptSections()` returns prompt sections the skill adds to the agent's prompt.
+
+### Using custom skills
+
+Add a custom skill the same way as a built-in one, with an instance:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#use-skill -->
+```typescript
 // The skill refuses to load without WEATHER_API_KEY, so add it only when the key is set
 if (process.env['WEATHER_API_KEY']) {
   await agent.addSkill(new WeatherSkill());
 } else {
   log.warn('WEATHER_API_KEY not set; the weather tools are not available');
 }
-// endregion: use-skill
+```
 
-// region: multiple-instances
+`addSkill()` rejects when a required variable is missing, so the file checks first. With `WEATHER_API_KEY` set, the tool answers from the live service:
+
+```bash
+npx tsx src/cli/swaig-test.ts tutorial/multi_agents/extending_agents.ts --route / \
+  --exec get_weather --location Austin
+```
+
+The result is the current weather:
+
+```text
+RESULT:
+Response: Current weather in Austin: 88.2°F, Patchy rain nearby
+```
+
+To add a skill by name, register its class once with `SkillRegistry.getInstance().register(WeatherSkill)`, then call `agent.addSkillByName('weather_lookup')`. For more information, see [Creating Custom Skills](../../docs/skills-guide.md#creating-custom-skills) in the skills guide.
+
+### Skill configuration
+
+A skill that sets `SUPPORTS_MULTIPLE_INSTANCES` can be added more than once, with different options. `native_vector_search` tells its instances apart by `tool_name`:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#multiple-instances -->
+```typescript
 // Two instances of one skill, told apart by tool_name
 const here = (name: string) => fileURLToPath(new URL(`./${name}`, import.meta.url));
 
@@ -157,9 +188,20 @@ await agent.addSkill(
     count: 3,
   }),
 );
-// endregion: multiple-instances
+```
 
-// region: call-state
+The agent gets two tools, `search_products` and `search_troubleshooting`, each over its own documents.
+
+## State management
+
+An agent serves many calls at once, so state must be keyed by call, or stored where every process can reach it.
+
+### Per-call state
+
+Every SWAIG request carries the call's ID in `rawData.call_id`. Key per-call state by it, not by an argument the model fills in:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#call-state -->
+```typescript
 // Preferences for each call, keyed by the call ID SignalWire sends with every
 // function call. This lives in one process's memory: a restart loses it.
 const preferences = new Map<string, Map<string, string>>();
@@ -194,9 +236,16 @@ agent.defineTool({
     );
   },
 });
-// endregion: call-state
+```
 
-// region: persistent-state
+The map lives in one process. It's lost on a restart, and a second replica can't see it. It also grows with every call, so a production version deletes a call's entry when the call ends. `agent.onCallEnd()` registers a handler that runs at hangup.
+
+### Persistent state with a database
+
+State that must outlive the process belongs in a database. Node's built-in `node:sqlite` needs no package. It needs Node.js 22.13 or later, or the `--experimental-sqlite` flag on 22.5 through 22.12:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#persistent-state -->
+```typescript
 // Interactions that outlive the process, in a SQLite file
 const db = new DatabaseSync(process.env['INTERACTIONS_DB'] ?? 'interactions.db');
 db.exec(`CREATE TABLE IF NOT EXISTS interactions (
@@ -246,9 +295,34 @@ agent.defineTool({
     return new FunctionResult(`Previous interactions:\n${history}`);
   },
 });
-// endregion: persistent-state
+```
 
-// region: global-data
+The `?` placeholders pass the arguments as parameters, so a caller's words can't change the SQL. `DatabaseSync` runs each query synchronously. That's fine for small, indexed queries. A slow query blocks every call the process is serving, so use a server database with an async client for heavy work. SQLite is a file on one machine: for several replicas, use a shared database.
+
+The history survives between processes. Save an interaction, then read it back with a second run of `swaig-test`:
+
+```bash
+export INTERACTIONS_DB=/tmp/interactions.db
+npx tsx src/cli/swaig-test.ts tutorial/multi_agents/extending_agents.ts --route / \
+  --exec save_interaction --customer_id C1 --interaction_type quote --details 'Quoted a $2000 gaming build'
+npx tsx src/cli/swaig-test.ts tutorial/multi_agents/extending_agents.ts --route / \
+  --exec get_history --customer_id C1
+```
+
+The second run finds the row the first one wrote:
+
+```text
+RESULT:
+Response: Previous interactions:
+- quote on 2026-09-29T17:44:27.731Z: Quoted a $2000 gaming build
+```
+
+### Global data between function calls
+
+Global data belongs to the call, and SignalWire keeps it. A result sets it with `updateGlobalData()`, and every later SWAIG request in the call carries it in `rawData.global_data`:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#global-data -->
+```typescript
 agent.defineTool({
   name: 'set_customer_data',
   description: 'Store a customer detail for the rest of the call',
@@ -274,9 +348,20 @@ agent.defineTool({
     return new FunctionResult(value === undefined ? `No ${key} stored` : `${key}: ${value}`);
   },
 });
-// endregion: global-data
+```
 
-// region: workflow
+Global data needs no storage of your own, and every replica sees it, because it arrives with the request.
+
+## Complex conversation flows
+
+Some tasks take several tool calls, in order.
+
+### Multi-step workflows
+
+An order starts, collects items, and is confirmed. Each step checks the state the one before it left:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#workflow -->
+```typescript
 // An order built over several function calls, one per call ID
 interface Order {
   state: 'awaiting_items' | 'ready_to_confirm';
@@ -327,9 +412,16 @@ agent.defineTool({
     return new FunctionResult(`Order confirmed. Total: $${total.toFixed(2)}`);
   },
 });
-// endregion: workflow
+```
 
-// region: conditional
+The `enum` on `item` limits the model to products with a price. Each tool refuses to run out of order, and says why, so the model can recover. For workflows where the model must not skip a step, the SDK's contexts and steps limit which tools each step offers. For more information, see the [contexts guide](../../docs/contexts-guide.md).
+
+### Conditional flows
+
+A tool can report a fact that the prompt already says how to handle. The status goes to the model in the response, and into global data for later tools:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#conditional -->
+```typescript
 agent.promptAddSection('Conditional Responses', {
   body: 'Adapt your behavior based on context:',
   bullets: [
@@ -359,9 +451,18 @@ agent.defineTool({
     });
   },
 });
-// endregion: conditional
+```
 
-// region: rest-api
+## External service integration
+
+An agent often fronts other systems: an inventory service, an order system, a queue.
+
+### REST API integration
+
+A tool can call any HTTP API. Read the address and key from the environment, give the request a timeout, and turn every failure into a result the model can use:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#rest-api -->
+```typescript
 agent.defineTool({
   name: 'check_availability',
   description: 'Check product availability in the inventory service',
@@ -395,9 +496,14 @@ agent.defineTool({
     }
   },
 });
-// endregion: rest-api
+```
 
-// region: webhook
+### Webhook integration
+
+Other services can call the agent too. Mount a Hono app for their webhooks. A mounted app isn't behind the agent's basic auth, so check a shared secret of your own:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#webhook -->
+```typescript
 // Order updates from another service, on a route beside the agent's.
 // A mounted app isn't behind the agent's basic auth: check a secret of your own.
 const webhooks = new Hono();
@@ -418,9 +524,16 @@ function processOrderUpdate(orderId: string, status: string): void {
   log.info('order updated', { order_id: orderId, status });
   orderUpdates.push({ order_id: orderId, status });
 }
-// endregion: webhook
+```
 
-// region: work-queue
+`setImmediate()` runs the work after the response is sent, so the sender isn't kept waiting. The route answers `403` without the secret.
+
+### Background work queue
+
+Work that doesn't need to finish during the call, such as emailing a quote, can go on a queue. The tool returns as soon as the task is queued:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#work-queue -->
+```typescript
 // Work that should happen outside the call: a function queues it and returns,
 // and a worker drains the queue. A deployment with several processes uses a
 // shared queue (Redis, SQS) the same way.
@@ -456,9 +569,20 @@ const worker = setInterval(() => {
   }
 }, 1000);
 worker.unref(); // the worker alone doesn't keep the process running
-// endregion: work-queue
+```
 
-// region: personas
+An in-memory queue loses its tasks on a restart. When a task must not be lost, use a queue service that stores it.
+
+## Custom voice personas
+
+A persona is a voice and a speaking style. The same agent can take a different persona per call.
+
+### Choosing a persona per request
+
+A per-call configuration callback sets the voice and adds a style section on the request's copy of the agent. The SWML URL chooses the persona, for example `https://agents.example.com/?persona=professional`:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#personas -->
+```typescript
 // A persona per request, chosen by a query parameter: ?persona=professional
 const PERSONAS = {
   professional: { voice: 'rime.cove', style: 'formal and precise', pace: 'measured' },
@@ -478,9 +602,16 @@ agent.addPerCallConfig((query, _body, _headers, copy) => {
     body: `Speak in a ${persona.style} manner at a ${persona.pace} pace`,
   });
 });
-// endregion: personas
+```
 
-// region: multilingual
+`setLanguages()` replaces the language list instead of adding to it, and the copy is discarded after the request. Calling `addLanguage()` and `promptAddSection()` on the agent itself each time would add a second English entry and a second style section to every later call.
+
+### Multilingual support
+
+Call `addLanguage()` once for each language the agent speaks:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#multilingual -->
+```typescript
 export const multilingual = new AgentBase({ name: 'Multilingual Agent', route: '/multilingual' });
 
 multilingual.addLanguage({ name: 'English', code: 'en-US', voice: 'rime.marsh' });
@@ -495,9 +626,20 @@ multilingual.promptAddSection('Language Instructions', {
     'French: Polite and formal French business etiquette',
   ],
 });
-// endregion: multilingual
+```
 
-// region: reasoning
+This second agent is at `/multilingual`, so `swaig-test --route /multilingual` selects it.
+
+## Advanced prompt engineering
+
+Prompt structure changes how reliably the model follows it.
+
+### Structured reasoning
+
+A section can lay out the steps for the model to follow. `numberedBullets` numbers them in the prompt:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#reasoning -->
+```typescript
 agent.promptAddSection('Reasoning Framework', {
   body: 'Follow this structured approach for complex requests:',
   bullets: [
@@ -520,9 +662,14 @@ agent.promptAddSection('Decision Criteria', {
     'Best value proposition',
   ],
 });
-// endregion: reasoning
+```
 
-// region: switch-context
+### Changing the prompt during a call
+
+`switchContext()` replaces the system prompt from a tool result, for the rest of the call. It replaces the whole prompt, so pass all of it, not only the part that changes:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#switch-context -->
+```typescript
 agent.defineTool({
   name: 'set_explanation_mode',
   description: 'Change how the agent explains things for the rest of the call',
@@ -547,9 +694,20 @@ agent.defineTool({
     });
   },
 });
-// endregion: switch-context
+```
 
-// region: retry
+With only a system prompt, the action is `{ "context_switch": "<the prompt>" }`. `switchContext()` also takes `userPrompt`, `consolidate` and `fullReset`. For more information, see the [SWAIG reference](../../docs/swaig-reference.md).
+
+## Common patterns
+
+These helpers make calls to other services more robust. The tests exercise both.
+
+### Retry pattern
+
+Retry a failure that may be temporary, with a delay that doubles each time:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#retry -->
+```typescript
 /** Run `fn`, retrying a failure with a delay that doubles each time. */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -568,9 +726,16 @@ export async function retryWithBackoff<T>(
     }
   }
 }
-// endregion: retry
+```
 
-// region: circuit-breaker
+Keep the total wait short in a tool. The caller is waiting on the line.
+
+### Circuit breaker pattern
+
+When a dependency keeps failing, stop calling it for a while, so each call fails fast instead of waiting for a timeout:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#circuit-breaker -->
+```typescript
 /** Stops calling a failing dependency until `resetTimeoutMs` has passed. */
 export class CircuitBreaker {
   private failureCount = 0;
@@ -603,9 +768,16 @@ export class CircuitBreaker {
     }
   }
 }
-// endregion: circuit-breaker
+```
 
-// region: factory
+Wrap a call as `await breaker.call(() => fetch(url))`, and turn the error into a result that tells the model the service is down.
+
+### Factory pattern for agents
+
+A factory builds agents from a plain configuration, which can come from a file or a database:
+
+<!-- snippet: no-compile a region of tutorial/multi_agents/extending_agents.ts; the file itself is type-checked --> <!-- include: tutorial/multi_agents/extending_agents.ts#factory -->
+```typescript
 /** The kinds of agent the factory can build, and what makes each one different. */
 const AGENT_TYPES = {
   sales: { name: 'Sales Agent', route: '/sales', role: 'You are Morgan, a PC sales specialist.' },
@@ -633,9 +805,52 @@ export async function createAgent(type: string, config: AgentConfig = {}): Promi
   for (const language of config.languages ?? []) created.addLanguage(language);
   return created;
 }
-// endregion: factory
+```
 
-// Start the server only when this file is run, not when it's imported
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  await agent.run();
-}
+`createAgent('sales', { skills: [...], languages: [...] })` returns a configured agent, ready to register on an `AgentServer`.
+
+## Summary
+
+This tutorial went from a single agent to a multi-agent system with search, custom tools, and now custom skills and state. This lesson covered these topics:
+
+- Creating custom skills with options, setup and required variables
+- Keeping per-call state by call ID, persistent state in SQLite, and call state in global data
+- Building workflows that span several tool calls
+- Calling external APIs, and accepting webhooks and queued work
+- Choosing personas per request, and speaking several languages
+- Structuring prompts, and replacing the prompt during a call
+- Retries, circuit breakers and agent factories
+
+### Where to go next
+
+These steps build on what you have:
+
+1. **Build your own agent**: start with one use case and a few tools, and grow it.
+2. **Share a skill**: package a skill for other agents. For more information, see [Third-Party Skills](../../docs/third_party_skills.md).
+3. **Measure**: time your tools, and fix the slowest first.
+4. **Deploy**: put the agents in production with Lesson 4's checklist.
+5. **Iterate**: listen to real calls, and improve the prompts and tools.
+
+### Resources for continued learning
+
+These resources cover the SDK and the platform:
+
+- [SignalWire documentation](https://signalwire.com/docs)
+- The SDK's guides, starting with the [agent guide](../../docs/agent-guide.md)
+- The SDK's runnable examples, in [`examples/`](../../examples/README.md)
+
+### Final tips
+
+Keep these in mind as you build:
+
+- Start small and iterate
+- Test tools before you place a call
+- Monitor agents in production
+- Keep your dependencies up to date
+- Document the skills you write
+
+This completes the tutorial. Build on Morgan, Alex and Sam, or start a new agent from what you've learned.
+
+---
+
+[Previous: Lesson 4 - Advanced Features](lesson4_advanced_features.md) | [Tutorial Overview](README.md)

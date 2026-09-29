@@ -443,7 +443,9 @@ function configureSupportPrompt(agent: AgentBase): void {
 export async function createPcBuilderApp(opts: PcBuilderOptions = {}): Promise<AgentServer> {
   const host = opts.host ?? '0.0.0.0';
   const port = opts.port ?? Number(process.env['PORT'] ?? 3001);
-  const server = new AgentServer({ host, port, logLevel: opts.logLevel ?? 'info' });
+  // AgentServer sets the global log level, so pass SIGNALWIRE_LOG_LEVEL through
+  const logLevel = opts.logLevel ?? process.env['SIGNALWIRE_LOG_LEVEL'] ?? 'info';
+  const server = new AgentServer({ host, port, logLevel });
 
   // The triage agent puts its own credentials in the transfer URLs, so all
   // three agents must accept the same ones

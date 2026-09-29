@@ -57,33 +57,34 @@ async function run(agent: AgentBase, name: string, args: Json, rawData: Json = {
 const text = async (agent: AgentBase, name: string, args: Json, rawData: Json = {}) =>
   String((await run(agent, name, args, rawData))['response']);
 
+// The two tests Lesson 4 quotes, at the top level so the quotes carry no indentation
+// region: unit-test
+it('calculates the price with tax', async () => {
+  const fn = advanced.getTool('calculate_price')!;
+  const result = await fn.execute({ amount: 100, tax_rate: 0.08 });
+  expect(result['response']).toBe('The total price is $108.00 ($100.00 + $8.00 tax)');
+
+  // The tax rate is optional, and defaults to 8%
+  const noRate = await fn.execute({ amount: 50 });
+  expect(noRate['response']).toContain('$54.00');
+});
+// endregion: unit-test
+
+// region: integration-test
+it('serves SWML that lists calculate_price, and refuses a request without credentials', async () => {
+  const app = advanced.getApp();
+  expect((await app.request('/')).status).toBe(401);
+
+  const res = await app.request('/', { headers: AUTH });
+  expect(res.status).toBe(200);
+  const swml = (await res.json()) as Swml;
+  const ai = swml.sections.main.find((verb) => verb.ai)!.ai!;
+  const names = ai.SWAIG.functions.map((f) => f.function);
+  expect(names).toContain('calculate_price');
+});
+// endregion: integration-test
+
 describe('Lesson 4: advanced_agent.ts', () => {
-  // region: unit-test
-  it('calculates the price with tax', async () => {
-    const fn = advanced.getTool('calculate_price')!;
-    const result = await fn.execute({ amount: 100, tax_rate: 0.08 });
-    expect(result['response']).toBe('The total price is $108.00 ($100.00 + $8.00 tax)');
-
-    // The tax rate is optional, and defaults to 8%
-    const noRate = await fn.execute({ amount: 50 });
-    expect(noRate['response']).toContain('$54.00');
-  });
-  // endregion: unit-test
-
-  // region: integration-test
-  it('serves SWML that lists calculate_price, and refuses a request without credentials', async () => {
-    const app = advanced.getApp();
-    expect((await app.request('/')).status).toBe(401);
-
-    const res = await app.request('/', { headers: AUTH });
-    expect(res.status).toBe(200);
-    const swml = (await res.json()) as Swml;
-    const ai = swml.sections.main.find((verb) => verb.ai)!.ai!;
-    const names = ai.SWAIG.functions.map((f) => f.function);
-    expect(names).toContain('calculate_price');
-  });
-  // endregion: integration-test
-
   it('runs calculate_price through swaig-test', () => {
     const out = execFileSync(
       'npx',
@@ -300,6 +301,10 @@ describe('Lesson 5: extending_agents.ts', () => {
         body: JSON.stringify({ order_id: 'ORD-1', status: 'shipped' }),
       });
     expect((await post('wrong')).status).toBe(403);
+    // With no secret configured, every request is refused
+    delete process.env['ORDER_WEBHOOK_SECRET'];
+    expect((await post('')).status).toBe(403);
+    process.env['ORDER_WEBHOOK_SECRET'] = 'hook-secret';
     const res = await post('hook-secret');
     expect(await res.json()).toEqual({ status: 'received' });
     await new Promise((resolve) => setImmediate(resolve));
