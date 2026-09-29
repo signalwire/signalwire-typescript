@@ -32,6 +32,10 @@ const checkOrder = tool({
   },
   execute: (params: { order_id: string }, context: { ctx: RunContext }) => {
     console.log(`[tool] check_order called with: ${params.order_id}`);
+    // RunContext gives the tool the session's userData, kept across tool calls.
+    const data = context.ctx.userData as { ordersChecked?: string[] };
+    data.ordersChecked = [...(data.ordersChecked ?? []), params.order_id];
+    console.log(`[tool] orders checked this session: ${data.ordersChecked.join(', ')}`);
     const delivery = new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString();
     return `Order ${params.order_id} is currently in transit. Expected delivery: ${delivery}`;
   },
