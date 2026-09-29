@@ -210,6 +210,13 @@ signalwire.prefabs.survey.SurveyAgent.define_tools: TS port-only helper — func
 signalwire.prefabs.survey.create_survey_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate_all: TS port-only helper — functionality has no direct Python equivalent
+signalwire.prefabs.call_session_store.CallSessionStore: TS internal store for SurveyAgent and ReceptionistAgent per-call state (pruned on summary, idle and size); the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.__init__: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.delete: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.get_or_create: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.size: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.skills.ask_claude.skill.AskClaudeSkill.setup: TS-specific skill helper method or class
+signalwire.utils.cors_origins_from_env: TS port-only helper — reads SWML_CORS_ORIGINS once for every server, with "*" meaning all as the reference's SecurityConfig reads it
 signalwire.utils.is_private_ip: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.resolve_and_validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.safe_assign: TS port-only helper — functionality has no direct Python equivalent

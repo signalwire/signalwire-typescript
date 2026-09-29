@@ -246,6 +246,7 @@ signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: TS cal
 
 ## Idiom: TS overload set expresses the Python union (enumerator records first overload)
 
+signalwire.core.agent.prompt.manager.PromptManager.define_contexts: TS overloads express the reference's union (a dict or a ContextBuilder): (contexts?: ContextBuilder) -> ContextBuilder and (contexts: Record<string, unknown>) -> this, which is the reference's return for a dict. The enumerator records only the first overload; both forms are present. Same contract.
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: TS overloads express the full union: (includeSource?: false) -> [string,string] and (includeSource: true) -> [string,string,source]. The enumerator records only the first overload; the union is present and in fact stricter (source is a literal union). Same contract.
 signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: TS overloads express the full [string,string] | [string,string,source] union; the enumerator records only the first overload. Same contract, TS stricter.
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: TS overloads: (sessionId, metadata) -> void (TS-native bulk merge) and (sessionId, key, value) -> boolean (the Python-compatible 3-arg form matching set_session_metadata(call_id,key,value)->bool). The enumerator records the first (bulk) overload; the Python-parity overload exists. session_id≡call_id (rename).

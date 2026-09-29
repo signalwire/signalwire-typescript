@@ -2409,6 +2409,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "class:signalwire.core.contexts.ContextBuilder",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
@@ -6526,6 +6532,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "class:signalwire.core.contexts.ContextBuilder",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
@@ -14903,8 +14915,30 @@
                   "required": true
                 },
                 {
-                  "name": "options",
-                  "type": "class:signalwire.relay.types.DialOptions",
+                  "name": "tag",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "max_duration",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "dial_timeout",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -15066,9 +15100,65 @@
                   "kind": "self"
                 },
                 {
-                  "name": "options",
-                  "type": "class:signalwire.relay.types.SendMessageOptions",
-                  "required": true
+                  "name": "to_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "from_number",
+                  "type": "string",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "context",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "body",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "media",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "tags",
+                  "type": "optional<list<string>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "region",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "on_completed",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "class:signalwire.relay.message.Message"

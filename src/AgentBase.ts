@@ -915,8 +915,7 @@ export class AgentBase extends SWMLService {
    *   the contexts as a plain object.
    * @returns The active ContextBuilder, or the agent when given an object.
    */
-  defineContexts(): ContextBuilder;
-  defineContexts(contexts: ContextBuilder): ContextBuilder;
+  defineContexts(contexts?: ContextBuilder): ContextBuilder;
   defineContexts(contexts: Record<string, unknown>): this;
   defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder | this {
     if (contexts !== undefined && !(contexts instanceof ContextBuilder)) {

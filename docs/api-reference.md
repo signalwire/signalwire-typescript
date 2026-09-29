@@ -766,8 +766,7 @@ With no argument, return the agent's `ContextBuilder`, creating it on first use;
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-defineContexts(): ContextBuilder
-defineContexts(contexts: ContextBuilder): ContextBuilder
+defineContexts(contexts?: ContextBuilder): ContextBuilder
 defineContexts(contexts: Record<string, unknown>): this
 ```
 
