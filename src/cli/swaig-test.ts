@@ -971,20 +971,17 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
 
   if (opts.raw || opts.formatJson) io.out(JSON.stringify(result, null, 2));
   else io.out(`RESULT:\n${formatResult(result)}`);
-  // Nothing produced a result, so the platform answers with its generic
-  // error, or the expanded output isn't JSON, so the platform gets none.
+  // When nothing produced a result, the platform answers with its generic
+  // error. That is a valid result, not a tool failure, so the exit status is
+  // 0, as it is when the expanded output isn't JSON and the result says so.
   const r = (result ?? {}) as Data;
-  const keys = Object.keys(r);
-  const failed =
-    keys.length === 1 &&
-    (r['response'] === PLATFORM_ERROR_RESPONSE || typeof r['error'] === 'string');
-  if (failed && r['response'] === PLATFORM_ERROR_RESPONSE) {
+  if (Object.keys(r).length === 1 && r['response'] === PLATFORM_ERROR_RESPONSE) {
     io.err(
       'Nothing produced a result: no expression matched, no webhook succeeded with an ' +
         'output, and there is no data_map output. The platform answers with its generic error.',
     );
   }
-  return failed ? 1 : 0;
+  return 0;
 }
 
 /** The function request for --exec: minimal or full, with the call flags and overrides. */

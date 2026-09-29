@@ -513,7 +513,9 @@ export default svc;`);
     expect(stdout).toContain('through the served path');
   }, 70_000);
 
-  it('exits 1 when a DataMap function fails with no fallback output', async () => {
+  // The platform's generic error is a valid result, not a tool failure, so
+  // swaig-test exits 0 for it, as signalwire-python's swaig-test does.
+  it('exits 0 when a DataMap function fails with no fallback output, and says why', async () => {
     const path = agentFile(`
 const agent = new AgentBase({ name: 'dm', route: '/' });
 agent.setPromptText('hi');
@@ -523,10 +525,24 @@ agent.registerSwaigFunction(
 );
 export default agent;`);
     const { code, stdout, stderr } = await runCli([path, '--exec', 'lookup']);
-    expect(code).toBe(1);
+    expect(code).toBe(0);
     // The platform's generic error, as it answers when nothing produced a result
     expect(stdout).toContain('Response: There was an error processing this request.');
     expect(stderr).toContain('Nothing produced a result');
+  }, 70_000);
+
+  it("exits 0 when a DataMap function's expanded output isn't JSON, and prints the error", async () => {
+    const path = agentFile(`
+const agent = new AgentBase({ name: 'dm', route: '/' });
+agent.setPromptText('hi');
+agent.registerSwaigFunction(
+  new DataMap('echo').description('Echo').parameter('topic', 'string', 'Anything')
+    .fallbackOutput(new FunctionResult('Got \${args}')).toSwaigFunction(),
+);
+export default agent;`);
+    const { code, stdout } = await runCli([path, '--exec', 'echo', '--topic', 'hours']);
+    expect(code).toBe(0);
+    expect(stdout).toContain("The expanded output isn't valid JSON");
   }, 70_000);
 
   it("isolates the simulated platform from another platform's inherited variables", async () => {
