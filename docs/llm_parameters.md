@@ -96,9 +96,17 @@ The defaults are the platform's. The SDK sends a parameter only when you set it.
 - **Zero**: no penalty
 - **Positive values**: discourage word repetition
 
-### barge_confidence
+### Interruption
 
-`barge_confidence` is described elsewhere as an ASR confidence threshold for interrupting the AI while it speaks. It isn't in the bundled SWML schema, for the prompt objects or for `params`, so this guide gives no range or default for it. The SDK passes it through if you set it. The schema's barge settings in `params` include `barge_match_string`, `barge_min_words` and `enable_barge`.
+How easily the caller can interrupt the AI isn't an LLM parameter. `barge_confidence` isn't in the SWML schema's `prompt` object, so a document that sets it there fails validation against the SWML schema, and the platform doesn't apply it. Tune interruption with these AI params, through `setParam()`:
+
+- **`barge_min_words`** (1 to 99): how many words the caller must say before the AI stops speaking. Higher values make the AI harder to interrupt.
+- **`enable_barge`**: which barge modes are on: `"complete"`, `"partial"`, `"all"`, or a boolean. `false` turns barge-in off.
+- **`barge_match_string`**: a string or regular expression that interrupts the AI when the caller says it.
+
+```typescript
+agent.setParam('barge_min_words', 3); // Let the AI finish unless the caller says 3 or more words
+```
 
 ## Use Case Examples
 
@@ -262,7 +270,12 @@ These changes make the output steadier:
 
 ### Interruptions
 
-Interruption behavior is set in the `ai` verb's `params`, not in the prompt objects. See `barge_match_string`, `barge_min_words`, `enable_barge` and `interrupt_on_noise` in the SWML schema.
+Interruption behavior is set in the `ai` verb's `params`, not in the prompt objects:
+
+- If background noise interrupts the AI, raise `barge_min_words`, as in `agent.setParam('barge_min_words', 3)`.
+- If callers can't interrupt the AI, lower `barge_min_words`, and check that `enable_barge` isn't `false`.
+
+See also `barge_match_string` and `interrupt_on_noise` in the SWML schema.
 
 ## Parameter Behavior
 
