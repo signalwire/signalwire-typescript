@@ -27,7 +27,7 @@ const log = getLogger('SwmlTransferSkill');
  * carries (a transfer URL holds the target agent's basic auth).
  */
 function shownDestination(destination: string): string {
-  return destination.replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/@]*@/i, '$1');
+  return destination.replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i, '$1');
 }
 
 /** A transfer pattern key as a name: without its regex slashes and flag. */

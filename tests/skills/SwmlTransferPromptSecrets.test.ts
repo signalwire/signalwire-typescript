@@ -30,4 +30,19 @@ describe('swml_transfer keeps credentials away from the model', () => {
     expect(modelFacing).toContain('pc.example.com/sales');
     expect(modelFacing).not.toContain('/sales/i');
   });
+
+  it('hides a password that contains an unencoded @', async () => {
+    const agent = new AgentBase({ name: 'triage', route: '/', basicAuth: ['u', 'p'] });
+    agent.promptAddSection('Role', { body: 'Route the caller.' });
+    await agent.addSkill(
+      new SwmlTransferSkill({
+        transfers: { '/sales/i': { url: 'https://agent:pa@ss@pc.example.com/sales?x=a@b' } },
+      }),
+    );
+    const ai = JSON.parse(agent.renderSwml()).sections.main.find((v: { ai?: unknown }) => v.ai).ai;
+    const modelFacing = JSON.stringify(ai.prompt);
+    expect(modelFacing).not.toContain('pa@ss');
+    expect(modelFacing).not.toContain('ss@pc');
+    expect(modelFacing).toContain('https://pc.example.com/sales?x=a@b');
+  });
 });
