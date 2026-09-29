@@ -142,7 +142,7 @@ The SDK ships the skills in the following table, in `src/skills/builtin/`. `cust
 | `datetime` | `DateTimeSkill` | `get_current_time`, `get_current_date` | Nothing |
 | `math` | `MathSkill` | `calculate` | Nothing |
 | `joke` | `JokeSkill` | `get_joke` | Nothing |
-| `weather_api` | `WeatherApiSkill` | `get_weather` | `WEATHER_API_KEY` set in the environment |
+| `weather_api` | `WeatherApiSkill` | `get_weather` | An OpenWeatherMap key in `api_key` or `WEATHER_API_KEY` |
 | `play_background_file` | `PlayBackgroundFileSkill` | `play_background_file` | A non-empty `files` list |
 | `swml_transfer` | `SwmlTransferSkill` | `transfer_call`, plus `list_transfer_destinations` with `patterns` | `transfers` or `patterns` |
 | `api_ninjas_trivia` | `ApiNinjasTriviaSkill` | `get_trivia` | An API Ninjas key, checked when the tool runs |
@@ -202,7 +202,7 @@ await agent.addSkill(new JokeSkill());
 
 `WeatherApiSkill` gets current conditions from the OpenWeatherMap current-weather API (`api.openweathermap.org`). A WeatherAPI.com key doesn't work with it. The tool takes a `location` (a city, optionally with a country code, such as `Paris,FR`) and returns the conditions, temperature, humidity, wind and pressure. It's a webhook tool that runs in your agent, not a DataMap tool.
 
-The class lists `WEATHER_API_KEY` in `REQUIRED_ENV_VARS`, so the skill loads only when that variable is set, even if you pass `api_key`. When both are set, `api_key` is the key the tool sends.
+The key comes from `api_key`, or from `WEATHER_API_KEY` when `api_key` isn't set. Setup fails when neither is set.
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
@@ -210,12 +210,12 @@ The class lists `WEATHER_API_KEY` in `REQUIRED_ENV_VARS`, so the skill loads onl
 | `tool_name` | string | `"get_weather"` | No | Name of the weather tool |
 | `units` | string | `"fahrenheit"` | No | `metric`, `imperial` or `standard` (Kelvin). `celsius` means `metric`, and `fahrenheit` means `imperial`. |
 
-The schema reports `fahrenheit` as the default for `units`, but when you leave `units` out, the skill uses `metric` and reports Celsius. Set `units` explicitly, as in this example:
+When you leave `units` out, the skill reports Fahrenheit. This example reports Celsius:
 
-<!-- snippet: no-run needs WEATHER_API_KEY in the environment to load -->
+<!-- snippet: no-run needs an OpenWeatherMap key in WEATHER_API_KEY to load -->
 ```typescript
 import { WeatherApiSkill } from '@signalwire/sdk';
-await agent.addSkill(new WeatherApiSkill({ units: 'imperial' }));
+await agent.addSkill(new WeatherApiSkill({ units: 'metric' }));
 ```
 
 ### play_background_file
@@ -1170,9 +1170,15 @@ A variable in `REQUIRED_ENV_VARS` is required even when the skill also accepts t
 `validateEnvVars()` returns the names of the missing variables, and logs an error when there are any:
 
 ```typescript
-import { WeatherApiSkill } from '@signalwire/sdk';
+import { SkillBase } from '@signalwire/sdk';
 
-const skill = new WeatherApiSkill();
+class MyApiSkill extends SkillBase {
+  static override SKILL_NAME = 'my_api_skill';
+  static override SKILL_DESCRIPTION = 'Integrates with My API.';
+  static override REQUIRED_ENV_VARS = ['MY_API_KEY', 'MY_API_SECRET'] as const;
+}
+
+const skill = new MyApiSkill();
 const missing = skill.validateEnvVars();
 if (missing.length > 0) {
   console.warn(`Missing env vars: ${missing.join(', ')}`);
@@ -1202,7 +1208,7 @@ The built-in skills and the registry read these variables:
 
 | Variable | Used by |
 |---|---|
-| `WEATHER_API_KEY` | `weather_api` (required to load) |
+| `WEATHER_API_KEY` | `weather_api` (when `api_key` isn't set) |
 | `API_NINJAS_KEY` | `api_ninjas_trivia` (when `api_key` isn't set) |
 | `GOOGLE_SEARCH_API_KEY` | `web_search` (when `api_key` isn't set) |
 | `GOOGLE_SEARCH_ENGINE_ID`, `GOOGLE_SEARCH_CX` | `web_search` (when `search_engine_id` isn't set) |

@@ -224,7 +224,7 @@ describe('WeatherApiSkill', () => {
     const klass = skill.constructor as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('weather_api');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
-    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return a get_weather tool', () => {
@@ -235,12 +235,11 @@ describe('WeatherApiSkill', () => {
     expect(tools[0]!.required).toContain('location');
   });
 
-  it('should report missing env var via validateEnvVars', () => {
+  it('should require no env var when api_key is passed', () => {
     const originalKey = process.env['WEATHER_API_KEY'];
     delete process.env['WEATHER_API_KEY'];
-    const skill = createWeatherApiSkill();
-    const missing = skill.validateEnvVars();
-    expect(missing).toContain('WEATHER_API_KEY');
+    const skill = createWeatherApiSkill({ api_key: 'k' });
+    expect(skill.validateEnvVars()).toEqual([]);
     if (originalKey !== undefined) process.env['WEATHER_API_KEY'] = originalKey;
   });
 
