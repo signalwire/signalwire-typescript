@@ -316,7 +316,7 @@ The request body is `{"q": "<the query>", "limit": 5, "format": "json"}`. Becaus
 
 ### body
 
-This method sets a `body` key on the most recently added webhook.
+This method sets the request body of the most recently added webhook. It does the same as [params](#params): the platform reads a webhook's body from its `params` field, so `body()` writes `params`, and a later `params()` or `body()` call replaces it.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -325,13 +325,15 @@ body(data: Record<string, unknown>): this
 
 | Parameter | Type                       | Description                |
 |-----------|----------------------------|----------------------------|
-| `data`    | `Record<string, unknown>`  | The object to store under `body`. |
+| `data`    | `Record<string, unknown>`  | The request body object, written as the webhook's `params`. Values can contain templates. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
 **Returns:** `this` for chaining.
 
-The SWML schema's webhook object has no `body` field, and the platform doesn't send it: `params` is the request body. Use [params](#params) to set a request body. `createSimpleApiTool()` uses `body()` for its `body` option.
+`createSimpleApiTool()` uses `body()` for its `body` option.
+
+> **Upgrading:** before this release, `body()` wrote a `body` key, which the platform doesn't read, so the webhook was sent without a request body (and as a `GET` unless its method was `POST`). It now writes `params`, so the body is sent and the request is a `POST`. If a tool called both `body()` and `params()`, only the later call's object is sent now; merge them into one object. A hand-written `body` key in a `data_map` is still not sent.
 
 ---
 
@@ -557,9 +559,9 @@ In `$${price}`, the first `$` is a literal dollar sign and `${price}` is the tem
 
 ### errorKeys
 
-This method sets `error_keys` on the most recently added webhook. If the JSON response has any of these keys, the webhook counts as failed, whatever the key's value: `"errors": []` fails it. The platform then uses the fallback output, and doesn't try the next webhook. A response that isn't JSON, or a request that doesn't complete, fails the webhook the same way. An HTTP status outside 200-299 doesn't fail it by itself; the output can read the status as `${http_code}`.
+This method sets `error_keys` on the most recently added webhook. If the JSON response has any of these keys, the webhook counts as failed, whatever the key's value: `"errors": []` fails it. The platform then uses the fallback output, and doesn't try the next webhook. A response that isn't JSON, or a request that doesn't complete, fails the webhook the same way. An HTTP status outside 200-299 doesn't fail it by itself: the platform adds an `http_code` key to such a response, which the output can read as `${http_code}`, so `'http_code'` in the list fails the webhook on any such status.
 
-If no webhook has been added yet, the keys are set on the `data_map` itself, as `globalErrorKeys()` does.
+If no webhook has been added yet, the keys are set on the `data_map` itself, as `globalErrorKeys()` does, and the platform ignores them there.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -918,14 +920,14 @@ createSimpleApiTool(opts: {
 | `opts.url`              | `string`                   | None      | Webhook URL, with templates.                      |
 | `opts.responseTemplate` | `string`                   | None      | The output's response text. Response fields are read from the root, as `${field}`, and arguments as `${input.args.name}`. |
 | `opts.parameters`       | `Record<string, {...}>`    | None      | Parameter definitions. A missing `type` is `string`. |
-| `opts.method`           | `string`                   | `'GET'`   | HTTP method. The platform sends a `GET` unless it's `POST`. |
+| `opts.method`           | `string`                   | `'GET'`   | HTTP method. The platform sends a `GET` unless it's `POST` or the tool has a `body`. |
 | `opts.headers`          | `Record<string, string>`   | None      | Request headers.                                  |
-| `opts.body`             | `Record<string, unknown>`  | None      | Written with `body()`, as the webhook's `body` key. See [body](#body). |
+| `opts.body`             | `Record<string, unknown>`  | None      | The request body, written as the webhook's `params` with `body()`. A tool with a body is sent as a `POST`. See [params](#params). |
 | `opts.errorKeys`        | `string[]`                 | None      | Response keys that mark a failure.                |
 
 **Returns:** A configured `DataMap` instance, ready for registration.
 
-For a request body, build the tool with `DataMap` and [params](#params) instead of the `body` option. These two tools call a joke API and a document search API:
+These two tools call a joke API and a document search API:
 
 ```typescript
 import { createSimpleApiTool } from '@signalwire/sdk';

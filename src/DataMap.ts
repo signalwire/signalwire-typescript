@@ -247,9 +247,13 @@ export class DataMap {
   /**
    * Add a pattern-matching expression that evaluates a test value against a regex.
    *
-   * The platform tries the expressions in order and stops at the first that
-   * produces a result: a match gives its `output`, and a non-match gives its
-   * `nomatch-output` when it has one.
+   * The platform expands `testValue` against the call data, where an
+   * argument is `${args.command}`, and searches it for `pattern`, which can
+   * match anywhere in the value. It tries the expressions in order and stops
+   * at the first that produces a result: a match gives its `output`, and a
+   * non-match gives its `nomatch-output` when it has one, so no expression
+   * after one with a `nomatchOutput` runs. The top-level expressions run
+   * before any webhook, and one that produces a result ends the function.
    * @param testValue - The string or template variable to test, such as `'${args.input}'`.
    * @param pattern - A regex pattern (string or RegExp) to match against. The
    *   platform wraps a pattern that doesn't start with `/` as `/pattern/i`, so
@@ -284,17 +288,26 @@ export class DataMap {
   /**
    * Add a webhook that is called when this data map tool is invoked.
    *
+   * The platform sends GET and POST requests only. A webhook is sent as a
+   * POST when `method` is `POST` or when it has params (see
+   * {@link DataMap.params}), and as a GET otherwise, so `PUT`, `PATCH` and
+   * `DELETE` are sent as GET.
+   *
    * The platform tries the webhooks in order, skipping one whose
    * `requireArgs` are all absent. The first one it requests decides the
    * result: if it fails, the fallback output is used and no later webhook is
-   * tried.
-   * @param method - HTTP method. The platform sends a POST when this is
-   *   `POST` or the webhook has `params`, and a GET for any other method.
-   * @param url - The webhook URL to call.
+   * tried. A later webhook is useful only when the earlier ones can be skipped
+   * by their `requireArgs`.
+   * @param method - HTTP method: `GET` or `POST`. It is uppercased.
+   * @param url - The webhook URL to call. The platform expands templates in
+   *   it against the call data, such as `${enc:args.city}`.
    * @param opts - Optional `headers` (sent as written, with no templates
-   *   expanded), `formParam` (written as `form_param`, which the SWML schema
-   *   doesn't define), `inputArgsAsParams` and `requireArgs` (the webhook is
-   *   skipped unless at least one of these arguments is present).
+   *   expanded), `formParam` (sends the JSON params URL-encoded as one form
+   *   field with this name; written as `form_param`, which the SWML schema
+   *   doesn't define), `inputArgsAsParams` (merges the function's arguments
+   *   into params, which makes the request a POST) and `requireArgs` (the
+   *   webhook is skipped, without a request, unless at least one of these
+   *   arguments is present).
    * @returns This instance for chaining.
    */
   webhook(
@@ -318,6 +331,11 @@ export class DataMap {
 
   /**
    * Set pattern-matching expressions on the most recently added webhook.
+   *
+   * They run after the webhook's foreach, against its response, and the first
+   * one that produces an output replaces the webhook's own output. Their
+   * templates read the response's fields from the root, and the call data
+   * under `input`, such as `${input.args.query}`.
    * @param expressions - Array of expression objects to evaluate against the webhook response.
    * @returns This instance for chaining.
    */
@@ -329,28 +347,32 @@ export class DataMap {
   }
 
   /**
-   * Set a `body` key on the most recently added webhook.
+   * Set the JSON request body for the most recently added webhook; the same
+   * as {@link DataMap.params}.
    *
-   * The SWML schema's webhook object has no `body` field, and the platform
-   * doesn't send it: `params` is the request body. Use {@link DataMap.params}
-   * to set a request body.
-   * @param data - The object to store under `body`.
+   * The platform reads a webhook's request body from its `params` field and
+   * has no `body` field, so this sets `params`, replacing any `params`
+   * already set. See {@link DataMap.params} for how the body is sent.
+   * @param data - The request body object. Values can contain templates.
    * @returns This instance for chaining.
    */
   body(data: Record<string, unknown>): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting body');
-    this._webhooks[this._webhooks.length - 1]!['body'] = data; // non-empty checked above
+    // The platform sends `params` as the body; it reads no `body` field.
+    this._webhooks[this._webhooks.length - 1]!['params'] = data; // non-empty checked above
     return this;
   }
 
   /**
-   * Set `params` on the most recently added webhook.
+   * Set the JSON request body for the most recently added webhook, written as
+   * its `params`.
    *
-   * The platform sends `params` as the request's JSON body, expanding
-   * templates in its values first (against the call data, so arguments are
-   * `${args.name}`), and a webhook with `params` is always a POST. Put
-   * query-string values for a GET request in the URL instead.
-   * @param data - The request body object.
+   * The platform sends `params` as the request's JSON body, not as URL query
+   * parameters, expanding templates in its values first (against the call
+   * data, so arguments are `${args.name}`), and a webhook with `params` is
+   * always a POST, whatever its method. Put query-string values for a GET
+   * request in the URL instead.
+   * @param data - The request body object. Values can contain templates.
    * @returns This instance for chaining.
    */
   params(data: Record<string, unknown>): this {
@@ -368,8 +390,9 @@ export class DataMap {
    * `${this.field}` and a string or number element as `${this}`, along with
    * the response and `${input.args.name}`. The joined text is stored under
    * `output_key`, which the webhook's output reads as `${<output_key>}`.
-   * `max`, when above 0, limits the elements used. The platform skips a
-   * foreach that lacks `input_key`, `output_key` or `append`.
+   * `max`, when above 0, limits the elements used. The platform runs the
+   * foreach before the webhook's expressions and output, and skips a foreach
+   * that lacks `input_key`, `output_key` or `append`.
    * @param config - Foreach configuration with input/output keys, append template, and optional max.
    * @returns This instance for chaining.
    */
@@ -381,6 +404,11 @@ export class DataMap {
 
   /**
    * Set the output template for the most recently added webhook.
+   *
+   * Its templates read the webhook's JSON response: an object's fields from
+   * the root, such as `${current.temp_f}`, or `${array[0].x}` for an array.
+   * The call data is under `input`, so an argument is `${input.args.city}`;
+   * `${args.city}` is empty here. A foreach's text is `${<output_key>}`.
    * @param result - The FunctionResult to use as the output template.
    * @returns This instance for chaining.
    */
@@ -406,9 +434,16 @@ export class DataMap {
   /**
    * Set error keys on the most recently added webhook, or globally if no webhook exists.
    *
-   * The platform fails the webhook when any of these keys is present in its
-   * JSON object response, whatever the value (`"errors": []` counts). A failed
+   * The platform fails the webhook when any of these keys is present at the
+   * top level of its JSON object response, whatever the value (`"errors": []`,
+   * `false` and `null` count). An HTTP status outside 200-299 isn't a failure
+   * by itself: the platform adds an `http_code` key to such a response, so
+   * `'http_code'` in this list fails the webhook on any such status. A failed
    * webhook gives the fallback output; the next webhook isn't tried.
+   *
+   * The platform reads error keys only on a webhook. Called before any
+   * webhook, this sets a top-level `error_keys` field, which the platform
+   * ignores (see {@link DataMap.globalErrorKeys}).
    * @param keys - Response keys whose presence marks the response as a failure.
    * @returns This instance for chaining.
    */
@@ -492,6 +527,13 @@ export class DataMap {
 
 /**
  * Create a DataMap tool that calls a single API endpoint and formats the response.
+ *
+ * `url` reads the arguments as `${args.name}`. `responseTemplate` becomes
+ * the webhook's output, which reads the response's fields from the root,
+ * such as `${current.temp_f}`, and the arguments as `${input.args.name}`.
+ * `body` is set as the webhook's params (see {@link DataMap.body}), so a
+ * tool with a body is sent as a POST. `method` defaults to `GET`; headers
+ * are sent as written.
  * @param opts - Configuration including name, URL, response template, and optional parameters.
  * @returns A configured DataMap instance ready for registration.
  */
