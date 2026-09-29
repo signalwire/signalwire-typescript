@@ -1434,6 +1434,15 @@
                 }
               ],
               "returns": "float"
+            },
+            "redeemed": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }

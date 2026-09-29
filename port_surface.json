@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 67fc6efbfef2a5c247b29cfe1a37cc07202abeed",
+  "generated_from": "signalwire-typescript @ 2cb112588965e1997d4fa4ae2b80aa5f4daeb4ee",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -133,7 +133,8 @@
           "call_id",
           "conversation_id",
           "issued_at",
-          "messages"
+          "messages",
+          "redeemed"
         ],
         "HandoffRouter": [
           "__init__",
