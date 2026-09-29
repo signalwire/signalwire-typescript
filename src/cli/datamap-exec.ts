@@ -41,11 +41,10 @@
  *   as `global_data` or `caller_id_num`) at the root, `meta_data` (the
  *   function's `meta_data` merged key by key over `global_data`, as the
  *   platform merges them when it loads the function), the `prompt_vars`
- *   merged into the root, `args` (the
- *   arguments) and an empty `input`. The top-level expressions, a webhook's
- *   `url` and `params`, and the data_map's own `output` read it, so they write
- *   an argument as `${args.city}`. The data_map's own `output` also has
- *   `prompt_vars`.
+ *   merged into the root, `args` (the arguments) and an empty `input`. The
+ *   top-level expressions, a webhook's `url` and `params`, and the data_map's
+ *   own `output` read it, so they write an argument as `${args.city}`. The
+ *   data_map's own `output` also has `prompt_vars`.
  * - A webhook's `foreach`, `expressions` and `output` read its response: a
  *   JSON object's fields at the root (`${current.temp_f}`), a JSON array under
  *   `array`, with `prompt_vars`, `global_data` and `input` (a copy of the call
@@ -64,9 +63,11 @@
  *
  * Where the simulator can't do what the platform does:
  *
- * - `fmt_ph` formats only a North American number, as `(NPA) NXX-XXXX`, and
- *   leaves any other value as it is, saying so on stderr. The platform
- *   formats any valid number, and writes `INVALID NUMBER` for one that isn't.
+ * - Without the optional libphonenumber-js package, `fmt_ph` formats only a
+ *   North American number, as `(NPA) NXX-XXXX`, and leaves any other value as
+ *   it is, saying so on stderr. The platform formats any valid number, and
+ *   writes `INVALID NUMBER` for one that isn't; with libphonenumber-js
+ *   installed, so does the simulator.
  * - `@{...}` functions are left as they are.
  * - An expression's `expr` isn't evaluated: only its `pattern` is tried.
  * - Patterns are JavaScript regular expressions, where the platform uses PCRE.
@@ -76,6 +77,9 @@
  * Mirrors signalwire-python's `signalwire.cli.execution.datamap_exec`.
  */
 
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { _publicFetch } from '../PublicFetch.js';
 
 /** The result the platform returns when nothing produced an output. */
@@ -384,14 +388,76 @@ function urlEncode(value: string): string {
   return out;
 }
 
+/** The part of libphonenumber-js that `fmt_ph` uses. */
+export interface _PhoneNumbers {
+  parsePhoneNumberFromString(
+    text: string,
+    defaultCountry: string,
+  ): { isValid(): boolean; formatNational(): string } | undefined;
+}
+
 /**
- * The `fmt_ph` helper, for North American numbers. The platform formats with
- * libphonenumber in the national format, reading a number without a country
- * code as a US number, and writes `INVALID NUMBER` for one it can't validate.
- * The simulator formats a ten-digit North American number, with or without
- * its leading 1, as `(NPA) NXX-XXXX`, and returns null for anything else.
+ * libphonenumber-js, when it's installed: a port of the libphonenumber the
+ * platform formats `fmt_ph` with. It's optional, so it's found at run time,
+ * from the SDK's own location or else from the working directory's project,
+ * with its full metadata (`/max`), which validates as libphonenumber does.
+ */
+async function loadPhoneNumbers(): Promise<_PhoneNumbers | null> {
+  const specifier = 'libphonenumber-js/max';
+  const usable = (mod: unknown): _PhoneNumbers | null => {
+    for (const candidate of [mod, (mod as { default?: unknown } | null)?.default]) {
+      const parse = (candidate as Partial<_PhoneNumbers> | null | undefined)
+        ?.parsePhoneNumberFromString;
+      if (typeof parse === 'function') return { parsePhoneNumberFromString: parse };
+    }
+    return null;
+  };
+  try {
+    return usable(await import(specifier));
+  } catch {
+    // Not next to the SDK; try the project in the working directory
+  }
+  try {
+    const require = createRequire(join(process.cwd(), 'noop.js'));
+    return usable(await import(pathToFileURL(require.resolve(specifier)).href));
+  } catch {
+    return null;
+  }
+}
+
+let phoneNumbers: _PhoneNumbers | null = await loadPhoneNumbers();
+
+/**
+ * Replace the libphonenumber-js that `fmt_ph` uses, for tests: null simulates
+ * a project without it.
+ *
+ * @param lib - The library, or null for none.
+ * @returns The one it replaced.
+ * @internal
+ */
+export function _setPhoneNumbers(lib: _PhoneNumbers | null): _PhoneNumbers | null {
+  const previous = phoneNumbers;
+  phoneNumbers = lib;
+  return previous;
+}
+
+/**
+ * The `fmt_ph` helper. The platform formats with libphonenumber in the
+ * national format, reading a number without a country code as a US number,
+ * and writes `INVALID NUMBER` for one it can't validate. With libphonenumber-js
+ * installed, the simulator does the same. Without it, it formats a ten-digit
+ * North American number, with or without its leading 1, as `(NPA) NXX-XXXX`,
+ * and returns null for anything else.
  */
 function formatPhoneNational(value: string): string | null {
+  if (phoneNumbers) {
+    try {
+      const number = phoneNumbers.parsePhoneNumberFromString(value, 'US');
+      return number?.isValid() ? number.formatNational() : 'INVALID NUMBER';
+    } catch {
+      return 'INVALID NUMBER';
+    }
+  }
   let digits = value.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
   if (digits.length === 10 && /[2-9]/.test(digits[0]!) && /[2-9]/.test(digits[3]!)) {
@@ -694,7 +760,8 @@ class Run {
         this.out(
           `Note: ${note.raw} in the ${stage}: the simulator formats only North American ` +
             `numbers, so it left "${note.value}" as it is. The platform formats a valid number ` +
-            'in its national format, and writes INVALID NUMBER for one that is not valid.',
+            'in its national format, and writes INVALID NUMBER for one that is not valid; ' +
+            'install the libphonenumber-js package to simulate that.',
         );
         continue;
       }

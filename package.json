@@ -109,6 +109,7 @@
     "@types/ws": "^8.5.10",
     "cheerio": "^1.2.0",
     "eslint": "^10.5.0",
+    "libphonenumber-js": "^1.13.14",
     "prettier": "^3.8.4",
     "tsx": "^4.21.0",
     "typescript": "^6.0.0",

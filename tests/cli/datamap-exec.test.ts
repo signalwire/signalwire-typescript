@@ -4,7 +4,7 @@
  * test_datamap_exec_arrays.py, plus the expression and fallback steps.
  */
 
-import { executeDataMap, expandTemplate } from '../../src/cli/datamap-exec.js';
+import { _setPhoneNumbers, executeDataMap, expandTemplate } from '../../src/cli/datamap-exec.js';
 import { DataMap } from '../../src/DataMap.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 
@@ -699,12 +699,17 @@ describe('prefix helpers, as the platform parses them', () => {
     expect(expandTemplate('${enc:fmt_ph:args.phone}', data)).toBe('(202)%20555-0143');
   });
 
-  it('leaves another number as it is with fmt_ph, and says so', async () => {
+  it('leaves another number as it is with fmt_ph, and says so, without libphonenumber-js', async () => {
     const lines: string[] = [];
     const fn = { data_map: { output: { response: 'Call ${fmt_ph:args.phone}' } } };
-    expect(
-      await executeDataMap(fn, { phone: '+442079460958' }, { log: (l) => void lines.push(l) }),
-    ).toEqual({ response: 'Call +442079460958' });
+    const previous = _setPhoneNumbers(null);
+    try {
+      expect(
+        await executeDataMap(fn, { phone: '+442079460958' }, { log: (l) => void lines.push(l) }),
+      ).toEqual({ response: 'Call +442079460958' });
+    } finally {
+      _setPhoneNumbers(previous);
+    }
     expect(lines.join('\n')).toContain('formats only North American numbers');
   });
 
