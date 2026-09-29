@@ -120,13 +120,19 @@ export const VISIBLE_ROLES: ReadonlySet<string> = new Set(['user', 'assistant'])
 export class GatewayRejection extends Error {
   /** HTTP status to return: 400, 401, 403, 413 or 429. */
   readonly status: number;
-  /** Short explanation that reaches the browser; it never says why a handle failed. */
+  /**
+   * Short explanation that reaches the browser. It names a category and
+   * nothing finer: a handle that fails is reported as `malformed handle`,
+   * `invalid handle` (bad signature) or `expired handle`, and a cap as
+   * `too many new conversations` or `conversation turn limit reached`.
+   */
   readonly reason: string;
 
   /**
    * @param status - HTTP status to return (401 bad key, 403 origin or handle,
    *   400 malformed request, 413 metadata too large, 429 a cap was hit).
-   * @param reason - Short explanation, safe to show the browser.
+   * @param reason - Short explanation, safe to show the browser: a category,
+   *   never a detail such as a cap's value.
    */
   constructor(status: number, reason: string) {
     super(`${status}: ${reason}`);
