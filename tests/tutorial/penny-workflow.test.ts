@@ -111,6 +111,12 @@ describe('Penny workflow: the SWML the agent serves', () => {
     ]);
   });
 
+  it('asks a locked-out caller before connecting them with a person', () => {
+    const locked = steps['manage/locked'] as StepJson & { text?: string };
+    expect(locked.functions).toEqual(['request_human', 'finish']);
+    expect(locked.text).toContain('Only if they say yes, call request_human');
+  });
+
   it('starts every context on its first step', () => {
     for (const ctx of Object.values(contextsOf({ sections: { main: [{ ai }] } }))) {
       expect(ctx.initial_step).toBe(ctx.steps[0]!.name);

@@ -344,7 +344,7 @@ It also showed the model not following its guidance:
 
 - The model passed all four details to `find_tables`, although the tool's description says to pass only what changed. That was harmless: arguments are validated exactly like gathered answers, and these matched.
 - It offered the options by time, not by number. The caller picked "7:30", and the model passed option 1.
-- In the `locked` step, it called `request_human` without asking the caller first. Nobody was at the host stand, so the call went to the message flow. With someone there, the call would have been transferred, which the caller had not asked for. The step's text says to offer a person. A stricter wording would say to ask first.
+- In the `locked` step, it called `request_human` without asking the caller first. Nobody was at the host stand, so the call went to the message flow. With someone there, the call would have been transferred, which the caller had not asked for. The step's text then said to offer a person; it now says to ask first, and to call `request_human` only when the caller says yes.
 - In `save_message`, it passed all three details and rewrote the callback number with a country code (Lesson 9).
 - After `finish`, it sometimes spoke anyway, although `finish` says to say nothing more.
 

@@ -104,7 +104,7 @@ Lessons 5 through 9 build this table. For each step, it lists the only instructi
 | details | Describe the verified reservation | request_cancel, house_info, request_human, finish | request_cancel moves to confirm_cancel |
 | confirm_cancel | Read back the cancellation, cancel on a clear yes | confirm_cancel, keep_reservation, house_info, request_human | Either tool moves on |
 | cancelled | Wrap up | house_info, finish | finish |
-| locked | Offer a person | request_human, finish | Either tool |
+| locked | Ask whether the caller wants a person | request_human, finish | request_human on a yes, otherwise finish |
 | take_message | Ask name, callback number and message | only gather's submit, plus finish | Gather moves to save_message |
 | save_message | Save it | save_message | save_message moves to message_saved |
 | message_saved | Wrap up | house_info, finish | finish |

@@ -171,8 +171,9 @@ function addManage(builder: ContextBuilder): void {
   );
   scoped(
     ctx.addStep('locked'),
-    'Reservation lookups are locked for the rest of this call. Offer to connect ' +
-      'the caller with a person (request_human), or call finish.',
+    'Reservation lookups are locked for the rest of this call. Ask if they would like ' +
+      'to speak with a person. Only if they say yes, call request_human; otherwise, ' +
+      'call finish.',
     ['request_human', 'finish'],
   );
   ctx.setInitialStep('verify');
