@@ -14,6 +14,7 @@ import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { PromptManager } from './PromptManager.js';
 import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
@@ -2440,7 +2441,7 @@ export class AgentBase extends SWMLService {
     // An agent that serves HTTPS itself (SSL configured, as serve() checks)
     // gives https URLs, on the SSL domain when one is set, as the reference's
     // _get_base_url does.
-    const tls = !!(this.sslEnabled && this.sslCertPath && this.sslKeyPath);
+    const tls = this._servesTls();
     const protocol = this._enforceHttps || tls ? 'https' : 'http';
     let base: string;
     if (tls && this.domain) {
@@ -2452,6 +2453,20 @@ export class AgentBase extends SWMLService {
     if (includeAuth) base = this.insertAuth(base);
     if (this.route && this.route !== '/') base += this.route;
     return base;
+  }
+
+  /**
+   * Whether serve() serves HTTPS: SSL enabled with a certificate and key that
+   * exist. getFullUrl() uses the same check, so the webhook URLs match.
+   */
+  private _servesTls(): boolean {
+    return !!(
+      this.sslEnabled &&
+      this.sslCertPath &&
+      this.sslKeyPath &&
+      existsSync(this.sslCertPath) &&
+      existsSync(this.sslKeyPath)
+    );
   }
 
   private insertAuth(baseUrl: string): string {
@@ -3707,7 +3722,12 @@ export class AgentBase extends SWMLService {
     // HTTPS when SSL is configured (SWML_SSL_ENABLED with a certificate and
     // key, or the config file), as the reference's serve() passes them to
     // uvicorn; plain HTTP otherwise.
-    const tls = this.sslEnabled && this.sslCertPath && this.sslKeyPath;
+    const tls = this._servesTls();
+    if (this.sslEnabled && !tls) {
+      this.log.warn(
+        `SSL is enabled but the certificate or key isn't found (${this.sslCertPath ?? 'no cert'}, ${this.sslKeyPath ?? 'no key'}); serving HTTP`,
+      );
+    }
     const listenUrl = `${tls ? 'https' : 'http'}://${host}:${port}${this.route}`;
     this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
     this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);

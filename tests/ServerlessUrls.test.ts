@@ -5,6 +5,9 @@
  * the URL the request arrived on. They used to be http://localhost:3000.
  */
 
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import { ServerlessAdapter } from '../src/ServerlessAdapter.js';
@@ -254,13 +257,39 @@ describe('webhook URLs of an agent that serves HTTPS itself (found in review)', 
   });
 
   it('use https, and the SSL domain, when SSL is configured', () => {
+    // The files only have to exist: serve() is what reads them.
+    const dir = mkdtempSync(join(tmpdir(), 'agent-tls-'));
+    writeFileSync(join(dir, 'agent.crt'), 'cert');
+    writeFileSync(join(dir, 'agent.key'), 'key');
     process.env['SWML_SSL_ENABLED'] = 'true';
-    process.env['SWML_SSL_CERT_PATH'] = '/etc/ssl/agent.crt';
-    process.env['SWML_SSL_KEY_PATH'] = '/etc/ssl/agent.key';
+    process.env['SWML_SSL_CERT_PATH'] = join(dir, 'agent.crt');
+    process.env['SWML_SSL_KEY_PATH'] = join(dir, 'agent.key');
     const a = new AgentBase({ name: 'tls', route: '/agent', port: 8443, basicAuth: ['u', 'p'] });
     expect(a.getFullUrl()).toBe('https://localhost:8443/agent');
     process.env['SWML_SSL_DOMAIN'] = 'agent.example.com';
     const b = new AgentBase({ name: 'tls', route: '/agent', port: 443, basicAuth: ['u', 'p'] });
     expect(b.getFullUrl()).toBe('https://agent.example.com/agent');
+  });
+});
+
+describe('an agent with SSL enabled but no certificate file (found in the tutorials)', () => {
+  const vars = ['SWML_SSL_ENABLED', 'SWML_SSL_CERT_PATH', 'SWML_SSL_KEY_PATH'];
+  const saved: Record<string, string | undefined> = {};
+  beforeEach(() => {
+    for (const v of vars) saved[v] = process.env[v];
+  });
+  afterEach(() => {
+    for (const v of vars) {
+      if (saved[v] === undefined) delete process.env[v];
+      else process.env[v] = saved[v];
+    }
+  });
+
+  it('gives http webhook URLs, since it will serve HTTP', () => {
+    process.env['SWML_SSL_ENABLED'] = 'true';
+    process.env['SWML_SSL_CERT_PATH'] = '/nonexistent/agent.crt';
+    process.env['SWML_SSL_KEY_PATH'] = '/nonexistent/agent.key';
+    const a = new AgentBase({ name: 'tls', route: '/agent', port: 8443, basicAuth: ['u', 'p'] });
+    expect(a.getFullUrl()).toBe('http://localhost:8443/agent');
   });
 });
