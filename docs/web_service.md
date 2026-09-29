@@ -71,7 +71,7 @@ await service.start();
 // Service available at http://localhost:8002
 ```
 
-`WebService` doesn't read `SWML_BASIC_AUTH_USER` or `SWML_BASIC_AUTH_PASSWORD`, and doesn't generate credentials. It requires authentication only when you pass the `basicAuth` option.
+If `SWML_BASIC_AUTH_PASSWORD` is set in the environment, the service requires HTTP Basic Authentication with it. See [Basic Authentication](#basic-authentication).
 
 ## Configuration
 
@@ -102,6 +102,10 @@ const service = new WebService({
 `WebService` reads these environment variables:
 
 ```bash
+# Basic auth credentials, used when neither the basicAuth option nor the config file sets them
+export SWML_BASIC_AUTH_USER="admin"         # defaults to signalwire
+export SWML_BASIC_AUTH_PASSWORD="a-long-random-password"
+
 # SSL/HTTPS configuration (via SslConfig), used when the ssl option doesn't set them
 export SWML_SSL_ENABLED=true
 export SWML_SSL_CERT_PATH="/path/to/cert.pem"
@@ -141,7 +145,7 @@ This constructor loads that file:
 const service = new WebService({ configFile: './web_service.json' });
 ```
 
-The file can't set `basicAuth` or `ssl`. Directories from the file and from the `directories` option are merged, and the option wins for the same prefix. Relative directory paths resolve against the process's working directory. A `configFile` that is missing or isn't valid JSON is skipped with a warning.
+The file can set credentials under `security.auth.basic` (`{"user": ..., "password": ...}`), but not `ssl`. Directories from the file and from the `directories` option are merged, and the option wins for the same prefix. Relative directory paths resolve against the process's working directory. A `configFile` that is missing or isn't valid JSON is skipped with a warning.
 
 Without `configFile`, the constructor looks for `web_service.json` in the working directory, `./config/`, `~/.signalwire/`, `./.swml/`, `~/.swml/` and `/etc/swml/`, and loads the first one it finds. If that file isn't valid JSON, the constructor logs a warning and starts from its other settings. See [Search Paths](configuration.md#search-paths) in the configuration guide.
 
@@ -149,7 +153,13 @@ Without `configFile`, the constructor looks for `web_service.json` in the workin
 
 ### Basic Authentication
 
-With the `basicAuth: ['username', 'password']` option, every route requires HTTP Basic Authentication, including `/health`. Without it, the service serves every route without authentication.
+The service takes its credentials from the first of these that sets a password:
+
+1. The `basicAuth: ['username', 'password']` option
+2. The config file's `security.auth.basic` `user` and `password`
+3. The `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD` environment variables
+
+The user defaults to `signalwire` when only a password is set. With credentials, every route requires HTTP Basic Authentication, including `/health`. Without any, the service serves every route without authentication, and doesn't generate a password.
 
 ### File Security
 
@@ -249,7 +259,7 @@ export SWML_SSL_KEY_PATH="key.pem"
 
 ### GET /health
 
-`GET /health` reports the service's configuration. It requires authentication when `basicAuth` is set.
+`GET /health` reports the service's configuration. It requires authentication when the service has credentials.
 
 **Response:**
 ```json
@@ -515,7 +525,7 @@ server {
 These practices apply to a production deployment:
 
 1. Serve HTTPS, from the service or from a proxy in front of it.
-2. Set `basicAuth` for anything that isn't public. Without it, every file the service can read is public.
+2. Set credentials (the `basicAuth` option or `SWML_BASIC_AUTH_PASSWORD`) for anything that isn't public. Without them, every file the service can read is public.
 3. Use `allowedExtensions` to serve only the file types you intend.
 4. Turn off directory browsing.
 5. Mount only directories whose contents you control.
@@ -555,7 +565,7 @@ class WebService {
 |--------|------|---------|-------------|
 | `port` | `number` | `8002` | Port to bind to. |
 | `directories` | `Record<string, string>` | `{}` | URL prefix to local directory mappings. |
-| `basicAuth` | `[string, string]` | none | `[username, password]` for basic auth. |
+| `basicAuth` | `[string, string]` | config file, then environment | `[username, password]` for basic auth. |
 | `configFile` | `string` | none | Path to a JSON config file. Without it, the constructor searches for `web_service.json`. |
 | `enableDirectoryBrowsing` | `boolean` | `false` | Serve HTML listings for directories. |
 | `allowedExtensions` | `string[]` | all | Allowlist of file extensions, such as `.html`. |

@@ -16,6 +16,7 @@ import { existsSync, statSync } from 'node:fs';
 import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SslConfig } from './SslConfig.js';
+import { SecurityConfig } from './SWMLService.js';
 import type { SslOptions } from './SslConfig.js';
 
 /** Common MIME types for static file serving. */
@@ -56,7 +57,11 @@ export interface WebServiceOptions {
   port?: number;
   /** Map of URL route prefixes to local directory paths. Default: {}. */
   directories?: Record<string, string>;
-  /** Basic auth credentials as [username, password]. Default: none. */
+  /**
+   * Basic auth credentials as [username, password]. Default: the config file's
+   * `security.auth.basic`, then `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`;
+   * without a password from any of them, no auth.
+   */
   basicAuth?: [string, string];
   /** Path to a JSON config file. Default: none. */
   configFile?: string;
@@ -167,10 +172,14 @@ export class WebService {
     // Load configuration from file first (if provided), then override with
     // explicit constructor parameters, mirroring the Python SDK's precedence.
     const fileConfig = this._loadConfig(options?.configFile);
+    // Basic auth, as the Python reference resolves it: the basicAuth option,
+    // then the config file's security.auth.basic, then SWML_BASIC_AUTH_USER /
+    // SWML_BASIC_AUTH_PASSWORD (the user defaults to 'signalwire').
+    const security = new SecurityConfig({ configFile: fileConfig.configPath });
 
     this.port = options?.port ?? fileConfig.port ?? 8002;
     this.directories = { ...(fileConfig.directories ?? {}), ...(options?.directories ?? {}) };
-    this._basicAuth = options?.basicAuth ?? null;
+    this._basicAuth = options?.basicAuth ?? security.getBasicAuth();
     this.enableDirectoryBrowsing =
       options?.enableDirectoryBrowsing ?? fileConfig.enableDirectoryBrowsing ?? false;
     this.allowedExtensions = options?.allowedExtensions ?? fileConfig.allowedExtensions ?? null;
@@ -319,6 +328,8 @@ export class WebService {
 
   /** Intermediate config shape returned by the file loader. */
   private _loadConfig(configFile?: string): {
+    /** Absolute path of the config file loaded, for the security settings. */
+    configPath?: string;
     port?: number;
     directories?: Record<string, string>;
     enableDirectoryBrowsing?: boolean;
@@ -338,7 +349,10 @@ export class WebService {
         ? new ConfigLoader(configFile)
         : ConfigLoader.search('web_service.json');
       if (!loader) return result;
-      return this._extractServiceConfig(loader);
+      const extracted = this._extractServiceConfig(loader);
+      const configPath = loader.getConfigFile();
+      if (configPath) extracted.configPath = configPath;
+      return extracted;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       this.log.warn(`Failed to load config file: ${configFile ?? 'web_service.json'}: ${reason}`);

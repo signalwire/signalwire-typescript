@@ -13,6 +13,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // Credentials in the developer's environment would otherwise turn on auth.
+  vi.stubEnv('SWML_BASIC_AUTH_USER', '');
+  vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', '');
   root = mkdtempSync(join(tmpdir(), 'webservice-test-'));
   mount = join(root, 'mount');
   outside = join(root, 'outside');
@@ -23,6 +26,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -178,5 +182,73 @@ describe('WebService config file search', () => {
     } finally {
       process.chdir(cwd);
     }
+  });
+});
+
+describe('WebService basic auth sources', () => {
+  const basic = (user: string, pass: string) =>
+    `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`;
+
+  it('enforces SWML_BASIC_AUTH_USER / SWML_BASIC_AUTH_PASSWORD from the environment', async () => {
+    vi.stubEnv('SWML_BASIC_AUTH_USER', 'envuser');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'envpass');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+
+    expect((await app.request('/docs/inside.txt')).status).toBe(401);
+    const ok = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('envuser', 'envpass') },
+    });
+    expect(ok.status).toBe(200);
+    const health = await app.request('/health', {
+      headers: { Authorization: basic('envuser', 'envpass') },
+    });
+    expect(((await health.json()) as { authRequired: boolean }).authRequired).toBe(true);
+  });
+
+  it("defaults the user to 'signalwire' when only the password is set", async () => {
+    vi.stubEnv('SWML_BASIC_AUTH_USER', '');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'envpass');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    expect((await app.request('/docs/inside.txt')).status).toBe(401);
+    const ok = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('signalwire', 'envpass') },
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('prefers the basicAuth option over the environment', async () => {
+    vi.stubEnv('SWML_BASIC_AUTH_USER', 'envuser');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'envpass');
+    const app = new WebService({
+      directories: { '/docs': mount },
+      basicAuth: ['optuser', 'optpass'],
+    }).getApp();
+    const envCreds = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('envuser', 'envpass') },
+    });
+    expect(envCreds.status).toBe(401);
+    const optCreds = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('optuser', 'optpass') },
+    });
+    expect(optCreds.status).toBe(200);
+  });
+
+  it("reads credentials from the config file's security.auth.basic", async () => {
+    const configFile = join(root, 'web.json');
+    writeFileSync(
+      configFile,
+      JSON.stringify({ security: { auth: { basic: { user: 'fileuser', password: 'filepass' } } } }),
+    );
+    const app = new WebService({ configFile, directories: { '/docs': mount } }).getApp();
+    expect((await app.request('/docs/inside.txt')).status).toBe(401);
+    const ok = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('fileuser', 'filepass') },
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('serves without authentication when no source sets a password', async () => {
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    expect((await app.request('/docs/inside.txt')).status).toBe(200);
   });
 });
