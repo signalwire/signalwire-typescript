@@ -2589,8 +2589,10 @@ export class AgentBase extends SWMLService {
     const parsedBody: Record<string, unknown> = body ?? {};
     const callbackPath = this._callbackPathForUrl(url);
 
-    // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
-    if (!(await this.checkAgentBasicAuth(headers))) {
+    // Auth. A served request (context set) has passed the route's basic-auth
+    // middleware already, which every route that serves through here has, so
+    // validateBasicAuth() isn't run twice; a direct call is checked here.
+    if (!context && !(await this.checkAgentBasicAuth(headers))) {
       return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
     }
 
@@ -3087,6 +3089,8 @@ export class AgentBase extends SWMLService {
    * Proxy detection stays here as framework plumbing (it needs the raw request);
    * everything else comes from `handleRequest`.
    */
+  // Call it only from a route behind the basic-auth middleware: handleRequest()
+  // skips its own credential check for a served request.
   private async serveViaHandleRequest(c: Context): Promise<Response> {
     this.detectProxyFromRequest(c);
     // A serverless adapter passes the base URL the platform was called on

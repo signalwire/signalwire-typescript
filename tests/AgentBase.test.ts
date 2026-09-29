@@ -1921,3 +1921,29 @@ describe('defineContexts with a plain object (found in the documentation pass)',
     expect(agent.getContexts()).toBeNull();
   });
 });
+
+describe('validateBasicAuth runs once per served request (found in review)', () => {
+  it('checks the credentials of a served SWML request once', async () => {
+    let calls = 0;
+    class Counting extends AgentBase {
+      override validateBasicAuth(username: string, password: string): boolean {
+        calls += 1;
+        return super.validateBasicAuth(username, password) as boolean;
+      }
+    }
+    const agent = new Counting({ name: 'once', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const res = await agent
+      .getApp()
+      .request('/', { headers: { Authorization: 'Basic ' + btoa('u:p') } });
+    expect(res.status).toBe(200);
+    expect(calls).toBe(1);
+    // The framework-free core still checks on its own.
+    calls = 0;
+    const [status] = await agent.handleRequest('GET', 'http://localhost/', {
+      authorization: 'Basic ' + btoa('u:x'),
+    });
+    expect(status).toBe(401);
+    expect(calls).toBe(1);
+  });
+});
