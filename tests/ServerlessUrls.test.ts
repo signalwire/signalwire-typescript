@@ -239,3 +239,28 @@ describe('server mode where serverless variables are set (found in review)', () 
     expect(agentAt('/agent').getFullUrl()).toBe('http://localhost:3000/agent');
   });
 });
+
+describe('webhook URLs of an agent that serves HTTPS itself (found in review)', () => {
+  const vars = ['SWML_SSL_ENABLED', 'SWML_SSL_CERT_PATH', 'SWML_SSL_KEY_PATH', 'SWML_SSL_DOMAIN'];
+  const saved: Record<string, string | undefined> = {};
+  beforeEach(() => {
+    for (const v of vars) saved[v] = process.env[v];
+  });
+  afterEach(() => {
+    for (const v of vars) {
+      if (saved[v] === undefined) delete process.env[v];
+      else process.env[v] = saved[v];
+    }
+  });
+
+  it('use https, and the SSL domain, when SSL is configured', () => {
+    process.env['SWML_SSL_ENABLED'] = 'true';
+    process.env['SWML_SSL_CERT_PATH'] = '/etc/ssl/agent.crt';
+    process.env['SWML_SSL_KEY_PATH'] = '/etc/ssl/agent.key';
+    const a = new AgentBase({ name: 'tls', route: '/agent', port: 8443, basicAuth: ['u', 'p'] });
+    expect(a.getFullUrl()).toBe('https://localhost:8443/agent');
+    process.env['SWML_SSL_DOMAIN'] = 'agent.example.com';
+    const b = new AgentBase({ name: 'tls', route: '/agent', port: 443, basicAuth: ['u', 'p'] });
+    expect(b.getFullUrl()).toBe('https://agent.example.com/agent');
+  });
+});

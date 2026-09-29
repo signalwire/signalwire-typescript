@@ -2437,9 +2437,18 @@ export class AgentBase extends SWMLService {
       }
       return base;
     }
-    const protocol = this._enforceHttps ? 'https' : 'http';
-    const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
-    let base = `${protocol}://${hostPart}:${this.port}`;
+    // An agent that serves HTTPS itself (SSL configured, as serve() checks)
+    // gives https URLs, on the SSL domain when one is set, as the reference's
+    // _get_base_url does.
+    const tls = !!(this.sslEnabled && this.sslCertPath && this.sslKeyPath);
+    const protocol = this._enforceHttps || tls ? 'https' : 'http';
+    let base: string;
+    if (tls && this.domain) {
+      base = `${protocol}://${this.domain}${this.port === 443 ? '' : `:${this.port}`}`;
+    } else {
+      const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
+      base = `${protocol}://${hostPart}:${this.port}`;
+    }
     if (includeAuth) base = this.insertAuth(base);
     if (this.route && this.route !== '/') base += this.route;
     return base;

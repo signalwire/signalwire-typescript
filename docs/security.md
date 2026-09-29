@@ -351,7 +351,7 @@ sm.deleteSessionMetadata('session-1');
 
 ## SSL/TLS
 
-`AgentBase.serve()` and `AgentServer.run()` serve HTTPS when `SWML_SSL_ENABLED` is `true`, `1` or `yes` and `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` name the certificate and key; otherwise they serve plain HTTP. You can also terminate TLS at a reverse proxy or load balancer; then set `SWML_PROXY_URL_BASE` to the agent's public `https://` URL so its webhook URLs use it.
+`AgentBase.serve()` and `AgentServer.run()` serve HTTPS when `SWML_SSL_ENABLED` is `true`, `1` or `yes` and `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` name the certificate and key; otherwise they serve plain HTTP. The agent's webhook URLs then use `https`, on `SWML_SSL_DOMAIN` when it's set. You can also terminate TLS at a reverse proxy or load balancer; then set `SWML_PROXY_URL_BASE` to the agent's public `https://` URL so its webhook URLs use it.
 
 `SslConfig` (`src/SslConfig.ts`) holds the certificate settings the agents, `SWMLService.serve()` and `WebService` use to serve HTTPS, and that your own servers can use. It reads these variables when you don't pass the matching option:
 
