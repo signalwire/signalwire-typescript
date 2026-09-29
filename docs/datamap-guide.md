@@ -1078,7 +1078,7 @@ The simulator differs from the platform in several ways:
 - It builds the arguments, but not global data, metadata or the call details. A template that reads them shows as missing.
 - It accepts an argument without its `args.` prefix, as `${city}`. Write `${args.city}`, the form the platform documents.
 - It leaves `@{...}` functions as they are.
-- It matches patterns with JavaScript regular expressions, so PCRE syntax such as `(?i)` is reported as an invalid pattern.
+- It matches patterns with JavaScript regular expressions, where the platform uses PCRE. Like the platform, it matches case-insensitively unless the pattern is written `/pattern/flags`, and it accepts a leading `(?i)`. Other PCRE-only syntax is reported as an invalid pattern.
 - It sends `PUT`, `PATCH` and `DELETE` requests with that method, and a `POST`, `PUT` or `PATCH` request with a `body()` as its body. The platform sends a `GET`, or a `POST` when the method is `POST` or `params` is set, and its only body is `params`.
 - It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
 

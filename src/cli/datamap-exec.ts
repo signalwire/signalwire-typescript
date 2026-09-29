@@ -5,6 +5,7 @@
  * The pipeline, as the platform processes a data_map:
  *
  * 1. Expressions: the first whose `string` (expanded) matches its `pattern`
+ *    (case-insensitively, as the platform matches)
  *    produces `output`; one that doesn't match produces `nomatch-output` (the
  *    key `DataMap.expression()` writes and the platform reads), if it has one.
  * 2. Webhooks, in order, until one succeeds. A webhook fails on a status
@@ -135,6 +136,30 @@ export function expandValue(value: unknown, data: Data): unknown {
 }
 
 /**
+ * A pattern as the platform compiles it: wrapped as `/pattern/i`, so it is
+ * case-insensitive, unless it starts with `/`, when it is `/pattern/flags`
+ * and only its own `i` and `s` flags apply. A leading PCRE flag group such as
+ * `(?i)`, which JavaScript doesn't accept, becomes the same flags.
+ */
+function platformRegExp(pattern: string): RegExp {
+  let source = pattern;
+  let flags = 'i';
+  if (pattern.startsWith('/')) {
+    const end = pattern.lastIndexOf('/');
+    if (end === 0) throw new Error(`missing ending '/' delimiter`);
+    source = pattern.slice(1, end);
+    const opts = pattern.slice(end + 1);
+    flags = (opts.includes('i') ? 'i' : '') + (opts.includes('s') ? 's' : '');
+  }
+  const inline = /^\(\?([is]+)\)/.exec(source);
+  if (inline) {
+    source = source.slice(inline[0].length);
+    for (const flag of inline[1]!) if (!flags.includes(flag)) flags += flag;
+  }
+  return new RegExp(source, flags);
+}
+
+/**
  * Run a list of expressions as the platform does: the first one with an
  * `output` whose expanded `string` matches its `pattern` produces that
  * output, and one that doesn't match produces its `nomatch-output`, if it has
@@ -152,7 +177,7 @@ function runExpressions(
     const subject = expandTemplate(text(expr['string'] ?? ''), data);
     let matched: boolean;
     try {
-      matched = new RegExp(expr['pattern']).test(subject);
+      matched = platformRegExp(expr['pattern']).test(subject);
     } catch {
       say(`Expression pattern isn't a valid regular expression: ${expr['pattern']}`);
       continue;

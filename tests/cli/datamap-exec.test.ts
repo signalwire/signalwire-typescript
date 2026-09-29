@@ -426,4 +426,21 @@ describe('fix pass', () => {
     expect(seen[0]!.body).toBe(`data=${encodeURIComponent(JSON.stringify({ a: 'x y' }))}`);
     expect(seen[0]!.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
   });
+
+  it('matches expression patterns case-insensitively, as the platform wraps them in /.../i', async () => {
+    const fn = (pattern: string) => ({
+      data_map: {
+        expressions: [
+          { string: '${args.cmd}', pattern, output: { response: 'yes' } },
+          { string: '', pattern: '.*', output: { response: 'no' } },
+        ],
+      },
+    });
+    expect(await executeDataMap(fn('^start'), { cmd: 'START now' })).toEqual({ response: 'yes' });
+    // A leading PCRE (?i) is accepted
+    expect(await executeDataMap(fn('(?i)^start'), { cmd: 'Start' })).toEqual({ response: 'yes' });
+    // A /.../ pattern takes its own flags, so it is case-sensitive without i
+    expect(await executeDataMap(fn('/^start/'), { cmd: 'START' })).toEqual({ response: 'no' });
+    expect(await executeDataMap(fn('/^start/i'), { cmd: 'START' })).toEqual({ response: 'yes' });
+  });
 });
