@@ -102,13 +102,13 @@ const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('joke');
+ * await agent.addSkillByName('joke');
  * ```
  */
 export class JokeSkill extends SkillBase {
   // Python ground truth: skills/joke/skill.py
   static override SKILL_NAME = 'joke';
-  static override SKILL_DESCRIPTION = 'Tell jokes using the API Ninjas joke API';
+  static override SKILL_DESCRIPTION = 'Tell jokes from a built-in collection';
   static override SKILL_VERSION = '1.0.0';
   static override REQUIRED_PACKAGES: readonly string[] = [];
   static override REQUIRED_ENV_VARS: readonly string[] = [];

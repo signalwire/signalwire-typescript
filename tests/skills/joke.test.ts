@@ -60,6 +60,8 @@ describe('JokeSkill', () => {
     const klass = JokeSkill as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('joke');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
+    // The collection is offline (PORT_BEHAVIORAL_NOTES.md), so no API is named.
+    expect(klass.SKILL_DESCRIPTION).toBe('Tell jokes from a built-in collection');
   });
 
   it('should return a regular joke for type "jokes"', () => {
