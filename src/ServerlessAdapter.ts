@@ -62,6 +62,9 @@ interface GcfRequest {
   url?: string;
   originalUrl?: string;
   protocol?: string;
+  /** The client's address (Express). */
+  ip?: string;
+  socket?: { remoteAddress?: string };
 }
 
 /** Minimal Google Cloud Functions response shape (Express-style) consumed by {@link ServerlessAdapter.createGcfHandler}. */
@@ -106,6 +109,14 @@ export const _SIGNATURE_TARGETS_ENV_KEY = 'signalwireSignatureTargets';
  */
 export const _PLATFORM_BASE_ENV_KEY = 'signalwirePlatformBase';
 
+/**
+ * Hono env key for the client's address as the platform reports it (Lambda's
+ * requestContext source IP, a Cloud Function request's `ip`, CGI's
+ * REMOTE_ADDR), which the agent's rate limit keys on.
+ * @internal
+ */
+export const _CLIENT_ADDRESS_ENV_KEY = 'signalwireClientAddress';
+
 /** One serverless request, reduced to what routing and signature checks need. */
 interface PlatformRequest {
   method: string;
@@ -123,6 +134,8 @@ interface PlatformRequest {
   body: string | undefined;
   /** The base URL the function is served on, when the request shows it. */
   platformBase?: string;
+  /** The client's address, as the platform reports it. */
+  clientAddress?: string;
 }
 
 /**
@@ -338,7 +351,13 @@ export class ServerlessAdapter {
     }
     const platformUrl = origin ? `${origin}${called}${query ? `?${query}` : ''}` : '';
 
-    return { method, path, query, queryVariants, platformUrl, headers, body };
+    // The client address the platform saw: HTTP API / function URL events
+    // in requestContext.http, REST (v1) events in requestContext.identity.
+    const identity = (context['identity'] ?? {}) as Record<string, unknown>;
+    const sourceIp = http['sourceIp'] ?? identity['sourceIp'];
+    const clientAddress = typeof sourceIp === 'string' && sourceIp ? sourceIp : undefined;
+
+    return { method, path, query, queryVariants, platformUrl, headers, body, clientAddress };
   }
 
   /** Route one reduced request through the app and normalize its response. */
@@ -377,6 +396,7 @@ export class ServerlessAdapter {
 
     const env: Record<string, unknown> = { [_SIGNATURE_TARGETS_ENV_KEY]: targets };
     if (req.platformBase) env[_PLATFORM_BASE_ENV_KEY] = req.platformBase;
+    if (req.clientAddress) env[_CLIENT_ADDRESS_ENV_KEY] = req.clientAddress;
     const response = await app.fetch(request, env);
 
     const responseHeaders: Record<string, string> = {};
@@ -486,6 +506,7 @@ export class ServerlessAdapter {
       queryVariants: [],
       platformUrl: base ? `${base}${relative}` : '',
       platformBase: gcfBase(proto, host),
+      clientAddress: req.ip || req.socket?.remoteAddress || undefined,
       headers,
       body: rawBodyText(req.rawBody, req.body),
     };
@@ -553,6 +574,7 @@ export class ServerlessAdapter {
       platformUrl: `${scheme}://${host}${requestUri}`,
       headers: lowerHeaders(event.headers),
       body,
+      clientAddress: env['REMOTE_ADDR'] || undefined,
     };
   }
 

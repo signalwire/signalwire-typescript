@@ -480,7 +480,7 @@ The limit applies per client key, and the counter for a key resets 60 seconds af
 
 The client key depends on `SWML_TRUST_PROXY_HEADERS`:
 
-- **Unset**: the key is the address of the connection. Behind a proxy, that's the proxy's address, so every client behind it shares one key.
+- **Unset**: the key is the address of the connection, or on a serverless platform the client address the platform reports (Lambda's source IP, a Cloud Function request's `ip`, CGI's `REMOTE_ADDR`). Azure Functions reports none, so its requests share one key. Behind a proxy, the key is the proxy's address, so every client behind it shares one key.
 - **`true`**: the key is the first address in `X-Forwarded-For`, then `X-Real-IP`, then the connection's address. Set this only behind a proxy that sets those headers, since a client can send any value.
 
 Size the limit for the traffic one key sends, including SignalWire's requests during calls. When `SWML_RATE_LIMIT` is unset, no limit applies.

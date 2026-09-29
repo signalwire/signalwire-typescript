@@ -53,7 +53,7 @@ import {
   type ServerlessResponse,
 } from './ServerlessAdapter.js';
 import { webhookValidationMiddleware } from './WebhookMiddleware.js';
-import { _PLATFORM_BASE_ENV_KEY } from './ServerlessAdapter.js';
+import { _CLIENT_ADDRESS_ENV_KEY, _PLATFORM_BASE_ENV_KEY } from './ServerlessAdapter.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -3236,9 +3236,14 @@ export class AgentBase extends SWMLService {
         app.use('*', async (c, next) => {
           // The connection's own address, as the reference keys on
           // request.client.host; the forwarded headers only when trusted.
+          // On a serverless platform, the address the platform reports.
+          const env = c.env as
+            | ({ incoming?: { socket?: { remoteAddress?: string } } } & Record<string, unknown>)
+            | undefined;
+          const platformIp = env?.[_CLIENT_ADDRESS_ENV_KEY];
           const socketIp =
-            (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming
-              ?.socket?.remoteAddress ?? 'unknown';
+            env?.incoming?.socket?.remoteAddress ??
+            (typeof platformIp === 'string' ? platformIp : 'unknown');
           const ip = this._trustProxyHeaders
             ? (c.req.header('x-forwarded-for')?.split(',')[0]!.trim() ??
               c.req.header('x-real-ip') ??
