@@ -1871,3 +1871,39 @@ describe('suppressLogs silences the constructor too (found in the documentation 
     }
   });
 });
+
+describe('addLanguage fillers match the schema and the reference (found in the documentation pass)', () => {
+  const lang = (config: Record<string, unknown>) => {
+    const agent = new AgentBase({ name: 'l', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'inworld.Mark',
+      ...config,
+    } as never);
+    return JSON.parse(agent.renderSwml()).sections.main.find((v: { ai?: unknown }) => v.ai).ai
+      .languages[0];
+  };
+
+  it('emits speech_fillers and function_fillers as arrays when both are given', () => {
+    const l = lang({ speechFillers: ['um'], functionFillers: ['one moment'] });
+    expect(l.speech_fillers).toEqual(['um']);
+    expect(l.function_fillers).toEqual(['one moment']);
+    expect(l.fillers).toBeUndefined();
+  });
+
+  it('emits one kind alone as the fillers array, as the reference does', () => {
+    expect(lang({ speechFillers: ['um'] }).fillers).toEqual(['um']);
+    expect(lang({ functionFillers: ['one moment'] }).fillers).toEqual(['one moment']);
+  });
+
+  it('flattens the older object forms into arrays', () => {
+    const l = lang({
+      fillers: { thinking: ['let me think'] },
+      functionFillers: { get_time: { 'en-US': ['checking the clock'] } },
+    });
+    expect(l.speech_fillers).toEqual(['let me think']);
+    expect(l.function_fillers).toEqual(['checking the clock']);
+  });
+});

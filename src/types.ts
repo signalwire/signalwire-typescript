@@ -116,12 +116,22 @@ export interface LanguageConfig {
   engine?: string;
   /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */
   model?: string;
-  /** Filler phrases keyed by category for this language. */
-  fillers?: Record<string, string[]>;
+  /** Phrases the AI can say to fill a pause in speech (`speech_fillers`). */
+  speechFillers?: string[];
+  /**
+   * Phrases said while a function runs (`function_fillers`). The older form,
+   * keyed by function name then language code, is flattened into one list;
+   * for fillers per tool, use the tool's own `fillers` option.
+   */
+  functionFillers?: string[] | Record<string, Record<string, string[]>>;
+  /**
+   * Filler phrases for both speech and functions, the schema's older `fillers`
+   * list. The older form keyed by category is flattened into one list and
+   * sent as `speechFillers`.
+   */
+  fillers?: string[] | Record<string, string[]>;
   /** Speech recognition model identifier. */
   speechModel?: string;
-  /** Per-function filler phrases, keyed by function name then language code. */
-  functionFillers?: Record<string, Record<string, string[]>>;
   /**
    * Optional per-language params dict (engine-specific tuning, voice settings,
    * etc.). Emitted as the language object's `params` key in SWML — only

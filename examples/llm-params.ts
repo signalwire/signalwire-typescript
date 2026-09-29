@@ -40,15 +40,14 @@ agent.setParams({
   inactivity_timeout: 20000,
 });
 
-// Language with function-level fillers (keyed by category → phrases)
+// Language with fillers: speech fillers fill a pause, function fillers play
+// while a tool runs
 agent.addLanguage({
   name: 'English',
   code: 'en-US',
   voice: 'rachel',
-  fillers: { thinking: ['one moment please', 'let me check that for you', 'just a second'] },
-  functionFillers: {
-    check_availability: { 'en-US': ['looking that up now', 'searching our records'] },
-  },
+  speechFillers: ['one moment please', 'let me check that for you', 'just a second'],
+  functionFillers: ['looking that up now', 'searching our records'],
 });
 
 // Post-prompt for structured call summary

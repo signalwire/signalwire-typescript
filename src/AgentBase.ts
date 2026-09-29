@@ -1012,9 +1012,30 @@ export class AgentBase extends SWMLService {
     if (config.voice) lang['voice'] = config.voice;
     if (config.engine) lang['engine'] = config.engine;
     if (config.model) lang['model'] = config.model;
-    if (config.fillers) lang['fillers'] = config.fillers;
+    // Fillers as the reference emits them: speech_fillers and function_fillers
+    // when both are given, and one given alone as the older `fillers` list.
+    // The object forms this SDK once took are flattened into lists.
+    const flatten = (value: unknown): string[] => {
+      if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+      if (value && typeof value === 'object') return Object.values(value).flatMap(flatten);
+      return [];
+    };
+    const legacyFillers = config.fillers && !Array.isArray(config.fillers);
+    const speech = config.speechFillers ?? (config.fillers ? flatten(config.fillers) : undefined);
+    const fn = config.functionFillers ? flatten(config.functionFillers) : undefined;
+    if (legacyFillers || (config.functionFillers && !Array.isArray(config.functionFillers))) {
+      this.log.warn(
+        'addLanguage(): fillers keyed by category, and functionFillers keyed by function, are ' +
+          'flattened into lists; pass speechFillers and functionFillers as string arrays',
+      );
+    }
+    if (speech?.length && fn?.length) {
+      lang['speech_fillers'] = speech;
+      lang['function_fillers'] = fn;
+    } else if (speech?.length || fn?.length) {
+      lang['fillers'] = speech?.length ? speech : fn;
+    }
     if (config.speechModel) lang['speech_model'] = config.speechModel;
-    if (config.functionFillers) lang['function_fillers'] = config.functionFillers;
     // Per-language params — only emit the key when non-empty (Python equivalent:
     // `if params: language["params"] = params`).
     if (config.params && Object.keys(config.params).length > 0) {

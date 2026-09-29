@@ -519,7 +519,7 @@ addPatternHint(opts: { hint: string; pattern: string; replace: string; ignoreCas
 
 #### `addLanguage(config)`
 
-Add a language to the AI verb's `languages`. `speechModel` and `functionFillers` are emitted as `speech_model` and `function_fillers`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
+Add a language to the AI verb's `languages`. `speechFillers` and `functionFillers` are emitted as `speech_fillers` and `function_fillers` when both are given, and one alone as `fillers`. `speechModel` is emitted as `speech_model`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -3217,9 +3217,10 @@ interface LanguageConfig
 | `voice` | `string` | Voice identifier (optional) |
 | `engine` | `string` | TTS engine (optional) |
 | `model` | `string` | TTS model (optional) |
-| `fillers` | `Record<string, string[]>` | Filler phrases (optional) |
+| `speechFillers` | `string[]` | Phrases that fill a pause in speech, emitted as `speech_fillers` (optional) |
+| `functionFillers` | `string[] \| Record<string, Record<string, string[]>>` | Phrases said while a tool runs, emitted as `function_fillers`; the keyed form is flattened (optional) |
+| `fillers` | `string[] \| Record<string, string[]>` | The older list for both, used as speech fillers; the keyed form is flattened (optional) |
 | `speechModel` | `string` | Speech recognition model, emitted as `speech_model` (optional) |
-| `functionFillers` | `Record<string, Record<string, string[]>>` | Per-function fillers, emitted as `function_fillers` (optional) |
 | `params` | `Record<string, unknown>` | Engine-specific settings, emitted only when not empty (optional) |
 
 ### PronunciationRule

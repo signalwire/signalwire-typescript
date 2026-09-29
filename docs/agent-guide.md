@@ -555,7 +555,7 @@ agent.addLanguage({
 });
 ```
 
-`LanguageConfig` also has `fillers`, `functionFillers` and `speechModel`. The SDK emits `fillers` and `function_fillers` as objects, and adds a `speech_model` key. The bundled SWML schema defines `fillers`, `speech_fillers` and `function_fillers` as arrays of strings, and has no `speech_model`. A language with those options doesn't validate against the schema. The SDK doesn't check the `ai` verb against the schema, so it renders them without a warning.
+`LanguageConfig` also takes filler phrases. `speechFillers` fill a pause in speech, and `functionFillers` play while a tool runs; both are string arrays. Given both, the SDK emits `speech_fillers` and `function_fillers`; given one, it emits the schema's older `fillers` list, as the Python SDK does. The object forms `fillers` keyed by category and `functionFillers` keyed by function are flattened into lists, with a warning. `speechModel` adds a `speech_model` key, which the bundled schema doesn't define.
 
 `setLanguages()` replaces all the languages at once:
 

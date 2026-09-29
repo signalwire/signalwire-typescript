@@ -532,7 +532,8 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
     expect(lang['code']).toBe('en-US');
     expect(lang['engine']).toBe('rime'); // dropped by a degraded impl
     expect(lang['speech_model']).toBe('arcana'); // model — dropped by a degraded impl
-    expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
+    // Fillers survive, flattened to the list the schema and the reference use.
+    expect(lang['fillers']).toEqual(['um', 'let me check']);
   });
 });
 
