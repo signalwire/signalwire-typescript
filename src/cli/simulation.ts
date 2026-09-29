@@ -404,6 +404,9 @@ const PLATFORM_PRESETS: Record<string, Record<string, string>> = {
     AZURE_FUNCTIONS_ENVIRONMENT: 'Development',
     FUNCTIONS_WORKER_RUNTIME: 'node',
     WEBSITE_SITE_NAME: 'my-function-app',
+    // The SDK builds the URL as https://APP.azurewebsites.net/api/NAME, with
+    // `unknown` for a missing name.
+    AZURE_FUNCTION_NAME: 'agent',
   },
 };
 

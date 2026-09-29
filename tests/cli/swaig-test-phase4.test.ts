@@ -371,6 +371,19 @@ export default agent;`);
     expect(stdout).toContain('@europe-west1-my-proj.cloudfunctions.net/agent/swaig');
   }, 70_000);
 
+  it('names the Azure function in the preset, so the URL has no unknown in it', async () => {
+    const path = agentFile(`${TOOLS}\nexport default agent;`);
+    const { stdout } = await runCli([
+      path,
+      '--simulate-serverless',
+      'azure',
+      '--dump-swml',
+      '--raw',
+    ]);
+    expect(stdout).toContain('@my-function-app.azurewebsites.net/api/agent/swaig');
+    expect(stdout).not.toContain('/api/unknown');
+  }, 70_000);
+
   it('requires --cgi-host to simulate CGI', async () => {
     const { code, stderr } = await runCli(['x.ts', '--simulate-serverless', 'cgi', '--dump-swml']);
     expect(code).toBe(2);
