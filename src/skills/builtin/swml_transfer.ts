@@ -22,6 +22,23 @@ import { getLogger } from '../../Logger.js';
 
 const log = getLogger('SwmlTransferSkill');
 
+/**
+ * A destination as the model may see it: a URL without the credentials it
+ * carries (a transfer URL holds the target agent's basic auth).
+ */
+function shownDestination(destination: string): string {
+  return destination.replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/@]*@/i, '$1');
+}
+
+/** A transfer pattern key as a name: without its regex slashes and flag. */
+function patternName(key: string): string {
+  let clean = key;
+  if (clean.startsWith('/')) clean = clean.slice(1);
+  if (clean.endsWith('/')) clean = clean.slice(0, -1);
+  else if (clean.endsWith('/i')) clean = clean.slice(0, -2);
+  return clean;
+}
+
 /** A named transfer destination pattern (TS-style). */
 interface TransferPattern {
   /** Friendly name for the destination. */
@@ -467,19 +484,17 @@ export class SwmlTransferSkill extends SkillBase {
     const transferBullets: string[] = [];
 
     for (const [patternKey, config] of Object.entries(transfers)) {
-      let clean = patternKey;
-      if (clean.startsWith('/')) clean = clean.slice(1);
-      if (clean.endsWith('/')) clean = clean.slice(0, -1);
-      else if (clean.endsWith('/i')) clean = clean.slice(0, -2);
-
+      const clean = patternName(patternKey);
       if (clean && !clean.startsWith('.')) {
-        const destination = config.url ?? config.address ?? '';
+        const destination = shownDestination(config.url ?? config.address ?? '');
         transferBullets.push(`"${clean}" - transfers to ${destination}`);
       }
     }
 
     for (const p of patterns) {
-      const desc = p.description ? ` - ${p.description}` : ` - transfers to ${p.destination}`;
+      const desc = p.description
+        ? ` - ${p.description}`
+        : ` - transfers to ${shownDestination(p.destination)}`;
       transferBullets.push(`"${p.name}"${desc}`);
     }
 
@@ -589,7 +604,7 @@ export class SwmlTransferSkill extends SkillBase {
     canUseArbitrary: boolean,
   ): string {
     const names = [
-      ...Object.keys(transfers).map((k) => `"${k}"`),
+      ...Object.keys(transfers).map((k) => `"${patternName(k)}"`),
       ...patterns.map((p) => `"${p.name}"`),
     ];
     if (names.length === 0) {
