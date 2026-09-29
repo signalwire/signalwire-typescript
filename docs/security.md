@@ -71,6 +71,7 @@ Auth: my-agent:**** (source: generated)
 
 Set the credentials yourself for any agent SignalWire or another client calls. This example passes them to the constructor from environment variables your deployment defines, and refuses to start without them, so a missing variable can't leave a known password in place:
 
+<!-- snippet: no-run throws by design unless AGENT_USER and AGENT_PASSWORD are set -->
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
 
