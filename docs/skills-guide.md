@@ -305,7 +305,6 @@ A question with `confirm: true` refuses an answer until the model calls `submit_
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `tool_name` | string | `"info_gatherer"` | No | Listed in the schema. The tool names come from `prefix`. |
 | `questions` | array | none | Yes | Entries with `key_name`, `question_text`, and optional `confirm` (boolean) and `prompt_add` (extra instruction text) |
 | `prefix` | string | none | No | Names the tools `<prefix>_start_questions` and `<prefix>_submit_answer`, and the state key `skill:<prefix>`. Use it to add a second instance. |
 | `completion_message` | string | `"Thank you! All questions have been answered. ..."` | No | Result returned after the last answer |
@@ -601,7 +600,6 @@ With `allow_shell_injection: true`, each `` !`command` `` in a skill's text runs
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `tool_name` | string | `"claude_skills"` | No | Tells instances apart |
 | `skills_path` | string | none | Yes | Directory that holds the skill folders |
 | `include` | array | `["*"]` | No | Glob patterns of skill names to load |
 | `exclude` | array | `[]` | No | Glob patterns of skill names to skip |

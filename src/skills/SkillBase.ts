@@ -154,7 +154,7 @@ export interface ParameterSchemaEntry {
   required?: boolean;
   /** Whether the parameter should be hidden from user-facing output (e.g., API keys). */
   hidden?: boolean;
-  /** Environment variable that can supply this parameter's value. */
+  /** Environment variable a configuration tool can read this value from. A hint only: the SDK doesn't read it, so the skill gets the value from its params. */
   env_var?: string;
   /** Allowed values for the parameter. */
   enum?: unknown[];

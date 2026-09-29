@@ -3489,7 +3489,7 @@ interface SkillConfig { [key: string]: unknown }
 | `default` | `unknown` | Default value (optional) |
 | `required` | `boolean` | Whether it's required (optional) |
 | `hidden` | `boolean` | Whether to hide it from user-facing output, such as an API key (optional) |
-| `env_var` | `string` | Environment variable that can supply it (optional) |
+| `env_var` | `string` | Environment variable a configuration tool can read this value from; the SDK doesn't read it (optional) |
 | `enum` | `unknown[]` | Allowed values (optional) |
 | `min` | `number` | Minimum (optional) |
 | `max` | `number` | Maximum (optional) |

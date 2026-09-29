@@ -246,7 +246,7 @@ Follow these rules for the parameter schema:
 - Implement `getParameterSchema()` and spread `super.getParameterSchema()`.
 - Mark keys and passwords as `hidden`.
 - Give each optional parameter a default that works.
-- When you declare an `env_var`, read that variable in your code. The schema only names it.
+- Use `env_var` to name the environment variable a configuration tool can read a parameter from. The SDK doesn't read it, so read the variable in your code if the skill should fall back to it.
 
 For the schema format, see [Skills Parameter Schema](skills_parameter_schema.md).
 

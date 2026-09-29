@@ -670,9 +670,12 @@ const BEDROCK: Topic = {
   title: 'Amazon Bedrock agents',
   summary: "Agents that use Amazon Bedrock's speech-to-speech model",
   body: `\`BedrockAgent\` is an \`AgentBase\` that renders an \`amazon_bedrock\` verb
-instead of the standard \`ai\` verb. Prompts, tools, skills and contexts work
-the same way. \`setInferenceParams()\` sets \`temperature\`, \`top_p\` and
-\`max_tokens\`, and \`setVoice()\` takes one of the voices Bedrock offers.
+instead of the standard \`ai\` verb. Prompts, tools and skills work the same
+way. Speech hints, languages, pronunciation rules, multilingual settings and
+contexts aren't part of the Bedrock verb, so they're left out of the SWML with
+a warning. \`setInferenceParams()\` sets \`temperature\`, \`top_p\` and
+\`max_tokens\`, which must be numbers, and \`setVoice()\` takes one of the
+voices Bedrock offers.
 \`createBedrockAgent()\` is a factory for the same class.
 `,
   docs: [['docs/bedrock_agent.md', "BedrockAgent's options and differences"]],
