@@ -597,7 +597,9 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   used to differ on purpose: an unresolved template expands to an empty
   string (with a note on stderr), not `<MISSING:path>`; names match without
   regard to case; `fmt_ph` formats North American numbers (any number, with the optional
-  `libphonenumber-js` installed); the call data
+  `libphonenumber-js` installed), and reads a vanity number's letters as
+  keypad digits, as the platform's libphonenumber does (`1-800-FLOWERS` is
+  `(800) 356-9377`); the call data
   holds `meta_data`, the call details and `prompt_vars`, and the webhook
   stage adds `prompt_vars` and `global_data`; a matched webhook expression's
   result is expanded twice; a template expands only once; outputs are
