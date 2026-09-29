@@ -307,7 +307,10 @@ export interface DataMapExecOptions {
   timeoutSeconds?: number;
   /** Where verbose output and hints go (default: stderr). */
   log?: (line: string) => void;
-  /** Fetch implementation; defaults to the SDK's SSRF-guarded fetch. */
+  /**
+   * Fetch implementation; defaults to the SDK's SSRF-guarded fetch, which
+   * follows redirects as the platform's curl does and checks every hop.
+   */
   fetchImpl?: (
     url: string,
     init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
@@ -342,6 +345,9 @@ export async function executeDataMap(
         headers: init.headers,
         body: init.body,
         signal: init.signal,
+        // The platform's curl settings: up to 15 redirects, a POST sent again
+        // with its body after any of them. Every hop is still checked.
+        redirectMode: 'curl',
       }));
   const dataMap = (isPlainObject(fn['data_map']) ? fn['data_map'] : fn) as Data;
 

@@ -279,7 +279,7 @@ The simulator follows the platform's template rules:
 - A webhook's `url` and `params`, the top-level expressions and the fallback output read `${args.city}`; its `foreach`, `expressions` and `output` read the response, with the arguments at `${input.args.city}`. Header values are sent as written.
 - `params`, with the arguments merged in when `input_args_as_params` is set, is the request body, and a request with `params` is a `POST` whatever its method, and any other request is a `GET`. With `form_param`, the body is one form field holding the JSON.
 - `expressions` and `webhooks` can each be a single object instead of a list, as on the platform. A single expression runs as a one-element list. A single webhook's `require_args` and `error_keys` aren't checked, and a failed request doesn't fail it: its output reads the error response, such as `${parse_error}` and `${http_code}`.
-- Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
+- Redirects are followed as the platform's curl follows them: up to 15, and a `POST` is sent again, with its body, after any of them. Credentials go only to the origin they were given for. Every request, redirects included, refuses private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
 
 This command runs the weather tool against the real wttr.in API and prints each step:
 

@@ -37,6 +37,12 @@ import { _checkUrl, _privateUrlsAllowed, isPrivateIp, redactUrl } from './Securi
 /** Most redirects {@link _publicFetch} follows before giving up. */
 const MAX_REDIRECTS = 10;
 
+/**
+ * Most redirects {@link _publicFetch} follows in `curl` mode: the platform's
+ * `CURLOPT_MAXREDIRS` for a DataMap webhook.
+ */
+const CURL_MAX_REDIRECTS = 15;
+
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /** Headers that carry credentials for one origin and must not follow a redirect elsewhere. */
@@ -67,6 +73,19 @@ export interface _PublicFetchInit {
    * transport can't skip verification. Default `false`.
    */
   insecureTls?: boolean;
+  /**
+   * How redirects are followed. `browser` (the default) follows 301, 302,
+   * 303, 307 and 308, up to 10 of them, and turns a 303, or a 301 or 302
+   * answering a POST, into a GET without a body. `curl` follows them as
+   * libcurl does with `CURLOPT_FOLLOWLOCATION`, `CURLOPT_MAXREDIRS` 15 and
+   * `CURLOPT_POSTREDIR` `CURL_REDIR_POST_ALL`, the settings the platform
+   * requests a DataMap webhook with: any 3xx with a `Location`, up to 15 of
+   * them, a POST sent again with its body after any of them, and only a 303
+   * answering a method other than GET, HEAD or POST turned into a GET. Both
+   * modes check every hop's address and drop credentials on a change of
+   * origin.
+   */
+  redirectMode?: 'browser' | 'curl';
 }
 
 /** Thrown by {@link _publicFetch} when `allowRedirect` refuses a redirect. */
@@ -278,11 +297,13 @@ export function _proxiedByNode(url: string): boolean {
  * {@link MAX_REDIRECTS} redirects), and connects through a lookup that refuses
  * a private or internal address. A redirect to another origin drops the
  * `Authorization`, `Cookie` and `Proxy-Authorization` headers. A 303, or a
- * 301/302 answering a POST, is followed with a GET, as browsers do.
+ * 301/302 answering a POST, is followed with a GET, as browsers do. With
+ * `redirectMode: 'curl'`, redirects follow curl's rules instead (see
+ * {@link _PublicFetchInit.redirectMode}); the checks are the same.
  *
  * @param url - The URL to fetch.
  * @param init - Method, headers, body, abort signal, `allowPrivate`,
- *   `allowRedirect` and `insecureTls`.
+ *   `allowRedirect`, `insecureTls` and `redirectMode`.
  * @returns The final response, which is not a redirect unless it had no
  *   `Location` header.
  * @throws If the URL or a redirect is refused ({@link _RedirectRefused} when
@@ -304,6 +325,12 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
       ? globalFetchTransport
       : _nodeTransport);
 
+  const curl = init.redirectMode === 'curl';
+  const maxRedirects = curl ? CURL_MAX_REDIRECTS : MAX_REDIRECTS;
+  // curl follows a Location on any 3xx response (http.c), and a browser only
+  // on the redirect statuses.
+  const isRedirect = (status: number) =>
+    curl ? status >= 300 && status <= 399 : REDIRECT_STATUSES.has(status);
   let method = (init.method ?? 'GET').toUpperCase();
   let body = init.body;
   const headers: Record<string, string> = {};
@@ -324,18 +351,23 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
       guard,
     );
     const location = response.headers.get('location');
-    if (!REDIRECT_STATUSES.has(response.status) || !location) return response;
+    if (!isRedirect(response.status) || !location) return response;
 
     await response.body?.cancel().catch(() => undefined);
-    if (redirects >= MAX_REDIRECTS) {
+    if (redirects >= maxRedirects) {
       throw new Error(`Too many redirects fetching ${redactUrl(url)}`);
     }
 
     const next = new URL(location, current);
-    if (
-      response.status === 303 ||
-      ((response.status === 301 || response.status === 302) && method === 'POST')
-    ) {
+    // A browser turns a 303, and a 301 or 302 answering a POST, into a GET.
+    // curl with CURL_REDIR_POST_ALL sends a POST again, with its body, and
+    // turns only a 303 answering another method (other than GET and HEAD)
+    // into a GET (transfer.c Curl_follow).
+    const toGet = curl
+      ? response.status === 303 && !['GET', 'HEAD', 'POST'].includes(method)
+      : response.status === 303 ||
+        ((response.status === 301 || response.status === 302) && method === 'POST');
+    if (toGet) {
       method = 'GET';
       body = undefined;
       delete headers['content-type'];
