@@ -164,7 +164,7 @@ The examples and the skills they load read these variables:
 | `SIGNALWIRE_SPACE` | Space host name | None |
 | `GOOGLE_SEARCH_API_KEY` | Google Custom Search key (web search) | None |
 | `GOOGLE_SEARCH_ENGINE_ID` | Google search engine ID (web search); `GOOGLE_SEARCH_CX` also works | None |
-| `DATASPHERE_DOCUMENT_ID` | DataSphere document ID (the `-env` DataSphere examples) | None |
+| `DATASPHERE_DOCUMENT_ID` | DataSphere document ID (`datasphere.ts` and the `-env` DataSphere examples) | None |
 | `SW_NEWS_API_KEY` | NewsAPI key, expanded into the `get_news` URL in `advanced-datamap.ts` | None |
 | `MCP_GATEWAY_URL` | MCP gateway URL for `mcp-gateway.ts`. A private or localhost URL also needs `SWML_ALLOW_PRIVATE_URLS=true` | None |
 | `MCP_GATEWAY_AUTH_TOKEN` | MCP gateway bearer token, used instead of the user name and password | None |

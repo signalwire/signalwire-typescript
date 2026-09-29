@@ -282,6 +282,61 @@ describe('examples', () => {
     });
   });
 
+  describe('datasphere.ts', () => {
+    const DS_ENV = [
+      'DATASPHERE_DOCUMENT_ID',
+      'SIGNALWIRE_SPACE',
+      'SIGNALWIRE_PROJECT_ID',
+      'SIGNALWIRE_API_TOKEN',
+      'DATASPHERE_BASE_URL',
+    ];
+    beforeEach(() => {
+      vi.resetModules();
+      for (const name of DS_ENV) vi.stubEnv(name, undefined);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    });
+
+    it('loads without DataSphere configured and says what to set', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const agent = await loadExample('datasphere.ts');
+        expect(agent.getRegisteredTools()).toEqual([]);
+        expect(errors.mock.calls.flat().join('\n')).toContain('DATASPHERE_DOCUMENT_ID');
+      } finally {
+        errors.mockRestore();
+      }
+    });
+
+    it('searches the configured document with the skill parameters count and distance', async () => {
+      vi.stubEnv('DATASPHERE_DOCUMENT_ID', 'doc-123');
+      vi.stubEnv('SIGNALWIRE_SPACE', 'example');
+      vi.stubEnv('SIGNALWIRE_PROJECT_ID', 'project');
+      vi.stubEnv('SIGNALWIRE_API_TOKEN', 'token');
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ chunks: [{ text: 'Opening hours are 9 to 5.' }] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const agent = (await loadExample('datasphere.ts')) as LoadedAgent & {
+        getTool(name: string): { execute(args: Record<string, unknown>): Promise<unknown> };
+      };
+      await agent.getTool('search_knowledge').execute({ query: 'opening hours' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const init = (fetchMock.mock.calls[0] as unknown[])[1] as { body: string };
+      expect(JSON.parse(init.body)).toMatchObject({
+        document_id: 'doc-123',
+        count: 3,
+        distance: 4,
+      });
+    });
+  });
+
   describe('session-state.ts', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');

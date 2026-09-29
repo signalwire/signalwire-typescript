@@ -1,8 +1,11 @@
 /**
  * DataSphere Skill Example
  *
- * Uses the DataSphere skill to search a SignalWire knowledge base.
- * Requires SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE env vars.
+ * Uses the DataSphere skill to search a document in a SignalWire DataSphere
+ * knowledge base. Set DATASPHERE_DOCUMENT_ID to the document to search, and
+ * SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID and SIGNALWIRE_API_TOKEN to the
+ * credentials the skill uses. Without them the agent starts with no search
+ * tool and prints what to set.
  * Run: npx tsx examples/datasphere.ts
  */
 
@@ -23,13 +26,29 @@ agent.setPromptText(
     'Always cite the source when providing information from the knowledge base.',
 );
 
-// Add DataSphere skill with custom configuration
-await agent.addSkill(
-  new DataSphereSkill({
-    max_results: 3,
-    distance_threshold: 0.6,
-  }),
-);
+const documentId = process.env['DATASPHERE_DOCUMENT_ID'];
+const missing = [
+  'DATASPHERE_DOCUMENT_ID',
+  'SIGNALWIRE_SPACE',
+  'SIGNALWIRE_PROJECT_ID',
+  'SIGNALWIRE_API_TOKEN',
+].filter((name) => !process.env[name]);
+
+if (documentId && missing.length === 0) {
+  // count is the number of results to return, and distance the largest
+  // distance a result may have (lower is more relevant).
+  await agent.addSkill(
+    new DataSphereSkill({
+      document_id: documentId,
+      count: 3,
+      distance: 4.0,
+    }),
+  );
+} else {
+  console.error(
+    `DataSphere not configured, so the agent starts without the search tool. Set ${missing.join(', ')}.`,
+  );
+}
 
 agent.addLanguage({ name: 'English', code: 'en-US', voice: 'rachel' });
 agent.addHints(['DataSphere', 'knowledge base', 'documentation']);
