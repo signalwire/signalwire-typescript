@@ -16,6 +16,7 @@ const SDK = new URL('../../src/index.ts', import.meta.url).href;
 
 let dir: string;
 let agentPath: string;
+let housePath: string;
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'swaig-calldata-'));
   agentPath = join(dir, 'tenant-agent.mts');
@@ -28,6 +29,26 @@ agent.registerSwaigFunction(
     .description('Say which tenant this is')
     .parameter('topic', 'string', 'Anything')
     .expression('\${args.topic}', '.*', new FunctionResult('Tenant \${global_data.tenant} (\${time_of_day})'))
+    .toSwaigFunction(),
+);
+export default agent;
+`,
+  );
+  housePath = join(dir, 'house-agent.mts');
+  writeFileSync(
+    housePath,
+    `import { AgentBase, DataMap, FunctionResult } from '${SDK}';
+const agent = new AgentBase({ name: 'house', route: '/agent' });
+agent.setGlobalData({ tenant: 'house', region: 'us' });
+agent.registerSwaigFunction(
+  new DataMap('which_tenant')
+    .description('Say which tenant this is')
+    .parameter('topic', 'string', 'Anything')
+    .expression(
+      '\${args.topic}',
+      '.*',
+      new FunctionResult('Tenant \${global_data.tenant} in \${meta_data.region}'),
+    )
     .toSwaigFunction(),
 );
 export default agent;
@@ -77,4 +98,24 @@ describe('swaig-test --custom-data with a DataMap tool', () => {
     expect(stdout).toContain('Response: Tenant  ()');
     expect(stderr).toContain('${global_data.tenant}');
   }, 70_000);
+
+  // On a call, global_data starts as the agent's, and a function's meta_data
+  // is merged over it. Mirrors signalwire-python 71dbba8.
+  it("uses the agent's global data when --custom-data has no global_data", async () => {
+    const own = await runCli([housePath, '--exec', 'which_tenant', '--topic', 'hours']);
+    expect(own.code).toBe(0);
+    expect(own.stdout).toContain('Response: Tenant house in us');
+
+    const given = await runCli([
+      housePath,
+      '--custom-data',
+      '{"global_data": {"tenant": "acme", "region": "eu"}}',
+      '--exec',
+      'which_tenant',
+      '--topic',
+      'hours',
+    ]);
+    expect(given.code).toBe(0);
+    expect(given.stdout).toContain('Response: Tenant acme in eu');
+  }, 140_000);
 });

@@ -517,7 +517,7 @@ interface SwaigEntry extends Data {
 }
 
 /** The AI verb's SWAIG block: its functions, and the default web_hook_url. */
-function swaigOf(doc: Data): { functions: SwaigEntry[]; defaultUrl?: string } {
+function swaigOf(doc: Data): { functions: SwaigEntry[]; defaultUrl?: string; globalData?: Data } {
   const main = ((doc['sections'] as Data | undefined)?.['main'] ?? []) as Data[];
   for (const verb of main) {
     const ai = (verb?.['ai'] ?? verb?.['amazon_bedrock']) as Data | undefined;
@@ -525,10 +525,15 @@ function swaigOf(doc: Data): { functions: SwaigEntry[]; defaultUrl?: string } {
     const swaig = (ai['SWAIG'] ?? {}) as Data;
     const functions = (Array.isArray(swaig['functions']) ? swaig['functions'] : []) as SwaigEntry[];
     const defaults = (swaig['defaults'] ?? {}) as Data;
+    const globalData = ai['global_data'];
     return {
       functions,
       defaultUrl:
         typeof defaults['web_hook_url'] === 'string' ? defaults['web_hook_url'] : undefined,
+      globalData:
+        globalData && typeof globalData === 'object' && !Array.isArray(globalData)
+          ? (globalData as Data)
+          : undefined,
     };
   }
   return { functions: [] };
@@ -902,7 +907,7 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
     () => undefined,
   );
   const doc = await fetchSwml(client, opts, swmlData, io);
-  const { functions, defaultUrl } = swaigOf(doc);
+  const { functions, defaultUrl, globalData } = swaigOf(doc);
   const entry = functions.find((f) => f.function === name);
   if (!entry) {
     io.out(`Error: Function '${name}' not found.`);
@@ -929,13 +934,18 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
   if (kind === 'datamap') {
     // --custom-data is the call data the platform adds, such as global_data.
     // It was parsed, and any warning given, for the function request above.
+    // Without its global_data, the global data in the agent's SWML applies,
+    // as a call starts with it.
     const custom = parseJsonOption('--custom-data', opts.customData, {
       ...io,
       err: () => undefined,
     });
+    if (!Object.hasOwn(custom, 'global_data') && globalData && Object.keys(globalData).length) {
+      custom['global_data'] = structuredClone(globalData);
+    }
     result = await executeDataMap(entry, args, {
       verbose: opts.verbose && !opts.raw,
-      ...(opts.customData ? { callData: custom } : {}),
+      ...(Object.keys(custom).length ? { callData: custom } : {}),
     });
   } else {
     const payload = {

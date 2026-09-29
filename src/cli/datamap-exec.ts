@@ -38,8 +38,10 @@
  * Template data, per stage:
  *
  * - The call data: the `callData` option (the platform's call details, such
- *   as `global_data` or `caller_id_num`) at the root, the function's
- *   `meta_data`, the `prompt_vars` merged into the root, `args` (the
+ *   as `global_data` or `caller_id_num`) at the root, `meta_data` (the
+ *   function's `meta_data` merged key by key over `global_data`, as the
+ *   platform merges them when it loads the function), the `prompt_vars`
+ *   merged into the root, `args` (the
  *   arguments) and an empty `input`. The top-level expressions, a webhook's
  *   `url` and `params`, and the data_map's own `output` read it, so they write
  *   an argument as `${args.city}`. The data_map's own `output` also has
@@ -642,7 +644,11 @@ export interface DataMapExecOptions {
    * data: `global_data`, `caller_id_num`, `call_id` and so on. Its
    * `prompt_vars` are merged into the root too, and are also
    * `${prompt_vars.x}` in a webhook's stages and the data_map's own output.
-   * swaig-test passes `--custom-data`.
+   * Its `global_data` is also the base of `meta_data`, which the function's
+   * `meta_data` is merged over; a `meta_data` key here isn't used, since the
+   * platform doesn't take one from the call. swaig-test passes
+   * `--custom-data`, with the agent's global data when it has no
+   * `global_data`.
    */
   callData?: Data;
   /**
@@ -769,8 +775,18 @@ function buildCallData(
   const promptVars = isPlainObject(rawPromptVars) ? rawPromptVars : {};
   const data: Data = {};
   if (typeof fn['function'] === 'string') data['function'] = fn['function'];
-  data['meta_data'] = isPlainObject(fn['meta_data']) ? structuredClone(fn['meta_data']) : {};
   for (const [key, value] of Object.entries(extra)) replaceItem(data, key, value);
+  // The platform merges the function's meta_data over the global data, key
+  // by key, when it loads the function (app_config.c, cJSON_Merge with
+  // replace); a call's meta_data is that object, not one from the call data.
+  const metaData: Data = {};
+  for (const source of [objectItem(data, 'global_data'), fn['meta_data']]) {
+    if (!isPlainObject(source)) continue;
+    for (const [key, value] of Object.entries(source)) {
+      replaceItem(metaData, key, structuredClone(value));
+    }
+  }
+  replaceItem(data, 'meta_data', metaData);
   // As on the platform, the prompt variables are merged into the root
   for (const [key, value] of Object.entries(promptVars)) {
     replaceItem(data, key, structuredClone(value));
