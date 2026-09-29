@@ -101,10 +101,14 @@ function swmlInt(
     (minimum === undefined || num >= minimum) &&
     (maximum === undefined || num <= maximum);
   if (!inRange) {
-    const expected =
-      minimum !== undefined && maximum !== undefined
-        ? `an integer from ${minimum} to ${maximum}`
-        : 'an integer';
+    let expected = 'an integer';
+    if (minimum !== undefined && maximum !== undefined) {
+      expected = `an integer from ${minimum} to ${maximum}`;
+    } else if (minimum !== undefined) {
+      expected = `an integer of at least ${minimum}`;
+    } else if (maximum !== undefined) {
+      expected = `an integer of at most ${maximum}`;
+    }
     throw new Error(`${name} must be ${expected}, got ${showValue(value)}`);
   }
   return num!; // inRange implies num is set
@@ -915,14 +919,15 @@ export class FunctionResult {
    * default value are left out; with none left, `join_conference` is the name
    * string alone.
    *
-   * `maxParticipants` is sent whenever it is given, as an integer from 2 to
-   * 100000, the SWML schema's range. A numeric string is converted, and a SWML
-   * variable reference such as `'${room_size}'` is passed through. Left out,
-   * the platform's default of 100000 applies.
+   * `maxParticipants` is sent whenever it is given, as an integer of 2 or
+   * more: the platform refuses a conference of fewer than 2 and sets no upper
+   * limit (the SWML schema's cap of 100000 isn't enforced). A numeric string
+   * is converted, and a SWML variable reference such as `'${room_size}'` is
+   * passed through.
    * @param name - The conference name to join.
    * @param opts - Optional conference settings such as mute, recording, and callbacks.
    * @throws {Error} When `name` is blank, or `maxParticipants` isn't an
-   *   integer from 2 to 100000 or a SWML variable reference.
+   *   integer of at least 2 or a SWML variable reference.
    * @returns This instance for chaining.
    */
   joinConference(
@@ -952,10 +957,10 @@ export class FunctionResult {
     if (!name.trim()) {
       throw new Error('name cannot be empty');
     }
-    // The schema's range for max_participants; the platform's default is 100000.
+    // The platform refuses fewer than 2 members and has no upper limit.
     const maxParticipants =
       opts?.maxParticipants !== undefined && opts.maxParticipants !== null
-        ? swmlInt('max_participants', opts.maxParticipants, 2, 100000)
+        ? swmlInt('max_participants', opts.maxParticipants, 2)
         : undefined;
     const hasNonDefaults =
       opts &&

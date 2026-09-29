@@ -4,8 +4,9 @@
  * pay() sent timeout, max_attempts, min_postal_code_length and security_code
  * (and a boolean postal_code) as strings, which the schema's integer and
  * boolean types reject. joinConference() refused max_participants above 250
- * and left out an explicit 250, so the platform's default of 100000 applied;
- * the schema allows 2 to 100000.
+ * and left out an explicit 250. The platform refuses fewer than 2 members
+ * (mod_infrastructure new_conference_controller.c) and has no upper limit, so
+ * any integer of 2 or more is accepted, as the Python SDK does.
  */
 import { FunctionResult } from '../src/FunctionResult.js';
 import { SchemaUtils } from '../src/SchemaUtils.js';
@@ -132,6 +133,14 @@ describe('joinConference() maxParticipants follows the schema', () => {
     ).toEqual({ name: 'room', max_participants: 250 });
   });
 
+  it('accepts more than the schema cap of 100000, which the platform does not enforce', () => {
+    const conf = rawVerb(
+      new FunctionResult().joinConference('room', { maxParticipants: 250000 }),
+      'join_conference',
+    ) as Record<string, unknown>;
+    expect(conf['max_participants']).toBe(250000);
+  });
+
   it.each([2, 251, 1000, 100000])('accepts %d', (value) => {
     const conf = verb(
       new FunctionResult().joinConference('room', { maxParticipants: value }),
@@ -172,12 +181,11 @@ describe('joinConference() maxParticipants follows the schema', () => {
     [1, '1'],
     [0, '0'],
     [-5, '-5'],
-    [100001, '100001'],
     [2.5, '2.5'],
     ['many', '"many"'],
   ] as [number | string, string][])('refuses %j', (value, shown) => {
     expect(() => new FunctionResult().joinConference('room', { maxParticipants: value })).toThrow(
-      `max_participants must be an integer from 2 to 100000, got ${shown}`,
+      `max_participants must be an integer of at least 2, got ${shown}`,
     );
   });
 });

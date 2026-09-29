@@ -1505,7 +1505,7 @@ joinConference(name: string, opts?: {
 | `opts.startOnEnter`                    | `boolean`                                   | `true`              | Start the conference when this participant joins.    |
 | `opts.endOnExit`                       | `boolean`                                   | `false`             | End the conference when this participant leaves.     |
 | `opts.waitUrl`                         | `string`                                    | none                | URL of media to play while the conference is on hold. |
-| `opts.maxParticipants`                 | `number \| string`                         | none                | Maximum number of participants, an integer from 2 to 100000, or a SWML variable reference such as `'${room_size}'`. A numeric string is sent as an integer. Sent whenever it's given; left out, the platform's default of 100000 applies. |
+| `opts.maxParticipants`                 | `number \| string`                         | none                | Maximum number of participants, an integer of 2 or more, or a SWML variable reference such as `'${room_size}'`. A numeric string is sent as an integer. Sent whenever it's given. The platform refuses fewer than 2 and sets no upper limit; the schema's cap of 100000 isn't enforced. |
 | `opts.record`                          | `'do-not-record' \| 'record-from-start'`  | `'do-not-record'`   | Recording mode.                                      |
 | `opts.region`                          | `string`                                    | none                | Region for the conference.                           |
 | `opts.trim`                            | `'trim-silence' \| 'do-not-trim'`         | `'trim-silence'`    | Silence trimming for recordings.                     |
@@ -1520,7 +1520,7 @@ joinConference(name: string, opts?: {
 
 **Behavior:** The SDK leaves out any option set to its default value, except `maxParticipants`, which is sent whenever it's given. When no option remains, the `join_conference` value is the name string. Otherwise it's an object with `name` and the other options.
 
-**Throws:** `Error` when `name` is blank, or `maxParticipants` isn't an integer from 2 to 100000 or a SWML variable reference.
+**Throws:** `Error` when `name` is blank, or `maxParticipants` isn't an integer of at least 2 or a SWML variable reference.
 
 **Returns:** `this` for chaining.
 

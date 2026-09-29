@@ -1499,7 +1499,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `joinRoom` | `(name: string): this` | A `SWML` action with `join_room: { name }` |
 | `sipRefer` | `(toUri: string): this` | A `SWML` action with `sip_refer: { to_uri }` |
-| `joinConference` | `(name: string, opts?): this` | A `SWML` action with a `join_conference` verb: the name alone when every option is at its default, otherwise an object. Throws on an empty name, or a `maxParticipants` that isn't an integer from 2 to 100000 or a SWML variable reference. `maxParticipants` is sent whenever it's given. |
+| `joinConference` | `(name: string, opts?): this` | A `SWML` action with a `join_conference` verb: the name alone when every option is at its default, otherwise an object. Throws on an empty name, or a `maxParticipants` that isn't an integer of at least 2 or a SWML variable reference. `maxParticipants` is sent whenever it's given. |
 
 The `joinConference()` options are `muted`, `beep`, `startOnEnter`, `endOnExit`, `waitUrl`, `maxParticipants`, `record`, `region`, `trim`, `coach`, `statusCallbackEvent`, `statusCallback`, `statusCallbackMethod`, `recordingStatusCallback`, `recordingStatusCallbackMethod`, `recordingStatusCallbackEvent` and `result`. Each is emitted in snake case.
 

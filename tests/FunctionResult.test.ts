@@ -289,10 +289,9 @@ describe('FunctionResult', () => {
     );
   });
 
-  it('joinConference rejects max_participants above the schema maximum (parity with Python)', () => {
-    expect(() =>
-      new FunctionResult('ok').joinConference('conf1', { maxParticipants: 100001 }),
-    ).toThrow('max_participants must be an integer from 2 to 100000, got 100001');
+  it('joinConference accepts max_participants above the schema maximum, as the platform does', () => {
+    const r = new FunctionResult('ok').joinConference('conf1', { maxParticipants: 100001 });
+    expect(JSON.stringify(r.toDict())).toContain('"max_participants":100001');
   });
 
   it('executeRpc', () => {
