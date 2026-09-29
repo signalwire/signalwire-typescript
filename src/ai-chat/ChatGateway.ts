@@ -298,7 +298,12 @@ export async function _readJsonBody(
       if (done) break;
       received += value.byteLength;
       if (received > limit) {
-        await reader.cancel().catch(() => undefined);
+        // Not awaited: when middleware has cloned the request, the body is
+        // one branch of a tee, and cancelling it waits until the other
+        // branch is read, which that middleware can do only after this
+        // route has answered.
+        reader.cancel().catch(() => undefined);
+        reader.releaseLock();
         throw tooLarge();
       }
       chunks.push(value);

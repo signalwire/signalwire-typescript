@@ -123,3 +123,61 @@ describe.each<Reader>(['json', 'text', 'arrayBuffer'])(
     );
   },
 );
+
+/** Resolves to the response, or to 'pending' if it doesn't settle in time. */
+const settled = (r: Promise<Response>, ms = 2000): Promise<Response | 'pending'> =>
+  Promise.race([r, new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), ms))]);
+
+describe('a request that middleware cloned and reads after the handler', () => {
+  // clone() tees the body, and cancelling one branch of a tee waits for the
+  // other. The middleware can't read its clone until the handler returns, so
+  // a refusal that waited on the cancellation never came.
+  function setupCloning() {
+    const gateway = new ChatGateway({
+      configUrl: 'https://agent.example.com/swml',
+      key: KEY,
+      client: stubService().client,
+      secret: 'test-secret',
+    });
+    const handoff = new HandoffRouter({ gateway, sendMessage: () => true });
+    handoff.register('n', { conversationId: 'conv-root', callId: 'call-9' });
+    const clonedLengths: number[] = [];
+    const app = new Hono();
+    app.use('/chat/*', async (c: Context, next: Next) => {
+      const clone = c.req.raw.clone();
+      await next();
+      clonedLengths.push((await clone.text()).length);
+    });
+    app.route('/chat', gateway.router());
+    app.route('/chat', handoff.router());
+    // No Content-Length, so the size is found by reading.
+    const post = (path: string, body: string) =>
+      app.request(`/chat${path}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+        body,
+      });
+    return { clonedLengths, post };
+  }
+
+  it.each(['', '/say', '/handoff', '/escalate'])(
+    'answers an oversized body on %s with 413 instead of hanging',
+    async (path) => {
+      const { clonedLengths, post } = setupCloning();
+      const body = oversized({ message: 'hello', nonce: 'n', text: 'hi', handle: 'h' });
+      const r = await settled(post(path, body));
+      expect(r).not.toBe('pending');
+      expect((r as Response).status).toBe(413);
+      expect(await (r as Response).json()).toEqual({ error: 'request too large' });
+      expect(clonedLengths).toEqual([body.length]);
+    },
+  );
+
+  it('still serves a normal body', async () => {
+    const { clonedLengths, post } = setupCloning();
+    const body = JSON.stringify({ nonce: 'n', text: 'hi' });
+    const r = await settled(post('/say', body));
+    expect((r as Response).status).toBe(200);
+    expect(clonedLengths).toEqual([body.length]);
+  });
+});
