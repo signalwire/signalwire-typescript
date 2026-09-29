@@ -505,7 +505,7 @@ await agent.addSkill(
 
 `NativeVectorSearchSkill` searches documents in one of two modes. With `documents`, it indexes them in memory when it loads and ranks them by TF-IDF blended with keyword overlap. With `remote_url`, it sends each query to a search server that speaks the Python SDK's `sw-search` protocol, and the server ranks the results.
 
-The tool takes a required `query` and an optional `count`. A `remote_url` is checked at setup: it must not resolve to a private or internal address unless `SWML_ALLOW_PRIVATE_URLS` is set, and its `/health` must answer 200. Credentials in the URL (`http://user:pass@host`) are sent as basic auth. In memory mode, setup succeeds with no documents, and the tool then returns a message saying nothing is loaded.
+The tool takes a required `query` and an optional `count`. A `remote_url` must not resolve to a private or internal address unless `SWML_ALLOW_PRIVATE_URLS` is set, and its `/health` must answer 200 at setup. Every request to it is checked the same way, including each redirect, and connects only to an address it checked. Credentials in the URL (`http://user:pass@host`) are sent as basic auth. In memory mode, setup succeeds with no documents, and the tool then returns a message saying nothing is loaded.
 
 The schema also lists the Python skill's local-index parameters. This SDK accepts and ignores these: `index_file` (used only to tell instances apart), `build_index`, `source_dir`, `file_types`, `exclude_patterns`, `backend`, `connection_string`, `collection_name`, `overwrite`, `nlp_backend`, `query_nlp_backend`, `index_nlp_backend` and `model_name`. The parameters that take effect are these:
 

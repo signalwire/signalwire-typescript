@@ -26,6 +26,7 @@ import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
 import { redactUrl, validateUrl } from '../../SecurityUtils.js';
+import { _publicFetch } from '../../PublicFetch.js';
 
 const log = getLogger('NativeVectorSearchSkill');
 
@@ -942,15 +943,21 @@ export class NativeVectorSearchSkill extends SkillBase {
     }
   }
 
-  /** Fetch wrapper that injects Basic auth if configured. */
+  /**
+   * Fetch from the remote server, with Basic auth if configured. Every
+   * request goes through _publicFetch, which checks the URL and every
+   * redirect as setup() checked remote_url, and connects only to an address
+   * it checked: a server that redirects to a private or internal address, or
+   * a hostname that resolves to one later, is refused.
+   */
   private async _fetchWithAuth(
     url: string,
-    init: RequestInit = {},
+    init: { method?: string; headers?: Record<string, string>; body?: string } = {},
     timeoutMs = 30_000,
   ): Promise<Response> {
     const headers: Record<string, string> = {
       Accept: 'application/json',
-      ...((init.headers as Record<string, string>) ?? {}),
+      ...(init.headers ?? {}),
     };
     if (this.remoteAuth) {
       const creds = Buffer.from(`${this.remoteAuth.user}:${this.remoteAuth.pass}`).toString(
@@ -961,7 +968,12 @@ export class NativeVectorSearchSkill extends SkillBase {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetch(url, { ...init, headers, signal: controller.signal });
+      return await _publicFetch(url, {
+        method: init.method,
+        headers,
+        body: init.body,
+        signal: controller.signal,
+      });
     } finally {
       clearTimeout(timer);
     }
