@@ -584,6 +584,11 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   `tool_name` parameter the skills never read. They no longer list it.
   `env_var` in a parameter schema is described as a hint for configuration
   tools, which the SDK doesn't read.
+- `WebService` served no files when a parent Hono app mounted it under a
+  prefix with `route()`, because it looked up its folders by the full
+  request path. It now works from the path below the prefix, matched at a
+  segment boundary, and its directory redirects and overview links keep the
+  prefix.
 - `WebService` served a directory's `index.html` in place when the URL had
   no trailing slash, which broke the page's relative links. It now answers
   with a 307 redirect to the slash form, on this host, with the path's
