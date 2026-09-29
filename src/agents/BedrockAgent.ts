@@ -16,6 +16,21 @@ import type { AgentOptions } from '../types.js';
 /** Prompt settings the Bedrock prompt object defines, besides the inference settings. */
 const BEDROCK_PROMPT_PARAMS = ['confidence', 'presence_penalty', 'frequency_penalty'] as const;
 
+/** The `ai` verb keys the `amazon_bedrock` verb carries over; the rest are left out. */
+const BEDROCK_VERB_KEYS: ReadonlySet<string> = new Set([
+  'prompt',
+  'SWAIG',
+  'params',
+  'global_data',
+  'post_prompt',
+  'post_prompt_url',
+]);
+
+/** `"it's"` for one name and `"they're"` for more, for the warnings below. */
+function itOrThey(names: string[]): string {
+  return names.length === 1 ? "it's" : "they're";
+}
+
 /** Configuration for the {@link BedrockAgent}. */
 export interface BedrockAgentConfig {
   /** Agent display name (defaults to `"bedrock_agent"`). */
@@ -91,6 +106,12 @@ export class BedrockAgent extends AgentBase {
    * Render the SWML document, transforming the base `ai` verb into an
    * `amazon_bedrock` verb with the same structure. Mirrors Python
    * `BedrockAgent._render_swml`.
+   *
+   * Only `prompt`, `SWAIG`, `params`, `global_data`, `post_prompt` and
+   * `post_prompt_url` are carried over. Anything else on the `ai` verb, such
+   * as `hints`, `languages`, `pronounce`, `multilingual` or the debug webhook
+   * keys, is left out, and each render that leaves something out logs one
+   * warning naming it.
    */
   override renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
     // Build the base SWML with the ai verb, then transform it.
@@ -104,6 +125,14 @@ export class BedrockAgent extends AgentBase {
       const verb = mainSection[i]!;
       if ('ai' in verb) {
         const aiConfig = (verb['ai'] as Record<string, unknown>) ?? {};
+        const leftOut = Object.keys(aiConfig)
+          .filter((key) => !BEDROCK_VERB_KEYS.has(key))
+          .sort();
+        if (leftOut.length > 0) {
+          this.log.warn(
+            `BedrockAgent: the amazon_bedrock verb has no ${leftOut.join(', ')}, so ${itOrThey(leftOut)} left out of the SWML`,
+          );
+        }
 
         // Build the amazon_bedrock verb with the same structure. Voice and
         // inference params live inside the prompt object for Bedrock.
@@ -235,7 +264,7 @@ export class BedrockAgent extends AgentBase {
     const ignored = Object.keys(rest).sort();
     if (ignored.length > 0) {
       this.log.warn(
-        `setPromptLlmParams(): Bedrock's prompt doesn't define ${ignored.join(', ')}, so they're ignored`,
+        `setPromptLlmParams(): Bedrock's prompt doesn't define ${ignored.join(', ')}, so ${itOrThey(ignored)} ignored`,
       );
     }
     return this;

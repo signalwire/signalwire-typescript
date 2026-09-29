@@ -72,7 +72,7 @@ describe('BedrockAgent prompt', () => {
     const warn = vi.spyOn((agent as unknown as { log: { warn: () => void } }).log, 'warn');
     expect(agent.setPromptLlmParams({ barge_confidence: 0.4, confidence: 0.5 })).toBe(agent);
     expect(warn).toHaveBeenCalledWith(
-      "setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so they're ignored",
+      "setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so it's ignored",
     );
   });
 

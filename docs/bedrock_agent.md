@@ -136,7 +136,7 @@ agent.setPromptLlmParams({
 The SDK logs this warning for the key it leaves out:
 
 ```text
-2026-09-28T22:58:09.944Z [WARN] [AgentBase] setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so they're ignored
+2026-09-28T22:58:09.944Z [WARN] [AgentBase] setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so it's ignored
 ```
 
 The rendered prompt then carries the settings the Bedrock prompt defines:
@@ -248,7 +248,7 @@ The `amazon_bedrock` verb carries these keys:
 
 ## What the amazon_bedrock verb leaves out
 
-`BedrockAgent` copies only the six keys in the preceding table from the `ai` verb. Everything else that `AgentBase` puts on the `ai` verb is dropped without a warning:
+`BedrockAgent` copies only the six keys in the preceding table from the `ai` verb. Everything else that `AgentBase` puts on the `ai` verb is left out of the SWML:
 
 | Configured with | `ai` key dropped |
 |---|---|
@@ -259,6 +259,12 @@ The `amazon_bedrock` verb carries these keys:
 | `setMultilingual()` | `multilingual` |
 
 The SWML schema's `amazon_bedrock` verb has no `hints`, `languages` or `pronounce` key.
+
+Each render that leaves a key out logs one warning that names every key it left out. An agent with hints set logs this warning each time it renders SWML:
+
+```text
+2026-09-28T22:58:09.950Z [WARN] [AgentBase] BedrockAgent: the amazon_bedrock verb has no hints, so it's left out of the SWML
+```
 
 Contexts are different. They're part of the prompt object (`prompt.contexts`), which `BedrockAgent` copies, so the SDK sends them. The schema's Bedrock `prompt` object doesn't define `contexts`, so don't rely on steps with a `BedrockAgent` until you've tested them on a call.
 
