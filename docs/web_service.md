@@ -198,7 +198,7 @@ Every response carries these headers:
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains`, when SSL is configured through the `ssl` option or the `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` variables
 
-With `enableCors` (the default), CORS allows the origins in `SWML_CORS_ORIGINS`, or any origin when it's unset.
+With `enableCors` (the default), CORS allows the origins in `SWML_CORS_ORIGINS`, or any origin when it's unset or lists `*`.
 
 ## HTTPS/SSL Support
 

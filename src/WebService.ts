@@ -17,6 +17,7 @@ import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SslConfig } from './SslConfig.js';
 import { SecurityConfig } from './SWMLService.js';
+import { corsOriginsFromEnv } from './SecurityUtils.js';
 import type { SslOptions } from './SslConfig.js';
 
 /** Common MIME types for static file serving. */
@@ -404,7 +405,7 @@ export class WebService {
     // CORS
     if (this.enableCors) {
       const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-      const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+      const corsOrigin = corsOriginsFromEnv(corsOrigins);
       const corsCredentials = corsOrigin !== '*';
       this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
     }

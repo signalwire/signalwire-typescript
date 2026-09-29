@@ -252,3 +252,34 @@ describe('WebService basic auth sources', () => {
     expect((await app.request('/docs/inside.txt')).status).toBe(200);
   });
 });
+
+describe('WebService CORS origins', () => {
+  const preflight = (app: ReturnType<WebService['getApp']>, origin: string) =>
+    app.request('/docs/inside.txt', {
+      method: 'OPTIONS',
+      headers: { Origin: origin, 'Access-Control-Request-Method': 'GET' },
+    });
+
+  it("allows every origin when SWML_CORS_ORIGINS is '*'", async () => {
+    vi.stubEnv('SWML_CORS_ORIGINS', '*');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    const res = await preflight(app, 'https://anywhere.example.com');
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  });
+
+  it("allows every origin when SWML_CORS_ORIGINS lists '*' among others", async () => {
+    vi.stubEnv('SWML_CORS_ORIGINS', 'https://a.example.com, *');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    const res = await preflight(app, 'https://anywhere.example.com');
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  });
+
+  it('allows only the listed origins otherwise', async () => {
+    vi.stubEnv('SWML_CORS_ORIGINS', 'https://a.example.com');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    const ok = await preflight(app, 'https://a.example.com');
+    expect(ok.headers.get('access-control-allow-origin')).toBe('https://a.example.com');
+    const other = await preflight(app, 'https://b.example.com');
+    expect(other.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
