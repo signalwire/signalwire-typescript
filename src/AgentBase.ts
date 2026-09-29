@@ -516,6 +516,11 @@ export class AgentBase extends SWMLService {
     this._schemaValidation = opts.schemaValidation ?? true;
     this._schemaPath = opts.schemaPath ?? null;
 
+    // Before any warning below, so suppressLogs silences the constructor too.
+    if (opts.suppressLogs) {
+      suppressAllLogs(true);
+    }
+
     // Webhook signing key: explicit option > SIGNALWIRE_SIGNING_KEY env > null.
     // Per porting-sdk/webhooks.md: when null, validation is disabled and we
     // log a prominent one-shot warning so operators don't ship an unsigned
@@ -532,10 +537,6 @@ export class AgentBase extends SWMLService {
       this.log.warn(
         '[signalwire] webhook signature validation is disabled — set signingKey or SIGNALWIRE_SIGNING_KEY to enable',
       );
-    }
-
-    if (opts.suppressLogs) {
-      suppressAllLogs(true);
     }
 
     this._promptManager = new PromptManager(opts.usePom ?? true, this);
@@ -576,7 +577,8 @@ export class AgentBase extends SWMLService {
           `No SWML_BASIC_AUTH_PASSWORD found in environment and no basicAuth ` +
           `passed to the agent constructor. The SDK generated a random ` +
           `password that exists only in this process; external callers will ` +
-          `get HTTP 401 unless they read the value from this process's env. ` +
+          `get HTTP 401 unless this process hands it to them ` +
+          `(getBasicAuthCredentials()). ` +
           `To fix, set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD in ` +
           `your .env, or pass { basicAuth: [user, pass] } to the agent ` +
           `constructor.`,

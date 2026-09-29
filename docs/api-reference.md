@@ -3192,7 +3192,7 @@ interface AgentOptions
 | `defaultWebhookUrl` | `string` | none | Stored by the constructor; `renderSwml()` doesn't read it. Use `setWebHookUrl()`. |
 | `nativeFunctions` | `string[]` | `[]` | Native function names |
 | `agentId` | `string` | 16 random hex characters | Agent instance ID |
-| `suppressLogs` | `boolean` | `false` | Call `suppressAllLogs(true)`, which silences every SDK logger in the process, not only this agent's. Warnings logged earlier in the constructor still appear. |
+| `suppressLogs` | `boolean` | `false` | Call `suppressAllLogs(true)`, which silences every SDK logger in the process, not only this agent's, from the start of the constructor. |
 | `schemaPath` | `string` | The bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
 | `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Serve `POST {route}/post_prompt_override`, which replaces the post-prompt text |

@@ -1847,3 +1847,27 @@ describe('schemaValidation and schemaPath reach the SWML builder (found in the d
     }).toThrow(/Schema validation/);
   });
 });
+
+describe('suppressLogs silences the constructor too (found in the documentation pass)', () => {
+  it("doesn't print the signing-key warning when suppressLogs is set", async () => {
+    const { suppressAllLogs } = await import('../src/Logger.js');
+    const saved = process.env['SIGNALWIRE_SIGNING_KEY'];
+    delete process.env['SIGNALWIRE_SIGNING_KEY'];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      new AgentBase({ name: 'quiet', route: '/', suppressLogs: true });
+      const lines = [...warn.mock.calls, ...log.mock.calls, ...info.mock.calls].map((c) =>
+        String(c[0]),
+      );
+      expect(lines.filter((l) => l.includes('signature validation is disabled'))).toEqual([]);
+    } finally {
+      warn.mockRestore();
+      log.mockRestore();
+      info.mockRestore();
+      suppressAllLogs(false);
+      if (saved !== undefined) process.env['SIGNALWIRE_SIGNING_KEY'] = saved;
+    }
+  });
+});
