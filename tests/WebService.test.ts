@@ -1,6 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Hono } from 'hono';
 import { WebService } from '../src/WebService.js';
 import { suppressAllLogs } from '../src/Logger.js';
 
@@ -627,5 +628,29 @@ describe('WebService directory redirect', () => {
     const res = await web.getApp().request('/docs/sub');
     expect(res.status).toBe(401);
     expect(res.headers.get('location')).toBeNull();
+  });
+});
+
+// /health is exempt from auth as a handler, not as a path string, so the
+// exemption holds wherever the app is mounted in a parent Hono app.
+describe('WebService /health exemption inside a parent app', () => {
+  it('mounted at /health, still requires credentials for the overview of local paths', async () => {
+    const service = new WebService({ directories: { '/docs': mount } });
+    const parent = new Hono().route('/health', service.getApp());
+    const res = await parent.request('/health');
+    expect(res.status).toBe(401);
+    expect(await res.text()).not.toContain(mount);
+    const health = await parent.request('/health/health');
+    expect(health.status).toBe(200);
+    expect(((await health.json()) as { status: string }).status).toBe('healthy');
+  });
+
+  it('mounted at /assets, serves /assets/health without credentials', async () => {
+    const service = new WebService({ directories: { '/docs': mount } });
+    const parent = new Hono().route('/assets', service.getApp());
+    const res = await parent.request('/assets/health');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { status: string }).status).toBe('healthy');
+    expect((await parent.request('/assets')).status).toBe(401);
   });
 });

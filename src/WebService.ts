@@ -477,17 +477,10 @@ export class WebService {
       this._app.use('*', this._ssl.hstsMiddleware());
     }
 
-    // Basic auth on every route but /health, which load balancers probe
-    // without credentials (as the Python reference and AgentBase do).
-    const [user, pass] = this._basicAuth;
-    const auth = basicAuth({ username: user, password: pass });
-    this._app.use('*', (c, next) => (c.req.path === '/health' ? next() : auth(c, next)));
-  }
-
-  // ── Route setup ────────────────────────────────────────────────────
-
-  private _setupRoutes(): void {
-    // Health endpoint
+    // Health endpoint, which load balancers probe without credentials (as the
+    // Python reference and AgentBase do). It's registered before the auth
+    // middleware, so the handler itself is exempt: a path comparison would
+    // miss when a parent app mounts this one under a prefix.
     this._app.get('/health', (c) =>
       c.json({
         status: 'healthy',
@@ -498,6 +491,14 @@ export class WebService {
       }),
     );
 
+    // Basic auth on every route registered after this point
+    const [user, pass] = this._basicAuth;
+    this._app.use('*', basicAuth({ username: user, password: pass }));
+  }
+
+  // ── Route setup ────────────────────────────────────────────────────
+
+  private _setupRoutes(): void {
     // Root endpoint showing available directories
     this._app.get('/', (c) => {
       const dirEntries = Object.entries(this.directories);
