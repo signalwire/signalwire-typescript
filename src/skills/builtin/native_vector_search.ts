@@ -650,7 +650,9 @@ export class NativeVectorSearchSkill extends SkillBase {
     if (this._indexed) {
       globalData['search_stats'] = {
         doc_count: this._documents.length,
-        backend: this.useRemote ? 'remote' : this.backend,
+        // Documents are searched in memory here; `backend` configures a
+        // database mode this port doesn't have.
+        backend: this.useRemote ? 'remote' : 'memory',
       };
     }
     return globalData;
