@@ -27,10 +27,11 @@
  * against that call, and the browser presents it later. The nonce appears
  * nowhere else, so presenting it shows the browser placed that call.
  *
- * Exchanging a nonce for a chat handle works once. Typing works repeatedly
- * for the life of the call, up to `maxMessagesPerCall`. An unknown nonce gets
- * the same answer as an expired one, so the routes can't be used to learn
- * whether a call is live.
+ * Exchanging a nonce for a chat handle works once. Typing works repeatedly,
+ * up to `maxMessagesPerCall`, until `/handoff` uses the nonce or `nonceTtl`
+ * seconds pass from its registration, even if the call is still live. An
+ * unknown nonce gets the same answer as an expired one, so the routes can't
+ * be used to learn whether a call is live.
  *
  * ## The ordering guarantee
  *
@@ -57,7 +58,7 @@ import type { ChatGateway } from './ChatGateway.js';
 
 const logger = getLogger('ai_chat.handoff');
 
-/** Seconds a nonce stays redeemable. */
+/** Seconds a nonce stays usable for `/handoff` and `/say`, from registration. */
 export const DEFAULT_NONCE_TTL = 3600;
 /** Typed messages allowed per call. */
 export const DEFAULT_MAX_MESSAGES_PER_CALL = 200;
@@ -141,7 +142,10 @@ export interface HandoffRouterOptions {
    * a generated id.
    */
   nextConversationId?: (conversationId: string) => string;
-  /** Seconds a nonce stays redeemable. Default {@link DEFAULT_NONCE_TTL}. */
+  /**
+   * Seconds a nonce stays usable for `/handoff` and `/say`, from registration.
+   * Default {@link DEFAULT_NONCE_TTL}.
+   */
   nonceTtl?: number;
   /**
    * Typed messages allowed per call. Each is a billed turn, so this limits
@@ -169,7 +173,7 @@ export class HandoffRouter {
   sendMessage: SendMessage | null;
   /** Produces the id for a new leg. */
   nextConversationId: (conversationId: string) => string;
-  /** Seconds a nonce stays redeemable. */
+  /** Seconds a nonce stays usable for `/handoff` and `/say`, from registration. */
   nonceTtl: number;
   /** Typed messages allowed per call. */
   maxMessagesPerCall: number;
@@ -362,10 +366,11 @@ export class HandoffRouter {
   /**
    * Deliver typed text into the call the nonce names.
    *
-   * Doesn't use up the nonce: typing works for the life of the call. The
-   * call is found by nonce, never by a browser-supplied call id, and no other
-   * request field is forwarded. In particular, `global_data` is agent state
-   * that step logic trusts, and a page must not write it.
+   * Doesn't use up the nonce: typing works until `/handoff` uses it or
+   * `nonceTtl` seconds pass from its registration, even if the call is
+   * still live. The call is found by nonce, never by a browser-supplied call
+   * id, and no other request field is forwarded. In particular, `global_data`
+   * is agent state that step logic trusts, and a page must not write it.
    *
    * @param nonce - The nonce the browser presented.
    * @param text - The typed text; surrounding whitespace is removed.

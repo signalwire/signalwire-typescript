@@ -173,6 +173,22 @@ describe('/say', () => {
     expect(await router.say('n', 'three')).toBe(false);
   });
 
+  it('stops once the nonce expires or is redeemed, even while the call is live', async () => {
+    const expired = new HandoffRouter({
+      gateway: makeGateway(),
+      sendMessage: () => true,
+      nonceTtl: -1,
+    });
+    expired.register('n1', { conversationId: 'c', callId: 'call-1' });
+    expect(await expired.say('n1', 'hi')).toBe(false);
+
+    const { handoff, post, events } = setup();
+    handoff.register('n2', { conversationId: 'c', callId: 'call-2' });
+    await post('/handoff', { nonce: 'n2' });
+    expect((await post('/say', { nonce: 'n2', text: 'hi' })).status).toBe(404);
+    expect(events.filter((e) => e[0] === 'say')).toEqual([]);
+  });
+
   it('refuses empty text', async () => {
     const { handoff, post } = setup();
     handoff.register('n2', { conversationId: 'conv-root', callId: 'call-9' });
