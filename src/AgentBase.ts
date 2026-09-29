@@ -376,6 +376,8 @@ export class AgentBase extends SWMLService {
 
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
+  /** Contexts given as a plain object, rendered as they are. */
+  private _rawContexts: Record<string, unknown> | null = null;
 
   // MCP
   private _mcpServers: Record<string, unknown>[] = [];
@@ -906,10 +908,26 @@ export class AgentBase extends SWMLService {
    * Called with no argument, it returns the builder the agent already has, so
    * calling it again adds to the same workflow, as in the Python SDK.
    *
-   * @param contexts - A ContextBuilder to use in place of the current one.
-   * @returns The active ContextBuilder for further configuration.
+   * Given a plain object, it uses that object as the contexts, rendered as it
+   * is, and returns the agent, as the Python SDK does with a dict.
+   *
+   * @param contexts - A ContextBuilder to use in place of the current one, or
+   *   the contexts as a plain object.
+   * @returns The active ContextBuilder, or the agent when given an object.
    */
-  defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder {
+  defineContexts(): ContextBuilder;
+  defineContexts(contexts: ContextBuilder): ContextBuilder;
+  defineContexts(contexts: Record<string, unknown>): this;
+  defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder | this {
+    if (contexts !== undefined && !(contexts instanceof ContextBuilder)) {
+      if (contexts === null || typeof contexts !== 'object' || Array.isArray(contexts)) {
+        throw new TypeError('contexts must be an object or a ContextBuilder');
+      }
+      this._rawContexts = contexts;
+      this.contextsBuilder = null;
+      return this;
+    }
+    this._rawContexts = null;
     if (contexts instanceof ContextBuilder) {
       this.contextsBuilder = contexts;
     } else if (!this.contextsBuilder) {
@@ -934,6 +952,7 @@ export class AgentBase extends SWMLService {
     if (this.contextsBuilder) {
       this.contextsBuilder.reset();
     }
+    this._rawContexts = null;
     return this;
   }
 
@@ -947,7 +966,7 @@ export class AgentBase extends SWMLService {
    * @returns Contexts dict, or null when no contexts are defined.
    */
   getContexts(): Record<string, unknown> | null {
-    if (!this.contextsBuilder) return null;
+    if (!this.contextsBuilder) return this._rawContexts;
     return this.contextsBuilder.toDict();
   }
 
@@ -2914,11 +2933,12 @@ export class AgentBase extends SWMLService {
       if (Object.keys(this.promptLlmParams).length) Object.assign(obj, this.promptLlmParams);
       return obj;
     };
-    if (this.contextsBuilder) {
+    const contextsDict = this.contextsBuilder?.toDict() ?? this._rawContexts;
+    if (contextsDict) {
       // Contexts live inside the prompt (`ai.prompt.contexts`), where the
       // platform reads them and the reference SDK renders them.
       const promptObj = buildPromptObj(prompt || `You are ${this.name}, a helpful AI assistant.`);
-      promptObj['contexts'] = this.contextsBuilder.toDict();
+      promptObj['contexts'] = contextsDict;
       aiConfig['prompt'] = promptObj;
     } else {
       aiConfig['prompt'] = buildPromptObj(prompt);
@@ -3021,6 +3041,7 @@ export class AgentBase extends SWMLService {
     copy._sipUsernames = this._sipUsernames ? new Map(this._sipUsernames) : null;
     copy._routingCallbacks = new Map(this._routingCallbacks);
     copy.contextsBuilder = clone(this.contextsBuilder);
+    copy._rawContexts = clone(this._rawContexts);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
     copy.swmlBuilder = new SwmlBuilder({ service: copy, ...this._builderSchemaOptions });
 

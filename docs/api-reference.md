@@ -762,11 +762,13 @@ clearPostAiVerbs(): this
 
 #### `defineContexts(contexts?)`
 
-Set the agent's contexts and return the active `ContextBuilder`. Pass a `ContextBuilder` to use it. With no argument, or with a plain object, the method creates an empty `ContextBuilder`; a plain object's contents aren't used. See [ContextBuilder](#contextbuilder).
+With no argument, return the agent's `ContextBuilder`, creating it on first use; a second call returns the same builder. Pass a `ContextBuilder` to use it instead. Pass the contexts as a plain object to render them as they are, as the Python SDK does with a dict; that form returns the agent. See [ContextBuilder](#contextbuilder).
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder
+defineContexts(): ContextBuilder
+defineContexts(contexts: ContextBuilder): ContextBuilder
+defineContexts(contexts: Record<string, unknown>): this
 ```
 
 #### `resetContexts()`

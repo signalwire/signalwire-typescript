@@ -1907,3 +1907,17 @@ describe('addLanguage fillers match the schema and the reference (found in the d
     expect(l.function_fillers).toEqual(['checking the clock']);
   });
 });
+
+describe('defineContexts with a plain object (found in the documentation pass)', () => {
+  it('renders the object as the contexts, as the reference does with a dict', () => {
+    const agent = new AgentBase({ name: 'raw', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const contexts = { default: { steps: [{ name: 'greet', text: 'Greet the caller.' }] } };
+    expect(agent.defineContexts(contexts)).toBe(agent);
+    const ai = JSON.parse(agent.renderSwml()).sections.main.find((v: { ai?: unknown }) => v.ai).ai;
+    expect(ai.prompt.contexts).toEqual(contexts);
+    expect(agent.getContexts()).toEqual(contexts);
+    agent.resetContexts();
+    expect(agent.getContexts()).toBeNull();
+  });
+});
