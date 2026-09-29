@@ -33,7 +33,7 @@ declare global {
 
 It has these features:
 - Several directories, each mounted at its own URL prefix
-- Optional HTTP Basic Authentication, CORS and security headers
+- HTTP Basic Authentication on every route but `/health`, CORS and security headers
 - An allowlist and a blocklist of file extensions, and a maximum file size
 - Optional HTML directory listings
 - A content type chosen from the file extension
@@ -51,7 +51,12 @@ The package requires Node.js 22 or later.
 
 ## Quick Start
 
-This service serves two directories on port 8002:
+This service serves two directories on port 8002, to clients that send its credentials:
+
+```bash
+export SWML_BASIC_AUTH_USER="admin"
+export SWML_BASIC_AUTH_PASSWORD="a-long-random-password"
+```
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -68,10 +73,10 @@ const service = new WebService({
 
 // Start the service
 await service.start();
-// Service available at http://localhost:8002
+// Service available at http://localhost:8002, with the credentials above
 ```
 
-If `SWML_BASIC_AUTH_PASSWORD` is set in the environment, the service requires HTTP Basic Authentication with it. See [Basic Authentication](#basic-authentication).
+`start()` throws if no credentials are configured. See [Basic Authentication](#basic-authentication).
 
 ## Configuration
 
@@ -159,7 +164,15 @@ The service takes its credentials from the first of these that sets a password:
 2. The config file's `security.auth.basic` `user` and `password`
 3. The `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD` environment variables
 
-The user defaults to `signalwire` when only a password is set. With credentials, every route requires HTTP Basic Authentication, including `/health`. Without any, the service serves every route without authentication, and doesn't generate a password.
+The user defaults to `signalwire` when only a password is set, and an empty password doesn't count. Every route except `/health` requires HTTP Basic Authentication, `/` included.
+
+Without credentials from any of these, the service generates a password it never shows, so `getApp()` refuses every request but `/health` with `401`, and `start()` throws:
+
+```text
+WebService needs basic-auth credentials: set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD, pass basicAuth: [user, password], or set security.auth.basic in the config file. A generated password is never shown, so every file request would be refused.
+```
+
+`start()` logs the user and where the credentials came from (`provided`, `config file` or `environment`), not the password.
 
 ### File Security
 
@@ -265,7 +278,7 @@ export SWML_SSL_KEY_PATH="key.pem"
 
 ### GET /health
 
-`GET /health` reports the service's configuration. It requires authentication when the service has credentials.
+`GET /health` reports the service's configuration. It needs no credentials, so a load balancer can probe it. `authRequired` is always `true`.
 
 **Response:**
 ```json
@@ -293,6 +306,8 @@ export SWML_SSL_KEY_PATH="key.pem"
 - For a directory: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
 
 ## Usage Examples
+
+The examples that don't pass `basicAuth` take their credentials from `SWML_BASIC_AUTH_USER` and `SWML_BASIC_AUTH_PASSWORD`, as in the [Quick Start](#quick-start).
 
 ### Basic File Serving
 
@@ -363,9 +378,9 @@ When prefixes overlap, the longest one that matches the request path serves it. 
 
 `addDirectory()` throws if the directory doesn't exist or isn't a directory.
 
-### With Custom Authentication
+### With Credentials in Code
 
-This service requires basic auth on every route:
+This service takes its credentials from the `basicAuth` option instead of the environment:
 
 <!-- snippet: no-run starts a blocking HTTP file server via service.start() -->
 ```typescript
@@ -531,7 +546,7 @@ server {
 These practices apply to a production deployment:
 
 1. Serve HTTPS, from the service or from a proxy in front of it.
-2. Set credentials (the `basicAuth` option or `SWML_BASIC_AUTH_PASSWORD`) for anything that isn't public. Without them, every file the service can read is public.
+2. Use a long random password (the `basicAuth` option or `SWML_BASIC_AUTH_PASSWORD`), and send it only over HTTPS, since basic auth sends it with every request.
 3. Use `allowedExtensions` to serve only the file types you intend.
 4. Turn off directory browsing.
 5. Mount only directories whose contents you control.
@@ -571,7 +586,7 @@ class WebService {
 |--------|------|---------|-------------|
 | `port` | `number` | `8002` | Port to bind to. |
 | `directories` | `Record<string, string>` | `{}` | URL prefix to local directory mappings. |
-| `basicAuth` | `[string, string]` | config file, then environment | `[username, password]` for basic auth. |
+| `basicAuth` | `[string, string]` | config file, then environment | `[username, password]` for basic auth. Required from one of the three sources. |
 | `configFile` | `string` | none | Path to a JSON config file. Without it, the constructor searches for `web_service.json`. |
 | `enableDirectoryBrowsing` | `boolean` | `false` | Serve HTML listings for directories. |
 | `allowedExtensions` | `string[]` | all | Allowlist of file extensions, such as `.html`. |
@@ -587,7 +602,7 @@ These methods manage the service:
 - `addDirectory(route, directory)`: Mount a directory at a URL prefix, before or after the service starts. Throws if the directory doesn't exist or isn't a directory.
 - `removeDirectory(route)`: Unmount the prefix. Its route returns `404` from the next request.
 - `getApp()`: Return the underlying Hono app, to mount or test.
-- `start(host?, port?, sslCert?, sslKey?)`: Start the HTTP or HTTPS server. `host` defaults to `0.0.0.0`. With `SWAIG_CLI_MODE=true`, it does nothing.
+- `start(host?, port?, sslCert?, sslKey?)`: Start the HTTP or HTTPS server. `host` defaults to `0.0.0.0`. Throws if no credentials are configured. With `SWAIG_CLI_MODE=true`, it does nothing.
 - `stop()`: Stop the server.
 
 ## Integration with SignalWire Agents
@@ -627,4 +642,4 @@ agent.promptAddSection('Documentation', {
 await agent.serve({ port: 3000 });
 ```
 
-The tool's response is context for the model, not speech: the model decides how to pass the link on. For audio, a SWML `play` verb, or a `FunctionResult` action such as `playBackgroundFile()`, can use a URL the service serves.
+The tool's response is context for the model, not speech: the model decides how to pass the link on. For audio, a SWML `play` verb, or a `FunctionResult` action such as `playBackgroundFile()`, can use a URL the service serves. Every file the service serves needs its credentials, so a URL that someone or something else fetches has to carry them, for example `https://user:password@example.com:8002/audio/greeting.mp3`.

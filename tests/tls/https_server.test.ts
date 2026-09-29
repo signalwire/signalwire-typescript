@@ -74,9 +74,9 @@ describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
   let baseUrl = '';
 
   beforeAll(async () => {
-    // The service would require basic auth from these, as the agents do.
-    vi.stubEnv('SWML_BASIC_AUTH_USER', '');
-    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', '');
+    // start() refuses to run without credentials; /health needs none.
+    vi.stubEnv('SWML_BASIC_AUTH_USER', 'tls');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'tls-pass');
     const port = await freeTcpPort();
     baseUrl = `https://127.0.0.1:${port}`;
     // Configure SSL at construction so the SDK's own config reports it is

@@ -13,6 +13,7 @@ import { cors } from 'hono/cors';
 import { readFile, stat, readdir, realpath } from 'node:fs/promises';
 import { join, extname, normalize, relative, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SslConfig } from './SslConfig.js';
@@ -60,8 +61,10 @@ export interface WebServiceOptions {
   directories?: Record<string, string>;
   /**
    * Basic auth credentials as [username, password]. Default: the config file's
-   * `security.auth.basic`, then `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`;
-   * without a password from any of them, no auth.
+   * `security.auth.basic`, then `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`.
+   * Every route but `/health` requires them. Without a password from any of
+   * these (an empty one doesn't count), the service generates one that is
+   * never shown, so it refuses every request, and `start()` throws.
    */
   basicAuth?: [string, string];
   /** Path to a JSON config file. Default: none. */
@@ -123,6 +126,11 @@ function formatSize(bytes: number): string {
  * Useful when an agent or prefab needs to serve supporting assets (prompts, audio
  * files, images) from the same process without running a separate nginx or CDN.
  *
+ * Every route but `/health` requires HTTP Basic Authentication, and `start()`
+ * refuses to run until credentials are configured: the `basicAuth` option, the
+ * config file's `security.auth.basic`, or `SWML_BASIC_AUTH_USER` /
+ * `SWML_BASIC_AUTH_PASSWORD`.
+ *
  * @example Serve a directory of audio files
  * ```ts
  * import { WebService } from '@signalwire/sdk';
@@ -130,6 +138,7 @@ function formatSize(bytes: number): string {
  * const web = new WebService({
  *   port: 8080,
  *   directories: { '/audio': './public/audio' },
+ *   basicAuth: ['audio', process.env['AUDIO_PASSWORD'] ?? ''],
  *   allowedExtensions: ['.mp3', '.wav'],
  * });
  *
@@ -154,7 +163,9 @@ export class WebService {
   readonly directories: Record<string, string>;
 
   private _app: Hono;
-  private _basicAuth: [string, string] | null;
+  private _basicAuth: [string, string];
+  /** Where the credentials came from: 'provided', 'environment', 'config file' or 'generated'. */
+  private _basicAuthSource: string;
   private _ssl: SslConfig;
   private _server: { close?: () => void } | null = null;
   private readonly log = getLogger('WebService');
@@ -181,14 +192,31 @@ export class WebService {
     // Load configuration from file first (if provided), then override with
     // explicit constructor parameters, mirroring the Python SDK's precedence.
     const fileConfig = this._loadConfig(options?.configFile);
-    // Basic auth, as the Python reference resolves it: the basicAuth option,
-    // then the config file's security.auth.basic, then SWML_BASIC_AUTH_USER /
-    // SWML_BASIC_AUTH_PASSWORD (the user defaults to 'signalwire').
     const security = new SecurityConfig({ configFile: fileConfig.configPath });
 
     this.port = options?.port ?? fileConfig.port ?? 8002;
     this.directories = { ...(fileConfig.directories ?? {}), ...(options?.directories ?? {}) };
-    this._basicAuth = options?.basicAuth ?? security.getBasicAuth();
+    // Basic auth, as the Python reference resolves it: the basicAuth option,
+    // then the config file's security.auth.basic, then SWML_BASIC_AUTH_USER /
+    // SWML_BASIC_AUTH_PASSWORD (the user defaults to 'signalwire'). With none,
+    // a generated password that nothing shows: every request is refused, and
+    // start() throws rather than serve that way.
+    const configured = security.getBasicAuth();
+    if (options?.basicAuth?.[1]) {
+      this._basicAuth = options.basicAuth;
+      this._basicAuthSource = 'provided';
+    } else if (configured) {
+      this._basicAuth = configured;
+      this._basicAuthSource = security.basicAuthSource ?? 'environment';
+    } else {
+      this._basicAuth = ['signalwire', randomBytes(24).toString('base64url')];
+      this._basicAuthSource = 'generated';
+      this.log.warn(
+        'No basic-auth password configured: WebService refuses every request and start() ' +
+          'will throw. Set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD, pass ' +
+          'basicAuth: [user, password], or set security.auth.basic in the config file.',
+      );
+    }
     this.enableDirectoryBrowsing =
       options?.enableDirectoryBrowsing ?? fileConfig.enableDirectoryBrowsing ?? false;
     this.allowedExtensions = options?.allowedExtensions ?? fileConfig.allowedExtensions ?? null;
@@ -271,6 +299,10 @@ export class WebService {
    * When `SWAIG_CLI_MODE=true` is set in the environment, the call is a
    * no-op so config can be inspected without binding a port.
    *
+   * @throws If no basic-auth credentials are configured (the `basicAuth`
+   *   option, the config file's `security.auth.basic`, or
+   *   `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`).
+   *
    * @param host - Bind address. Defaults to `'0.0.0.0'`.
    * @param port - Port override. Defaults to `this.port`.
    * @param sslCert - Path to SSL certificate file (overrides `SslConfig`).
@@ -280,6 +312,15 @@ export class WebService {
   async start(host?: string, port?: number, sslCert?: string, sslKey?: string): Promise<void> {
     // When loaded by the CLI tool, skip server startup.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
+    if (this._basicAuthSource === 'generated') {
+      throw new Error(
+        'WebService needs basic-auth credentials: set SWML_BASIC_AUTH_USER and ' +
+          'SWML_BASIC_AUTH_PASSWORD, pass basicAuth: [user, password], or set ' +
+          'security.auth.basic in the config file. A generated password is never ' +
+          'shown, so every file request would be refused.',
+      );
+    }
 
     const h = host ?? '0.0.0.0';
     const p = port ?? this.port;
@@ -296,7 +337,9 @@ export class WebService {
     this.log.info(`WebService starting on ${scheme}://${h}:${p}`);
     this.log.info(`Directories: ${Object.keys(this.directories).join(', ') || 'None'}`);
     this.log.info(`Directory Browsing: ${this.enableDirectoryBrowsing ? 'Enabled' : 'Disabled'}`);
-    this.log.info(`Basic Auth: ${this._basicAuth ? 'Enabled' : 'Disabled'}`);
+    this.log.info(
+      `Basic Auth: ${this._basicAuth[0]}:(credentials configured) (source: ${this._basicAuthSource})`,
+    );
     if (useHttps) {
       this.log.info('SSL: Enabled');
     }
@@ -423,11 +466,11 @@ export class WebService {
       this._app.use('*', this._ssl.hstsMiddleware());
     }
 
-    // Basic auth (applied to all routes if configured)
-    if (this._basicAuth) {
-      const [user, pass] = this._basicAuth;
-      this._app.use('*', basicAuth({ username: user, password: pass }));
-    }
+    // Basic auth on every route but /health, which load balancers probe
+    // without credentials (as the Python reference and AgentBase do).
+    const [user, pass] = this._basicAuth;
+    const auth = basicAuth({ username: user, password: pass });
+    this._app.use('*', (c, next) => (c.req.path === '/health' ? next() : auth(c, next)));
   }
 
   // ── Route setup ────────────────────────────────────────────────────
@@ -439,7 +482,7 @@ export class WebService {
         status: 'healthy',
         directories: Object.keys(this.directories),
         sslEnabled: this._ssl.isConfigured(),
-        authRequired: Boolean(this._basicAuth),
+        authRequired: true,
         directoryBrowsing: this.enableDirectoryBrowsing,
       }),
     );

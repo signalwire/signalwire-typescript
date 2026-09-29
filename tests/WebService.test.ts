@@ -4,6 +4,15 @@ import { join } from 'node:path';
 import { WebService } from '../src/WebService.js';
 import { suppressAllLogs } from '../src/Logger.js';
 
+// Every WebService request needs credentials; these are the ones the
+// environment sets for each test.
+const AUTH = { Authorization: `Basic ${Buffer.from('test:test-pass').toString('base64')}` };
+
+/** GET `path` from `app` with the test credentials. */
+function fetchAs(app: ReturnType<WebService['getApp']>, path: string) {
+  return app.request(path, { headers: AUTH });
+}
+
 let root: string;
 let mount: string;
 let outside: string;
@@ -13,9 +22,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  // Credentials in the developer's environment would otherwise turn on auth.
-  vi.stubEnv('SWML_BASIC_AUTH_USER', '');
-  vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', '');
+  // Known credentials, whatever the developer's environment holds.
+  vi.stubEnv('SWML_BASIC_AUTH_USER', 'test');
+  vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'test-pass');
   root = mkdtempSync(join(tmpdir(), 'webservice-test-'));
   mount = join(root, 'mount');
   outside = join(root, 'outside');
@@ -33,7 +42,7 @@ afterEach(() => {
 describe('WebService symbolic links', () => {
   it('serves a regular file inside the mount', async () => {
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/inside.txt');
+    const res = await fetchAs(web.getApp(), '/docs/inside.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('inside');
   });
@@ -41,7 +50,7 @@ describe('WebService symbolic links', () => {
   it('refuses a file symlink that points outside the mount', async () => {
     symlinkSync(join(outside, 'secret.txt'), join(mount, 'link.txt'));
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/link.txt');
+    const res = await fetchAs(web.getApp(), '/docs/link.txt');
     expect(res.status).toBe(403);
     expect(await res.text()).not.toContain('outside-secret');
   });
@@ -49,7 +58,7 @@ describe('WebService symbolic links', () => {
   it('refuses a directory symlink that points outside the mount', async () => {
     symlinkSync(outside, join(mount, 'escape'));
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/escape/secret.txt');
+    const res = await fetchAs(web.getApp(), '/docs/escape/secret.txt');
     expect(res.status).toBe(403);
     expect(await res.text()).not.toContain('outside-secret');
   });
@@ -59,7 +68,7 @@ describe('WebService symbolic links', () => {
     writeFileSync(join(outside, 'index.html'), 'outside-index');
     symlinkSync(join(outside, 'index.html'), join(mount, 'sub', 'index.html'));
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/sub/');
+    const res = await fetchAs(web.getApp(), '/docs/sub/');
     expect(res.status).toBe(403);
     expect(await res.text()).not.toContain('outside-index');
   });
@@ -67,7 +76,7 @@ describe('WebService symbolic links', () => {
   it('serves a symlink whose target stays inside the mount', async () => {
     symlinkSync(join(mount, 'inside.txt'), join(mount, 'alias.txt'));
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/alias.txt');
+    const res = await fetchAs(web.getApp(), '/docs/alias.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('inside');
   });
@@ -76,7 +85,7 @@ describe('WebService symbolic links', () => {
     const linkedMount = join(root, 'linked-mount');
     symlinkSync(mount, linkedMount);
     const web = new WebService({ directories: { '/docs': linkedMount } });
-    const res = await web.getApp().request('/docs/inside.txt');
+    const res = await fetchAs(web.getApp(), '/docs/inside.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('inside');
   });
@@ -84,7 +93,7 @@ describe('WebService symbolic links', () => {
   it('does not list a symlink that points outside the mount', async () => {
     symlinkSync(join(outside, 'secret.txt'), join(mount, 'link.txt'));
     const web = new WebService({ directories: { '/docs': mount }, enableDirectoryBrowsing: true });
-    const res = await web.getApp().request('/docs/');
+    const res = await fetchAs(web.getApp(), '/docs/');
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('inside.txt');
@@ -100,7 +109,7 @@ describe('WebService blocks dot-named directories (found in review)', () => {
     mkdirSync(join(mount, '.git'));
     writeFileSync(join(mount, '.git', 'config'), '[remote] url = secret');
     const web = new WebService({ directories: { '/docs': mount } });
-    const res = await web.getApp().request('/docs/.git/config');
+    const res = await fetchAs(web.getApp(), '/docs/.git/config');
     expect(res.status).toBe(403);
     expect(await res.text()).not.toContain('secret');
   });
@@ -116,7 +125,7 @@ describe('WebService blocklist through symbolic links', () => {
 
   async function get(path: string, options: Record<string, unknown> = {}) {
     const web = new WebService({ directories: { '/docs': mount }, ...options });
-    const res = await web.getApp().request(path);
+    const res = await fetchAs(web.getApp(), path);
     return { status: res.status, body: await res.text() };
   }
 
@@ -184,10 +193,10 @@ describe('WebService runtime directory changes', () => {
   it('addDirectory() after the first request serves the new route', async () => {
     const web = new WebService();
     const app = web.getApp();
-    expect((await app.request('/health')).status).toBe(200);
+    expect((await fetchAs(app, '/health')).status).toBe(200);
 
     expect(() => web.addDirectory('/late', mount)).not.toThrow();
-    const res = await app.request('/late/inside.txt');
+    const res = await fetchAs(app, '/late/inside.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('inside');
   });
@@ -195,52 +204,52 @@ describe('WebService runtime directory changes', () => {
   it('removeDirectory() stops serving the route', async () => {
     const web = new WebService({ directories: { '/docs': mount } });
     const app = web.getApp();
-    expect((await app.request('/docs/inside.txt')).status).toBe(200);
+    expect((await fetchAs(app, '/docs/inside.txt')).status).toBe(200);
 
     web.removeDirectory('/docs');
-    expect((await app.request('/docs/inside.txt')).status).toBe(404);
-    const health = (await (await app.request('/health')).json()) as { directories: string[] };
+    expect((await fetchAs(app, '/docs/inside.txt')).status).toBe(404);
+    const health = (await (await fetchAs(app, '/health')).json()) as { directories: string[] };
     expect(health.directories).not.toContain('/docs');
   });
 
   it('removeDirectory() accepts a route without its leading slash', async () => {
     const web = new WebService({ directories: { '/docs': mount } });
     web.removeDirectory('docs');
-    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(404);
+    expect((await fetchAs(web.getApp(), '/docs/inside.txt')).status).toBe(404);
   });
 
   it('matches a prefix only at a path segment boundary', async () => {
     const web = new WebService({ directories: { '/docs': mount } });
-    expect((await web.getApp().request('/docsx/inside.txt')).status).toBe(404);
+    expect((await fetchAs(web.getApp(), '/docsx/inside.txt')).status).toBe(404);
   });
 
   it('serves from the longest matching prefix', async () => {
     writeFileSync(join(outside, 'inside.txt'), 'nested');
     const web = new WebService({ directories: { '/docs': mount, '/docs/nested': outside } });
-    const res = await web.getApp().request('/docs/nested/inside.txt');
+    const res = await fetchAs(web.getApp(), '/docs/nested/inside.txt');
     expect(await res.text()).toBe('nested');
   });
 
   it("serves a directory mounted at '/' without shadowing / and /health", async () => {
     const web = new WebService({ directories: { '/': mount } });
     const app = web.getApp();
-    const res = await app.request('/inside.txt');
+    const res = await fetchAs(app, '/inside.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('inside');
-    expect((await app.request('/health')).headers.get('content-type')).toContain(
+    expect((await fetchAs(app, '/health')).headers.get('content-type')).toContain(
       'application/json',
     );
-    expect(await (await app.request('/')).text()).toContain('SignalWire Web Service');
+    expect(await (await fetchAs(app, '/')).text()).toContain('SignalWire Web Service');
   });
 });
 
 describe('WebService removeDirectory() route spelling', () => {
   it('removes a route stored with a trailing slash', async () => {
     const web = new WebService({ directories: { '/docs/': mount } });
-    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(200);
+    expect((await fetchAs(web.getApp(), '/docs/inside.txt')).status).toBe(200);
     web.removeDirectory('/docs');
     expect(web.directories).toEqual({});
-    expect((await web.getApp().request('/docs/inside.txt')).status).toBe(404);
+    expect((await fetchAs(web.getApp(), '/docs/inside.txt')).status).toBe(404);
   });
 });
 
@@ -334,11 +343,6 @@ describe('WebService basic auth sources', () => {
     });
     expect(ok.status).toBe(200);
   });
-
-  it('serves without authentication when no source sets a password', async () => {
-    const app = new WebService({ directories: { '/docs': mount } }).getApp();
-    expect((await app.request('/docs/inside.txt')).status).toBe(200);
-  });
 });
 
 describe('WebService CORS origins', () => {
@@ -386,7 +390,7 @@ describe('WebService refuses dot-named path components below the mount', () => {
 
   async function get(path: string, options: Record<string, unknown> = {}) {
     const web = new WebService({ directories: { '/docs': mount }, ...options });
-    const res = await web.getApp().request(path);
+    const res = await fetchAs(web.getApp(), path);
     return { status: res.status, body: await res.text() };
   }
 
@@ -470,7 +474,7 @@ describe('WebService refuses dot-named path components below the mount', () => {
     mkdirSync(hiddenMount, { recursive: true });
     writeFileSync(join(hiddenMount, 'page.txt'), 'public-page');
     const web = new WebService({ directories: { '/site': hiddenMount } });
-    const res = await web.getApp().request('/site/page.txt');
+    const res = await fetchAs(web.getApp(), '/site/page.txt');
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('public-page');
   });
@@ -481,5 +485,62 @@ describe('WebService refuses dot-named path components below the mount', () => {
     const res = await get('/docs/', { enableDirectoryBrowsing: true });
     expect(res.body).toContain('visible/');
     expect(res.body).not.toContain('__pycache__');
+  });
+});
+
+// WebService refuses to run without credentials, as the Python reference does:
+// with none configured it would serve every file to anyone.
+describe('WebService requires credentials', () => {
+  const basic = (user: string, pass: string) =>
+    `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`;
+
+  beforeEach(() => {
+    vi.stubEnv('SWML_BASIC_AUTH_USER', '');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', '');
+  });
+
+  it('start() rejects when no source sets a password, naming the ways to set one', async () => {
+    const web = new WebService({ directories: { '/docs': mount } });
+    await expect(web.start('127.0.0.1', 0)).rejects.toThrow(
+      /SWML_BASIC_AUTH_PASSWORD.*basicAuth.*security\.auth\.basic/s,
+    );
+  });
+
+  it('start() rejects a basicAuth option with an empty password', async () => {
+    const web = new WebService({ directories: { '/docs': mount }, basicAuth: ['admin', ''] });
+    await expect(web.start('127.0.0.1', 0)).rejects.toThrow(/credentials/);
+  });
+
+  it('start() runs with credentials from the environment', async () => {
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'envpass');
+    const web = new WebService({ directories: { '/docs': mount } });
+    await expect(web.start('127.0.0.1', 0)).resolves.toBeUndefined();
+    web.stop();
+  });
+
+  it('start() runs with the basicAuth option', async () => {
+    const web = new WebService({ directories: { '/docs': mount }, basicAuth: ['u', 'p'] });
+    await expect(web.start('127.0.0.1', 0)).resolves.toBeUndefined();
+    web.stop();
+  });
+
+  it('refuses every file request, rather than serving it, when no password is configured', async () => {
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    expect((await app.request('/docs/inside.txt')).status).toBe(401);
+    const empty = await app.request('/docs/inside.txt', {
+      headers: { Authorization: basic('signalwire', '') },
+    });
+    expect(empty.status).toBe(401);
+    expect((await app.request('/')).status).toBe(401);
+  });
+
+  it('serves /health without credentials, reporting that auth is required', async () => {
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'envpass');
+    const app = new WebService({ directories: { '/docs': mount } }).getApp();
+    const res = await app.request('/health');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { authRequired: boolean }).authRequired).toBe(true);
+    expect((await app.request('/')).status).toBe(401);
+    expect((await app.request('/docs/inside.txt')).status).toBe(401);
   });
 });
