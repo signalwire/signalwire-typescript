@@ -2024,8 +2024,9 @@ export class AgentBase extends SWMLService {
    * skill name is not found in the registry.
    *
    * Accepts a typed {@link SkillNameOrString}: one of the built-in
-   * {@link SkillName} values (autocompleted, with a typo caught at compile
-   * time) or any other string for custom / third-party skills. The value is
+   * {@link SkillName} values (autocompleted) or any other string for custom
+   * and third-party skills. Because any string is accepted, a misspelled name
+   * compiles, and this rejects at runtime because it isn't registered. The value is
    * forwarded to the registry unchanged — the typing is erased at runtime, so
    * this matches Python's bare-`str` `add_skill(skill_name, params)`.
    *
@@ -2062,9 +2063,9 @@ export class AgentBase extends SWMLService {
   /**
    * Check whether a skill with the given name is registered.
    *
-   * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
-   * and a typo is a compile-time error; any other string is still accepted
-   * (custom skills / matching Python's bare-`str` `has_skill`).
+   * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete;
+   * any other string is accepted too (custom skills, matching Python's
+   * bare-`str` `has_skill`), so a misspelled name compiles and returns false.
    *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.

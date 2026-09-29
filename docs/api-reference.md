@@ -2498,8 +2498,8 @@ constructor(agent?: AgentBase)
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
 | `addSkill` | `(skill: SkillBase)` | `Promise<void>` | Validate and set up a skill. Throws for a duplicate single-instance skill, missing environment variables or packages, or a failed `setup()`. |
-| `loadSkill` | `(skillClass: typeof SkillBase, config?: SkillConfig)` | `Promise<[boolean, string]>` | Create and add a skill; returns `[false, message]` instead of throwing |
-| `loadSkillByName` | `(skillName: string, config?: SkillConfig)` | `Promise<[boolean, string]>` | Create a skill from the registry and add it |
+| `loadSkill` | `(skillClass: typeof SkillBase, config?: SkillConfig)` | `Promise<[boolean, string]>` | Create and add a skill; on `agent.skillManager` it also registers the skill's tools, prompt sections, hints and global data on the agent. Returns `[false, message]` instead of throwing |
+| `loadSkillByName` | `(skillName: string, config?: SkillConfig)` | `Promise<[boolean, string]>` | Create a skill from the registry and add it, as `loadSkill` does |
 | `removeSkill` | `(keyOrId: string)` | `Promise<boolean>` | Remove by instance key or instance ID |
 | `removeSkillByName` | `(skillName: string)` | `Promise<number>` | Remove every instance with the name; returns the count |
 | `hasSkill` | `(skillName: string)` | `boolean` | Whether an instance with the name is loaded |
@@ -2531,8 +2531,8 @@ constructor(agent?: AgentBase)
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
 | `register` | `(SkillClass: typeof SkillBase)` | `void` | Register a class under its `SKILL_NAME`. Throws when the name or parameter schema is empty; a locked name is kept and a warning logged. |
-| `lock` | `(names?: string[])` | `void` | Stop names (default: all registered) from being overwritten |
-| `unregister` | `(name: string)` | `boolean` | Remove a registration |
+| `lock` | `(names?: string[])` | `void` | Stop names (default: all registered) from being overwritten, unregistered or cleared |
+| `unregister` | `(name: string)` | `boolean` | Remove a registration; returns `false` for a locked name, which stays registered |
 | `create` | `(name: string, config?: SkillConfig)` | `SkillBase \| null` | Create an instance |
 | `getSkillClass` | `(name: string)` | `typeof SkillBase \| undefined` | The registered class |
 | `has` | `(name: string)` | `boolean` | Whether the name is registered |
@@ -2545,9 +2545,9 @@ constructor(agent?: AgentBase)
 | `getSearchPaths` | `()` | `string[]` | Search paths |
 | `getExternalPaths` | `()` | `string[]` | Directories added with `addSkillDirectory()` |
 | `discoverFromDirectory` | `(dirPath: string)` | `Promise<string[]>` | Import skill files from a directory and register them. Does nothing unless `SWML_SKILL_DISCOVERY_ENABLED=true`. |
-| `discoverAll` | `()` | `Promise<string[]>` | Discover from every search path |
+| `discoverAll` | `()` | `Promise<string[]>` | Discover from every search path and every `addSkillDirectory()` directory |
 | `listAllSkillSources` | `()` | `Record<string, string[]>` | Registered names grouped by source |
-| `clear` | `()` | `void` | Remove every registration |
+| `clear` | `()` | `void` | Remove every registration except locked names |
 | `size` | (getter) | `number` | Number of registered skills |
 
 The package root also exports functions that use the singleton: `listSkills()`, `listSkillsWithParams()`, `registerSkill(skillClass)` and `addSkillDirectory(path)`. `addSkillDirectory()` calls `addSearchPath()`.

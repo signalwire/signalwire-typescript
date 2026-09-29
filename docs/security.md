@@ -513,7 +513,7 @@ Some SDK features fetch URLs that a caller, the model or a skill's configuration
 - IPv6 unique local: `fc00::/7`
 - IPv4-mapped IPv6 addresses (`::ffff:169.254.169.254`), checked as the IPv4 address they carry
 
-The `web_search` and `spider` skills, and the `swaig-test` DataMap simulator, fetch pages through a guarded client. It checks the URL and every redirect (up to 10) before requesting it. It connects only to an address it checked, which also stops DNS rebinding. A redirect to another origin drops the `Authorization`, `Cookie` and `Proxy-Authorization` headers. The `mcp_gateway` skill checks its `gateway_url`, and `native_vector_search` its `remote_url`, when they're set up.
+The `web_search` and `spider` skills, and the `swaig-test` DataMap simulator, fetch pages through a guarded client. It checks the URL and every redirect (up to 10) before requesting it. It connects only to an address it checked, which also stops DNS rebinding. A redirect to another origin drops the `Authorization`, `Cookie` and `Proxy-Authorization` headers. The `mcp_gateway` skill and `native_vector_search` in remote mode send every request to `gateway_url` or `remote_url` through the same client. With `allow_insecure_tls` on, `mcp_gateway` uses its own TLS dispatcher, and only `gateway_url` is checked, at setup.
 
 Two variables change this behavior:
 
