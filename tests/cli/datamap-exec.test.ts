@@ -748,3 +748,128 @@ describe('enc:, as the platform encodes', () => {
     expect(enc('50%2F50 %zz %2f')).toBe('50%2F50%20%25zz%20%252f');
   });
 });
+
+/**
+ * mod_openai actions.c takes `expressions` and `webhooks` as a list or as a
+ * single object. A single expression runs as a one-element list
+ * (get_input_from_expressions). A single webhook runs differently
+ * (get_input_from_webhooks): its require_args and error_keys aren't checked,
+ * and a failed request doesn't fail it, so its output reads the error
+ * response.
+ */
+describe('a single expression or webhook object, as the platform takes it', () => {
+  it('runs a single top-level expression object', async () => {
+    const fn = {
+      data_map: {
+        expressions: {
+          string: '${args.cmd}',
+          pattern: '^start',
+          output: { response: 'Starting' },
+          'nomatch-output': { response: 'Unknown ${args.cmd}' },
+        },
+      },
+    };
+    expect(await executeDataMap(fn, { cmd: 'start' })).toEqual({ response: 'Starting' });
+    expect(await executeDataMap(fn, { cmd: 'stop' })).toEqual({ response: 'Unknown stop' });
+  });
+
+  it("runs a single expression object in a webhook's expressions", async () => {
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            expressions: { string: '${status}', pattern: '^ok$', output: { response: 'fine' } },
+          },
+        ],
+        output: { response: 'fallback' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ status: 'ok' }))).toEqual({
+      response: 'fine',
+    });
+  });
+
+  it('requests a single webhook object and reads its response', async () => {
+    const { calls, fetchImpl } = fakeFetch({ temp: 61 });
+    const fn = {
+      data_map: {
+        webhooks: {
+          url: 'https://w/${args.city}',
+          output: { response: '${temp} in ${input.args.city}' },
+        },
+      },
+    };
+    expect(await executeDataMap(fn, { city: 'Oslo' }, { fetchImpl })).toEqual({
+      response: '61 in Oslo',
+    });
+    expect(calls.map((c) => c.url)).toEqual(['https://w/Oslo']);
+  });
+
+  it("doesn't check a single webhook's require_args", async () => {
+    const { calls, fetchImpl } = fakeFetch({ v: 1 });
+    const fn = {
+      data_map: {
+        webhooks: { url: 'https://x', require_args: ['zip'], output: { response: 'v ${v}' } },
+        output: { response: 'fallback' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, { fetchImpl })).toEqual({ response: 'v 1' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("doesn't fail a single webhook on its error_keys or a body that isn't JSON", async () => {
+    const fn = {
+      data_map: {
+        webhooks: {
+          url: 'https://x',
+          error_keys: ['error'],
+          output: { response: 'error=${error} parse_error=${parse_error} raw=${raw_response}' },
+        },
+        output: { response: 'fallback' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ error: 'down' }))).toEqual({
+      response: 'error=down parse_error=<MISSING:parse_error> raw=<MISSING:raw_response>',
+    });
+    expect(await executeDataMap(fn, {}, fakeFetch('oops'))).toEqual({
+      response: 'error=<MISSING:error> parse_error=true raw=oops',
+    });
+  });
+
+  it('uses the fallback for a single webhook with neither output nor expressions', async () => {
+    const { calls, fetchImpl } = fakeFetch({ v: 1 });
+    const fn = { data_map: { webhooks: { url: 'https://x' }, output: { response: 'fallback' } } };
+    expect(await executeDataMap(fn, {}, { fetchImpl })).toEqual({ response: 'fallback' });
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('a request that does not complete, as the platform reports it', () => {
+  const failing = async () => {
+    throw new Error('connection refused');
+  };
+
+  it("gives a single webhook object's output http_code 0 and parse_error", async () => {
+    const fn = {
+      data_map: {
+        webhooks: { url: 'https://x', output: { response: '${http_code} ${parse_error}' } },
+      },
+    };
+    expect(await executeDataMap(fn, {}, { fetchImpl: failing })).toEqual({
+      response: '0 true',
+    });
+  });
+
+  it('still fails a webhook in a list', async () => {
+    const fn = {
+      data_map: {
+        webhooks: [{ url: 'https://x', output: { response: 'ok' } }],
+        output: { response: 'fallback' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, { fetchImpl: failing })).toEqual({
+      response: 'fallback',
+    });
+  });
+});

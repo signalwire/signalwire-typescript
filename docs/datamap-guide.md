@@ -882,6 +882,8 @@ You can then register the definition yourself:
 agent.registerSwaigFunction(tool.toSwaigFunction());
 ```
 
+`toSwaigFunction()` always writes `expressions` and `webhooks` as lists. A `data_map` you write by hand can give either one as a single object instead. The platform runs a single expression object as a one-element list. A single webhook object runs differently from a list: the platform doesn't check its `require_args` or its `error_keys`, and a response that isn't JSON or a request that doesn't complete doesn't fail it. Its `foreach`, `expressions` and `output` then read the error response: `${parse_error}` is `true`, `${raw_response}` is the body, and `${http_code}` is the status, or `0` when the request didn't complete. Like a webhook in a list, it needs an `output` or `expressions`. `swaig-test --exec` runs both forms as the platform does.
+
 ---
 
 ## Helper Functions

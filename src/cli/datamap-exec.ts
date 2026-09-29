@@ -8,7 +8,8 @@
  *    (case-insensitively, as the platform matches)
  *    produces `output`; one that doesn't match produces `nomatch-output` (the
  *    key `DataMap.expression()` writes and the platform reads), if it has one.
- * 2. Webhooks, in order. A webhook is skipped, and the next one tried, when
+ * 2. Webhooks, in order (`webhooks` is a list, or one webhook object; see
+ *    below). A webhook is skipped, and the next one tried, when
  *    none of its `require_args` is among the arguments, or it has neither
  *    `output` nor `expressions`. The first webhook that is requested ends the
  *    webhook stage, whether it succeeds or fails: the next one isn't tried.
@@ -22,6 +23,15 @@
  * 4. The data_map's own `output` when the webhook failed, when no webhook was
  *    requested, or when the one that succeeded has expressions that didn't
  *    match and no `output`.
+ *
+ * `expressions` (the data_map's or a webhook's) can be one expression object
+ * instead of a list, and runs as a one-element list. `webhooks` can be one
+ * webhook object, which the platform runs differently from a list: it
+ * doesn't check the webhook's `require_args` or `error_keys`, and a body that
+ * isn't JSON or a request that doesn't complete doesn't fail it, so its
+ * `foreach`, `expressions` and `output` read the error response
+ * (`${parse_error}`, `${raw_response}`, `${http_code}`). It still needs
+ * `output` or `expressions`, and a `url`, to be requested.
  *
  * The request is a POST when the webhook has `params` (its JSON body, with
  * the arguments merged in by `input_args_as_params`) or its method is POST,
@@ -259,7 +269,8 @@ function runExpressions(
   data: Data,
   say: (line: string) => void,
 ): { matched: true; output: unknown } | { matched: false } {
-  for (const expr of Array.isArray(expressions) ? expressions : []) {
+  // As on the platform, a single expression object runs as a one-element list.
+  for (const expr of Array.isArray(expressions) ? expressions : [expressions]) {
     // As on the platform, an expression needs `output` and a `string` (or
     // `expr`) to test; without a `pattern` it doesn't match.
     if (!isPlainObject(expr) || !('output' in expr)) continue;
@@ -397,11 +408,22 @@ export async function executeDataMap(
   if (exprResult.matched) return done(exprResult.output);
 
   // 2. Webhooks, in order. The first one requested ends the webhook stage.
-  const webhooks = Array.isArray(dataMap['webhooks']) ? dataMap['webhooks'] : [];
+  // As on the platform, `webhooks` is a list or a single webhook object. A
+  // single one's require_args and error_keys aren't checked, and a failed
+  // request doesn't fail it: its foreach, expressions and output read the
+  // error response.
+  const single = isPlainObject(dataMap['webhooks']);
+  const webhooks = Array.isArray(dataMap['webhooks'])
+    ? dataMap['webhooks']
+    : single
+      ? [dataMap['webhooks']]
+      : [];
   for (const [i, webhook] of webhooks.entries()) {
     if (!isPlainObject(webhook)) continue;
     say(`\n=== Webhook ${i + 1}/${webhooks.length} ===`);
-    if ('require_args' in webhook && !anyKeyPresent(webhook['require_args'], args)) {
+    if (single && 'require_args' in webhook) {
+      say("The platform doesn't check a single webhook object's require_args");
+    } else if ('require_args' in webhook && !anyKeyPresent(webhook['require_args'], args)) {
       say('None of its require_args is set; trying the next webhook');
       continue;
     }
@@ -487,8 +509,13 @@ export async function executeDataMap(
       // by itself: it is added to the response as http_code.
       if (!ok && isPlainObject(responseData)) responseData['http_code'] = response.status;
     } catch (err) {
+      // As on the platform, a request that doesn't complete has no body to
+      // parse and no status: a single webhook object's output reads these.
       responseData = {
+        parse_error: true,
+        raw_response: '',
         protocol_error: true,
+        http_code: 0,
         error: err instanceof Error ? err.message : String(err),
       };
     } finally {
@@ -499,12 +526,17 @@ export async function executeDataMap(
     // its value. An array response has no keys.
     const configured = webhook['error_keys'];
     const errorKeys = [
-      'parse_error',
       'protocol_error',
+      'parse_error',
       ...(Array.isArray(configured) ? configured : configured !== undefined ? [configured] : []),
     ];
     const hit = errorKeys.find((k) => anyKeyPresent(k, responseData));
-    if (hit) {
+    if (hit && single) {
+      say(
+        `The response has the key '${hit}', but the platform doesn't fail a single ` +
+          'webhook object: its output reads the response',
+      );
+    } else if (hit) {
       failed = true;
       say(`Webhook failed: the response has the key '${hit}'`);
     }
