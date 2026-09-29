@@ -516,6 +516,7 @@ These are the limits of that protection:
 - **Typing lasts until the nonce is redeemed or expires.** `nonceTtl` (3600 seconds by default) counts from registration, not from the last message. After that, or after `/handoff`, `/say` returns `404` even when the call is still live.
 - **Each typed message is a billed turn.** `maxMessagesPerCall` (200 by default) caps them per nonce. A message that isn't delivered doesn't count.
 - **The nonce table is in the process.** A redemption must reach the replica that registered the nonce. Run one replica, route calls to the same replica, or pass a `registry` backed by shared storage.
+- **A shared `registry` isn't atomic across replicas.** Within one process, registration, redemption and taking a typing slot each read the table and write it back without waiting in between, so overlapping requests can't redeem a nonce twice or pass the typing cap. When replicas share a `registry`, another replica can write between that read and write, so a nonce can be redeemed once by each replica and the typing cap can be passed. The `registry` is a plain `Map`, so the SDK can't make those steps atomic across replicas. Use one nonce table, or route each call's requests to one replica.
 - **A handle is enough for `/escalate`.** It triggers your `captureLeg` for the chat leg, so make `captureLeg` safe to run more than once.
 
 ### HandoffRouter reference
@@ -532,7 +533,7 @@ The constructor takes a `HandoffRouterOptions` object. Only `gateway` is require
 | `nonceTtl` | 3600 | Seconds a nonce stays usable, from registration |
 | `maxMessagesPerCall` | 200 | Typed messages per nonce |
 | `captureTimeout` | 8 | Seconds to wait for `captureLeg` |
-| `registry` | A new `Map` | The nonce table, a `Map<string, NonceEntry>` |
+| `registry` | A new `Map` | The nonce table, a `Map<string, NonceEntry>`. It may return copies of its entries: the router writes every change back with `set()`. |
 
 The router's methods are `router()`, `register(nonce, { conversationId, callId })`, `redeem(nonce)`, `escalate(handle)` and `say(nonce, text)`. `redeem()` returns the new handle or `null`; `escalate()` and `say()` return `true` on success.
 

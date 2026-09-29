@@ -48,6 +48,17 @@
  * counters. A redemption must reach the replica that served the dial: run one
  * replica, use sticky routing, or supply a shared `registry`.
  *
+ * Registration, redemption and taking a typing slot each read the table and
+ * write it back without waiting on anything in between, so within one
+ * process overlapping requests can't redeem a nonce twice or pass the typing
+ * cap. Every change is written back with `set()`, so a `registry` that
+ * returns copies stores it. When replicas share a `registry`, each of those
+ * steps is a read followed by a write that another replica can interleave,
+ * so a nonce can be redeemed once by each, and the typing cap can be passed.
+ * The `registry` is a plain `Map`, so the SDK can't make those steps atomic
+ * across replicas; use one nonce table, or route each call's requests to one
+ * replica.
+ *
  * Mirrors signalwire-python's `signalwire.ai_chat.handoff`.
  */
 
@@ -163,7 +174,12 @@ export interface HandoffRouterOptions {
    * takes under a second. Default {@link DEFAULT_CAPTURE_TIMEOUT}.
    */
   captureTimeout?: number;
-  /** The nonce table. Supply one backed by shared storage to run more than one replica. */
+  /**
+   * The nonce table. Supply one backed by shared storage to run more than one
+   * replica. It may return copies of its entries: the router writes every
+   * change back with `set()`. Its read-then-write steps aren't atomic across
+   * replicas that share it; see the module documentation.
+   */
   registry?: Map<string, NonceEntry>;
 }
 
@@ -397,8 +413,10 @@ export class HandoffRouter {
       return false;
     }
     // Take the slot before waiting on delivery, so concurrent requests can't
-    // all pass the check; give it back if the message isn't delivered.
+    // all pass the check. Written back, so a registry that returns copies
+    // stores the change.
     entry.messages += 1;
+    this._nonces.set(nonce, entry);
     let delivered: boolean;
     try {
       delivered = (await this.sendMessage(entry.callId, cleaned)) !== false;
@@ -408,8 +426,29 @@ export class HandoffRouter {
       });
       delivered = false;
     }
-    if (!delivered) entry.messages -= 1;
+    if (!delivered) this._refund(nonce, entry);
     return delivered;
+  }
+
+  /**
+   * Give back the slot a failed delivery took, if the table still holds the
+   * registration it came from. A registry may return copies, so the
+   * registration is matched by value (conversation, call and registration
+   * time), and the stored count is the one decremented, keeping the slots
+   * other requests took meanwhile.
+   */
+  private _refund(nonce: string, entry: NonceEntry): void {
+    const current = this._nonces.get(nonce);
+    if (
+      current &&
+      current.messages > 0 &&
+      current.conversationId === entry.conversationId &&
+      current.callId === entry.callId &&
+      current.issuedAt === entry.issuedAt
+    ) {
+      current.messages -= 1;
+      this._nonces.set(nonce, current);
+    }
   }
 
   // ── HTTP ─────────────────────────────────────────────────────────
