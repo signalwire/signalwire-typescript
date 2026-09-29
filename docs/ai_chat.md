@@ -40,6 +40,7 @@ The guide has these sections:
 
 This example creates a conversation from an agent's config URL, sends one message, and prints the reply:
 
+<!-- snippet: no-run needs a real project, API token and space, and a reachable agent config URL -->
 ```typescript
 import { AIChatClient } from '@signalwire/sdk';
 
