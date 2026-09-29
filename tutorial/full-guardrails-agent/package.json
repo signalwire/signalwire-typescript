@@ -1,0 +1,17 @@
+{
+  "name": "penny",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Penny, the full-guardrails reservation agent from the SignalWire TypeScript SDK tutorial",
+  "type": "module",
+  "engines": {
+    "node": ">=22.16"
+  },
+  "scripts": {
+    "start": "node --import tsx penny.ts"
+  },
+  "dependencies": {
+    "@signalwire/sdk": "^4.0.0",
+    "tsx": "^4.21.0"
+  }
+}
