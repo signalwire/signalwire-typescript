@@ -76,8 +76,8 @@ const agent = new AgentBase({
 | `nativeFunctions` | `string[]` | `[]` | Platform function names for the SWAIG `native_functions` list. |
 | `agentId` | `string` | 16 random hex characters | Identifier for this agent instance. |
 | `suppressLogs` | `boolean` | `false` | When `true`, calls `suppressAllLogs(true)`, which silences the SDK's logger for the whole process, not only this agent. |
-| `schemaPath` | `string` | bundled schema | Path to a SWML JSON Schema file. It sets `schemaUtils` on the agent; `addVerb()` still validates against the bundled schema. |
-| `schemaValidation` | `boolean` | `true` | Stored on the agent, but `addVerb()` validation doesn't read it. Set `SWML_SKIP_SCHEMA_VALIDATION=true` to turn validation off. |
+| `schemaPath` | `string` | bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
+| `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Register `POST {route}/post_prompt_override`, which replaces the post-prompt text with the body's `post_prompt` value. |
 | `checkForInputOverride` | `boolean` | `false` | Register `GET` and `POST {route}/check_for_input`, which log the request and echo its body. |
 | `configFile` | `string` | none | Path to a JSON config file. [Config Files](#config-files) lists the keys the agent reads. |

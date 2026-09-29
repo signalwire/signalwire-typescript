@@ -1821,3 +1821,29 @@ describe('defineContexts', () => {
     expect(contexts['default']!.steps.map((s) => s.name)).toEqual(['greet', 'ask']);
   });
 });
+
+describe('schemaValidation and schemaPath reach the SWML builder (found in the documentation pass)', () => {
+  it('schemaValidation: false lets a verb the schema rejects render', () => {
+    const agent = new AgentBase({
+      name: 'nov',
+      route: '/',
+      basicAuth: ['u', 'p'],
+      schemaValidation: false,
+    });
+    agent.setPromptText('hi');
+    agent.addPreAnswerVerb('play', { not_a_play_key: true });
+    expect(() => agent.renderSwml()).not.toThrow();
+    // The per-request copy renders with the same setting.
+    agent.setDynamicConfigCallback(() => undefined);
+    expect(() => agent.renderSwml()).not.toThrow();
+  });
+
+  it('validates by default', () => {
+    const agent = new AgentBase({ name: 'val', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    expect(() => {
+      agent.addPreAnswerVerb('play', { not_a_play_key: true });
+      agent.renderSwml();
+    }).toThrow(/Schema validation/);
+  });
+});

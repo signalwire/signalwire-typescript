@@ -150,8 +150,8 @@ Every option except `name` is optional:
 | `agentId` | `string` | 16 random hex characters | Identifier for this agent instance. |
 | `suppressLogs` | `boolean` | `false` | Turn off all SDK logging in the process, not only this agent's. |
 | `configFile` | `string` | none | Path to a JSON config file. Its `service` section supplies `route`, `host` and `port` when the constructor doesn't. |
-| `schemaPath` | `string` | bundled schema | Stored, but the builder that renders the SWML doesn't use it: verbs are validated against the bundled schema. |
-| `schemaValidation` | `boolean` | `true` | Stored, but it doesn't turn off the validation of the verbs you add; only `SWML_SKIP_SCHEMA_VALIDATION=true` does. See [configuration.md](configuration.md). |
+| `schemaPath` | `string` | bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
+| `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Add a basic-auth `POST /post_prompt_override` route. Its `post_prompt` field replaces the agent's post-prompt for every later call. |
 | `checkForInputOverride` | `boolean` | `false` | Add a basic-auth `/check_for_input` route (GET and POST) that returns `{ ok: true, received: <body> }`. |
 

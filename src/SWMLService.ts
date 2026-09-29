@@ -398,6 +398,10 @@ export class SWMLService {
 
   /** Schema validation utilities. Mirrors Python's `self.schema_utils`. */
   readonly schemaUtils: SchemaUtils;
+  /** @internal The schema settings every SwmlBuilder this service creates uses. */
+  protected _builderSchemaOptions: { enableValidation: boolean; schemaPath?: string } = {
+    enableValidation: true,
+  };
   /** Custom verb handler registry. Mirrors Python's `self.verb_registry`. */
   readonly verbRegistry: VerbHandlerRegistry;
 
@@ -464,6 +468,11 @@ export class SWMLService {
       skipValidation,
       ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
     });
+    // The builder that renders the SWML validates verbs with the same settings.
+    this._builderSchemaOptions = {
+      enableValidation: !skipValidation,
+      ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
+    };
 
     // Verb handler registry
     this.verbRegistry = new VerbHandlerRegistry();
@@ -494,7 +503,7 @@ export class SWMLService {
 
     // `service: this` is the builder's public back-reference (the reference's
     // `SWMLBuilder(service)`), so a caller holding the builder can reach its service.
-    this.swmlBuilder = new SwmlBuilder({ service: this });
+    this.swmlBuilder = new SwmlBuilder({ service: this, ...this._builderSchemaOptions });
     this._app = new Hono();
 
     // Security headers

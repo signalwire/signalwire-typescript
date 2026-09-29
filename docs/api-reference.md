@@ -3193,8 +3193,8 @@ interface AgentOptions
 | `nativeFunctions` | `string[]` | `[]` | Native function names |
 | `agentId` | `string` | 16 random hex characters | Agent instance ID |
 | `suppressLogs` | `boolean` | `false` | Call `suppressAllLogs(true)`, which silences every SDK logger in the process, not only this agent's. Warnings logged earlier in the constructor still appear. |
-| `schemaPath` | `string` | The bundled schema | Schema file for the agent's `schemaUtils`. `renderSwml()` still checks verbs against the bundled schema. |
-| `schemaValidation` | `boolean` | `true` | When `false`, the agent's `schemaUtils` accepts every verb and document. It doesn't stop `renderSwml()` from checking verbs; only `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
+| `schemaPath` | `string` | The bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
+| `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Serve `POST {route}/post_prompt_override`, which replaces the post-prompt text |
 | `checkForInputOverride` | `boolean` | `false` | Serve `{route}/check_for_input`, which echoes the request body |
 | `configFile` | `string` | none | JSON config file. Its `service` section supplies `route`, `host` and `port` when the options omit them, and its `security` section supplies basic auth and TLS settings. |

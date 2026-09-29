@@ -205,7 +205,7 @@ The second call throws with this message:
 Schema validation failed for 'play': Schema validation error for 'play': /play unknown property 'invalid_param'
 ```
 
-Set `SWML_SKIP_SCHEMA_VALIDATION=true` to turn validation off. The `schemaValidation: false` and `schemaPath` constructor options set the service's `schemaUtils` property, but `addVerb()` doesn't read it: it still validates against the bundled schema.
+Set `SWML_SKIP_SCHEMA_VALIDATION=true`, or pass `schemaValidation: false`, to turn validation off. `schemaPath` validates verbs against another schema file.
 
 ### Custom Verb Handlers
 
@@ -460,9 +460,9 @@ The constructor takes these options:
 - `host`: Host to bind to (default `'0.0.0.0'`)
 - `port`: Port to bind to (default `PORT` or `3000`)
 - `basicAuth`: Optional `[username, password]` tuple
-- `schemaPath`: Path to a SWML schema file for the service's `schemaUtils` (not used by `addVerb()`)
+- `schemaPath`: Path to a SWML schema file that verbs are validated against
 - `configFile`: Path to a JSON config file; the service reads its `security.ssl` and basic-auth keys
-- `schemaValidation`: Sets the service's `schemaUtils` validation (not used by `addVerb()`; default `true`)
+- `schemaValidation`: `false` turns off verb validation (default `true`)
 
 ### Document Methods
 

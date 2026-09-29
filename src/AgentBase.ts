@@ -2999,7 +2999,7 @@ export class AgentBase extends SWMLService {
     copy._routingCallbacks = new Map(this._routingCallbacks);
     copy.contextsBuilder = clone(this.contextsBuilder);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
-    copy.swmlBuilder = new SwmlBuilder({ service: copy });
+    copy.swmlBuilder = new SwmlBuilder({ service: copy, ...this._builderSchemaOptions });
 
     // The copy starts with the skills this agent loaded. Their tools, hints,
     // prompt sections and global data are already in the state copied above,
