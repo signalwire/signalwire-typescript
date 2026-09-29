@@ -185,6 +185,38 @@ describe('Google Cloud Functions on cloudfunctions.net (found in review)', () =>
     );
     expect(status).toBe(200);
   });
+
+  it('refuses a signature over another URL on the same host (found in review)', async () => {
+    // Signed for https://<host>/ (another function's root, or the stripped
+    // path): not the URL SignalWire called this function on.
+    process.env['K_SERVICE'] = 'voice';
+    const host = 'us-central1-proj.cloudfunctions.net';
+    for (const signedUrl of [`https://${host}/?tenant=x`, `https://${host}/other/?tenant=x`]) {
+      let status = 0;
+      const handler = ServerlessAdapter.createGcfHandler(makeAgent().getApp());
+      await handler(
+        {
+          method: 'POST',
+          headers: {
+            host,
+            authorization: AUTH,
+            'content-type': 'application/json',
+            'x-signalwire-signature': sign(signedUrl),
+          },
+          url: '/?tenant=x',
+          path: '/',
+          rawBody: Buffer.from(BODY),
+          body: JSON.parse(BODY) as Record<string, unknown>,
+        },
+        {
+          status: (code: number) => void (status = code),
+          set: () => undefined,
+          send: () => undefined,
+        },
+      );
+      expect(status, signedUrl).toBe(403);
+    }
+  });
 });
 
 describe('Azure Functions', () => {

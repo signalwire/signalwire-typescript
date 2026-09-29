@@ -117,8 +117,6 @@ interface PlatformRequest {
   queryVariants: string[];
   /** The full URL the platform received the request on, or '' when unknown. */
   platformUrl: string;
-  /** Other full URLs the request may have been signed over, tried after `platformUrl`. */
-  platformUrlVariants?: string[];
   /** Headers with lower-case names. */
   headers: Record<string, string>;
   /** The raw request body. */
@@ -364,20 +362,16 @@ export class ServerlessAdapter {
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
     });
 
-    // Every URL the signature may have been computed over: each URL the
-    // platform may have been called on, with each encoding of the query.
-    const urls = [req.platformUrl, ...(req.platformUrlVariants ?? [])];
-    const targets: _SignatureTarget[] = urls.flatMap((candidate) =>
-      [req.query, ...req.queryVariants].map((q) => {
-        const suffix = q ? `?${q}` : '';
-        let platformUrl = '';
-        if (candidate) {
-          const [base] = splitPathAndQuery(candidate);
-          platformUrl = `${base}${suffix}`;
-        }
-        return { url: platformUrl, pathAndQuery: `${path}${suffix}` };
-      }),
-    );
+    // Every URL the signature may have been computed over, one per query encoding.
+    const targets: _SignatureTarget[] = [req.query, ...req.queryVariants].map((q) => {
+      const suffix = q ? `?${q}` : '';
+      let platformUrl = '';
+      if (req.platformUrl) {
+        const [base] = splitPathAndQuery(req.platformUrl);
+        platformUrl = `${base}${suffix}`;
+      }
+      return { url: platformUrl, pathAndQuery: `${path}${suffix}` };
+    });
 
     log.debug(`Handling ${req.method} ${path} on ${this.platform}`);
 
@@ -478,20 +472,19 @@ export class ServerlessAdapter {
     const host = headers['host'];
     // SignalWire signs the URL it called: the webhook URL the SWML gave it,
     // which carries the function's name on cloudfunctions.net (or is under
-    // FUNCTION_URL). The platform strips that name before the request
-    // arrives, so the request's own URL, host and path, is tried second.
+    // FUNCTION_URL); the platform strips that name before the request
+    // arrives. Only that URL is accepted: the stripped form would also accept
+    // a signature made for another function on the same host.
     const origin = host ? `${proto}://${host}` : '';
     const base = host
       ? (process.env['FUNCTION_URL']?.replace(/\/+$/, '') ?? gcfBase(proto, host) ?? origin)
       : '';
-    const called = origin ? `${origin}${relative}` : '';
     return {
       method: String(req.method ?? 'POST').toUpperCase(),
       path: req.path ?? urlPath ?? '/',
       query,
       queryVariants: [],
       platformUrl: base ? `${base}${relative}` : '',
-      platformUrlVariants: base && base !== origin ? [called] : [],
       platformBase: gcfBase(proto, host),
       headers,
       body: rawBodyText(req.rawBody, req.body),

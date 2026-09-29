@@ -248,7 +248,7 @@ The agent handles each request in these steps:
 
 ### Signatures on Each Platform
 
-With `SIGNALWIRE_SIGNING_KEY` set, the agent checks each POST's signature against the URL the platform received it on. On Google Cloud Functions, that's the webhook base URL, which includes the function's name, plus `req.originalUrl`; the request's own host and path are tried second. On Azure, it's `req.url`. If SignalWire's requests are refused with `403`, set `SWML_PROXY_URL_BASE` to the function's public URL. For more information, see [Webhook URLs and Signatures](serverless-guide.md#webhook-urls-and-signatures).
+With `SIGNALWIRE_SIGNING_KEY` set, the agent checks each POST's signature against the URL the platform received it on. On Google Cloud Functions, that's the webhook base URL, which includes the function's name, plus `req.originalUrl`. On Azure, it's `req.url`. If SignalWire's requests are refused with `403`, set `SWML_PROXY_URL_BASE` to the function's public URL. For more information, see [Webhook URLs and Signatures](serverless-guide.md#webhook-urls-and-signatures).
 
 ## Testing
 
