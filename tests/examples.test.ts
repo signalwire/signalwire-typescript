@@ -155,6 +155,47 @@ describe('examples', () => {
     });
   });
 
+  describe('advanced-datamap.ts', () => {
+    /** Render the example and return its SWAIG functions keyed by name. */
+    async function renderFunctions(): Promise<Record<string, Record<string, unknown>>> {
+      const agent = await loadExample('advanced-datamap.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: { SWAIG: { functions: unknown[] } } })['ai'];
+      const byName: Record<string, Record<string, unknown>> = {};
+      for (const fn of ai.SWAIG.functions as Record<string, unknown>[]) {
+        byName[fn['function'] as string] = fn;
+      }
+      return byName;
+    }
+
+    it('reads the foreach array by its key in the response, not a template', async () => {
+      const fns = await renderFunctions();
+      const dataMap = fns['get_news']!['data_map'] as {
+        webhooks: { foreach: { input_key: string } }[];
+      };
+      expect(dataMap.webhooks[0]!.foreach.input_key).toBe('articles');
+    });
+
+    it('matches case-insensitively with patterns JavaScript also accepts', async () => {
+      const fns = await renderFunctions();
+      for (const name of ['detect_greeting', 'check_status']) {
+        const dataMap = fns[name]!['data_map'] as {
+          expressions: { string: string; pattern: string }[];
+        };
+        for (const expr of dataMap.expressions) {
+          // The value is lowercased with lc:, so the pattern needs no (?i) modifier,
+          // which the swaig-test simulator's JavaScript RegExp rejects.
+          expect(expr.string.startsWith('${lc:')).toBe(true);
+          expect(() => new RegExp(expr.pattern)).not.toThrow();
+        }
+      }
+    });
+  });
+
   describe('session-state.ts', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');
