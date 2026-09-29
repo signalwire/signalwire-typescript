@@ -109,6 +109,17 @@ function pathParts(path: string): string[] {
   return path.split(/[\\/]+/).filter(Boolean);
 }
 
+/**
+ * The request's path with a trailing slash, as a redirect on this host. It's
+ * built from the path as the client sent it, still percent-encoded, so a
+ * directory named `my dir` keeps its encoding and `%2F` isn't decoded into a
+ * separator. Leading slashes are collapsed to one, so `//example.org` can't
+ * become a Location a browser reads as another host.
+ */
+function sameOriginRedirect(url: string): string {
+  return `/${new URL(url).pathname.replace(/^\/+/, '')}/`;
+}
+
 /** Format a file size in bytes to a human-readable string. */
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -614,6 +625,10 @@ export class WebService {
 
       // Handle directory requests
       if (fileStat.isDirectory()) {
+        // Relative links in a listing or an index page need the slash
+        if (!c.req.path.endsWith('/')) {
+          return c.redirect(sameOriginRedirect(c.req.url), 307);
+        }
         if (!this.enableDirectoryBrowsing) {
           // Try index.html fallback
           const indexPath = join(fullPath, 'index.html');

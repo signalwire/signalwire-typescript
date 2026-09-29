@@ -544,3 +544,88 @@ describe('WebService requires credentials', () => {
     expect((await app.request('/docs/inside.txt')).status).toBe(401);
   });
 });
+
+// A directory requested without its trailing slash redirects to the slash
+// form, so relative links in its index.html or listing resolve inside it. The
+// Location is built from the path as the client sent it (still
+// percent-encoded), on this host, with leading slashes collapsed so it can't
+// name another host.
+describe('WebService directory redirect', () => {
+  beforeEach(() => {
+    mkdirSync(join(mount, 'sub'));
+    writeFileSync(join(mount, 'sub', 'index.html'), '<a href="page.html">page</a>');
+  });
+
+  async function get(path: string, options: Record<string, unknown> = {}) {
+    const web = new WebService({ directories: { '/docs': mount }, ...options });
+    return fetchAs(web.getApp(), path);
+  }
+
+  it('redirects a directory without its trailing slash', async () => {
+    const res = await get('/docs/sub');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/docs/sub/');
+  });
+
+  it('redirects the mount root without its trailing slash', async () => {
+    const res = await get('/docs', { enableDirectoryBrowsing: true });
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/docs/');
+  });
+
+  it('serves the directory once the slash is there', async () => {
+    const res = await get('/docs/sub/');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('page.html');
+  });
+
+  it('keeps the percent-encoding of the path the client sent', async () => {
+    mkdirSync(join(mount, 'my dir'));
+    writeFileSync(join(mount, 'my dir', 'index.html'), 'spaced');
+    const res = await get('/docs/my%20dir');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/docs/my%20dir/');
+  });
+
+  it('drops the query string', async () => {
+    const res = await get('/docs/sub?x=1');
+    expect(res.headers.get('location')).toBe('/docs/sub/');
+  });
+
+  it("collapses leading slashes so the Location can't name another host", async () => {
+    mkdirSync(join(mount, 'evil.com'));
+    writeFileSync(join(mount, 'evil.com', 'index.html'), 'evil');
+    const web = new WebService({ directories: { '/': mount } });
+    const res = await fetchAs(web.getApp(), '//evil.com');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/evil.com/');
+    const triple = await fetchAs(web.getApp(), '///evil.com');
+    expect(triple.headers.get('location')).toBe('/evil.com/');
+  });
+
+  it('matches the mount only at a path-segment boundary', async () => {
+    const res = await get('/docsx');
+    expect(res.status).toBe(404);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('does not redirect a file', async () => {
+    const res = await get('/docs/inside.txt');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('refuses a hidden directory rather than redirecting it', async () => {
+    mkdirSync(join(mount, '.ssh'));
+    const res = await get('/docs/.ssh');
+    expect(res.status).toBe(403);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('requires credentials before redirecting', async () => {
+    const web = new WebService({ directories: { '/docs': mount } });
+    const res = await web.getApp().request('/docs/sub');
+    expect(res.status).toBe(401);
+    expect(res.headers.get('location')).toBeNull();
+  });
+});

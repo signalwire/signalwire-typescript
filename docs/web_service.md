@@ -303,7 +303,9 @@ export SWML_SSL_KEY_PATH="key.pem"
 - The file, with a content type from its extension (`application/octet-stream` for an unknown one) and `Cache-Control: public, max-age=3600`
 - `404` if the file doesn't exist
 - `403` if the path contains `..` or a component below the mount that starts with a dot (other than `.well-known`), resolves (through a symbolic link) to a file outside the mounted directory or under a hidden or blocked directory, or the file is blocked, isn't allowed, or is larger than `maxFileSize`
-- For a directory: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
+- `307` to the same path with a trailing slash, for a directory requested without one (`/docs/guide` redirects to `/docs/guide/`), so relative links in its `index.html` or listing resolve inside it. The `Location` is a path on this host, built from the path as the client sent it, still percent-encoded (`/docs/my%20dir` redirects to `/docs/my%20dir/`), without the query string and with leading slashes collapsed to one, so `//example.org` can't send the browser to another host.
+- `401` without valid credentials
+- For a directory requested with its trailing slash: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
 
 ## Usage Examples
 
