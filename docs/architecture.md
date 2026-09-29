@@ -576,7 +576,7 @@ The SignalWire platform runs a DataMap tool itself, so it has a `data_map` key a
 }
 ```
 
-A webhook's JSON response is read from the root of the template data (`${status}`), and the arguments are under `args`. A request for a DataMap tool at the agent's `/swaig` gets `404`, because the agent has no handler for it.
+A webhook's JSON response is read from the root of the template data (`${status}`). The URL and params read the arguments as `${args.name}`, and the webhook's output as `${input.args.name}`. A request for a DataMap tool at the agent's `/swaig` gets `404`, because the agent has no handler for it.
 
 ---
 

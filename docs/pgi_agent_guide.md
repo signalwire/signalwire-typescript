@@ -1236,7 +1236,7 @@ const tool = new DataMap('lookup_public_item')
       'Content-Type': 'application/json',
     },
   })
-  .body({ sku: '${args.sku}' })
+  .params({ sku: '${args.sku}' })
   .output(
     new FunctionResult({
       tool_result: 'Availability: ${availability}',
@@ -1253,7 +1253,7 @@ const tool = new DataMap('lookup_public_item')
 agent.registerSwaigFunction(tool.toSwaigFunction());
 ```
 
-The output template reads the webhook's JSON response from the root of the template data, so `${availability}` is the response's `availability` field. Arguments are `${args.name}`. The templates are plain strings, not JavaScript template literals. `catalog.example.com` is a placeholder for your application's endpoint, not a SignalWire service. [S09]
+The output template reads the webhook's JSON response from the root of the template data, so `${availability}` is the response's `availability` field. Arguments are `${args.name}` in the URL and params, and `${input.args.name}` in the output. `params()` is the request body; the platform doesn't send a `body()`. The templates are plain strings, not JavaScript template literals. `catalog.example.com` is a placeholder for your application's endpoint, not a SignalWire service. [S09]
 
 Its backend must validate the SKU and the caller's or service's permissions. Keep the host fixed; don't let the model choose a URL. The token is written into the SWML, so protect the SWML as a credential. Verify the response mapping and failure behavior against the real API.
 

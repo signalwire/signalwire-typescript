@@ -129,12 +129,12 @@ const dataMap = new DataMap('check_stock')
   .purpose('Check product stock levels')
   .parameter('sku', 'string', 'Product SKU', { required: true })
   .webhook('GET', 'https://api.warehouse.com/stock/${args.sku}')
-  .output(new FunctionResult('Stock for ${args.sku}: ${quantity} units'));
+  .output(new FunctionResult('Stock for ${input.args.sku}: ${quantity} units'));
 
 agent.registerSwaigFunction(dataMap.toSwaigFunction());
 ```
 
-The agent never receives a callback for a DataMap tool. The SDK writes the `data_map` structure into the SWML, and the platform expands its templates. `${args.*}` reads the arguments, and the webhook response's fields are read from the root, such as `${quantity}`. The SDK also supports foreach iteration, expression matching and error keys. For the full builder API, see the [DataMap Guide](datamap-guide.md).
+The agent never receives a callback for a DataMap tool. The SDK writes the `data_map` structure into the SWML, and the platform expands its templates. `${args.*}` reads the arguments in the URL and params, and `${input.args.*}` in the webhook's output, where the response's fields are read from the root, such as `${quantity}`. The SDK also supports foreach iteration, expression matching and error keys. For the full builder API, see the [DataMap Guide](datamap-guide.md).
 
 ### 3. Skills (Packaged Integrations)
 

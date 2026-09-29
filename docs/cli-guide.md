@@ -260,14 +260,15 @@ The output shows the Spanish voice and the caller's name:
 
 ## DataMap Functions
 
-`--exec` runs a DataMap function in a local simulator that follows the platform's processing. It tries the expressions, then the webhooks in order until one succeeds. It then runs that webhook's `foreach`, its `expressions` against the response, and its `output`. The DataMap's own `output` is the result when every webhook failed, or when the webhook's expressions didn't match and it has no `output`.
+`--exec` runs a DataMap function in a local simulator that follows the platform's processing. It tries the expressions, then the webhooks in order, skipping one when none of its `require_args` is set. The first webhook it requests ends the webhook stage: it runs that webhook's `foreach`, its `expressions` against the response, and its `output`. The DataMap's own `output` is the result when that webhook failed, when none was requested, or when its expressions didn't match and it has no `output`.
 
 The simulator follows the platform's template rules:
 
 - A webhook's JSON object response is read from the root of the template data (`${current.temp_f}`). A JSON array response is under `array` (`${array[0].joke}`). When a template reads `${response.<field>}`, which doesn't resolve, the simulator says so on stderr.
 - Templates take the `lc` and `enc` (or `enc:url`) helpers, left to right, and nest: `${lc:enc:args.city}`.
-- A webhook fails on a status outside 200-299, a body that isn't JSON, or one of its `error_keys` in a JSON object response. An `error_keys` on the `data_map` itself is ignored, as on the platform.
-- `params`, with the arguments merged in when `input_args_as_params` is set, is the request body, and a request with `params` is a `POST` whatever its method. With `form_param`, the body is one form field holding the JSON.
+- A webhook fails on a body that isn't JSON, a request that doesn't complete, or one of its `error_keys` present in a JSON object response, whatever the value. A status outside 200-299 doesn't fail it; the output reads it as `${http_code}`. An `error_keys` on the `data_map` itself is ignored, as on the platform.
+- A webhook's `url` and `params`, the top-level expressions and the fallback output read `${args.city}`; its `foreach`, `expressions` and `output` read the response, with the arguments at `${input.args.city}`. Header values are sent as written.
+- `params`, with the arguments merged in when `input_args_as_params` is set, is the request body, and a request with `params` is a `POST` whatever its method, and any other request is a `GET`. With `form_param`, the body is one form field holding the JSON.
 - Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
 
 This command runs the weather tool against the real wttr.in API and prints each step:

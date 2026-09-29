@@ -287,17 +287,17 @@ const weather = new DataMap('get_weather')
   .description('Get the current weather for a city')
   .parameter('city', 'string', 'City name', { required: true })
   .webhook('GET', 'https://api.example.com/weather?city=\${enc:args.city}')
-  .output(new FunctionResult('Weather in \${args.city}: \${current.summary}'));
+  .output(new FunctionResult('Weather in \${input.args.city}: \${current.summary}'));
 agent.registerSwaigFunction(weather.toSwaigFunction());
 \`\`\`
 
 - The templates are plain strings, not template literals: the platform
   expands them, not the SDK.
-- A template reads a path from the root of the call's data: \`\${args.city}\`
-  for an argument, \`\${global_data.x}\`, \`\${meta_data.x}\`. When a webhook
-  responds, its JSON object's fields join the root, so an API that returns
-  \`{"current": {...}}\` is read as \`\${current.summary}\`, with no
-  \`response.\` prefix. An array response is \`\${array[0].x}\`.
+- A webhook's URL and params read the call's data: \`\${args.city}\` for an
+  argument. A webhook's output reads its JSON response from the root, so an
+  API that returns \`{"current": {...}}\` is read as \`\${current.summary}\`,
+  with no \`response.\` prefix; an array response is \`\${array[0].x}\`; and
+  the arguments there are \`\${input.args.city}\`.
 - Prefix helpers transform a value, left to right: \`\${lc:enc:args.city}\`
   lowercases \`args.city\`, then URL-encodes it.
 - A webhook's \`params()\` are its JSON request body.
