@@ -10,7 +10,6 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
-import { basePath } from 'hono/route';
 import { readFile, stat, readdir, realpath } from 'node:fs/promises';
 import { join, extname, normalize, relative, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
@@ -109,6 +108,28 @@ function isWithin(path: string, root: string): boolean {
 function pathParts(path: string): string[] {
   return path.split(/[\\/]+/).filter(Boolean);
 }
+
+/**
+ * Decode a route parameter as Hono does: `decodeURIComponent` when it holds a
+ * `%`, and on a malformed sequence, each decodable run of escapes alone.
+ */
+function decodeParam(value: string): string {
+  if (!value.includes('%')) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
+      try {
+        return decodeURIComponent(run);
+      } catch {
+        return run;
+      }
+    });
+  }
+}
+
+/** Route parameter holding the part of the path below the app's own root. */
+const TAIL_PARAM = 'webServicePath';
 
 /**
  * The request's path with a trailing slash, as a redirect on this host. It's
@@ -501,10 +522,17 @@ export class WebService {
 
   private _setupRoutes(): void {
     // Root endpoint showing available directories
-    this._app.get('/', (c) => this._serveOverview(c));
+    // At this app's root; under a parent app's prefix, the path is the prefix
+    this._app.get('/', (c) => this._serveOverview(c, c.req.path.replace(/\/+$/, '')));
 
-    // Mounted directories: one route that consults `directories` on each
-    // request, so mounts added or removed after the first request apply.
+    // Mounted directories: one handler that consults `directories` on each
+    // request, so mounts added or removed after the first request apply. The
+    // parameter captures the path below this app's root, which is how the
+    // prefix a parent app mounts this one under is found, however the
+    // parent's pattern is written. The wildcard route catches what the
+    // parameter can't match: `${prefix}/`, whose part below the root is
+    // empty, and on older Hono versions a part that starts with `/`.
+    this._app.get(`/:${TAIL_PARAM}{.+}`, (c) => this._serveMounted(c));
     this._app.get('*', (c) => this._serveMounted(c));
   }
 
@@ -512,9 +540,8 @@ export class WebService {
    * The page at `/` that links to each mounted directory. Its links carry the
    * prefix a parent app mounts this one under.
    */
-  private _serveOverview(c: Context): Response {
+  private _serveOverview(c: Context, base: string): Response {
     const dirEntries = Object.entries(this.directories);
-    const base = basePath(c).replace(/\/+$/, '');
 
     if (dirEntries.length === 0) {
       return c.json({
@@ -596,18 +623,27 @@ export class WebService {
   }
 
   /**
-   * The request path below the prefix a parent app mounts this one under with
-   * `route()` (Python's `root_path`), or the whole path when it isn't
-   * mounted. The prefix is the one the request actually matched, so a
-   * parameterized prefix such as `/:tenant` works, and it counts only at a
-   * path-segment boundary. Null if the path doesn't start with it.
+   * Split the request path into the prefix a parent app mounts this one
+   * under with `route()` (Python's `root_path`; empty when it isn't mounted)
+   * and the path below it, which starts with `/`. The route parameter holds
+   * what this app's own route matched, decoded, so the prefix is the part of
+   * the path before the `/` whose remainder decodes to it. That holds however
+   * the parent's pattern is written (`/assets`, `/:tenant`,
+   * `/:tenant{[a-z]+}`), and puts the split at a path-segment boundary. The
+   * remainder keeps the path's own encoding, as `c.req.path` has it. Null if
+   * no split matches.
    */
-  private static _pathBelowBase(c: Context): string | null {
-    const base = basePath(c).replace(/\/+$/, '');
+  private static _splitBase(c: Context): { base: string; path: string } | null {
+    // Reached through the wildcard route, the part below the root is taken
+    // to be empty, so only `${prefix}/` splits; anything else is a 404.
+    const tail = c.req.param(TAIL_PARAM) ?? '';
     const path = c.req.path;
-    if (!base) return path;
-    if (path === base) return '/';
-    return path.startsWith(`${base}/`) ? path.slice(base.length) : null;
+    for (let i = path.indexOf('/'); i !== -1; i = path.indexOf('/', i + 1)) {
+      if (decodeParam(path.slice(i + 1)) === tail) {
+        return { base: path.slice(0, i), path: path.slice(i) };
+      }
+    }
+    return null;
   }
 
   /**
@@ -615,11 +651,12 @@ export class WebService {
    * matches. Every check sees the path below the parent app's prefix.
    */
   private async _serveMounted(c: Context): Promise<Response> {
-    const path = WebService._pathBelowBase(c);
-    if (path === null) return c.notFound();
+    const split = WebService._splitBase(c);
+    if (!split) return c.notFound();
+    const { path } = split;
     const mount = this._findMount(path);
     // `${prefix}/` under a parent app reaches this route rather than `/`
-    if (!mount) return path === '/' ? this._serveOverview(c) : c.notFound();
+    if (!mount) return path === '/' ? this._serveOverview(c, split.base) : c.notFound();
 
     const baseDir = resolve(mount.directory);
     const requestedPath = mount.prefix === '/' ? path : path.slice(mount.prefix.length);

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
@@ -684,6 +684,46 @@ describe('WebService mounted in a parent app under a prefix', () => {
     expect(await (await fetchAs(param, '/t1/docs/inside.txt')).text()).toBe('inside');
   });
 
+  describe('under a regex-constrained prefix', () => {
+    function tenantApp() {
+      const service = new WebService({ directories: { '/docs': mount } });
+      return new Hono().route('/:tenant{[a-z]+}', service.getApp());
+    }
+
+    it('serves a file', async () => {
+      const res = await fetchAs(tenantApp(), '/acme/docs/inside.txt');
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('inside');
+    });
+
+    it('redirects a directory with the prefix in the Location', async () => {
+      const res = await fetchAs(tenantApp(), '/acme/docs/sub');
+      expect(res.status).toBe(307);
+      expect(res.headers.get('location')).toBe('/acme/docs/sub/');
+    });
+
+    it('refuses a dot path with 403 and requires credentials', async () => {
+      expect((await fetchAs(tenantApp(), '/acme/docs/.env.production')).status).toBe(403);
+      expect((await tenantApp().request('/acme/docs/inside.txt')).status).toBe(401);
+    });
+
+    it('shows the overview at the prefix, with links under it', async () => {
+      for (const path of ['/acme', '/acme/']) {
+        const res = await fetchAs(tenantApp(), path);
+        expect(res.status).toBe(200);
+        expect(await res.text()).toContain('href="/acme/docs"');
+      }
+    });
+
+    it('keeps the prefix off the relative path when the file name is percent-encoded', async () => {
+      mkdirSync(join(mount, 'my dir'));
+      writeFileSync(join(mount, 'my dir', 'a b.txt'), 'spaced');
+      const res = await fetchAs(tenantApp(), '/acme/docs/my%20dir/a%20b.txt');
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('spaced');
+    });
+  });
+
   it('redirects a directory with the prefix the client used in the Location', async () => {
     const res = await fetchAs(parentApp(), '/assets/docs/sub');
     expect(res.status).toBe(307);
@@ -728,5 +768,20 @@ describe('WebService mounted in a parent app under a prefix', () => {
     expect(overview).toContain('SignalWire Web Service');
     expect(overview).toContain('href="/assets/docs"');
     expect(await (await fetchAs(app, '/assets/')).text()).toContain('SignalWire Web Service');
+  });
+});
+
+// package.json allows hono ^4.4.0, and src/index.ts exports WebService, so an
+// entry point newer than that (hono/route arrived in 4.8.0) breaks importing
+// the SDK at all on an older install. These are the entry points 4.4.0 has
+// that WebService uses; checked against a real 4.4.0 install.
+describe('WebService Hono entry points', () => {
+  it('imports only Hono entry points that hono 4.4.0 provides', () => {
+    const source = readFileSync(join(__dirname, '..', 'src', 'WebService.ts'), 'utf8');
+    const entries = [...source.matchAll(/from '(hono(?:\/[^']*)?)'/g)].map((m) => m[1]);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(['hono', 'hono/basic-auth', 'hono/cors']).toContain(entry);
+    }
   });
 });

@@ -501,7 +501,7 @@ app.route('/static', web.getApp());
 // GET /static/health is the health check, without credentials
 ```
 
-The service resolves its mounts against the path below the prefix the request matched, at a path-segment boundary, so `/staticx/docs/...` isn't served. A parameterized prefix such as `/:tenant` works too. The directory redirect keeps the prefix (`/static/docs/guide` redirects to `/static/docs/guide/`), and so do the links on the `/static` overview page.
+The service resolves its mounts against the path below the prefix the request matched, at a path-segment boundary, so `/staticx/docs/...` isn't served. A parameterized prefix such as `/:tenant`, or one with a regular expression such as `/:tenant{[a-z]+}`, works too. The directory redirect keeps the prefix (`/static/docs/guide` redirects to `/static/docs/guide/`), and so do the links on the `/static` overview page.
 
 Use `route()`, not `mount()`. `mount()` hands the service a request with the prefix removed from its URL, so files are served, but a directory redirect points at the path without the prefix.
 
