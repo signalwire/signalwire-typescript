@@ -729,17 +729,18 @@ const SECURITY: Topic = {
   body: `- Basic auth protects every endpoint except the \`/health\` and \`/ready\`
   probes. Set \`SWML_BASIC_AUTH_USER\` and \`SWML_BASIC_AUTH_PASSWORD\`, or pass
   \`basicAuth\`; otherwise the agent generates a password.
-- Webhook signatures: with \`signingKey\` (or \`SIGNALWIRE_SIGNING_KEY\`), every
-  POST must carry a valid SignalWire signature. That covers SignalWire's
-  requests for the SWML document, its tool calls and its summaries. A GET for
-  the SWML document needs only basic auth.
-- Tool tokens: a secure tool runs only with the token minted into that call's
-  SWML. \`swaigSecret\` (or \`SIGNALWIRE_SWAIG_SECRET\`) keeps tokens valid across
-  replicas and restarts.
-- The SDK's own fetches of URLs that callers, the model or a skill's
-  configuration supply (the spider and web_search skills, for example) refuse
-  private and internal addresses, redirects included.
-  \`SWML_ALLOW_PRIVATE_URLS\` allows them.
+- Webhook signatures: with \`signingKey\` (or \`SIGNALWIRE_SIGNING_KEY\`), a POST
+  to the SWML route, \`/swaig\`, \`/post_prompt\` or a routing callback must carry
+  a valid SignalWire signature. A GET for the SWML document needs only basic
+  auth, and so does \`/mcp\`, which checks neither signatures nor tool tokens.
+- Tool tokens: a secure tool called through \`/swaig\` runs only with the token
+  minted into that call's SWML. \`swaigSecret\` (or \`SIGNALWIRE_SWAIG_SECRET\`)
+  keeps tokens valid across replicas and restarts.
+- The spider and web_search skills refuse private and internal addresses in
+  the URLs they fetch, checking every redirect. The mcp_gateway skill and
+  native_vector_search's \`remote_url\` check their URL once, at setup.
+  \`SWML_ALLOW_PRIVATE_URLS\` allows private addresses. docs/security.md has
+  the details.
 - Security is also a design question: what the model can see and request, and
   what the handlers enforce (\`sw-tsdocs pgi\`).
 `,

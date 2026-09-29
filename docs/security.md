@@ -69,15 +69,16 @@ A generated password exists only in the running process, and the agent logs a `b
 Auth: my-agent:**** (source: generated)
 ```
 
-Set the credentials yourself for any agent SignalWire or another client calls. This example passes them to the constructor from environment variables your deployment defines:
+Set the credentials yourself for any agent SignalWire or another client calls. This example passes them to the constructor from environment variables your deployment defines, and refuses to start without them, so a missing variable can't leave a known password in place:
 
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
 
-const agent = new AgentBase({
-  name: 'my-agent',
-  basicAuth: [process.env.AGENT_USER ?? 'admin', process.env.AGENT_PASSWORD ?? 'a-long-random-password'],
-});
+const user = process.env.AGENT_USER;
+const password = process.env.AGENT_PASSWORD;
+if (!user || !password) throw new Error('Set AGENT_USER and AGENT_PASSWORD');
+
+const agent = new AgentBase({ name: 'my-agent', basicAuth: [user, password] });
 ```
 
 In code, `getBasicAuthCredentials()` returns the credentials in use, and `getBasicAuthCredentials(true)` adds where they came from:

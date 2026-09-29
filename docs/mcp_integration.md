@@ -96,7 +96,7 @@ The endpoint takes JSON-RPC 2.0 requests as POSTs. It answers `404` to a GET, si
 
 The endpoint lists and calls only the tools the agent runs itself. DataMap tools run on SignalWire, and external webhook tools (a `webhookUrl` on the tool) run on another server. `/mcp` doesn't list them, and `tools/call` answers `Unknown tool` for them.
 
-A `tools/call` result carries the tool's `response` text as MCP text content. A structured `{ tool_result, tool_prompt }` response is sent as its JSON. Actions in the result, such as a transfer, have no meaning outside a call and aren't sent. An exception in the handler returns its message with `isError: true`.
+A `tools/call` result carries the tool's `response` text as MCP text content. A structured `{ tool_result, tool_prompt }` response is sent as its JSON. Actions in the result, such as a transfer, have no meaning outside a call and aren't sent. A handler that throws gets the same result a SWAIG call gets: its `onError` hook's result, its `errorMessage`, or a generic apology, with `isError: false`. The exception's message doesn't reach the client.
 
 Requests to `/mcp` run on the agent itself, not on a per-request copy. A dynamic config callback or `addPerCallConfig()` doesn't run for them, so tools those callbacks register aren't available. The handler's `rawData` holds only `function` and `argument`, with no `call_id` or `global_data`.
 

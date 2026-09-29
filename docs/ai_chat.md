@@ -56,7 +56,7 @@ console.log(reply.text);
 await client.end('support.42');
 ```
 
-`configUrl` locates the agent config the conversation runs.
+`configUrl` locates the agent config the conversation runs. The service fetches it like any other client, so an agent behind basic auth needs its credentials in the URL, as `agent.getFullUrl(true)` gives them.
 
 ### Credentials and the service URL
 
@@ -109,7 +109,7 @@ The client supports `await using`: `Symbol.asyncDispose` calls `close()`.
 
 ### Errors
 
-Every error from the typed methods is an `AIChatError`, with the JSON-RPC `code` (or `null`) and the service's message in `serverMessage`. These codes map to subclasses:
+An error the service returns, a timeout and a response the client can't parse are each an `AIChatError`, with the JSON-RPC `code` (or `null`) and the service's message in `serverMessage`. A transport failure, such as a refused connection, is thrown as `fetch` threw it, usually a `TypeError`. These codes map to subclasses:
 
 | Code | Error class |
 |---|---|
@@ -173,10 +173,13 @@ The browser learns the gateway's URL and a publishable key. It doesn't learn the
 ```typescript
 import { AgentBase, ChatGateway } from '@signalwire/sdk';
 
+// SWML_PROXY_URL_BASE (https://support.example.com) is the agent's public URL.
 const agent = new AgentBase({ name: 'support', route: '/' });
 
 const gateway = new ChatGateway({
-  configUrl: 'https://support.example.com/', // the one agent this key reaches
+  // The one agent this key reaches, with its basic-auth credentials in the
+  // URL, since the chat service fetches its SWML like any other client.
+  configUrl: agent.getFullUrl(true),
   key: process.env['CHAT_WIDGET_KEY'], // what the widget carries
   allowedOrigins: ['https://shop.example.com'], // localhost is always allowed
 });
@@ -392,7 +395,7 @@ declare function waitForRecord(conversationId: string, medium: string): Promise<
 
 const agent = new AgentBase({ name: 'support', route: '/' });
 const gateway = new ChatGateway({
-  configUrl: 'https://support.example.com/',
+  configUrl: agent.getFullUrl(true),
   allowedOrigins: ['https://shop.example.com'],
 });
 const rest = restClient();
