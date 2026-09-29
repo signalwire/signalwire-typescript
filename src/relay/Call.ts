@@ -1240,8 +1240,8 @@ export class Call {
    * @param options - Stream behaviour.
    * @param options.name - Friendly name for the stream.
    * @param options.codec - Audio codec (e.g. `"PCMU"`, `"PCMA"`).
-   * @param options.track - Which track to send: `"inbound"`, `"outbound"`, or
-   *   `"both"`.
+   * @param options.track - Which audio to stream: `"inbound_track"`,
+   *   `"outbound_track"` or `"both_tracks"`. Sent as given.
    * @param options.statusUrl - Webhook URL for stream status events.
    * @param options.statusUrlMethod - HTTP method for `statusUrl` requests.
    * @param options.authorizationBearerToken - Bearer token sent to the stream endpoint.

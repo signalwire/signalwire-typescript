@@ -380,7 +380,7 @@ const action = await call.tap(
 
 ### `stream(url, options?): Promise<StreamAction>`
 
-Stream the call's audio to a WebSocket endpoint. The options are `name`, `codec`, `track`, `statusUrl`, `statusUrlMethod`, `authorizationBearerToken`, `customParameters`, `controlId` and `onCompleted`.
+Stream the call's audio to a WebSocket endpoint. The options are `name`, `codec`, `track`, `statusUrl`, `statusUrlMethod`, `authorizationBearerToken`, `customParameters`, `controlId` and `onCompleted`. `track` picks the audio to stream: `'inbound_track'`, `'outbound_track'` or `'both_tracks'`.
 
 ```typescript
 const action = await call.stream('wss://example.com/audio', {
