@@ -288,6 +288,32 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   credentials and the pattern without its regular expression syntax. The
   transfer still uses the full URL.
 
+- `WebService` served files whose path below a mount had a dot-named
+  component, such as `.env.production`, `.ssh/id_rsa` or `.aws/credentials`,
+  including through symbolic links into such directories. Any such path is
+  now refused with 403, except under `.well-known`.
+- `WebService` served every mounted file, and `/`, without authentication
+  when no password was configured. It now requires basic-auth credentials:
+  `start()` throws without them, and every route but `/health` answers 401.
+  `/health` no longer requires credentials.
+- `ChatGateway` and `HandoffRouter` parsed request bodies of any size, and
+  passed on a chat message or `/say` text of any size as a turn. They now
+  answer 413 for a body over `MAX_REQUEST_BODY_BYTES` (64 KiB), refusing an
+  oversized declared `Content-Length` before reading, and for a message or
+  `/say` text over `MAX_MESSAGE_BYTES` (8 KiB of UTF-8), checked before a
+  conversation is created, a turn is counted or a nonce is looked up. Both
+  constants are exported. A body the application's own middleware already
+  read is read from Hono's cache, within the same limit.
+- `HandoffRouter.say()` didn't write its typing-slot count back to the
+  `registry`, so a registry that returns copies recorded neither the slot
+  nor the refund for a failed delivery, and `maxMessagesPerCall` could be
+  passed. It now writes the entry back and refunds against the stored entry,
+  matched by conversation, call and registration time.
+- `swml_transfer` stopped at the first `@` when it removed a destination's
+  credentials from the prompt, so a password containing an unencoded `@`
+  showed its tail to the model. It now removes the whole authority up to its
+  last `@`.
+
 ### Fixed
 
 - Agents: `AgentBase.serve()` and `AgentServer.run()` serve HTTPS from
@@ -518,6 +544,75 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - `paginate()` guards against a repeating server cursor (no infinite loop).
 - SWAIG `/swaig` handlers receive the unwrapped `argument.parsed` flat args.
 
+- `DataMap.body()` wrote a `body` key, which the platform doesn't read, so
+  the webhook went out with no request body. That included
+  `createSimpleApiTool({ body })`. `body()` now sets the webhook's `params`,
+  which the platform sends as the JSON body, and the request is a POST.
+  `createSimpleApiTool()` leaves out an empty `body: {}`, so a GET tool
+  stays a GET.
+- `FunctionResult.pay()` sent `timeout`, `max_attempts`,
+  `min_postal_code_length`, `security_code` and a boolean `postal_code` as
+  strings, which the platform reads as 0 or false. They are now sent as
+  integers and booleans; numeric strings are converted and SWML variable
+  references pass through.
+- `FunctionResult.joinConference()` refused `maxParticipants` above 250 and
+  dropped an explicit 250. It now accepts any integer of 2 or more, as the
+  platform does (the schema's cap of 100000 isn't enforced), or a SWML
+  variable reference, and sends the value whenever it's given.
+- LiveWire: `allowInterruptions: false` set the `barge_confidence` AI param,
+  which the platform doesn't read, so callers could still interrupt the
+  agent. It now sets `enable_barge: false`. The LLM parameters guide no
+  longer presents `barge_confidence` as a working setting and points to
+  `barge_min_words`, `enable_barge` and `barge_match_string`.
+- `BedrockAgent` copied `contexts`, `confidence` and the two penalties into
+  the Bedrock prompt. The platform's Bedrock session reads only the prompt's
+  text, `voice_id`, `temperature` and `top_p` (it uses 1024 for
+  `max_tokens`), and the schema rejects `contexts`. The prompt now carries
+  only those, and the agent warns once per agent for each left-out feature
+  (hints, languages, pronunciation rules, multilingual settings, contexts)
+  instead of on every render; `setPromptLlmParams()` warns about the
+  settings it ignores.
+- `BedrockAgent` stored `temperature`, `top_p` and `max_tokens` as given, so
+  a value such as `"hot"` reached the SWML, and `setPromptLlmParams()`
+  ignored numeric strings. The constructor, `setInferenceParams()`,
+  `setLlmTemperature()` and `setPromptLlmParams()` now convert numeric
+  strings, keep a `${var}` reference for `temperature` and `top_p`, and
+  throw for anything else, changing nothing.
+- The `info_gatherer` and `claude_skills` parameter schemas advertised a
+  `tool_name` parameter the skills never read. They no longer list it.
+  `env_var` in a parameter schema is described as a hint for configuration
+  tools, which the SDK doesn't read.
+- `WebService` served a directory's `index.html` in place when the URL had
+  no trailing slash, which broke the page's relative links. It now answers
+  with a 307 redirect to the slash form, on this host, with the path's
+  percent-encoding kept.
+- swaig-test's DataMap simulator now does what the platform does where it
+  used to differ on purpose: an unresolved template expands to an empty
+  string (with a note on stderr), not `<MISSING:path>`; names match without
+  regard to case; `fmt_ph` formats North American numbers; the call data
+  holds `meta_data`, the call details and `prompt_vars`, and the webhook
+  stage adds `prompt_vars` and `global_data`; a matched webhook expression's
+  result is expanded twice; a template expands only once; outputs are
+  expanded as JSON text; and when nothing produces a result the tool returns
+  the platform's `{"response": "There was an error processing this
+  request."}`.
+- swaig-test's DataMap simulator followed webhook redirects with browser
+  rules: at most 10, and a POST turned into a bodyless GET after a 301, 302
+  or 303. It now follows them as the platform's curl does: up to 15, and a
+  POST is sent again with its body. Every hop is still checked for private
+  addresses, and credentials are still dropped on a change of origin.
+- `swaig-test --custom-data` now reaches DataMap functions as the call data
+  the platform adds, such as `global_data` and `prompt_vars`. Before, a
+  DataMap tool that read `${global_data.x}` always got an empty value.
+- `swaig-test --simulate-serverless` now builds the function URL from parts
+  given by `--env` or `--env-file`, not only by flags, and uses a part given
+  under its other name (`GCP_PROJECT`, `GOOGLE_CLOUD_REGION`,
+  `FUNCTION_TARGET`, `AZURE_FUNCTIONS_APP_NAME`) instead of the preset's
+  value under the preferred name. For example, `--env AWS_REGION=eu-west-1`
+  used to keep the preset's us-east-1 URL.
+- Tutorials: Penny asks a locked-out caller before connecting them with a
+  person, and Fred's dated fun facts are replaced with checked ones.
+
 ### Notes for upgraders
 
 - An agent's `validateBasicAuth()` override now replaces the credential
@@ -592,6 +687,30 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - `validateUrl()` refuses a hostname that doesn't resolve. Code that relied on
   it passing unresolvable hosts, such as tests that stub `fetch`, can set
   `SWML_ALLOW_PRIVATE_URLS` while testing.
+- `WebService` needs credentials. Set `SWML_BASIC_AUTH_USER` and
+  `SWML_BASIC_AUTH_PASSWORD`, pass `basicAuth: [user, password]`, or set
+  `security.auth.basic` in the config file; otherwise `start()` throws, and
+  an app from `getApp()` refuses every request but `/health`. Clients,
+  including URLs the platform fetches such as `play` URLs, must send the
+  credentials. Load balancers can keep probing `/health` without them.
+- A DataMap `body()` is now sent, and makes the webhook a POST even when
+  it's declared `GET`. `body()` and `params()` now write the same field, so
+  the later call wins; a tool that called both must merge them into one
+  object. A hand-written `body` key in a raw `data_map` is still not sent.
+- `pay()` renders numbers and booleans, and throws for a value that isn't an
+  integer or a boolean (such as `timeout: 'soon'` or `maxAttempts: 1.5`).
+  `joinConference()` now sends an explicit `maxParticipants: 250`, and
+  throws for a value below 2.
+- `BedrockAgent` throws on a non-numeric `temperature`, `top_p` or
+  `max_tokens`, where it used to store the value, or in
+  `setPromptLlmParams()`, warn and ignore it. `confidence`,
+  `presence_penalty` and `frequency_penalty` are no longer sent in the
+  Bedrock prompt.
+- swaig-test's DataMap simulator writes an empty string for an unresolved
+  template, as the platform does, and returns the platform's generic error
+  response when nothing produces a result; it still exits with status 1
+  then. Scripts that looked for `<MISSING:` or the old error object should
+  read stderr's notes instead.
 
 ## 3.2.0
 
