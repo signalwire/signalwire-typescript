@@ -3,9 +3,11 @@
  *
  * Two tools that call external APIs without a webhook endpoint of your own.
  * The SignalWire platform makes each request and expands the output
- * template from the data_map definition. A webhook's JSON response is read
- * from the root of the template data (`${current_condition[0].temp_F}`),
- * with no `response.` prefix.
+ * template from the data_map definition. In a webhook's output, the JSON
+ * response is read from the root of the template data
+ * (`${current_condition[0].temp_F}`), with no `response.` prefix, and the
+ * arguments are under `input` (`${input.args.city}`). The URL reads the
+ * arguments as `${args.city}`.
  * Run: npx tsx examples/datamap-tools.ts
  * Test: npx tsx src/cli/swaig-test.ts examples/datamap-tools.ts --exec get_weather --city London
  */
@@ -30,7 +32,7 @@ const weatherTool = new DataMap('get_weather')
   .webhook('GET', 'https://wttr.in/${lc:enc:args.city}?format=j1')
   .output(
     new FunctionResult(
-      'Weather in ${args.city}: ${current_condition[0].temp_F}°F, ${current_condition[0].weatherDesc[0].value}',
+      'Weather in ${input.args.city}: ${current_condition[0].temp_F}°F, ${current_condition[0].weatherDesc[0].value}',
     ),
   )
   .fallbackOutput(new FunctionResult('Sorry, I could not fetch the weather for that city.'));
