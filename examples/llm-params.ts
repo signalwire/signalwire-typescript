@@ -1,8 +1,9 @@
 /**
  * LLM Parameters Example
  *
- * Fine-tune AI behavior: temperature, top_p, barge confidence,
- * speech recognition hints, fillers, and post-prompt instructions.
+ * Fine-tune AI behavior: prompt sampling settings (temperature, top_p,
+ * confidence), AI parameters (barge match string, timeouts), speech
+ * recognition hints, fillers, and post-prompt instructions.
  * Run: npx tsx examples/llm-params.ts
  */
 
@@ -22,17 +23,21 @@ agent.setPromptText(
     'Always confirm information before proceeding. Never guess or speculate.',
 );
 
-// LLM parameters — low temperature for precision
-agent.setParams({
+// Sampling settings belong to the prompt (the SWML schema puts temperature,
+// top_p and confidence on ai.prompt, not ai.params). A low temperature keeps
+// the answers precise.
+agent.setPromptLlmParams({
   temperature: 0.2,
   top_p: 0.9,
   confidence: 0.6,
-  barge_confidence: 0.3,
-  barge_match_string: 'stop,cancel,hold on',
+});
+
+// AI parameters: barge_match_string is a regular expression, and the
+// timeouts are in milliseconds.
+agent.setParams({
+  barge_match_string: 'stop|cancel|hold on',
   attention_timeout: 15000,
   inactivity_timeout: 20000,
-  background_file_loops: -1,
-  background_file_volume: 10,
 });
 
 // Language with function-level fillers (keyed by category → phrases)

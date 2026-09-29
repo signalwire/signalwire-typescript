@@ -134,7 +134,24 @@ describe('examples', () => {
         ai: { params: Record<string, unknown> };
       };
       expect(aiVerb).toBeDefined();
-      expect(aiVerb['ai']['params']['temperature']).toBe(0.2);
+      expect(aiVerb['ai']['params']['barge_match_string']).toBe('stop|cancel|hold on');
+    });
+
+    it('puts sampling settings on the prompt, not in params', async () => {
+      const agent = await loadExample('llm-params.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: Record<string, Record<string, unknown>> })[
+        'ai'
+      ];
+      // temperature, top_p and confidence are AIPromptText keys in the SWML schema.
+      expect(ai['prompt']).toMatchObject({ temperature: 0.2, top_p: 0.9, confidence: 0.6 });
+      for (const key of ['temperature', 'top_p', 'confidence', 'barge_confidence']) {
+        expect(ai['params']).not.toHaveProperty(key);
+      }
     });
   });
 

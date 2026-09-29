@@ -74,7 +74,7 @@ These three files hold the code blocks of the repository README's quickstarts, w
 | File | Description |
 |------|-------------|
 | [call-flow.ts](call-flow.ts) | Verbs before answer, after answer and after the AI, with call recording and a post-prompt |
-| [llm-params.ts](llm-params.ts) | AI parameters (temperature, barge, timeouts), fillers, pronunciation and a post-prompt |
+| [llm-params.ts](llm-params.ts) | Prompt sampling settings (temperature, top_p, confidence), AI parameters (barge match string, timeouts), fillers, pronunciation and a post-prompt |
 | [session-state.ts](session-state.ts) | Global data, a tool that updates it, and an `onSummary` handler for the post-prompt summary |
 | [verb-methods.ts](verb-methods.ts) | Pre-answer, post-answer and post-AI verbs on an agent, and a standalone `SwmlBuilder` document |
 
