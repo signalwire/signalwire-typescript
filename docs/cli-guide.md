@@ -260,13 +260,13 @@ The output shows the Spanish voice and the caller's name:
 
 ## DataMap Functions
 
-`--exec` runs a DataMap function in a local simulator that follows the platform's processing. It tries the expressions, then the webhooks in order until one succeeds. It then runs that webhook's `foreach` and `output`, or the DataMap's own `output` when every webhook failed.
+`--exec` runs a DataMap function in a local simulator that follows the platform's processing. It tries the expressions, then the webhooks in order until one succeeds. It then runs that webhook's `foreach`, its `expressions` against the response, and its `output`. The DataMap's own `output` is the result when every webhook failed, or when the webhook's expressions didn't match and it has no `output`.
 
 The simulator follows the platform's template rules:
 
 - A webhook's JSON object response is read from the root of the template data (`${current.temp_f}`). A JSON array response is under `array` (`${array[0].joke}`). When a template reads `${response.<field>}`, which doesn't resolve, the simulator says so on stderr.
 - Templates take the `lc` and `enc` (or `enc:url`) helpers, left to right, and nest: `${lc:enc:args.city}`.
-- A webhook fails on a status outside 200-299, a body that isn't JSON, or one of its `error_keys` in a JSON object response.
+- A webhook fails on a status outside 200-299, a body that isn't JSON, or one of its `error_keys` in a JSON object response. An `error_keys` on the `data_map` itself is ignored, as on the platform.
 - Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
 
 This command runs the weather tool against the real wttr.in API and prints each step:

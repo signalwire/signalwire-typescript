@@ -10,8 +10,14 @@
  * 2. Webhooks, in order, until one succeeds. A webhook fails on a status
  *    outside 200-299, a body that isn't JSON, or, for a JSON object, a
  *    `parse_error`/`protocol_error` key or one of its `error_keys`.
- * 3. The successful webhook's `foreach`, then its `output`.
- * 4. The data_map's own `output` when every webhook failed.
+ * 3. The successful webhook's `foreach`, then its `expressions` (read
+ *    against the response, the first match or `nomatch-output` wins), then
+ *    its `output`.
+ * 4. The data_map's own `output` when every webhook failed, or when the one
+ *    that succeeded has expressions that didn't match and no `output`.
+ *
+ * An `error_keys` on the data_map itself is ignored, as on the platform: only
+ * a webhook's own `error_keys` fail it.
  *
  * Templates: `${path}` and `%{path}` read a dotted path (with `[n]` indexes)
  * from the template data. Prefix helpers apply left to right: `lc`
@@ -356,19 +362,31 @@ export async function executeDataMap(
       }
     }
 
-    // 4. The webhook's output, or its response when it has none
+    // 4. The webhook's expressions, read against the response
+    if ('expressions' in webhook) {
+      const matched = runExpressions(webhook['expressions'], webhookContext, say);
+      if (matched.matched) {
+        hint(matched.output);
+        return matched.output;
+      }
+      say('No webhook expression matched');
+    }
+
+    // 5. The webhook's output, or its response when it has neither output nor expressions
     if ('output' in webhook) {
       const result = expandValue(webhook['output'], webhookContext);
       hint(result);
       return result;
     }
+    if ('expressions' in webhook) break;
     say('No output template; returning the response');
     return responseData;
   }
 
-  // 5. Every webhook failed: the fallback output
+  // 6. Every webhook failed, or the one that succeeded produced nothing: the
+  // data_map's own output
   if ('output' in dataMap) {
-    say('Every webhook failed; using the data_map output');
+    say('No webhook produced a result; using the data_map output');
     return expandValue(dataMap['output'], context);
   }
   return { error: 'All webhooks failed and no fallback output defined', status: 'failed' };

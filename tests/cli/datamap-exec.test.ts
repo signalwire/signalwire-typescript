@@ -299,4 +299,59 @@ describe('fix pass', () => {
       response: 'Unknown command stop',
     });
   });
+
+  it("evaluates a webhook's expressions against the response, after foreach and before output", async () => {
+    const fn = new DataMap('order_status')
+      .parameter('id', 'string', 'Order id')
+      .webhook('GET', 'https://api.example.com/orders/${args.id}')
+      .foreach({ input_key: 'items', output_key: 'names', append: '${this.name} ' })
+      .webhookExpressions([
+        {
+          string: '${status}',
+          pattern: '^shipped$',
+          output: { response: 'Order ${args.id} shipped: ${names}' },
+        },
+      ])
+      .output(new FunctionResult('Order ${args.id} is ${status}'))
+      .toSwaigFunction();
+    const shipped = fakeFetch({ status: 'shipped', items: [{ name: 'tea' }] });
+    expect(await executeDataMap(fn, { id: '7' }, shipped)).toEqual({
+      response: 'Order 7 shipped: tea ',
+    });
+    const pending = fakeFetch({ status: 'pending', items: [] });
+    expect(await executeDataMap(fn, { id: '7' }, pending)).toEqual({
+      response: 'Order 7 is pending',
+    });
+  });
+
+  it("falls back to the data_map output when a webhook's expressions don't match and it has no output", async () => {
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            method: 'GET',
+            expressions: [{ string: '${status}', pattern: '^ok$', output: { response: 'fine' } }],
+          },
+        ],
+        output: { response: 'no match' },
+      },
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ status: 'bad' }))).toEqual({
+      response: 'no match',
+    });
+  });
+
+  it('ignores error_keys on the data_map itself, as the platform does', async () => {
+    const fn = new DataMap('lookup')
+      .webhook('GET', 'https://x')
+      .output(new FunctionResult('found ${name}'))
+      .globalErrorKeys(['error'])
+      .fallbackOutput(new FunctionResult('failed'))
+      .toSwaigFunction();
+    expect((fn['data_map'] as Record<string, unknown>)['error_keys']).toEqual(['error']);
+    expect(await executeDataMap(fn, {}, fakeFetch({ name: 'Ann', error: 'x' }))).toEqual({
+      response: 'found Ann',
+    });
+  });
 });
