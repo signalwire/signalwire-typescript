@@ -266,7 +266,11 @@ export class DataSphereServerlessSkill extends SkillBase {
       append: '=== RESULT ===\n${this.text}\n' + '='.repeat(50) + '\n\n',
     });
 
-    dm.output(new FunctionResult('I found results for "${args.query}":\n\n${formatted_results}'));
+    // A webhook's output reads the arguments under `input` (the platform's
+    // template data there is the response plus `input`, with no `args`).
+    dm.output(
+      new FunctionResult('I found results for "${input.args.query}":\n\n${formatted_results}'),
+    );
 
     dm.errorKeys(['error']);
 

@@ -477,7 +477,7 @@ This is the `data_map` block the skill renders for `count: 2`, from a real run, 
         "max": 2,
         "append": "=== RESULT ===\n${this.text}\n==================================================\n\n"
       },
-      "output": { "response": "I found results for \"${args.query}\":\n\n${formatted_results}" },
+      "output": { "response": "I found results for \"${input.args.query}\":\n\n${formatted_results}" },
       "error_keys": ["error"]
     }
   ],
