@@ -123,7 +123,7 @@ describe('BedrockAgent render warnings', () => {
     const warn = spyWarn(agent);
     agent.setPromptLlmParams({ barge_confidence: 0.4 });
     expect(warn).toHaveBeenCalledWith(
-      "setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so it's ignored",
+      "setPromptLlmParams(): the platform's Bedrock session doesn't use barge_confidence, so it's ignored",
     );
   });
 });

@@ -75,7 +75,7 @@ The constructor takes one optional `BedrockAgentConfig` object. Every field is o
 | `voiceId` | `string` | `'matthew'` | Bedrock voice; see [Voices](#voices) |
 | `temperature` | `number \| string` | `0.7` | Sent as `prompt.temperature`; see [Inference settings](#inference-settings) |
 | `topP` | `number \| string` | `0.9` | Sent as `prompt.top_p` |
-| `maxTokens` | `number \| string` | `1024` | Sent as `prompt.max_tokens`; must be an integer |
+| `maxTokens` | `number \| string` | `1024` | Sent as `prompt.max_tokens`; must be an integer. The platform's Bedrock session doesn't read it, and uses 1024 |
 | `agentOptions` | `Partial<AgentOptions>` | none | Other `AgentBase` options, such as `basicAuth`, `port`, `swaigSecret` or `signingKey` |
 
 `agentOptions` is spread after `name` and `route`, so a `name` or `route` inside it wins over the top-level fields.
@@ -112,15 +112,14 @@ An argument left `undefined` keeps its current value. Each value must be a numbe
 Error: BedrockAgent temperature must be a number, got "hot"
 ```
 
-The schema allows `temperature` from 0 to 1.5, `top_p` from 0 to 1, and `max_tokens` from 0 to 4096. The SDK doesn't clamp or check these ranges.
+The platform's Bedrock session applies `temperature` from 0 to 2 and `top_p` from 0 to 1. It doesn't read `max_tokens`, and uses 1024. The schema allows `temperature` only up to 1.5 and `max_tokens` from 0 to 4096. The SDK doesn't clamp or check these ranges.
 
-`setPromptLlmParams()` takes the settings by their SWML names. On a `BedrockAgent` it sorts them into three groups:
+`setPromptLlmParams()` takes the settings by their SWML names. On a `BedrockAgent` it sorts them into two groups:
 
 - `temperature`, `top_p` and `max_tokens` update the inference settings, as `setInferenceParams()` does, so a value that isn't a number throws.
-- `confidence`, `presence_penalty` and `frequency_penalty` are added to the prompt object.
-- Any other key, such as `barge_confidence`, is left out, and the SDK logs a warning that names it.
+- Any other key is left out, and the SDK logs a warning that names it. The platform's Bedrock session reads no other prompt setting, so this includes `confidence`, `presence_penalty` and `frequency_penalty`, which the schema's Bedrock prompt lists, and `barge_confidence`.
 
-This call sets four settings the Bedrock prompt defines and one it doesn't:
+This call sets `max_tokens` and four settings the Bedrock session doesn't use:
 
 ```typescript
 import { BedrockAgent } from '@signalwire/sdk';
@@ -139,28 +138,23 @@ agent.setPromptLlmParams({
 });
 ```
 
-The SDK logs this warning for the key it leaves out:
+The SDK logs this warning for the keys it leaves out:
 
 ```text
-2026-09-28T22:58:09.944Z [WARN] [AgentBase] setPromptLlmParams(): Bedrock's prompt doesn't define barge_confidence, so it's ignored
+2026-09-29T22:06:32.030Z [WARN] [AgentBase] setPromptLlmParams(): the platform's Bedrock session doesn't use barge_confidence, confidence, frequency_penalty, presence_penalty, so they're ignored
 ```
 
-The rendered prompt then carries the settings the Bedrock prompt defines:
+The rendered prompt then carries the text, the voice and the inference settings:
 
 ```json
 {
   "text": "You answer questions about order status.",
-  "confidence": 0.7,
-  "presence_penalty": 0.2,
-  "frequency_penalty": 0.1,
   "voice_id": "tiffany",
   "temperature": 0.7,
   "top_p": 0.9,
   "max_tokens": 512
 }
 ```
-
-The schema describes `confidence` as the threshold for the end-of-utterance speech event, from 0 to 1 (default 0.6). The two penalties range from -2 to 2 (default 0).
 
 ## Methods that behave differently
 
@@ -173,13 +167,13 @@ Four `AgentBase` methods behave differently on a `BedrockAgent`:
 | `setPostPromptLlmParams(params)` | Logs a warning and changes nothing. |
 | `setPromptLlmParams(params)` | Sorts the settings as described in [Inference settings](#inference-settings). |
 
-The warning from `setPostPromptLlmParams()` says the Bedrock post-prompt uses a model the engine configures. The SWML schema's `amazon_bedrock` `post_prompt` does accept `temperature`, `top_p`, `max_tokens`, `confidence` and the penalties, but `BedrockAgent` doesn't send them. Set the post-prompt text with `setPostPrompt()` as usual.
+The warning from `setPostPromptLlmParams()` says the Bedrock post-prompt uses a model the engine configures. The SWML schema's `amazon_bedrock` `post_prompt` does accept `temperature`, `top_p`, `max_tokens`, `confidence` and the penalties, but the platform's Bedrock post-prompt reads only its text, with its other settings fixed in the engine, so `BedrockAgent` doesn't send them. Set the post-prompt text with `setPostPrompt()` as usual.
 
 `BedrockAgent` adds two methods of its own: `setVoice(voiceId)` and `setInferenceParams(temperature?, topP?, maxTokens?)`. Both return the agent, so calls chain.
 
 ## What the agent renders
 
-`BedrockAgent` overrides `renderSwml()`. It renders the document as `AgentBase` does, then replaces the `ai` verb with an `amazon_bedrock` verb that carries six of its keys. It adds `voice_id` and the inference settings to the prompt object, and keeps only the other keys the Bedrock prompt defines: `text` or `pom`, `confidence`, `presence_penalty` and `frequency_penalty`.
+`BedrockAgent` overrides `renderSwml()`. It renders the document as `AgentBase` does, then replaces the `ai` verb with an `amazon_bedrock` verb that carries six of its keys. It adds `voice_id` and the inference settings to the prompt object, and keeps only `text` or `pom` from the `ai` prompt, since the platform's Bedrock session reads no other prompt setting.
 
 Run `swaig-test` with `--dump-swml` to see the document an agent renders:
 
@@ -243,7 +237,7 @@ The `amazon_bedrock` verb carries these keys:
 
 | Key | Content |
 |---|---|
-| `prompt` | `text` or `pom`, the `confidence`, `presence_penalty` and `frequency_penalty` settings `setPromptLlmParams()` added, `voice_id`, `temperature`, `top_p` and `max_tokens` |
+| `prompt` | `text` or `pom`, `voice_id`, `temperature`, `top_p` and `max_tokens`. The platform's Bedrock session reads all but `max_tokens` |
 | `SWAIG` | `functions`, `defaults` and any other SWAIG keys the agent built |
 | `params` | The values from `setParams()`, such as `attention_timeout` or `inactivity_timeout` |
 | `global_data` | The agent's global data |
@@ -399,7 +393,7 @@ const after = new BedrockAgent({ name: 'my_agent', voiceId: 'matthew' });
 These problems come up with a `BedrockAgent`:
 
 - **The voice doesn't change.** Check that the value is one of the [five voices](#voices). The SDK sends any string.
-- **A setting doesn't appear in the prompt.** Only `temperature`, `top_p`, `max_tokens`, `confidence`, `presence_penalty` and `frequency_penalty` are sent. Look for the `setPromptLlmParams()` warning in the log.
+- **A setting doesn't appear in the prompt.** Only `temperature`, `top_p` and `max_tokens` are sent, and the platform's Bedrock session doesn't read `max_tokens` (it uses 1024). Look for the `setPromptLlmParams()` warning in the log.
 - **Prompt sections are missing.** `systemPrompt` or `setPromptText()` replaces the POM prompt. Use `promptAddSection()` alone for a structured prompt.
 - **Steps don't run.** The Bedrock prompt doesn't define `contexts`, so the SDK leaves them out and logs a warning.
 - **The constructor or `setInferenceParams()` throws.** `temperature`, `top_p` and `max_tokens` must be numbers, or numeric strings. See [Inference settings](#inference-settings).
