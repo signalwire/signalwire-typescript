@@ -29,22 +29,17 @@ interface SkillMetaEntry {
  * hints, global data, and prompt sections.
  *
  * @remarks
- * **Architectural note — push vs pull model:**
- * Python's `SkillManager.__init__(self, agent)` stores the agent reference and
- * uses a **push model**: when a skill is loaded via `load_skill()`, the manager
- * immediately calls `agent.add_hints()`, `agent.update_global_data()`, and
- * `agent.prompt_add_section()` to inject skill data into the agent.
+ * `AgentBase` owns a manager (`agent.skillManager`). {@link addSkill} only
+ * checks, sets up and records a skill: `AgentBase.addSkill()` calls it, then
+ * registers the skill's tools, prompt sections, hints and global data on the
+ * agent. {@link loadSkill} and {@link loadSkillByName} on a manager that
+ * belongs to an agent go through `AgentBase.addSkill()`, so the skill is
+ * registered on the agent as well, as Python's `SkillManager.load_skill()`
+ * does (`core/skill_manager.py`). On a standalone manager they only record
+ * the skill.
  *
- * This TypeScript implementation uses a **pull model** for INJECTION: `AgentBase`
- * owns the manager and calls `getAllHints()`, `getMergedGlobalData()`, and
- * `getAllPromptSections()` at render time rather than the manager pushing into the
- * agent. Both approaches produce the same observable behavior at the SWML / SWAIG
- * level.
- *
- * The owning agent is still kept as a public back-reference ({@link agent}) — the
- * reference's `self.agent` (`core/skill_manager.py:22`) is READABLE state, and a
- * caller holding the manager can walk back to its owner in Python. Only the
- * direction of the data flow differs; the read-back does not.
+ * The owning agent is kept as a public back-reference ({@link agent}), the
+ * reference's readable `self.agent` (`core/skill_manager.py:22`).
  */
 export class SkillManager {
   private skills: Map<string, SkillBase> = new Map();
@@ -104,7 +99,9 @@ export class SkillManager {
 
   /**
    * Add a skill to the manager, validating env vars and calling setup().
-   * Uses the skill's instance key for deduplication.
+   * Uses the skill's instance key for deduplication. This records the skill
+   * only; it doesn't register the skill's tools on the agent. Use
+   * {@link loadSkill}, or `AgentBase.addSkill()`, for that.
    *
    * {@link loadSkill} / {@link loadSkillByName} wrap this and catch to return
    * `[false, msg]`, matching Python `load_skill`'s return contract
@@ -276,9 +273,26 @@ export class SkillManager {
   }
 
   /**
+   * Add a skill and, when this manager belongs to an agent, register its
+   * tools, prompt sections, hints and global data there, through
+   * `AgentBase.addSkill()` (which calls {@link addSkill}).
+   */
+  private async addAndRegister(skill: SkillBase): Promise<void> {
+    if (this.agent) {
+      await this.agent.addSkill(skill);
+    } else {
+      await this.addSkill(skill);
+    }
+  }
+
+  /**
    * Load a skill by providing the class constructor directly, bypassing the registry.
    * This is the TypeScript equivalent of Python's `load_skill(skill_name, skill_class, params)`
    * path where a caller-provided `skill_class` is used instead of a registry lookup.
+   *
+   * On a manager that belongs to an agent, the skill's tools, prompt sections,
+   * hints and global data are registered on that agent, as with
+   * `agent.addSkill()`.
    *
    * @param skillClass - The skill class constructor (a subclass of `SkillBase`).
    * @param config - Optional configuration to pass to the skill constructor.
@@ -311,7 +325,7 @@ export class SkillManager {
       // concrete subclasses hardcode it in super(...), so only config is needed at the call site.
       const SkillCtor = skillClass as unknown as new (config?: SkillConfig) => SkillBase;
       const skill = new SkillCtor(config);
-      await this.addSkill(skill);
+      await this.addAndRegister(skill);
       return [true, ''];
     } catch (err) {
       const errorMsg = `Error loading skill: ${err instanceof Error ? err.message : String(err)}`;
@@ -324,6 +338,9 @@ export class SkillManager {
    * Load a skill by name from the global SkillRegistry, construct it, and add it.
    * This is the TypeScript equivalent of Python's `load_skill(skill_name)` path
    * where `skill_class=None` triggers a registry lookup.
+   *
+   * On a manager that belongs to an agent, the skill is registered on that
+   * agent, as with {@link loadSkill}.
    *
    * @param skillName - The registered skill name to look up in the SkillRegistry.
    * @param config - Optional configuration to pass to the skill factory.
@@ -351,7 +368,7 @@ export class SkillManager {
     }
 
     try {
-      await this.addSkill(skill);
+      await this.addAndRegister(skill);
       return [true, ''];
     } catch (err) {
       const errorMsg = `Error loading skill '${skillName}': ${err instanceof Error ? err.message : String(err)}`;

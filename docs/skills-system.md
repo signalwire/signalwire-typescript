@@ -159,7 +159,7 @@ These `SkillManager` methods are public:
 | Method | Description |
 |---|---|
 | `addSkill(skill)` | Runs the checks and `setup()`, and records the skill. Throws on failure. |
-| `loadSkill(SkillClass, config?)` | Constructs and adds a skill. Resolves to `[true, '']`, or `[false, message]` instead of throwing. |
+| `loadSkill(SkillClass, config?)` | Constructs and adds a skill. On `agent.skillManager`, it also registers the skill on the agent, as `agent.addSkill()` does. Resolves to `[true, '']`, or `[false, message]` instead of throwing. |
 | `loadSkillByName(name, config?)` | The same, looking the class up in the registry |
 | `removeSkill(keyOrId)` | Calls `cleanup()` and removes one skill, by instance key or `instanceId` |
 | `removeSkillByName(name)` | Removes every instance with that name, and resolves to how many it removed |
@@ -170,7 +170,7 @@ These `SkillManager` methods are public:
 | `loadedSkills` | Read-only map of instance key to skill |
 | `clear()` | Calls `cleanup()` on every loaded skill and removes them all |
 
-The manager's methods don't register anything on the agent. A skill loaded with `agent.skillManager.loadSkill()` counts as loaded for `hasSkill()`, but its tools, prompt sections, hints and global data never reach the agent. Add skills with `agent.addSkill()` or `agent.addSkillByName()`. This example lists what's loaded:
+`loadSkill()` and `loadSkillByName()` on `agent.skillManager` go through `agent.addSkill()`, so the skill's tools, prompt sections, hints and global data reach the agent, as with Python's `load_skill()`. `addSkill()` on the manager only checks, sets up and records the skill, and a standalone `new SkillManager()` has no agent to register on. This example lists what's loaded:
 
 ```typescript
 const skills = agent.listSkills(); // same as agent.skillManager.listSkills()
