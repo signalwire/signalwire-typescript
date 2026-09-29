@@ -149,10 +149,10 @@ describe('WebService blocklist through symbolic links', () => {
     expect(res.body).not.toContain('cache-secret');
   });
 
-  it('does not list files under a directory link to a blocked directory', async () => {
+  it('refuses a listing through a directory link to a blocked directory', async () => {
     symlinkSync(join(mount, '__pycache__'), join(mount, 'pub'));
     const res = await get('/docs/pub/', { enableDirectoryBrowsing: true });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
     expect(res.body).not.toContain('data.txt');
   });
 
@@ -369,5 +369,117 @@ describe('WebService CORS origins', () => {
     expect(ok.headers.get('access-control-allow-origin')).toBe('https://a.example.com');
     const other = await preflight(app, 'https://b.example.com');
     expect(other.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
+
+// Any path component below the mount that starts with a dot is refused, as
+// listings already hide them, except `.well-known` (ACME challenges,
+// security.txt). The check covers the path requested and the file read.
+describe('WebService refuses dot-named path components below the mount', () => {
+  beforeEach(() => {
+    writeFileSync(join(mount, '.env.production'), 'prod-secret');
+    mkdirSync(join(mount, '.ssh'));
+    writeFileSync(join(mount, '.ssh', 'id_rsa'), 'ssh-secret');
+    mkdirSync(join(mount, '.aws'));
+    writeFileSync(join(mount, '.aws', 'credentials'), 'aws-secret');
+  });
+
+  async function get(path: string, options: Record<string, unknown> = {}) {
+    const web = new WebService({ directories: { '/docs': mount }, ...options });
+    const res = await web.getApp().request(path);
+    return { status: res.status, body: await res.text() };
+  }
+
+  it.each([
+    ['/docs/.env.production', 'prod-secret'],
+    ['/docs/.ssh/id_rsa', 'ssh-secret'],
+    ['/docs/.aws/credentials', 'aws-secret'],
+    ['/docs/%2eenv.production', 'prod-secret'],
+    ['/docs/%2essh/id_rsa', 'ssh-secret'],
+  ])('refuses %s', async (path, secret) => {
+    const res = await get(path);
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain(secret);
+  });
+
+  it('refuses a dot-named path that does not exist with 403, not 404', async () => {
+    expect((await get('/docs/.npmrc')).status).toBe(403);
+  });
+
+  it('refuses a listing of a dot-named directory', async () => {
+    const res = await get('/docs/.ssh/', { enableDirectoryBrowsing: true });
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('id_rsa');
+  });
+
+  it('refuses a file link to a file under a dot-named directory', async () => {
+    symlinkSync(join(mount, '.aws', 'credentials'), join(mount, 'notes.txt'));
+    const res = await get('/docs/notes.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('aws-secret');
+  });
+
+  it('refuses a file link to a dot-named file', async () => {
+    symlinkSync(join(mount, '.env.production'), join(mount, 'config.txt'));
+    const res = await get('/docs/config.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('prod-secret');
+  });
+
+  it('refuses a file under a directory link to a dot-named directory', async () => {
+    symlinkSync(join(mount, '.ssh'), join(mount, 'keys'));
+    const res = await get('/docs/keys/id_rsa');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('ssh-secret');
+  });
+
+  it('refuses a listing through a directory link to a dot-named directory', async () => {
+    symlinkSync(join(mount, '.ssh'), join(mount, 'keys'));
+    const res = await get('/docs/keys/', { enableDirectoryBrowsing: true });
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('id_rsa');
+  });
+
+  it('refuses an index.html that links into a dot-named directory', async () => {
+    writeFileSync(join(mount, '.ssh', 'page.html'), 'hidden-page');
+    mkdirSync(join(mount, 'sub'));
+    symlinkSync(join(mount, '.ssh', 'page.html'), join(mount, 'sub', 'index.html'));
+    const res = await get('/docs/sub/');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('hidden-page');
+  });
+
+  it('serves files under .well-known', async () => {
+    mkdirSync(join(mount, '.well-known', 'acme-challenge'), { recursive: true });
+    writeFileSync(join(mount, '.well-known', 'acme-challenge', 'token'), 'proof');
+    writeFileSync(join(mount, '.well-known', 'security.txt'), 'Contact: sec@example.com');
+    const token = await get('/docs/.well-known/acme-challenge/token');
+    expect(token.status).toBe(200);
+    expect(token.body).toBe('proof');
+    expect((await get('/docs/.well-known/security.txt')).status).toBe(200);
+  });
+
+  it('still refuses a dot-named file under .well-known', async () => {
+    mkdirSync(join(mount, '.well-known'));
+    writeFileSync(join(mount, '.well-known', '.secret'), 'wk-secret');
+    expect((await get('/docs/.well-known/.secret')).status).toBe(403);
+  });
+
+  it('serves a mount that itself lives under a dot-named directory', async () => {
+    const hiddenMount = join(root, '.site', 'public');
+    mkdirSync(hiddenMount, { recursive: true });
+    writeFileSync(join(hiddenMount, 'page.txt'), 'public-page');
+    const web = new WebService({ directories: { '/site': hiddenMount } });
+    const res = await web.getApp().request('/site/page.txt');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('public-page');
+  });
+
+  it('does not list a blocked directory name', async () => {
+    mkdirSync(join(mount, '__pycache__'));
+    mkdirSync(join(mount, 'visible'));
+    const res = await get('/docs/', { enableDirectoryBrowsing: true });
+    expect(res.body).toContain('visible/');
+    expect(res.body).not.toContain('__pycache__');
   });
 });

@@ -171,9 +171,13 @@ The default blocklist refuses these files:
 - `.pyc`, `__pycache__`
 - `.DS_Store`, `.swp`
 
-An entry that starts with a dot matches a file extension, a whole file name, or a directory on the path, so `.git` blocks `/.git/config`. Any other entry matches a file name, or any part of the file's full path. Passing `blockedExtensions` replaces the default list, so include the defaults you still want.
+An entry that starts with a dot matches a file extension or a whole file name. Any other entry matches a file name, or any part of the file's path below the mount. Every entry also matches a directory on the path below the mount, so `__pycache__` blocks `/__pycache__/data.txt`. Passing `blockedExtensions` replaces the default list, so include the defaults you still want.
 
-The blocklist and `allowedExtensions` apply both to the path in the request and to the file actually read. A symbolic link inside the mount, such as `alias.txt` pointing to `.env` or into a `__pycache__` directory, gets `403` like the file it points to.
+#### Hidden Files and Directories
+
+Whatever `blockedExtensions` holds, the service refuses with `403` any path whose components below the mount include one that starts with a dot, whether the file exists or not. That covers `/.env.production`, anything under `/.git/`, `/.ssh/` or `/.aws/`, and the encoded form `/%2eenv`. The one exception is `.well-known`, so ACME challenges and `security.txt` are served from `/.well-known/`, though a dot-named file inside it isn't. A directory mounted from a path that itself contains a dot directory, such as `~/.site/public`, is served normally: only the components below the mount count. Directory listings hide dot entries and blocked names.
+
+The blocklist, the hidden-path rule and `allowedExtensions` apply both to the path in the request and to the file actually read. A symbolic link inside the mount, such as `alias.txt` pointing to `.env`, `keys` pointing to `.ssh`, or a link into a `__pycache__` directory, gets `403` like the file it points to. The same goes for a directory's `index.html`.
 
 #### Path Traversal Protection
 
@@ -285,7 +289,7 @@ export SWML_SSL_KEY_PATH="key.pem"
 **Response:**
 - The file, with a content type from its extension (`application/octet-stream` for an unknown one) and `Cache-Control: public, max-age=3600`
 - `404` if the file doesn't exist
-- `403` if the path contains `..`, resolves (through a symbolic link) to a file outside the mounted directory, or the file is blocked, isn't allowed, or is larger than `maxFileSize`
+- `403` if the path contains `..` or a component below the mount that starts with a dot (other than `.well-known`), resolves (through a symbolic link) to a file outside the mounted directory or under a hidden or blocked directory, or the file is blocked, isn't allowed, or is larger than `maxFileSize`
 - For a directory: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
 
 ## Usage Examples

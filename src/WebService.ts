@@ -71,7 +71,10 @@ export interface WebServiceOptions {
   /** Allowlist of file extensions (e.g. ['.html', '.css']). Default: all allowed. */
   allowedExtensions?: string[];
   /**
-   * Blocklist of file extensions or names.
+   * Blocklist of file extensions or names. An entry is also refused as the
+   * name of any directory on the path below the mount. Whatever this holds, a
+   * path with a component below the mount that starts with a dot, other than
+   * `.well-known`, is never served.
    * Default: ['.env', '.git', '.gitignore', '.key', '.pem', '.crt', '.pyc', '__pycache__', '.DS_Store', '.swp']
    */
   blockedExtensions?: string[];
@@ -96,6 +99,11 @@ function escapeHtml(str: string): string {
 /** Whether `path` is `root` or inside it (both absolute, already resolved). */
 function isWithin(path: string, root: string): boolean {
   return path === root || path.startsWith(root.endsWith(sep) ? root : root + sep);
+}
+
+/** The components of a path, split on either separator, without empty ones. */
+function pathParts(path: string): string[] {
+  return path.split(/[\\/]+/).filter(Boolean);
 }
 
 /** Format a file size in bytes to a human-readable string. */
@@ -531,8 +539,9 @@ export class WebService {
     const baseDir = resolve(mount.directory);
     const requestedPath = mount.prefix === '/' ? c.req.path : c.req.path.slice(mount.prefix.length);
 
-    // Path traversal protection: reject any path containing ".."
-    if (requestedPath.includes('..')) {
+    // Path traversal protection: reject any path containing "..", and any
+    // hidden or blocked component, whether the path exists or not.
+    if (requestedPath.includes('..') || !this._isPathAllowed(pathParts(requestedPath))) {
       return c.json({ error: 'Forbidden' }, 403);
     }
 
@@ -546,10 +555,15 @@ export class WebService {
 
     try {
       // Symbolic links: the file actually read must be inside the mount's
-      // real root, so a link inside the mount can't serve a file outside it.
+      // real root, so a link inside the mount can't serve a file outside it,
+      // and its path there passes the same component checks, so a link can't
+      // reach into a hidden or blocked directory either.
       const realBase = await realpath(baseDir);
       const realPath = await realpath(fullPath);
-      if (!isWithin(realPath, realBase)) {
+      if (
+        !isWithin(realPath, realBase) ||
+        !this._isPathAllowed(pathParts(relative(realBase, realPath)))
+      ) {
         return c.json({ error: 'Forbidden' }, 403);
       }
 
@@ -566,7 +580,11 @@ export class WebService {
             if (
               isWithin(idxReal, realBase) &&
               idxStat.isFile() &&
-              this._isServable(indexPath, idxReal, realBase, idxStat.size)
+              this._isServable(
+                relative(baseDir, indexPath),
+                relative(realBase, idxReal),
+                idxStat.size,
+              )
             ) {
               return this._serveFile(c, indexPath);
             }
@@ -575,7 +593,7 @@ export class WebService {
           }
           return c.json({ error: 'Directory browsing disabled' }, 403);
         }
-        return this._serveDirectoryListing(c, fullPath, c.req.path, realBase);
+        return this._serveDirectoryListing(c, fullPath, c.req.path, baseDir, realBase);
       }
 
       // Regular file
@@ -583,7 +601,9 @@ export class WebService {
         return c.json({ error: 'Not found' }, 404);
       }
 
-      if (!this._isServable(fullPath, realPath, realBase, fileStat.size)) {
+      if (
+        !this._isServable(relative(baseDir, fullPath), relative(realBase, realPath), fileStat.size)
+      ) {
         return c.json({ error: 'File type not allowed' }, 403);
       }
 
@@ -596,35 +616,50 @@ export class WebService {
   // ── File checks ────────────────────────────────────────────────────
 
   /**
-   * Whether a file may be served. The size limit, blocklist and allowlist
-   * apply both to the path requested and to the file actually read (its
-   * canonical path, relative to the mount's real root), so a symbolic link
-   * such as `alias.txt -> .env` can't serve a blocked file under an allowed
-   * name.
+   * Whether the components of a path below a mounted directory may be served.
+   * A component that starts with a dot is refused wherever it appears, so
+   * nothing under `.git` or `.ssh` is served and neither is a file such as
+   * `.env.production`. The exception is `.well-known`, the standard public
+   * location for ACME challenges and `security.txt`. Directory listings hide
+   * dot entries. A component equal to a blocked entry is refused too, so a
+   * blocked name covers a directory as well as a file.
    */
-  private _isServable(requested: string, real: string, realBase: string, size: number): boolean {
-    return (
-      this._isFileAllowed(requested, size) && this._isFileAllowed(relative(realBase, real), size)
+  private _isPathAllowed(parts: string[]): boolean {
+    const blocked = new Set(this.blockedExtensions);
+    return !parts.some(
+      (part) => (part.startsWith('.') && part !== '.well-known') || blocked.has(part),
     );
   }
 
-  private _isFileAllowed(fullPath: string, size: number): boolean {
+  /**
+   * Whether a file may be served. The path checks, size limit, blocklist and
+   * allowlist apply both to the path requested and to the file actually read
+   * (its canonical path), each relative to the mount, so a symbolic link such
+   * as `alias.txt -> .env` can't serve a blocked file under an allowed name.
+   */
+  private _isServable(requestedRel: string, realRel: string, size: number): boolean {
+    return this._isFileAllowed(requestedRel, size) && this._isFileAllowed(realRel, size);
+  }
+
+  /** Whether a file, by its path relative to the mount, may be served. */
+  private _isFileAllowed(relPath: string, size: number): boolean {
     // Check file size
     if (size > this.maxFileSize) return false;
 
-    const ext = extname(fullPath).toLowerCase();
-    const name = basename(fullPath);
-    const parts = fullPath.split(/[\\/]+/);
+    // Hidden and blocked components anywhere below the mount
+    if (!this._isPathAllowed(pathParts(relPath))) return false;
+
+    const ext = extname(relPath).toLowerCase();
+    const name = basename(relPath);
 
     // Check blocked extensions and names
     for (const blocked of this.blockedExtensions) {
       if (blocked.startsWith('.')) {
-        // As an extension, a file name (.env, .gitignore) or a directory on
-        // the path (.git/config)
-        if (ext === blocked || name === blocked || parts.includes(blocked)) return false;
+        // As an extension (.key, .pem)
+        if (ext === blocked || name === blocked) return false;
       } else {
         // Check as a file name or as a substring of the path
-        if (name === blocked || fullPath.includes(blocked)) return false;
+        if (name === blocked || relPath.includes(blocked)) return false;
       }
     }
 
@@ -654,13 +689,14 @@ export class WebService {
     c: Context,
     dirPath: string,
     urlPath: string,
+    baseDir: string,
     realBase: string,
   ): Promise<Response> {
     const entries = await readdir(dirPath, { withFileTypes: true });
 
-    // Sort entries alphabetically
+    // Sort entries alphabetically, without hidden or blocked names
     const sorted = entries
-      .filter((e) => !e.name.startsWith('.'))
+      .filter((e) => !e.name.startsWith('.') && this._isPathAllowed([e.name]))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const items: string[] = [];
@@ -684,7 +720,13 @@ export class WebService {
         try {
           const entryStat = await stat(entryPath);
           const entryReal = await realpath(entryPath);
-          if (this._isServable(entryPath, entryReal, realBase, entryStat.size)) {
+          if (
+            this._isServable(
+              relative(baseDir, entryPath),
+              relative(realBase, entryReal),
+              entryStat.size,
+            )
+          ) {
             const safeName = escapeHtml(entry.name);
             const sizeStr = formatSize(entryStat.size);
             items.push(`<li><a href="${safeName}">${safeName}</a> (${sizeStr})</li>`);
