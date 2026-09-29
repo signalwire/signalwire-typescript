@@ -536,7 +536,7 @@ export class HandoffRouter {
     const readBody = async (c: Context): Promise<Record<string, unknown>> => {
       let data: unknown;
       try {
-        data = await _readJsonBody(c.req.raw);
+        data = await _readJsonBody(c.req);
       } catch (err) {
         if (err instanceof GatewayRejection) throw err;
         return {};

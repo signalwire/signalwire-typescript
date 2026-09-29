@@ -78,7 +78,7 @@
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
-import type { Context } from 'hono';
+import type { Context, HonoRequest } from 'hono';
 import { getLogger } from '../Logger.js';
 import { AIChatClient } from './AIChatClient.js';
 
@@ -258,21 +258,37 @@ export function _utf8Length(text: string): number {
  * the limit, so a chunked or understated upload can't make the process hold
  * more than `limit` bytes of it.
  *
+ * Middleware ahead of the route may already have read the body with
+ * `c.req.json()`, `c.req.text()` or another `HonoRequest` accessor. Hono
+ * caches what it read, so the body is then read from that cache, and the
+ * same limit is applied to its size. (A body cached as parsed JSON is
+ * measured as Hono serializes it again, compactly.)
+ *
  * @internal Shared with `HandoffRouter`; not part of the package surface.
- * @param request - The incoming request.
+ * @param req - The route's `c.req`.
  * @param limit - The limit in bytes; {@link MAX_REQUEST_BODY_BYTES} by default.
  * @returns The parsed JSON value.
  * @throws {GatewayRejection} 413 `request too large` when the body is over `limit`.
  * @throws {SyntaxError} When the body isn't valid JSON.
+ * @throws {TypeError} When the raw body was consumed outside Hono's cache.
  */
 export async function _readJsonBody(
-  request: Request,
+  req: HonoRequest,
   limit: number = MAX_REQUEST_BODY_BYTES,
 ): Promise<unknown> {
-  const declared = request.headers.get('content-length') ?? '';
-  if (/^\d+$/.test(declared) && Number(declared) > limit) {
-    throw new GatewayRejection(413, 'request too large');
+  const tooLarge = () => new GatewayRejection(413, 'request too large');
+  const declared = req.header('content-length') ?? '';
+  if (/^\d+$/.test(declared) && Number(declared) > limit) throw tooLarge();
+
+  const request = req.raw;
+  if (request.bodyUsed || Object.keys(req.bodyCache).length > 0) {
+    // Already read by middleware: all of it is in memory, so only its size
+    // is left to check.
+    const cached = await req.arrayBuffer();
+    if (cached.byteLength > limit) throw tooLarge();
+    return JSON.parse(new TextDecoder().decode(cached));
   }
+
   const chunks: Uint8Array[] = [];
   let received = 0;
   if (request.body) {
@@ -283,7 +299,7 @@ export async function _readJsonBody(
       received += value.byteLength;
       if (received > limit) {
         await reader.cancel().catch(() => undefined);
-        throw new GatewayRejection(413, 'request too large');
+        throw tooLarge();
       }
       chunks.push(value);
     }
@@ -734,7 +750,7 @@ export class ChatGateway {
       try {
         // A GatewayRejection (413) goes to the handler below; anything
         // else is a body that isn't JSON.
-        const body = await _readJsonBody(c.req.raw);
+        const body = await _readJsonBody(c.req);
         if (!isPlainObject(body)) throw new GatewayRejection(400, 'body must be an object');
         [method, params, minted] = this.prepare(body, { origin, key });
       } catch (err) {

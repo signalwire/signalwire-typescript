@@ -336,7 +336,7 @@ Whoever holds the key chooses how large each request is, so the gateway limits e
 | 8 KiB chat message, UTF-8 | `MAX_MESSAGE_BYTES` | Before a conversation is created or a turn counted |
 | 8 KiB `user_meta_data`, serialized | `MAX_USER_METADATA_BYTES` | Before a conversation is created |
 
-The three constants are exported from `@signalwire/sdk`. The body limit leaves room for a full message and a full metadata bag, even when JSON escaping triples the size of non-ASCII text. A body whose `Content-Length` is over the limit is refused before any of it is read. A body sent without a `Content-Length` is counted as it arrives and dropped once it passes the limit. The error names the limit that was hit: `request too large`, `message too large` or `user_meta_data too large`.
+The three constants are exported from `@signalwire/sdk`. The body limit leaves room for a full message and a full metadata bag, even when JSON escaping triples the size of non-ASCII text. A body whose `Content-Length` is over the limit is refused before any of it is read. A body sent without a `Content-Length` is counted as it arrives and dropped once it passes the limit. If your own middleware reads the body first, with `c.req.json()` or another `c.req` method, the routes read it from Hono's cache and apply the same limit to it. The error names the limit that was hit: `request too large`, `message too large` or `user_meta_data too large`.
 
 `HandoffRouter` applies the same limits to its routes. `/handoff`, `/escalate` and `/say` refuse a body over 64 KiB, and `/say` refuses text over 8 KiB. Both checks come before the nonce is looked up, so the answer says nothing about whether a nonce is live.
 
