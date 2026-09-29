@@ -55,6 +55,19 @@ describe('DataMap.body() writes params', () => {
     expect(webhook['output']).toEqual({ response: 'Found ${total} for ${input.args.query}' });
   });
 
+  it("createSimpleApiTool leaves out an empty body, so a GET stays a GET (Python's `if body:`)", () => {
+    const webhook = firstWebhook(
+      createSimpleApiTool({
+        name: 'lookup',
+        url: 'https://api.example.com/lookup?q=${enc:args.q}',
+        responseTemplate: 'Found ${total}',
+        body: {},
+      }).toSwaigFunction(),
+    );
+    expect(webhook).not.toHaveProperty('params');
+    expect(webhook['method']).toBe('GET');
+  });
+
   it('the rendered SWML carries the body as params', async () => {
     const agent = new AgentBase({ name: 'dm', route: '/', basicAuth: ['u', 'p'] });
     agent.setPromptText('hello');

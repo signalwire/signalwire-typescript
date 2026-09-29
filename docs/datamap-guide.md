@@ -922,7 +922,7 @@ createSimpleApiTool(opts: {
 | `opts.parameters`       | `Record<string, {...}>`    | None      | Parameter definitions. A missing `type` is `string`. |
 | `opts.method`           | `string`                   | `'GET'`   | HTTP method. The platform sends a `GET` unless it's `POST` or the tool has a `body`. |
 | `opts.headers`          | `Record<string, string>`   | None      | Request headers.                                  |
-| `opts.body`             | `Record<string, unknown>`  | None      | The request body, written as the webhook's `params` with `body()`. A tool with a body is sent as a `POST`. See [params](#params). |
+| `opts.body`             | `Record<string, unknown>`  | None      | The request body, written as the webhook's `params` with `body()`. A tool with a body is sent as a `POST`; an empty object is left out. See [params](#params). |
 | `opts.errorKeys`        | `string[]`                 | None      | Response keys that mark a failure.                |
 
 **Returns:** A configured `DataMap` instance, ready for registration.

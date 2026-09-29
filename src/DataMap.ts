@@ -556,7 +556,8 @@ export function createSimpleApiTool(opts: {
     }
   }
   dm.webhook(opts.method ?? 'GET', opts.url, { headers: opts.headers });
-  if (opts.body) dm.body(opts.body);
+  // An empty body is left out, as in Python: params, even {}, make the request a POST.
+  if (opts.body && Object.keys(opts.body).length > 0) dm.body(opts.body);
   if (opts.errorKeys) dm.errorKeys(opts.errorKeys);
   dm.output(new FunctionResult(opts.responseTemplate));
   return dm;
