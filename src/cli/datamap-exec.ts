@@ -9,7 +9,8 @@
  *    key `DataMap.expression()` writes and the platform reads), if it has one.
  * 2. Webhooks, in order, until one succeeds. A webhook fails on a status
  *    outside 200-299, a body that isn't JSON, or, for a JSON object, a
- *    `parse_error`/`protocol_error` key or one of its `error_keys`.
+ *    `parse_error`/`protocol_error` key or one of its `error_keys`. A
+ *    webhook's `params` is its request body, and makes the request a POST.
  * 3. The successful webhook's `foreach`, then its `expressions` (read
  *    against the response, the first match or `nomatch-output` wins), then
  *    its `output`.
@@ -238,7 +239,7 @@ export async function executeDataMap(
     if (!isPlainObject(webhook)) continue;
     say(`\n=== Webhook ${i + 1}/${webhooks.length} ===`);
     const url = expandTemplate(text(webhook['url'] ?? ''), context);
-    const method = text(webhook['method'] ?? 'POST').toUpperCase();
+    let method = text(webhook['method'] ?? 'POST').toUpperCase();
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(
       isPlainObject(webhook['headers']) ? webhook['headers'] : {},
@@ -246,17 +247,33 @@ export async function executeDataMap(
       headers[k] = expandTemplate(text(v), context);
     }
 
+    // As on the platform, `params` (with the arguments merged in by
+    // `input_args_as_params`) is the request body whenever it is set, and a
+    // request with a body is a POST, whatever `method` says.
+    let params = isPlainObject(webhook['params']) ? webhook['params'] : undefined;
+    const argsAsParams = webhook['input_args_as_params'];
+    if (argsAsParams === true || argsAsParams === 'true') params = { ...params, ...args };
     let body: string | undefined;
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      const payload = webhook['params'] ?? webhook['body'] ?? webhook['data'];
+    let contentType = 'application/json';
+    if (params) {
+      if (method !== 'POST') say(`params is set, so the request is a POST, not ${method}`);
+      method = 'POST';
+      body = JSON.stringify(expandValue(params, context));
+      const formParam = webhook['form_param'];
+      if (typeof formParam === 'string' && formParam) {
+        body = `${formParam}=${HELPERS['enc']!(body)}`;
+        contentType = 'application/x-www-form-urlencoded';
+      }
+    } else if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      const payload = webhook['body'] ?? webhook['data'];
       if (typeof payload === 'string') body = expandTemplate(payload, context);
       else if (payload !== undefined) body = JSON.stringify(expandValue(payload, context));
-      if (
-        body !== undefined &&
-        !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')
-      ) {
-        headers['Content-Type'] = 'application/json';
-      }
+    }
+    if (
+      body !== undefined &&
+      !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')
+    ) {
+      headers['Content-Type'] = contentType;
     }
     say(`${method} ${url}`);
     if (body) say(`Request body: ${body}`);

@@ -267,6 +267,7 @@ The simulator follows the platform's template rules:
 - A webhook's JSON object response is read from the root of the template data (`${current.temp_f}`). A JSON array response is under `array` (`${array[0].joke}`). When a template reads `${response.<field>}`, which doesn't resolve, the simulator says so on stderr.
 - Templates take the `lc` and `enc` (or `enc:url`) helpers, left to right, and nest: `${lc:enc:args.city}`.
 - A webhook fails on a status outside 200-299, a body that isn't JSON, or one of its `error_keys` in a JSON object response. An `error_keys` on the `data_map` itself is ignored, as on the platform.
+- `params`, with the arguments merged in when `input_args_as_params` is set, is the request body, and a request with `params` is a `POST` whatever its method. With `form_param`, the body is one form field holding the JSON.
 - Webhook requests refuse private and internal addresses, as the SDK's other URL fetches do. Set `SWML_ALLOW_PRIVATE_URLS=true` to test against a server on your own machine.
 
 This command runs the weather tool against the real wttr.in API and prints each step:

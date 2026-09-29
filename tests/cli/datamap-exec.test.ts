@@ -371,4 +371,59 @@ describe('fix pass', () => {
       response: '1kg of Main; 2kg of Main; ',
     });
   });
+
+  it('sends params as a POST body whatever the method, as the platform does', async () => {
+    const fn = new DataMap('search')
+      .parameter('query', 'string', 'Query')
+      .webhook('GET', 'https://api.example.com/search')
+      .params({ q: '${args.query}', limit: 5 })
+      .output(new FunctionResult('${total} results'))
+      .toSwaigFunction();
+    const { calls, fetchImpl } = fakeFetch({ total: 3 });
+    expect(await executeDataMap(fn, { query: 'tea' }, { fetchImpl })).toEqual({
+      response: '3 results',
+    });
+    expect(calls[0]!.method).toBe('POST');
+    expect(JSON.parse(calls[0]!.body!)).toEqual({ q: 'tea', limit: 5 });
+  });
+
+  it('merges the arguments into params with input_args_as_params', async () => {
+    const fn = new DataMap('create')
+      .parameter('name', 'string', 'Name')
+      .webhook('GET', 'https://api.example.com/create', { inputArgsAsParams: true })
+      .output(new FunctionResult('ok'))
+      .toSwaigFunction();
+    const { calls, fetchImpl } = fakeFetch({});
+    await executeDataMap(fn, { name: 'Ann' }, { fetchImpl });
+    expect(calls[0]!.method).toBe('POST');
+    expect(JSON.parse(calls[0]!.body!)).toEqual({ name: 'Ann' });
+
+    const withParams = new DataMap('create')
+      .webhook('POST', 'https://api.example.com/create', { inputArgsAsParams: true })
+      .params({ source: 'phone', name: 'default' })
+      .output(new FunctionResult('ok'))
+      .toSwaigFunction();
+    const second = fakeFetch({});
+    await executeDataMap(withParams, { name: 'Ann' }, second);
+    expect(JSON.parse(second.calls[0]!.body!)).toEqual({ source: 'phone', name: 'Ann' });
+  });
+
+  it('sends params as one form field with form_param', async () => {
+    const fn = new DataMap('form')
+      .webhook('POST', 'https://api.example.com/form', { formParam: 'data' })
+      .params({ a: '${args.a}' })
+      .output(new FunctionResult('ok'))
+      .toSwaigFunction();
+    const seen: { headers: Record<string, string>; body?: string }[] = [];
+    const fetchImpl = async (
+      _url: string,
+      init: { method: string; headers: Record<string, string>; body?: string },
+    ) => {
+      seen.push({ headers: init.headers, body: init.body });
+      return new Response('{}');
+    };
+    await executeDataMap(fn, { a: 'x y' }, { fetchImpl });
+    expect(seen[0]!.body).toBe(`data=${encodeURIComponent(JSON.stringify({ a: 'x y' }))}`);
+    expect(seen[0]!.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
+  });
 });
