@@ -156,7 +156,7 @@ When `services` is empty, the skill requests the gateway's `/services` endpoint 
 
 The skill's defaults refuse the two riskiest configurations:
 
-- **Private addresses**: the skill refuses a `gateway_url` that resolves to a private, loopback or link-local address, including `localhost`. A configuration value can't point it at an internal service. For a gateway on the same host or a private network, set `SWML_ALLOW_PRIVATE_URLS=true` in the agent's environment. [Security](security.md#outbound-url-protection-ssrf) lists the refused ranges.
+- **Private addresses**: the skill refuses a `gateway_url` that resolves to a private, loopback or link-local address, including `localhost`. A configuration value can't point it at an internal service. Every request to the gateway is checked the same way, including each redirect, and connects only to an address it checked. With `allow_insecure_tls` on, requests after setup aren't checked again. For a gateway on the same host or a private network, set `SWML_ALLOW_PRIVATE_URLS=true` in the agent's environment. [Security](security.md#outbound-url-protection-ssrf) lists the refused ranges.
 - **Certificate verification**: `verify_ssl: false` alone leaves verification on and logs a warning. To accept a self-signed certificate, also set `allow_insecure_tls: true`. The agent then accepts any certificate from the gateway, so a machine in the network path can read and change the traffic. Turning verification off uses the `undici` package, which comes with the SDK's optional dependencies; without it, setup fails and logs how to install it.
 
 The skill sends the credentials on every request to the gateway, including the health check. Use an `https://` gateway URL outside a private network.

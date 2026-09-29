@@ -8,6 +8,7 @@ import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
 import * as SecurityUtils from '../../src/SecurityUtils.js';
+import { _setPublicFetchTransport } from '../../src/PublicFetch.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -149,5 +150,76 @@ describe('McpGatewaySkill', () => {
     const sections = skill.getPromptSections();
     // Without setup, services list is still populated from config for prompt building
     expect(Array.isArray(sections)).toBe(true);
+  });
+
+  // Every request to the gateway is checked, not only gateway_url at setup:
+  // a gateway that redirects a tool call to the cloud metadata service must
+  // not reach it.
+  describe('requests go through the SSRF-checked fetch', () => {
+    const GATEWAY = 'http://203.0.113.10';
+    const sent: string[] = [];
+
+    afterEach(() => {
+      _setPublicFetchTransport(null);
+      vi.unstubAllGlobals();
+      sent.length = 0;
+    });
+
+    async function setUpSkill(
+      call: () => Response = () =>
+        new Response(null, {
+          status: 302,
+          headers: { location: 'http://169.254.169.254/latest/meta-data' },
+        }),
+      retryAttempts = 1,
+    ): Promise<McpGatewaySkill> {
+      // The skill must not use the global fetch, which checks nothing.
+      vi.stubGlobal('fetch', async (url: string) => {
+        throw new Error(`global fetch used for ${url}`);
+      });
+      _setPublicFetchTransport(async (url, init) => {
+        sent.push(`${init.method} ${url}`);
+        const path = new URL(url).pathname;
+        if (path === '/health') return new Response('{}');
+        if (path === '/services/svc/tools') {
+          return new Response(JSON.stringify({ tools: [{ name: 'lookup' }] }));
+        }
+        if (path === '/services/svc/call') return call();
+        return new Response('metadata secrets');
+      });
+      const skill = new McpGatewaySkill({
+        gateway_url: GATEWAY,
+        auth_token: 'abc',
+        services: [{ name: 'svc' }],
+        retry_attempts: retryAttempts,
+      });
+      expect(await skill.setup()).toBe(true);
+      return skill;
+    }
+
+    it('checks the setup requests', async () => {
+      await setUpSkill();
+      expect(sent).toEqual([`GET ${GATEWAY}/health`, `GET ${GATEWAY}/services/svc/tools`]);
+    });
+
+    it('refuses a tool call redirected to a private address', async () => {
+      const skill = await setUpSkill();
+      const tool = skill.getTools().find((t) => t.name === 'mcp_svc_lookup')!;
+      const result = (await tool.handler({}, { call_id: 'c1' })) as FunctionResult;
+      expect(result.response).toMatch(/^Failed to call svc\.lookup: Refused to fetch/);
+      expect(sent.some((r) => r.includes('169.254.169.254'))).toBe(false);
+    });
+
+    it('retries a tool call whose connection fails', async () => {
+      const skill = await setUpSkill(() => {
+        throw new Error('connect ECONNREFUSED 203.0.113.10:80');
+      }, 3);
+      const tool = skill.getTools().find((t) => t.name === 'mcp_svc_lookup')!;
+      const result = (await tool.handler({}, { call_id: 'c1' })) as FunctionResult;
+      expect(result.response).toBe(
+        'Failed to call svc.lookup: connect ECONNREFUSED 203.0.113.10:80',
+      );
+      expect(sent.filter((r) => r.endsWith('/call'))).toHaveLength(3);
+    });
   });
 });

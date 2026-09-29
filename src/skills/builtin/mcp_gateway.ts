@@ -21,6 +21,7 @@ import { FunctionResult } from '../../FunctionResult.js';
 import type { SwaigRequest } from '../../SwaigContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
+import { _publicFetch } from '../../PublicFetch.js';
 // undici isn't a dependency of the SDK (it comes with the optional cheerio),
 // so it's imported only when allow_insecure_tls needs its dispatcher: a static
 // import here would break importing the SDK without optional packages.
@@ -462,25 +463,34 @@ export class McpGatewaySkill extends SkillBase {
       headers['Authorization'] = `Basic ${creds}`;
     }
 
-    const init: RequestInit & { dispatcher?: unknown } = { method, headers };
+    let body: string | undefined;
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';
-      init.body = JSON.stringify(options.body);
+      body = JSON.stringify(options.body);
     }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.requestTimeout * 1000);
-    init.signal = controller.signal;
-
-    // Mirror Python `requests.request(..., verify=self.verify_ssl)`. Node's
-    // built-in fetch has no SSL toggle, so reuse the undici Agent cached in
-    // setup() rather than spinning up a fresh one on every call.
-    if (this._undiciAgent) {
-      init.dispatcher = this._undiciAgent;
-    }
 
     try {
-      return await fetch(url, init as RequestInit);
+      // Mirror Python `requests.request(..., verify=self.verify_ssl)`. With TLS
+      // verification off, the request goes through the undici Agent cached in
+      // setup(), the only way to turn it off for Node's fetch.
+      if (this._undiciAgent) {
+        const init: RequestInit & { dispatcher?: unknown } = {
+          method,
+          headers,
+          body,
+          signal: controller.signal,
+          dispatcher: this._undiciAgent,
+        };
+        return await fetch(url, init as RequestInit);
+      }
+      // Otherwise _publicFetch checks every request, and every redirect, as
+      // setup() checked gateway_url: a gateway that redirects to a private or
+      // internal address (a cloud metadata service), or a hostname that
+      // resolves to one later, is refused.
+      return await _publicFetch(url, { method, headers, body, signal: controller.signal });
     } finally {
       clearTimeout(timer);
     }
@@ -622,13 +632,25 @@ export class McpGatewaySkill extends SkillBase {
 
     let lastError: string | undefined;
     for (let attempt = 0; attempt < this.retryAttempts; attempt++) {
+      let response: Response;
       try {
-        const response = await this._makeRequest(
+        response = await this._makeRequest(
           'POST',
           `${this.gatewayUrl}/services/${encodeURIComponent(serviceName)}/call`,
           { body: requestData },
         );
+      } catch (err) {
+        // The request failed (connection, timeout or a refused address):
+        // retry, as Python does for its Timeout and ConnectionError.
+        lastError = err instanceof Error ? err.message : String(err);
+        log.warn('mcp_gateway: request error', {
+          attempt: attempt + 1,
+          error: lastError,
+        });
+        continue;
+      }
 
+      try {
         if (response.status === 200) {
           const resultData = (await response.json()) as {
             result?: unknown;
@@ -648,13 +670,13 @@ export class McpGatewaySkill extends SkillBase {
         }
 
         let errorMsg: string;
+        const bodyText = await response.text().catch(() => '');
         try {
-          const errorData = (await response.json()) as { error?: string };
+          const errorData = JSON.parse(bodyText) as { error?: string };
           errorMsg = errorData.error ?? `HTTP ${response.status}`;
         } catch {
           // Python includes the first 200 chars of the response body when the
           // payload isn't valid JSON (skill.py error handler). Match that.
-          const bodyText = await response.text().catch(() => '');
           errorMsg = bodyText
             ? `HTTP ${response.status}: ${bodyText.slice(0, 200)}`
             : `HTTP ${response.status}`;
@@ -671,24 +693,14 @@ export class McpGatewaySkill extends SkillBase {
         // Client error — don't retry
         break;
       } catch (err) {
+        // A bad response (a 200 whose body isn't JSON) isn't retried: Python
+        // aborts the retry loop on exceptions other than network errors.
         lastError = err instanceof Error ? err.message : String(err);
-        // Distinguish network/timeout errors (retriable) from programming
-        // errors like JSON parse failures on success responses (fatal).
-        // Python aborts the retry loop on non-network exceptions; mirror that.
-        const isNetwork =
-          err instanceof Error &&
-          (err.name === 'AbortError' || err.name === 'TypeError' || err.message.includes('fetch'));
-        if (!isNetwork) {
-          log.error('mcp_gateway: unexpected error, aborting retry', {
-            attempt: attempt + 1,
-            error: lastError,
-          });
-          break;
-        }
-        log.warn('mcp_gateway: request error', {
+        log.error('mcp_gateway: unexpected error, aborting retry', {
           attempt: attempt + 1,
           error: lastError,
         });
+        break;
       }
     }
 
