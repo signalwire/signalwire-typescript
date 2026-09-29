@@ -67,7 +67,8 @@
  *   North American number, as `(NPA) NXX-XXXX`, and leaves any other value as
  *   it is, saying so on stderr. The platform formats any valid number, and
  *   writes `INVALID NUMBER` for one that isn't; with libphonenumber-js
- *   installed, so does the simulator.
+ *   installed, so does the simulator. Either way, it reads a vanity number's
+ *   letters as keypad digits, as the platform's libphonenumber does.
  * - `@{...}` functions are left as they are.
  * - An expression's `expr` isn't evaluated: only its `pattern` is tried.
  * - Patterns are JavaScript regular expressions, where the platform uses PCRE.
@@ -441,27 +442,129 @@ export function _setPhoneNumbers(lib: _PhoneNumbers | null): _PhoneNumbers | nul
   return previous;
 }
 
+// Google libphonenumber's parsing patterns (phonenumberutil.cc), for the
+// alphabetic numbers libphonenumber-js leaves out.
+const PHONE_PUNCTUATION =
+  '\\-x\u2010-\u2015\u2212\u30FC\uFF0D-\uFF0F \u00A0\u00AD\u200B\u2060\u3000()\uFF08\uFF09\uFF3B\uFF3D.\\[\\]/~\u2053\u223C';
+const EXTN_AFTER_LABEL = '[:.\uFF0E]?[ \u00A0\\t,\\-]*';
+const EXTN_PATTERN = [
+  ';ext=(\\p{Nd}{1,20})',
+  '[ \u00A0\\t,]*(?:e?xt(?:ensi(?:o\u0301?|\u00F3))?n?|(?:\uFF45)?\uFF58\uFF54(?:\uFF4E)?|\u0434\u043E\u0431|anexo)' +
+    `${EXTN_AFTER_LABEL}(\\p{Nd}{1,20})#?`,
+  `[ \u00A0\\t,]*(?:[x\uFF58#\uFF03~\uFF5E]|int|\uFF49\uFF4E\uFF54)${EXTN_AFTER_LABEL}(\\p{Nd}{1,9})#?`,
+  '[\\- ]+(\\p{Nd}{1,6})#',
+  `[ \u00A0\\t]*(?:,{2}|;)${EXTN_AFTER_LABEL}(\\p{Nd}{1,15})#?`,
+  `[ \u00A0\\t]*(?:,)+${EXTN_AFTER_LABEL}(\\p{Nd}{1,9})#?`,
+].join('|');
+/** An extension at the end of a number (extn_pattern_). */
+const PHONE_EXTENSION = new RegExp(`(?:${EXTN_PATTERN})$`, 'iu');
+/** A string that could be a phone number (valid_phone_number_pattern_). */
+const VIABLE_PHONE_NUMBER = new RegExp(
+  `^(?:\\p{Nd}{2}|[+\uFF0B]*(?:[${PHONE_PUNCTUATION}*]*\\p{Nd}){3,}` +
+    `[${PHONE_PUNCTUATION}*a-z\\p{Nd}]*(?:${EXTN_PATTERN})?)$`,
+  'iu',
+);
+/** Three or more letters make a vanity number (valid_alpha_phone_pattern_). */
+const VANITY_NUMBER = /(?:.*?[a-z]){3}/iu;
+/** The ITU E.161 keypad, as libphonenumber maps a letter. */
+const KEYPAD: Record<string, string> = {};
+for (const [digit, letters] of Object.entries({
+  2: 'ABC',
+  3: 'DEF',
+  4: 'GHI',
+  5: 'JKL',
+  6: 'MNO',
+  7: 'PQRS',
+  8: 'TUV',
+  9: 'WXYZ',
+})) {
+  for (const letter of letters) KEYPAD[letter] = KEYPAD[letter.toLowerCase()] = digit;
+}
+
+function isViablePhoneNumber(text: string): boolean {
+  return text.length >= 2 && VIABLE_PHONE_NUMBER.test(text);
+}
+
+/**
+ * A value as Google's libphonenumber, which the platform uses, reads it
+ * before parsing, for libphonenumber-js to parse. The number starts at its
+ * first `+` or digit, trailing punctuation and a second number after `/x`
+ * are dropped, and a value that couldn't be a phone number is empty. An
+ * extension is split off, as `;ext=`. The rest is normalized: when it has
+ * three or more letters, it's a vanity number, whose letters are keypad
+ * digits, so `+1 412 535 abcd` is `+14125352223`; otherwise only its digits
+ * are kept. libphonenumber-js leaves vanity numbers out, and reads some other
+ * letters differently.
+ */
+function phoneNumberText(value: string): string {
+  if (value.includes(';phone-context=')) return value;
+  const start = value.search(/[+\uFF0B\p{Nd}]/u);
+  if (start < 0) return '';
+  let number = value.slice(start).replace(/[^\p{N}\p{L}#]+$/u, '');
+  const second = /(.*)[\\/] *x/u.exec(number);
+  if (second) number = second[1]!;
+  const isdn = number.indexOf(';isub=');
+  if (isdn > 0) number = number.slice(0, isdn);
+  if (!isViablePhoneNumber(number)) return '';
+
+  let extension = '';
+  const ext = PHONE_EXTENSION.exec(number);
+  const extDigits = ext?.slice(1).find(Boolean);
+  if (ext && extDigits && isViablePhoneNumber(number.slice(0, ext.index))) {
+    extension = `;ext=${extDigits}`;
+    number = number.slice(0, ext.index);
+  }
+  const plus = /^[+\uFF0B]+/u.test(number) ? '+' : '';
+  const rest = number.replace(/^[+\uFF0B]+/u, '');
+  let digits = '';
+  if (VANITY_NUMBER.test(rest)) {
+    // Letters and ASCII digits, as keypad digits; anything else is dropped
+    for (const ch of rest) digits += KEYPAD[ch] ?? (/[0-9]/.test(ch) ? ch : '');
+  } else {
+    // Digits in any script, as ASCII digits; anything else is dropped
+    for (const ch of rest) digits += asciiDigit(ch);
+  }
+  return `${plus}${digits}${extension}`;
+}
+
+/**
+ * A decimal digit in any script as an ASCII digit, or an empty string. The
+ * digits of a script run from 0 to 9 in consecutive code points.
+ */
+function asciiDigit(ch: string): string {
+  if (!/\p{Nd}/u.test(ch)) return '';
+  let zero = ch.codePointAt(0)!;
+  while (/\p{Nd}/u.test(String.fromCodePoint(zero - 1))) zero--;
+  return String((ch.codePointAt(0)! - zero) % 10);
+}
+
 /**
  * The `fmt_ph` helper. The platform formats with libphonenumber in the
  * national format, reading a number without a country code as a US number,
  * and writes `INVALID NUMBER` for one it can't validate. With libphonenumber-js
  * installed, the simulator does the same. Without it, it formats a ten-digit
  * North American number, with or without its leading 1, as `(NPA) NXX-XXXX`,
- * and returns null for anything else.
+ * and returns null for anything else. Either way, the value is first read as
+ * libphonenumber reads it, the letters of a vanity number as keypad digits.
  */
 function formatPhoneNational(value: string): string | null {
+  const text = phoneNumberText(value);
   if (phoneNumbers) {
     try {
-      const number = phoneNumbers.parsePhoneNumberFromString(value, 'US');
+      const number = phoneNumbers.parsePhoneNumberFromString(text, 'US');
       return number?.isValid() ? number.formatNational() : 'INVALID NUMBER';
     } catch {
       return 'INVALID NUMBER';
     }
   }
-  let digits = value.replace(/\D/g, '');
+  const [number = '', extension] = text.split(';ext=');
+  let digits = number.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  // After a +, only country code 1 is North American
+  else if (number.startsWith('+')) return null;
   if (digits.length === 10 && /[2-9]/.test(digits[0]!) && /[2-9]/.test(digits[3]!)) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    const formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    return extension ? `${formatted} ext. ${extension}` : formatted;
   }
   return null;
 }

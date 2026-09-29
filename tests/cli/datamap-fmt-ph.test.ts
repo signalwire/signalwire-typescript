@@ -27,6 +27,35 @@ describe('fmt_ph with libphonenumber-js installed', () => {
     expect(fmt('+44 20 7031 3000')).toBe('020 7031 3000');
   });
 
+  // libphonenumber-js leaves out alphabetic numbers; the platform's
+  // libphonenumber maps the letters of a number with three or more of them
+  // to keypad digits (PhoneNumberUtil::Normalize)
+  it('formats a vanity number, its letters read as keypad digits', () => {
+    expect(fmt('+1 412 535 abcd')).toBe('(412) 535-2223');
+    expect(fmt('1-800-FLOWERS')).toBe('(800) 356-9377');
+    expect(fmt('CALL 1-800-FLOWERS')).toBe('(800) 356-9377');
+    expect(fmt('+1 800 MY APPLE')).toBe('(800) 692-7753');
+  });
+
+  it("keeps a vanity number's extension", () => {
+    expect(fmt('1-800-flowers ext. 12')).toBe('(800) 356-9377 ext. 12');
+    expect(fmt('1-800-FLOWERS x12')).toBe('(800) 356-9377 ext. 12');
+  });
+
+  it('reads three or more letters after a number as digits, as the platform does', () => {
+    expect(fmt('Call 412-535-2223 now')).toBe('INVALID NUMBER');
+  });
+
+  it('drops fewer than three letters, which make no vanity number', () => {
+    expect(fmt('+1 202 555 0143 ab')).toBe('(202) 555-0143');
+    expect(fmt('202-555-0143 ext. 12')).toBe('(202) 555-0143 ext. 12');
+    expect(fmt('abc')).toBe('INVALID NUMBER');
+  });
+
+  it('drops a second number after /x, as libphonenumber does', () => {
+    expect(fmt('412 535 2223 / x12')).toBe('(412) 535-2223');
+  });
+
   it('writes no note', async () => {
     const lines: string[] = [];
     const fn = { data_map: { output: { response: 'Call ${fmt_ph:args.phone}' } } };
@@ -48,6 +77,37 @@ describe('fmt_ph without libphonenumber-js', () => {
 
   it('formats a North American number', () => {
     expect(fmt('+1 202 555 0143')).toBe('(202) 555-0143');
+  });
+
+  it('formats a North American vanity number, its letters read as keypad digits', () => {
+    expect(fmt('+1 412 535 abcd')).toBe('(412) 535-2223');
+    expect(fmt('1-800-FLOWERS')).toBe('(800) 356-9377');
+  });
+
+  it('drops fewer than three letters, which make no vanity number', () => {
+    expect(fmt('+1 202 555 0143 ab')).toBe('(202) 555-0143');
+  });
+
+  it('formats no number with another country code', () => {
+    expect(fmt('+4125352223')).toBe('+4125352223');
+  });
+
+  it('keeps an extension, as the platform formats it', () => {
+    expect(fmt('202-555-0143 ext. 12')).toBe('(202) 555-0143 ext. 12');
+    expect(fmt('1-800-FLOWERS x12')).toBe('(800) 356-9377 ext. 12');
+  });
+
+  it('leaves a value that has too many digits once its letters are read as it is', async () => {
+    const lines: string[] = [];
+    const fn = { data_map: { output: { response: '${fmt_ph:args.phone}' } } };
+    expect(
+      await executeDataMap(
+        fn,
+        { phone: 'Call 412-535-2223 now' },
+        { log: (l) => void lines.push(l) },
+      ),
+    ).toEqual({ response: 'Call 412-535-2223 now' });
+    expect(lines.join('\n')).toContain('INVALID NUMBER');
   });
 
   it('leaves another value as it is, and says to install libphonenumber-js', async () => {
