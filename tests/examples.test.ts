@@ -402,6 +402,19 @@ describe('examples', () => {
       >;
       expect(swml).toHaveProperty('version');
     });
+
+    it('exports the Lambda handler without starting a server', async () => {
+      vi.resetModules();
+      const sdk = await import('../src/index.js');
+      const serve = vi.spyOn(sdk.AgentBase.prototype, 'serve').mockResolvedValue(undefined);
+      try {
+        const mod = (await import('../examples/serverless-lambda.js')) as Record<string, unknown>;
+        expect(typeof mod['handler']).toBe('function');
+        expect(serve).not.toHaveBeenCalled();
+      } finally {
+        serve.mockRestore();
+      }
+    });
   });
 
   describe('verb-methods.ts', () => {
