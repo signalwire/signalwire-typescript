@@ -182,7 +182,7 @@ parameter(
 
 | Parameter         | Type       | Description                                              |
 |-------------------|------------|----------------------------------------------------------|
-| `name`            | `string`   | Parameter name, read in templates as `${args.name}`.     |
+| `name`            | `string`   | Parameter name. A URL, `params`, the top-level expressions and the fallback output read it as `${args.name}`; a webhook's `output`, `expressions` and `foreach` read it as `${input.args.name}`. See [Template data](#template-data). |
 | `paramType`       | `string`   | JSON Schema type: `"string"`, `"number"`, `"boolean"`, `"integer"`, `"array"`, `"object"`. |
 | `description`     | `string`   | Description the AI reads to decide how to fill in the value. |
 | `opts.required`   | `boolean`  | If `true`, the parameter is listed in the schema's `required` array. |
@@ -224,7 +224,7 @@ const tool = new DataMap('search_products')
 
 ### webhook
 
-This method adds an HTTP request for SignalWire to make when the tool is called. You can add more than one, and they form a fallback chain.
+This method adds an HTTP request for SignalWire to make when the tool is called. You can add more than one. The platform tries them in order and skips a webhook when none of its `require_args` is among the arguments. The first webhook it requests decides the result: if that webhook fails, the [fallback output](#fallbackoutput) answers, and later webhooks aren't tried.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -242,12 +242,12 @@ webhook(
 
 | Parameter                | Type                     | Written as             | Description |
 |--------------------------|--------------------------|------------------------|-------------|
-| `method`                 | `string`                 | `method`               | HTTP method, uppercased. The SWML schema allows `GET`, `POST`, `PUT` and `DELETE`. |
+| `method`                 | `string`                 | `method`               | HTTP method, uppercased. The SWML schema allows `GET`, `POST`, `PUT` and `DELETE`. The platform sends a `POST` when the method is `POST` or the webhook has `params`, and a `GET` for any other method. |
 | `url`                    | `string`                 | `url`                  | The request URL. The platform expands templates in it, such as `${enc:args.city}`. |
-| `opts.headers`           | `Record<string, string>` | `headers`              | HTTP headers for the request. |
+| `opts.headers`           | `Record<string, string>` | `headers`              | HTTP headers for the request, sent as written. The platform expands no templates in them. |
 | `opts.formParam`         | `string`                 | `form_param`           | The SWML schema's webhook object doesn't define this key. |
 | `opts.inputArgsAsParams` | `boolean`                | `input_args_as_params` | If `true`, the platform merges the function's arguments into `params`. With no `params`, the arguments are the whole request body. |
-| `opts.requireArgs`       | `string[]`               | `require_args`         | Arguments that must be present for the platform to make this request. The SWML schema names the key `require_args`, and SignalWire's reference page lists it as `required_args`. |
+| `opts.requireArgs`       | `string[]`               | `require_args`         | Arguments that decide whether the platform makes this request. It skips the webhook, and tries the next one, unless at least one of them is present. The SWML schema and the platform name the key `require_args`, and SignalWire's reference page lists it as `required_args`. |
 
 **Returns:** `this` for chaining.
 
@@ -281,7 +281,7 @@ const tool2 = new DataMap('create_ticket')
 
 ### params
 
-This method sets the `params` object of the most recently added webhook. The platform sends `params` as the request's JSON body when `params` is set or the method is `POST`, and expands templates in its values first. A request with no `params` and a method other than `POST` has no body.
+This method sets the `params` object of the most recently added webhook. The platform sends `params` as the request's JSON body, and expands templates in its values first. A webhook with `params` is a `POST`, whatever its method. A webhook with no `params` sends no body, even as a `POST`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -331,13 +331,13 @@ body(data: Record<string, unknown>): this
 
 **Returns:** `this` for chaining.
 
-The SWML schema's webhook object has no `body` field, and SignalWire's `data_map` reference documents `params` as the request body. Use [params](#params) to set a request body. `createSimpleApiTool()` uses `body()` for its `body` option.
+The SWML schema's webhook object has no `body` field, and the platform doesn't send it: `params` is the request body. Use [params](#params) to set a request body. `createSimpleApiTool()` uses `body()` for its `body` option.
 
 ---
 
 ### Webhook Headers
 
-You set headers through the `opts.headers` parameter of `webhook()`. The SDK expands `${ENV.*}` in header values when environment expansion is on. SignalWire's reference names `url` and `params` as the fields where the platform expands templates, and doesn't say whether it expands header values. This tool sends a token from the environment:
+You set headers through the `opts.headers` parameter of `webhook()`. The platform sends each header value as written: it expands templates in `url` and `params`, not in headers, so `${args.id}` in a header is sent as that text. The SDK expands `${ENV.*}` in header values when environment expansion is on, before the SWML is sent. This tool sends a token from the environment:
 
 ```typescript
 const tool = new DataMap('authenticated_lookup')
@@ -375,15 +375,15 @@ expression(
 | Parameter       | Type                  | Description                                              |
 |-----------------|-----------------------|----------------------------------------------------------|
 | `testValue`     | `string`              | The text to test, usually a template such as `"${args.input}"`. Written as `string`. |
-| `pattern`       | `string \| RegExp`    | The regular expression, written as `pattern`. For a `RegExp`, only `.source` is kept: flags such as `/i` are dropped. |
+| `pattern`       | `string \| RegExp`    | The regular expression, written as `pattern`. It matches case-insensitively unless written as `/pattern/`. For a `RegExp`, only `.source` is kept: its flags are dropped. |
 | `output`        | `FunctionResult`      | The result when the pattern matches. Written as `output`. |
-| `nomatchOutput` | `FunctionResult`      | Written as `nomatch-output`. The SWML schema's expression object doesn't define this key. |
+| `nomatchOutput` | `FunctionResult`      | The result when the pattern doesn't match. Written as `nomatch-output`, which the platform reads. The SWML schema's expression object doesn't define this key. |
 
 **Returns:** `this` for chaining.
 
-Because flags are dropped, write case-insensitive matching into the pattern string. SignalWire's reference uses the inline `(?i)` modifier, as in `'(?i)star\\s*wars'`.
+The platform wraps a pattern that doesn't start with `/` as `/pattern/i`, so matching is case-insensitive by default: `'star\\s*wars'` matches "Star Wars". To match case-sensitively, write the pattern as `'/pattern/'`, such as `'/^[A-Z]{3}$/'`. A pattern written as `/pattern/flags` takes only its own `i` and `s` flags.
 
-Expressions are tried in order, and the first match's output ends the function. For an answer when nothing matches, add a last expression with a catch-all pattern, or a [fallbackOutput](#fallbackoutput). This tool classifies input with a final catch-all:
+Expressions are tried in order, and the first match's output ends the function. An expression with a `nomatchOutput` also ends it when its pattern doesn't match, so later expressions aren't tried. For an answer when nothing matches, add a last expression with a catch-all pattern, or a [fallbackOutput](#fallbackoutput). This tool classifies input with a final catch-all:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -407,7 +407,7 @@ const tool = new DataMap('classify_input')
   );
 ```
 
-The `lc` helper lowercases the input before the match, so "What time is it" counts as a question.
+The platform matches case-insensitively, so "What time is it" counts as a question. The `lc` helper lowercases the input as well, so the match doesn't depend on that.
 
 ---
 
@@ -415,7 +415,7 @@ The `lc` helper lowercases the input before the match, so "What time is it" coun
 
 ### output
 
-This method sets the output of the most recently added webhook. The output's templates read the webhook's JSON response from the root of the template data, such as `${temp}`, and the arguments as `${args.name}`. An array response is under `array`. See [Template data](#template-data).
+This method sets the output of the most recently added webhook. The output's templates read the webhook's JSON response from the root of the template data, such as `${temp}`, and the arguments as `${input.args.name}`. An array response is under `array`. `${args.name}` expands to nothing here. See [Template data](#template-data).
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -440,7 +440,7 @@ const tool = new DataMap('get_weather')
   .webhook('GET', 'https://wttr.in/${lc:enc:args.city}?format=j1')
   .output(
     new FunctionResult(
-      'Weather in ${args.city}: ' +
+      'Weather in ${input.args.city}: ' +
       'Temperature: ${current_condition[0].temp_F}F, ' +
       'Conditions: ${current_condition[0].weatherDesc[0].value}, ' +
       'Humidity: ${current_condition[0].humidity}%'
@@ -482,7 +482,7 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 **Returns:** `this` for chaining.
 
-The SDK writes the objects without converting them, so call `toDict()` on each output yourself. This tool answers differently for each order status, and falls back to the webhook's output:
+The SDK writes the objects without converting them, so call `toDict()` on each output yourself. Like the output, the expressions read the response from the root and the arguments as `${input.args.name}`. This tool answers differently for each order status, and falls back to the webhook's output:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -495,26 +495,26 @@ const tool = new DataMap('check_order_status')
       string: '${status}',
       pattern: 'shipped',
       output: new FunctionResult(
-        'Order ${args.order_id} has shipped. Tracking: ${tracking_number}'
+        'Order ${input.args.order_id} has shipped. Tracking: ${tracking_number}'
       ).toDict(),
     },
     {
       string: '${status}',
       pattern: 'processing',
       output: new FunctionResult(
-        'Order ${args.order_id} is being processed. Estimated ship date: ${est_ship_date}'
+        'Order ${input.args.order_id} is being processed. Estimated ship date: ${est_ship_date}'
       ).toDict(),
     },
     {
       string: '${status}',
       pattern: 'delivered',
       output: new FunctionResult(
-        'Order ${args.order_id} was delivered on ${delivery_date}.'
+        'Order ${input.args.order_id} was delivered on ${delivery_date}.'
       ).toDict(),
     },
   ])
   .output(
-    new FunctionResult('Order ${args.order_id} status: ${status}'),
+    new FunctionResult('Order ${input.args.order_id} status: ${status}'),
   );
 ```
 
@@ -524,7 +524,7 @@ const tool = new DataMap('check_order_status')
 
 ### fallbackOutput
 
-This method sets the `data_map`'s own `output`. The platform uses it when no expression matched and no webhook produced an output. Without one, the AI gets a generic error.
+This method sets the `data_map`'s own `output`. The platform uses it when no expression matched and no webhook produced a result: the webhook it requested failed, it requested none, or the webhook's expressions didn't match and it has no output. Without one, the AI gets the generic "There was an error processing this request."
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -537,7 +537,7 @@ fallbackOutput(result: FunctionResult): this
 
 **Returns:** `this` for chaining.
 
-The fallback's templates can read the arguments, but no response exists when it runs. This tool reports the price, or says the lookup failed:
+The fallback's templates read the arguments as `${args.name}`, and no response exists when it runs. This tool reports the price, or says the lookup failed:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -545,7 +545,7 @@ const tool = new DataMap('get_price')
   .purpose('Get the price of a product')
   .parameter('product', 'string', 'Product name', { required: true })
   .webhook('GET', 'https://api.store.example.com/price/${enc:args.product}')
-  .output(new FunctionResult('${args.product} costs $${price}'))
+  .output(new FunctionResult('${input.args.product} costs $${price}'))
   .fallbackOutput(
     new FunctionResult('The price lookup for ${args.product} failed. Offer to try again later.'),
   );
@@ -557,7 +557,7 @@ In `$${price}`, the first `$` is a literal dollar sign and `${price}` is the tem
 
 ### errorKeys
 
-This method sets `error_keys` on the most recently added webhook. If the response contains any of these keys, the webhook counts as failed. The platform then moves on to the next webhook, then to the fallback output.
+This method sets `error_keys` on the most recently added webhook. If the JSON response has any of these keys, the webhook counts as failed, whatever the key's value: `"errors": []` fails it. The platform then uses the fallback output, and doesn't try the next webhook. A response that isn't JSON, or a request that doesn't complete, fails the webhook the same way. An HTTP status outside 200-299 doesn't fail it by itself; the output can read the status as `${http_code}`.
 
 If no webhook has been added yet, the keys are set on the `data_map` itself, as `globalErrorKeys()` does.
 
@@ -568,7 +568,7 @@ errorKeys(keys: string[]): this
 
 | Parameter | Type       | Description                                        |
 |-----------|------------|----------------------------------------------------|
-| `keys`    | `string[]` | Response keys that mark the response as a failure. |
+| `keys`    | `string[]` | Response keys whose presence marks the response as a failure. |
 
 **Returns:** `this` for chaining.
 
@@ -598,24 +598,32 @@ globalErrorKeys(keys: string[]): this
 
 | Parameter | Type       | Description                                        |
 |-----------|------------|----------------------------------------------------|
-| `keys`    | `string[]` | Response keys that mark a response as a failure.   |
+| `keys`    | `string[]` | Response keys whose presence marks a response as a failure. |
 
 **Returns:** `this` for chaining.
 
-The SWML schema defines `error_keys` only on a webhook. Its `data_map` object has `expressions`, `webhooks` and `output`. SignalWire's reference doesn't describe a top-level `error_keys` either. To be sure a webhook checks a key, set it on that webhook with [errorKeys](#errorkeys). This example sets the keys on each webhook in a two-webhook chain:
+The SWML schema defines `error_keys` only on a webhook. Its `data_map` object has `expressions`, `webhooks` and `output`, and the platform reads `error_keys` only on a webhook, so a top-level `error_keys` has no effect. Set the keys on each webhook with [errorKeys](#errorkeys) instead. This example sets them on each webhook of a two-webhook chain, where `requireArgs` picks the webhook for the arguments the caller gave:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
-const tool = new DataMap('multi_api')
-  .purpose('Call multiple APIs')
-  .webhook('GET', 'https://api1.example.com/data')
+const tool = new DataMap('find_store')
+  .purpose('Find the nearest store by ZIP code or by city')
+  .parameter('zip', 'string', 'ZIP code')
+  .parameter('city', 'string', 'City name')
+  .webhook('GET', 'https://api.stores.example.com/near?zip=${enc:args.zip}', {
+    requireArgs: ['zip'],
+  })
   .errorKeys(['error', 'err'])
-  .output(new FunctionResult('API 1: ${value}'))
-  .webhook('GET', 'https://api2.example.com/data')
+  .output(new FunctionResult('The nearest store is ${name}.'))
+  .webhook('GET', 'https://api.stores.example.com/near?city=${enc:args.city}', {
+    requireArgs: ['city'],
+  })
   .errorKeys(['error', 'err'])
-  .output(new FunctionResult('API 2: ${value}'))
-  .fallbackOutput(new FunctionResult('Both APIs failed.'));
+  .output(new FunctionResult('The nearest store is ${name}.'))
+  .fallbackOutput(new FunctionResult('The store lookup failed.'));
 ```
+
+With a ZIP code, the platform requests the first webhook. With only a city, it skips the first webhook and requests the second. If the webhook it requests fails, the fallback output answers.
 
 ---
 
@@ -623,7 +631,7 @@ const tool = new DataMap('multi_api')
 
 ### foreach
 
-This method sets the `foreach` of the most recently added webhook. The platform walks an array in the response, expands a template once per element, and joins the results into one string for the output.
+This method sets the `foreach` of the most recently added webhook. The platform walks an array in the response, expands a template once per element, and joins the results into one string for the output. It skips a `foreach` that lacks `input_key`, `output_key` or `append`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -637,10 +645,10 @@ foreach(config: {
 
 | Parameter           | Type     | Description                                                  |
 |---------------------|----------|--------------------------------------------------------------|
-| `config.input_key`  | `string` | The key in the response whose value is the array, such as `"orders"`. It's a key name, not a template. |
+| `config.input_key`  | `string` | The path to the array in the webhook's template data, such as `"orders"` or `"data.items"`. It's a path, not a template. |
 | `config.output_key` | `string` | Where the built text is stored. The output reads it as `${output_key}`. |
-| `config.append`     | `string` | The template added once per element. `${this.field}` reads a field of the current element. |
-| `config.max`        | `number` | Optional. The most elements to use, from the start of the array. |
+| `config.append`     | `string` | The template added once per element. `${this.field}` reads a field of an object element, and `${this}` is a string or number element itself. It can also read the response and `${input.args.name}`. |
+| `config.max`        | `number` | Optional. The most elements to use, from the start of the array. With no `max`, or 0, every element is used. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
@@ -661,7 +669,7 @@ const tool = new DataMap('list_orders')
     max: 5,
   })
   .output(
-    new FunctionResult('Recent orders for customer ${args.customer_id}:\n${order_list}'),
+    new FunctionResult('Recent orders for customer ${input.args.customer_id}:\n${order_list}'),
   )
   .fallbackOutput(
     new FunctionResult('Could not retrieve orders for customer ${args.customer_id}.'),
@@ -906,9 +914,9 @@ createSimpleApiTool(opts: {
 |-------------------------|----------------------------|-----------|---------------------------------------------------|
 | `opts.name`             | `string`                   | None      | Tool name.                                        |
 | `opts.url`              | `string`                   | None      | Webhook URL, with templates.                      |
-| `opts.responseTemplate` | `string`                   | None      | The output's response text. Response fields are read from the root, as `${field}`. |
+| `opts.responseTemplate` | `string`                   | None      | The output's response text. Response fields are read from the root, as `${field}`, and arguments as `${input.args.name}`. |
 | `opts.parameters`       | `Record<string, {...}>`    | None      | Parameter definitions. A missing `type` is `string`. |
-| `opts.method`           | `string`                   | `'GET'`   | HTTP method.                                      |
+| `opts.method`           | `string`                   | `'GET'`   | HTTP method. The platform sends a `GET` unless it's `POST`. |
 | `opts.headers`          | `Record<string, string>`   | None      | Request headers.                                  |
 | `opts.body`             | `Record<string, unknown>`  | None      | Written with `body()`, as the webhook's `body` key. See [body](#body). |
 | `opts.errorKeys`        | `string[]`                 | None      | Response keys that mark a failure.                |
@@ -1003,29 +1011,34 @@ SignalWire's platform expands these templates when it runs a `data_map` function
 
 ### Template data
 
-Every template reads from one JSON object, the template data, which the platform builds for each call of the function. A template names a path from its root: `${args.city}` reads `city` inside `args`. The root holds these values:
+Every template reads from a JSON object, the template data, which the platform builds for each call of the function. A template names a path from its root: `${args.city}` reads `city` inside `args`. Which object that is depends on the stage the template is in.
+
+The first object is the call data. Its root holds these values:
 
 - `args`: the arguments the AI extracted for this call, by parameter name. Example: `${args.city}`.
 - `global_data`: the application's global data. Example: `${global_data.account_tier}`.
 - `meta_data`: the function's metadata. Example: `${meta_data.table.sales}`.
+- The prompt variables, at the root.
 - Details of the call: `call_id`, `ai_session_id`, `conversation_id`, `function`, `caller_id_name`, `caller_id_num`, `project_id`, `space_id` and `app_name`.
 
-When a webhook responds, its JSON response joins the root. An object response's fields are read directly: a response of `{"total": 25, "results": [...]}` gives `${total}` and `${results[0].title}`. There is no `response.` prefix, and `${response.total}` expands to nothing. An array response is under `array`, as in `${array[0].joke}`.
+When a webhook responds, its `foreach`, `expressions` and `output` read a second object, built from the response. An object response's fields are at its root: a response of `{"total": 25, "results": [...]}` gives `${total}` and `${results[0].title}`. There is no `response.` prefix, and `${response.total}` expands to nothing. An array response is under `array`, as in `${array[0].joke}`. The call data is under `input`, so the arguments are `${input.args.city}`, and `${args.city}` expands to nothing. The object also has `global_data` and `prompt_vars`. A status outside 200-299 is under `http_code`.
 
-During a `foreach`, `this` is the current element, as in `${this.title}`. The text it builds is stored under its `output_key`, as in `${order_list}`.
+Each stage reads these values:
 
-Which values exist depends on where the template is:
+| Where the template is | What it reads | The arguments |
+|---|---|---|
+| A webhook's `url` and `params` | The call data. The response doesn't exist yet. | `${args.name}` |
+| A webhook's `headers` | Nothing: the platform sends header values as written | None |
+| The top-level `expressions` | The call data | `${args.name}` |
+| A webhook's `foreach`, `expressions` and `output` | The response's fields (or `array`), `input` (the call data), `global_data`, `prompt_vars`, and `http_code` for a status outside 200-299 | `${input.args.name}` |
+| A `foreach` `append` template | The same as the webhook's output, plus `this`, the current element | `${input.args.name}` |
+| The `data_map`'s own `output` (the fallback) | The call data, plus `global_data` and `prompt_vars` | `${args.name}` |
 
-| Where the template is | What it can read |
-|---|---|
-| A webhook's `url` and `params` | `args`, `global_data`, `meta_data` and the call details. The response doesn't exist yet. |
-| A webhook's `foreach`, `expressions` and `output` | All of those, plus the response's fields (or `array`) |
-| A `foreach` `append` template | Also `this`, the current element |
-| The `data_map`'s own `output` (the fallback) | `args`, `global_data`, `meta_data` and the call details |
+During a `foreach`, `this` is the current element: `${this.title}` for a field of an object, and `${this}` for a string or number. The text it builds is stored under its `output_key`, as in `${order_list}`, which the webhook's `expressions` and `output` read.
 
 ### Template syntax
 
-`${path}` is replaced by the value at `path` in the template data, and `%{path}` means the same. A path uses dots for object fields and zero-based `[n]` for array elements, as in `${args.filters.category}` and `${results[0].title}`. A path whose value isn't set becomes an empty string.
+`${path}` is replaced by the value at `path` in the template data, and `%{path}` means the same. A path uses dots for object fields and zero-based `[n]` for array elements, as in `${args.filters.category}` and `${results[0].title}`. A negative index counts from the end: `${results[-1].title}` is the last element. A path whose value isn't set becomes an empty string.
 
 Inside `${...}`, a helper name and a colon before the path transform the value. The platform has two helpers:
 
@@ -1072,14 +1085,14 @@ RESULT:
 Response: Weather in London: 61°F, Overcast
 ```
 
-The simulator differs from the platform in several ways:
+The simulator follows the platform's stage template data and webhook rules, described in [Template data](#template-data) and [errorKeys](#errorkeys). It differs from the platform in several ways:
 
-- A path that doesn't resolve shows as `<MISSING:path>`, where the platform writes an empty string. When the missing path starts with `response.`, the simulator prints a note that response fields are read from the root.
-- It builds the arguments, but not global data, metadata or the call details. A template that reads them shows as missing.
-- It accepts an argument without its `args.` prefix, as `${city}`. Write `${args.city}`, the form the platform documents.
-- It leaves `@{...}` functions as they are.
+- A path that doesn't resolve shows as `<MISSING:path>`, where the platform writes an empty string. When the missing path starts with `response.`, the simulator prints a note that response fields are read from the root. When `${args.name}` is missing in a webhook's output, expressions or `foreach`, it prints a note to write `${input.args.name}`.
+- It builds the arguments and the function name, but not global data, metadata, prompt variables or the call details. A template that reads them shows as missing.
+- It matches keys exactly, where the platform matches them case-insensitively.
+- It leaves `@{...}` functions as they are, and doesn't evaluate an expression's `expr`.
 - It matches patterns with JavaScript regular expressions, where the platform uses PCRE. Like the platform, it matches case-insensitively unless the pattern is written `/pattern/flags`, and it accepts a leading `(?i)`. Other PCRE-only syntax is reported as an invalid pattern.
-- It sends `PUT`, `PATCH` and `DELETE` requests with that method, and a `POST`, `PUT` or `PATCH` request with a `body()` as its body. The platform sends a `GET`, or a `POST` when the method is `POST` or `params` is set, and its only body is `params`.
+- When nothing produces a result and there is no fallback output, it returns an error object and `swaig-test` exits with status 1. The platform answers "There was an error processing this request."
 - It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
 
 ---

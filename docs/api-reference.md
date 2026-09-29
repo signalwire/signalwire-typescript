@@ -1666,7 +1666,7 @@ import { DataMap, createSimpleApiTool, createExpressionTool } from '@signalwire/
 
 `DataMap` builds a SWAIG function with a `data_map`, which SignalWire runs on its servers. The platform calls the webhooks and evaluates the expressions without a request to your agent. The SDK only serializes the definition.
 
-Templates in URLs, bodies and outputs are expanded by the platform. A webhook's JSON response is read from the root of the template data (`${total}`, `${results[0].title}`), and an array response is under `array`. Arguments are `${args.name}`. For the template reference, see the [DataMap guide](datamap-guide.md).
+Templates in URLs, `params`, expressions and outputs are expanded by the platform; header values are sent as written. A URL, `params`, the top-level expressions and the fallback output read the arguments as `${args.name}`. A webhook's `output`, `expressions` and `foreach` read the webhook's JSON response from the root of the template data (`${total}`, `${results[0].title}`), an array response under `array`, and the arguments as `${input.args.name}`. For the template reference, see the [DataMap guide](datamap-guide.md#template-data).
 
 ### DataMap Constructor
 
@@ -1723,7 +1723,7 @@ parameter(name: string, paramType: string, description: string, opts?: {
 
 #### `expression(testValue, pattern, output, nomatchOutput?)`
 
-Add an entry to `data_map.expressions`: `{ string, pattern, output, 'nomatch-output' }`. A `RegExp` is sent as its `source`, so its flags (such as `i`) are dropped.
+Add an entry to `data_map.expressions`: `{ string, pattern, output, 'nomatch-output' }`. The platform wraps a pattern that doesn't start with `/` as `/pattern/i`, so matching is case-insensitive by default; to match case-sensitively, write the pattern as `/pattern/`. A `RegExp` is sent as its `source`, so its flags are dropped.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1739,7 +1739,7 @@ expression(
 
 #### `webhook(method, url, opts?)`
 
-Add a webhook, with `method` in upper case. The options are emitted as `headers`, `form_param`, `input_args_as_params` and `require_args`.
+Add a webhook, with `method` in upper case. The options are emitted as `headers`, `form_param`, `input_args_as_params` and `require_args`. The platform sends a `POST` when the method is `POST` or the webhook has `params`, and a `GET` otherwise. It tries the webhooks in order, skipping one when none of its `require_args` is present, and the first one it requests decides the result: if that one fails, the fallback output answers and later webhooks aren't tried.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1761,13 +1761,13 @@ The next five methods apply to the most recently added webhook, and throw when t
 | `foreach` | `(config: { input_key: string; output_key: string; append: string; max?: number }): this` | The webhook's `foreach` |
 | `output` | `(result: FunctionResult): this` | The webhook's `output` |
 
-In a `foreach`, `append` is a template where `${this.field}` is the current element; the built text is stored under `output_key`.
+In a `foreach`, `input_key` is the path to the array, and `append` is a template where `${this.field}` is a field of the current element (`${this}` for a string or number element); the built text is stored under `output_key`. The platform doesn't send `body`: `params` is the request body.
 
 ### DataMap Output Methods
 
 #### `fallbackOutput(result)`
 
-Set the top-level `data_map.output`, the response the platform uses when every webhook fails.
+Set the top-level `data_map.output`, the response the platform uses when no expression matched and no webhook produced a result, such as when the webhook it requested failed.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1776,7 +1776,7 @@ fallbackOutput(result: FunctionResult): this
 
 #### `errorKeys(keys)`
 
-Set `error_keys` on the most recently added webhook, or on the `data_map` when there's no webhook.
+Set `error_keys` on the most recently added webhook, or on the `data_map` when there's no webhook. The platform fails a webhook when one of these keys is present in its JSON response, whatever the value, and reads `error_keys` only on a webhook.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1785,7 +1785,7 @@ errorKeys(keys: string[]): this
 
 #### `globalErrorKeys(keys)`
 
-Set `error_keys` on the `data_map`.
+Set `error_keys` on the `data_map`. The platform reads `error_keys` only on a webhook, so these keys fail no request; use `errorKeys()` after each `webhook()`.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1822,7 +1822,7 @@ new DataMap('get_weather')
   .purpose('Get the current weather for a city')
   .parameter('city', 'string', 'City name', { required: true })
   .webhook('GET', 'https://api.example.com/weather?q=${lc:enc:args.city}')
-  .output(new FunctionResult('It is ${temp} degrees and ${condition} in ${args.city}.'))
+  .output(new FunctionResult('It is ${temp} degrees and ${condition} in ${input.args.city}.'))
   .fallbackOutput(new FunctionResult('The weather service is unavailable.'))
   .registerWithAgent(weatherAgent);
 ```
