@@ -39,7 +39,7 @@ async function servedWith(change: (builder: ContextBuilder) => void): Promise<St
   return stepsOf(await servedSwml(penny));
 }
 
-// region: test-scoping
+// region: checks
 /** Throws unless every step names its tools and gives the model nowhere to go. */
 function checkScoping(steps: Steps): void {
   for (const [where, step] of Object.entries(steps)) {
@@ -73,6 +73,7 @@ function checkHomes(steps: Steps): void {
     }
   }
 }
+// endregion: checks
 
 describe('Penny workflow: the SWML the agent serves', () => {
   let ai: Json;
@@ -83,6 +84,7 @@ describe('Penny workflow: the SWML the agent serves', () => {
     steps = stepsOf(swml);
   });
 
+  // region: test-scoping
   it('every step names its tools and cannot navigate', () => {
     expect(Object.keys(steps)).toHaveLength(14);
     expect(() => checkScoping(steps)).not.toThrow();
