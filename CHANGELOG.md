@@ -241,11 +241,14 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - A Google Cloud Function on `cloudfunctions.net` refused SignalWire's
   signed requests with `403`: the signature was checked over the request's
   URL, without the function name the webhook URL carries. It's checked over
-  the webhook URL first.
+  the webhook URL only, so a signature made for another function on the
+  same host doesn't pass.
 - `SWML_RATE_LIMIT` counted every client in one bucket unless
   `SWML_TRUST_PROXY_HEADERS` was set, so one client over the limit got every
   other client refused, SignalWire included. Each client is keyed by its
-  connection address.
+  connection address, or on a serverless platform by the address the
+  platform reports (Lambda's source IP, a Cloud Function request's `ip`,
+  CGI's `REMOTE_ADDR`).
 - Overriding `validateBasicAuth()` on an agent had no effect: the routes
   compared credentials themselves, and not in constant time. Every
   protected route now checks through `validateBasicAuth()`, whose default
@@ -259,7 +262,16 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   call. The first registration now stands, and a redeemed nonce stays used.
 - The mcp_gateway skill and native_vector_search in remote mode checked
   their URL only at setup; every request, redirects included, is now
-  checked for private and internal addresses.
+  checked for private and internal addresses. This holds for mcp_gateway
+  with `verify_ssl: false` and `allow_insecure_tls: true` too, which went
+  through its own TLS dispatcher unchecked and now skips only the
+  certificate check (and no longer needs the `undici` package).
+- `WebService` checked `blockedExtensions` and `allowedExtensions` against
+  the requested name only, so a symbolic link inside a mount (`alias.txt`
+  pointing to `.env`) served a blocked file, and a dot entry such as `.git`
+  didn't block files under a `.git` directory. The checks now apply to the
+  file actually read, including the `index.html` fallback and listings,
+  and a dot entry matches a directory on the path.
 - `SkillRegistry.unregister()` and `clear()` removed locked skills, so a
   built-in could be removed and replaced by another class. Locked names
   stay.
@@ -268,7 +280,8 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 - Agents: `AgentBase.serve()` and `AgentServer.run()` serve HTTPS from
   `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH`, as the
-  Python SDK does; they served plain HTTP. `SWML_SSL_ENABLED` accepts
+  Python SDK does; they served plain HTTP. The webhook URLs then use
+  `https`, on `SWML_SSL_DOMAIN` when it's set. `SWML_SSL_ENABLED` accepts
   `true`, `1` or `yes`, and `stop()` closes the server `serve()` started.
 - `run()` on Cloud Run, which sets `K_SERVICE` but not `FUNCTION_TARGET`,
   handled one empty request instead of starting the server.
@@ -284,6 +297,7 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   contexts and returns the agent, as the Python SDK does with a dict.
 - Tool arguments that don't match the tool's schema log a warning before
   the handler runs, as in the Python SDK; `validateArgs()` was never called.
+  Each schema's validator is compiled once and cached.
 - A skill's `swaig_fields: { secure: false }` now lets its tools run
   without a per-call token; it only changed the rendered definition.
 - `getRegisteredTools()` returned an empty description and no parameters
@@ -295,7 +309,9 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   awaits the callback and otherwise serves the request's SWML.
 - `AgentServer.setupSipRouting()` and `registerGlobalRoutingCallback()`
   called after `register()` served the callback at a doubled path
-  (`/sales/sales/sip`) or not at all.
+  (`/sales/sales/sip`) or not at all, and threw once the server had served
+  a request. The server's app is rebuilt when its routes change, and
+  `unregister()` removes the agent's routes too (they stayed served).
 - `SWMLService.serve()` warns when the service serves without basic auth
   because its credentials were generated (the Python SDK enforces them;
   see PORT_BEHAVIORAL_NOTES.md).
@@ -307,7 +323,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   each stage reads, `nomatch-output`, webhook `expressions`, foreach with
   the webhook's data, `params` as the body whenever set, the first webhook
   requested deciding the result, `error_keys` failing by presence,
-  case-insensitive patterns, and headers sent as written.
+  case-insensitive patterns, and headers sent as written. Its template
+  helpers are the platform's `lc:`, `enc:` and `fmt_ph:`, applied in the
+  platform's fixed order (so `${enc:url:x}` reads the missing path
+  `url:x`, as on the platform); `enc:` encodes what the platform encodes;
+  and a single expression or webhook object is read as the platform reads
+  it.
 - swaig-test: `--help` shows `--call-direction inbound|outbound` and
   lists `--project-id` and `--space-id`; the Lambda and Cloud Functions
   simulations honor the function name, region and project options; the
