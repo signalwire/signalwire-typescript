@@ -298,8 +298,11 @@ agent.registerSwaigFunction(weather.toSwaigFunction());
   API that returns \`{"current": {...}}\` is read as \`\${current.summary}\`,
   with no \`response.\` prefix; an array response is \`\${array[0].x}\`; and
   the arguments there are \`\${input.args.city}\`.
-- Prefix helpers transform a value, left to right: \`\${lc:enc:args.city}\`
-  lowercases \`args.city\`, then URL-encodes it.
+- The prefix helpers \`lc:\`, \`enc:\` and \`fmt_ph:\` transform a value. The
+  platform applies fmt_ph, then lc, then enc, whatever order they are written
+  in: \`\${lc:enc:args.city}\` lowercases \`args.city\`, then URL-encodes it.
+  \`enc\` takes no encoding name: \`\${enc:url:args.city}\` reads the path
+  \`url:args.city\` and expands to nothing.
 - A webhook's \`params()\` are its JSON request body.
 - \`swaig-test --exec\` simulates a DataMap tool locally, including its HTTP
   request.

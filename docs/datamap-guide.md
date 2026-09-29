@@ -1040,14 +1040,17 @@ During a `foreach`, `this` is the current element: `${this.title}` for a field o
 
 `${path}` is replaced by the value at `path` in the template data, and `%{path}` means the same. A path uses dots for object fields and zero-based `[n]` for array elements, as in `${args.filters.category}` and `${results[0].title}`. A negative index counts from the end: `${results[-1].title}` is the last element. A path whose value isn't set becomes an empty string.
 
-Inside `${...}`, a helper name and a colon before the path transform the value. The platform has two helpers:
+Inside `${...}`, a helper name and a colon before the path transform the value. The platform has three helpers, and matches their names in any case:
 
 | Helper | What it does | Example |
 |---|---|---|
 | `lc` | Lowercases the value | `${lc:args.department}` |
-| `enc` | URL-encodes the value. SignalWire's reference writes it `enc:url`. | `${enc:args.query}` or `${enc:url:args.query}` |
+| `enc` | URL-encodes the value | `${enc:args.query}` |
+| `fmt_ph` | Formats a phone number in national format, as it is dialed within its country. A number without a country code is read as a US number, and a value that isn't a valid number becomes `INVALID NUMBER`. | `${fmt_ph:args.phone}` |
 
-There is no uppercase helper. Helpers chain from left to right: `${lc:enc:args.city}` lowercases the city, then URL-encodes it.
+Helpers combine, as in `${lc:enc:args.city}`. The platform applies them in a fixed order, whatever order you write them in: `fmt_ph`, then `lc`, then `enc`. So `${lc:enc:args.city}` and `${enc:lc:args.city}` both lowercase the city, then URL-encode it.
+
+There is no uppercase helper, and `enc` takes no encoding name. Any other name before a colon is part of the path: in `${enc:url:args.query}`, the platform reads the path `url:args.query`, which doesn't resolve, so it writes nothing.
 
 Templates nest, and expand from the inside out. In `${meta_data.contacts.${lc:args.department}}`, the inner template turns "Sales" into `sales`, and the outer one then reads `meta_data.contacts.sales`.
 

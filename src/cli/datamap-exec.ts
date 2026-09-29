@@ -50,10 +50,16 @@
  *   templates in them.
  *
  * Templates: `${path}` and `%{path}` read a dotted path (with `[n]` indexes,
- * negative ones from the end) from the template data. Prefix helpers apply
- * left to right: `lc` lowercases and `enc` (or `enc:url`) URL-encodes, so
- * `${lc:enc:args.city}` is the city, lowercased and encoded. Nested
- * templates expand from the inside out.
+ * negative ones from the end) from the template data. The platform has three
+ * prefix helpers, each a name and a colon at the start of the template (the
+ * name in any case): `lc:` lowercases, `enc:` URL-encodes and `fmt_ph:`
+ * formats a phone number. It applies them in that fixed order, `fmt_ph`, then
+ * `lc`, then `enc`, whatever order they are written in, so
+ * `${lc:enc:args.city}` and `${enc:lc:args.city}` both lowercase the city,
+ * then encode it. Any other name before a colon is part of the path:
+ * `${enc:url:args.city}` reads the path `url:args.city`, which doesn't
+ * resolve, and the simulator says so on stderr. Nested templates expand from
+ * the inside out.
  *
  * Where the simulator differs from the platform, on purpose:
  *
@@ -62,6 +68,8 @@
  * - The call data has no `global_data`, `meta_data`, prompt variables or
  *   call details, so templates that read them show as missing.
  * - `@{...}` functions are left as they are.
+ * - `fmt_ph:` isn't applied: the value is left as it is, and the simulator
+ *   says so on stderr.
  * - Keys match exactly; the platform matches them case-insensitively.
  * - An expression's `expr` (a FreeSWITCH `expr` evaluation) isn't evaluated:
  *   only its `pattern` is tried.
@@ -82,14 +90,21 @@ const HTTP_REQUEST_TIMEOUT = 30;
 /** A `${...}` or `%{...}` with no braces inside it, so nested templates expand inside out. */
 const TEMPLATE = /[$%]\{([^{}]*)\}/g;
 
-const HELPERS: Record<string, (value: string) => string> = {
-  lc: (value) => value.toLowerCase(),
-  enc: (value) =>
-    encodeURIComponent(value).replace(
-      /[!'()*]/g,
-      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-    ),
-};
+/** URL-encodes a value, for `enc:` and `form_param`. */
+function urlEncode(value: string): string {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+/**
+ * The prefix helpers the platform recognizes (mod_openai swaig.c
+ * `_expand_jsonvars`): each is its name and a colon at the start of the
+ * template, the name matched case-insensitively. Anything else is part of the
+ * path, so `${enc:url:args.city}` reads the path `url:args.city`.
+ */
+const HELPER_PREFIX = /^(lc|fmt_ph|enc):/i;
 
 type Data = Record<string, unknown>;
 
@@ -135,20 +150,25 @@ function text(value: unknown): string {
   return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
-/** One template's value: its helpers applied to the value at its path. */
+/**
+ * One template's value: its helpers applied to the value at its path. As on
+ * the platform, the helpers are collected and applied in a fixed order,
+ * whatever order they are written in: `fmt_ph` (which the simulator doesn't
+ * apply), then `lc`, then `enc`.
+ */
 function expandOne(body: string, data: Data): string {
-  const parts = body.split(':');
-  const helpers: ((value: string) => string)[] = [];
-  while (parts.length > 1 && parts[0]! in HELPERS) {
-    const name = parts.shift()!;
-    helpers.push(HELPERS[name]!);
-    if (name === 'enc' && parts.length > 1 && parts[0] === 'url') parts.shift();
+  const helpers = new Set<string>();
+  let path = body;
+  for (let m = HELPER_PREFIX.exec(path); m; m = HELPER_PREFIX.exec(path)) {
+    helpers.add(m[1]!.toLowerCase());
+    path = path.slice(m[0].length);
   }
-  const path = parts.join(':');
   const value = lookup(data, path);
   let out = text(value);
   if (typeof value === 'string' && value.startsWith('<MISSING:')) return out;
-  for (const helper of helpers) out = helper(out);
+  if (!out) return out;
+  if (helpers.has('lc')) out = out.toLowerCase();
+  if (helpers.has('enc')) out = urlEncode(out);
   return out;
 }
 
@@ -320,9 +340,38 @@ export async function executeDataMap(
     }
   };
 
+  // Notes for helpers the simulator reads as the platform does, which can
+  // surprise: a name before a colon that isn't a helper is part of the path
+  // (so `${enc:url:args.city}` reads `url:args.city`), and fmt_ph isn't applied.
+  const noted = new Set<string>();
+  const noteHelpers = (value: unknown) => {
+    const shown = typeof value === 'string' ? value : JSON.stringify(value ?? '');
+    for (const [, name, rest] of shown.matchAll(/<MISSING:([A-Za-z_]\w*):([^<>]*)>/g)) {
+      const line =
+        `Note: "${name}:" is not a template helper. The platform's helpers are lc:, enc: ` +
+        `and fmt_ph:, so it reads "${name}:${rest}" as a path, which doesn't resolve, and ` +
+        'writes nothing there.' +
+        (name!.toLowerCase() === 'url' ? ` To URL-encode, write \${enc:${rest}}.` : '');
+      if (!noted.has(line)) log(line);
+      noted.add(line);
+    }
+  };
+  if (/[$%]\{(?:(?:lc|enc):)*fmt_ph:/i.test(JSON.stringify(dataMap))) {
+    log(
+      "Note: the simulator doesn't apply fmt_ph:, and leaves the value as it is. The " +
+        'platform formats it as a national phone number (a number without a country code ' +
+        'is read as a US number), or writes INVALID NUMBER when it is not a valid number.',
+    );
+  }
+
+  const done = (result: unknown) => {
+    noteHelpers(result);
+    return result;
+  };
+
   // 1. Expressions
   const exprResult = runExpressions(dataMap['expressions'], callData, say);
-  if (exprResult.matched) return exprResult.output;
+  if (exprResult.matched) return done(exprResult.output);
 
   // 2. Webhooks, in order. The first one requested ends the webhook stage.
   const webhooks = Array.isArray(dataMap['webhooks']) ? dataMap['webhooks'] : [];
@@ -366,9 +415,10 @@ export async function executeDataMap(
     if (params) {
       method = 'POST';
       body = JSON.stringify(expandValue(params, callData));
+      noteHelpers(body);
       const formParam = webhook['form_param'];
       if (typeof formParam === 'string' && formParam) {
-        body = `${formParam}=${HELPERS['enc']!(body)}`;
+        body = `${formParam}=${urlEncode(body)}`;
         contentType = 'application/x-www-form-urlencoded';
       }
     }
@@ -378,6 +428,7 @@ export async function executeDataMap(
     }
     say(`${method} ${url}`);
     if (body) say(`Request body: ${body}`);
+    noteHelpers(url);
 
     let responseData: unknown;
     let failed = false;
@@ -487,7 +538,7 @@ export async function executeDataMap(
       const matched = runExpressions(webhook['expressions'], webhookContext, say);
       if (matched.matched) {
         hint(matched.output);
-        return matched.output;
+        return done(matched.output);
       }
       say('No webhook expression matched');
     }
@@ -496,7 +547,7 @@ export async function executeDataMap(
     if ('output' in webhook) {
       const result = expandValue(webhook['output'], webhookContext);
       hint(result);
-      return result;
+      return done(result);
     }
     break;
   }
@@ -505,7 +556,7 @@ export async function executeDataMap(
   // produced nothing: the data_map's own output
   if ('output' in dataMap) {
     say('No webhook produced a result; using the data_map output');
-    return expandValue(dataMap['output'], callData);
+    return done(expandValue(dataMap['output'], callData));
   }
   return { error: 'All webhooks failed and no fallback output defined', status: 'failed' };
 }

@@ -20,7 +20,8 @@ describe('expandTemplate', () => {
     ['%{args.city}', 'New York'],
     ['${lc:args.city}', 'new york'],
     ['${enc:args.city}', 'New%20York'],
-    ['${enc:url:args.city}', 'New%20York'],
+    // The platform has no enc:url helper: it reads url:args.city as a path
+    ['${enc:url:args.city}', '<MISSING:url:args.city>'],
     ['${lc:enc:args.city}', 'new%20york'],
     ['${meta_data.table.${lc:args.target}}', '+15551234567'],
     ['${array[0].joke}', 'ha'],
@@ -668,5 +669,53 @@ describe('webhook flow, as the platform runs it', () => {
         fakeFetch(body),
       ),
     ).toEqual({ response: '<MISSING:list>' });
+  });
+});
+
+/**
+ * The prefix helpers of mod_openai's _expand_jsonvars (swaig.c): `lc:`,
+ * `fmt_ph:` and `enc:`, matched case-insensitively at the start of the
+ * template. The platform collects them and applies fmt_ph, then lc, then enc,
+ * whatever order they are written in. Anything else before a colon is part of
+ * the path.
+ */
+describe('prefix helpers, as the platform parses them', () => {
+  const data = { args: { city: 'New York', where: 'A B:C', phone: '+12025550143' } };
+
+  it('applies lc before enc whatever the written order', () => {
+    expect(expandTemplate('${lc:enc:args.where}', data)).toBe('a%20b%3Ac');
+    expect(expandTemplate('${enc:lc:args.where}', data)).toBe('a%20b%3Ac');
+  });
+
+  it('matches helper names case-insensitively', () => {
+    expect(expandTemplate('${LC:args.city}', data)).toBe('new york');
+    expect(expandTemplate('${Enc:args.city}', data)).toBe('New%20York');
+  });
+
+  it('recognizes fmt_ph, leaving the number as it is and saying so', async () => {
+    expect(expandTemplate('${fmt_ph:args.phone}', data)).toBe('+12025550143');
+    const lines: string[] = [];
+    const fn = { data_map: { output: { response: 'Call ${fmt_ph:args.phone}' } } };
+    expect(await executeDataMap(fn, data.args, { log: (l) => void lines.push(l) })).toEqual({
+      response: 'Call +12025550143',
+    });
+    expect(lines.join('\n')).toContain('fmt_ph');
+  });
+
+  it('reads enc:url: as enc: and the path url:args.city, which is missing, and says why', async () => {
+    const lines: string[] = [];
+    const { calls, fetchImpl } = fakeFetch({ temp: 61 });
+    const fn = {
+      data_map: {
+        webhooks: [
+          { url: 'https://api.example.com/w?q=${enc:url:args.city}', output: { response: 'ok' } },
+        ],
+      },
+    };
+    await executeDataMap(fn, data.args, { fetchImpl, log: (l) => void lines.push(l) });
+    expect(calls[0]!.url).toBe('https://api.example.com/w?q=<MISSING:url:args.city>');
+    const said = lines.join('\n');
+    expect(said).toContain('"url:" is not a template helper');
+    expect(said).toContain('${enc:args.city}');
   });
 });
