@@ -235,9 +235,113 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   below `/api/<function>`; they got `404`.
 - `run()` and `runServerless()` in CGI mode read the request body from stdin
   and write the CGI response to stdout. They read no body and wrote nothing.
+- A per-request copy shared the agent's tool objects, so a dynamic config
+  callback that changed a tool (turning `secure` off for one tenant, say)
+  changed it for every later call. The copy now has its own tools.
+- A Google Cloud Function on `cloudfunctions.net` refused SignalWire's
+  signed requests with `403`: the signature was checked over the request's
+  URL, without the function name the webhook URL carries. It's checked over
+  the webhook URL first.
+- `SWML_RATE_LIMIT` counted every client in one bucket unless
+  `SWML_TRUST_PROXY_HEADERS` was set, so one client over the limit got every
+  other client refused, SignalWire included. Each client is keyed by its
+  connection address.
+- Overriding `validateBasicAuth()` on an agent had no effect: the routes
+  compared credentials themselves, and not in constant time. Every
+  protected route now checks through `validateBasicAuth()`, whose default
+  compares in constant time.
+- `WebService` served files through symbolic links that pointed outside a
+  mounted directory. It resolves the real path and refuses anything outside
+  the mount.
+- `HandoffRouter.register()` reset a nonce when it was registered again, so
+  re-sending a call's SWML request reset the `/say` message cap, revived a
+  nonce `/handoff` had redeemed, and could move a live nonce to another
+  call. The first registration now stands, and a redeemed nonce stays used.
+- The mcp_gateway skill and native_vector_search in remote mode checked
+  their URL only at setup; every request, redirects included, is now
+  checked for private and internal addresses.
+- `SkillRegistry.unregister()` and `clear()` removed locked skills, so a
+  built-in could be removed and replaced by another class. Locked names
+  stay.
 
 ### Fixed
 
+- Agents: `AgentBase.serve()` and `AgentServer.run()` serve HTTPS from
+  `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH`, as the
+  Python SDK does; they served plain HTTP. `SWML_SSL_ENABLED` accepts
+  `true`, `1` or `yes`, and `stop()` closes the server `serve()` started.
+- `run()` on Cloud Run, which sets `K_SERVICE` but not `FUNCTION_TARGET`,
+  handled one empty request instead of starting the server.
+- `*` in `SWML_ALLOWED_HOSTS` refused every host, and in
+  `SWML_CORS_ORIGINS` allowed no origin; it now allows all, as in Python.
+- `schemaValidation: false` and `schemaPath` now apply to the verbs an
+  agent renders; only `SWML_SKIP_SCHEMA_VALIDATION` worked.
+- `addLanguage()` emitted fillers as objects the schema doesn't define.
+  `LanguageConfig` gains `speechFillers`, and fillers are emitted as string
+  arrays, as the Python SDK emits them; the object forms are flattened with
+  a warning.
+- `defineContexts()` given a plain object ignored it; it renders it as the
+  contexts and returns the agent, as the Python SDK does with a dict.
+- Tool arguments that don't match the tool's schema log a warning before
+  the handler runs, as in the Python SDK; `validateArgs()` was never called.
+- A skill's `swaig_fields: { secure: false }` now lets its tools run
+  without a per-call token; it only changed the rendered definition.
+- `getRegisteredTools()` returned an empty description and no parameters
+  for DataMap tools.
+- `suppressLogs: true` didn't silence the warnings the constructor logged
+  first.
+- `SWMLService` routing callbacks: an async callback was redirected to
+  `[object Promise]`, and a throwing one failed the request. The route
+  awaits the callback and otherwise serves the request's SWML.
+- `AgentServer.setupSipRouting()` and `registerGlobalRoutingCallback()`
+  called after `register()` served the callback at a doubled path
+  (`/sales/sales/sip`) or not at all.
+- `SWMLService.serve()` warns when the service serves without basic auth
+  because its credentials were generated (the Python SDK enforces them;
+  see PORT_BEHAVIORAL_NOTES.md).
+- DataMap: a webhook's output reads the tool's arguments as
+  `${input.args.x}`; `${args.x}` expands to nothing there on the platform.
+  The datasphere_serverless skill's result and the DataMap examples read
+  them that way now.
+- swaig-test's DataMap simulator follows the platform: the template data
+  each stage reads, `nomatch-output`, webhook `expressions`, foreach with
+  the webhook's data, `params` as the body whenever set, the first webhook
+  requested deciding the result, `error_keys` failing by presence,
+  case-insensitive patterns, and headers sent as written.
+- swaig-test: `--help` shows `--call-direction inbound|outbound` and
+  lists `--project-id` and `--space-id`; the Lambda and Cloud Functions
+  simulations honor the function name, region and project options; the
+  Azure simulation names the function.
+- RELAY: a sent message with an `on()` listener stayed tracked after it
+  finished; `DialOptions` and `SendMessageOptions` are the types `dial()`
+  and `sendMessage()` take; the `stream()` track values are the protocol's.
+- LiveWire: `runApp()` serves the agent of the session its entry function
+  starts (it served nothing, so the quick start and examples started no
+  server); an LLM plugin object sets the model (it rendered
+  `[object Object]`); `tools` may be an object keyed by name, as LiveKit
+  agents-js takes it.
+- Bedrock: `BedrockAgent` warns when a render leaves hints, languages,
+  pronunciation, multilingual or debug settings out of the verb, and when
+  `setPromptLlmParams()` gets a non-number.
+- `WebService` takes credentials from `SWML_BASIC_AUTH_USER` and
+  `SWML_BASIC_AUTH_PASSWORD` and the config file; `addDirectory()` and
+  `removeDirectory()` work on a running service, and a `/` mount serves; an
+  invalid `web_service.json` is skipped with a warning.
+- Prefabs: `InfoGathererAgent` passes the request's query parameters and
+  headers to its callback (it passed `{}`); `SurveyAgent` and
+  `ReceptionistAgent` drop a call's state when its summary arrives, after
+  an hour idle, or beyond 10,000 calls.
+- Skills: importing the SDK no longer fails without optional packages
+  (mcp_gateway imported undici, which isn't a dependency); weather_api
+  loads with `api_key` alone and defaults to Fahrenheit, as its schema says;
+  google_maps and ask_claude read their `api_key` parameter;
+  `agent.skillManager.loadSkill()` registers the skill on the agent;
+  discovery scans `addSkillDirectory()` directories and finds compiled
+  `skill.js`; custom_skills honors a parameter's `required`; schema
+  defaults and descriptions match the code.
+- Examples: `llm-params.ts`, `advanced-datamap.ts`, `gather-info.ts`,
+  `mcp-gateway.ts`, the DataSphere examples and `serverless-lambda.ts` did
+  what their headers said only in part, or threw on load; they're fixed.
 - `defineContexts()` called with no argument replaced the agent's contexts
   with a new, empty builder. It returns the existing builder, creating one
   on first use, as the Python SDK's `define_contexts()` does; pass a
@@ -378,6 +482,18 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 
 ### Notes for upgraders
 
+- An agent's `validateBasicAuth()` override now replaces the credential
+  check on every route. An override written to add a check and return
+  `true` must call `super.validateBasicAuth()` to keep the comparison.
+- `SWML_SSL_ENABLED` with a certificate and key makes an agent serve HTTPS.
+  An agent behind a TLS-terminating proxy with those variables set should
+  unset them.
+- `LanguageConfig`'s object forms of `fillers` and `functionFillers` still
+  work, flattened into lists with a warning; pass `speechFillers` and
+  `functionFillers` as string arrays.
+- In a DataMap webhook's output, read the tool's arguments as
+  `${input.args.x}`; `${args.x}` there always expanded to nothing on the
+  platform.
 - `swaig-test`: everything after `--exec <function>` is now an argument
   for the function, so put the CLI's own options (`--raw`, `--verbose`)
   before `--exec`. `--route` now picks the service with that route instead
