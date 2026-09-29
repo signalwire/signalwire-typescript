@@ -143,7 +143,7 @@ const service = new WebService({ configFile: './web_service.json' });
 
 The file can't set `basicAuth` or `ssl`. Directories from the file and from the `directories` option are merged, and the option wins for the same prefix. Relative directory paths resolve against the process's working directory. A `configFile` that is missing or isn't valid JSON is skipped with a warning.
 
-Without `configFile`, the constructor looks for `web_service.json` in the working directory, `./config/`, `~/.signalwire/`, `./.swml/`, `~/.swml/` and `/etc/swml/`, and loads the first one it finds. See [Search Paths](configuration.md#search-paths) in the configuration guide.
+Without `configFile`, the constructor looks for `web_service.json` in the working directory, `./config/`, `~/.signalwire/`, `./.swml/`, `~/.swml/` and `/etc/swml/`, and loads the first one it finds. If that file isn't valid JSON, the constructor logs a warning and starts from its other settings. See [Search Paths](configuration.md#search-paths) in the configuration guide.
 
 ## Security Features
 

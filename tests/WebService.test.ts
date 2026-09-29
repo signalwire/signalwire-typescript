@@ -151,3 +151,32 @@ describe('WebService removeDirectory() route spelling', () => {
     expect((await web.getApp().request('/docs/inside.txt')).status).toBe(404);
   });
 });
+
+describe('WebService config file search', () => {
+  it('skips an invalid web_service.json found by the search instead of throwing', () => {
+    writeFileSync(join(root, 'web_service.json'), '{ not valid json');
+    const cwd = process.cwd();
+    process.chdir(root);
+    try {
+      let web: WebService | undefined;
+      expect(() => {
+        web = new WebService({ directories: { '/docs': mount } });
+      }).not.toThrow();
+      expect(web?.port).toBe(8002);
+      expect(web?.directories).toEqual({ '/docs': mount });
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
+  it('loads a valid web_service.json found by the search', () => {
+    writeFileSync(join(root, 'web_service.json'), JSON.stringify({ service: { port: 9123 } }));
+    const cwd = process.cwd();
+    process.chdir(root);
+    try {
+      expect(new WebService().port).toBe(9123);
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+});

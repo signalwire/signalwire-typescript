@@ -329,18 +329,19 @@ export class WebService {
   } {
     const result: ReturnType<WebService['_loadConfig']> = {};
 
-    if (!configFile) {
-      // Search standard locations for a web-service config
-      const loader = ConfigLoader.search('web_service.json');
+    // Without configFile, search the standard locations for a web-service
+    // config. A file that can't be read or parsed is skipped with a warning,
+    // whether it was passed or found, as the Python reference's ConfigLoader
+    // logs the error and continues without it.
+    try {
+      const loader = configFile
+        ? new ConfigLoader(configFile)
+        : ConfigLoader.search('web_service.json');
       if (!loader) return result;
       return this._extractServiceConfig(loader);
-    }
-
-    try {
-      const loader = new ConfigLoader(configFile);
-      return this._extractServiceConfig(loader);
-    } catch {
-      this.log.warn(`Failed to load config file: ${configFile}`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.log.warn(`Failed to load config file: ${configFile ?? 'web_service.json'}: ${reason}`);
       return result;
     }
   }
