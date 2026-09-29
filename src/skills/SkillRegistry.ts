@@ -130,8 +130,11 @@ export class SkillRegistry {
   }
 
   /**
-   * Lock one or more skill names to prevent overwriting.
-   * If called with no arguments, locks all currently registered skills.
+   * Lock one or more skill names, so they can't be overwritten, unregistered
+   * or cleared. `registerBuiltinSkills()` locks the built-in skills, so a
+   * built-in can't be replaced by removing it and registering another class
+   * under its name. If called with no arguments, locks all currently
+   * registered skills.
    * @param names - Skill names to lock; if omitted, all current names are locked.
    */
   lock(names?: string[]): void {
@@ -142,11 +145,17 @@ export class SkillRegistry {
   }
 
   /**
-   * Unregister a skill by name, removing it from the registry.
+   * Unregister a skill by name, removing it from the registry. A locked skill
+   * (see {@link lock}) isn't removed.
    * @param name - The skill name to unregister.
-   * @returns True if the skill was found and removed.
+   * @returns True if the skill was found and removed; false if it isn't
+   *   registered or is locked.
    */
   unregister(name: string): boolean {
+    if (this.lockedNames.has(name)) {
+      log.warn(`Cannot unregister locked skill: ${name}`);
+      return false;
+    }
     return this.registry.delete(name);
   }
 
@@ -420,9 +429,12 @@ export class SkillRegistry {
   }
 
   /**
-   * Clear all registrations.
+   * Clear every registration except locked skills (see {@link lock}), which
+   * stay registered.
    */
   clear(): void {
-    this.registry.clear();
+    for (const name of [...this.registry.keys()]) {
+      if (!this.lockedNames.has(name)) this.registry.delete(name);
+    }
   }
 }

@@ -211,8 +211,8 @@ These registry methods are public:
 |---|---|
 | `getInstance()` / `resetInstance()` | Get the singleton, or drop it (for tests) |
 | `register(SkillClass)` | Register a class under its `SKILL_NAME` |
-| `lock(names?)` | Stop `register()` from replacing these names, or every registered name when called with none |
-| `unregister(name)` / `clear()` | Remove one registration, or all of them. Locks don't prevent either. |
+| `lock(names?)` | Stop `register()`, `unregister()` and `clear()` from replacing or removing these names, or every registered name when called with none |
+| `unregister(name)` / `clear()` | Remove one registration, or all of them. A locked name stays registered, and `unregister()` returns `false` for it. |
 | `create(name, config?)` | Construct a registered skill, or return `null` |
 | `getSkillClass(name)` / `has(name)` | Look up a class, or check that a name is registered |
 | `listRegistered()` | Registered names |
@@ -397,7 +397,7 @@ The agent doesn't call `cleanup()` when it shuts down. Removing a skill doesn't 
 Three settings control whether the skills system runs code you didn't write in your agent.
 
 - **Directory discovery** (`SWML_SKILL_DISCOVERY_ENABLED`): `discoverFromDirectory()` and `discoverAll()` import every `.ts` and `.js` module in a directory, which runs that module's code with your process's permissions. They do nothing, and log a warning, unless the variable is `true`. When you enable it, only point discovery at directories that nobody else can write to.
-- **Registry lock** (`lock()`): `registerBuiltinSkills()` locks every registered name when it finishes. A later `register()` for a locked name, from your code or from a discovered module, logs `Cannot overwrite locked skill` and changes nothing. The lock doesn't stop `unregister()` or `clear()`, and it doesn't stop a discovered module from running code when it's imported.
+- **Registry lock** (`lock()`): `registerBuiltinSkills()` locks every registered name when it finishes. A later `register()` for a locked name, from your code or from a discovered module, logs `Cannot overwrite locked skill` and changes nothing. `unregister()` and `clear()` leave a locked name registered too, so a built-in can't be removed and replaced. The lock doesn't stop a discovered module from running code when it's imported.
 - **Custom handler code** (`SWML_ALLOW_CUSTOM_HANDLER_CODE`): the `custom_skills` skill compiles each tool's `handler_code` string with the `Function` constructor only when the variable is `true`. The code isn't sandboxed. Without the variable, the tools register but return an error message instead of running the code.
 
 Two built-in skills have their own switches. `claude_skills` runs shell commands from SKILL.md files only with `allow_shell_injection: true`. `mcp_gateway` skips TLS certificate checks only with both `verify_ssl: false` and `allow_insecure_tls: true`.
