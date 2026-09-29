@@ -49,9 +49,8 @@ await agent.addSkill(new MathSkill());
 await agent.addSkill(
   new DataSphereSkill({
     document_id: documentId,
-    max_results: count,
-    distance_threshold: distance,
-    mode: 'webhook',
+    count,
+    distance,
   }),
 );
 

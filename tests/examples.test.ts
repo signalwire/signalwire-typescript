@@ -337,6 +337,40 @@ describe('examples', () => {
     });
   });
 
+  describe('datasphere-serverless-env.ts', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('renders the serverless DataMap search with count and distance from the environment', async () => {
+      vi.resetModules();
+      vi.stubEnv('SIGNALWIRE_SPACE', 'acme.signalwire.com');
+      vi.stubEnv('SIGNALWIRE_PROJECT_ID', 'project');
+      vi.stubEnv('SIGNALWIRE_API_TOKEN', 'token');
+      vi.stubEnv('DATASPHERE_DOCUMENT_ID', 'doc-123');
+      vi.stubEnv('DATASPHERE_COUNT', '2');
+      vi.stubEnv('DATASPHERE_DISTANCE', '5');
+      const agent = await loadExample('datasphere-serverless-env.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: { SWAIG: { functions: unknown[] } } })['ai'];
+      const search = (ai.SWAIG.functions as Record<string, unknown>[]).find(
+        (f) => f['function'] === 'search_knowledge',
+      ) as { data_map: { webhooks: { url: string; params: Record<string, unknown> }[] } };
+      expect(search.data_map.webhooks[0]!.url).toBe(
+        'https://acme.signalwire.com/api/datasphere/documents/search',
+      );
+      expect(search.data_map.webhooks[0]!.params).toMatchObject({
+        document_id: 'doc-123',
+        count: 2,
+        distance: 5,
+      });
+    });
+  });
+
   describe('session-state.ts', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');
