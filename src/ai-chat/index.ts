@@ -26,7 +26,13 @@ export type {
   ChatLog,
 } from './AIChatClient.js';
 
-export { ChatGateway, GatewayRejection, MAX_USER_METADATA_BYTES } from './ChatGateway.js';
+export {
+  ChatGateway,
+  GatewayRejection,
+  MAX_MESSAGE_BYTES,
+  MAX_REQUEST_BODY_BYTES,
+  MAX_USER_METADATA_BYTES,
+} from './ChatGateway.js';
 export type { ChatGatewayOptions } from './ChatGateway.js';
 
 export { HandoffRouter, NonceEntry } from './HandoffRouter.js';

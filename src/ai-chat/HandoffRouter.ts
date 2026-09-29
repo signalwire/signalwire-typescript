@@ -54,7 +54,13 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { getLogger } from '../Logger.js';
-import type { ChatGateway } from './ChatGateway.js';
+import {
+  GatewayRejection,
+  MAX_MESSAGE_BYTES,
+  _readJsonBody,
+  _utf8Length,
+  type ChatGateway,
+} from './ChatGateway.js';
 
 const logger = getLogger('ai_chat.handoff');
 
@@ -372,6 +378,9 @@ export class HandoffRouter {
    * id, and no other request field is forwarded. In particular, `global_data`
    * is agent state that step logic trusts, and a page must not write it.
    *
+   * Text over {@link MAX_MESSAGE_BYTES} (UTF-8), the gateway's limit for a
+   * chat message, is refused.
+   *
    * @param nonce - The nonce the browser presented.
    * @param text - The typed text; surrounding whitespace is removed.
    * @returns True when the text was delivered: `sendMessage` neither threw
@@ -380,7 +389,7 @@ export class HandoffRouter {
   async say(nonce: string, text: string): Promise<boolean> {
     if (!this.sendMessage) return false;
     const cleaned = (text ?? '').trim();
-    if (!cleaned) return false;
+    if (!cleaned || _utf8Length(cleaned) > MAX_MESSAGE_BYTES) return false;
     const entry = this._lookup(nonce);
     if (!entry || !entry.callId) return false;
     if (entry.messages >= this.maxMessagesPerCall) {
@@ -429,7 +438,12 @@ export class HandoffRouter {
    * - `/say` takes `{ nonce, text }` and returns `{ ok: true }`.
    *
    * Each returns 403 for a refused origin, and 404 `{ error: 'not found' }`
-   * when the nonce or handle doesn't verify. Each answers its own CORS
+   * when the nonce or handle doesn't verify. Each returns 413
+   * `{ error: 'request too large' }` for a body over the gateway's
+   * `MAX_REQUEST_BODY_BYTES`, and `/say` returns 413
+   * `{ error: 'message too large' }` for text over its `MAX_MESSAGE_BYTES`.
+   * Both are checked before the nonce is looked up, so the answer says
+   * nothing about whether the nonce is live. Each answers its own CORS
    * preflight, and sends CORS headers to an origin the gateway allows.
    *
    * @returns The Hono app.
@@ -478,49 +492,75 @@ export class HandoffRouter {
       });
     }
 
+    // The JSON object sent, or {} for anything else. Throws a
+    // GatewayRejection (413) for a body over the size limit.
     const readBody = async (c: Context): Promise<Record<string, unknown>> => {
+      let data: unknown;
       try {
-        const data: unknown = await c.req.json();
-        return typeof data === 'object' && data !== null && !Array.isArray(data)
-          ? (data as Record<string, unknown>)
-          : {};
-      } catch {
+        data = await _readJsonBody(c.req.raw);
+      } catch (err) {
+        if (err instanceof GatewayRejection) throw err;
         return {};
       }
+      return typeof data === 'object' && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {};
     };
 
     const notFound = (c: Context) => c.json({ error: 'not found' }, 404);
+    const tooLarge = (c: Context, reason: string) => c.json({ error: reason }, 413);
 
-    router.post('/handoff', async (c: Context) => {
-      const denied = forbiddenOrigin(c);
-      if (denied) return denied;
-      const nonce = (await readBody(c))['nonce'];
-      if (typeof nonce !== 'string') return notFound(c);
-      const handle = await this.redeem(nonce);
-      // The same answer for unknown, expired and already used.
-      if (!handle) return notFound(c);
-      return c.json({ handle });
-    });
+    // Every route reads its body this way, so an oversized one is refused
+    // before anything else looks at it.
+    const withBody =
+      (handler: (c: Context, body: Record<string, unknown>) => Promise<Response>) =>
+      async (c: Context): Promise<Response> => {
+        const denied = forbiddenOrigin(c);
+        if (denied) return denied;
+        let body: Record<string, unknown>;
+        try {
+          body = await readBody(c);
+        } catch (err) {
+          if (err instanceof GatewayRejection) return tooLarge(c, err.reason);
+          throw err;
+        }
+        return handler(c, body);
+      };
 
-    router.post('/escalate', async (c: Context) => {
-      const denied = forbiddenOrigin(c);
-      if (denied) return denied;
-      const handle = (await readBody(c))['handle'];
-      if (!handle || typeof handle !== 'string') return c.json({ error: 'bad request' }, 400);
-      if (!(await this.escalate(handle))) return notFound(c);
-      return c.json({ ok: true });
-    });
+    router.post(
+      '/handoff',
+      withBody(async (c, body) => {
+        const nonce = body['nonce'];
+        if (typeof nonce !== 'string') return notFound(c);
+        const handle = await this.redeem(nonce);
+        // The same answer for unknown, expired and already used.
+        if (!handle) return notFound(c);
+        return c.json({ handle });
+      }),
+    );
 
-    router.post('/say', async (c: Context) => {
-      const denied = forbiddenOrigin(c);
-      if (denied) return denied;
-      const data = await readBody(c);
-      const nonce = data['nonce'];
-      const text = data['text'] ?? '';
-      if (typeof nonce !== 'string' || typeof text !== 'string') return notFound(c);
-      if (!(await this.say(nonce, text))) return notFound(c);
-      return c.json({ ok: true });
-    });
+    router.post(
+      '/escalate',
+      withBody(async (c, body) => {
+        const handle = body['handle'];
+        if (!handle || typeof handle !== 'string') return c.json({ error: 'bad request' }, 400);
+        if (!(await this.escalate(handle))) return notFound(c);
+        return c.json({ ok: true });
+      }),
+    );
+
+    router.post(
+      '/say',
+      withBody(async (c, body) => {
+        const nonce = body['nonce'];
+        const text = body['text'] ?? '';
+        if (typeof nonce !== 'string' || typeof text !== 'string') return notFound(c);
+        // Before the lookup, so the answer doesn't depend on the nonce.
+        if (_utf8Length(text) > MAX_MESSAGE_BYTES) return tooLarge(c, 'message too large');
+        if (!(await this.say(nonce, text))) return notFound(c);
+        return c.json({ ok: true });
+      }),
+    );
 
     return router;
   }

@@ -21,6 +21,7 @@ The guide has these sections:
   - [The wire protocol](#the-wire-protocol)
   - [Page context in user_meta_data](#page-context-in-user_meta_data)
   - [What the gateway protects, and what it doesn't](#what-the-gateway-protects-and-what-it-doesnt)
+  - [Size limits](#size-limits)
   - [CORS](#cors)
   - [Streaming](#streaming)
   - [Rotate a key](#rotate-a-key)
@@ -310,7 +311,6 @@ These are the limits of that protection:
 - **The origin allowlist is leak containment, not access control.** Browsers send the page's origin, so a key pasted into another site's page gets `403`. A request with no `Origin` header is allowed, because server-side callers send none. A script can also send any value it likes.
 - **A handle is a bearer token until it expires.** Whoever holds it can continue, read (`log`) and end that conversation. `end` doesn't revoke it; it stays valid for `handleTtl` (24 hours by default).
 - **The caps are counted in the process.** Behind several replicas, each keeps its own counts. The effective cap is the cap times the replica count, so put a shared limiter in front if that matters.
-- **The gateway doesn't limit the size of `message`** or of the request body. Only `user_meta_data` has a size limit.
 - **A refusal reason names its category.** A bad handle is reported as `invalid handle` or `expired handle`. A cap is reported as `too many new conversations` or `conversation turn limit reached`.
 
 The gateway returns these statuses itself; everything else comes from the service:
@@ -320,11 +320,25 @@ The gateway returns these statuses itself; everything else comes from the servic
 | 400 | `bad request`, `body must be an object`, `method not allowed`, `message is required`, `log requires a handle`, `end requires a handle`, `malformed handle`, `user_meta_data must be an object` | The request is malformed |
 | 401 | `bad key` | The key is missing or wrong |
 | 403 | `origin not allowed`, `invalid handle`, `expired handle` | The origin isn't allowed, or the handle doesn't verify |
-| 413 | `user_meta_data too large` | `user_meta_data` is over 8192 bytes |
+| 413 | `request too large`, `message too large`, `user_meta_data too large` | The body, the message or `user_meta_data` is over its size limit |
 | 429 | `too many new conversations`, `conversation turn limit reached` | A cap was hit |
 | 502 | `chat service error` | The service call failed before any of the reply was sent |
 
 A `start`, `log` or `end` whose service call returns a JSON-RPC error also gets `502`, because the gateway reads those results itself.
+
+### Size limits
+
+Whoever holds the key chooses how large each request is, so the gateway limits every part of it and answers `413` past the limit:
+
+| Limit | Constant | When it's checked |
+|---|---|---|
+| 64 KiB request body | `MAX_REQUEST_BODY_BYTES` | Before the body is parsed |
+| 8 KiB chat message, UTF-8 | `MAX_MESSAGE_BYTES` | Before a conversation is created or a turn counted |
+| 8 KiB `user_meta_data`, serialized | `MAX_USER_METADATA_BYTES` | Before a conversation is created |
+
+The three constants are exported from `@signalwire/sdk`. The body limit leaves room for a full message and a full metadata bag, even when JSON escaping triples the size of non-ASCII text. A body whose `Content-Length` is over the limit is refused before any of it is read. A body sent without a `Content-Length` is counted as it arrives and dropped once it passes the limit. The error names the limit that was hit: `request too large`, `message too large` or `user_meta_data too large`.
+
+`HandoffRouter` applies the same limits to its routes. `/handoff`, `/escalate` and `/say` refuse a body over 64 KiB, and `/say` refuses text over 8 KiB. Both checks come before the nonce is looked up, so the answer says nothing about whether a nonce is live.
 
 ### CORS
 
@@ -455,6 +469,7 @@ These routes return errors:
 - `404 { error: 'not found' }` when a nonce or handle doesn't verify. An unknown, expired or used nonce gets the same answer, so the routes can't be used to learn whether a call is live.
 - `404` from `/say` also when typing is off (no `sendMessage`), the text is empty, the call's limit is reached, or `sendMessage` threw or returned `false`.
 - `400 { error: 'bad request' }` from `/escalate` when `handle` is missing.
+- `413 { error: 'request too large' }` for a body over `MAX_REQUEST_BODY_BYTES` (64 KiB), on every route, and `413 { error: 'message too large' }` from `/say` for text over `MAX_MESSAGE_BYTES` (8 KiB of UTF-8). Both are checked before the nonce is looked up. `say()` called directly also returns `false` for text over the limit. For more information, see [Size limits](#size-limits).
 
 These are captured responses from the three routes, with the handle shortened:
 

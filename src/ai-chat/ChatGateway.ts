@@ -63,6 +63,16 @@
  * and keeps it nested under its own key, so it can't replace the conversation
  * id or `config_url` the gateway sets. It can't vouch for the contents.
  *
+ * ## Size limits
+ *
+ * Whoever holds the key chooses the size of every field above, so each is
+ * limited and answered with `413` past its limit: the request body
+ * ({@link MAX_REQUEST_BODY_BYTES}, 64 KiB, refused before it's parsed), a chat
+ * message ({@link MAX_MESSAGE_BYTES}, 8 KiB of UTF-8, refused before a
+ * conversation is created or a turn counted) and `user_meta_data`
+ * ({@link MAX_USER_METADATA_BYTES}, 8 KiB serialized). `HandoffRouter`
+ * applies the same body and message limits to its routes.
+ *
  * Mirrors signalwire-python's `signalwire.ai_chat.gateway`.
  */
 
@@ -104,6 +114,22 @@ export const ALLOWED_METHODS: ReadonlySet<string> = new Set(['start', 'chat', 'l
 export const MAX_USER_METADATA_BYTES = 8 * 1024;
 
 /**
+ * Limit on one typed message, in UTF-8 bytes: a chat turn here, and the text
+ * a `HandoffRouter`'s `/say` sends into a live call. 8 KiB is several pages,
+ * far more than a visitor types into a widget, and every byte of it goes into
+ * a billed turn.
+ */
+export const MAX_MESSAGE_BYTES = 8 * 1024;
+
+/**
+ * Limit on a whole request body, in bytes, checked before it's parsed. The
+ * largest honest request is a chat turn with a full message and a full
+ * metadata bag; JSON escaping can triple the size of non-ASCII text, and this
+ * leaves room for that.
+ */
+export const MAX_REQUEST_BODY_BYTES = 64 * 1024;
+
+/**
  * Roles a browser may see. `chat_log` returns the whole conversation as the
  * service holds it, including the substituted system prompt, tool calls and
  * tool results, so the transcript is reduced to the dialogue.
@@ -130,7 +156,8 @@ export class GatewayRejection extends Error {
 
   /**
    * @param status - HTTP status to return (401 bad key, 403 origin or handle,
-   *   400 malformed request, 413 metadata too large, 429 a cap was hit).
+   *   400 malformed request, 413 a request, message or metadata over its size
+   *   limit, 429 a cap was hit).
    * @param reason - Short explanation, safe to show the browser: a category,
    *   never a detail such as a cap's value.
    */
@@ -211,6 +238,57 @@ function jsonByteLength(value: unknown): number {
   let bytes = 0;
   for (let i = 0; i < encoded.length; i++) bytes += encoded.charCodeAt(i) < 0x7f ? 1 : 6;
   return bytes;
+}
+
+/**
+ * Length of `text` in UTF-8 bytes. A lone surrogate counts as three bytes, as
+ * the reference counts it, and never throws.
+ *
+ * @internal Shared with `HandoffRouter`; not part of the package surface.
+ */
+export function _utf8Length(text: string): number {
+  return Buffer.byteLength(text, 'utf8');
+}
+
+/**
+ * Parse a request's JSON body, refusing one over `limit` bytes.
+ *
+ * A declared `Content-Length` over the limit is refused before anything is
+ * read. The body is then read in chunks and abandoned as soon as it passes
+ * the limit, so a chunked or understated upload can't make the process hold
+ * more than `limit` bytes of it.
+ *
+ * @internal Shared with `HandoffRouter`; not part of the package surface.
+ * @param request - The incoming request.
+ * @param limit - The limit in bytes; {@link MAX_REQUEST_BODY_BYTES} by default.
+ * @returns The parsed JSON value.
+ * @throws {GatewayRejection} 413 `request too large` when the body is over `limit`.
+ * @throws {SyntaxError} When the body isn't valid JSON.
+ */
+export async function _readJsonBody(
+  request: Request,
+  limit: number = MAX_REQUEST_BODY_BYTES,
+): Promise<unknown> {
+  const declared = request.headers.get('content-length') ?? '';
+  if (/^\d+$/.test(declared) && Number(declared) > limit) {
+    throw new GatewayRejection(413, 'request too large');
+  }
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  if (request.body) {
+    const reader = request.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > limit) {
+        await reader.cancel().catch(() => undefined);
+        throw new GatewayRejection(413, 'request too large');
+      }
+      chunks.push(value);
+    }
+  }
+  return JSON.parse(new TextDecoder().decode(Buffer.concat(chunks, received)));
 }
 
 /**
@@ -508,6 +586,9 @@ export class ChatGateway {
    * exception is `user_meta_data`, which is forwarded (see
    * {@link readUserMetadata}).
    *
+   * A chat message over {@link MAX_MESSAGE_BYTES} (UTF-8) is refused with
+   * 413 before a conversation is created or a turn counted.
+   *
    * @param body - The browser's request body:
    *   `{ method?, handle?, message?, user_meta_data? }`.
    * @param opts - `origin`: the `Origin` header; `key`: the presented key.
@@ -531,6 +612,16 @@ export class ChatGateway {
     // Read before minting, so a malformed value doesn't use up a
     // new-conversation slot on a request that never reaches the service.
     const userMetadata = this.readUserMetadata(body);
+
+    // The message size is checked before minting for the same reason.
+    const message = body['message'];
+    if (
+      method === 'chat' &&
+      typeof message === 'string' &&
+      _utf8Length(message) > MAX_MESSAGE_BYTES
+    ) {
+      throw new GatewayRejection(413, 'message too large');
+    }
 
     const handle = body['handle'];
     let minted: string | null = null;
@@ -559,7 +650,6 @@ export class ChatGateway {
       return ['create_conversation', params, minted];
     }
 
-    const message = body['message'];
     if (typeof message !== 'string' || !message.trim()) {
       throw new GatewayRejection(400, 'message is required');
     }
@@ -599,7 +689,9 @@ export class ChatGateway {
    * and `end` returns `{ status: 'ended' }`. A refusal returns
    * `{ error: reason }` with the rejection's status, and a failure reaching
    * the chat service before any reply is sent returns 502
-   * `{ error: 'chat service error' }`, with CORS headers either way.
+   * `{ error: 'chat service error' }`, with CORS headers either way. A
+   * request body over {@link MAX_REQUEST_BODY_BYTES} is answered with 413
+   * `{ error: 'request too large' }` without being parsed.
    *
    * @returns The Hono app.
    */
@@ -640,12 +732,9 @@ export class ChatGateway {
       let params: Record<string, unknown>;
       let minted: string | null;
       try {
-        let body: unknown;
-        try {
-          body = await c.req.json();
-        } catch {
-          return c.json({ error: 'bad request' }, 400, corsHeaders);
-        }
+        // A GatewayRejection (413) goes to the handler below; anything
+        // else is a body that isn't JSON.
+        const body = await _readJsonBody(c.req.raw);
         if (!isPlainObject(body)) throw new GatewayRejection(400, 'body must be an object');
         [method, params, minted] = this.prepare(body, { origin, key });
       } catch (err) {
