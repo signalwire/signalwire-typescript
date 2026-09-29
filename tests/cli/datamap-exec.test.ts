@@ -21,12 +21,12 @@ describe('expandTemplate', () => {
     ['${lc:args.city}', 'new york'],
     ['${enc:args.city}', 'New%20York'],
     // The platform has no enc:url helper: it reads url:args.city as a path
-    ['${enc:url:args.city}', '<MISSING:url:args.city>'],
+    ['${enc:url:args.city}', ''],
     ['${lc:enc:args.city}', 'new%20york'],
     ['${meta_data.table.${lc:args.target}}', '+15551234567'],
     ['${array[0].joke}', 'ha'],
-    ['${args.missing}', '<MISSING:args.missing>'],
-    ['${array[5].joke}', '<MISSING:array[5].joke>'],
+    ['${args.missing}', ''],
+    ['${array[5].joke}', ''],
     ['@{expr 1 + 2}', '@{expr 1 + 2}'],
     // enc: encodes what FreeSWITCH's switch_url_encode encodes; / ! ' ( ) * stay
     ['${enc:args.odd}', "a/b!'()*"],
@@ -76,7 +76,7 @@ describe('executeDataMap webhooks', () => {
       { city: 'x' },
       { fetchImpl, log: (l) => void lines.push(l) },
     );
-    expect(JSON.stringify(result)).toContain('<MISSING:response.current.temp_f>');
+    expect(result).toEqual({ response: '' });
     expect(lines.join('\n')).toContain('not ${response.<field>}');
   });
 
@@ -186,12 +186,11 @@ describe('executeDataMap webhooks', () => {
     });
   });
 
-  it('returns an error when every webhook fails with no fallback output', async () => {
+  it("returns the platform's generic error when every webhook fails with no fallback output", async () => {
     const { fetchImpl } = fakeFetch('not json', 500);
     const fn = { data_map: { webhooks: [{ url: 'https://x', method: 'GET', output: 'ok' }] } };
     expect(await executeDataMap(fn, {}, { fetchImpl })).toEqual({
-      error: 'All webhooks failed and no fallback output defined',
-      status: 'failed',
+      response: 'There was an error processing this request.',
     });
   });
 });
@@ -409,7 +408,9 @@ describe('fix pass', () => {
       return new Response('{}');
     };
     await executeDataMap(fn, { a: 'x y' }, { fetchImpl });
-    expect(seen[0]!.body).toBe(`data=${encodeURIComponent(JSON.stringify({ a: 'x y' }))}`);
+    const body = seen[0]!.body!;
+    expect(body.startsWith('data=')).toBe(true);
+    expect(JSON.parse(decodeURIComponent(body.slice('data='.length)))).toEqual({ a: 'x y' });
     expect(seen[0]!.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
   });
 
@@ -443,7 +444,7 @@ describe('stage template data, as the platform builds it', () => {
     const fn = weather({ response: '${input.args.city}: ${temp} [${args.city}]' });
     const { fetchImpl } = fakeFetch({ temp: 61 });
     expect(await executeDataMap(fn, { city: 'London' }, { fetchImpl })).toEqual({
-      response: 'London: 61 [<MISSING:args.city>]',
+      response: 'London: 61 []',
     });
   });
 
@@ -454,7 +455,7 @@ describe('stage template data, as the platform builds it', () => {
       { city: 'x' },
       { ...fakeFetch({}), log: (l) => void lines.push(l) },
     );
-    expect(lines.join('\n')).toContain('${input.args.<name>}');
+    expect(lines.join('\n')).toContain('write ${input.args.city}');
   });
 
   it("reads ${input.args.x} in a webhook's expressions and foreach", async () => {
@@ -481,7 +482,7 @@ describe('stage template data, as the platform builds it', () => {
     };
     const { fetchImpl } = fakeFetch({ items: [{ n: 1 }, { n: 2 }] });
     expect(await executeDataMap(fn, { unit: 'kg', mode: 'list' }, { fetchImpl })).toEqual({
-      response: '1kg 2kg [<MISSING:args.mode>]',
+      response: '1kg 2kg []',
     });
   });
 
@@ -501,10 +502,10 @@ describe('stage template data, as the platform builds it', () => {
       },
     };
     expect(await executeDataMap(fn, { id: '7' }, { fetchImpl })).toEqual({
-      response: 'fallback 7 [<MISSING:input.args.id>]',
+      response: 'fallback 7 []',
     });
     expect(calls[0]!.url).toBe('https://x/7');
-    expect(JSON.parse(calls[0]!.body!)).toEqual({ id: '7', via_input: '<MISSING:input.args.id>' });
+    expect(JSON.parse(calls[0]!.body!)).toEqual({ id: '7', via_input: '' });
 
     const expr = {
       data_map: {
@@ -522,7 +523,7 @@ describe('stage template data, as the platform builds it', () => {
         expressions: [{ string: '${city}', pattern: '.*', output: { response: '[${city}]' } }],
       },
     };
-    expect(await executeDataMap(fn, { city: 'Paris' })).toEqual({ response: '[<MISSING:city>]' });
+    expect(await executeDataMap(fn, { city: 'Paris' })).toEqual({ response: '[]' });
   });
 
   it('sends header values as written, without expanding templates', async () => {
@@ -643,7 +644,7 @@ describe('webhook flow, as the platform runs it', () => {
       },
     };
     expect(await executeDataMap(fn, {}, fakeFetch({ tags: ['a', 'b'] }))).toEqual({
-      response: '[a<MISSING:this.value>][b<MISSING:this.value>]',
+      response: '[a][b]',
     });
   });
 
@@ -669,7 +670,7 @@ describe('webhook flow, as the platform runs it', () => {
         {},
         fakeFetch(body),
       ),
-    ).toEqual({ response: '<MISSING:list>' });
+    ).toEqual({ response: '' });
   });
 });
 
@@ -693,14 +694,18 @@ describe('prefix helpers, as the platform parses them', () => {
     expect(expandTemplate('${Enc:args.city}', data)).toBe('New%20York');
   });
 
-  it('recognizes fmt_ph, leaving the number as it is and saying so', async () => {
-    expect(expandTemplate('${fmt_ph:args.phone}', data)).toBe('+12025550143');
+  it('formats a North American number with fmt_ph, as the platform does', () => {
+    expect(expandTemplate('${fmt_ph:args.phone}', data)).toBe('(202) 555-0143');
+    expect(expandTemplate('${enc:fmt_ph:args.phone}', data)).toBe('(202)%20555-0143');
+  });
+
+  it('leaves another number as it is with fmt_ph, and says so', async () => {
     const lines: string[] = [];
     const fn = { data_map: { output: { response: 'Call ${fmt_ph:args.phone}' } } };
-    expect(await executeDataMap(fn, data.args, { log: (l) => void lines.push(l) })).toEqual({
-      response: 'Call +12025550143',
-    });
-    expect(lines.join('\n')).toContain('fmt_ph');
+    expect(
+      await executeDataMap(fn, { phone: '+442079460958' }, { log: (l) => void lines.push(l) }),
+    ).toEqual({ response: 'Call +442079460958' });
+    expect(lines.join('\n')).toContain('formats only North American numbers');
   });
 
   it('reads enc:url: as enc: and the path url:args.city, which is missing, and says why', async () => {
@@ -714,7 +719,7 @@ describe('prefix helpers, as the platform parses them', () => {
       },
     };
     await executeDataMap(fn, data.args, { fetchImpl, log: (l) => void lines.push(l) });
-    expect(calls[0]!.url).toBe('https://api.example.com/w?q=<MISSING:url:args.city>');
+    expect(calls[0]!.url).toBe('https://api.example.com/w?q=');
     const said = lines.join('\n');
     expect(said).toContain('"url:" is not a template helper');
     expect(said).toContain('${enc:args.city}');
@@ -830,10 +835,10 @@ describe('a single expression or webhook object, as the platform takes it', () =
       },
     };
     expect(await executeDataMap(fn, {}, fakeFetch({ error: 'down' }))).toEqual({
-      response: 'error=down parse_error=<MISSING:parse_error> raw=<MISSING:raw_response>',
+      response: 'error=down parse_error= raw=',
     });
     expect(await executeDataMap(fn, {}, fakeFetch('oops'))).toEqual({
-      response: 'error=<MISSING:error> parse_error=true raw=oops',
+      response: 'error= parse_error=true raw=oops',
     });
   });
 
@@ -871,5 +876,188 @@ describe('a request that does not complete, as the platform reports it', () => {
     expect(await executeDataMap(fn, {}, { fetchImpl: failing })).toEqual({
       response: 'fallback',
     });
+  });
+});
+
+/**
+ * The simulator follows the platform where it used to differ on purpose
+ * (mod_openai actions.c process_data_map and the swaig function call's
+ * post_data, swaig.c _expand_jsonvars and get_json_object). Mirrors
+ * signalwire-python's tests/unit/cli/test_datamap_exec_platform.py and
+ * test_datamap_templates.py (9e07f0f).
+ */
+describe('the platform, where the simulator used to differ', () => {
+  it('puts the call data at the root, meta_data from the function, and merges prompt_vars into the root', async () => {
+    const fn = {
+      function: 'lookup',
+      meta_data: { contacts: { sales: '+12025550143' } },
+      data_map: {
+        output: {
+          response:
+            '${global_data.tenant}|${caller_id_num}|${time_of_day}|${prompt_vars.time_of_day}|' +
+            '${meta_data.contacts.${lc:args.dept}}|${function}',
+        },
+      },
+    };
+    const callData = {
+      global_data: { tenant: 'acme' },
+      caller_id_num: '+15551230000',
+      prompt_vars: { time_of_day: 'evening' },
+    };
+    expect(await executeDataMap(fn, { dept: 'Sales' }, { callData, log: () => {} })).toEqual({
+      response: 'acme|+15551230000|evening|evening|+12025550143|lookup',
+    });
+  });
+
+  it("adds prompt_vars, global_data and input to a webhook's response data", async () => {
+    const { calls, fetchImpl } = fakeFetch({ temp: 61 });
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://api.example.com/${global_data.tenant}/w',
+            output: {
+              response:
+                '${temp} ${global_data.tenant} ${prompt_vars.time_of_day} ${input.caller_id_num} ${input.args.city}',
+            },
+          },
+        ],
+      },
+    };
+    const callData = {
+      global_data: { tenant: 'acme' },
+      caller_id_num: '+15551230000',
+      prompt_vars: { time_of_day: 'morning' },
+    };
+    expect(await executeDataMap(fn, { city: 'Oslo' }, { fetchImpl, callData })).toEqual({
+      response: '61 acme morning +15551230000 Oslo',
+    });
+    expect(calls[0]!.url).toBe('https://api.example.com/acme/w');
+  });
+
+  it("expands a matched webhook expression's result a second time, and a webhook output once", async () => {
+    const fn = (hook: Record<string, unknown>) => ({
+      data_map: { webhooks: [{ url: 'https://x', ...hook }] },
+    });
+    const callData = { global_data: { secret: 's3cret' } };
+    const args = { q: '${global_data.secret}' };
+    const expressions = [
+      { string: '${status}', pattern: 'ok', output: { response: '${input.args.q}' } },
+    ];
+    expect(
+      await executeDataMap(fn({ expressions }), args, { ...fakeFetch({ status: 'ok' }), callData }),
+    ).toEqual({ response: 's3cret' });
+    expect(
+      await executeDataMap(fn({ output: { response: '${input.args.q}' } }), args, {
+        ...fakeFetch({ status: 'ok' }),
+        callData,
+      }),
+    ).toEqual({ response: '${global_data.secret}' });
+  });
+
+  it('expands a template once: a value that holds a template is inserted as it is', async () => {
+    const fn = { data_map: { output: { response: 'You said ${args.text}' } } };
+    expect(
+      await executeDataMap(
+        fn,
+        { text: '${global_data.secret}' },
+        {
+          callData: { global_data: { secret: 's3cret' } },
+        },
+      ),
+    ).toEqual({ response: 'You said ${global_data.secret}' });
+  });
+
+  it('matches names without regard to ASCII case', async () => {
+    expect(expandTemplate('${ARGS.City}', { args: { city: 'Oslo' } })).toBe('Oslo');
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            require_args: ['ZIP'],
+            error_keys: ['Error'],
+            output: { response: '${temp} ${input.args.zip}' },
+          },
+        ],
+        output: { response: 'fallback' },
+      },
+    };
+    expect(await executeDataMap(fn, { zip: '0150' }, fakeFetch({ Temp: 61 }))).toEqual({
+      response: '61 0150',
+    });
+    expect(await executeDataMap(fn, { zip: '0150' }, fakeFetch({ ERROR: 'down' }))).toEqual({
+      response: 'fallback',
+    });
+  });
+
+  it('inserts a number as cJSON prints it, and an object into a string breaks the output', async () => {
+    const fn = weather({ response: '${temp} ${count}' });
+    expect(await executeDataMap(fn, { city: 'x' }, fakeFetch({ temp: 72.5, count: 3 }))).toEqual({
+      response: '72.500000 3',
+    });
+    const broken = await executeDataMap(
+      weather({ response: 'Data: ${data}' }),
+      { city: 'x' },
+      fakeFetch({ data: { a: 1 } }),
+    );
+    expect((broken as { error: string }).error).toContain("isn't valid JSON");
+  });
+
+  it('reads a response as cJSON does: trailing text ignored, control characters in strings kept', async () => {
+    const fn = weather({ response: '${v}' });
+    expect(await executeDataMap(fn, { city: 'x' }, fakeFetch('{"v": "a\tb"} trailing'))).toEqual({
+      response: 'a\tb',
+    });
+  });
+
+  it('keeps a response key that a foreach output_key names, as the platform adds after it', async () => {
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            foreach: { input_key: 'items', output_key: 'list', append: '${this}' },
+            output: { response: '${list}' },
+          },
+        ],
+      },
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ items: ['a'], list: 'server' }))).toEqual({
+      response: 'server',
+    });
+  });
+
+  it('sends credentials in the url as basic authentication, and the platform user agent', async () => {
+    const seen: { url: string; headers: Record<string, string> }[] = [];
+    const fetchImpl = async (url: string, init: { headers: Record<string, string> }) => {
+      seen.push({ url, headers: init.headers });
+      return new Response('{}');
+    };
+    const fn = {
+      data_map: { webhooks: [{ url: 'https://user:pa%40ss@x.example.com/w', output: 'ok' }] },
+    };
+    await executeDataMap(fn, {}, { fetchImpl });
+    expect(seen[0]!.url).toBe('https://x.example.com/w');
+    expect(seen[0]!.headers['Authorization']).toBe(
+      `Basic ${Buffer.from('user:pa@ss').toString('base64')}`,
+    );
+    expect(seen[0]!.headers['User-Agent']).toBe('SignalWire-CallFabric/1.0');
+  });
+
+  it('uses nomatch-output for a pattern that is not valid', async () => {
+    const fn = {
+      data_map: {
+        expressions: [
+          {
+            string: 'x',
+            pattern: '(',
+            output: { response: 'yes' },
+            'nomatch-output': { response: 'no' },
+          },
+        ],
+      },
+    };
+    expect(await executeDataMap(fn, {}, { log: () => {} })).toEqual({ response: 'no' });
   });
 });

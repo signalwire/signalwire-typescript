@@ -19,7 +19,7 @@
 
 import { createHmac } from 'node:crypto';
 import { describeAgents, loadAgent } from './agent-loader.js';
-import { executeDataMap } from './datamap-exec.js';
+import { executeDataMap, PLATFORM_ERROR_RESPONSE } from './datamap-exec.js';
 import { parseFunctionArguments, undeclaredArgumentWarnings } from './function-args.js';
 import {
   SIMULATED_PLATFORMS,
@@ -897,10 +897,19 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
 
   if (opts.raw || opts.formatJson) io.out(JSON.stringify(result, null, 2));
   else io.out(`RESULT:\n${formatResult(result)}`);
-  // Every webhook failed and there was no fallback output.
+  // Nothing produced a result, so the platform answers with its generic
+  // error, or the expanded output isn't JSON, so the platform gets none.
   const r = (result ?? {}) as Data;
+  const keys = Object.keys(r);
   const failed =
-    r['status'] === 'failed' && String(r['error'] ?? '').startsWith('All webhooks failed');
+    keys.length === 1 &&
+    (r['response'] === PLATFORM_ERROR_RESPONSE || typeof r['error'] === 'string');
+  if (failed && r['response'] === PLATFORM_ERROR_RESPONSE) {
+    io.err(
+      'Nothing produced a result: no expression matched, no webhook succeeded with an ' +
+        'output, and there is no data_map output. The platform answers with its generic error.',
+    );
+  }
   return failed ? 1 : 0;
 }
 

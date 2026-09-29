@@ -1,7 +1,7 @@
 /**
  * The DataMap examples, run through swaig-test's simulator: every template
- * resolves at the stage it is in (mod_openai actions.c), so no result has a
- * `<MISSING:...>` path.
+ * resolves at the stage it is in (mod_openai actions.c), so none expands to
+ * an empty string.
  */
 
 import { loadAgent } from '../../src/cli/agent-loader.js';
@@ -21,10 +21,22 @@ async function functionsOf(file: string): Promise<Map<string, Data>> {
   return new Map(ai.SWAIG.functions.map((f) => [f['function'] as string, f]));
 }
 
-/** A fetch that answers with `payload` as JSON. */
+/** Notes the simulator wrote, such as a template that expanded to nothing. */
+let notes: string[] = [];
+
+beforeEach(() => {
+  notes = [];
+});
+
+afterEach(() => {
+  expect(notes).toEqual([]);
+});
+
+/** A fetch that answers with `payload` as JSON, collecting the simulator's notes. */
 function answer(payload: unknown, status = 200) {
   return {
     fetchImpl: async () => new Response(JSON.stringify(payload), { status }),
+    log: (line: string) => void notes.push(line),
   };
 }
 
@@ -66,13 +78,16 @@ describe('examples/advanced-datamap.ts', () => {
 
   it('matches the expression tools case-insensitively', async () => {
     const all = await fns();
-    expect(await executeDataMap(all.get('detect_greeting')!, { text: 'Hello there' })).toEqual({
+    const log = (line: string) => void notes.push(line);
+    expect(
+      await executeDataMap(all.get('detect_greeting')!, { text: 'Hello there' }, { log }),
+    ).toEqual({
       response: 'The user greeted with: Hello there. Respond warmly.',
     });
-    expect(await executeDataMap(all.get('check_status')!, { service: 'API' })).toEqual({
+    expect(await executeDataMap(all.get('check_status')!, { service: 'API' }, { log })).toEqual({
       response: 'The API service is currently operational.',
     });
-    expect(await executeDataMap(all.get('check_status')!, { service: 'mail' })).toEqual({
+    expect(await executeDataMap(all.get('check_status')!, { service: 'mail' }, { log })).toEqual({
       response: 'Unknown service "mail". Available services: api, web, database.',
     });
   });

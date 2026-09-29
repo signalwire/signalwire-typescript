@@ -522,9 +522,11 @@ agent.registerSwaigFunction(
     .output(new FunctionResult('ok')).toSwaigFunction(),
 );
 export default agent;`);
-    const { code, stdout } = await runCli([path, '--exec', 'lookup']);
+    const { code, stdout, stderr } = await runCli([path, '--exec', 'lookup']);
     expect(code).toBe(1);
-    expect(stdout).toContain('All webhooks failed');
+    // The platform's generic error, as it answers when nothing produced a result
+    expect(stdout).toContain('Response: There was an error processing this request.');
+    expect(stderr).toContain('Nothing produced a result');
   }, 70_000);
 
   it("isolates the simulated platform from another platform's inherited variables", async () => {
