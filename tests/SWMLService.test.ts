@@ -364,3 +364,23 @@ describe('validateBasicAuth on the routes (found in review)', () => {
     expect((await app.request('/svc', { headers: auth })).status).toBe(401);
   });
 });
+
+describe('serving with generated credentials (found in review)', () => {
+  it('warns that the service requires no basic auth', async () => {
+    const saved = [process.env['SWML_BASIC_AUTH_USER'], process.env['SWML_BASIC_AUTH_PASSWORD']];
+    delete process.env['SWML_BASIC_AUTH_USER'];
+    delete process.env['SWML_BASIC_AUTH_PASSWORD'];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const svc = new SWMLService({ name: 'open', route: '/open', port: 0, host: '127.0.0.1' });
+    try {
+      await svc.serve();
+      const lines = warn.mock.calls.map((c) => String(c[0]));
+      expect(lines.some((l) => l.includes('without basic auth'))).toBe(true);
+    } finally {
+      svc.stop();
+      warn.mockRestore();
+      if (saved[0] !== undefined) process.env['SWML_BASIC_AUTH_USER'] = saved[0];
+      if (saved[1] !== undefined) process.env['SWML_BASIC_AUTH_PASSWORD'] = saved[1];
+    }
+  });
+});

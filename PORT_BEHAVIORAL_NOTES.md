@@ -195,3 +195,15 @@ divergence.
 - Verdict: **KEEP**. It makes the swaig-test flags do what they say; with the
   variables unset the two SDKs build the same URL.
 
+
+### SWMLService with generated credentials doesn't require them — KEEP (owner decision, 2026-09-28)
+- The reference's `SWMLService` always requires basic auth: with no
+  credentials configured, it generates a password and every route checks it
+  (`swml_service.py` `_check_basic_auth`).
+- A TS `SWMLService` with generated credentials serves every route, `/swaig`
+  included, without auth; only credentials passed as `basicAuth`, from the
+  config file or from `SWML_BASIC_AUTH_USER`/`SWML_BASIC_AUTH_PASSWORD` are
+  enforced. `AgentBase` always enforces, as the reference does.
+- `serve()` logs a warning when it serves without auth this way.
+- Verdict: **KEEP**, by the SDK owner's decision; recorded, and warned at
+  startup, so the difference isn't silent.

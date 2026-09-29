@@ -288,7 +288,7 @@ These requests don't run a handler:
 3. `SWML_BASIC_AUTH_PASSWORD`, with `SWML_BASIC_AUTH_USER` or `signalwire` as the username.
 4. Generated credentials: the service name as the username and a random password.
 
-The service enforces the first three on every route, including `/health` and `/ready`. It doesn't enforce generated credentials: with no option, config file or environment variable, the service serves every route, `/swaig` included, without authentication. `getBasicAuthCredentials(true)` returns the credentials and their source (`provided`, `config file`, `environment` or `generated`).
+The service enforces the first three on every route, including `/health` and `/ready`. It doesn't enforce generated credentials: with no option, config file or environment variable, the service serves every route, `/swaig` included, without authentication, and `serve()` logs a warning saying so. The Python SDK's service always requires them. `getBasicAuthCredentials(true)` returns the credentials and their source (`provided`, `config file`, `environment` or `generated`).
 
 This service requires basic auth:
 

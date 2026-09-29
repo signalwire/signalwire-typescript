@@ -1328,6 +1328,16 @@ export class SWMLService {
     const h = host ?? this.host;
     const p = port ?? this.port;
 
+    // A service with generated credentials doesn't require them (a TypeScript
+    // divergence from the reference, which always does: PORT_BEHAVIORAL_NOTES.md).
+    if (this.authSource === 'generated') {
+      this.log.warn(
+        `${this.name} is serving without basic auth: its credentials were generated, and ` +
+          'generated credentials are not enforced. Pass basicAuth, or set ' +
+          'SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD, to require them.',
+      );
+    }
+
     // Determine effective SSL state (param > instance > env)
     const effectiveSslEnabled = opts?.sslEnabled ?? this.sslEnabled;
     const effectiveSslCert = opts?.sslCert ?? this.sslCertPath;
