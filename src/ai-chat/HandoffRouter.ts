@@ -79,23 +79,32 @@ export class NonceEntry {
   issuedAt: number;
   /** Typed messages delivered so far. */
   messages: number;
+  /**
+   * True once `/handoff` has used the nonce. The entry stays in the table
+   * until it would have expired, so registering the nonce again can't make
+   * it usable again.
+   */
+  redeemed: boolean;
 
   /**
    * @param conversationId - The conversation the call belongs to.
    * @param callId - The platform call id.
    * @param issuedAt - When it was registered, in monotonic seconds; now by default.
    * @param messages - Typed messages delivered so far.
+   * @param redeemed - Whether `/handoff` has used the nonce.
    */
   constructor(
     conversationId: string,
     callId: string | null = null,
     issuedAt: number = monotonic(),
     messages = 0,
+    redeemed = false,
   ) {
     this.conversationId = conversationId;
     this.callId = callId;
     this.issuedAt = issuedAt;
     this.messages = messages;
+    this.redeemed = redeemed;
   }
 }
 
@@ -202,16 +211,37 @@ export class HandoffRouter {
    * nonce, with `callId` from the request the platform sent, never from
    * anything the browser supplied.
    *
+   * Registering a nonce that's already in the table changes nothing, since
+   * the callback runs on every config request for the call. The first
+   * registration's call, time and message count stand, and a nonce `/handoff`
+   * has used stays used until it would have expired.
+   *
    * @param nonce - The nonce put in the dial's user variables.
    * @param opts - `conversationId`: the conversation; `callId`: the call.
    */
   register(nonce: string, opts: { conversationId: string; callId?: string | null }): void {
     if (!nonce || typeof nonce !== 'string') return;
     this._prune();
-    this._nonces.set(nonce, new NonceEntry(opts.conversationId, opts.callId ?? null));
+    const callId = opts.callId ?? null;
+    const existing = this._nonces.get(nonce);
+    if (existing) {
+      if (
+        existing.redeemed ||
+        existing.conversationId !== opts.conversationId ||
+        existing.callId !== callId
+      ) {
+        logger.warn('handoff_nonce_reregister_ignored', {
+          conversation_id: opts.conversationId,
+          call_id: callId,
+          note: existing.redeemed ? 'nonce already redeemed' : 'nonce registered to another call',
+        });
+      }
+      return;
+    }
+    this._nonces.set(nonce, new NonceEntry(opts.conversationId, callId));
     logger.info('handoff_nonce_registered', {
       conversation_id: opts.conversationId,
-      call_id: opts.callId ?? null,
+      call_id: callId,
     });
   }
 
@@ -225,7 +255,8 @@ export class HandoffRouter {
   private _lookup(nonce: unknown): NonceEntry | null {
     if (!nonce || typeof nonce !== 'string') return null;
     this._prune();
-    return this._nonces.get(nonce) ?? null;
+    const entry = this._nonces.get(nonce);
+    return entry && !entry.redeemed ? entry : null;
   }
 
   // ── Operations ───────────────────────────────────────────────────
@@ -276,8 +307,11 @@ export class HandoffRouter {
   async redeem(nonce: string): Promise<string | null> {
     const entry = this._lookup(nonce);
     if (!entry) return null;
-    // Used up even if what follows fails: a nonce is one attempt.
-    this._nonces.delete(nonce);
+    // Used up even if what follows fails: a nonce is one attempt. Keep the
+    // entry as a tombstone until it would have expired, so registering the
+    // nonce again can't make it usable again.
+    entry.redeemed = true;
+    this._nonces.set(nonce, entry);
 
     if (entry.callId && this.endCall) {
       try {

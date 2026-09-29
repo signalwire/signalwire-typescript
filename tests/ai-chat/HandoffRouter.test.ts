@@ -123,7 +123,8 @@ describe('/handoff', () => {
       messages: 0,
     });
     await router.redeem('n1');
-    expect(registry.has('n1')).toBe(false);
+    // Kept as a tombstone until it would have expired.
+    expect(registry.get('n1')).toMatchObject({ redeemed: true });
   });
 });
 

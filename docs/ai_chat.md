@@ -437,7 +437,7 @@ agent.mount(handoff.router(), { prefix: '/chat' });
 await agent.serve();
 ```
 
-Take `callId` from the request the platform sent, never from anything the browser supplied. `restClient()` reads `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN` and `SIGNALWIRE_SPACE`. `calling.end()` sends the `calling.end` command, and `calling.aiMessage()` sends `calling.ai_message`.
+Take `callId` from the request the platform sent, never from anything the browser supplied. The callback runs on every config request for the call, so registering a nonce again changes nothing: the first registration's call, time and message count stand, and a nonce that `/handoff` has used stays used until it would have expired. `restClient()` reads `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN` and `SIGNALWIRE_SPACE`. `calling.end()` sends the `calling.end` command, and `calling.aiMessage()` sends `calling.ai_message`.
 
 ### Routes
 
@@ -492,6 +492,7 @@ The nonce protects these things:
 
 - A browser can send text only into the call its nonce was registered for. `/say` finds the call by nonce and forwards only the text, never a call ID or `global_data` from the request.
 - `/handoff` works once per nonce. The nonce is used up before the call is ended, even if a later step fails.
+- Registering a nonce again doesn't reset its message count, revive it after `/handoff`, or move it to another call.
 - A browser can switch to a chat leg only with a nonce from its own call.
 
 These are the limits of that protection:
