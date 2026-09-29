@@ -229,7 +229,7 @@ These options set values in the request, for every action:
 | `--project-id ID`, `--space-id ID` | `call.project_id`, `call.space_id`. |
 | `--from-number NUMBER`, `--to-extension EXT` | `call.from`, `call.to`. |
 | `--user-vars JSON` | `vars.userVariables`. |
-| `--custom-data JSON` | Values merged into the function request. |
+| `--custom-data JSON` | Values merged into the function request. A DataMap function reads them as the call data the platform adds, such as `global_data`. |
 
 `--override PATH=VALUE` sets any value by its dotted path, and `--override-json PATH=JSON` sets one to parsed JSON. A value of `true`, `false`, `null` or a number is typed. Anything else is a string, or JSON when it parses. This command marks the call answered and sets a user variable:
 
@@ -272,7 +272,7 @@ The output shows the Spanish voice and the caller's name:
 
 The simulator follows the platform's template rules:
 
-- The top-level expressions and output, and a webhook's `url` and `params`, read the call data: the function's name and `meta_data`, the arguments under `args` (`${args.city}`), and an empty `input`. The top-level output also has `prompt_vars`.
+- The top-level expressions and output, and a webhook's `url` and `params`, read the call data: the function's name and `meta_data`, the arguments under `args` (`${args.city}`), and an empty `input`. The top-level output also has `prompt_vars`. `--custom-data` gives the call data the platform adds, at its root: `--custom-data '{"global_data": {"tenant": "acme"}}'` makes `${global_data.tenant}` read `acme`. Its `prompt_vars` are merged into the root too, so `{"prompt_vars": {"time_of_day": "morning"}}` gives `${time_of_day}`.
 - A webhook's `foreach`, `expressions` and `output` read its response. A JSON object response is read from the root (`${current.temp_f}`), and a JSON array response is under `array` (`${array[0].joke}`). `prompt_vars`, `global_data` and `input`, a copy of the call data, are added, so the arguments are `${input.args.city}` there.
 - Names match without regard to case, as on the platform: `${ARGS.City}` reads `args.city`. A path that doesn't resolve expands to an empty string, as on the platform, and the simulator says so on stderr. The note adds a hint for a common mistake: `${response.<field>}`, `${args.<name>}` in a webhook's `foreach`, `expressions` or `output`, and `${input.<name>}` before a webhook responds.
 - Templates take the platform's `lc`, `enc` and `fmt_ph` helpers. As on the platform, they apply in a fixed order, `fmt_ph`, then `lc`, then `enc`, whatever order they are written in, so `${lc:enc:args.city}` and `${enc:lc:args.city}` both lowercase the city, then URL-encode it. `enc` encodes the characters the platform encodes, so `/`, `,` and `$` stay as they are. `fmt_ph` formats a North American number as the platform does, as `(202) 555-0143`. The platform formats any valid number, and writes `INVALID NUMBER` for one that isn't valid. The simulator leaves another value as it is, and says so on stderr.

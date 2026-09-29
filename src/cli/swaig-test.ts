@@ -302,7 +302,7 @@ Common options:
 Function execution:
   --minimal              Send the smallest request (call_id and arguments)
   --fake-full-data       Send a request with every key SignalWire may send (the default)
-  --custom-data JSON     Values to merge into the request
+  --custom-data JSON     Values to merge into the request; a DataMap function's call data
 
 SWML and call data (each applies to --dump-swml, --list-tools and --exec):
   --call-type sip|webrtc         Call type (default: webrtc)
@@ -872,7 +872,16 @@ async function run(opts: CliOptions, io: Io): Promise<number> {
 
   let result: unknown;
   if (kind === 'datamap') {
-    result = await executeDataMap(entry, args, { verbose: opts.verbose && !opts.raw });
+    // --custom-data is the call data the platform adds, such as global_data.
+    // It was parsed, and any warning given, for the function request above.
+    const custom = parseJsonOption('--custom-data', opts.customData, {
+      ...io,
+      err: () => undefined,
+    });
+    result = await executeDataMap(entry, args, {
+      verbose: opts.verbose && !opts.raw,
+      ...(opts.customData ? { callData: custom } : {}),
+    });
   } else {
     const payload = {
       ...callData,
