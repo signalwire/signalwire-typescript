@@ -3661,9 +3661,10 @@ export class AgentBase extends SWMLService {
    * Smart entry point matching Python's `WebMixin.run()`: auto-detects the
    * execution environment and dispatches accordingly. When a serverless event
    * is supplied, or a serverless platform is detected from the environment
-   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `K_SERVICE`/`FUNCTION_TARGET`,
+   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `FUNCTION_TARGET`,
    * `FUNCTIONS_WORKER_RUNTIME`, `GATEWAY_INTERFACE`), it dispatches to
    * {@link runServerless}; otherwise it starts the HTTP server via {@link serve}.
+   * Cloud Run sets `K_SERVICE` but not `FUNCTION_TARGET`, so there it serves.
    *
    * For deterministic behavior, call {@link serve} (server) or
    * {@link runServerless} (serverless) directly.
@@ -3684,7 +3685,8 @@ export class AgentBase extends SWMLService {
     const serverlessEnv =
       !!process.env['AWS_LAMBDA_FUNCTION_NAME'] ||
       !!process.env['_HANDLER'] ||
-      !!process.env['K_SERVICE'] ||
+      // The Functions Framework sets FUNCTION_TARGET; K_SERVICE alone is Cloud
+      // Run (or Cloud Shell), where the agent serves HTTP itself.
       !!process.env['FUNCTION_TARGET'] ||
       !!process.env['FUNCTIONS_WORKER_RUNTIME'] ||
       !!process.env['GATEWAY_INTERFACE'];

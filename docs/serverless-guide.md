@@ -382,7 +382,7 @@ const adapter = new ServerlessAdapter('auto');
 console.log(adapter.getPlatform()); // 'lambda', 'gcf', 'azure', or 'cgi'
 ```
 
-`agent.run()` treats the same variables (except `AZURE_FUNCTIONS_ENVIRONMENT`) as a serverless environment, and calls `runServerless()` instead of starting a server. Cloud Run sets `K_SERVICE`, so an agent that runs its own server there must call `serve()`, not `run()`.
+`agent.run()` treats the same variables (except `AZURE_FUNCTIONS_ENVIRONMENT`, and `K_SERVICE` without `FUNCTION_TARGET`) as a serverless environment, and calls `runServerless()` instead of starting a server. Cloud Run sets `K_SERVICE` but not `FUNCTION_TARGET`, so `run()` starts a server there.
 
 ---
 

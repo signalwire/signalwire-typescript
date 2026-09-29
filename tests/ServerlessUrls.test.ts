@@ -199,6 +199,39 @@ describe('webhook URLs from the request a serverless adapter handles', () => {
   });
 });
 
+describe('run() on Cloud Run (found in the documentation pass)', () => {
+  afterEach(() => {
+    delete process.env['K_SERVICE'];
+    delete process.env['FUNCTION_TARGET'];
+    vi.restoreAllMocks();
+  });
+
+  it('serves when only K_SERVICE is set, as on Cloud Run', async () => {
+    process.env['K_SERVICE'] = 'cloud-run-service';
+    const agent = agentAt('/');
+    const serve = vi.spyOn(agent, 'serve').mockResolvedValue();
+    const serverless = vi.spyOn(agent, 'runServerless');
+    await agent.run();
+    expect(serve).toHaveBeenCalledTimes(1);
+    expect(serverless).not.toHaveBeenCalled();
+  });
+
+  it('handles the request when the Functions Framework sets FUNCTION_TARGET', async () => {
+    process.env['K_SERVICE'] = 'voice';
+    process.env['FUNCTION_TARGET'] = 'agent';
+    const agent = agentAt('/');
+    const serve = vi.spyOn(agent, 'serve').mockResolvedValue();
+    const serverless = vi.spyOn(agent, 'runServerless').mockResolvedValue({
+      statusCode: 200,
+      headers: {},
+      body: '',
+    });
+    await agent.run();
+    expect(serverless).toHaveBeenCalledTimes(1);
+    expect(serve).not.toHaveBeenCalled();
+  });
+});
+
 describe('server mode where serverless variables are set (found in review)', () => {
   it('keeps host and port on Cloud Run, which sets K_SERVICE but not FUNCTION_TARGET', () => {
     process.env['K_SERVICE'] = 'cloud-run-service';

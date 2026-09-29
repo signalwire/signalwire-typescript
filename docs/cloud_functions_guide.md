@@ -32,7 +32,7 @@ The SDK detects Google Cloud Functions from these environment variables:
 - `K_SERVICE`: the service name, which Cloud Run also sets
 - `GOOGLE_CLOUD_PROJECT`: the project ID, which `getExecutionMode()` also checks
 
-Cloud Run sets `K_SERVICE`, so an agent that runs its own HTTP server there must call `serve()`, not `run()`. `run()` treats `K_SERVICE` as a serverless environment and doesn't start a server.
+Cloud Run sets `K_SERVICE` but not `FUNCTION_TARGET`, so `run()` starts the agent's HTTP server there. On Cloud Functions, the Functions Framework sets `FUNCTION_TARGET`, and `run()` handles the request instead.
 
 ### Deployment Steps
 
