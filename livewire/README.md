@@ -91,7 +91,7 @@ The table maps each LiveKit concept to what LiveWire does with it:
 | `tts: 'elevenlabs'` | Ignored (logged once) | The platform handles TTS |
 | `vad: plugins.SileroVAD.load()` | Ignored (logged once) | The platform handles VAD |
 | `llm: 'openai/gpt-4o'` | Sets the `model` AI param | The `openai/` prefix is removed. An LLM plugin object sets it from its `model` |
-| `allowInterruptions: false` | Sets `barge_confidence` to 1.0 | |
+| `allowInterruptions: false` | Sets the `enable_barge` AI param to `false` | The caller can't interrupt the AI |
 | `minEndpointingDelay` / `maxEndpointingDelay` | Set `end_of_speech_timeout` / `attention_timeout` | Seconds, converted to milliseconds; defaults 0.5 and 3.0 |
 | `AgentSession.interrupt()` | Does nothing (logged once) | The platform handles barge-in |
 | `JobContext.connect()` | Does nothing (logged once) | The platform connects when it requests the agent's SWML |

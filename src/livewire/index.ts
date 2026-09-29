@@ -520,7 +520,8 @@ export class AgentSession<UserData = unknown> {
    * a model name or an LLM plugin object such as `plugins.OpenAILLM` whose
    * `model` is used, sets the `model` param, with any `provider/` prefix
    * removed.
-   * `allowInterruptions: false` sets `barge_confidence` to 1.0. The minimum and
+   * `allowInterruptions: false` sets the `enable_barge` param to `false`, which
+   * turns barge-in off. The minimum and
    * maximum endpointing delays, in seconds, set `end_of_speech_timeout` and
    * `attention_timeout` in milliseconds. Text queued with {@link say} becomes
    * an "Initial Greeting" prompt section.
@@ -573,7 +574,8 @@ export class AgentSession<UserData = unknown> {
       allowInterruptions = agent._allowInterruptions as boolean;
     }
     if (!allowInterruptions) {
-      swAgent.setParam('barge_confidence', 1.0);
+      // The platform's switch for barge-in; barge_confidence does nothing
+      swAgent.setParam('enable_barge', false);
     }
 
     // Map endpointing delays
