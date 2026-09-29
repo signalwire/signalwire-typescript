@@ -61,7 +61,7 @@ A prefab agent is an `AgentBase` subclass that configures itself from one option
 
 A tool's response is context for the model, not speech: the model reads it and decides what to say. Several tools return instructions for the model, such as the next question to ask.
 
-The prefabs keep per-call state in one of two places. `InfoGathererAgent` keeps its question list and position in the call's `global_data`, and updates it with `set_global_data` actions in its tool responses. `SurveyAgent` and `ReceptionistAgent` keep theirs in memory in the agent process, keyed by the request's `call_id`. That state isn't shared between replicas, is lost on a restart, and isn't removed when a call ends.
+The prefabs keep per-call state in one of two places. `InfoGathererAgent` keeps its question list and position in the call's `global_data`, and updates it with `set_global_data` actions in its tool responses. `SurveyAgent` and `ReceptionistAgent` keep theirs in memory in the agent process, keyed by the request's `call_id`. That state isn't shared between replicas and is lost on a restart. The agent removes a call's state when the call's summary arrives at `/post_prompt`, or once the call has been idle for an hour, and holds at most 10,000 calls, dropping the least recently used. If you override `onSummary()` on one of these agents, call `super.onSummary(summary, rawData)` so the state is removed when the call ends.
 
 Every prefab takes `name`, `route` and `agentOptions`. `agentOptions` is passed to the `AgentBase` constructor after `name` and `route`, so a `route` or `name` in `agentOptions` wins over the top-level option. All five classes and their config types are exported from the package:
 

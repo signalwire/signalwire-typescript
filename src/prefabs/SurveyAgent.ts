@@ -8,6 +8,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
+import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
@@ -128,7 +129,8 @@ export class SurveyAgent extends AgentBase {
     responses: Record<string, unknown>,
     score: number,
   ) => void | Promise<void>;
-  private sessions: Map<string, SurveySession> = new Map();
+  /** Per-call state, dropped on the call's summary or after an hour idle. */
+  private sessions = new CallSessionStore<SurveySession>();
 
   /**
    * Create a SurveyAgent with the specified questions and callbacks.
@@ -291,19 +293,16 @@ export class SurveyAgent extends AgentBase {
 
   private getSession(rawData: Record<string, unknown>): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
-    let session = this.sessions.get(callId);
-    if (!session) {
+    return this.sessions.getOrCreate(callId, () => {
       const firstQuestion = this.questions[0];
-      session = {
+      return {
         currentQuestionIndex: 0,
         currentQuestionId: firstQuestion ? firstQuestion.id : '',
         responses: {},
         score: 0,
         completed: false,
       };
-      this.sessions.set(callId, session);
-    }
-    return session;
+    });
   }
 
   private resolveNextQuestion(question: SurveyQuestion, answer: string): string | null {
@@ -657,11 +656,18 @@ export class SurveyAgent extends AgentBase {
    * The parameter type widens the base `AgentBase.onSummary` signature to
    * accept string payloads as well, matching Python's `isinstance(summary, dict)`
    * branch even though the current framework only surfaces object summaries.
+   *
+   * The summary marks the end of the call, so this also drops the call's
+   * per-call survey state. A subclass that overrides this hook should call
+   * `super.onSummary(summary, rawData)`; otherwise the state is dropped after
+   * the call has been idle for an hour.
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: PostPrompt,
+    rawData: PostPrompt,
   ): void | Promise<void> {
+    const callId = rawData?.['call_id'];
+    if (typeof callId === 'string') this.sessions.delete(callId);
     if (summary) {
       try {
         if (typeof summary === 'string') {

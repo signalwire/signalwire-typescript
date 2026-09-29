@@ -8,6 +8,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
+import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
@@ -94,7 +95,8 @@ export class ReceptionistAgent extends AgentBase {
   private readonly onVisitorCheckInCallback?: (
     visitor: Record<string, string>,
   ) => void | Promise<void>;
-  private readonly sessions: Map<string, CheckInSession> = new Map();
+  /** Per-call check-in state, dropped on the call's summary or after an hour idle. */
+  private readonly sessions = new CallSessionStore<CheckInSession>();
 
   /**
    * Create a ReceptionistAgent with the specified departments.
@@ -223,12 +225,7 @@ export class ReceptionistAgent extends AgentBase {
 
   private getSession(rawData: SwaigRequest): CheckInSession {
     const callId = (rawData['call_id'] as string) ?? 'default';
-    let session = this.sessions.get(callId);
-    if (!session) {
-      session = { visitors: [] };
-      this.sessions.set(callId, session);
-    }
-    return session;
+    return this.sessions.getOrCreate(callId, () => ({ visitors: [] }));
   }
 
   // ── Tool registration ─────────────────────────────────────────────────
@@ -375,15 +372,21 @@ export class ReceptionistAgent extends AgentBase {
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
-   * Python-style receptionist summary hook. Default is a no-op; subclasses
-   * may override to persist the summary. Mirrors Python `on_summary`
-   * (receptionist.py lines 278–287).
+   * Python-style receptionist summary hook; subclasses may override to
+   * persist the summary. Mirrors Python `on_summary` (receptionist.py lines
+   * 278-287), which does nothing.
+   *
+   * The summary marks the end of the call, so this drops the call's check-in
+   * state. A subclass that overrides this hook should call
+   * `super.onSummary(summary, rawData)`; otherwise the state is dropped after
+   * the call has been idle for an hour.
    */
   override onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: PostPrompt,
+    rawData: PostPrompt,
   ): void | Promise<void> {
-    // Intentional no-op pass-through; subclasses override to handle the summary.
+    const callId = rawData?.['call_id'];
+    if (typeof callId === 'string') this.sessions.delete(callId);
   }
 }
 
