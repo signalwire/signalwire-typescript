@@ -539,46 +539,8 @@ export class SWMLService {
 
     // Main SWML endpoint — serves on both GET and POST
     const handler = async (c: Context) => {
-      let doc: Record<string, unknown>;
-
-      // Always parse request params so onRequest() hook and onRequestCallback
-      // can both receive them (mirrors Python's _handle_request param extraction).
-      const url = new URL(c.req.url);
-      const queryParams: Record<string, string> = {};
-      url.searchParams.forEach((v, k) => {
-        queryParams[k] = v;
-      });
-
-      let bodyParams: Record<string, unknown> = {};
-      if (c.req.method === 'POST') {
-        try {
-          bodyParams = await c.req.json();
-        } catch {
-          // empty body is fine
-        }
-      }
-
-      const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => {
-        headers[k] = v;
-      });
-
-      // Protected override hook (Service-side SWML builder dispatch).
-      // Try buildSwmlForRequest() first; if it returns a SwmlBuilder use
-      // that document. This is distinct from WebMixin's onRequest hook
-      // (a public 2-arg variant on AgentBase that mirrors Python's
-      // on_request → on_swml_request delegation chain).
-      const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
-      if (hookResult !== null) {
-        doc = hookResult.build();
-      } else if (this.onRequestCallback) {
-        const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
-        doc = builder.build();
-      } else {
-        doc = this.swmlBuilder.build();
-      }
-
-      return c.json(doc);
+      const { bodyParams, headers } = await this._readRequest(c);
+      return c.json(await this._documentForRequest(c, bodyParams, headers));
     };
 
     const routePath = this.route === '/' ? '/' : this.route;
@@ -1108,34 +1070,72 @@ export class SWMLService {
     this.log.info(`Registering routing callback at ${normalized}`);
     this._routingCallbacks.set(normalized, callbackFn);
 
-    // Install an endpoint on the Hono app for this callback path. It serves
-    // through handleRequest(), which awaits the callback, redirects with 307
-    // when it returns a route, and otherwise renders the service's SWML for
-    // the request, as the reference does.
+    // Install an endpoint on the Hono app for this callback path. It runs
+    // this callback (awaited) for a POST, redirects with 307 when it returns
+    // a route, and otherwise serves the SWML for the request as the main
+    // route does, as the reference does. Auth is the app's middleware.
     const routeHandler = async (c: Context) => {
-      let body: Record<string, unknown> | null = null;
-      if (c.req.method === 'POST') {
+      const { bodyParams, headers } = await this._readRequest(c);
+      if (c.req.method === 'POST' && Object.keys(bodyParams).length > 0) {
         try {
-          body = (await c.req.json()) as Record<string, unknown>;
-        } catch {
-          // empty body
+          const route = await callbackFn(bodyParams as SwmlRequestData, headers);
+          if (route != null) {
+            this.log.info(`routing_request route=${route}`);
+            return c.redirect(route, 307);
+          }
+        } catch (err) {
+          this.log.error(
+            `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
-      const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => {
-        headers[k] = v;
-      });
-      const [status, outHeaders, outBody] = await this.handleRequest(
-        c.req.method,
-        c.req.url,
-        headers,
-        body,
-      );
-      return new Response(outBody || null, { status, headers: outHeaders });
+      return c.json(await this._documentForRequest(c, bodyParams, headers));
     };
 
     this._app.get(normalized, routeHandler);
     this._app.post(normalized, routeHandler);
+  }
+
+  /** The body (for a POST) and headers of a served request. */
+  private async _readRequest(
+    c: Context,
+  ): Promise<{ bodyParams: Record<string, unknown>; headers: Record<string, string> }> {
+    let bodyParams: Record<string, unknown> = {};
+    if (c.req.method === 'POST') {
+      try {
+        bodyParams = await c.req.json();
+      } catch {
+        // empty body is fine
+      }
+    }
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v: string, k: string) => {
+      headers[k] = v;
+    });
+    return { bodyParams, headers };
+  }
+
+  /**
+   * The SWML document for a served request: buildSwmlForRequest(), then the
+   * setOnRequestCallback() callback, then the service's own document (as
+   * Python's _handle_request does).
+   */
+  private async _documentForRequest(
+    c: Context,
+    bodyParams: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<Record<string, unknown>> {
+    const queryParams: Record<string, string> = {};
+    new URL(c.req.url).searchParams.forEach((v, k) => {
+      queryParams[k] = v;
+    });
+    const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
+    if (hookResult !== null) return hookResult.build();
+    if (this.onRequestCallback) {
+      const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
+      return builder.build();
+    }
+    return this.swmlBuilder.build();
   }
 
   // ── Static utilities ─────────────────────────────────────────────────

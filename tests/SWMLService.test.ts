@@ -437,3 +437,56 @@ describe('SWMLService routing callbacks on the served app (found in the document
     expect(res.status).toBe(200);
   });
 });
+
+describe('SWMLService routing callbacks, second review (found in review)', () => {
+  const post = (s: SWMLService, path: string) =>
+    s.getApp().request(path, {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:x@example.com' } }),
+    });
+
+  it('runs the callback registered at the requested path, with overlapping paths', async () => {
+    for (const order of [
+      ['/route', '/nested/route'],
+      ['/nested/route', '/route'],
+    ]) {
+      const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+      s.addVerb('answer', {});
+      for (const p of order)
+        s.registerRoutingCallback(() => (p === '/route' ? '/short' : '/long'), p);
+      expect((await post(s, '/nested/route')).headers.get('location')).toBe('/long');
+      expect((await post(s, '/route')).headers.get('location')).toBe('/short');
+    }
+  });
+
+  it('serves the per-request SWML when the callback returns null', async () => {
+    const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.setOnRequestCallback(async () => {
+      const { SwmlBuilder: B } = await import('../src/SwmlBuilder.js');
+      const b = new B();
+      b.addVerb('hangup', {});
+      return b;
+    });
+    s.registerRoutingCallback(() => null, '/route');
+    const res = await post(s, '/route');
+    expect(res.headers.get('content-type')).toContain('application/json');
+    expect(JSON.stringify(await res.json())).toContain('hangup');
+  });
+
+  it('checks a validateBasicAuth override once per request', async () => {
+    let calls = 0;
+    class Counting extends SWMLService {
+      override validateBasicAuth(u: string, p: string) {
+        calls += 1;
+        return super.validateBasicAuth(u, p);
+      }
+    }
+    const s = new Counting({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.registerRoutingCallback(() => '/go', '/route');
+    await post(s, '/route');
+    expect(calls).toBe(1);
+  });
+});
