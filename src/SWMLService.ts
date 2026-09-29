@@ -13,6 +13,7 @@ import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { corsOriginsFromEnv } from './SecurityUtils.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
@@ -509,7 +510,7 @@ export class SWMLService {
 
     // CORS — credentials only when origin is explicitly configured (wildcard + credentials violates spec)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+    const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
     this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
 

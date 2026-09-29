@@ -263,3 +263,20 @@ export function isServerlessMode(): boolean {
   const mode = getExecutionMode();
   return mode !== 'server';
 }
+
+/**
+ * The CORS `origin` option from `SWML_CORS_ORIGINS`: `'*'` when it's unset or
+ * lists `*` (which allows every origin, as the Python SDK reads it), else the
+ * listed origins.
+ * @internal
+ */
+export function corsOriginsFromEnv(
+  value: string | undefined = process.env['SWML_CORS_ORIGINS'],
+): '*' | string[] {
+  if (!value) return '*';
+  const list = value
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return list.length === 0 || list.includes('*') ? '*' : list;
+}

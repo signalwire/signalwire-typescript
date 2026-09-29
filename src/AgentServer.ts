@@ -13,6 +13,7 @@ import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
 import type { Server as NodeServer } from 'node:http';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
+import { corsOriginsFromEnv } from './SecurityUtils.js';
 import { SslConfig } from './SslConfig.js';
 
 /** Common MIME types for static file serving. */
@@ -130,7 +131,7 @@ export class AgentServer {
 
     // CORS (configurable via env)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+    const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
     const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
     this._app.use('*', (c, next) =>

@@ -440,7 +440,7 @@ When `SWML_CORS_ORIGINS` is unset, the agent's CORS policy allows any origin (`A
 export SWML_CORS_ORIGINS="https://app.example.com,https://admin.example.com"
 ```
 
-With the list set, a listed origin gets CORS headers with `Access-Control-Allow-Credentials: true`, and other origins get none, so browsers block their cross-origin requests. `*` isn't a wildcard inside the list: `SWML_CORS_ORIGINS="*"` allows no origin. Leave the variable unset to allow any origin. `AgentServer` reads the same variable.
+With the list set, a listed origin gets CORS headers with `Access-Control-Allow-Credentials: true`, and other origins get none, so browsers block their cross-origin requests. A list that holds `*`, or an unset variable, allows any origin, without credentials. `AgentServer` reads the same variable.
 
 ---
 
@@ -484,7 +484,7 @@ Set `SWML_ALLOWED_HOSTS` to a comma-separated list of host names the agent answe
 export SWML_ALLOWED_HOSTS="agent.example.com,api.example.com"
 ```
 
-The agent strips the port from the `Host` header and compares the rest, ignoring case, with the list. A request for another host gets `403` and `{ "error": "Forbidden: host not allowed" }`, on every route including `/health`. The list has no wildcards: `*` matches only a `Host` header of `*`. When the variable is unset, any host is accepted.
+The agent strips the port from the `Host` header and compares the rest, ignoring case, with the list. A request for another host gets `403` and `{ "error": "Forbidden: host not allowed" }`, on every route including `/health`. A list that holds `*`, or an unset variable, accepts any host. There are no partial wildcards such as `*.example.com`.
 
 The check blocks requests that reach the agent by IP address or through a DNS name you didn't list, as in DNS rebinding.
 

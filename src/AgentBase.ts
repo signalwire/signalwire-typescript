@@ -36,7 +36,13 @@ import {
   Step,
 } from './ContextBuilder.js';
 import { getExecutionMode, getLogger, suppressAllLogs, type Logger } from './Logger.js';
-import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
+import {
+  safeAssign,
+  filterSensitiveHeaders,
+  redactUrl,
+  isValidHostname,
+  corsOriginsFromEnv,
+} from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
@@ -3139,9 +3145,14 @@ export class AgentBase extends SWMLService {
     });
 
     // Allowed hosts (configurable via env)
+    // "*" allows every host, as the reference reads it.
     const allowedHosts = process.env['SWML_ALLOWED_HOSTS'];
-    if (allowedHosts) {
-      const hostSet = new Set(allowedHosts.split(',').map((h) => h.trim().toLowerCase()));
+    const hostList = (allowedHosts ?? '')
+      .split(',')
+      .map((h) => h.trim().toLowerCase())
+      .filter(Boolean);
+    if (hostList.length > 0 && !hostList.includes('*')) {
+      const hostSet = new Set(hostList);
       app.use('*', async (c, next) => {
         const host = (c.req.header('host') ?? '').split(':')[0]!.toLowerCase(); // split yields >=1 element
         if (!hostSet.has(host)) {
@@ -3191,16 +3202,15 @@ export class AgentBase extends SWMLService {
 
     // CORS (configurable via env)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
+    const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
     const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
     app.use('*', (c, next) => (underMount(c) ? next() : corsMw(c, next)));
 
     // CSRF protection (optional, gated by env)
     if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
-      const allowedOrigins = corsOrigins
-        ? new Set(corsOrigins.split(',').map((o) => o.trim().toLowerCase()))
-        : null;
+      const allowedOrigins =
+        corsOrigin === '*' ? null : new Set(corsOrigin.map((o) => o.toLowerCase()));
       app.use('*', async (c, next) => {
         if (c.req.method === 'POST' && !underMount(c)) {
           const origin = c.req.header('origin');
