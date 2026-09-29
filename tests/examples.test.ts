@@ -219,6 +219,69 @@ describe('examples', () => {
     });
   });
 
+  describe('mcp-gateway.ts', () => {
+    const MCP_ENV = [
+      'MCP_GATEWAY_URL',
+      'MCP_GATEWAY_AUTH_TOKEN',
+      'MCP_GATEWAY_AUTH_USER',
+      'MCP_GATEWAY_AUTH_PASSWORD',
+      'MCP_GATEWAY_SERVICES',
+      'SWML_ALLOW_PRIVATE_URLS',
+    ];
+    beforeEach(() => {
+      vi.resetModules();
+      for (const name of MCP_ENV) vi.stubEnv(name, undefined);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('loads without a gateway configured and says how to configure one', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const agent = await loadExample('mcp-gateway.ts');
+        expect(agent.getRegisteredTools()).toEqual([]);
+        expect(errors.mock.calls.flat().join('\n')).toContain('MCP_GATEWAY_URL');
+      } finally {
+        errors.mockRestore();
+      }
+    });
+
+    it('registers the gateway tools when the environment points at a gateway', async () => {
+      const { createServer } = await import('node:http');
+      const server = createServer((req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        if (req.headers.authorization !== 'Bearer test-token') {
+          res.statusCode = 401;
+          res.end('{}');
+        } else if (req.url === '/health') {
+          res.end('{"status":"ok"}');
+        } else if (req.url === '/services/todo/tools') {
+          res.end(
+            JSON.stringify({
+              tools: [{ name: 'add_todo', description: 'Add a todo', inputSchema: {} }],
+            }),
+          );
+        } else {
+          res.statusCode = 404;
+          res.end('{}');
+        }
+      });
+      await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
+      try {
+        const { port } = server.address() as { port: number };
+        vi.stubEnv('MCP_GATEWAY_URL', `http://127.0.0.1:${port}`);
+        vi.stubEnv('MCP_GATEWAY_AUTH_TOKEN', 'test-token');
+        vi.stubEnv('MCP_GATEWAY_SERVICES', 'todo');
+        vi.stubEnv('SWML_ALLOW_PRIVATE_URLS', 'true');
+        const agent = await loadExample('mcp-gateway.ts');
+        expect(agent.getRegisteredTools().map((t) => t.name)).toContain('mcp_todo_add_todo');
+      } finally {
+        server.close();
+      }
+    });
+  });
+
   describe('session-state.ts', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');

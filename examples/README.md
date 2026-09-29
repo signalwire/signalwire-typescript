@@ -57,7 +57,7 @@ These three files hold the code blocks of the repository README's quickstarts, w
 | [datasphere-serverless-env.ts](datasphere-serverless-env.ts) | DataSphere serverless skill configured from environment variables |
 | [datasphere-webhook-env.ts](datasphere-webhook-env.ts) | DataSphere webhook skill configured from environment variables |
 | [mcp-agent.ts](mcp-agent.ts) | An MCP server endpoint (`/agent/mcp`) that exposes the agent's tools, and an MCP client that adds a remote server's tools |
-| [mcp-gateway.ts](mcp-gateway.ts) | MCP gateway skill, which registers the tools of an MCP gateway's services |
+| [mcp-gateway.ts](mcp-gateway.ts) | MCP gateway skill, which registers the tools of an MCP gateway's services. Reads the gateway from `MCP_GATEWAY_*` variables, and starts without MCP tools when they're unset |
 | [joke-agent.ts](joke-agent.ts) | Joke skill (a built-in joke collection, no API key) with the datetime skill |
 
 ## SWAIG Features and FunctionResult Actions
@@ -166,6 +166,10 @@ The examples and the skills they load read these variables:
 | `GOOGLE_SEARCH_ENGINE_ID` | Google search engine ID (web search); `GOOGLE_SEARCH_CX` also works | None |
 | `DATASPHERE_DOCUMENT_ID` | DataSphere document ID (the `-env` DataSphere examples) | None |
 | `SW_NEWS_API_KEY` | NewsAPI key, expanded into the `get_news` URL in `advanced-datamap.ts` | None |
+| `MCP_GATEWAY_URL` | MCP gateway URL for `mcp-gateway.ts`. A private or localhost URL also needs `SWML_ALLOW_PRIVATE_URLS=true` | None |
+| `MCP_GATEWAY_AUTH_TOKEN` | MCP gateway bearer token, used instead of the user name and password | None |
+| `MCP_GATEWAY_AUTH_USER` / `MCP_GATEWAY_AUTH_PASSWORD` | MCP gateway basic auth credentials | None |
+| `MCP_GATEWAY_SERVICES` | Comma-separated MCP services for `mcp-gateway.ts` to expose | All services |
 
 ## Conventions these examples follow
 
