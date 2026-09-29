@@ -129,8 +129,8 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   - Requests are signed over `SWML_PROXY_URL_BASE` when it's set, as the
     platform signs them. Credentials in an external webhook URL are sent as
     basic auth.
-  - `--exec` exits `1` when every webhook of a DataMap function fails and
-    it has no fallback output. A webhook's timeout covers its body.
+  - `--exec` exits `0` when every webhook of a DataMap function fails and
+    it has no fallback output, printing the platform's generic error. A webhook's timeout covers its body.
   - A simulated platform's environment replaces other platforms' variables
     the shell had set, and they're restored afterwards.
 - **`requestOptions` on every REST resource verb** — each `list` / `paginate` /
@@ -596,7 +596,8 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - swaig-test's DataMap simulator now does what the platform does where it
   used to differ on purpose: an unresolved template expands to an empty
   string (with a note on stderr), not `<MISSING:path>`; names match without
-  regard to case; `fmt_ph` formats North American numbers; the call data
+  regard to case; `fmt_ph` formats North American numbers (any number, with the optional
+  `libphonenumber-js` installed); the call data
   holds `meta_data`, the call details and `prompt_vars`, and the webhook
   stage adds `prompt_vars` and `global_data`; a matched webhook expression's
   result is expanded twice; a template expands only once; outputs are
@@ -608,6 +609,16 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   or 303. It now follows them as the platform's curl does: up to 15, and a
   POST is sent again with its body. Every hop is still checked for private
   addresses, and credentials are still dropped on a change of origin.
+- swaig-test's DataMap simulator read `${meta_data.x}` from the function's
+  own `meta_data` only. It now merges the function's `meta_data` over
+  `global_data`, key by key, as the platform does when it loads the
+  function. `swaig-test --exec` also passes the agent's global data when
+  `--custom-data` has no `global_data`.
+- swaig-test's DataMap simulator reported `http_code` 0 when a webhook
+  request failed after a redirect, such as a redirect loop past the limit or
+  a redirect target that doesn't connect. It now reports the last status it
+  received, as the platform's curl does, and 0 only when no response came
+  back.
 - `swaig-test --custom-data` now reaches DataMap functions as the call data
   the platform adds, such as `global_data` and `prompt_vars`. Before, a
   DataMap tool that read `${global_data.x}` always got an empty value.
@@ -715,9 +726,10 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   Bedrock prompt.
 - swaig-test's DataMap simulator writes an empty string for an unresolved
   template, as the platform does, and returns the platform's generic error
-  response when nothing produces a result; it still exits with status 1
-  then. Scripts that looked for `<MISSING:` or the old error object should
-  read stderr's notes instead.
+  response when nothing produces a result, and `swaig-test --exec` exits
+  with status 0 then, as it does for an output that isn't valid JSON after
+  expansion. Scripts that looked for `<MISSING:`, the old error object or
+  exit status 1 should read the result and stderr's notes instead.
 
 ## 3.2.0
 

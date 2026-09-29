@@ -884,7 +884,7 @@ You can then register the definition yourself:
 agent.registerSwaigFunction(tool.toSwaigFunction());
 ```
 
-`toSwaigFunction()` always writes `expressions` and `webhooks` as lists. A `data_map` you write by hand can give either one as a single object instead. The platform runs a single expression object as a one-element list. A single webhook object runs differently from a list: the platform doesn't check its `require_args` or its `error_keys`, and a response that isn't JSON or a request that doesn't complete doesn't fail it. Its `foreach`, `expressions` and `output` then read the error response: `${parse_error}` is `true`, `${raw_response}` is the body, and `${http_code}` is the status, or `0` when the request didn't complete. Like a webhook in a list, it needs an `output` or `expressions`. `swaig-test --exec` runs both forms as the platform does.
+`toSwaigFunction()` always writes `expressions` and `webhooks` as lists. A `data_map` you write by hand can give either one as a single object instead. The platform runs a single expression object as a one-element list. A single webhook object runs differently from a list: the platform doesn't check its `require_args` or its `error_keys`, and a response that isn't JSON or a request that doesn't complete doesn't fail it. Its `foreach`, `expressions` and `output` then read the error response: `${parse_error}` is `true`, `${raw_response}` is the body, and `${http_code}` is the last status received, a redirect's included, or `0` when no response came back. Like a webhook in a list, it needs an `output` or `expressions`. `swaig-test --exec` runs both forms as the platform does.
 
 ---
 
@@ -1021,7 +1021,7 @@ The first object is the call data. Its root holds these values:
 
 - `args`: the arguments the AI extracted for this call, by parameter name. Example: `${args.city}`.
 - `global_data`: the application's global data. Example: `${global_data.account_tier}`.
-- `meta_data`: the function's metadata. Example: `${meta_data.table.sales}`.
+- `meta_data`: the function's metadata, merged key by key over the global data the call starts with when the platform loads the function, so a `global_data` key the function's `meta_data` doesn't set is there too. Example: `${meta_data.table.sales}`.
 - The prompt variables, at the root.
 - Details of the call: `call_id`, `ai_session_id`, `conversation_id`, `function`, `caller_id_name`, `caller_id_num`, `project_id`, `space_id` and `app_name`.
 
@@ -1092,10 +1092,11 @@ RESULT:
 Response: Weather in London: 61°F, Overcast
 ```
 
-The simulator follows the platform's stage template data, template rules and webhook rules, described in [Template data](#template-data), [Template Reference](#template-reference) and [errorKeys](#errorkeys). `--custom-data` gives it the call data the platform adds, such as `global_data`, `caller_id_num` and `prompt_vars`, as in `--custom-data '{"global_data": {"account_tier": "gold"}}'`. A path that doesn't resolve expands to an empty string, as on the platform, and the simulator says so on stderr. It adds a hint when the path starts with `response.`, or when `${args.name}` is used in a webhook's output, expressions or `foreach`. When nothing produces a result, it returns the platform's `{"response": "There was an error processing this request."}`, and `swaig-test` exits with status 1. It differs from the platform in these ways:
+The simulator follows the platform's stage template data, template rules and webhook rules, described in [Template data](#template-data), [Template Reference](#template-reference) and [errorKeys](#errorkeys). `--custom-data` gives it the call data the platform adds, such as `global_data`, `caller_id_num` and `prompt_vars`, as in `--custom-data '{"global_data": {"account_tier": "gold"}}'`. Without `global_data` in `--custom-data`, it uses the agent's global data, as a call starts with it. A path that doesn't resolve expands to an empty string, as on the platform, and the simulator says so on stderr. It adds a hint when the path starts with `response.`, or when `${args.name}` is used in a webhook's output, expressions or `foreach`. When nothing produces a result, it returns the platform's `{"response": "There was an error processing this request."}`, says so on stderr, and `swaig-test` exits with status 0, since that is a valid result on the platform, not a failure of the tool. It differs from the platform in these ways:
 
-- `fmt_ph` formats only a North American number, as `(202) 555-0143`. It leaves any other value as it is and says so on stderr. The platform formats any valid number in its national format, and writes `INVALID NUMBER` for one that isn't valid.
-- The call data has only the function's name, `meta_data` and arguments, and what you give with `--custom-data`. Call details such as `call_id` are there only if you give them.
+- Without the optional `libphonenumber-js` package, `fmt_ph` formats only a North American number, as `(202) 555-0143`, and leaves any other value as it is, saying so on stderr. The platform formats any valid number in its national format, and writes `INVALID NUMBER` for one that isn't valid. With `libphonenumber-js` installed (`npm install -D libphonenumber-js`), so does the simulator.
+- The call data has only the function's name, `meta_data` and arguments, the agent's global data, and what you give with `--custom-data`. Call details such as `call_id` are there only if you give them.
+- `${meta_data.x}` reads only the function's own `meta_data`. On the platform, an agent's functions share one metadata store (the SDK sends no `meta_data_token`), so a call can also see keys from other functions' `meta_data`, and the last function loaded wins on a clash.
 - It leaves `@{...}` functions as they are, and doesn't evaluate an expression's `expr`.
 - It matches patterns with JavaScript regular expressions, where the platform uses PCRE. Like the platform, it matches case-insensitively unless the pattern is written `/pattern/flags`, and it accepts a leading `(?i)`. Other PCRE-only syntax is reported as an invalid pattern.
 - It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
