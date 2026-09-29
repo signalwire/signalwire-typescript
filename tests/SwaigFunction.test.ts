@@ -30,3 +30,18 @@ describe('argument validation on dispatch (found in the documentation pass)', ()
     }
   });
 });
+
+describe('argument validation reuses compiled validators (found in review)', () => {
+  it('compiles a tool schema once across repeated calls', async () => {
+    const mod = await import('../src/SwaigFunction.js');
+    const fn = new mod.SwaigFunction({
+      name: 'count2',
+      description: 'Count',
+      parameters: { n: { type: 'integer', description: 'How many' } },
+      handler: () => new FunctionResult('ok'),
+    });
+    const before = mod._compiledValidatorCount();
+    for (let i = 0; i < 50; i++) await fn.execute({ n: i });
+    expect(mod._compiledValidatorCount() - before).toBeLessThanOrEqual(1);
+  });
+});

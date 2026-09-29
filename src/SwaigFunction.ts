@@ -10,6 +10,35 @@ import type { AgentBase } from './AgentBase.js';
 
 const ajv = new Ajv({ allErrors: true });
 
+/**
+ * Compiled argument validators, keyed by the schema's JSON, so every call of
+ * a tool (and of its per-request copies) reuses one. Bounded: the oldest
+ * entry goes when it's full. Each schema is removed from Ajv's own cache
+ * once compiled, so only this map holds it.
+ */
+const VALIDATOR_CACHE_LIMIT = 500;
+const compiledValidators = new Map<string, ReturnType<typeof ajv.compile>>();
+let compileCount = 0;
+
+function validatorFor(schema: Record<string, unknown>): ReturnType<typeof ajv.compile> {
+  const key = JSON.stringify(schema);
+  const cached = compiledValidators.get(key);
+  if (cached) return cached;
+  const validate = ajv.compile(schema);
+  ajv.removeSchema(schema);
+  compileCount += 1;
+  if (compiledValidators.size >= VALIDATOR_CACHE_LIMIT) {
+    compiledValidators.delete(compiledValidators.keys().next().value!);
+  }
+  compiledValidators.set(key, validate);
+  return validate;
+}
+
+/** @internal How many argument validators have been compiled (for tests). */
+export function _compiledValidatorCount(): number {
+  return compileCount;
+}
+
 const log = getLogger('SwaigFunction');
 
 /**
@@ -319,7 +348,7 @@ export class SwaigFunction {
       return [true, []];
     }
 
-    const validate = ajv.compile(schema);
+    const validate = validatorFor(schema);
     const valid = validate(args);
     if (valid) {
       return [true, []];
