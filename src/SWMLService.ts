@@ -12,7 +12,7 @@ import type { Context } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
@@ -417,10 +417,9 @@ export class SWMLService {
   }
 
   private timingSafeEqual(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
+    // Compare digests, so neither the content nor the length leaks.
+    const digest = (v: string) => createHash('sha256').update(v, 'utf8').digest();
+    return timingSafeEqual(digest(a), digest(b));
   }
   protected _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   protected _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
@@ -516,8 +515,12 @@ export class SWMLService {
 
     // Basic auth — only enforced when explicitly provided or from env, not auto-generated
     if (enforceAuth && this.authCredentials) {
-      const [user, pass] = this.authCredentials;
-      this._app.use('*', basicAuth({ username: user, password: pass }));
+      this._app.use(
+        '*',
+        basicAuth({
+          verifyUser: (username, password) => this.validateBasicAuth(username, password),
+        }),
+      );
     }
 
     // Health endpoints

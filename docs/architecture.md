@@ -698,7 +698,7 @@ Every route except `/health` and `/ready` requires HTTP Basic Authentication. Th
 3. `SWML_BASIC_AUTH_PASSWORD`, with `SWML_BASIC_AUTH_USER` or `signalwire` as the username.
 4. Generated: `SWML_BASIC_AUTH_USER` or the agent's name, and 32 random hex characters.
 
-The credentials are in the webhook URLs of the SWML, so SignalWire authenticates when it calls the agent back. The routes compare credentials with the configured pair; they don't call `validateBasicAuth()`, so overriding it doesn't change who can reach the agent.
+The credentials are in the webhook URLs of the SWML, so SignalWire authenticates when it calls the agent back. The routes check credentials through `validateBasicAuth()`, which compares them with the configured pair in constant time and which a subclass can override.
 
 ### CORS
 

@@ -985,7 +985,7 @@ A subclass can override these members:
 | `onSwmlRequest(rawData, callbackPath?, context?)` | Runs on each SWML request before rendering. A returned object is merged into the `ai` verb's configuration. |
 | `onDebugEvent(event)` | Runs when a debug event arrives at `/debug_events`. |
 
-`AgentBase` also has a `validateBasicAuth(username, password)` method, but the agent's routes don't call it, so overriding it doesn't change who can connect.
+Every route that requires basic auth calls `validateBasicAuth(username, password)`, which compares the credentials in constant time. Override it to add a check; call `super.validateBasicAuth()` to keep the comparison.
 
 ---
 

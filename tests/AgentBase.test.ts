@@ -911,9 +911,33 @@ describe('AgentBase', () => {
     expect(calls).toContain('test_fn');
   });
 
-  it('validateBasicAuth hook default returns true', () => {
-    const agent = createAgent();
-    expect(agent.validateBasicAuth('any', 'pass')).toBe(true);
+  it('validateBasicAuth checks the configured credentials by default, as the reference does', () => {
+    const agent = new AgentBase({ name: 'auth', route: '/', basicAuth: ['u', 'p'] });
+    expect(agent.validateBasicAuth('u', 'p')).toBe(true);
+    expect(agent.validateBasicAuth('any', 'pass')).toBe(false);
+    expect(agent.validateBasicAuth('u', 'wrong')).toBe(false);
+  });
+
+  it('calls a validateBasicAuth override on every protected route', async () => {
+    class Guarded extends AgentBase {
+      override validateBasicAuth(username: string, password: string): boolean {
+        return username === 'u' && password === 'p' && !blocked.has(username);
+      }
+    }
+    const blocked = new Set<string>();
+    const agent = new Guarded({ name: 'auth', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const app = agent.getApp();
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    expect((await app.request('/', { headers: auth })).status).toBe(200);
+    blocked.add('u');
+    expect((await app.request('/', { headers: auth })).status).toBe(401);
+    const swaig = await app.request('/swaig', {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    expect(swaig.status).toBe(401);
   });
 
   it('CORS origin defaults to *', async () => {

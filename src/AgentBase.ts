@@ -13,7 +13,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { PromptManager } from './PromptManager.js';
 import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
@@ -97,6 +97,12 @@ function headersOf(c: Context): Record<string, string> {
 
 /** The Hono context of the served request being handled, for onSwmlRequest. */
 const servedRequestContext = new AsyncLocalStorage<Context>();
+
+/** Compare two strings in constant time, whatever their lengths. */
+function constantTimeEqual(a: string, b: string): boolean {
+  const digest = (v: string) => createHash('sha256').update(v, 'utf8').digest();
+  return timingSafeEqual(digest(a), digest(b));
+}
 
 /** SDK classes whose instances a per-request copy duplicates field by field. */
 const CLONEABLE_CLASSES = new Set<unknown>([
@@ -2519,7 +2525,7 @@ export class AgentBase extends SWMLService {
     const callbackPath = this._callbackPathForUrl(url);
 
     // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
-    if (!this.checkAgentBasicAuth(headers)) {
+    if (!(await this.checkAgentBasicAuth(headers))) {
       return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
     }
 
@@ -2603,9 +2609,9 @@ export class AgentBase extends SWMLService {
     return copy;
   }
 
-  /** Validate basic-auth against AgentBase's `basicAuthCreds` from a plain
-   *  headers dict (the primitive analog of the Hono `basicAuth` middleware). */
-  private checkAgentBasicAuth(headers: Record<string, string>): boolean {
+  /** Validate basic-auth from a plain headers dict (the primitive analog of
+   *  the Hono `basicAuth` middleware), through {@link validateBasicAuth}. */
+  private async checkAgentBasicAuth(headers: Record<string, string>): Promise<boolean> {
     const [user, pass] = this.basicAuthCreds;
     if (!user || !pass) return true;
     const authHeader = headers['authorization'] ?? headers['Authorization'];
@@ -2618,7 +2624,7 @@ export class AgentBase extends SWMLService {
     }
     const idx = decoded.indexOf(':');
     if (idx < 0) return false;
-    return decoded.slice(0, idx) === user && decoded.slice(idx + 1) === pass;
+    return await this.validateBasicAuth(decoded.slice(0, idx), decoded.slice(idx + 1));
   }
 
   /**
@@ -2630,13 +2636,19 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Override to add custom basic-auth validation logic beyond credential matching.
-   * @param _username - The username from the request.
-   * @param _password - The password from the request.
+   * Check a request's basic-auth credentials. Every route that requires
+   * basic auth calls it. The default compares them with the agent's
+   * credentials in constant time; override it to check credentials another
+   * way, as the Python SDK's `validate_basic_auth` allows. An override
+   * replaces the comparison, so call `super.validateBasicAuth()` to keep it.
+   * @param username - The username from the request.
+   * @param password - The password from the request.
    * @returns True if the credentials are valid; false to reject the request.
    */
-  validateBasicAuth(_username: string, _password: string): boolean | Promise<boolean> {
-    return true;
+  override validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
+    const [user, pass] = this.basicAuthCreds;
+    if (!user || !pass) return false;
+    return constantTimeEqual(username, user) && constantTimeEqual(password, pass);
   }
 
   /**
@@ -3205,10 +3217,8 @@ export class AgentBase extends SWMLService {
     // (auth_mixin._send_lambda_auth_challenge / the primitive handleRequest 401);
     // Hono's default basicAuth returns a plain "Unauthorized" text body, which
     // diverges on the serverless dispatch path.
-    const [user, pass] = this.basicAuthCreds;
     const authMw = basicAuth({
-      username: user,
-      password: pass,
+      verifyUser: (username, password) => this.validateBasicAuth(username, password),
       invalidUserMessage: JSON.stringify({ error: 'Unauthorized' }),
     });
 

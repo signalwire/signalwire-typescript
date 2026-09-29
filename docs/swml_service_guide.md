@@ -299,7 +299,7 @@ const service = new SWMLService({
 });
 ```
 
-The routes compare credentials with the configured pair and don't call `validateBasicAuth()`. Only `handleRequest()`, the framework-free dispatch method, calls it.
+When credentials are enforced, the routes and `handleRequest()`, the framework-free dispatch method, check them through `validateBasicAuth()`, which a subclass can override.
 
 ### Dynamic SWML Generation
 

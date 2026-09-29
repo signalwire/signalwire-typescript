@@ -386,7 +386,7 @@ The agent puts the credentials in the webhook URLs it renders, so SignalWire can
 
 ### Custom Basic Auth Validation
 
-`AgentBase` and `SWMLService` have a `validateBasicAuth(username, password)` method, but the HTTP routes don't call it. They compare the request's credentials with the configured pair, so overriding the method doesn't change who can reach the agent. Only `SWMLService.handleRequest()`, the framework-free dispatch method, calls it.
+`AgentBase` and `SWMLService` check a request's credentials through `validateBasicAuth(username, password)`, which compares them with the configured pair in constant time. Override it to add a check; an override replaces the comparison, so call `super.validateBasicAuth()` to keep it.
 
 To add your own check, put the agent's app behind middleware that runs it, such as an `AuthHandler` [custom validator](#authhandler-multi-method-auth).
 

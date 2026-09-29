@@ -346,3 +346,21 @@ describe('SWMLService', () => {
     });
   });
 });
+
+describe('validateBasicAuth on the routes (found in review)', () => {
+  it('calls an override on the served routes when credentials are enforced', async () => {
+    class Guarded extends SWMLService {
+      override validateBasicAuth(username: string, password: string): boolean {
+        return username === 'u' && password === 'p' && !blocked;
+      }
+    }
+    let blocked = false;
+    const svc = new Guarded({ name: 'svc', route: '/svc', basicAuth: ['u', 'p'] });
+    svc.addVerb('answer', {});
+    const app = svc.getApp();
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    expect((await app.request('/svc', { headers: auth })).status).toBe(200);
+    blocked = true;
+    expect((await app.request('/svc', { headers: auth })).status).toBe(401);
+  });
+});

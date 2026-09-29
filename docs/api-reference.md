@@ -1266,7 +1266,7 @@ onFunctionCall(
 
 #### `validateBasicAuth(username, password)`
 
-`AgentBase`'s default returns `true`. The agent's HTTP routes compare the request's credentials with the configured ones and don't call this method. Overriding it doesn't change which requests the agent's routes accept.
+Every route that requires basic auth calls it with the request's credentials. The default compares them with the configured pair in constant time. An override replaces that comparison, so call `super.validateBasicAuth()` to keep it and add your own check.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

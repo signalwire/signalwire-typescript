@@ -92,7 +92,7 @@ const [user2, pass2, source] = agent.getBasicAuthCredentials(true);
 
 The agent puts the credentials into the webhook URLs of the SWML it serves (`https://user:password@host/swaig?...`), so SignalWire can call back. Anyone who can read that SWML can read the password. The SWML route itself requires the credentials.
 
-`AgentBase` routes compare the credentials directly. They don't call `validateBasicAuth()`, so overriding that method in an `AgentBase` subclass doesn't change who can call the agent. To add checks of your own, put them in a reverse proxy or in your own Hono app in front of the agent.
+Every route that requires basic auth passes the request's credentials to `validateBasicAuth()`, which compares them with the configured pair in constant time. Override it to add a check of your own; an override replaces the comparison, so call `super.validateBasicAuth()` to keep it.
 
 ### AuthHandler (Multi-Method)
 
