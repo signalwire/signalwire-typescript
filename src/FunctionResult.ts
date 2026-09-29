@@ -1130,12 +1130,15 @@ export class FunctionResult {
    * Start a payment collection flow on the call. Emits an inline SWML document
    * that sets `ai_response` and then runs the `pay` verb.
    *
-   * `timeout`, `max_attempts` and `min_postal_code_length` are sent as
-   * integers and `security_code` as a boolean, as the SWML schema types them.
-   * Each also accepts a numeric string (or `"true"`/`"false"` for
-   * `securityCode`), which is converted, or a SWML variable reference such as
-   * `'${timeout}'`, which is passed through. `postalCode` is a boolean
-   * (whether to ask for it) or the postal code itself, as a string.
+   * `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and
+   * `postal_code` are sent as strings, as the platform reads them: its SWML
+   * validator requires strings for `security_code` and `postal_code`, and the
+   * pay request reads all five as strings. Each input is checked first:
+   * `timeout`, `maxAttempts` and `minPostalCodeLength` must be integers (or
+   * numeric strings), and `securityCode` a boolean (or `"true"`/`"false"`).
+   * A SWML variable reference such as `'${timeout}'` is passed through.
+   * `postalCode` is a boolean (whether to ask for it) or the postal code
+   * itself, as a string.
    * @param opts - Payment configuration including connector URL, method, and prompt options.
    * @throws {Error} When `timeout`, `maxAttempts` or `minPostalCodeLength`
    *   isn't an integer, or `securityCode` isn't a boolean, or a SWML variable
@@ -1167,11 +1170,16 @@ export class FunctionResult {
       payment_connector_url: opts.paymentConnectorUrl,
       input: opts.inputMethod ?? 'dtmf',
       payment_method: opts.paymentMethod ?? 'credit-card',
-      // Integers and a boolean, as the SWML schema types them
-      timeout: swmlInt('timeout', opts.timeout ?? 5),
-      max_attempts: swmlInt('max_attempts', opts.maxAttempts ?? 1),
-      security_code: swmlBool('security_code', opts.securityCode ?? true),
-      min_postal_code_length: swmlInt('min_postal_code_length', opts.minPostalCodeLength ?? 0),
+      // Checked as integers and a boolean, sent as strings: the platform's
+      // validator requires strings for security_code and postal_code, and its
+      // pay request reads all five as strings (mod_infrastructure
+      // swml_schema.c, relay.c generate_pay_request).
+      timeout: String(swmlInt('timeout', opts.timeout ?? 5)),
+      max_attempts: String(swmlInt('max_attempts', opts.maxAttempts ?? 1)),
+      security_code: String(swmlBool('security_code', opts.securityCode ?? true)),
+      min_postal_code_length: String(
+        swmlInt('min_postal_code_length', opts.minPostalCodeLength ?? 0),
+      ),
       token_type: opts.tokenType ?? 'reusable',
       currency: opts.currency ?? 'usd',
       language: opts.language ?? 'en-US',
@@ -1180,7 +1188,7 @@ export class FunctionResult {
     };
 
     // A boolean (whether to ask for it) or the postal code itself, as a string
-    payParams['postal_code'] = opts.postalCode ?? true;
+    payParams['postal_code'] = String(opts.postalCode ?? true);
 
     if (opts.statusUrl) payParams['status_url'] = opts.statusUrl;
     if (opts.chargeAmount) payParams['charge_amount'] = opts.chargeAmount;

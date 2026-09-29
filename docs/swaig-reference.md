@@ -1746,7 +1746,7 @@ pay(opts: {
 | `opts.prompts`             | `PaymentPrompt[]`    | none                                  | Custom prompts for payment steps.                               |
 | `opts.aiResponse`          | `string`             | Text that references `${pay_result}`  | Set as `ai_response` before the `pay` verb runs.                |
 
-The SDK sends `timeout`, `max_attempts` and `min_postal_code_length` as integers and `security_code` as a boolean, as the SWML schema types them, and `postal_code` as given. Each of the four also takes a numeric string (or `'true'` or `'false'` for `securityCode`), which the SDK converts, or a SWML variable reference such as `'${pay_timeout}'`, which it sends as written. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
+The SDK sends `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and `postal_code` as strings, as the platform reads them: its SWML validator requires strings for `security_code` and `postal_code`, and the pay request reads all five as strings. The bundled SWML schema types some of them as integers and booleans, but the platform's own checks win. The SDK checks each input first: `timeout`, `maxAttempts` and `minPostalCodeLength` must be integers or numeric strings, and `securityCode` a boolean or `'true'` or `'false'`. A SWML variable reference such as `'${pay_timeout}'` is sent as written. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
 
 **Throws:** `Error` when `timeout`, `maxAttempts` or `minPostalCodeLength` isn't an integer, or `securityCode` isn't a boolean, or a SWML variable reference.
 

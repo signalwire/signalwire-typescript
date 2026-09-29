@@ -1,9 +1,13 @@
 /**
- * pay() and joinConference() send the types and ranges the SWML schema defines.
+ * pay() and joinConference() send what the platform accepts.
  *
- * pay() sent timeout, max_attempts, min_postal_code_length and security_code
- * (and a boolean postal_code) as strings, which the schema's integer and
- * boolean types reject. joinConference() refused max_participants above 250
+ * pay() sends timeout, max_attempts, min_postal_code_length, security_code
+ * and postal_code as strings, whatever the bundled schema's types say: the
+ * platform's SWML validator requires strings for security_code and
+ * postal_code (mod_infrastructure swml_schema.c:2015-2016), and the pay
+ * request reads all five as strings (relay.c generate_pay_request,
+ * 9199-9203). It checks each input first: an integer, a boolean, or a SWML
+ * variable reference. joinConference() refused max_participants above 250
  * and left out an explicit 250. The platform refuses fewer than 2 members
  * (mod_infrastructure new_conference_controller.c) and has no upper limit, so
  * any integer of 2 or more is accepted, as the Python SDK does.
@@ -31,21 +35,21 @@ function verb(result: FunctionResult, name: string): unknown {
 
 const URL = 'https://pay.example.com/c';
 
-describe('pay() sends schema types', () => {
-  it('sends the defaults as integers and booleans', () => {
-    const pay = verb(new FunctionResult().pay({ paymentConnectorUrl: URL }), 'pay') as Record<
+describe('pay() sends strings, as the platform reads them', () => {
+  it('sends the defaults as strings', () => {
+    const pay = rawVerb(new FunctionResult().pay({ paymentConnectorUrl: URL }), 'pay') as Record<
       string,
       unknown
     >;
-    expect(pay['timeout']).toBe(5);
-    expect(pay['max_attempts']).toBe(1);
-    expect(pay['min_postal_code_length']).toBe(0);
-    expect(pay['security_code']).toBe(true);
-    expect(pay['postal_code']).toBe(true);
+    expect(pay['timeout']).toBe('5');
+    expect(pay['max_attempts']).toBe('1');
+    expect(pay['min_postal_code_length']).toBe('0');
+    expect(pay['security_code']).toBe('true');
+    expect(pay['postal_code']).toBe('true');
   });
 
-  it('sends given numbers and booleans as they are', () => {
-    const pay = verb(
+  it('sends given numbers and booleans as strings', () => {
+    const pay = rawVerb(
       new FunctionResult().pay({
         paymentConnectorUrl: URL,
         timeout: 10,
@@ -56,23 +60,23 @@ describe('pay() sends schema types', () => {
       }),
       'pay',
     ) as Record<string, unknown>;
-    expect(pay['timeout']).toBe(10);
-    expect(pay['max_attempts']).toBe(3);
-    expect(pay['security_code']).toBe(false);
-    expect(pay['postal_code']).toBe(false);
-    expect(pay['min_postal_code_length']).toBe(5);
+    expect(pay['timeout']).toBe('10');
+    expect(pay['max_attempts']).toBe('3');
+    expect(pay['security_code']).toBe('false');
+    expect(pay['postal_code']).toBe('false');
+    expect(pay['min_postal_code_length']).toBe('5');
   });
 
   it('a string postal code is the code itself', () => {
-    const pay = verb(
+    const pay = rawVerb(
       new FunctionResult().pay({ paymentConnectorUrl: URL, postalCode: '90210' }),
       'pay',
     ) as Record<string, unknown>;
     expect(pay['postal_code']).toBe('90210');
   });
 
-  it('converts numeric strings and "true"/"false"', () => {
-    const pay = verb(
+  it('normalizes numeric strings and "true"/"false"', () => {
+    const pay = rawVerb(
       new FunctionResult().pay({
         paymentConnectorUrl: URL,
         timeout: '7',
@@ -82,14 +86,14 @@ describe('pay() sends schema types', () => {
       }),
       'pay',
     ) as Record<string, unknown>;
-    expect(pay['timeout']).toBe(7);
-    expect(pay['max_attempts']).toBe(2);
-    expect(pay['min_postal_code_length']).toBe(5);
-    expect(pay['security_code']).toBe(false);
+    expect(pay['timeout']).toBe('7');
+    expect(pay['max_attempts']).toBe('2');
+    expect(pay['min_postal_code_length']).toBe('5');
+    expect(pay['security_code']).toBe('false');
   });
 
   it('passes a SWML variable reference through', () => {
-    const pay = verb(
+    const pay = rawVerb(
       new FunctionResult().pay({
         paymentConnectorUrl: URL,
         timeout: '${pay_timeout}',

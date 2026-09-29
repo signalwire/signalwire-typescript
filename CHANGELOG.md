@@ -550,11 +550,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   which the platform sends as the JSON body, and the request is a POST.
   `createSimpleApiTool()` leaves out an empty `body: {}`, so a GET tool
   stays a GET.
-- `FunctionResult.pay()` sent `timeout`, `max_attempts`,
-  `min_postal_code_length`, `security_code` and a boolean `postal_code` as
-  strings, which the platform reads as 0 or false. They are now sent as
-  integers and booleans; numeric strings are converted and SWML variable
-  references pass through.
+- `FunctionResult.pay()` sent whatever it was given for `timeout`,
+  `max_attempts`, `min_postal_code_length` and `security_code`. It now
+  checks them (an integer, a boolean, a numeric string, `"true"`/`"false"`
+  or a SWML variable reference) and throws for anything else. It still
+  sends all five pay settings as strings, as the platform reads them: its
+  SWML validator requires strings for `security_code` and `postal_code`,
+  and the pay request reads all five as strings.
 - `FunctionResult.joinConference()` refused `maxParticipants` above 250 and
   dropped an explicit 250. It now accepts any integer of 2 or more, as the
   platform does (the schema's cap of 100000 isn't enforced), or a SWML
@@ -697,8 +699,8 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   it's declared `GET`. `body()` and `params()` now write the same field, so
   the later call wins; a tool that called both must merge them into one
   object. A hand-written `body` key in a raw `data_map` is still not sent.
-- `pay()` renders numbers and booleans, and throws for a value that isn't an
-  integer or a boolean (such as `timeout: 'soon'` or `maxAttempts: 1.5`).
+- `pay()` throws for a value that isn't an integer or a boolean (such as
+  `timeout: 'soon'` or `maxAttempts: 1.5`).
   `joinConference()` now sends an explicit `maxParticipants: 250`, and
   throws for a value below 2.
 - `BedrockAgent` throws on a non-numeric `temperature`, `top_p` or
