@@ -10,8 +10,8 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
-import { readFile, stat, readdir } from 'node:fs/promises';
-import { join, extname, normalize, resolve, basename } from 'node:path';
+import { readFile, stat, readdir, realpath } from 'node:fs/promises';
+import { join, extname, normalize, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
 import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
@@ -85,6 +85,11 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/** Whether `path` is `root` or inside it (both absolute, already resolved). */
+function isWithin(path: string, root: string): boolean {
+  return path === root || path.startsWith(root.endsWith(sep) ? root : root + sep);
 }
 
 /** Format a file size in bytes to a human-readable string. */
@@ -491,11 +496,19 @@ export class WebService {
       const fullPath = resolve(join(baseDir, normalizedPath));
 
       // Double-check the resolved path is within the base directory
-      if (!fullPath.startsWith(baseDir)) {
+      if (!isWithin(fullPath, baseDir)) {
         return c.json({ error: 'Forbidden' }, 403);
       }
 
       try {
+        // Symbolic links: the file actually read must be inside the mount's
+        // real root, so a link inside the mount can't serve a file outside it.
+        const realBase = await realpath(baseDir);
+        const realPath = await realpath(fullPath);
+        if (!isWithin(realPath, realBase)) {
+          return c.json({ error: 'Forbidden' }, 403);
+        }
+
         const fileStat = await stat(fullPath);
 
         // Handle directory requests
@@ -505,7 +518,12 @@ export class WebService {
             const indexPath = join(fullPath, 'index.html');
             try {
               const idxStat = await stat(indexPath);
-              if (idxStat.isFile() && this._isFileAllowed(indexPath, idxStat.size)) {
+              const idxReal = await realpath(indexPath);
+              if (
+                isWithin(idxReal, realBase) &&
+                idxStat.isFile() &&
+                this._isFileAllowed(indexPath, idxStat.size)
+              ) {
                 return this._serveFile(c, indexPath);
               }
             } catch {

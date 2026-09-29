@@ -167,7 +167,7 @@ An entry that starts with a dot matches a file extension or a whole file name. A
 
 `WebService` refuses a path containing `..` with `403`, and checks that the resolved path is inside the mounted directory. A `..` segment in a request URL is resolved when the URL is parsed, before routing, so `GET /docs/../../etc/passwd` becomes `GET /etc/passwd`. That path matches no mount and gets `404`.
 
-The check compares paths and doesn't resolve symbolic links. A symbolic link inside a mounted directory serves the file it points to, even outside the directory. Don't mount a directory that contains links you don't control.
+The check follows symbolic links. A link inside a mounted directory serves its target only when the target is also inside the directory; a link to a file or directory outside it gets `403`. A directory listing doesn't show symbolic links.
 
 #### File Size Limits
 
@@ -273,7 +273,7 @@ export SWML_SSL_KEY_PATH="key.pem"
 **Response:**
 - The file, with a content type from its extension (`application/octet-stream` for an unknown one) and `Cache-Control: public, max-age=3600`
 - `404` if the file doesn't exist
-- `403` if the path contains `..`, the file is blocked, isn't allowed, or is larger than `maxFileSize`
+- `403` if the path contains `..`, resolves (through a symbolic link) to a file outside the mounted directory, or the file is blocked, isn't allowed, or is larger than `maxFileSize`
 - For a directory: with `enableDirectoryBrowsing`, an HTML listing of its subdirectories and allowed files, without dot files. Without it, the directory's `index.html` if that exists and is allowed, otherwise `403`.
 
 ## Usage Examples
@@ -516,7 +516,7 @@ These practices apply to a production deployment:
 2. Set `basicAuth` for anything that isn't public. Without it, every file the service can read is public.
 3. Use `allowedExtensions` to serve only the file types you intend.
 4. Turn off directory browsing.
-5. Mount only directories whose contents you control, because the service follows symbolic links.
+5. Mount only directories whose contents you control.
 6. Tune `maxFileSize`, and use a CDN for large or busy static assets.
 
 ## API Reference
