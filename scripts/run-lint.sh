@@ -30,15 +30,15 @@ npx tsc --noEmit --project tsconfig.test.json || exit 1
 
 # eslint over EVERY tree (src + tests + all three example trees).
 if [ "$FIX" -eq 1 ]; then
-    npx eslint --fix src tests examples rest/examples relay/examples livewire/examples --max-warnings 0 || exit 1
+    npx eslint --fix src tests examples rest/examples relay/examples livewire/examples tutorial --max-warnings 0 || exit 1
 else
-    npx eslint src tests examples rest/examples relay/examples livewire/examples --max-warnings 0 || exit 1
+    npx eslint src tests examples rest/examples relay/examples livewire/examples tutorial --max-warnings 0 || exit 1
 fi
 
 # Honesty guard: forbid the file-level no-explicit-any disable (hides every
 # `any` in a file). Only line-level `eslint-disable-next-line` is allowed.
 if grep -rn --include='*.ts' '/\* *eslint-disable .*no-explicit-any' \
-    src tests examples rest/examples relay/examples livewire/examples; then
+    src tests examples rest/examples relay/examples livewire/examples tutorial; then
     echo "ERROR: file-level no-explicit-any disable found (use line-level only)" >&2
     exit 1
 fi

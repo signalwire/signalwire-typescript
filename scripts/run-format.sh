@@ -20,7 +20,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_env.sh"
 GLOBS=(
     "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
     "examples/**/*.ts" "rest/examples/**/*.ts" "relay/examples/**/*.ts"
-    "livewire/examples/**/*.ts"
+    "livewire/examples/**/*.ts" "tutorial/**/*.ts"
 )
 
 cd "$REPO"
