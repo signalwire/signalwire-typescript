@@ -124,3 +124,35 @@ describe('AgentServer', () => {
     expect(res.headers.get('Permissions-Policy')).toContain('camera=()');
   });
 });
+
+describe('routing callbacks added after register() (found in the documentation pass)', () => {
+  const AUTH = 'Basic ' + btoa('u:p');
+  function serverWithSales() {
+    const server = new AgentServer();
+    const agent = new AgentBase({ name: 'sales', route: '/sales', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    server.register(agent);
+    return server;
+  }
+  const post = (server: AgentServer, path: string) =>
+    server.getApp().request(path, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+    });
+
+  it('serves setupSipRouting() at the agent route, not doubled', async () => {
+    const server = serverWithSales();
+    server.setupSipRouting('/sip');
+    expect((await post(server, '/sales/sip')).status).not.toBe(404);
+    expect((await post(server, '/sales/sales/sip')).status).toBe(404);
+  });
+
+  it('serves registerGlobalRoutingCallback() at the agent route', async () => {
+    const server = serverWithSales();
+    server.registerGlobalRoutingCallback(() => '/elsewhere', '/route');
+    const res = await post(server, '/sales/route');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/elsewhere');
+  });
+});

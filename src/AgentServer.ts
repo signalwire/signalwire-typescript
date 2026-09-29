@@ -343,12 +343,7 @@ export class AgentServer {
     // the server so the new route is reachable on the served path.
     for (const [agentRoute, agent] of this.agents) {
       agent.registerRoutingCallback(serverSipRoutingCallback, r);
-      const agentApp = agent.getApp();
-      if (agentRoute === '/') {
-        this._app.route('/', agentApp);
-      } else {
-        this._app.route(agentRoute, agentApp);
-      }
+      this._remount(agentRoute, agent);
     }
 
     this.log.info(`SIP routing enabled at ${r} on all agents`);
@@ -400,12 +395,23 @@ export class AgentServer {
     // Store so agents registered after this call also receive the callback
     this._globalRoutingCallbacks.push({ callbackFn, path: p });
 
-    // Register with all currently registered agents
-    for (const agent of this.agents.values()) {
+    // Register with all currently registered agents, and re-mount them so
+    // the new route is served (a mount is a snapshot of the agent's routes).
+    for (const [agentRoute, agent] of this.agents) {
       agent.registerRoutingCallback(callbackFn, p);
+      this._remount(agentRoute, agent);
     }
 
     this.log.info(`Registered global routing callback at ${p} on all agents`);
+  }
+
+  /**
+   * Mount an agent's route-relative router again at its route, after a
+   * routing callback added a route to it. The router, not getApp(), since
+   * getApp() serves under the agent's own route already (/sales/sales).
+   */
+  private _remount(agentRoute: string, agent: AgentBase): void {
+    this._app.route(agentRoute, agent.asRouter());
   }
 
   /**
