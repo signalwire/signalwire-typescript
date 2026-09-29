@@ -13,7 +13,8 @@
     "src/**/*",
     "examples/**/*.ts",
     "rest/examples/**/*.ts",
-    "relay/examples/**/*.ts"
+    "relay/examples/**/*.ts",
+    "livewire/examples/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "tests"]
 }
