@@ -382,7 +382,7 @@ const [user, pass, source] = agent.getBasicAuthCredentials(true);
 
 The agent puts the credentials in the webhook URLs it renders, so SignalWire can authenticate its requests to `/swaig` and `/post_prompt`.
 
-`SWMLService` checks the first three sources in the same order, and enforces the credentials only when one of them supplies them. Otherwise it generates credentials (the service name and a random password) but doesn't enforce them, so it serves every route without authentication. `WebService` reads only its `basicAuth` option, and serves without authentication when it's unset.
+`SWMLService` checks the first three sources in the same order, and enforces the credentials only when one of them supplies them. Otherwise it generates credentials (the service name and a random password) but doesn't enforce them, so it serves every route without authentication. `WebService` checks its `basicAuth` option, then the config file's `security.auth.basic`, then the environment variables, and serves without authentication when none sets a password; it doesn't generate one.
 
 ### Custom Basic Auth Validation
 
@@ -537,7 +537,7 @@ No single rule covers every setting. This table gives the order for each one, hi
 | Port (`WebService`) | `port` option, config file `service.port`, `8002` |
 | Route and host (`AgentBase`) | constructor option, config file `service.route` or `service.host`, `/` or `0.0.0.0` |
 | Basic auth (`AgentBase`, `SWMLService`) | `basicAuth` option, config file password, `SWML_BASIC_AUTH_PASSWORD`, generated |
-| Basic auth (`WebService`) | `basicAuth` option, otherwise none |
+| Basic auth (`WebService`) | `basicAuth` option, config file `security.auth.basic`, `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`, otherwise none |
 | Log level | `setGlobalLogLevel()` (including through `new AgentServer()`), `SIGNALWIRE_LOG_LEVEL`, `info` |
 | CORS origins | `SWML_CORS_ORIGINS`, `*`. `AgentBase`, `SWMLService`, `AgentServer` and `WebService` read it. |
 | Allowed hosts, rate limit, request size, CSRF | Environment variables only, applied by `AgentBase` |

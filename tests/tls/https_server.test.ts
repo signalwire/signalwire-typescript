@@ -16,7 +16,7 @@
  * is genuinely verified.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import https from 'node:https';
@@ -74,6 +74,9 @@ describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
   let baseUrl = '';
 
   beforeAll(async () => {
+    // The service would require basic auth from these, as the agents do.
+    vi.stubEnv('SWML_BASIC_AUTH_USER', '');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', '');
     const port = await freeTcpPort();
     baseUrl = `https://127.0.0.1:${port}`;
     // Configure SSL at construction so the SDK's own config reports it is
@@ -100,6 +103,7 @@ describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
 
   afterAll(() => {
     svc?.stop();
+    vi.unstubAllEnvs();
   });
 
   it('serves /health over a verified HTTPS session', async () => {
