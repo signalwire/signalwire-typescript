@@ -210,7 +210,7 @@ export interface ServerlessResponse {
  * const agent = new AgentBase({ name: 'lambda', route: '/' });
  * agent.setPromptText('You are a helpful assistant.');
  *
- * const adapter = new ServerlessAdapter('aws');
+ * const adapter = new ServerlessAdapter('lambda');
  *
  * export const handler = async (event: any) => {
  *   return adapter.handleRequest(agent.asRouter(), event);

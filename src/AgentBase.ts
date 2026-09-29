@@ -1519,8 +1519,8 @@ export class AgentBase extends SWMLService {
    *
    * When called, the endpoint at `path` will invoke `callback` with the parsed
    * request body. If `callback` returns a non-empty route string the server
-   * responds with `{ action: "redirect", route }` so the platform can forward the
-   * request to the right agent. If `callback` returns `null` / `undefined` the
+   * responds with a `307` redirect to it (`Location: <route>`), so the
+   * request goes to the right agent. If `callback` returns `null` / `undefined` the
    * agent's own SWML is returned instead (normal processing).
    *
    * Mirrors Python `swml_service.register_routing_callback` /
@@ -2461,7 +2461,7 @@ export class AgentBase extends SWMLService {
    * Lifecycle hook called when a post-prompt summary is received. Override in subclasses.
    *
    * Invoked once at the end of a call when the AI has produced a structured summary
-   * (configured via `setPostPrompt()` / `setPostPromptJson()`). Use this hook to persist
+   * (configured via `setPostPrompt()`). Use this hook to persist
    * call data, notify other systems, or trigger follow-up workflows.
    *
    * @param _summary - Parsed summary object (JSON when the post-prompt requests

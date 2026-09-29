@@ -594,8 +594,8 @@ const LIVEWIRE: Topic = {
 offers the LiveKit Agents API (\`Agent\`, \`AgentSession\`, \`tool\`, \`defineAgent\`,
 \`runApp\` and friends), so LiveKit agent code can run on SignalWire with a
 changed import. SignalWire's platform runs speech recognition, the LLM and
-text-to-speech, so the speech and model plugin options are accepted for
-compatibility and ignored.
+text-to-speech, so the speech plugin options are accepted for compatibility
+and ignored, and an LLM plugin's model name sets the model.
 `,
   docs: [
     ['livewire/README.md', 'What LiveWire supports'],
