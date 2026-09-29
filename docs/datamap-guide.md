@@ -484,7 +484,7 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 **Returns:** `this` for chaining.
 
-The SDK writes the objects without converting them, so call `toDict()` on each output yourself. Like the output, the expressions read the response from the root and the arguments as `${input.args.name}`. This tool answers differently for each order status, and falls back to the webhook's output:
+The SDK writes the objects without converting them, so call `toDict()` on each output yourself. Like the output, the expressions read the response from the root and the arguments as `${input.args.name}`. The platform expands a matched expression's output a second time, against the same data. This tool answers differently for each order status, and falls back to the webhook's output:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -1092,14 +1092,12 @@ RESULT:
 Response: Weather in London: 61°F, Overcast
 ```
 
-The simulator follows the platform's stage template data and webhook rules, described in [Template data](#template-data) and [errorKeys](#errorkeys). It differs from the platform in several ways:
+The simulator follows the platform's stage template data, template rules and webhook rules, described in [Template data](#template-data), [Template Reference](#template-reference) and [errorKeys](#errorkeys). `--custom-data` gives it the call data the platform adds, such as `global_data`, `caller_id_num` and `prompt_vars`, as in `--custom-data '{"global_data": {"account_tier": "gold"}}'`. A path that doesn't resolve expands to an empty string, as on the platform, and the simulator says so on stderr. It adds a hint when the path starts with `response.`, or when `${args.name}` is used in a webhook's output, expressions or `foreach`. When nothing produces a result, it returns the platform's `{"response": "There was an error processing this request."}`, and `swaig-test` exits with status 1. It differs from the platform in these ways:
 
-- A path that doesn't resolve shows as `<MISSING:path>`, where the platform writes an empty string. When the missing path starts with `response.`, the simulator prints a note that response fields are read from the root. When `${args.name}` is missing in a webhook's output, expressions or `foreach`, it prints a note to write `${input.args.name}`.
-- It builds the arguments and the function name, but not global data, metadata, prompt variables or the call details. A template that reads them shows as missing.
-- It matches keys exactly, where the platform matches them case-insensitively.
+- `fmt_ph` formats only a North American number, as `(202) 555-0143`. It leaves any other value as it is and says so on stderr. The platform formats any valid number in its national format, and writes `INVALID NUMBER` for one that isn't valid.
+- The call data has only the function's name, `meta_data` and arguments, and what you give with `--custom-data`. Call details such as `call_id` are there only if you give them.
 - It leaves `@{...}` functions as they are, and doesn't evaluate an expression's `expr`.
 - It matches patterns with JavaScript regular expressions, where the platform uses PCRE. Like the platform, it matches case-insensitively unless the pattern is written `/pattern/flags`, and it accepts a leading `(?i)`. Other PCRE-only syntax is reported as an invalid pattern.
-- When nothing produces a result and there is no fallback output, it returns an error object and `swaig-test` exits with status 1. The platform answers "There was an error processing this request."
 - It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
 
 ---
