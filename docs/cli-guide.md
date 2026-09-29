@@ -338,7 +338,7 @@ Each platform's options set its variables:
 | `gcf` | `--gcp-project`, `--gcp-function-url`, `--gcp-region`, `--gcp-service` |
 | `azure` | `--azure-env`, `--azure-function-url` |
 
-Each platform starts from a preset environment with a sample function URL. When you give `--aws-function-name` or `--aws-region` without `--aws-function-url`, the preset URL is dropped and the URL is built from them: `https://NAME.lambda-url.REGION.on.aws`, with `test-agent-function` and `us-east-1` for the part you leave out. In the same way, `--gcp-project`, `--gcp-region` or `--gcp-service` without `--gcp-function-url` gives `https://REGION-PROJECT.cloudfunctions.net/SERVICE`. The Azure preset's URL is `https://my-function-app.azurewebsites.net/api/agent`; `--azure-function-url` replaces it.
+Each platform starts from a preset environment with a sample function URL. When you give a part of the URL without the URL itself, the preset URL is dropped and the URL is built from the parts. A part can come from a flag, `--env` or `--env-file`. For Lambda, `--aws-function-name` or `--aws-region` (`AWS_LAMBDA_FUNCTION_NAME`, `AWS_REGION`) without `--aws-function-url` (`AWS_LAMBDA_FUNCTION_URL`) gives `https://NAME.lambda-url.REGION.on.aws`, with `test-agent-function` and `us-east-1` for the part you leave out. So `--env AWS_REGION=eu-west-1` gives a URL in `eu-west-1`. In the same way, `--gcp-project`, `--gcp-region` or `--gcp-service` without `--gcp-function-url` gives `https://REGION-PROJECT.cloudfunctions.net/SERVICE`. The Azure preset's URL is `https://my-function-app.azurewebsites.net/api/agent`; `--azure-function-url` replaces it.
 
 An unknown platform is an error, and the CLI exits with status 2. It never falls back to running as a server.
 

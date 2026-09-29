@@ -632,6 +632,43 @@ function formatResult(result: unknown): string {
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
+/**
+ * The variables each platform's function URL is built from, when the URL
+ * variable itself isn't set. The SDK uses the URL variable first.
+ */
+const URL_PARTS: Record<string, { url: string; parts: string[] }> = {
+  lambda: { url: 'AWS_LAMBDA_FUNCTION_URL', parts: ['AWS_LAMBDA_FUNCTION_NAME', 'AWS_REGION'] },
+  cloud_function: {
+    url: 'FUNCTION_URL',
+    parts: [
+      'GOOGLE_CLOUD_PROJECT',
+      'GCP_PROJECT',
+      'GOOGLE_CLOUD_REGION',
+      'FUNCTION_REGION',
+      'K_SERVICE',
+      'FUNCTION_TARGET',
+    ],
+  },
+  azure_function: {
+    url: 'AZURE_FUNCTION_URL',
+    parts: ['WEBSITE_SITE_NAME', 'AZURE_FUNCTIONS_APP_NAME', 'AZURE_FUNCTION_NAME'],
+  },
+};
+
+/**
+ * The preset variables to leave out of a serverless simulation, so the
+ * user's values (`env`: flags, `--env` and `--env-file` merged) decide the
+ * URL. The SDK uses a platform's function URL variable before it builds the
+ * URL from the parts, so when the user sets a part without the URL, the
+ * preset's URL is left out.
+ */
+function presetVariablesToOmit(platform: string, env: Record<string, string>): string[] {
+  const omit: string[] = [];
+  const spec = URL_PARTS[platform];
+  if (spec && !(spec.url in env) && spec.parts.some((part) => part in env)) omit.push(spec.url);
+  return omit;
+}
+
 function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null {
   const env: Record<string, string> = {};
   if (opts.envFile) {
@@ -652,12 +689,7 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
   const set = (key: string, value: string | undefined) => {
     if (value) env[key] = value;
   };
-  // The preset's function URL would win over the parts the user gave, so an
-  // empty override leaves it out and the SDK builds the URL from them.
   if (platform === 'lambda') {
-    if ((opts.awsFunctionName || opts.awsRegion) && !opts.awsFunctionUrl) {
-      env['AWS_LAMBDA_FUNCTION_URL'] ??= '';
-    }
     set('AWS_LAMBDA_FUNCTION_NAME', opts.awsFunctionName);
     set('AWS_LAMBDA_FUNCTION_URL', opts.awsFunctionUrl);
     set('AWS_REGION', opts.awsRegion);
@@ -678,9 +710,6 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
     if (opts.cgiHttps) env['HTTPS'] = 'on';
     set('PATH_INFO', opts.cgiPathInfo);
   } else if (platform === 'cloud_function') {
-    if ((opts.gcpProject || opts.gcpRegion || opts.gcpService) && !opts.gcpFunctionUrl) {
-      env['FUNCTION_URL'] ??= '';
-    }
     set('GOOGLE_CLOUD_PROJECT', opts.gcpProject);
     set('FUNCTION_URL', opts.gcpFunctionUrl);
     set('GOOGLE_CLOUD_REGION', opts.gcpRegion);
@@ -689,6 +718,9 @@ function applyEnvironment(opts: CliOptions, io: Io): ServerlessSimulator | null 
     set('AZURE_FUNCTIONS_ENVIRONMENT', opts.azureEnv);
     set('AZURE_FUNCTION_URL', opts.azureFunctionUrl);
   }
+  // The user's values, by flag, --env or --env-file, decide the URL: an
+  // empty override leaves out a preset variable that would win over them.
+  for (const name of presetVariablesToOmit(platform, env)) env[name] = '';
   const simulator = new ServerlessSimulator(platform, env);
   simulator.activate();
   io.verbose(`Simulating ${platform}: ${JSON.stringify(simulator.environment)}`);
