@@ -21,6 +21,7 @@ export const DOC_SOURCES = [
   'relay',
   'rest',
   'livewire',
+  'tutorial',
 ] as const;
 
 /** Bundles with their own README, docs and examples. */
@@ -49,6 +50,7 @@ export function isDocFile(rel: string): boolean {
   const isExample = name.endsWith('.ts') && !name.endsWith('.d.ts');
   if (parts.length === 1) return rel === 'README.md' || rel === 'CHANGELOG.md' || rel === 'LICENSE';
   if (top === 'docs') return isMarkdown;
+  if (top === 'tutorial') return isMarkdown || isExample;
   if (top === 'examples') {
     return isMarkdown || (isExample && !name.endsWith('_audit_harness.ts'));
   }

@@ -805,6 +805,31 @@ npx swaig-test agent.ts --verbose --exec lookup_order --order_id 1234  # with lo
   related: ['cli', 'tools', 'datamap'],
 };
 
+const TUTORIALS: Topic = {
+  name: 'tutorials',
+  title: 'Tutorials',
+  summary: 'Three complete agents, built lesson by lesson and tested',
+  body: `- Fred: a voice agent that answers questions from Wikipedia, with a
+  skill, custom tools, swaig-test and Docker.
+- Penny: a reservation line that keeps its rules when the model
+  misunderstands or a caller pushes. Every step names its tools, code moves
+  the conversation, and the business rules live outside the SDK. A worked
+  example of Programmatically Governed Inference (\`sw-tsdocs pgi\`).
+- Multi-agent: a sales agent with knowledge-base search, then a triage agent
+  that hands callers to specialists on one AgentServer.
+- Each tutorial's lessons quote its real code, and its tests run in the SDK's
+  own test suite.
+`,
+  docs: [
+    ['tutorial/fred/tutorial/README.md', 'Fred, the Wikipedia agent'],
+    ['tutorial/full-guardrails-agent/tutorial/README.md', 'Penny, the full-guardrails agent'],
+    ['tutorial/multi_agents/README.md', 'The multi-agent tutorial'],
+  ],
+  examples: [],
+  api: ['AgentServer'],
+  related: ['pgi', 'skills', 'contexts'],
+};
+
 const CLI: Topic = {
   name: 'cli',
   title: 'Command-line tools',
@@ -879,6 +904,7 @@ export const TOPICS: readonly Topic[] = [
   SECURITY,
   CONFIG,
   TESTING,
+  TUTORIALS,
   CLI,
 ];
 
@@ -889,7 +915,18 @@ export const TOPICS_BY_NAME: ReadonlyMap<string, Topic> = new Map(TOPICS.map((t)
 export const TOPIC_GROUPS: readonly (readonly [string, readonly string[]])[] = [
   [
     'Build AI agents',
-    ['quickstart', 'agents', 'prompts', 'tools', 'datamap', 'contexts', 'skills', 'prefabs', 'pgi'],
+    [
+      'quickstart',
+      'agents',
+      'prompts',
+      'tools',
+      'datamap',
+      'contexts',
+      'skills',
+      'prefabs',
+      'pgi',
+      'tutorials',
+    ],
   ],
   ['Call control and APIs', ['swml', 'relay', 'rest']],
   ['Integrations', ['livewire', 'mcp', 'chat', 'bedrock']],
@@ -900,6 +937,7 @@ export const TOPIC_GROUPS: readonly (readonly [string, readonly string[]])[] = [
 export const START_HERE: readonly (readonly [string, readonly string[]])[] = [
   ['Answer calls with an AI agent', ['quickstart', 'agents']],
   ['Design an agent that takes real actions safely', ['pgi']],
+  ['Learn by building a complete agent', ['tutorials']],
   ['Give an agent tools', ['tools', 'datamap', 'skills']],
   ['Build a multi-step workflow', ['contexts']],
   ['Control live calls from code', ['relay']],

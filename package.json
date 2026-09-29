@@ -54,7 +54,9 @@
     "rest/examples/**/*.ts",
     "livewire/README.md",
     "livewire/docs/**/*.md",
-    "livewire/examples/**/*.ts"
+    "livewire/examples/**/*.ts",
+    "tutorial/**/*.md",
+    "tutorial/**/*.ts"
   ],
   "bin": {
     "swaig-test": "./dist/cli/swaig-test.js",

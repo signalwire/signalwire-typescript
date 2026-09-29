@@ -2180,14 +2180,14 @@ SWML_PROXY_URL_BASE=
 
 ## The Tests
 
-The tests live with the SDK's other tests, in `tests/tutorial/`. You don't need them to run Penny, but you need them to change it safely:
+The tests live with the SDK's other tests, in `tests/tutorial/` of the SDK's repository (https://github.com/signalwire/signalwire-typescript). The npm package doesn't include them. You don't need them to run Penny, but you need them to change it safely:
 
-- [`penny-rules.test.ts`](../../../tests/tutorial/penny-rules.test.ts): the reservation book, with no agent
-- [`penny-workflow.test.ts`](../../../tests/tutorial/penny-workflow.test.ts): the SWML Penny serves, and its HTTP edge
-- [`penny-handlers.test.ts`](../../../tests/tutorial/penny-handlers.test.ts): what each tool tells the model and the platform
-- [`penny-docs.test.ts`](../../../tests/tutorial/penny-docs.test.ts): every code block in these lessons still matches the code
-- [`penny-helpers.ts`](../../../tests/tutorial/penny-helpers.ts): the clock, the reservation book and the simulated call the tests share
-- [`penny-race-worker.ts`](../../../tests/tutorial/penny-race-worker.ts): one of four threads that confirm the same proposal at once
+- `penny-rules.test.ts`: the reservation book, with no agent
+- `penny-workflow.test.ts`: the SWML Penny serves, and its HTTP edge
+- `penny-handlers.test.ts`: what each tool tells the model and the platform
+- `penny-docs.test.ts`: every code block in these lessons still matches the code
+- `penny-helpers.ts`: the clock, the reservation book and the simulated call the tests share
+- `penny-race-worker.ts`: one of four threads that confirm the same proposal at once
 
 ## Quick Start
 

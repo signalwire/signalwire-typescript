@@ -24,6 +24,9 @@ Run `npx sw-tsdocs` for a map of the SDK, `npx sw-tsdocs <topic>` for an area, a
 - [docs/prefabs-guide.md](../docs/prefabs-guide.md): Each prefab and its options
 - [docs/programmatically_governed_inference.md](../docs/programmatically_governed_inference.md): The discipline itself: why the model gets no authority, and the four constraint layers
 - [docs/developer_pain_points.md](../docs/developer_pain_points.md): The problems the guide cites, what the SDK and platform provide, and what stays yours
+- [tutorial/fred/tutorial/README.md](../tutorial/fred/tutorial/README.md): Fred, the Wikipedia agent
+- [tutorial/full-guardrails-agent/tutorial/README.md](../tutorial/full-guardrails-agent/tutorial/README.md): Penny, the full-guardrails agent
+- [tutorial/multi_agents/README.md](../tutorial/multi_agents/README.md): The multi-agent tutorial
 
 ## Call control and APIs
 
