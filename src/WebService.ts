@@ -111,8 +111,8 @@ function formatSize(bytes: number): string {
  * extension filtering, file size limits, HTTP Basic Auth, CORS, directory
  * browsing, and optional SSL/TLS. Mirrors the Python SDK's `WebService` class.
  *
- * Useful when an agent or prefab needs to serve supporting assets — prompts, audio
- * files, images — from the same process without running a separate nginx / CDN.
+ * Useful when an agent or prefab needs to serve supporting assets (prompts, audio
+ * files, images) from the same process without running a separate nginx or CDN.
  *
  * @example Serve a directory of audio files
  * ```ts
@@ -124,7 +124,7 @@ function formatSize(bytes: number): string {
  *   allowedExtensions: ['.mp3', '.wav'],
  * });
  *
- * await web.serve();
+ * await web.start();
  * // GET http://host:8080/audio/greeting.mp3
  * ```
  */
