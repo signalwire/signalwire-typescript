@@ -86,6 +86,12 @@ export interface _PublicFetchInit {
    * origin.
    */
   redirectMode?: 'browser' | 'curl';
+  /**
+   * Called with each response's status as it arrives, redirects included,
+   * so a caller can report the last status received when a later hop fails,
+   * as curl's `CURLINFO_RESPONSE_CODE` does.
+   */
+  onStatus?: (status: number) => void;
 }
 
 /** Thrown by {@link _publicFetch} when `allowRedirect` refuses a redirect. */
@@ -303,7 +309,7 @@ export function _proxiedByNode(url: string): boolean {
  *
  * @param url - The URL to fetch.
  * @param init - Method, headers, body, abort signal, `allowPrivate`,
- *   `allowRedirect`, `insecureTls` and `redirectMode`.
+ *   `allowRedirect`, `insecureTls`, `redirectMode` and `onStatus`.
  * @returns The final response, which is not a redirect unless it had no
  *   `Location` header.
  * @throws If the URL or a redirect is refused ({@link _RedirectRefused} when
@@ -350,6 +356,7 @@ export async function _publicFetch(url: string, init: _PublicFetchInit = {}): Pr
       { method, headers, body, signal: init.signal, insecureTls },
       guard,
     );
+    init.onStatus?.(response.status);
     const location = response.headers.get('location');
     if (!isRedirect(response.status) || !location) return response;
 

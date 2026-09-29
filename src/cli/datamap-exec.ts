@@ -694,7 +694,18 @@ function curlErrorCode(err: unknown): number {
 /** The fetch {@link executeDataMap} sends a webhook request with. */
 export type DataMapFetch = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
+  init: {
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+    signal?: AbortSignal;
+    /**
+     * Report each response's status as it arrives, redirects included, so a
+     * request that fails after a redirect reports the last status received
+     * as `http_code`, as the platform's curl does.
+     */
+    onStatus?: (status: number) => void;
+  },
 ) => Promise<Response>;
 
 /** Options for {@link executeDataMap}. */
@@ -1141,8 +1152,11 @@ async function request(
         // The platform's curl settings: up to 15 redirects, a POST sent again
         // with its body after any of them. Every hop is still checked.
         redirectMode: 'curl',
+        onStatus: init.onStatus,
       }));
 
+  // Each status received, redirects included
+  const statuses: number[] = [];
   let status = 0;
   let text = '';
   let curlError: number | null = null;
@@ -1158,6 +1172,7 @@ async function request(
       headers: requestHeaders,
       body,
       signal: controller.signal,
+      onStatus: (received) => void statuses.push(received),
     });
     status = response.status;
     text = await Promise.race([
@@ -1170,7 +1185,9 @@ async function request(
     ]);
     run.say(`Response status: ${status}`);
   } catch (err) {
-    // As curl reports it, the status is the one received, if any
+    // As curl reports it, the status is the last one received, redirects
+    // included, or 0 when none was
+    status = statuses.at(-1) ?? status;
     curlError = curlErrorCode(err);
     run.say(`Request failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {

@@ -93,3 +93,68 @@ describe('DataMap webhook redirects, as the platform follows them', () => {
     expect(sent.map((s) => s.url)).toEqual(['https://203.0.113.10/w']);
   });
 });
+
+/**
+ * A request that fails reports the last status it received as http_code, as
+ * the platform does: parse_webhook (actions.c) reads CURLINFO_RESPONSE_CODE
+ * after curl_easy_perform, failure or not. Mirrors signalwire-python's
+ * test_datamap_exec_redirects.py (71dbba8).
+ */
+describe('http_code after a failed request, as the platform reports it', () => {
+  // A single webhook object isn't failed by an error, so its output reads it
+  const report = (url: string) => ({
+    function: 'lookup',
+    data_map: {
+      webhooks: {
+        url,
+        output: { response: '${http_code} ${http_req_result} ${protocol_error}' },
+      },
+    },
+  });
+
+  it('is the last redirect status after too many redirects', async () => {
+    const { sent, transport } = scripted({
+      'https://203.0.113.10/again': redirect(302, '/again'),
+    });
+    _setPublicFetchTransport(transport);
+    const result = await executeDataMap(report('https://203.0.113.10/again'), {});
+    expect(result).toEqual({ response: '302 47 true' });
+    expect(sent).toHaveLength(16);
+  });
+
+  it("is the redirect's status when its target fails to connect", async () => {
+    const { transport } = scripted({
+      'https://203.0.113.10/w': redirect(301, 'https://203.0.113.20/gone'),
+      'https://203.0.113.20/gone': () => {
+        throw new Error('connect ECONNREFUSED 203.0.113.20:443');
+      },
+    });
+    _setPublicFetchTransport(transport);
+    const result = await executeDataMap(report('https://203.0.113.10/w'), {});
+    expect(result).toEqual({ response: '301 7 true' });
+  });
+
+  it("is the redirect's status when its target is a private address", async () => {
+    const { transport } = scripted({
+      'https://203.0.113.10/w': redirect(307, 'http://127.0.0.1:8000/private'),
+    });
+    _setPublicFetchTransport(transport);
+    const result = await executeDataMap(report('https://203.0.113.10/w'), {});
+    expect((result as { response: string }).response).toMatch(/^307 \d+ true$/);
+  });
+
+  it('is 0 when no response came back', async () => {
+    const { transport } = scripted({
+      'https://203.0.113.10/w': () => {
+        throw new Error('connect ECONNREFUSED 203.0.113.10:443');
+      },
+    });
+    _setPublicFetchTransport(transport);
+    expect(await executeDataMap(report('https://203.0.113.10/w'), {})).toEqual({
+      response: '0 7 true',
+    });
+    expect(await executeDataMap(report('http://127.0.0.1:8000/private'), {})).toMatchObject({
+      response: expect.stringMatching(/^0 \d+ true$/),
+    });
+  });
+});
