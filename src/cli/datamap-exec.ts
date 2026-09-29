@@ -90,12 +90,35 @@ const HTTP_REQUEST_TIMEOUT = 30;
 /** A `${...}` or `%{...}` with no braces inside it, so nested templates expand inside out. */
 const TEMPLATE = /[$%]\{([^{}]*)\}/g;
 
-/** URL-encodes a value, for `enc:` and `form_param`. */
+/** The characters FreeSWITCH's `SWITCH_URL_UNSAFE` lists, which `enc:` encodes. */
+const URL_UNSAFE = '\r\n #%&+:;<=>?@[\\]^`{|}"';
+const HEX = '0123456789ABCDEF';
+
+/**
+ * URL-encodes a value, for `enc:` and `form_param`, as the platform does with
+ * FreeSWITCH's `switch_url_encode`: each byte of the UTF-8 text that is a
+ * control character, non-ASCII, or in `SWITCH_URL_UNSAFE` becomes `%XX`, and
+ * every other printable ASCII character (`/`, `,`, `$`, `!`, `(` and so on)
+ * stays. A `%` that already starts an uppercase `%XX` isn't encoded again.
+ */
 function urlEncode(value: string): string {
-  return encodeURIComponent(value).replace(
-    /[!'()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+  const bytes = new TextEncoder().encode(value);
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i]!;
+    const ch = String.fromCharCode(b);
+    const escaped =
+      ch === '%' &&
+      i + 2 < bytes.length &&
+      HEX.includes(String.fromCharCode(bytes[i + 1]!)) &&
+      HEX.includes(String.fromCharCode(bytes[i + 2]!));
+    if (!escaped && (b < 0x20 || b > 0x7e || URL_UNSAFE.includes(ch))) {
+      out += `%${HEX[b >> 4]}${HEX[b & 0x0f]}`;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
 }
 
 /**

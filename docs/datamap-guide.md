@@ -1045,7 +1045,7 @@ Inside `${...}`, a helper name and a colon before the path transform the value. 
 | Helper | What it does | Example |
 |---|---|---|
 | `lc` | Lowercases the value | `${lc:args.department}` |
-| `enc` | URL-encodes the value | `${enc:args.query}` |
+| `enc` | URL-encodes the value: spaces, control and non-ASCII characters, and ``"#%&+:;<=>?@[\]^`{\|}`` become `%XX`. Other characters, such as `/`, `,` and `$`, stay as they are, and a `%` that already starts an uppercase `%XX` isn't encoded again. | `${enc:args.query}` |
 | `fmt_ph` | Formats a phone number in national format, as it is dialed within its country. A number without a country code is read as a US number, and a value that isn't a valid number becomes `INVALID NUMBER`. | `${fmt_ph:args.phone}` |
 
 Helpers combine, as in `${lc:enc:args.city}`. The platform applies them in a fixed order, whatever order you write them in: `fmt_ph`, then `lc`, then `enc`. So `${lc:enc:args.city}` and `${enc:lc:args.city}` both lowercase the city, then URL-encode it.

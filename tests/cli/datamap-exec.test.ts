@@ -28,7 +28,8 @@ describe('expandTemplate', () => {
     ['${args.missing}', '<MISSING:args.missing>'],
     ['${array[5].joke}', '<MISSING:array[5].joke>'],
     ['@{expr 1 + 2}', '@{expr 1 + 2}'],
-    ['${enc:args.odd}', 'a%2Fb%21%27%28%29%2A'],
+    // enc: encodes what FreeSWITCH's switch_url_encode encodes; / ! ' ( ) * stay
+    ['${enc:args.odd}', "a/b!'()*"],
   ])('%s -> %s', (template, expected) => {
     expect(expandTemplate(template, { ...DATA, args: { ...DATA.args, odd: "a/b!'()*" } })).toBe(
       expected,
@@ -717,5 +718,33 @@ describe('prefix helpers, as the platform parses them', () => {
     const said = lines.join('\n');
     expect(said).toContain('"url:" is not a template helper');
     expect(said).toContain('${enc:args.city}');
+  });
+});
+
+/**
+ * `enc:` is FreeSWITCH's switch_url_encode (swaig.c _expand_jsonvars): it
+ * encodes control and non-ASCII bytes and the characters of
+ * SWITCH_URL_UNSAFE, leaves every other printable ASCII character, and doesn't
+ * encode a `%` that already starts an uppercase `%XX`.
+ */
+describe('enc:, as the platform encodes', () => {
+  const enc = (value: string) => expandTemplate('${enc:args.v}', { args: { v: value } });
+
+  it('encodes the characters of SWITCH_URL_UNSAFE', () => {
+    expect(enc(' "#%&+:;<=>?@[\\]^`{|}\r\n')).toBe(
+      '%20%22%23%25%26%2B%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E%60%7B%7C%7D%0D%0A',
+    );
+  });
+
+  it('leaves other printable ASCII characters as they are', () => {
+    expect(enc("a/b,c$d!e'f(g)h*i~j-k_l.m")).toBe("a/b,c$d!e'f(g)h*i~j-k_l.m");
+  });
+
+  it('encodes non-ASCII bytes, and control characters', () => {
+    expect(enc('café\t')).toBe('caf%C3%A9%09');
+  });
+
+  it('does not encode a % that starts an uppercase %XX', () => {
+    expect(enc('50%2F50 %zz %2f')).toBe('50%2F50%20%25zz%20%252f');
   });
 });
