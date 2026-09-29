@@ -252,7 +252,7 @@ describe('search_wiki (lesson 4)', () => {
 describe('share_fun_fact (lesson 5)', () => {
   const history = [
     'Wikipedia was launched on January 15, 2001!',
-    "The first Wikipedia article was about the letter 'U'!",
+    'Wikipedia started as a side project of Nupedia, an encyclopedia written by experts!',
     "Wikipedia's name comes from 'wiki' (Hawaiian for 'quick') and 'encyclopedia'!",
     'Jimmy Wales and Larry Sanger founded Wikipedia!',
   ];

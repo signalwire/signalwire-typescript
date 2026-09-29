@@ -63,8 +63,8 @@ Then add this method inside the `FredTheWikiBot` class, after the constructor:
           'Wikipedia has over 6 million articles in English alone!',
           'Wikipedia is available in more than 300 languages!',
           'Wikipedia was launched on January 15, 2001!',
-          'The most edited Wikipedia page is about George W. Bush!',
-          'Wikipedia is the 7th most visited website in the world!',
+          "English Wikipedia's one billionth edit was made on January 13, 2021!",
+          'Wikipedia is one of the most visited websites in the world!',
         ];
         const fact = facts[Math.floor(Math.random() * facts.length)];
         return new FunctionResult(`Here's a fun Wikipedia fact: ${fact}`);
@@ -153,15 +153,14 @@ const FACTS = {
   ],
   history: [
     'Wikipedia was launched on January 15, 2001!',
-    "The first Wikipedia article was about the letter 'U'!",
+    'Wikipedia started as a side project of Nupedia, an encyclopedia written by experts!',
     "Wikipedia's name comes from 'wiki' (Hawaiian for 'quick') and 'encyclopedia'!",
     'Jimmy Wales and Larry Sanger founded Wikipedia!',
   ],
   records: [
-    'The most edited Wikipedia page is about George W. Bush!',
-    'The longest Wikipedia article is about California Proposition 8!',
-    'Wikipedia is the 7th most visited website in the world!',
-    "The Wikipedia article on 'List of Pokemon' is one of the most viewed!",
+    "English Wikipedia's one billionth edit was made on January 13, 2021!",
+    'Steven Pruitt has made more edits to English Wikipedia than anyone else, over three million!',
+    'Wikipedia is one of the most visited websites in the world!',
   ],
 };
 ```
@@ -224,9 +223,9 @@ Three habits keep functions reliable.
    Among the debug lines, the warning and the result appear:
 
    ```text
-   2026-09-29T17:38:19.131Z [WARN] [SwaigFunction] Argument validation failed for function 'share_fun_fact': 'category' must be equal to one of the allowed values
+   2026-09-29T22:00:59.905Z [WARN] [SwaigFunction] Argument validation failed for function 'share_fun_fact': 'category' must be equal to one of the allowed values
    RESULT:
-   Response: Here's a fun Wikipedia fact: The Wikipedia article on 'List of Pokemon' is one of the most viewed!
+   Response: Here's a fun Wikipedia fact: Wikipedia is one of the most visited websites in the world!
    ```
 
 3. **Say what the result is.** Context in the response helps the model use it.

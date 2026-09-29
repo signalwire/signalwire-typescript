@@ -45,15 +45,14 @@ const FACTS = {
   ],
   history: [
     'Wikipedia was launched on January 15, 2001!',
-    "The first Wikipedia article was about the letter 'U'!",
+    'Wikipedia started as a side project of Nupedia, an encyclopedia written by experts!',
     "Wikipedia's name comes from 'wiki' (Hawaiian for 'quick') and 'encyclopedia'!",
     'Jimmy Wales and Larry Sanger founded Wikipedia!',
   ],
   records: [
-    'The most edited Wikipedia page is about George W. Bush!',
-    'The longest Wikipedia article is about California Proposition 8!',
-    'Wikipedia is the 7th most visited website in the world!',
-    "The Wikipedia article on 'List of Pokemon' is one of the most viewed!",
+    "English Wikipedia's one billionth edit was made on January 13, 2021!",
+    'Steven Pruitt has made more edits to English Wikipedia than anyone else, over three million!',
+    'Wikipedia is one of the most visited websites in the world!',
   ],
 };
 // endregion: facts
