@@ -81,6 +81,13 @@ describe('BedrockAgent prompt', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('renders a verb the SWML schema accepts for an agent with contexts', () => {
+    const agent = makeAgent();
+    agent.defineContexts().addContext('default').addStep('greet').setText('Say hello.');
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
+    expect(result.errors).toEqual([]);
+  });
+
   it('fails schema validation with a voice Bedrock does not offer', () => {
     const agent = new BedrockAgent({ voiceId: 'inworld.Mark' });
     agent.setPromptText('You are a helpful assistant.');

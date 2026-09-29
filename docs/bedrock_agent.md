@@ -73,9 +73,9 @@ The constructor takes one optional `BedrockAgentConfig` object. Every field is o
 | `route` | `string` | `'/bedrock'` | HTTP route the agent serves |
 | `systemPrompt` | `string` | none | Initial prompt, set with `setPromptText()` |
 | `voiceId` | `string` | `'matthew'` | Bedrock voice; see [Voices](#voices) |
-| `temperature` | `number` | `0.7` | Sent as `prompt.temperature` |
-| `topP` | `number` | `0.9` | Sent as `prompt.top_p` |
-| `maxTokens` | `number` | `1024` | Sent as `prompt.max_tokens` |
+| `temperature` | `number \| string` | `0.7` | Sent as `prompt.temperature`; see [Inference settings](#inference-settings) |
+| `topP` | `number \| string` | `0.9` | Sent as `prompt.top_p` |
+| `maxTokens` | `number \| string` | `1024` | Sent as `prompt.max_tokens`; must be an integer |
 | `agentOptions` | `Partial<AgentOptions>` | none | Other `AgentBase` options, such as `basicAuth`, `port`, `swaigSecret` or `signingKey` |
 
 `agentOptions` is spread after `name` and `route`, so a `name` or `route` inside it wins over the top-level fields.
@@ -106,11 +106,17 @@ agent.setInferenceParams(0.5, 0.95, 2048); // temperature, topP, maxTokens
 agent.setInferenceParams(undefined, undefined, 512); // change maxTokens only
 ```
 
-An argument left `undefined` keeps its current value. The schema allows `temperature` from 0 to 1.5, `top_p` from 0 to 1, and `max_tokens` from 0 to 4096. The SDK doesn't clamp or check these values.
+An argument left `undefined` keeps its current value. Each value must be a number, and `max_tokens` an integer. A numeric string such as `'0.5'` is converted. `temperature` and `top_p` also accept a SWML variable reference such as `'${temperature}'`, which is sent as written. Anything else throws an `Error`, from the constructor, `setInferenceParams()`, `setLlmTemperature()` or `setPromptLlmParams()`, and a call that throws changes none of the settings:
+
+```text
+Error: BedrockAgent temperature must be a number, got "hot"
+```
+
+The schema allows `temperature` from 0 to 1.5, `top_p` from 0 to 1, and `max_tokens` from 0 to 4096. The SDK doesn't clamp or check these ranges.
 
 `setPromptLlmParams()` takes the settings by their SWML names. On a `BedrockAgent` it sorts them into three groups:
 
-- `temperature`, `top_p` and `max_tokens` update the inference settings, as `setInferenceParams()` does. A value that isn't a number keeps the current setting, and the SDK logs a warning that names the key.
+- `temperature`, `top_p` and `max_tokens` update the inference settings, as `setInferenceParams()` does, so a value that isn't a number throws.
 - `confidence`, `presence_penalty` and `frequency_penalty` are added to the prompt object.
 - Any other key, such as `barge_confidence`, is left out, and the SDK logs a warning that names it.
 
@@ -173,7 +179,7 @@ The warning from `setPostPromptLlmParams()` says the Bedrock post-prompt uses a 
 
 ## What the agent renders
 
-`BedrockAgent` overrides `renderSwml()`. It renders the document as `AgentBase` does, then replaces the `ai` verb with an `amazon_bedrock` verb that carries six of its keys. It adds `voice_id` and the inference settings to the prompt object and removes `barge_confidence` from it.
+`BedrockAgent` overrides `renderSwml()`. It renders the document as `AgentBase` does, then replaces the `ai` verb with an `amazon_bedrock` verb that carries six of its keys. It adds `voice_id` and the inference settings to the prompt object, and keeps only the other keys the Bedrock prompt defines: `text` or `pom`, `confidence`, `presence_penalty` and `frequency_penalty`.
 
 Run `swaig-test` with `--dump-swml` to see the document an agent renders:
 
@@ -237,7 +243,7 @@ The `amazon_bedrock` verb carries these keys:
 
 | Key | Content |
 |---|---|
-| `prompt` | `text` or `pom`, the settings `setPromptLlmParams()` added, `voice_id`, `temperature`, `top_p` and `max_tokens` |
+| `prompt` | `text` or `pom`, the `confidence`, `presence_penalty` and `frequency_penalty` settings `setPromptLlmParams()` added, `voice_id`, `temperature`, `top_p` and `max_tokens` |
 | `SWAIG` | `functions`, `defaults` and any other SWAIG keys the agent built |
 | `params` | The values from `setParams()`, such as `attention_timeout` or `inactivity_timeout` |
 | `global_data` | The agent's global data |
@@ -248,25 +254,25 @@ The `amazon_bedrock` verb carries these keys:
 
 ## What the amazon_bedrock verb leaves out
 
-`BedrockAgent` copies only the six keys in the preceding table from the `ai` verb. Everything else that `AgentBase` puts on the `ai` verb is left out of the SWML:
+`BedrockAgent` copies only the six keys in the preceding table from the `ai` verb, and only the keys the Bedrock prompt object defines from the `ai` prompt. Everything else that `AgentBase` puts on the `ai` verb or its prompt is left out of the SWML:
 
-| Configured with | `ai` key dropped |
+| Configured with | Key left out |
 |---|---|
-| `addHint()`, `addHints()`, `addPatternHint()` | `hints` |
+| `addHint()`, `addHints()`, `addPatternHint()`, and skills that add hints | `hints` |
 | `addLanguage()` | `languages` |
 | `addPronunciation()`, `setPronunciations()` | `pronounce` |
 | `enableDebugEvents()` | `debug_webhook_url`, `debug_webhook_level` |
 | `setMultilingual()` | `multilingual` |
+| `defineContexts()` | `contexts`, in the prompt |
 
-The SWML schema's `amazon_bedrock` verb has no `hints`, `languages` or `pronounce` key.
+The SWML schema's `amazon_bedrock` verb has none of these keys, and its `prompt` object doesn't define `contexts`, so contexts and steps don't work with a `BedrockAgent`.
 
-Each render that leaves a key out logs one warning that names every key it left out. An agent with hints set logs this warning each time it renders SWML:
+The agent logs one warning for each key it leaves out, the first time it renders SWML without it. Later renders, including the per-request copies that serve calls, don't repeat it. An agent with hints and contexts logs these two warnings once:
 
 ```text
-2026-09-28T22:58:09.950Z [WARN] [AgentBase] BedrockAgent: the amazon_bedrock verb has no hints, so it's left out of the SWML
+2026-09-29T21:49:19.732Z [WARN] [AgentBase] BedrockAgent: the amazon_bedrock verb has no hints, so the agent's speech hints (addHint(), addHints(), addPatternHint() and skills' hints) are left out of the SWML
+2026-09-29T21:49:19.732Z [WARN] [AgentBase] BedrockAgent: Bedrock's prompt has no contexts, so the agent's contexts and steps (defineContexts()) are left out of the SWML
 ```
-
-Contexts are different. They're part of the prompt object (`prompt.contexts`), which `BedrockAgent` copies, so the SDK sends them. The schema's Bedrock `prompt` object doesn't define `contexts`, so don't rely on steps with a `BedrockAgent` until you've tested them on a call.
 
 `params` is passed through as it is. The schema's `amazon_bedrock` `params` lists `attention_timeout`, `inactivity_timeout`, `hard_stop_time`, `hard_stop_prompt` and the three video file URLs.
 
@@ -386,7 +392,7 @@ const after = new BedrockAgent({ name: 'my_agent', voiceId: 'matthew' });
 - Replace `setLlmModel()` calls; they have no effect.
 - Move model settings to `setInferenceParams()` or `setPromptLlmParams()`.
 - Choose one of the five Bedrock voices.
-- Replace hints, languages and pronunciation rules, which the `amazon_bedrock` verb doesn't carry, and test any contexts on a call. See [What the amazon_bedrock verb leaves out](#what-the-amazon_bedrock-verb-leaves-out).
+- Replace hints, languages, pronunciation rules, multilingual settings and contexts, which the `amazon_bedrock` verb doesn't carry. See [What the amazon_bedrock verb leaves out](#what-the-amazon_bedrock-verb-leaves-out).
 
 ## Troubleshooting
 
@@ -395,7 +401,8 @@ These problems come up with a `BedrockAgent`:
 - **The voice doesn't change.** Check that the value is one of the [five voices](#voices). The SDK sends any string.
 - **A setting doesn't appear in the prompt.** Only `temperature`, `top_p`, `max_tokens`, `confidence`, `presence_penalty` and `frequency_penalty` are sent. Look for the `setPromptLlmParams()` warning in the log.
 - **Prompt sections are missing.** `systemPrompt` or `setPromptText()` replaces the POM prompt. Use `promptAddSection()` alone for a structured prompt.
-- **Steps don't run.** The SDK sends `prompt.contexts`, but the schema's Bedrock prompt doesn't define it. Test steps on a call before relying on them.
+- **Steps don't run.** The Bedrock prompt doesn't define `contexts`, so the SDK leaves them out and logs a warning.
+- **The constructor or `setInferenceParams()` throws.** `temperature`, `top_p` and `max_tokens` must be numbers, or numeric strings. See [Inference settings](#inference-settings).
 - **The agent doesn't answer at `/`.** Its route is `/bedrock` unless you set `route`.
 
 Set `SIGNALWIRE_LOG_LEVEL=debug` to log the voice and inference changes as they're made.
