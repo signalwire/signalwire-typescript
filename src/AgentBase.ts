@@ -1959,16 +1959,24 @@ export class AgentBase extends SWMLService {
     skill.setAgent(this);
     await this._skillManager.addSkill(skill);
 
-    // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
+    // Register skill tools. As in Python's SkillBase.define_tool
+    // (skill_base.py:59-79), swaig_fields are define_tool arguments with the
+    // tool's own fields winning: `secure` sets whether the tool needs a token,
+    // and the other keys go into the SWAIG definition.
+    const { secure: skillSecure, ...skillExtraFields } = skill.swaigFields;
     for (const toolDef of skill.getTools()) {
-      this.defineTool(toolDef);
+      this.defineTool(
+        toolDef.secure === undefined && typeof skillSecure === 'boolean'
+          ? { ...toolDef, secure: skillSecure }
+          : toolDef,
+      );
       const fn = this.toolRegistry.get(toolDef.name);
       if (fn instanceof SwaigFunction) {
         // Apply skill-level swaigFields as the base, then let tool-level filler
         // flags override — matches Python skill_base.py:70-73 (swaig_fields base,
         // explicit kwargs win) and SkillBase.defineTool() ({...swaigDefaults, ...toolDef}).
-        if (Object.keys(skill.swaigFields).length > 0) {
-          safeAssign(fn.extraFields, skill.swaigFields);
+        if (Object.keys(skillExtraFields).length > 0) {
+          safeAssign(fn.extraFields, skillExtraFields);
         }
         if (toolDef.wait_for_fillers !== undefined) {
           fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;

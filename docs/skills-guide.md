@@ -693,7 +693,7 @@ Two parameters apply to every skill:
 - `swaig_fields` (object, default `{}`): fields copied into every tool definition the skill registers, such as `{ fillers: { 'en-US': ['One moment'] } }`. They override the same fields the tool sets.
 - `skip_prompt` (boolean, default `false`): when `true`, the skill adds no prompt sections.
 
-A `secure` key in `swaig_fields` only changes the `secure` key in the rendered definition. The agent still requires a valid per-call token for the tool.
+A `secure` key in `swaig_fields` sets whether the skill's tools need a per-call token, unless a tool sets `secure` itself.
 
 A skill whose class sets `SUPPORTS_MULTIPLE_INSTANCES = true` also gets `tool_name` in its schema. This example adds a second DataSphere search under its own tool name:
 
