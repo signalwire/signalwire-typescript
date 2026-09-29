@@ -25,7 +25,13 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   audit harnesses), the RELAY, REST and LiveWire READMEs, docs and examples,
   and `CHANGELOG.md`, in their repository layout. The examples import
   `'@signalwire/sdk'`, so a copy runs as it is. The tarball grows from about
-  1.0 MB to 1.7 MB.
+  1.0 MB to 1.9 MB.
+- Three tutorials, shipped in the package under `tutorial/` and listed by
+  `sw-tsdocs tutorials`: Fred, a voice agent that answers from Wikipedia;
+  Penny, a restaurant reservation line built with Programmatically Governed
+  Inference; and a multi-agent tutorial (a sales agent with knowledge-base
+  search, then specialists behind one `AgentServer`). Their lessons quote
+  the code with include markers, and their tests run in the SDK's suite.
 - `AgentBase` option `swaigSecret` (or `SIGNALWIRE_SWAIG_SECRET`): the
   secret that signs SWAIG function tokens, so a token minted by one replica,
   or before a restart, still validates. Without it each process generates
@@ -275,6 +281,12 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
 - `SkillRegistry.unregister()` and `clear()` removed locked skills, so a
   built-in could be removed and replaced by another class. Locked names
   stay.
+- The `swml_transfer` skill wrote each destination, and each pattern as the
+  regular expression source, into the prompt, so a destination URL with
+  credentials (`https://user:pass@host/swml`) was shown to the model. The
+  prompt and the tool description now name the destination without its
+  credentials and the pattern without its regular expression syntax. The
+  transfer still uses the full URL.
 
 ### Fixed
 
@@ -283,6 +295,11 @@ per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
   Python SDK does; they served plain HTTP. The webhook URLs then use
   `https`, on `SWML_SSL_DOMAIN` when it's set. `SWML_SSL_ENABLED` accepts
   `true`, `1` or `yes`, and `stop()` closes the server `serve()` started.
+  When the certificate or key file is missing, it warns and serves HTTP,
+  and the webhook URLs stay `http`.
+- The `native_vector_search` skill's `search_stats` in global data reported
+  the configured `backend` option (by default `sqlite`, a mode this port
+  doesn't have) when it searched in memory; it reports `memory`.
 - `run()` on Cloud Run, which sets `K_SERVICE` but not `FUNCTION_TARGET`,
   handled one empty request instead of starting the server.
 - `*` in `SWML_ALLOWED_HOSTS` refused every host, and in

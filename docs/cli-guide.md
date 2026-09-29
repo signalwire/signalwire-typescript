@@ -60,7 +60,15 @@ A built package runs the compiled file:
 node dist/cli/swaig-test.js <agent-file> [options]
 ```
 
-The agent file is a `.ts`, `.js`, `.mjs` or `.mts` file. These print the help, the serverless options and a set of examples:
+The agent file is a `.ts`, `.js`, `.mjs` or `.mts` file. Without a TypeScript loader, Node runs a `.ts` file by stripping its types, and it doesn't map an import of `./handlers.js` to `./handlers.ts`, so an agent split across several `.ts` files fails with `ERR_MODULE_NOT_FOUND`. Install `tsx` in the project and load it into the installed command:
+
+<!-- snippet: no-run needs an installed package, tsx and a multi-file agent -->
+```bash
+npm install -D tsx
+NODE_OPTIONS='--import tsx' npx swaig-test penny.ts --list-tools
+```
+
+These print the help, the serverless options and a set of examples:
 
 ```bash
 npx tsx src/cli/swaig-test.ts --help
