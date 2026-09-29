@@ -120,36 +120,19 @@ describe('executeDataMap webhooks', () => {
     });
   });
 
-  it('fails a webhook on a non-2xx status or a body that is not JSON', async () => {
+  it('fails a webhook on a body that is not JSON, but not on a non-2xx status', async () => {
     const fn = (url: string) => ({
       data_map: {
-        webhooks: [{ url, method: 'GET', output: { response: 'ok' } }],
+        webhooks: [{ url, method: 'GET', output: { response: 'ok ${http_code}' } }],
         output: { response: 'fallback' },
       },
     });
     expect(await executeDataMap(fn('https://a'), {}, fakeFetch({ ok: 1 }, 503))).toEqual({
-      response: 'fallback',
+      response: 'ok 503',
     });
     expect(await executeDataMap(fn('https://a'), {}, fakeFetch('not json'))).toEqual({
       response: 'fallback',
     });
-  });
-
-  it('tries the next webhook after one fails', async () => {
-    let n = 0;
-    const fetchImpl = async () => {
-      n += 1;
-      return n === 1 ? new Response('{}', { status: 500 }) : new Response('{"v": "second"}');
-    };
-    const fn = {
-      data_map: {
-        webhooks: [
-          { url: 'https://one', method: 'GET', output: { response: 'one ${v}' } },
-          { url: 'https://two', method: 'GET', output: { response: 'two ${v}' } },
-        ],
-      },
-    };
-    expect(await executeDataMap(fn, {}, { fetchImpl })).toEqual({ response: 'two second' });
   });
 
   it('sends params as the expanded JSON body', async () => {
@@ -202,7 +185,7 @@ describe('executeDataMap webhooks', () => {
   });
 
   it('returns an error when every webhook fails with no fallback output', async () => {
-    const { fetchImpl } = fakeFetch({}, 500);
+    const { fetchImpl } = fakeFetch('not json', 500);
     const fn = { data_map: { webhooks: [{ url: 'https://x', method: 'GET', output: 'ok' }] } };
     expect(await executeDataMap(fn, {}, { fetchImpl })).toEqual({
       error: 'All webhooks failed and no fallback output defined',
@@ -269,17 +252,18 @@ describe('found in review', () => {
     });
   });
 
-  it('treats an empty list or object under an error key as no error, as the reference does', async () => {
-    const fn = (payload: unknown) => ({
+  it('fails a webhook when an error key is present, whatever its value, as the platform does', async () => {
+    const fn = {
       data_map: {
         webhooks: [{ url: 'https://x', method: 'GET', error_keys: ['errors'], output: 'fine' }],
         output: 'failed',
       },
-      payload,
-    });
-    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: [] }))).toBe('fine');
-    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: {} }))).toBe('fine');
-    expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: ['bad'] }))).toBe('failed');
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ errors: [] }))).toBe('failed');
+    expect(await executeDataMap(fn, {}, fakeFetch({ errors: {} }))).toBe('failed');
+    expect(await executeDataMap(fn, {}, fakeFetch({ errors: null }))).toBe('failed');
+    expect(await executeDataMap(fn, {}, fakeFetch({ errors: false }))).toBe('failed');
+    expect(await executeDataMap(fn, {}, fakeFetch({ result: 1 }))).toBe('fine');
   });
 });
 
@@ -563,5 +547,126 @@ describe('stage template data, as the platform builds it', () => {
     expect(expandTemplate('${array[-1].joke}', { array: [{ joke: 'a' }, { joke: 'b' }] })).toBe(
       'b',
     );
+  });
+});
+
+/** The webhook flow of mod_openai's get_input_from_webhooks and parse_webhook. */
+describe('webhook flow, as the platform runs it', () => {
+  /** A fetch that answers each call from `bodies` in turn, recording what it was sent. */
+  function sequence(...bodies: string[]) {
+    const calls: { url: string; method: string; body?: string }[] = [];
+    const fetchImpl = async (url: string, init: { method: string; body?: string }) => {
+      calls.push({ url, method: init.method, body: init.body });
+      return new Response(bodies[calls.length - 1] ?? '{}');
+    };
+    return { calls, fetchImpl };
+  }
+
+  const twoWebhooks = (first: Record<string, unknown> = {}) => ({
+    data_map: {
+      webhooks: [
+        { url: 'https://one', error_keys: ['error'], output: { response: 'one ${v}' }, ...first },
+        { url: 'https://two', output: { response: 'two ${v}' } },
+      ],
+      output: { response: 'fallback' },
+    },
+  });
+
+  it('stops at the first webhook that replies, even one that fails its error_keys', async () => {
+    const seq = sequence('{"error": "down"}', '{"v": "second"}');
+    expect(await executeDataMap(twoWebhooks(), {}, seq)).toEqual({ response: 'fallback' });
+    expect(seq.calls.map((c) => c.url)).toEqual(['https://one']);
+  });
+
+  it('does not try the next webhook after a body that is not JSON', async () => {
+    const seq = sequence('oops', '{"v": "second"}');
+    expect(await executeDataMap(twoWebhooks(), {}, seq)).toEqual({ response: 'fallback' });
+    expect(seq.calls).toHaveLength(1);
+  });
+
+  it('skips a webhook whose require_args are all absent, and tries the next', async () => {
+    const seq = sequence('{"v": "second"}');
+    const fn = twoWebhooks({ require_args: ['zip', 'street'] });
+    expect(await executeDataMap(fn, { city: 'x' }, seq)).toEqual({ response: 'two second' });
+    expect(seq.calls.map((c) => c.url)).toEqual(['https://two']);
+    // Any one of the named arguments is enough
+    const any = sequence('{"v": "first"}');
+    expect(await executeDataMap(fn, { street: 'Main' }, any)).toEqual({ response: 'one first' });
+  });
+
+  it('skips a webhook with neither output nor expressions, and tries the next', async () => {
+    const seq = sequence('{"v": "second"}');
+    const fn = {
+      data_map: {
+        webhooks: [
+          { url: 'https://one' },
+          { url: 'https://two', output: { response: 'two ${v}' } },
+        ],
+      },
+    };
+    expect(await executeDataMap(fn, {}, seq)).toEqual({ response: 'two second' });
+    expect(seq.calls.map((c) => c.url)).toEqual(['https://two']);
+  });
+
+  it('sends a GET unless the method is POST or there are params, and never sends body', async () => {
+    const hook = (extra: Record<string, unknown>) => ({
+      data_map: { webhooks: [{ url: 'https://x', output: 'ok', ...extra }] },
+    });
+    const methods: string[] = [];
+    for (const extra of [
+      {},
+      { method: 'PUT' },
+      { method: 'DELETE' },
+      { method: 'PATCH', body: { a: 1 } },
+      { method: 'post' },
+    ]) {
+      const seq = sequence('{}');
+      await executeDataMap(hook(extra), {}, seq);
+      methods.push(seq.calls[0]!.method);
+      expect(seq.calls[0]!.body).toBeUndefined();
+    }
+    expect(methods).toEqual(['GET', 'GET', 'GET', 'GET', 'POST']);
+  });
+
+  it('reads a scalar foreach element as this itself', async () => {
+    const fn = {
+      data_map: {
+        webhooks: [
+          {
+            url: 'https://x',
+            foreach: { input_key: 'tags', output_key: 'list', append: '[${this}${this.value}]' },
+            output: { response: '${list}' },
+          },
+        ],
+      },
+    };
+    expect(await executeDataMap(fn, {}, fakeFetch({ tags: ['a', 'b'] }))).toEqual({
+      response: '[a<MISSING:this.value>][b<MISSING:this.value>]',
+    });
+  });
+
+  it('reads the foreach input_key as a path, and max as the platform does', async () => {
+    const fn = (foreach: Record<string, unknown>) => ({
+      data_map: {
+        webhooks: [{ url: 'https://x', foreach, output: { response: '${list}' } }],
+      },
+    });
+    const body = { data: { items: [{ n: 1 }, { n: 2 }, { n: 3 }] } };
+    const base = { input_key: 'data.items', output_key: 'list', append: '${this.n}' };
+    expect(await executeDataMap(fn(base), {}, fakeFetch(body))).toEqual({ response: '123' });
+    expect(await executeDataMap(fn({ ...base, max: '2' }), {}, fakeFetch(body))).toEqual({
+      response: '12',
+    });
+    expect(await executeDataMap(fn({ ...base, max: 0 }), {}, fakeFetch(body))).toEqual({
+      response: '123',
+    });
+    // Without append (or input_key, or output_key) there is no foreach
+    expect(
+      await executeDataMap(
+        fn({ input_key: 'data.items', output_key: 'list' }),
+        {},
+        fakeFetch(body),
+      ),
+    ).toEqual({ response: '<MISSING:list>' });
   });
 });

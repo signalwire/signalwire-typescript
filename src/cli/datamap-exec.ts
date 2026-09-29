@@ -8,18 +8,32 @@
  *    (case-insensitively, as the platform matches)
  *    produces `output`; one that doesn't match produces `nomatch-output` (the
  *    key `DataMap.expression()` writes and the platform reads), if it has one.
- * 2. Webhooks, in order, until one succeeds. A webhook fails on a status
- *    outside 200-299, a body that isn't JSON, or, for a JSON object, a
- *    `parse_error`/`protocol_error` key or one of its `error_keys`. A
- *    webhook's `params` is its request body, and makes the request a POST.
+ * 2. Webhooks, in order. A webhook is skipped, and the next one tried, when
+ *    none of its `require_args` is among the arguments, or it has neither
+ *    `output` nor `expressions`. The first webhook that is requested ends the
+ *    webhook stage, whether it succeeds or fails: the next one isn't tried.
+ *    It fails on a body that isn't JSON, a request that doesn't complete, or
+ *    a JSON object with one of its `error_keys` present (whatever the key's
+ *    value: `"errors": []` fails it). A status outside 200-299 doesn't fail
+ *    it by itself; the status is then in the response as `http_code`.
  * 3. The successful webhook's `foreach`, then its `expressions` (read
  *    against the response, the first match or `nomatch-output` wins), then
  *    its `output`.
- * 4. The data_map's own `output` when every webhook failed, or when the one
- *    that succeeded has expressions that didn't match and no `output`.
+ * 4. The data_map's own `output` when the webhook failed, when no webhook was
+ *    requested, or when the one that succeeded has expressions that didn't
+ *    match and no `output`.
  *
+ * The request is a POST when the webhook has `params` (its JSON body, with
+ * the arguments merged in by `input_args_as_params`) or its method is POST,
+ * and a GET otherwise, whatever the method says. A `body` key isn't sent.
  * An `error_keys` on the data_map itself is ignored, as on the platform: only
  * a webhook's own `error_keys` fail it.
+ *
+ * A `foreach` needs `input_key` (a path in the webhook's template data, such
+ * as `data.items`), `output_key` and `append`; without all three it is
+ * skipped. `max` limits the elements when it is above 0. Each element is
+ * `this`: an object's fields are `${this.name}`, and a string or number is
+ * `${this}` itself.
  *
  * Template data, per stage, as the platform builds it:
  *
@@ -49,6 +63,12 @@
  *   call details, so templates that read them show as missing.
  * - `@{...}` functions are left as they are.
  * - Keys match exactly; the platform matches them case-insensitively.
+ * - An expression's `expr` (a FreeSWITCH `expr` evaluation) isn't evaluated:
+ *   only its `pattern` is tried.
+ * - When nothing produces a result and there is no fallback output, the
+ *   result is an `{ error, status: 'failed' }` object (so swaig-test can exit
+ *   1), where the platform answers "There was an error processing this
+ *   request."
  *
  * Mirrors signalwire-python's `signalwire.cli.execution.datamap_exec`, with
  * the platform's (mod_openai's) stage template data.
@@ -77,11 +97,15 @@ function isPlainObject(value: unknown): value is Data {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Truthy as the platform (and Python) mean it: an empty list or object is false. */
-function present(value: unknown): boolean {
-  if (Array.isArray(value)) return value.length > 0;
-  if (isPlainObject(value)) return Object.keys(value).length > 0;
-  return Boolean(value);
+/**
+ * Whether any of `keys` (a key name or a list of them) is present in `obj`,
+ * as the platform's `args_present()` checks `error_keys` and `require_args`:
+ * by presence, whatever the value.
+ */
+function anyKeyPresent(keys: unknown, obj: unknown): boolean {
+  if (!isPlainObject(obj)) return false;
+  const list = Array.isArray(keys) ? keys : [keys];
+  return list.some((k) => typeof k === 'string' && Object.hasOwn(obj, k));
 }
 
 /** The value at a dotted path with `[n]` (or `[-n]`) indexes, or a `<MISSING:path>` marker. */
@@ -193,16 +217,21 @@ function runExpressions(
   say: (line: string) => void,
 ): { matched: true; output: unknown } | { matched: false } {
   for (const expr of Array.isArray(expressions) ? expressions : []) {
-    if (!isPlainObject(expr) || typeof expr['pattern'] !== 'string' || !('output' in expr)) {
-      continue;
-    }
-    const subject = expandTemplate(text(expr['string'] ?? ''), data);
-    let matched: boolean;
-    try {
-      matched = platformRegExp(expr['pattern']).test(subject);
-    } catch {
-      say(`Expression pattern isn't a valid regular expression: ${expr['pattern']}`);
-      continue;
+    // As on the platform, an expression needs `output` and a `string` (or
+    // `expr`) to test; without a `pattern` it doesn't match.
+    if (!isPlainObject(expr) || !('output' in expr)) continue;
+    const source = expr['string'] ?? expr['expr'];
+    if (typeof source !== 'string') continue;
+    if ('expr' in expr) say("An expression's expr isn't evaluated by the simulator");
+    const subject = expandTemplate(source, data);
+    let matched = false;
+    if (typeof expr['pattern'] === 'string') {
+      try {
+        matched = platformRegExp(expr['pattern']).test(subject);
+      } catch {
+        say(`Expression pattern isn't a valid regular expression: ${expr['pattern']}`);
+        continue;
+      }
     }
     if (matched) {
       say(`Expression matched: ${expr['pattern']} on "${subject}"`);
@@ -239,8 +268,8 @@ export interface DataMapExecOptions {
  * @param args - The function's arguments.
  * @param opts - Verbose output, and the fetch to use.
  * @returns The function's result: the expanded output (an object or a
- *   string), the raw response when a webhook has no output, or an error
- *   object when every webhook failed with no fallback output.
+ *   string), or an `{ error, status: 'failed' }` object when nothing
+ *   produced a result and there is no fallback output.
  */
 export async function executeDataMap(
   fn: Data,
@@ -295,13 +324,30 @@ export async function executeDataMap(
   const exprResult = runExpressions(dataMap['expressions'], callData, say);
   if (exprResult.matched) return exprResult.output;
 
-  // 2. Webhooks, in order, until one succeeds
+  // 2. Webhooks, in order. The first one requested ends the webhook stage.
   const webhooks = Array.isArray(dataMap['webhooks']) ? dataMap['webhooks'] : [];
   for (const [i, webhook] of webhooks.entries()) {
     if (!isPlainObject(webhook)) continue;
     say(`\n=== Webhook ${i + 1}/${webhooks.length} ===`);
-    const url = expandTemplate(text(webhook['url'] ?? ''), callData);
-    let method = text(webhook['method'] ?? 'POST').toUpperCase();
+    if ('require_args' in webhook && !anyKeyPresent(webhook['require_args'], args)) {
+      say('None of its require_args is set; trying the next webhook');
+      continue;
+    }
+    if (!('output' in webhook) && !('expressions' in webhook)) {
+      say('It has neither output nor expressions; trying the next webhook');
+      continue;
+    }
+    if (typeof webhook['url'] !== 'string' || !webhook['url']) {
+      say('It has no url; trying the next webhook');
+      continue;
+    }
+    const url = expandTemplate(webhook['url'], callData);
+    // As on the platform, the request is a POST when the method is POST or
+    // there are params, and a GET otherwise.
+    let method = text(webhook['method'] ?? '').toUpperCase() === 'POST' ? 'POST' : 'GET';
+    if (webhook['method'] !== undefined && text(webhook['method']).toUpperCase() !== method) {
+      say(`The platform sends ${method}, not ${text(webhook['method'])}`);
+    }
     // The platform sends header values as written: it expands no templates in them.
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(
@@ -310,16 +356,14 @@ export async function executeDataMap(
       if (typeof v === 'string') headers[k] = v;
     }
 
-    // As on the platform, `params` (with the arguments merged in by
-    // `input_args_as_params`) is the request body whenever it is set, and a
-    // request with a body is a POST, whatever `method` says.
+    // `params` (with the arguments merged in by `input_args_as_params`) is
+    // the request body whenever it is set, and makes the request a POST.
     let params = isPlainObject(webhook['params']) ? webhook['params'] : undefined;
     const argsAsParams = webhook['input_args_as_params'];
     if (argsAsParams === true || argsAsParams === 'true') params = { ...params, ...args };
     let body: string | undefined;
     let contentType = 'application/json';
     if (params) {
-      if (method !== 'POST') say(`params is set, so the request is a POST, not ${method}`);
       method = 'POST';
       body = JSON.stringify(expandValue(params, callData));
       const formParam = webhook['form_param'];
@@ -327,15 +371,9 @@ export async function executeDataMap(
         body = `${formParam}=${HELPERS['enc']!(body)}`;
         contentType = 'application/x-www-form-urlencoded';
       }
-    } else if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      const payload = webhook['body'] ?? webhook['data'];
-      if (typeof payload === 'string') body = expandTemplate(payload, callData);
-      else if (payload !== undefined) body = JSON.stringify(expandValue(payload, callData));
     }
-    if (
-      body !== undefined &&
-      !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')
-    ) {
+    if ('body' in webhook) say('The platform does not send a webhook body; params is the body');
+    if (!Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')) {
       headers['Content-Type'] = contentType;
     }
     say(`${method} ${url}`);
@@ -365,54 +403,41 @@ export async function executeDataMap(
         }),
       ]);
       say(`Response status: ${response.status}`);
+      const ok = response.status >= 200 && response.status <= 299;
       try {
         responseData = JSON.parse(raw);
       } catch {
-        responseData = {
-          text: raw,
-          status_code: response.status,
-          parse_error: true,
-          raw_response: raw,
-        };
+        responseData = { parse_error: true, raw_response: raw, http_code: response.status };
       }
-      if (response.status < 200 || response.status > 299) {
-        failed = true;
-        say(`Webhook failed: HTTP status ${response.status}`);
-      }
-      // Error keys apply to a JSON object only; an array response has none.
-      if (!failed && isPlainObject(responseData)) {
-        const configured = webhook['error_keys'];
-        const errorKeys = [
-          'parse_error',
-          'protocol_error',
-          ...(typeof configured === 'string'
-            ? [configured]
-            : Array.isArray(configured)
-              ? configured
-              : []),
-        ];
-        const hit = errorKeys.find(
-          (k) => typeof k === 'string' && present((responseData as Data)[k]),
-        );
-        if (hit) {
-          failed = true;
-          say(`Webhook failed: error key '${hit}' is set`);
-        }
-      }
+      // As on the platform, a status outside 200-299 doesn't fail the webhook
+      // by itself: it is added to the response as http_code.
+      if (!ok && isPlainObject(responseData)) responseData['http_code'] = response.status;
     } catch (err) {
-      failed = true;
       responseData = {
         protocol_error: true,
         error: err instanceof Error ? err.message : String(err),
       };
-      say(`Webhook failed: ${(responseData as Data)['error']}`);
     } finally {
       clearTimeout(timer);
     }
 
+    // As on the platform, a key fails the webhook by being present, whatever
+    // its value. An array response has no keys.
+    const configured = webhook['error_keys'];
+    const errorKeys = [
+      'parse_error',
+      'protocol_error',
+      ...(Array.isArray(configured) ? configured : configured !== undefined ? [configured] : []),
+    ];
+    const hit = errorKeys.find((k) => anyKeyPresent(k, responseData));
+    if (hit) {
+      failed = true;
+      say(`Webhook failed: the response has the key '${hit}'`);
+    }
+
     if (failed) {
-      say(`Webhook ${i + 1} failed, trying the next one`);
-      continue;
+      say('The platform tries no other webhook after one is requested');
+      break;
     }
 
     // The webhook's template data: an object response's fields at the root,
@@ -427,29 +452,33 @@ export async function executeDataMap(
           : {}),
     };
 
-    // 3. foreach
+    // 3. foreach, which needs input_key, output_key and append
     const foreach = webhook['foreach'];
     if (isPlainObject(foreach)) {
-      const inputKey = text(foreach['input_key'] ?? 'data');
-      const outputKey = text(foreach['output_key'] ?? 'result');
-      const max = typeof foreach['max'] === 'number' ? foreach['max'] : 100;
-      const append = text(foreach['append'] ?? '${this.value}');
-      const items = isPlainObject(responseData) ? responseData[inputKey] : undefined;
-      if (Array.isArray(items)) {
-        webhookContext[outputKey] = items
-          .slice(0, max)
-          // As on the platform, append reads the webhook's template data
-          // (the response, `input`) as well as the element as `this`.
-          .map((item) =>
-            expandTemplate(append, {
-              ...webhookContext,
-              this: isPlainObject(item) ? item : { value: item },
-            }),
-          )
-          .join('');
-        say(`foreach: ${Math.min(items.length, max)} item(s) into ${outputKey}`);
+      const { input_key: inputKey, output_key: outputKey, append } = foreach;
+      if (
+        typeof inputKey !== 'string' ||
+        typeof outputKey !== 'string' ||
+        typeof append !== 'string'
+      ) {
+        say('foreach needs input_key, output_key and append; skipped');
       } else {
-        say(`foreach: no array at ${inputKey}`);
+        const items = lookup(webhookContext, inputKey);
+        const rawMax = foreach['max'];
+        const max = Math.trunc(
+          typeof rawMax === 'string' ? Number.parseInt(rawMax, 10) || 0 : Number(rawMax ?? 0) || 0,
+        );
+        if (Array.isArray(items)) {
+          const used = max > 0 ? items.slice(0, max) : items;
+          webhookContext[outputKey] = used
+            // As on the platform, append reads the webhook's template data
+            // (the response, `input`) as well as the element as `this`.
+            .map((item) => expandTemplate(append, { ...webhookContext, this: item }))
+            .join('');
+          say(`foreach: ${used.length} item(s) into ${outputKey}`);
+        } else {
+          say(`foreach: no array at ${inputKey}`);
+        }
       }
     }
 
@@ -463,19 +492,17 @@ export async function executeDataMap(
       say('No webhook expression matched');
     }
 
-    // 5. The webhook's output, or its response when it has neither output nor expressions
+    // 5. The webhook's output
     if ('output' in webhook) {
       const result = expandValue(webhook['output'], webhookContext);
       hint(result);
       return result;
     }
-    if ('expressions' in webhook) break;
-    say('No output template; returning the response');
-    return responseData;
+    break;
   }
 
-  // 6. Every webhook failed, or the one that succeeded produced nothing: the
-  // data_map's own output
+  // 6. The webhook failed, none was requested, or the one that succeeded
+  // produced nothing: the data_map's own output
   if ('output' in dataMap) {
     say('No webhook produced a result; using the data_map output');
     return expandValue(dataMap['output'], callData);
