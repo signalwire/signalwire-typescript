@@ -33,7 +33,7 @@ These three files hold the code blocks of the repository README's quickstarts, w
 | File | Description |
 |------|-------------|
 | [contexts-steps.ts](contexts-steps.ts) | A quiz as a multi-step workflow, with contexts, steps and per-step tools |
-| [gather-info.ts](gather-info.ts) | A patient intake flow in three steps with completion criteria, ending with a `submit_intake` tool. It doesn't use `GatherInfo`, despite its header comment. |
+| [gather-info.ts](gather-info.ts) | A patient intake flow: two gather info steps (`setGatherInfo`, `addGatherQuestion`) collect the answers, and a last step confirms them and calls a `submit_intake` tool |
 | [gather-per-question-functions-demo.ts](gather-per-question-functions-demo.ts) | While a step's gather questions run, only `gather_submit` and the tools a question lists in `functions` are callable |
 | [step-function-inheritance-demo.ts](step-function-inheritance-demo.ts) | A step without `setFunctions()` keeps the previous step's tools; four steps show inherit, replace and disable |
 

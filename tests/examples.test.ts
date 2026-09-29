@@ -196,6 +196,29 @@ describe('examples', () => {
     });
   });
 
+  describe('gather-info.ts', () => {
+    it('collects the intake answers with gather info steps', async () => {
+      const agent = await loadExample('gather-info.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (
+        main!.find((v) => v['ai']) as {
+          ai: { prompt: { contexts: Record<string, { steps: Record<string, unknown>[] }> } };
+        }
+      )['ai'];
+      const steps = ai.prompt.contexts['default']!.steps;
+      const gathers = steps
+        .map((s) => s['gather_info'] as { output_key?: string; questions: { key: string }[] })
+        .filter(Boolean);
+      expect(gathers.map((g) => g.output_key)).toEqual(['patient_demographics', 'visit_reason']);
+      expect(gathers.flatMap((g) => g.questions.map((q) => q.key))).toContain('full_name');
+      expect(agent.getRegisteredTools().map((t) => t.name)).toContain('submit_intake');
+    });
+  });
+
   describe('session-state.ts', () => {
     it('renders SWML with lookup_order tool', async () => {
       const agent = await loadExample('session-state.ts');
