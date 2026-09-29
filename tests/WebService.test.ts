@@ -95,6 +95,17 @@ describe('WebService symbolic links', () => {
 // The blocklist and allowlist apply to the file actually read, not only to the
 // name in the URL: a link inside the mount can't serve a blocked file under an
 // allowed name.
+describe('WebService blocks dot-named directories (found in review)', () => {
+  it("doesn't serve files under a .git directory in a mount", async () => {
+    mkdirSync(join(mount, '.git'));
+    writeFileSync(join(mount, '.git', 'config'), '[remote] url = secret');
+    const web = new WebService({ directories: { '/docs': mount } });
+    const res = await web.getApp().request('/docs/.git/config');
+    expect(res.status).toBe(403);
+    expect(await res.text()).not.toContain('secret');
+  });
+});
+
 describe('WebService blocklist through symbolic links', () => {
   beforeEach(() => {
     writeFileSync(join(mount, '.env'), 'env-secret');

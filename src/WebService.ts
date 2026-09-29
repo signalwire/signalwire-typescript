@@ -614,12 +614,14 @@ export class WebService {
 
     const ext = extname(fullPath).toLowerCase();
     const name = basename(fullPath);
+    const parts = fullPath.split(/[\\/]+/);
 
     // Check blocked extensions and names
     for (const blocked of this.blockedExtensions) {
       if (blocked.startsWith('.')) {
-        // Check both as extension and as full name (for files like .env, .gitignore)
-        if (ext === blocked || name === blocked) return false;
+        // As an extension, a file name (.env, .gitignore) or a directory on
+        // the path (.git/config)
+        if (ext === blocked || name === blocked || parts.includes(blocked)) return false;
       } else {
         // Check as a file name or as a substring of the path
         if (name === blocked || fullPath.includes(blocked)) return false;

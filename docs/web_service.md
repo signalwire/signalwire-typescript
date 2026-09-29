@@ -171,7 +171,7 @@ The default blocklist refuses these files:
 - `.pyc`, `__pycache__`
 - `.DS_Store`, `.swp`
 
-An entry that starts with a dot matches a file extension or a whole file name. Any other entry matches a file name, or any part of the file's full path. Passing `blockedExtensions` replaces the default list, so include the defaults you still want.
+An entry that starts with a dot matches a file extension, a whole file name, or a directory on the path, so `.git` blocks `/.git/config`. Any other entry matches a file name, or any part of the file's full path. Passing `blockedExtensions` replaces the default list, so include the defaults you still want.
 
 The blocklist and `allowedExtensions` apply both to the path in the request and to the file actually read. A symbolic link inside the mount, such as `alias.txt` pointing to `.env` or into a `__pycache__` directory, gets `403` like the file it points to.
 

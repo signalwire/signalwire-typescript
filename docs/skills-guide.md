@@ -157,7 +157,7 @@ The SDK ships the skills in the following table, in `src/skills/builtin/`. `cust
 | `spider` | `SpiderSkill` | `scrape_url`, `crawl_site`, `extract_structured_data` | The `cheerio` package |
 | `claude_skills` | `ClaudeSkillsSkill` | One per SKILL.md file, prefixed `claude_` | A `skills_path` directory |
 | `ask_claude` | `AskClaudeSkill` | `ask_claude` | An Anthropic key in `api_key` or `ANTHROPIC_API_KEY` |
-| `mcp_gateway` | `McpGatewaySkill` | One per gateway tool, prefixed `mcp_`, plus `_mcp_gateway_hangup` | A reachable `gateway_url` and credentials. `allow_insecure_tls` also needs the `undici` package |
+| `mcp_gateway` | `McpGatewaySkill` | One per gateway tool, prefixed `mcp_`, plus `_mcp_gateway_hangup` | A reachable `gateway_url` and credentials |
 
 Every skill also accepts the two base parameters `swaig_fields` and `skip_prompt`, described in [Skill Configuration](#skill-configuration). The parameter tables in the following sections leave those two out. They list each parameter as the skill's `getParameterSchema()` declares it; where the code behaves differently, the text says so.
 
