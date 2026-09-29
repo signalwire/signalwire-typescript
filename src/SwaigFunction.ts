@@ -359,6 +359,20 @@ export class SwaigFunction {
     rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
+    // Soft validation, as the reference's tool_mixin does: arguments that
+    // don't match the schema are logged, and the handler still runs.
+    if (args && Object.keys(args).length > 0) {
+      try {
+        const [valid, errors] = this.validateArgs(args);
+        if (!valid) {
+          log.warn(`Argument validation failed for function '${this.name}': ${errors.join('; ')}`);
+        }
+      } catch (err) {
+        log.debug(
+          `Argument validation error for function '${this.name}': ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always sends the full payload, but

@@ -1625,7 +1625,7 @@ See [SwaigFunctionOptions](#swaigfunctionoptions) for the options.
 
 #### `validateArgs(args)`
 
-Validate arguments against the parameter schema with Ajv. Returns `[true, []]` when the schema has no properties.
+Validate arguments against the parameter schema with Ajv. Returns `[true, []]` when the schema has no properties. Every call to the tool runs it first: arguments that don't match are logged as a warning, and the handler still runs, as in the Python SDK.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

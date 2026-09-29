@@ -348,7 +348,7 @@ Handlers receive the SWAIG request as `rawData` and can read `rawData.global_dat
 
 A handler receives `(args, rawData, agent)`. `agent` is the agent the request was configured on: the per-request copy when a dynamic config callback or `addPerCallConfig()` is in use. The registered tool name and the handler's own name can differ. Tools are secure by default (`secure: true`): a request needs the per-call token from the SWML. [S05]
 
-With a flat `parameters` map, `defineTool()` infers the handler's argument types, but only at compile time. At run time `args` is whatever JSON the model produced, and the SDK doesn't validate it against the schema before it calls the handler. `defineTypedTool()` can infer a schema from the handler; inspect what it produces. Validate every argument in the handler or the code it calls. [S05]
+With a flat `parameters` map, `defineTool()` infers the handler's argument types, but only at compile time. At run time `args` is whatever JSON the model produced. The SDK checks it against the schema, but only to log a warning: it calls the handler either way, as the Python SDK does. `defineTypedTool()` can infer a schema from the handler; inspect what it produces. Validate every argument in the handler or the code it calls. [S05]
 
 A handler can be `async`; the SDK awaits it. Handlers run on Node's event loop. A synchronous handler, or CPU-bound work inside an async one, blocks every other request on that process until it returns. There's no worker thread for synchronous handlers, so move slow blocking work to a worker or another service.
 
@@ -1683,7 +1683,7 @@ The table pairs common symptoms and bad designs with their causes and fixes:
 | "The agent said the order completed, so we updated the database" | Model speech used as authority | Commit in a handler first, and explain from verified state |
 | "`global_data` is private, so it can hold everything" | Model visibility confused with data security | Keep it small, store references, check logs, callbacks and projections |
 | "The tool schema says approved, so authorization is complete" | A model-interpreted value confused with independent authority | Verify policy and evidence against trusted state |
-| "The enum stops bad arguments" | The SDK doesn't validate arguments against the schema | Validate in the handler or the domain |
+| "The enum stops bad arguments" | The SDK only logs a warning for arguments that don't match the schema, and calls the handler anyway | Validate in the handler or the domain |
 | "One FunctionResult makes all APIs atomic" | Serialization confused with distributed transactions | Own external transactions, idempotency and recovery in the backend |
 
 ### Code patterns to reject during review
