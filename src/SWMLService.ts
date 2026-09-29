@@ -1108,36 +1108,30 @@ export class SWMLService {
     this.log.info(`Registering routing callback at ${normalized}`);
     this._routingCallbacks.set(normalized, callbackFn);
 
-    // Install an endpoint on the Hono app for this callback path
+    // Install an endpoint on the Hono app for this callback path. It serves
+    // through handleRequest(), which awaits the callback, redirects with 307
+    // when it returns a route, and otherwise renders the service's SWML for
+    // the request, as the reference does.
     const routeHandler = async (c: Context) => {
-      let body: SwmlRequestData = {};
+      let body: Record<string, unknown> | null = null;
       if (c.req.method === 'POST') {
         try {
-          body = await c.req.json();
+          body = (await c.req.json()) as Record<string, unknown>;
         } catch {
           // empty body
         }
       }
-
-      const cbHeaders: Record<string, string> = {};
+      const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((v: string, k: string) => {
-        cbHeaders[k] = v;
+        headers[k] = v;
       });
-
-      const route = callbackFn(body, cbHeaders);
-      // Preserve the original `route !== null` runtime guard exactly — a
-      // types-only change must not alter behavior. The callback's declared
-      // return includes undefined|Promise, which the pre-typing `c: any` code
-      // passed to redirect verbatim; the cast keeps that identical rather than
-      // narrowing it away. Any real fix to non-string returns is a separate
-      // behavioral change, not part of the any-burndown.
-      if (route !== null) {
-        return c.redirect(route as string, 307);
-      }
-
-      // No redirect — serve normal SWML
-      const doc = this.swmlBuilder.build();
-      return c.json(doc);
+      const [status, outHeaders, outBody] = await this.handleRequest(
+        c.req.method,
+        c.req.url,
+        headers,
+        body,
+      );
+      return new Response(outBody || null, { status, headers: outHeaders });
     };
 
     this._app.get(normalized, routeHandler);

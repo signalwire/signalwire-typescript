@@ -375,11 +375,11 @@ service.registerRoutingCallback(myRoutingCallback, '/customer');
 
 A request to a callback path goes through these steps:
 
-1. The route parses the body of a `POST` (an empty object for a `GET`) and calls the callback.
+1. For a `POST` with a JSON body, the route calls the callback with the body and the headers, and awaits it. A `GET`, or a `POST` with no body, skips the callback.
 2. If the callback returns a string, the response is a `307` redirect with that string as the `Location`.
-3. If it returns `null`, the response is the service's own document. `buildSwmlForRequest()` and the `setOnRequestCallback()` callback don't run on this path.
+3. Otherwise, or if the callback throws, the response is the service's SWML for the request, built as the main route builds it.
 
-Return a string or `null` from the callback, synchronously. This route doesn't await the callback, so a `Promise` or `undefined` result is sent as a redirect to `[object Promise]` or `undefined`.
+The callback can return its route directly or as a `Promise`.
 
 ### Example: Routing by SIP Username
 

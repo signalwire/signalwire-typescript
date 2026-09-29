@@ -401,3 +401,39 @@ describe('getRegisteredTools with a DataMap tool (found in the documentation pas
     expect(JSON.stringify(tool.parameters)).toContain('order_id');
   });
 });
+
+describe('SWMLService routing callbacks on the served app (found in the documentation pass)', () => {
+  function svc(cb: (body: Record<string, unknown>) => unknown) {
+    const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.registerRoutingCallback(cb as never, '/route');
+    return s;
+  }
+  const post = (s: SWMLService) =>
+    s.getApp().request('/route', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+    });
+
+  it('awaits an async callback and redirects to its route', async () => {
+    const res = await post(svc(async () => '/sales'));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/sales');
+  });
+
+  it('serves the SWML when an async callback returns null', async () => {
+    const res = await post(svc(async () => null));
+    expect(res.status).toBe(200);
+    expect((await res.json()).sections).toBeDefined();
+  });
+
+  it('serves the SWML when the callback throws', async () => {
+    const res = await post(
+      svc(() => {
+        throw new Error('boom');
+      }),
+    );
+    expect(res.status).toBe(200);
+  });
+});
