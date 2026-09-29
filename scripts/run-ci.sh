@@ -276,7 +276,7 @@ sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
 sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on the PR (Coordinated-With: line or coordinated-pass label)" \
     -- python3 "$PORTING_SDK_DIR/scripts/coordinated_pass.py" --porting-sdk "$PORTING_SDK_DIR"
 
-sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + python oracle + matrix ports) uses PORTING_SDK_REF, not a literal ref" \
+sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + python oracle + matrix ports) takes its ref from the branch-local .porting-sdk-ref pin resolver, never a repo variable or literal ref" \
     -- python3 "$PORTING_SDK_DIR/scripts/check_coordinated_refs.py" --repo "$PORT_ROOT"
 
 sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA env vars use the canonical A5 names" \
@@ -362,7 +362,7 @@ sched_gate WIRED-MODES res=dayone desc="load-bearing run-ci modes (WIRED_MODES.m
 # regression with a pinned number to prove it — it must red the run, not print a note.
 # Was report-only at graduation, and previously wrapped in a skip-with-pass guard for
 # when doc_surface.py still lived only on the porting-sdk plan branch. Both are gone: the
-# script is on the pinned PORTING_SDK_REF, and a MISSING gate script must fail, not pass.
+# script is on the pinned .porting-sdk-ref branch, and a MISSING gate script must fail, not pass.
 sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API surface (100% — blocking; ratchets via .doc_surface_floor)" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port typescript --repo "$PORT_ROOT"
 
@@ -371,7 +371,7 @@ sched_gate DOC-SURFACE res=dayone desc="TSDoc coverage floor on the public API s
 # shared ai_chat_corpus against porting-sdk's in-process mock_ai_chat and asserts the
 # client speaks the AI Chat JSON-RPC protocol per the vendored spec (ai-chat-specs/
 # ai-chat.yaml). The gate script (diff_port_ai_chat.py) + mock live on the porting-sdk
-# `ai-chat-client` branch, so during the coordinated pass PORTING_SDK_REF pins that
+# `ai-chat-client` branch, so during the coordinated pass the .porting-sdk-ref pin selects that
 # branch and the gate runs; on plain main it skip-passes until the branch merges.
 sched_gate AI-CHAT desc="AIChatClient speaks the AI Chat protocol per the vendored spec (mock_ai_chat wire-behavioral)" \
     -- bash -c 'if [ -f "$1/scripts/diff_port_ai_chat.py" ]; then python3 "$1/scripts/diff_port_ai_chat.py" --port typescript --dump-cmd "npx tsx $2/scripts/ai-chat-dump.ts"; else echo "[ai-chat] diff_port_ai_chat.py not on porting-sdk main yet — skip-pass (coordinated-branch dep: porting-sdk#118 ai-chat-client)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
