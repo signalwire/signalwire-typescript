@@ -140,3 +140,17 @@ describe('per-request copy isolation', () => {
     expect(ownRender(agent)).toContain('"tier":"basic"');
   });
 });
+
+describe('per-request copy: tools', () => {
+  it("keeps a callback's change to a tool object off the agent's tool", async () => {
+    const agent = makeAgent((_q, _b, _h, copy) => {
+      const tool = copy.getTool('lookup')!;
+      tool.secure = false;
+      tool.description = 'changed for one call';
+    });
+    await aiFor(agent);
+    const original = agent.getTool('lookup')!;
+    expect(original.secure).toBe(true);
+    expect(original.description).toBe('lookup');
+  });
+});

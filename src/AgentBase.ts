@@ -100,6 +100,9 @@ const servedRequestContext = new AsyncLocalStorage<Context>();
 
 /** SDK classes whose instances a per-request copy duplicates field by field. */
 const CLONEABLE_CLASSES = new Set<unknown>([
+  // A tool: its settings are copied, its handler (a function) is shared, so a
+  // callback that changes a tool changes it for that request only.
+  SwaigFunction,
   ContextBuilder,
   ConversationContext,
   Step,
@@ -2956,7 +2959,7 @@ export class AgentBase extends SWMLService {
     // can add sections to it. The back-reference points at the COPY, not
     // `this` (the clone-drops-configuration defect class).
     copy._promptManager = this._promptManager._copyFor(copy);
-    copy.toolRegistry = new Map(this.toolRegistry);
+    copy.toolRegistry = clone(this.toolRegistry);
     copy.hints = clone(this.hints);
     copy.languages = clone(this.languages);
     copy.multilingual = clone(this.multilingual);
