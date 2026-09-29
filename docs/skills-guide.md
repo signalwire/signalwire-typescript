@@ -842,7 +842,7 @@ const discovered = await registry.discoverFromDirectory('/path/to/my/skills');
 const allDiscovered = await registry.discoverAll();
 ```
 
-In a directory, discovery imports every `.ts` and `.js` file, and `skill.ts` in each subdirectory. It registers every exported class that extends `SkillBase` and sets `SKILL_NAME`. A module that exports only a `createSkill` factory registers nothing. Nothing runs discovery for you: call `discoverFromDirectory()` or `discoverAll()`.
+In a directory, discovery imports every `.ts` and `.js` file except `.d.ts` files, and `skill.ts` in each subdirectory, or `skill.js` when there's no `skill.ts`. It registers every exported class that extends `SkillBase` and sets `SKILL_NAME`. A module that exports only a `createSkill` factory registers nothing. Nothing runs discovery for you: call `discoverFromDirectory()` or `discoverAll()`.
 
 `SIGNALWIRE_SKILL_PATHS` adds colon-separated search paths when the registry is first created:
 

@@ -221,7 +221,7 @@ These registry methods are public:
 | `discoverFromDirectory(path)` / `discoverAll()` | Import skill modules and register their classes. Off unless `SWML_SKILL_DISCOVERY_ENABLED` is `true`. |
 | `size` | Number of registered skills |
 
-`addSkillDirectory(path)` on the registry checks that the path is a directory and records it in `getExternalPaths()`, but `discoverAll()` doesn't scan those paths. To add a discovery path, use `addSearchPath()`, or the top-level `addSkillDirectory()` function, which calls it.
+`addSkillDirectory(path)` on the registry checks that the path is a directory, throws if it isn't, and records it in `getExternalPaths()`. `discoverAll()` scans those directories as well as the search paths. The top-level `addSkillDirectory()` function calls `addSearchPath()`, which doesn't check the path.
 
 The top-level functions `listSkills()`, `listSkillsWithParams()`, `registerSkill()` and `addSkillDirectory()` call the singleton.
 

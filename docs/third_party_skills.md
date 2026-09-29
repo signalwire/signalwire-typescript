@@ -149,7 +149,7 @@ Discovery imports skill modules from a directory and registers the classes they 
 export SWML_SKILL_DISCOVERY_ENABLED=true
 ```
 
-In the directory, discovery imports every `.ts` and `.js` file, and the `skill.ts` file of each subdirectory. It registers every exported class that extends `SkillBase` and sets `SKILL_NAME`. A module that exports only a factory function registers nothing. This example discovers the skills in one directory:
+In the directory, discovery imports every `.ts` and `.js` file except `.d.ts` files, and the `skill.ts` file of each subdirectory, or its `skill.js` when there's no `skill.ts`. It registers every exported class that extends `SkillBase` and sets `SKILL_NAME`. A module that exports only a factory function registers nothing. This example discovers the skills in one directory:
 
 <!-- snippet: no-run needs a real directory of skill modules and SWML_SKILL_DISCOVERY_ENABLED=true -->
 ```typescript
@@ -167,7 +167,7 @@ console.log(discovered); // the SKILL_NAME of each class it registered
 await agent.addSkillByName('weather', { api_key: process.env['WEATHER_API_KEY'] });
 ```
 
-A module that fails to import is skipped, with a debug-level log entry. The top-level `addSkillDirectory(path)` adds a directory to the search paths that `discoverAll()` scans.
+A module that fails to import is skipped, with a debug-level log entry. The top-level `addSkillDirectory(path)`, and `addSkillDirectory(path)` on the registry, add a directory that `discoverAll()` scans. The registry method throws if the path isn't a directory.
 
 Discovery runs each module's code with your process's permissions. Point it only at directories that nobody else can write to.
 
@@ -368,7 +368,7 @@ Everything after `--exec get_weather` is an argument to the function, so put any
 1. For discovery, `SWML_SKILL_DISCOVERY_ENABLED` must be `true`. Without it, the registry logs `Skill directory discovery is disabled`.
 2. Discovery must run: call `discoverFromDirectory()` or `discoverAll()`, or register the class with `registerSkill()`.
 3. The module must export the class itself, not only a factory, and the class must set `SKILL_NAME`.
-4. A class in a subdirectory must be in `skill.ts`. Other files in a subdirectory aren't imported.
+4. A class in a subdirectory must be in `skill.ts`, or in `skill.js` for a compiled package. Other files in a subdirectory aren't imported.
 5. The name you pass to `addSkillByName()` must equal `SKILL_NAME`.
 6. A module that fails to import is skipped with a debug-level log entry. Set `SIGNALWIRE_LOG_LEVEL=debug` to see it.
 
