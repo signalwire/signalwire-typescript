@@ -1,6 +1,7 @@
 # MCP to SWAIG Gateway
 
 <!-- snippet-setup -->
+
 ```ts
 export {}; // treat each example as a module (top-level await)
 declare global {
@@ -31,6 +32,7 @@ npm install @signalwire/sdk
 Add it to an agent like any other built-in skill. `addSkill()` runs the skill's setup, which contacts the gateway, so it needs a gateway that's running:
 
 <!-- snippet: no-run instantiating the `mcp_gateway` builtin requires live credentials/network at setup — cannot run standalone -->
+
 ```typescript
 import { AgentBase, McpGatewaySkill } from '@signalwire/sdk';
 
@@ -92,15 +94,15 @@ When a registered tool runs, the skill POSTs this body to the gateway's `/servic
 
 ```json
 {
-    "tool": "add_todo",
-    "arguments": { "text": "Buy milk" },
-    "session_id": "call_xyz123",
-    "timeout": 300,
-    "metadata": {
-        "agent_id": "mcp-agent",
-        "timestamp": "2026-09-28T10:30:00Z",
-        "call_id": "call_xyz123"
-    }
+  "tool": "add_todo",
+  "arguments": { "text": "Buy milk" },
+  "session_id": "call_xyz123",
+  "timeout": 300,
+  "metadata": {
+    "agent_id": "mcp-agent",
+    "timestamp": "2026-09-28T10:30:00Z",
+    "call_id": "call_xyz123"
+  }
 }
 ```
 
@@ -134,19 +136,19 @@ await agent.addSkill(
 );
 ```
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `gateway_url` | string | (required) | URL of the gateway service. A trailing slash is removed. |
-| `auth_token` | string | `MCP_GATEWAY_AUTH_TOKEN` | Bearer token. When set, it's used instead of basic auth. |
-| `auth_user` | string | `MCP_GATEWAY_AUTH_USER` | Basic auth username. Required when there's no token. |
-| `auth_password` | string | `MCP_GATEWAY_AUTH_PASSWORD` | Basic auth password. Required when there's no token. |
-| `services` | array | `[]` | Services to connect to, each `{ name, tools? }`. `tools` is `'*'` (the default) or a list of tool names. |
-| `session_timeout` | integer | `300` | Session timeout in seconds, sent in each call's envelope |
-| `tool_prefix` | string | `mcp_` | Prefix for registered SWAIG function names |
-| `retry_attempts` | integer | `3` | Attempts per tool call, the first one included |
-| `request_timeout` | integer | `30` | Timeout for each request to the gateway, in seconds |
-| `verify_ssl` | boolean | `true` | Verify the gateway's TLS certificate. `false` has an effect only with `allow_insecure_tls`. |
-| `allow_insecure_tls` | boolean | `false` | Second switch needed to turn verification off. Both must be set to accept any certificate. |
+| Key                  | Type    | Default                     | Description                                                                                              |
+| -------------------- | ------- | --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `gateway_url`        | string  | (required)                  | URL of the gateway service. A trailing slash is removed.                                                 |
+| `auth_token`         | string  | `MCP_GATEWAY_AUTH_TOKEN`    | Bearer token. When set, it's used instead of basic auth.                                                 |
+| `auth_user`          | string  | `MCP_GATEWAY_AUTH_USER`     | Basic auth username. Required when there's no token.                                                     |
+| `auth_password`      | string  | `MCP_GATEWAY_AUTH_PASSWORD` | Basic auth password. Required when there's no token.                                                     |
+| `services`           | array   | `[]`                        | Services to connect to, each `{ name, tools? }`. `tools` is `'*'` (the default) or a list of tool names. |
+| `session_timeout`    | integer | `300`                       | Session timeout in seconds, sent in each call's envelope                                                 |
+| `tool_prefix`        | string  | `mcp_`                      | Prefix for registered SWAIG function names                                                               |
+| `retry_attempts`     | integer | `3`                         | Attempts per tool call, the first one included                                                           |
+| `request_timeout`    | integer | `30`                        | Timeout for each request to the gateway, in seconds                                                      |
+| `verify_ssl`         | boolean | `true`                      | Verify the gateway's TLS certificate. `false` has an effect only with `allow_insecure_tls`.              |
+| `allow_insecure_tls` | boolean | `false`                     | Second switch needed to turn verification off. Both must be set to accept any certificate.               |
 
 The Default column names the environment variable the skill reads when a credential key is missing.
 
@@ -157,7 +159,7 @@ When `services` is empty, the skill requests the gateway's `/services` endpoint 
 The skill's defaults refuse the two riskiest configurations:
 
 - **Private addresses**: the skill refuses a `gateway_url` that resolves to a private, loopback or link-local address, including `localhost`. A configuration value can't point it at an internal service. For a gateway on the same host or a private network, set `SWML_ALLOW_PRIVATE_URLS=true` in the agent's environment. [Security](security.md#outbound-url-protection-ssrf) lists the refused ranges.
-- **Certificate verification**: `verify_ssl: false` alone leaves verification on and logs a warning. To accept a self-signed certificate, also set `allow_insecure_tls: true`. The agent then accepts any certificate from the gateway, so a machine in the network path can read and change the traffic.
+- **Certificate verification**: `verify_ssl: false` alone leaves verification on and logs a warning. To accept a self-signed certificate, also set `allow_insecure_tls: true`. The agent then accepts any certificate from the gateway, so a machine in the network path can read and change the traffic. Turning verification off uses the `undici` package, which comes with the SDK's optional dependencies; without it, setup fails and logs how to install it.
 
 The skill sends the credentials on every request to the gateway, including the health check. Use an `https://` gateway URL outside a private network.
 
@@ -179,30 +181,30 @@ The gateway service reads its own configuration file, whose format depends on th
 
 ```json
 {
-    "server": {
-        "host": "${MCP_HOST|0.0.0.0}",
-        "port": "${MCP_PORT|8080}",
-        "auth_user": "${MCP_AUTH_USER|admin}",
-        "auth_password": "${MCP_AUTH_PASSWORD}",
-        "auth_token": "${MCP_AUTH_TOKEN}"
+  "server": {
+    "host": "${MCP_HOST|0.0.0.0}",
+    "port": "${MCP_PORT|8080}",
+    "auth_user": "${MCP_AUTH_USER|admin}",
+    "auth_password": "${MCP_AUTH_PASSWORD}",
+    "auth_token": "${MCP_AUTH_TOKEN}"
+  },
+  "services": {
+    "todo": {
+      "command": ["node", "./test/todo_mcp.js"],
+      "description": "Simple todo list for testing",
+      "enabled": true
     },
-    "services": {
-        "todo": {
-            "command": ["node", "./test/todo_mcp.js"],
-            "description": "Simple todo list for testing",
-            "enabled": true
-        },
-        "calculator": {
-            "command": ["node", "/path/to/calculator.js"],
-            "description": "Math calculations",
-            "enabled": true
-        }
-    },
-    "session": {
-        "default_timeout": 300,
-        "max_sessions_per_service": 100,
-        "cleanup_interval": 60
+    "calculator": {
+      "command": ["node", "/path/to/calculator.js"],
+      "description": "Math calculations",
+      "enabled": true
     }
+  },
+  "session": {
+    "default_timeout": 300,
+    "max_sessions_per_service": 100,
+    "cleanup_interval": 60
+  }
 }
 ```
 
@@ -295,6 +297,7 @@ npx tsx src/cli/swaig-test.ts test/test-agent.ts --dump-swml
 This agent connects to a gateway on the same machine, so its environment needs `SWML_ALLOW_PRIVATE_URLS=true` for setup to accept the `localhost` URL:
 
 <!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+
 ```typescript
 // test/test-agent.ts
 import { AgentBase, McpGatewaySkill } from '@signalwire/sdk';

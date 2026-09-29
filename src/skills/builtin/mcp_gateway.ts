@@ -21,7 +21,9 @@ import { FunctionResult } from '../../FunctionResult.js';
 import type { SwaigRequest } from '../../SwaigContracts.js';
 import { getLogger } from '../../Logger.js';
 import { validateUrl } from '../../SecurityUtils.js';
-import { Agent as UndiciAgent } from 'undici';
+// undici isn't a dependency of the SDK (it comes with the optional cheerio),
+// so it's imported only when allow_insecure_tls needs its dispatcher: a static
+// import here would break importing the SDK without optional packages.
 
 const log = getLogger('McpGatewaySkill');
 
@@ -89,12 +91,13 @@ interface McpToolDefinition {
  */
 export class McpGatewaySkill extends SkillBase {
   // Python ground truth: skills/mcp_gateway/skill.py:~70-76
-  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses undici for SSL dispatch.
+  // REQUIRED_PACKAGES = ["requests"] in Python; TS uses the built-in fetch, and
+  // loads undici only for allow_insecure_tls (see setup()).
   // Python does not set SUPPORTS_MULTIPLE_INSTANCES so it inherits the default (False).
   static override SKILL_NAME = 'mcp_gateway';
   static override SKILL_DESCRIPTION = 'Bridge MCP servers with SWAIG functions';
   static override SKILL_VERSION = '1.0.0';
-  static override REQUIRED_PACKAGES: readonly string[] = ['undici'];
+  static override REQUIRED_PACKAGES: readonly string[] = [];
   static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
@@ -204,7 +207,7 @@ export class McpGatewaySkill extends SkillBase {
    * `setup()` and reused across every `_makeRequest` call to avoid
    * connection-pool churn (Python reuses `requests.Session` implicitly).
    */
-  private _undiciAgent: UndiciAgent | undefined;
+  private _undiciAgent: unknown;
 
   override async setup(): Promise<boolean> {
     this.authToken =
@@ -274,7 +277,17 @@ export class McpGatewaySkill extends SkillBase {
     // so each request reuses the same connection pool (parity with Python's
     // requests.Session behavior).
     if (!tlsRejectUnauthorized) {
-      this._undiciAgent = new UndiciAgent({
+      let Agent: new (opts: unknown) => unknown;
+      try {
+        ({ Agent } = (await import('undici')) as { Agent: new (opts: unknown) => unknown });
+      } catch {
+        log.error(
+          'mcp_gateway: allow_insecure_tls needs the undici package, which is not ' +
+            'installed. Install it with `npm install undici`.',
+        );
+        return false;
+      }
+      this._undiciAgent = new Agent({
         connect: { rejectUnauthorized: tlsRejectUnauthorized },
       });
     }
