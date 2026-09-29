@@ -384,3 +384,20 @@ describe('serving with generated credentials (found in review)', () => {
     }
   });
 });
+
+describe('getRegisteredTools with a DataMap tool (found in the documentation pass)', () => {
+  it('reports the description and parameters DataMap.toSwaigFunction() writes', async () => {
+    const { DataMap } = await import('../src/DataMap.js');
+    const svc = new SWMLService({ name: 'dm', route: '/dm', basicAuth: ['u', 'p'] });
+    svc.registerSwaigFunction(
+      new DataMap('lookup')
+        .description('Look up an order')
+        .parameter('order_id', 'string', 'The order', { required: true })
+        .webhook('GET', 'https://api.example.com/orders/${args.order_id}')
+        .toSwaigFunction(),
+    );
+    const tool = svc.getRegisteredTools().find((t) => t.name === 'lookup')!;
+    expect(tool.description).toBe('Look up an order');
+    expect(JSON.stringify(tool.parameters)).toContain('order_id');
+  });
+});

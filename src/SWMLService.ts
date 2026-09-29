@@ -792,10 +792,13 @@ export class SWMLService {
       if (fn instanceof SwaigFunction) {
         tools.push({ name, description: fn.description, parameters: fn.parameters });
       } else {
+        // DataMap.toSwaigFunction() writes description/parameters; a hand-built
+        // SWAIG dict may use the older purpose/argument names.
         tools.push({
           name,
-          description: (fn['purpose'] as string) ?? '',
-          parameters: (fn['argument'] as Record<string, unknown>) ?? {},
+          description: ((fn['description'] ?? fn['purpose']) as string | undefined) ?? '',
+          parameters:
+            ((fn['parameters'] ?? fn['argument']) as Record<string, unknown> | undefined) ?? {},
         });
       }
     }
