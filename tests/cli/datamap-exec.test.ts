@@ -354,4 +354,21 @@ describe('fix pass', () => {
       response: 'found Ann',
     });
   });
+
+  it("expands a foreach append with the webhook's template data as well as this", async () => {
+    const fn = new DataMap('list')
+      .parameter('unit', 'string', 'Unit')
+      .webhook('GET', 'https://x')
+      .foreach({
+        input_key: 'items',
+        output_key: 'list',
+        append: '${this.n}${args.unit} of ${store}; ',
+      })
+      .output(new FunctionResult('${list}'))
+      .toSwaigFunction();
+    const { fetchImpl } = fakeFetch({ store: 'Main', items: [{ n: 1 }, { n: 2 }] });
+    expect(await executeDataMap(fn, { unit: 'kg' }, { fetchImpl })).toEqual({
+      response: '1kg of Main; 2kg of Main; ',
+    });
+  });
 });

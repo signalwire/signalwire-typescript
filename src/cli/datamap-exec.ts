@@ -352,8 +352,13 @@ export async function executeDataMap(
       if (Array.isArray(items)) {
         webhookContext[outputKey] = items
           .slice(0, max)
+          // As on the platform, append reads the webhook's template data
+          // (the response, the arguments) as well as the element as `this`.
           .map((item) =>
-            expandTemplate(append, { this: isPlainObject(item) ? item : { value: item } }),
+            expandTemplate(append, {
+              ...webhookContext,
+              this: isPlainObject(item) ? item : { value: item },
+            }),
           )
           .join('');
         say(`foreach: ${Math.min(items.length, max)} item(s) into ${outputKey}`);
