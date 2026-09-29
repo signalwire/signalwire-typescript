@@ -1306,7 +1306,7 @@ constructor(opts?: { host?: string; port?: number; logLevel?: string })
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `register` | `(agent: AgentBase, route?: string): void` | Mount the agent's `asRouter()` at `route` (default the agent's route). Throws when the route is taken. |
-| `unregister` | `(route: string): boolean` | Remove an agent from the server's list; returns `false` when none was registered there. Its routes stay mounted in the app. |
+| `unregister` | `(route: string): boolean` | Remove an agent and its routes; returns `false` when none was registered there. |
 | `getAgents` | `(): Map<string, AgentBase>` | Registered agents keyed by route |
 | `getAgent` | `(route: string): AgentBase \| undefined` | The agent at a route |
 | `serveStaticFiles` | `(directory: string, route?: string): void` | Serve files from a directory, rejecting paths with `..` |

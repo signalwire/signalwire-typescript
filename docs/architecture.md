@@ -118,7 +118,7 @@ SignalWire requests the SWML with a `POST` whose body describes the call. The ag
     |-- /          -> agent listing (if no agent is registered at /)
 ```
 
-`register()` copies the agent's routes when it's called. `setupSipRouting()` and `registerGlobalRoutingCallback()` can be called before or after it: called afterwards, they mount each registered agent's routes again, so the callback is served at the agent's route, such as `/sales/sip`.
+`register()` copies the agent's routes when it's called. `setupSipRouting()` and `registerGlobalRoutingCallback()` can be called before or after it, even after the server has served requests: a change to the routes rebuilds the server's app, so the callback is served at the agent's route, such as `/sales/sip`.
 
 ---
 

@@ -156,3 +156,55 @@ describe('routing callbacks added after register() (found in the documentation p
     expect(res.headers.get('location')).toBe('/elsewhere');
   });
 });
+
+describe('routing callbacks added after the server has served (found in review)', () => {
+  const AUTH = 'Basic ' + btoa('u:p');
+  const post = (server: AgentServer, path: string) =>
+    server.getApp().request(path, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+    });
+
+  it('serves the new route after a request, ahead of a mounted fallback', async () => {
+    const server = new AgentServer();
+    const agent = new AgentBase({ name: 'sales', route: '/sales', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    // A root mount that answers every path under the agent.
+    agent.mount(async () => new Response('fallback', { status: 404 }));
+    server.register(agent);
+    await server.getApp().request('/health');
+    server.registerGlobalRoutingCallback(() => '/next', '/route');
+    const res = await post(server, '/sales/route');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/next');
+  });
+
+  it('redirects SIP requests to the owning agent when set up after register()', async () => {
+    const server = new AgentServer();
+    const sales = new AgentBase({ name: 'sales', route: '/sales', basicAuth: ['u', 'p'] });
+    sales.setPromptText('hi');
+    const support = new AgentBase({ name: 'support', route: '/support', basicAuth: ['u', 'p'] });
+    support.setPromptText('hi');
+    server.register(sales);
+    server.register(support);
+    await server.getApp().request('/health');
+    server.setupSipRouting('/sip');
+    const res = await post(server, '/support/sip');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/sales');
+  });
+});
+
+describe('unregister() removes the routes too (found in review)', () => {
+  it('stops serving an agent it unregisters', async () => {
+    const server = new AgentServer();
+    const agent = new AgentBase({ name: 'gone', route: '/gone', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    server.register(agent);
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    expect((await server.getApp().request('/gone', { headers: auth })).status).toBe(200);
+    server.unregister('/gone');
+    expect((await server.getApp().request('/gone', { headers: auth })).status).toBe(404);
+  });
+});

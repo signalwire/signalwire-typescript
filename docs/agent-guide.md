@@ -894,7 +894,7 @@ These methods manage the server:
 | Method | Description |
 |--------|-------------|
 | `register(agent, route?)` | Mount an agent at `route`, or at the agent's own route. Throws if the route is in use. |
-| `unregister(route)` | Remove an agent from the listing and from `getAgents()`. Its routes stay served, because Hono can't remove a route. |
+| `unregister(route)` | Remove an agent, its routes and its entry in the listing and `getAgents()`. |
 | `getAgents()` | Return a `Map<string, AgentBase>` of the registered agents. |
 | `getAgent(route)` | Look up an agent by route. |
 | `serveStaticFiles(directory, route = '/')` | Serve files from a directory. |

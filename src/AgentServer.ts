@@ -82,6 +82,12 @@ export class AgentServer {
   readonly log = getLogger('AgentServer');
   private agents: Map<string, AgentBase> = new Map();
   private _app: Hono;
+  /** Agents and static directories, in the order they were added. */
+  private _routes: Array<
+    { kind: 'agent'; route: string } | { kind: 'static'; dir: string; prefix: string }
+  > = [];
+  /** Whether the routes changed since the app was built. */
+  private _dirty = false;
   /** @internal The server `run()` started, or null. */
   _server: NodeServer | null = null;
 
@@ -108,16 +114,38 @@ export class AgentServer {
     if (process.env['SWAIG_CLI_MODE'] !== 'true') {
       setGlobalLogLevel(this.logLevel as 'debug' | 'info' | 'warn' | 'error');
     }
+    this._app = this._buildApp();
+  }
+
+  /** Whether a path belongs to an app one of the served agents added with mount(). */
+  private _servedByMount(path: string, method: string): boolean {
+    const normalized = path.replace(/\/{2,}/g, '/');
+    for (const [route, agent] of this.agents) {
+      const base = route === '/' ? '' : route.replace(/\/+$/, '');
+      if (base && normalized !== base && !normalized.startsWith(`${base}/`)) continue;
+      if (agent._servedByMount(normalized.slice(base.length) || '/', method)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Build the server's Hono app from what's registered: the security headers,
+   * CORS and health routes, then each agent and static directory in the order
+   * they were added, then the root listing. It's rebuilt after a change,
+   * since a mounted agent's routes are a snapshot and Hono can't add a route
+   * once it has served a request.
+   */
+  private _buildApp(): Hono {
     // Match paths without regard to a trailing slash or repeated slashes, as
     // an agent's own app does, so a mounted agent answers /route/swaig/ too.
     // (Hono ignores a custom getPath when `strict: false` is passed.)
-    this._app = new Hono({
+    const app = new Hono({
       getPath: (req: Request) => getPathNoStrict(req).replace(/\/{2,}/g, '/'),
     });
 
     // Security headers. A path an agent serves through mount() (a chat
     // gateway, say) sets its own headers and answers its own CORS preflights.
-    this._app.use('*', async (c, next) => {
+    app.use('*', async (c, next) => {
       const mounted = this._servedByMount(c.req.path, c.req.method);
       await next();
       if (mounted) return;
@@ -134,24 +162,41 @@ export class AgentServer {
     const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
     const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
-    this._app.use('*', (c, next) =>
+    app.use('*', (c, next) =>
       this._servedByMount(c.req.path, c.req.method) ? next() : corsMw(c, next),
     );
 
     // Global health endpoints
-    this._app.get('/health', (c) => c.json({ status: 'ok' }));
-    this._app.get('/ready', (c) => c.json({ status: 'ready' }));
+    app.get('/health', (c) => c.json({ status: 'ok' }));
+    app.get('/ready', (c) => c.json({ status: 'ready' }));
+
+    for (const entry of this._routes) {
+      if (entry.kind === 'agent') {
+        const agent = this.agents.get(entry.route);
+        if (agent) app.route(entry.route, agent.asRouter());
+      } else {
+        this._installStatic(app, entry.dir, entry.prefix);
+      }
+    }
+    // The root listing comes after the agents, so it doesn't shadow one at /.
+    if (!this.agents.has('/')) {
+      app.get('/', (c) =>
+        c.json({
+          service: 'SignalWire AI Agents',
+          agents: [...this.agents.entries()].map(([route, agent]) => ({
+            name: agent.name,
+            route,
+          })),
+        }),
+      );
+    }
+    this._dirty = false;
+    return app;
   }
 
-  /** Whether a path belongs to an app one of the served agents added with mount(). */
-  private _servedByMount(path: string, method: string): boolean {
-    const normalized = path.replace(/\/{2,}/g, '/');
-    for (const [route, agent] of this.agents) {
-      const base = route === '/' ? '' : route.replace(/\/+$/, '');
-      if (base && normalized !== base && !normalized.startsWith(`${base}/`)) continue;
-      if (agent._servedByMount(normalized.slice(base.length) || '/', method)) return true;
-    }
-    return false;
+  /** Rebuild the app on the next getApp(), after the routes changed. */
+  private _changed(): void {
+    this._dirty = true;
   }
 
   /**
@@ -197,7 +242,8 @@ export class AgentServer {
     // Mount the agent's (now fully-wired) route-relative router at the route
     // prefix. getApp() would serve the routes under the agent's own route
     // already, so mounting it here served them twice over (/sales/sales).
-    this._app.route(r, agent.asRouter());
+    this._routes.push({ kind: 'agent', route: r });
+    this._changed();
 
     this.log.info(`Registered '${agent.name}' at ${r}`);
   }
@@ -208,9 +254,10 @@ export class AgentServer {
    * @returns True if the agent was found and removed, false if not found.
    */
   unregister(route: string): boolean {
-    // Note: Hono doesn't support dynamic route removal,
-    // but the agent won't be listed anymore
-    return this.agents.delete(route);
+    const removed = this.agents.delete(route);
+    // The next getApp() builds the app without the agent's routes.
+    if (removed) this._changed();
+    return removed;
   }
 
   /**
@@ -240,8 +287,14 @@ export class AgentServer {
   serveStaticFiles(directory: string, route = '/'): void {
     const baseDir = resolve(directory);
     const routePrefix = route.replace(/\/+$/, '') || '/';
+    this._routes.push({ kind: 'static', dir: baseDir, prefix: routePrefix });
+    this._changed();
+    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
+  }
 
-    this._app.get(`${routePrefix}/*`, async (c) => {
+  /** Install the static-file route for one directory on an app. */
+  private _installStatic(app: Hono, baseDir: string, routePrefix: string): void {
+    app.get(`${routePrefix}/*`, async (c) => {
       const requestedPath = c.req.path.slice(routePrefix.length);
 
       // Path traversal protection: reject any path containing ".."
@@ -275,8 +328,6 @@ export class AgentServer {
         return c.json({ error: 'Not found' }, 404);
       }
     });
-
-    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
   }
 
   /**
@@ -338,13 +389,12 @@ export class AgentServer {
     // Python (agent_server.py:220-222) which registers the SERVER callback on
     // each agent — NOT the per-agent enable_sip_routing callback — so a SIP
     // request to any agent's /sip is redirected to whichever agent owns the
-    // username. registerRoutingCallback rebuilds each agent's Hono app to add
-    // the `/sip` route, so re-mount the (already-registered) agents' apps into
-    // the server so the new route is reachable on the served path.
-    for (const [agentRoute, agent] of this.agents) {
+    // username. registerRoutingCallback adds the `/sip` route to each agent,
+    // and the server's app is rebuilt so the route is served.
+    for (const agent of this.agents.values()) {
       agent.registerRoutingCallback(serverSipRoutingCallback, r);
-      this._remount(agentRoute, agent);
     }
+    this._changed();
 
     this.log.info(`SIP routing enabled at ${r} on all agents`);
   }
@@ -397,21 +447,12 @@ export class AgentServer {
 
     // Register with all currently registered agents, and re-mount them so
     // the new route is served (a mount is a snapshot of the agent's routes).
-    for (const [agentRoute, agent] of this.agents) {
+    for (const agent of this.agents.values()) {
       agent.registerRoutingCallback(callbackFn, p);
-      this._remount(agentRoute, agent);
     }
+    this._changed();
 
     this.log.info(`Registered global routing callback at ${p} on all agents`);
-  }
-
-  /**
-   * Mount an agent's route-relative router again at its route, after a
-   * routing callback added a route to it. The router, not getApp(), since
-   * getApp() serves under the agent's own route already (/sales/sales).
-   */
-  private _remount(agentRoute: string, agent: AgentBase): void {
-    this._app.route(agentRoute, agent.asRouter());
   }
 
   /**
@@ -441,28 +482,9 @@ export class AgentServer {
    * @returns The fully configured Hono app.
    */
   getApp(): Hono {
-    // Add the root listing once (after the agents, so it doesn't shadow one
-    // mounted at /). It lists the agents registered when it's requested.
-    // Adding it on every call threw once the app had served a request, since
-    // Hono can't add a route after its matcher is built.
-    if (!this._rootListingAdded && !this.agents.has('/')) {
-      this._rootListingAdded = true;
-      this._app.get('/', (c) =>
-        c.json({
-          service: 'SignalWire AI Agents',
-          agents: [...this.agents.entries()].map(([route, agent]) => ({
-            name: agent.name,
-            route,
-          })),
-        }),
-      );
-    }
-
+    if (this._dirty) this._app = this._buildApp();
     return this._app;
   }
-
-  /** Whether {@link getApp} has added the root listing route. */
-  private _rootListingAdded = false;
 
   /**
    * Start the HTTP server and begin listening for requests.
@@ -486,7 +508,7 @@ export class AgentServer {
     const h = host ?? this.host;
     const p = port ?? this.port;
 
-    const app = this.getApp();
+    this.getApp();
 
     if (this.agents.size === 0) {
       this.log.warn('starting_server_with_no_agents');
@@ -511,12 +533,20 @@ export class AgentServer {
     if (serverOptions) {
       const { createServer } = await import('node:https');
       const { getRequestListener } = await import('@hono/node-server');
-      const server = createServer(serverOptions, getRequestListener(app.fetch));
+      const server = createServer(
+        serverOptions,
+        getRequestListener((req) => this.getApp().fetch(req)),
+      );
       server.listen(p, h);
       this._server = server;
     } else {
       const { serve } = await import('@hono/node-server');
-      this._server = serve({ fetch: app.fetch, port: p, hostname: h }) as unknown as NodeServer;
+      this._server = serve({
+        // The current app, rebuilt after a route change, serves each request.
+        fetch: (req, env) => this.getApp().fetch(req, env),
+        port: p,
+        hostname: h,
+      }) as unknown as NodeServer;
     }
   }
 }
