@@ -181,3 +181,71 @@ describe('a request that middleware cloned and reads after the handler', () => {
     expect(clonedLengths).toEqual([body.length]);
   });
 });
+
+describe('middleware that reads the body after the handler', () => {
+  // The route used to read the body with c.req.json(), which fills Hono's
+  // body cache, so middleware could read it again after next().
+  function setupAfter(how: Reader) {
+    const svc = stubService();
+    const gateway = new ChatGateway({
+      configUrl: 'https://agent.example.com/swml',
+      key: KEY,
+      client: svc.client,
+      secret: 'test-secret',
+    });
+    const said: string[] = [];
+    const handoff = new HandoffRouter({
+      gateway,
+      sendMessage: (_callId, text) => {
+        said.push(text);
+        return true;
+      },
+    });
+    handoff.register('n', { conversationId: 'conv-root', callId: 'call-9' });
+    const readAfter: unknown[] = [];
+    const app = new Hono();
+    app.use('/chat/*', async (c: Context, next: Next) => {
+      await next();
+      readAfter.push(await c.req[how]());
+    });
+    app.route('/chat', gateway.router());
+    app.route('/chat', handoff.router());
+    const post = (path: string, body: string) =>
+      app.request(`/chat${path}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+        body,
+      });
+    return { svc, said, readAfter, post };
+  }
+
+  const decoded = (value: unknown): string =>
+    value instanceof ArrayBuffer
+      ? new TextDecoder().decode(value)
+      : typeof value === 'string'
+        ? value
+        : JSON.stringify(value);
+
+  describe.each<Reader>(['json', 'text', 'arrayBuffer'])('with c.req.%s()', (how) => {
+    it('lets the gateway answer and the middleware read the body', async () => {
+      const { svc, readAfter, post } = setupAfter(how);
+      const body = JSON.stringify({ message: 'hello' });
+      const r = await post('', body);
+      expect(r.status).toBe(200);
+      expect(svc.seen.at(-1)!.params['message']).toBe('hello');
+      expect(readAfter.map(decoded)).toEqual([body]);
+    });
+
+    it.each([
+      ['/say', { nonce: 'n', text: 'hi' }],
+      ['/handoff', { nonce: 'n' }],
+      ['/escalate', { handle: 'not-a-handle' }],
+    ])('lets %s answer and the middleware read the body', async (path, fields) => {
+      const { readAfter, post } = setupAfter(how);
+      const body = JSON.stringify(fields);
+      const r = await post(path, body);
+      expect(r.status).toBeLessThan(500);
+      expect(readAfter.map(decoded)).toEqual([body]);
+    });
+  });
+});

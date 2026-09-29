@@ -262,7 +262,9 @@ export function _utf8Length(text: string): number {
  * `c.req.json()`, `c.req.text()` or another `HonoRequest` accessor. Hono
  * caches what it read, so the body is then read from that cache, and the
  * same limit is applied to its size. (A body cached as parsed JSON is
- * measured as Hono serializes it again, compactly.)
+ * measured as Hono serializes it again, compactly.) A body this reads
+ * from the stream is put in that cache, so middleware can read it again
+ * after the route has answered.
  *
  * @internal Shared with `HandoffRouter`; not part of the package surface.
  * @param req - The route's `c.req`.
@@ -308,8 +310,21 @@ export async function _readJsonBody(
       }
       chunks.push(value);
     }
+    reader.releaseLock();
   }
-  return JSON.parse(new TextDecoder().decode(Buffer.concat(chunks, received)));
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  // Into Hono's body cache, as c.req.arrayBuffer() would put it, so
+  // middleware that reads the body after this route (c.req.json(), text(),
+  // arrayBuffer()) gets it from there instead of the used-up stream.
+  (req.bodyCache as Record<string, Promise<ArrayBuffer>>)['arrayBuffer'] = Promise.resolve(
+    bytes.buffer,
+  );
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 /**
