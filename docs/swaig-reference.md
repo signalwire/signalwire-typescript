@@ -1482,7 +1482,7 @@ joinConference(name: string, opts?: {
   startOnEnter?: boolean;
   endOnExit?: boolean;
   waitUrl?: string;
-  maxParticipants?: number;
+  maxParticipants?: number | string;
   record?: 'do-not-record' | 'record-from-start';
   region?: string;
   trim?: 'trim-silence' | 'do-not-trim';
@@ -1505,7 +1505,7 @@ joinConference(name: string, opts?: {
 | `opts.startOnEnter`                    | `boolean`                                   | `true`              | Start the conference when this participant joins.    |
 | `opts.endOnExit`                       | `boolean`                                   | `false`             | End the conference when this participant leaves.     |
 | `opts.waitUrl`                         | `string`                                    | none                | URL of media to play while the conference is on hold. |
-| `opts.maxParticipants`                 | `number`                                    | none                | Maximum number of participants. The SDK accepts 1 to 250, and leaves the key out when it's 250. |
+| `opts.maxParticipants`                 | `number \| string`                         | none                | Maximum number of participants, an integer from 2 to 100000, or a SWML variable reference such as `'${room_size}'`. A numeric string is sent as an integer. Sent whenever it's given; left out, the platform's default of 100000 applies. |
 | `opts.record`                          | `'do-not-record' \| 'record-from-start'`  | `'do-not-record'`   | Recording mode.                                      |
 | `opts.region`                          | `string`                                    | none                | Region for the conference.                           |
 | `opts.trim`                            | `'trim-silence' \| 'do-not-trim'`         | `'trim-silence'`    | Silence trimming for recordings.                     |
@@ -1518,9 +1518,9 @@ joinConference(name: string, opts?: {
 | `opts.recordingStatusCallbackEvent`    | `string`                                    | `'completed'`       | Events to send to the recording status callback.     |
 | `opts.result`                          | `unknown`                                   | none                | Actions to switch on by result, as the verb's `result` object. |
 
-**Behavior:** The SDK leaves out any option set to its default value. When no option remains, the `join_conference` value is the name string. Otherwise it's an object with `name` and the other options.
+**Behavior:** The SDK leaves out any option set to its default value, except `maxParticipants`, which is sent whenever it's given. When no option remains, the `join_conference` value is the name string. Otherwise it's an object with `name` and the other options.
 
-**Throws:** `Error` when `name` is blank, or `maxParticipants` is 0 or less, or more than 250.
+**Throws:** `Error` when `name` is blank, or `maxParticipants` isn't an integer from 2 to 100000 or a SWML variable reference.
 
 **Returns:** `this` for chaining.
 
@@ -1706,11 +1706,11 @@ pay(opts: {
   inputMethod?: string;
   statusUrl?: string;
   paymentMethod?: string;
-  timeout?: number;
-  maxAttempts?: number;
-  securityCode?: boolean;
+  timeout?: number | string;
+  maxAttempts?: number | string;
+  securityCode?: boolean | string;
   postalCode?: boolean | string;
-  minPostalCodeLength?: number;
+  minPostalCodeLength?: number | string;
   tokenType?: string;
   chargeAmount?: string;
   currency?: string;
@@ -1730,11 +1730,11 @@ pay(opts: {
 | `opts.inputMethod`         | `string`             | `'dtmf'`                              | How the caller enters details. The SWML `pay` verb accepts only `'dtmf'`. |
 | `opts.statusUrl`           | `string`             | none                                  | URL that receives payment status events.                        |
 | `opts.paymentMethod`       | `string`             | `'credit-card'`                       | Payment method. The verb accepts only `'credit-card'`.          |
-| `opts.timeout`             | `number`             | `5`                                   | Seconds to wait for the next digit.                             |
-| `opts.maxAttempts`         | `number`             | `1`                                   | Number of times the `pay` verb retries collecting the details.  |
-| `opts.securityCode`        | `boolean`            | `true`                                | Whether to ask for the security code.                           |
+| `opts.timeout`             | `number \| string`  | `5`                                   | Seconds to wait for the next digit.                             |
+| `opts.maxAttempts`         | `number \| string`  | `1`                                   | Number of times the `pay` verb retries collecting the details.  |
+| `opts.securityCode`        | `boolean \| string` | `true`                                | Whether to ask for the security code.                           |
 | `opts.postalCode`          | `boolean \| string` | `true`                                | Whether to ask for the postal code, or the postal code itself when it's known. |
-| `opts.minPostalCodeLength` | `number`             | `0`                                   | Minimum postal code length.                                     |
+| `opts.minPostalCodeLength` | `number \| string`  | `0`                                   | Minimum postal code length.                                     |
 | `opts.tokenType`           | `string`             | `'reusable'`                          | `'one-time'` or `'reusable'`.                                   |
 | `opts.chargeAmount`        | `string`             | none                                  | Amount to charge, as a decimal string (for example `'29.99'`). |
 | `opts.currency`            | `string`             | `'usd'`                               | ISO 4217 currency code.                                         |
@@ -1746,7 +1746,9 @@ pay(opts: {
 | `opts.prompts`             | `PaymentPrompt[]`    | none                                  | Custom prompts for payment steps.                               |
 | `opts.aiResponse`          | `string`             | Text that references `${pay_result}`  | Set as `ai_response` before the `pay` verb runs.                |
 
-The SDK sends `timeout`, `max_attempts`, `min_postal_code_length` and `security_code` as strings, and `postal_code` as a string when it's a boolean. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
+The SDK sends `timeout`, `max_attempts` and `min_postal_code_length` as integers and `security_code` as a boolean, as the SWML schema types them, and `postal_code` as given. Each of the four also takes a numeric string (or `'true'` or `'false'` for `securityCode`), which the SDK converts, or a SWML variable reference such as `'${pay_timeout}'`, which it sends as written. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
+
+**Throws:** `Error` when `timeout`, `maxAttempts` or `minPostalCodeLength` isn't an integer, or `securityCode` isn't a boolean, or a SWML variable reference.
 
 **Returns:** `this` for chaining.
 

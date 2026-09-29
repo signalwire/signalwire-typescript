@@ -64,6 +64,71 @@ export interface PaymentParameter {
 }
 
 /**
+ * A SWML variable reference, such as `${timeout}` or `%{timeout}`, which the
+ * SWML schema accepts wherever it accepts an integer or a boolean.
+ */
+const SWML_VAR = /^[$%]\{.*\}$/;
+
+/** Show a rejected value in an error message: strings quoted, the rest as written. */
+function showValue(value: unknown): string {
+  return typeof value === 'string' ? JSON.stringify(value) : String(value);
+}
+
+/**
+ * Return `value` as an integer for a SWML verb, or throw.
+ *
+ * Accepts an integer, a string of digits (optionally negative, surrounding
+ * spaces ignored), or a SWML variable reference, which is passed through as
+ * written. An integer must be within `minimum` and `maximum` when they are
+ * given. Mirrors Python's `_swml_int()`.
+ */
+function swmlInt(
+  name: string,
+  value: unknown,
+  minimum?: number,
+  maximum?: number,
+): number | string {
+  let num: number | undefined;
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (SWML_VAR.test(text)) return text;
+    if (/^-?\d+$/.test(text)) num = Number(text);
+  } else if (typeof value === 'number' && Number.isInteger(value)) {
+    num = value;
+  }
+  const inRange =
+    num !== undefined &&
+    (minimum === undefined || num >= minimum) &&
+    (maximum === undefined || num <= maximum);
+  if (!inRange) {
+    const expected =
+      minimum !== undefined && maximum !== undefined
+        ? `an integer from ${minimum} to ${maximum}`
+        : 'an integer';
+    throw new Error(`${name} must be ${expected}, got ${showValue(value)}`);
+  }
+  return num!; // inRange implies num is set
+}
+
+/**
+ * Return `value` as a boolean for a SWML verb, or throw.
+ *
+ * Accepts a boolean, the strings `"true"` and `"false"` in any case, or a
+ * SWML variable reference, which is passed through as written. Mirrors
+ * Python's `_swml_bool()`.
+ */
+function swmlBool(name: string, value: unknown): boolean | string {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const text = value.trim();
+    const lower = text.toLowerCase();
+    if (lower === 'true' || lower === 'false') return lower === 'true';
+    if (SWML_VAR.test(text)) return text;
+  }
+  throw new Error(`${name} must be a boolean, got ${showValue(value)}`);
+}
+
+/**
  * Builder for SWAIG function responses.
  *
  * Carries a response and a list of structured actions (connect, hangup, SMS,
@@ -849,10 +914,15 @@ export class FunctionResult {
    * Join a conference by name with optional configuration. Options at their
    * default value are left out; with none left, `join_conference` is the name
    * string alone.
+   *
+   * `maxParticipants` is sent whenever it is given, as an integer from 2 to
+   * 100000, the SWML schema's range. A numeric string is converted, and a SWML
+   * variable reference such as `'${room_size}'` is passed through. Left out,
+   * the platform's default of 100000 applies.
    * @param name - The conference name to join.
    * @param opts - Optional conference settings such as mute, recording, and callbacks.
-   * @throws {Error} When `name` is blank, or `maxParticipants` is 0 or less, or
-   *   more than 250.
+   * @throws {Error} When `name` is blank, or `maxParticipants` isn't an
+   *   integer from 2 to 100000 or a SWML variable reference.
    * @returns This instance for chaining.
    */
   joinConference(
@@ -863,7 +933,7 @@ export class FunctionResult {
       startOnEnter?: boolean;
       endOnExit?: boolean;
       waitUrl?: string;
-      maxParticipants?: number;
+      maxParticipants?: number | string;
       record?: 'do-not-record' | 'record-from-start';
       region?: string;
       trim?: 'trim-silence' | 'do-not-trim';
@@ -882,12 +952,11 @@ export class FunctionResult {
     if (!name.trim()) {
       throw new Error('name cannot be empty');
     }
-    if (
-      opts?.maxParticipants !== undefined &&
-      (opts.maxParticipants <= 0 || opts.maxParticipants > 250)
-    ) {
-      throw new Error('max_participants must be a positive integer <= 250');
-    }
+    // The schema's range for max_participants; the platform's default is 100000.
+    const maxParticipants =
+      opts?.maxParticipants !== undefined && opts.maxParticipants !== null
+        ? swmlInt('max_participants', opts.maxParticipants, 2, 100000)
+        : undefined;
     const hasNonDefaults =
       opts &&
       (opts.muted ||
@@ -895,7 +964,7 @@ export class FunctionResult {
         opts.startOnEnter === false ||
         opts.endOnExit ||
         opts.waitUrl ||
-        (opts.maxParticipants && opts.maxParticipants !== 250) ||
+        maxParticipants !== undefined ||
         (opts.record && opts.record !== 'do-not-record') ||
         opts.region ||
         (opts.trim && opts.trim !== 'trim-silence') ||
@@ -918,8 +987,7 @@ export class FunctionResult {
       if (opts!.startOnEnter === false) p['start_on_enter'] = false;
       if (opts!.endOnExit) p['end_on_exit'] = opts!.endOnExit;
       if (opts!.waitUrl) p['wait_url'] = opts!.waitUrl;
-      if (opts!.maxParticipants && opts!.maxParticipants !== 250)
-        p['max_participants'] = opts!.maxParticipants;
+      if (maxParticipants !== undefined) p['max_participants'] = maxParticipants;
       if (opts!.record && opts!.record !== 'do-not-record') p['record'] = opts!.record;
       if (opts!.region) p['region'] = opts!.region;
       if (opts!.trim && opts!.trim !== 'trim-silence') p['trim'] = opts!.trim;
@@ -1055,9 +1123,18 @@ export class FunctionResult {
 
   /**
    * Start a payment collection flow on the call. Emits an inline SWML document
-   * that sets `ai_response` and then runs the `pay` verb. The numeric and
-   * boolean options are sent as strings.
+   * that sets `ai_response` and then runs the `pay` verb.
+   *
+   * `timeout`, `max_attempts` and `min_postal_code_length` are sent as
+   * integers and `security_code` as a boolean, as the SWML schema types them.
+   * Each also accepts a numeric string (or `"true"`/`"false"` for
+   * `securityCode`), which is converted, or a SWML variable reference such as
+   * `'${timeout}'`, which is passed through. `postalCode` is a boolean
+   * (whether to ask for it) or the postal code itself, as a string.
    * @param opts - Payment configuration including connector URL, method, and prompt options.
+   * @throws {Error} When `timeout`, `maxAttempts` or `minPostalCodeLength`
+   *   isn't an integer, or `securityCode` isn't a boolean, or a SWML variable
+   *   reference.
    * @returns This instance for chaining.
    */
   pay(opts: {
@@ -1065,11 +1142,11 @@ export class FunctionResult {
     inputMethod?: string;
     statusUrl?: string;
     paymentMethod?: string;
-    timeout?: number;
-    maxAttempts?: number;
-    securityCode?: boolean;
+    timeout?: number | string;
+    maxAttempts?: number | string;
+    securityCode?: boolean | string;
     postalCode?: boolean | string;
-    minPostalCodeLength?: number;
+    minPostalCodeLength?: number | string;
     tokenType?: string;
     chargeAmount?: string;
     currency?: string;
@@ -1085,10 +1162,11 @@ export class FunctionResult {
       payment_connector_url: opts.paymentConnectorUrl,
       input: opts.inputMethod ?? 'dtmf',
       payment_method: opts.paymentMethod ?? 'credit-card',
-      timeout: String(opts.timeout ?? 5),
-      max_attempts: String(opts.maxAttempts ?? 1),
-      security_code: String(opts.securityCode ?? true),
-      min_postal_code_length: String(opts.minPostalCodeLength ?? 0),
+      // Integers and a boolean, as the SWML schema types them
+      timeout: swmlInt('timeout', opts.timeout ?? 5),
+      max_attempts: swmlInt('max_attempts', opts.maxAttempts ?? 1),
+      security_code: swmlBool('security_code', opts.securityCode ?? true),
+      min_postal_code_length: swmlInt('min_postal_code_length', opts.minPostalCodeLength ?? 0),
       token_type: opts.tokenType ?? 'reusable',
       currency: opts.currency ?? 'usd',
       language: opts.language ?? 'en-US',
@@ -1096,8 +1174,8 @@ export class FunctionResult {
       valid_card_types: opts.validCardTypes ?? 'visa mastercard amex',
     };
 
-    const postalCode = opts.postalCode ?? true;
-    payParams['postal_code'] = typeof postalCode === 'boolean' ? String(postalCode) : postalCode;
+    // A boolean (whether to ask for it) or the postal code itself, as a string
+    payParams['postal_code'] = opts.postalCode ?? true;
 
     if (opts.statusUrl) payParams['status_url'] = opts.statusUrl;
     if (opts.chargeAmount) payParams['charge_amount'] = opts.chargeAmount;

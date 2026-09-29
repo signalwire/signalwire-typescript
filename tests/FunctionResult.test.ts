@@ -289,10 +289,10 @@ describe('FunctionResult', () => {
     );
   });
 
-  it('joinConference rejects max_participants > 250 (runtime guard, parity with Python)', () => {
+  it('joinConference rejects max_participants above the schema maximum (parity with Python)', () => {
     expect(() =>
-      new FunctionResult('ok').joinConference('conf1', { maxParticipants: 300 }),
-    ).toThrow('max_participants must be a positive integer <= 250');
+      new FunctionResult('ok').joinConference('conf1', { maxParticipants: 100001 }),
+    ).toThrow('max_participants must be an integer from 2 to 100000, got 100001');
   });
 
   it('executeRpc', () => {
