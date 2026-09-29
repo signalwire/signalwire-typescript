@@ -436,3 +436,21 @@ describe('SpiderSkill follow_robots_txt, found in review', () => {
     expect(await scrapeWith({}, 'https://audit.example/entry')).toContain('ALLOWED_AUDIT_CONTENT');
   });
 });
+
+describe('SpiderSkill tool_name', () => {
+  it('declares no default, as the tools keep their plain names without it', () => {
+    const schema = SpiderSkill.getParameterSchema();
+    expect(schema['tool_name']!.default).toBeUndefined();
+    expect(new SpiderSkill().getTools().map((t) => t.name)).toEqual([
+      'scrape_url',
+      'crawl_site',
+      'extract_structured_data',
+    ]);
+    expect(
+      new SpiderSkill({ tool_name: 'docs' })
+        .getTools()
+        .map((t) => t.name)
+        .every((n) => n.startsWith('docs_')),
+    ).toBe(true);
+  });
+});

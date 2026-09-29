@@ -155,3 +155,11 @@ describe('NativeVectorSearchSkill', () => {
     expect(res.response).toContain('doc1');
   });
 });
+
+describe('NativeVectorSearchSkill tool_name', () => {
+  it('declares the default the code uses', () => {
+    const schema = NativeVectorSearchSkill.getParameterSchema();
+    expect(schema['tool_name']!.default).toBe('search_knowledge');
+    expect(new NativeVectorSearchSkill().getTools()[0]!.name).toBe('search_knowledge');
+  });
+});

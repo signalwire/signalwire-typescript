@@ -275,6 +275,14 @@ export class NativeVectorSearchSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      // The base schema's default is the skill name; the tool is named
+      // search_knowledge when tool_name is unset (Python skill.py:248 too).
+      tool_name: {
+        type: 'string',
+        description: 'Name of the search tool. A different name lets you add a second instance.',
+        default: 'search_knowledge',
+        required: false,
+      },
       index_file: {
         type: 'string',
         description:

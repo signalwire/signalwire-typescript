@@ -355,7 +355,7 @@ enable_analytics: {
 - **`skip_prompt`** (boolean, default `false`): when `true`, the skill adds no prompt sections
 - **`tool_name`** (string, default the skill's `SKILL_NAME`): only for a class with `SUPPORTS_MULTIPLE_INSTANCES = true`, to tell instances apart
 
-A skill can redeclare a base parameter with its own description or default. `joke` and `swml_transfer`, for example, redeclare `tool_name`.
+A skill can redeclare a base parameter with its own description or default. `joke`, `swml_transfer` and `native_vector_search`, for example, redeclare `tool_name` with the tool's default name, and `spider`, whose `tool_name` is a prefix, redeclares it with no default.
 
 ## Examples
 

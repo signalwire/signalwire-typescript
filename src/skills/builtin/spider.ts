@@ -113,6 +113,15 @@ export class SpiderSkill extends SkillBase {
     const d = SpiderSkill.DEFAULTS;
     return {
       ...super.getParameterSchema(),
+      // The base schema's default is the skill name, but tool_name is a
+      // prefix that's empty when unset (Python skill.py:306 too).
+      tool_name: {
+        type: 'string',
+        description:
+          'Prefix for the tool names, as in <tool_name>_scrape_url, and for the instance key. ' +
+          'Unset, the tools keep their plain names.',
+        required: false,
+      },
       delay: {
         type: 'number',
         description: 'Delay between requests in seconds',

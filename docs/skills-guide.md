@@ -511,7 +511,7 @@ The schema also lists the Python skill's local-index parameters. This SDK accept
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `tool_name` | string | `"native_vector_search"` | No | Name of the search tool. The code uses `search_knowledge` when it's unset. |
+| `tool_name` | string | `"search_knowledge"` | No | Name of the search tool. A different name lets you add a second instance. |
 | `documents` | array | none | No | Documents to index in memory: `{ id, text, metadata?, tags? }` |
 | `remote_url` | string | none | No | Base URL of a remote search server |
 | `index_name` | string | `"default"` | No | Index to query on the remote server |
@@ -564,7 +564,7 @@ With `follow_robots_txt: true`, it skips a page, or a redirect to a page, that t
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `tool_name` | string | `"spider"` | No | Prefix for the tool names. The code adds no prefix when it's unset. |
+| `tool_name` | string | none | No | Prefix for the tool names. The tools keep their plain names when it's unset. |
 | `delay` | number | `0.1` | No | Seconds between pages while crawling |
 | `concurrent_requests` | integer | `5` | No | Deprecated, and has no effect: the spider fetches one page at a time. Setting it logs a warning. |
 | `timeout` | integer | `5` | No | Seconds to wait for a request, from 1 to 60 |
