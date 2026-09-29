@@ -335,6 +335,24 @@ describe('help', () => {
     expect((await runCli(['--help-examples'])).stdout).toContain('--exec get_weather --city');
   }, 70_000);
 
+  it('lists the call-data values and options the parser accepts', async () => {
+    const help = (await runCli(['--help'])).stdout;
+    expect(help).toContain('--call-direction inbound|outbound');
+    expect(help).toContain('--project-id ID');
+    expect(help).toContain('--space-id ID');
+    const { code } = await runCli([
+      'agent.ts',
+      '--project-id',
+      'p1',
+      '--space-id',
+      's1',
+      '--call-direction',
+      'outbound',
+      '--parse-only',
+    ]);
+    expect(code).toBe(0);
+  }, 70_000);
+
   it('parses a Python-style --exec invocation under --parse-only', async () => {
     const { code, stdout } = await runCli([
       'agent.ts',

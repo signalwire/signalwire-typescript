@@ -306,9 +306,12 @@ Function execution:
 
 SWML and call data (each applies to --dump-swml, --list-tools and --exec):
   --call-type sip|webrtc         Call type (default: webrtc)
-  --call-direction in|outbound   Call direction (default: inbound)
+  --call-direction inbound|outbound
+                                 Call direction (default: inbound)
   --call-state STATE             Call state, set as call.state (default: created)
   --call-id ID                   call_id the simulated request carries
+  --project-id ID                call.project_id
+  --space-id ID                  call.space_id
   --from-number NUMBER           call.from
   --to-extension EXT             call.to
   --user-vars JSON               vars.userVariables
