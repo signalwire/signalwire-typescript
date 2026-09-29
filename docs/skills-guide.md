@@ -337,7 +337,7 @@ The skill compiles each body with the `Function` constructor, only when `SWML_AL
 | `prompt_title` | string | `"Custom Tools"` | No | Title of the prompt section that lists the tools |
 | `prompt_body` | string | none | No | Body of that prompt section |
 
-Each `parameters` entry is `{ name, type, description }`. To make an argument required, list its name in the tool's `required` array. This example defines one tool:
+Each `parameters` entry is `{ name, type, description }`, with an optional `required: true`. An argument is required when its entry sets `required: true` or the tool's `required` array lists its name. This example defines one tool:
 
 ```typescript
 import { CustomSkillsSkill } from '@signalwire/sdk';

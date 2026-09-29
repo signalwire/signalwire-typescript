@@ -45,7 +45,7 @@ interface CustomToolDefinition {
   parameters?: CustomToolParameter[];
   /** JavaScript function body executed when the tool is invoked. */
   handler_code: string;
-  /** Names of required parameters. */
+  /** Names of required parameters, in addition to those marked `required` in `parameters`. */
   required?: string[];
   /** Optional description used in the prompt section instead of the tool description. */
   prompt_description?: string;
@@ -199,7 +199,7 @@ export class CustomSkillsSkill extends SkillBase {
           name: toolDef.name,
           description: toolDef.description,
           parameters: this._buildParameters(toolDef),
-          required: toolDef.required,
+          required: this._required(toolDef),
           secure: toolDef.secure,
           fillers: toolDef.fillers,
           handler: () => {
@@ -220,7 +220,7 @@ export class CustomSkillsSkill extends SkillBase {
         name: toolDef.name,
         description: toolDef.description,
         parameters: this._buildParameters(toolDef),
-        required: toolDef.required,
+        required: this._required(toolDef),
         secure: toolDef.secure,
         fillers: toolDef.fillers,
         handler: async (args: Record<string, unknown>, rawData: Record<string, unknown>) => {
@@ -310,6 +310,16 @@ export class CustomSkillsSkill extends SkillBase {
       };
     }
     return params;
+  }
+
+  /**
+   * The tool's required parameters: the tool-level `required` list plus every
+   * parameter marked `required: true`, each once.
+   */
+  private _required(toolDef: CustomToolDefinition): string[] | undefined {
+    const marked = (toolDef.parameters ?? []).filter((p) => p.required).map((p) => p.name);
+    if (marked.length === 0) return toolDef.required;
+    return [...new Set([...(toolDef.required ?? []), ...marked])];
   }
 
   /**
