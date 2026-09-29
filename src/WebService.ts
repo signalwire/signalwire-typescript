@@ -10,6 +10,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
+import { basePath } from 'hono/route';
 import { readFile, stat, readdir, realpath } from 'node:fs/promises';
 import { join, extname, normalize, relative, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
@@ -500,25 +501,38 @@ export class WebService {
 
   private _setupRoutes(): void {
     // Root endpoint showing available directories
-    this._app.get('/', (c) => {
-      const dirEntries = Object.entries(this.directories);
+    this._app.get('/', (c) => this._serveOverview(c));
 
-      if (dirEntries.length === 0) {
-        return c.json({
-          service: 'SignalWire Web Service',
-          directories: [],
-        });
-      }
+    // Mounted directories: one route that consults `directories` on each
+    // request, so mounts added or removed after the first request apply.
+    this._app.get('*', (c) => this._serveMounted(c));
+  }
 
-      const items = dirEntries
-        .map(
-          ([route, localPath]) =>
-            `<li><a href="${escapeHtml(route)}">${escapeHtml(route)}</a>` +
-            ` <span class="path">&rarr; ${escapeHtml(localPath)}</span></li>`,
-        )
-        .join('\n');
+  /**
+   * The page at `/` that links to each mounted directory. Its links carry the
+   * prefix a parent app mounts this one under.
+   */
+  private _serveOverview(c: Context): Response {
+    const dirEntries = Object.entries(this.directories);
+    const base = basePath(c).replace(/\/+$/, '');
 
-      const html = `<!DOCTYPE html>
+    if (dirEntries.length === 0) {
+      return c.json({
+        service: 'SignalWire Web Service',
+        directories: [],
+      });
+    }
+
+    const items = dirEntries
+      .map(
+        ([route, localPath]) =>
+          `<li><a href="${escapeHtml(base + WebService._normalizeRoute(route))}">` +
+          `${escapeHtml(route)}</a>` +
+          ` <span class="path">&rarr; ${escapeHtml(localPath)}</span></li>`,
+      )
+      .join('\n');
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>SignalWire Web Service</title>
@@ -540,13 +554,8 @@ export class WebService {
   </ul>
 </body>
 </html>`;
-      c.header('Content-Type', 'text/html');
-      return c.body(html);
-    });
-
-    // Mounted directories: one route that consults `directories` on each
-    // request, so mounts added or removed after the first request apply.
-    this._app.get('*', (c) => this._serveMounted(c));
+    c.header('Content-Type', 'text/html');
+    return c.body(html);
   }
 
   // ── Directory mounting ─────────────────────────────────────────────
@@ -586,13 +595,34 @@ export class WebService {
     return best;
   }
 
-  /** Serve a GET request under a mounted directory, or 404 when no mount matches. */
+  /**
+   * The request path below the prefix a parent app mounts this one under with
+   * `route()` (Python's `root_path`), or the whole path when it isn't
+   * mounted. The prefix is the one the request actually matched, so a
+   * parameterized prefix such as `/:tenant` works, and it counts only at a
+   * path-segment boundary. Null if the path doesn't start with it.
+   */
+  private static _pathBelowBase(c: Context): string | null {
+    const base = basePath(c).replace(/\/+$/, '');
+    const path = c.req.path;
+    if (!base) return path;
+    if (path === base) return '/';
+    return path.startsWith(`${base}/`) ? path.slice(base.length) : null;
+  }
+
+  /**
+   * Serve a GET request under a mounted directory, or 404 when no mount
+   * matches. Every check sees the path below the parent app's prefix.
+   */
   private async _serveMounted(c: Context): Promise<Response> {
-    const mount = this._findMount(c.req.path);
-    if (!mount) return c.notFound();
+    const path = WebService._pathBelowBase(c);
+    if (path === null) return c.notFound();
+    const mount = this._findMount(path);
+    // `${prefix}/` under a parent app reaches this route rather than `/`
+    if (!mount) return path === '/' ? this._serveOverview(c) : c.notFound();
 
     const baseDir = resolve(mount.directory);
-    const requestedPath = mount.prefix === '/' ? c.req.path : c.req.path.slice(mount.prefix.length);
+    const requestedPath = mount.prefix === '/' ? path : path.slice(mount.prefix.length);
 
     // Path traversal protection: reject any path containing "..", and any
     // hidden or blocked component, whether the path exists or not.

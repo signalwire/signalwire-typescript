@@ -486,6 +486,25 @@ agent.setPromptText('You are a helpful assistant.');
 await agent.serve({ port: 3000 });
 ```
 
+### Inside Another Hono App
+
+`getApp()` returns a Hono app that a parent app can mount under a prefix with `route()`:
+
+```typescript
+import { Hono } from 'hono';
+import { WebService } from '@signalwire/sdk';
+
+const web = new WebService({ directories: { '/docs': './documentation' } });
+const app = new Hono();
+app.route('/static', web.getApp());
+// GET /static/docs/index.html serves ./documentation/index.html
+// GET /static/health is the health check, without credentials
+```
+
+The service resolves its mounts against the path below the prefix the request matched, at a path-segment boundary, so `/staticx/docs/...` isn't served. A parameterized prefix such as `/:tenant` works too. The directory redirect keeps the prefix (`/static/docs/guide` redirects to `/static/docs/guide/`), and so do the links on the `/static` overview page.
+
+Use `route()`, not `mount()`. `mount()` hands the service a request with the prefix removed from its URL, so files are served, but a directory redirect points at the path without the prefix.
+
 ### Docker Deployment
 
 This Dockerfile runs the compiled `web-server.ts` from the standalone example. It assumes you compile it to `dist/web-server.js` before the build:

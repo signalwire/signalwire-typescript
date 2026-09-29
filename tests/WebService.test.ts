@@ -654,3 +654,79 @@ describe('WebService /health exemption inside a parent app', () => {
     expect((await parent.request('/assets')).status).toBe(401);
   });
 });
+
+// A parent Hono app can mount the service under a prefix with route(). Mounts
+// resolve against the path below that prefix (Python's root_path), matched at
+// a segment boundary, and every check sees that relative path.
+describe('WebService mounted in a parent app under a prefix', () => {
+  beforeEach(() => {
+    mkdirSync(join(mount, 'sub'));
+    writeFileSync(join(mount, 'sub', 'index.html'), 'sub-index');
+    writeFileSync(join(mount, '.env.production'), 'prod-secret');
+  });
+
+  function parentApp(prefix = '/assets', options: Record<string, unknown> = {}) {
+    const service = new WebService({ directories: { '/docs': mount }, ...options });
+    return new Hono().route(prefix, service.getApp());
+  }
+
+  it('serves a file', async () => {
+    const res = await fetchAs(parentApp(), '/assets/docs/inside.txt');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('inside');
+  });
+
+  it('serves a file under a nested and a parameterized prefix', async () => {
+    const service = new WebService({ directories: { '/docs': mount } });
+    const nested = new Hono().route('/a', new Hono().route('/b', service.getApp()));
+    expect(await (await fetchAs(nested, '/a/b/docs/inside.txt')).text()).toBe('inside');
+    const param = new Hono().route('/:tenant', service.getApp());
+    expect(await (await fetchAs(param, '/t1/docs/inside.txt')).text()).toBe('inside');
+  });
+
+  it('redirects a directory with the prefix the client used in the Location', async () => {
+    const res = await fetchAs(parentApp(), '/assets/docs/sub');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/assets/docs/sub/');
+    const index = await fetchAs(parentApp(), '/assets/docs/sub/');
+    expect(await index.text()).toBe('sub-index');
+  });
+
+  it('refuses a dot path with 403', async () => {
+    const res = await fetchAs(parentApp(), '/assets/docs/.env.production');
+    expect(res.status).toBe(403);
+    expect(await res.text()).not.toContain('prod-secret');
+  });
+
+  it('refuses a symbolic link out of the mount with 403', async () => {
+    symlinkSync(join(outside, 'secret.txt'), join(mount, 'link.txt'));
+    const res = await fetchAs(parentApp(), '/assets/docs/link.txt');
+    expect(res.status).toBe(403);
+    expect(await res.text()).not.toContain('outside-secret');
+  });
+
+  it('requires credentials', async () => {
+    const res = await parentApp().request('/assets/docs/inside.txt');
+    expect(res.status).toBe(401);
+  });
+
+  it('matches the prefix only at a segment boundary', async () => {
+    expect((await fetchAs(parentApp(), '/assetsx/docs/inside.txt')).status).toBe(404);
+  });
+
+  it('serves a directory mounted at / under the prefix', async () => {
+    const service = new WebService({ directories: { '/': mount } });
+    const app = new Hono().route('/assets', service.getApp());
+    const res = await fetchAs(app, '/assets/inside.txt');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('inside');
+  });
+
+  it('shows the overview at the prefix with or without its trailing slash', async () => {
+    const app = parentApp();
+    const overview = await (await fetchAs(app, '/assets')).text();
+    expect(overview).toContain('SignalWire Web Service');
+    expect(overview).toContain('href="/assets/docs"');
+    expect(await (await fetchAs(app, '/assets/')).text()).toContain('SignalWire Web Service');
+  });
+});
