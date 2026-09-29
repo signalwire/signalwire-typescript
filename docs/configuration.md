@@ -178,11 +178,11 @@ The logger reads these at startup:
 
 ### SSL/TLS
 
-`SslConfig` reads these. `SWMLService.serve()` and `WebService.start()` use them to serve HTTPS. `AgentBase.serve()` and `AgentServer.run()` serve plain HTTP whatever these say, so put a TLS-terminating proxy in front of an agent.
+`SslConfig` reads these. `AgentBase.serve()`, `AgentServer.run()`, `SWMLService.serve()` and `WebService.start()` use them to serve HTTPS.
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `SWML_SSL_ENABLED` | `"true"` | off | Serve HTTPS when the certificate and key paths are set. |
+| `SWML_SSL_ENABLED` | `"true"`, `"1"` or `"yes"` | off | Serve HTTPS when the certificate and key paths are set. |
 | `SWML_SSL_CERT_PATH` | `string` | none | Path to the PEM certificate file. |
 | `SWML_SSL_KEY_PATH` | `string` | none | Path to the PEM private key file. |
 | `SWML_SSL_DOMAIN` | `string` | none | Domain name stored with the SSL settings. |

@@ -11,7 +11,9 @@ import { getPathNoStrict } from 'hono/utils/url';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
+import type { Server as NodeServer } from 'node:http';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
+import { SslConfig } from './SslConfig.js';
 
 /** Common MIME types for static file serving. */
 const MIME_TYPES: Record<string, string> = {
@@ -79,6 +81,8 @@ export class AgentServer {
   readonly log = getLogger('AgentServer');
   private agents: Map<string, AgentBase> = new Map();
   private _app: Hono;
+  /** @internal The server `run()` started, or null. */
+  _server: NodeServer | null = null;
 
   // SIP routing state
   private _sipRoutingEnabled = false;
@@ -472,7 +476,6 @@ export class AgentServer {
     // When loaded by the CLI tool, skip server startup — only the agent config is needed.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
 
-    const { serve } = await import('@hono/node-server');
     const h = host ?? this.host;
     const p = port ?? this.port;
 
@@ -482,12 +485,31 @@ export class AgentServer {
       this.log.warn('starting_server_with_no_agents');
     }
 
-    this.log.info(`Starting on http://${h}:${p}`);
+    // HTTPS from SWML_SSL_ENABLED, SWML_SSL_CERT_PATH and SWML_SSL_KEY_PATH,
+    // as the reference's run() reads them; a missing file falls back to HTTP.
+    const ssl = new SslConfig();
+    if (ssl.enabled && !ssl.isConfigured()) {
+      this.log.warn(
+        `SSL is enabled but the certificate or key isn't found (${ssl.certPath ?? 'no cert'}, ${ssl.keyPath ?? 'no key'}); serving HTTP`,
+      );
+    }
+    const serverOptions = ssl.isConfigured() ? ssl.getServerOptions() : null;
+
+    this.log.info(`Starting on ${serverOptions ? 'https' : 'http'}://${h}:${p}`);
     for (const [route, agent] of this.agents) {
       const [user] = agent.getBasicAuthCredentials();
       this.log.info(`  ${route} -> ${agent.name} (auth: ${user}:****)`);
     }
 
-    serve({ fetch: app.fetch, port: p, hostname: h });
+    if (serverOptions) {
+      const { createServer } = await import('node:https');
+      const { getRequestListener } = await import('@hono/node-server');
+      const server = createServer(serverOptions, getRequestListener(app.fetch));
+      server.listen(p, h);
+      this._server = server;
+    } else {
+      const { serve } = await import('@hono/node-server');
+      this._server = serve({ fetch: app.fetch, port: p, hostname: h }) as unknown as NodeServer;
+    }
   }
 }

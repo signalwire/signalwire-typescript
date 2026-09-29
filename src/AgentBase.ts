@@ -3623,15 +3623,38 @@ export class AgentBase extends SWMLService {
     // says, so its webhook URLs are the host's (see getFullUrl).
     this._serving = true;
 
-    const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
-    const listenUrl = `http://${host}:${port}${this.route}`;
+    // HTTPS when SSL is configured (SWML_SSL_ENABLED with a certificate and
+    // key, or the config file), as the reference's serve() passes them to
+    // uvicorn; plain HTTP otherwise.
+    const tls = this.sslEnabled && this.sslCertPath && this.sslKeyPath;
+    const listenUrl = `${tls ? 'https' : 'http'}://${host}:${port}${this.route}`;
     this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
     this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);
     if (this._proxyUrlBase) {
       this.log.info(`Proxy URL: ${redactUrl(this._proxyUrlBase)}`);
     }
-    honoServe({ fetch: app.fetch, port, hostname: host });
+    if (tls) {
+      const { readFileSync } = await import('node:fs');
+      const { createServer } = await import('node:https');
+      const { getRequestListener } = await import('@hono/node-server');
+      const server = createServer(
+        {
+          cert: readFileSync(this.sslCertPath!, 'utf-8'),
+          key: readFileSync(this.sslKeyPath!, 'utf-8'),
+        },
+        getRequestListener(app.fetch),
+      );
+      server.listen(port, host);
+      this._server = server as unknown as typeof this._server;
+    } else {
+      const { serve: honoServe } = await import('@hono/node-server');
+      this._server = honoServe({
+        fetch: app.fetch,
+        port,
+        hostname: host,
+      }) as unknown as typeof this._server;
+    }
   }
 
   /**

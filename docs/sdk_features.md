@@ -302,7 +302,7 @@ In standalone mode, the agent provides these:
 - CORS configuration through `SWML_CORS_ORIGINS`
 - Debug events at `/debug_events`, after `enableDebugEvents()`
 
-`AgentBase.serve()` serves plain HTTP. The `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` variables apply to `SWMLService.serve()`, not to an `AgentBase` agent, so terminate TLS in a proxy in front of the agent.
+`AgentBase.serve()` serves HTTPS when `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` are set, and plain HTTP otherwise. A TLS-terminating proxy in front of the agent works too.
 
 ---
 

@@ -756,7 +756,7 @@ The agent checks each request's `Content-Length` against `SWML_MAX_REQUEST_SIZE`
 
 A signing key comes from the `signingKey` option or `SIGNALWIRE_SIGNING_KEY`. With one, a `POST` to the agent route, `/swaig`, `/post_prompt` or a routing-callback path needs a valid SignalWire signature, or gets `403`. `GET` requests aren't checked.
 
-`AgentBase.serve()` serves plain HTTP only; `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` don't change that. Put a TLS-terminating proxy in front of the agent, and set `SWML_PROXY_URL_BASE` to its `https` URL.
+`AgentBase.serve()` serves HTTPS when `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH` are set, and plain HTTP otherwise. Behind a TLS-terminating proxy, set `SWML_PROXY_URL_BASE` to its `https` URL.
 
 ---
 

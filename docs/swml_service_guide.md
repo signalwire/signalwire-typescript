@@ -447,7 +447,7 @@ await service.serve({
 });
 ```
 
-Without all three, `serve()` serves plain HTTP. HTTPS responses don't carry a `Strict-Transport-Security` header. `AgentBase` overrides `serve()` and doesn't serve HTTPS; see [SSL/TLS](configuration.md#ssltls) in the configuration guide.
+Without all three, `serve()` serves plain HTTP. HTTPS responses don't carry a `Strict-Transport-Security` header. `AgentBase` overrides `serve()` and serves HTTPS from the same settings; see [SSL/TLS](configuration.md#ssltls) in the configuration guide.
 
 ## API Reference
 
