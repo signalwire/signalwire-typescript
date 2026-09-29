@@ -38,7 +38,6 @@ const FACTS = {
 };
 // endregion: facts
 
-// region: class
 /** Fred, a Wikipedia assistant with a friendly persona. */
 export class FredTheWikiBot extends AgentBase {
   constructor() {
@@ -66,6 +65,7 @@ export class FredTheWikiBot extends AgentBase {
         'Introduce yourself as Fred when greeting users',
         'Use the search_wiki function whenever users ask about factual topics',
         'Be enthusiastic about sharing knowledge',
+        'Search before you say Wikipedia has nothing on a topic, even one that sounds made up',
         "If Wikipedia doesn't have information, suggest alternative search terms",
         'Make learning conversational and enjoyable',
         'Add interesting context or follow-up questions to engage users',
@@ -155,14 +155,12 @@ export class FredTheWikiBot extends AgentBase {
   }
   // endregion: fun-fact
 }
-// endregion: class
 
 // region: create
 /** Build Fred, then add the Wikipedia search skill, which loads asynchronously. */
 export async function createFred(): Promise<FredTheWikiBot> {
   const fred = new FredTheWikiBot();
 
-  // region: skill
   // Add the Wikipedia search skill with custom configuration
   await fred.addSkill(
     new WikipediaSearchSkill({
@@ -182,14 +180,13 @@ export async function createFred(): Promise<FredTheWikiBot> {
       },
     }),
   );
-  // endregion: skill
 
   return fred;
 }
 // endregion: create
 
 // region: main
-// swaig-test and the tests import this file, and find Fred through this export
+// swaig-test imports this file, and finds Fred through this export
 export const fred = await createFred();
 
 // Print the banner and start the server only when this file is the program

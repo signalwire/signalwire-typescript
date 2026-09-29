@@ -148,6 +148,10 @@ describe("Fred's SWML (lessons 3 and 4)", () => {
     expect(pom[2]!['bullets']).toContain(
       'Use the search_wiki function whenever users ask about factual topics',
     );
+    // Found in live testing: without it the model skipped the search for made-up topics
+    expect(pom[2]!['bullets']).toContain(
+      'Search before you say Wikipedia has nothing on a topic, even one that sounds made up',
+    );
     // num_results: 2 reaches the prompt the skill writes
     expect(String(pom[3]!['body'])).toContain('up to 2 Wikipedia article summaries');
   });
