@@ -151,7 +151,7 @@ describe('a request that middleware cloned and reads after the handler', () => {
     app.route('/chat', gateway.router());
     app.route('/chat', handoff.router());
     // No Content-Length, so the size is found by reading.
-    const post = (path: string, body: string) =>
+    const post = async (path: string, body: string): Promise<Response> =>
       app.request(`/chat${path}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
