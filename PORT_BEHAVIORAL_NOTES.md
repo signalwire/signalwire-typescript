@@ -124,9 +124,11 @@ the list is empty (`core/swaig_function.py:128`). So "Python passes no
   contract divergence (the tool shape matches); listed here only so the backend
   difference is on the record.
 
-### Config-validation timing (api_ninjas_trivia, weather_api) — KEEP
+### Config-validation timing (api_ninjas_trivia) — KEEP
 - Python validates `api_key` eagerly (raises in `__init__` / `setup()`); TS
-  some skills check at handler time and return a "not configured" result.
+  api_ninjas_trivia checks at handler time and returns a "not configured"
+  result. weather_api now checks at `setup()`, as Python does, and loads with
+  `api_key` alone (`REQUIRED_ENV_VARS` is empty, 6f1db13).
 - Verdict: **KEEP** — observable failure mode is equivalent (the tool can't run
   without the key); the timing difference is idiomatic and low-stakes. Noted for
   completeness.
