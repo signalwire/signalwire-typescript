@@ -1,8 +1,8 @@
 /**
  * Google Maps Skill - Address geocoding and coordinate-based routing.
  *
- * Tier 3 built-in skill: requires GOOGLE_MAPS_API_KEY environment variable.
- * Matches the Python reference's two-tool interface exactly:
+ * Needs a Google Maps API key, from `api_key` or the GOOGLE_MAPS_API_KEY
+ * environment variable. Matches the Python reference's two-tool interface exactly:
  *   - `lookup_address` — geocode an address/business name (with optional
  *     lat/lng bias) via the Google Geocoding API.
  *   - `compute_route` — driving distance + travel time between two
@@ -49,29 +49,34 @@ interface RoutesV2Response {
 }
 
 /**
- * Provides driving/walking/transit directions and place search via Google Maps APIs.
+ * Validates addresses and computes driving routes with Google Maps: the
+ * `lookup_address` tool geocodes an address or business name, and the
+ * `compute_route` tool returns the driving distance and time between two
+ * coordinates.
  *
- * Tier 3 built-in skill. Requires the `GOOGLE_MAPS_API_KEY` environment variable.
- * Supports a `default_mode` config option ("driving"|"walking"|"bicycling"|"transit").
+ * Needs a Google Maps API key with the Geocoding and Routes APIs enabled,
+ * passed as `api_key` or set in the `GOOGLE_MAPS_API_KEY` environment
+ * variable; setup fails without one. `lookup_tool_name` and
+ * `route_tool_name` rename the tools.
  *
  * @example
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('google_maps', { default_mode: 'driving' });
+ * await agent.addSkillByName('google_maps', { api_key: process.env.MAPS_KEY });
  * ```
  */
 export class GoogleMapsSkill extends SkillBase {
   // Python ground truth: skills/google_maps/skill.py
-  // Python declares REQUIRED_PACKAGES = ["requests"], REQUIRED_ENV_VARS = [];
-  // TS uses native fetch and has historically declared the env var as required.
-  // Preserving TS behavior to avoid out-of-scope behavioral change.
+  // Python declares REQUIRED_PACKAGES = ["requests"], REQUIRED_ENV_VARS = []
+  // (google_maps/skill.py:471): the key comes from api_key. TS uses native
+  // fetch, and also takes the key from GOOGLE_MAPS_API_KEY.
   static override SKILL_NAME = 'google_maps';
   static override SKILL_DESCRIPTION =
     'Validate addresses and compute driving routes using Google Maps';
   static override SKILL_VERSION = '1.0.0';
   static override REQUIRED_PACKAGES: readonly string[] = [];
-  static override REQUIRED_ENV_VARS: readonly string[] = ['GOOGLE_MAPS_API_KEY'];
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -96,16 +101,21 @@ export class GoogleMapsSkill extends SkillBase {
     };
   }
 
+  /** The API key: `api_key`, or `GOOGLE_MAPS_API_KEY` when it isn't set. */
+  private apiKey(): string | undefined {
+    return (
+      this.getConfig<string | undefined>('api_key', undefined) ?? process.env['GOOGLE_MAPS_API_KEY']
+    );
+  }
+
   /**
-   * Fail-fast when GOOGLE_MAPS_API_KEY is not set, mirroring Python's
-   * `setup()` validation. The env var is the only credential source for
-   * this skill, so loading it without the key would produce runtime
-   * errors on every tool call.
+   * Fail fast when there's no API key, mirroring Python's `setup()`
+   * (google_maps/skill.py:502), which fails without `api_key`.
    * @returns `true` if the API key is present, `false` otherwise.
    */
   override async setup(): Promise<boolean> {
-    const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
-    if (!apiKey) {
+    if (!this.apiKey()) {
+      log.error('google_maps: api_key is required. Pass api_key or set GOOGLE_MAPS_API_KEY.');
       return false;
     }
     return true;
@@ -158,7 +168,7 @@ export class GoogleMapsSkill extends SkillBase {
             return new FunctionResult('Input is too long.');
           }
 
-          const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+          const apiKey = this.apiKey();
           if (!apiKey) {
             return new FunctionResult(
               'Service is not configured. Please contact your administrator.',
@@ -253,7 +263,7 @@ export class GoogleMapsSkill extends SkillBase {
             );
           }
 
-          const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+          const apiKey = this.apiKey();
           if (!apiKey) {
             return new FunctionResult(
               'Service is not configured. Please contact your administrator.',

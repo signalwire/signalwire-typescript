@@ -150,13 +150,13 @@ The SDK ships the skills in the following table, in `src/skills/builtin/`. `cust
 | `custom_skills` | `CustomSkillsSkill` | One per entry in `tools` | `SWML_ALLOW_CUSTOM_HANDLER_CODE=true` for the handlers to run |
 | `web_search` | `WebSearchSkill` | `web_search` | Google Custom Search credentials, and the `cheerio` package |
 | `wikipedia_search` | `WikipediaSearchSkill` | `search_wiki` | Nothing |
-| `google_maps` | `GoogleMapsSkill` | `lookup_address`, `compute_route` | `GOOGLE_MAPS_API_KEY` set in the environment |
+| `google_maps` | `GoogleMapsSkill` | `lookup_address`, `compute_route` | A Google Maps key in `api_key` or `GOOGLE_MAPS_API_KEY` |
 | `datasphere` | `DataSphereSkill` | `search_knowledge` | SignalWire credentials and a `document_id` |
 | `datasphere_serverless` | `DataSphereServerlessSkill` | `search_knowledge` (DataMap) | `space_name`, `project_id`, `token` and `document_id` |
 | `native_vector_search` | `NativeVectorSearchSkill` | `search_knowledge` | `documents` or a reachable `remote_url` |
 | `spider` | `SpiderSkill` | `scrape_url`, `crawl_site`, `extract_structured_data` | The `cheerio` package |
 | `claude_skills` | `ClaudeSkillsSkill` | One per SKILL.md file, prefixed `claude_` | A `skills_path` directory |
-| `ask_claude` | `AskClaudeSkill` | `ask_claude` | `ANTHROPIC_API_KEY` set in the environment |
+| `ask_claude` | `AskClaudeSkill` | `ask_claude` | An Anthropic key in `api_key` or `ANTHROPIC_API_KEY` |
 | `mcp_gateway` | `McpGatewaySkill` | One per gateway tool, prefixed `mcp_`, plus `_mcp_gateway_hangup` | A reachable `gateway_url` and credentials. `allow_insecure_tls` also needs the `undici` package |
 
 Every skill also accepts the two base parameters `swaig_fields` and `skip_prompt`, described in [Skill Configuration](#skill-configuration). The parameter tables in the following sections leave those two out. They list each parameter as the skill's `getParameterSchema()` declares it; where the code behaves differently, the text says so.
@@ -412,17 +412,17 @@ await agent.addSkill(new WikipediaSearchSkill({ num_results: 3 }));
 
 `GoogleMapsSkill` registers two tools. `lookup_address` geocodes an address or business name with the Geocoding API, optionally biased toward a latitude and longitude. `compute_route` gets the driving distance and time between two coordinates from the Routes API.
 
-The key comes only from `GOOGLE_MAPS_API_KEY`. The schema lists an `api_key` parameter, but the skill doesn't read it, and setup fails when the variable is unset.
+The key comes from `api_key`, or from `GOOGLE_MAPS_API_KEY` when `api_key` isn't set. Setup fails when neither is set.
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `api_key` | string | none | Yes | Listed in the schema, not read. Set `GOOGLE_MAPS_API_KEY`. |
+| `api_key` | string | none | Yes | Google Maps API key. Falls back to `GOOGLE_MAPS_API_KEY`. |
 | `lookup_tool_name` | string | `"lookup_address"` | No | Name of the geocoding tool |
 | `route_tool_name` | string | `"compute_route"` | No | Name of the route tool |
 
 This example adds the skill with its default tool names:
 
-<!-- snippet: no-run needs GOOGLE_MAPS_API_KEY in the environment to load -->
+<!-- snippet: no-run needs a Google Maps key in GOOGLE_MAPS_API_KEY to load -->
 ```typescript
 import { GoogleMapsSkill } from '@signalwire/sdk';
 await agent.addSkill(new GoogleMapsSkill());
@@ -626,17 +626,17 @@ await agent.addSkill(new ClaudeSkillsSkill({ skills_path: '/path/to/skills' }));
 
 ### ask_claude
 
-`AskClaudeSkill` sends a prompt to the Anthropic Messages API and returns the reply. The tool takes a required `prompt` and an optional `system_prompt`. The key comes only from `ANTHROPIC_API_KEY`: the schema lists `api_key`, but the skill doesn't read it, and the skill doesn't load without the variable.
+`AskClaudeSkill` sends a prompt to the Anthropic Messages API and returns the reply. The tool takes a required `prompt` and an optional `system_prompt`. The key comes from `api_key`, or from `ANTHROPIC_API_KEY` when `api_key` isn't set. Setup fails when neither is set.
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `api_key` | string | none | Yes | Listed in the schema, not read. Set `ANTHROPIC_API_KEY`. |
+| `api_key` | string | none | Yes | Anthropic API key. Falls back to `ANTHROPIC_API_KEY`. |
 | `model` | string | `"claude-sonnet-4-5-20250929"` | No | Model to call |
 | `max_tokens` | number | `1024` | No | Maximum tokens in the reply |
 
 This example sets the reply length:
 
-<!-- snippet: no-run needs ANTHROPIC_API_KEY in the environment to load -->
+<!-- snippet: no-run needs an Anthropic key in ANTHROPIC_API_KEY to load -->
 ```typescript
 import { AskClaudeSkill } from '@signalwire/sdk';
 await agent.addSkill(new AskClaudeSkill({ max_tokens: 512 }));
@@ -1194,7 +1194,7 @@ Some built-in skills also check their credentials when a tool runs, and return a
 <!-- snippet: no-compile illustrative handler-body fragment (bare `return` outside a function) -->
 ```typescript
 // Inside a tool handler
-const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
+const apiKey = this.getConfig<string | undefined>('api_key') ?? process.env['GOOGLE_MAPS_API_KEY'];
 if (!apiKey) {
   return new FunctionResult('Service is not configured. Please contact your administrator.');
 }
@@ -1212,9 +1212,9 @@ The built-in skills and the registry read these variables:
 | `API_NINJAS_KEY` | `api_ninjas_trivia` (when `api_key` isn't set) |
 | `GOOGLE_SEARCH_API_KEY` | `web_search` (when `api_key` isn't set) |
 | `GOOGLE_SEARCH_ENGINE_ID`, `GOOGLE_SEARCH_CX` | `web_search` (when `search_engine_id` isn't set) |
-| `GOOGLE_MAPS_API_KEY` | `google_maps` (required) |
+| `GOOGLE_MAPS_API_KEY` | `google_maps` (when `api_key` isn't set) |
 | `SIGNALWIRE_SPACE`, `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN` | `datasphere` (when the matching parameter isn't set) |
-| `ANTHROPIC_API_KEY` | `ask_claude` (required) |
+| `ANTHROPIC_API_KEY` | `ask_claude` (when `api_key` isn't set) |
 | `MCP_GATEWAY_AUTH_TOKEN`, `MCP_GATEWAY_AUTH_USER`, `MCP_GATEWAY_AUTH_PASSWORD` | `mcp_gateway` (when the matching parameter isn't set) |
 | `SWML_ALLOW_CUSTOM_HANDLER_CODE` | `custom_skills`: `true` lets `handler_code` run |
 | `SWML_ALLOW_PRIVATE_URLS` | `spider`, `web_search`, `native_vector_search` and `mcp_gateway`: `1`, `true` or `yes` allows private and internal addresses |
