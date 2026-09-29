@@ -5,6 +5,8 @@
  */
 
 import { executeDataMap, expandTemplate } from '../../src/cli/datamap-exec.js';
+import { DataMap } from '../../src/DataMap.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 
 const DATA = {
   args: { city: 'New York', target: 'Sales' },
@@ -217,7 +219,7 @@ describe('executeDataMap expressions', () => {
           string: '${args.command}',
           pattern: '^start',
           output: { response: 'Starting', action: [{ say: 'go' }] },
-          nomatch_output: { response: 'Unknown command ${args.command}' },
+          'nomatch-output': { response: 'Unknown command ${args.command}' },
         },
       ],
     },
@@ -230,7 +232,7 @@ describe('executeDataMap expressions', () => {
     });
   });
 
-  it('produces nomatch_output when it does not', async () => {
+  it('produces nomatch-output when it does not', async () => {
     expect(await executeDataMap(fn, { command: 'stop' })).toEqual({
       response: 'Unknown command stop',
     });
@@ -278,5 +280,23 @@ describe('found in review', () => {
     expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: [] }))).toBe('fine');
     expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: {} }))).toBe('fine');
     expect(await executeDataMap(fn({}), {}, fakeFetch({ errors: ['bad'] }))).toBe('failed');
+  });
+});
+
+describe('fix pass', () => {
+  it('uses the no-match output DataMap.expression() writes, under the key the platform reads', async () => {
+    const fn = new DataMap('command')
+      .parameter('command', 'string', 'The command')
+      .expression(
+        '${args.command}',
+        '^start',
+        new FunctionResult('Starting'),
+        new FunctionResult('Unknown command ${args.command}'),
+      )
+      .toSwaigFunction();
+    expect(await executeDataMap(fn, { command: 'start now' })).toEqual({ response: 'Starting' });
+    expect(await executeDataMap(fn, { command: 'stop' })).toEqual({
+      response: 'Unknown command stop',
+    });
   });
 });

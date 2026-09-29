@@ -1079,7 +1079,7 @@ The simulator differs from the platform in several ways:
 - It accepts an argument without its `args.` prefix, as `${city}`. Write `${args.city}`, the form the platform documents.
 - It leaves `@{...}` functions as they are.
 - It matches patterns with JavaScript regular expressions, so PCRE syntax such as `(?i)` is reported as an invalid pattern.
-- It doesn't evaluate a webhook's `expressions`, `nomatch-output`, or `error_keys` set on the `data_map` itself.
+- It doesn't evaluate a webhook's `expressions` or `error_keys` set on the `data_map` itself.
 - It sends a request body only for `POST`, `PUT` and `PATCH`.
 - It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
 

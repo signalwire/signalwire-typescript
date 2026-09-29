@@ -5,8 +5,8 @@
  * The pipeline, as the platform processes a data_map:
  *
  * 1. Expressions: the first whose `string` (expanded) matches its `pattern`
- *    produces `output`; one that doesn't match produces `nomatch_output`, if
- *    it has one.
+ *    produces `output`; one that doesn't match produces `nomatch-output` (the
+ *    key `DataMap.expression()` writes and the platform reads), if it has one.
  * 2. Webhooks, in order, until one succeeds. A webhook fails on a status
  *    outside 200-299, a body that isn't JSON, or, for a JSON object, a
  *    `parse_error`/`protocol_error` key or one of its `error_keys`.
@@ -127,6 +127,41 @@ export function expandValue(value: unknown, data: Data): unknown {
   return value;
 }
 
+/**
+ * Run a list of expressions as the platform does: the first one with an
+ * `output` whose expanded `string` matches its `pattern` produces that
+ * output, and one that doesn't match produces its `nomatch-output`, if it has
+ * one. An expression with no `output` is skipped, as on the platform.
+ */
+function runExpressions(
+  expressions: unknown,
+  data: Data,
+  say: (line: string) => void,
+): { matched: true; output: unknown } | { matched: false } {
+  for (const expr of Array.isArray(expressions) ? expressions : []) {
+    if (!isPlainObject(expr) || typeof expr['pattern'] !== 'string' || !('output' in expr)) {
+      continue;
+    }
+    const subject = expandTemplate(text(expr['string'] ?? ''), data);
+    let matched: boolean;
+    try {
+      matched = new RegExp(expr['pattern']).test(subject);
+    } catch {
+      say(`Expression pattern isn't a valid regular expression: ${expr['pattern']}`);
+      continue;
+    }
+    if (matched) {
+      say(`Expression matched: ${expr['pattern']} on "${subject}"`);
+      return { matched: true, output: expandValue(expr['output'], data) };
+    }
+    if ('nomatch-output' in expr) {
+      say(`Expression didn't match: ${expr['pattern']} on "${subject}"`);
+      return { matched: true, output: expandValue(expr['nomatch-output'], data) };
+    }
+  }
+  return { matched: false };
+}
+
 /** Options for {@link executeDataMap}. */
 export interface DataMapExecOptions {
   /** Print each step to `log`. */
@@ -188,25 +223,8 @@ export async function executeDataMap(
   };
 
   // 1. Expressions
-  for (const expr of Array.isArray(dataMap['expressions']) ? dataMap['expressions'] : []) {
-    if (!isPlainObject(expr) || typeof expr['pattern'] !== 'string') continue;
-    const subject = expandTemplate(text(expr['string'] ?? ''), context);
-    let matched: boolean;
-    try {
-      matched = new RegExp(expr['pattern']).test(subject);
-    } catch {
-      say(`Expression pattern isn't a valid regular expression: ${expr['pattern']}`);
-      continue;
-    }
-    if (matched && 'output' in expr) {
-      say(`Expression matched: ${expr['pattern']} on "${subject}"`);
-      return expandValue(expr['output'], context);
-    }
-    if (!matched && 'nomatch_output' in expr) {
-      say(`Expression didn't match: ${expr['pattern']} on "${subject}"`);
-      return expandValue(expr['nomatch_output'], context);
-    }
-  }
+  const exprResult = runExpressions(dataMap['expressions'], context, say);
+  if (exprResult.matched) return exprResult.output;
 
   // 2. Webhooks, in order, until one succeeds
   const webhooks = Array.isArray(dataMap['webhooks']) ? dataMap['webhooks'] : [];
