@@ -82,3 +82,36 @@ describe('BedrockAgent render warnings', () => {
     );
   });
 });
+
+describe('BedrockAgent.setPromptLlmParams inference values', () => {
+  it('warns about a temperature, top_p or max_tokens that is not a number, and keeps the old value', () => {
+    const agent = new BedrockAgent({ temperature: 0.7, topP: 0.9, maxTokens: 1024 });
+    agent.setPromptText('Hi.');
+    const warn = spyWarn(agent);
+    agent.setPromptLlmParams({ temperature: '0.2', top_p: 0.5, max_tokens: '300' });
+    expect(warn).toHaveBeenCalledWith(
+      "setPromptLlmParams(): max_tokens, temperature must be numbers, so they're ignored",
+    );
+    expect(bedrockVerb(agent.renderSwml())['prompt']).toMatchObject({
+      temperature: 0.7,
+      top_p: 0.5,
+      max_tokens: 1024,
+    });
+  });
+
+  it('uses the singular for one value', () => {
+    const agent = new BedrockAgent();
+    const warn = spyWarn(agent);
+    agent.setPromptLlmParams({ top_p: 'high' });
+    expect(warn).toHaveBeenCalledWith(
+      "setPromptLlmParams(): top_p must be a number, so it's ignored",
+    );
+  });
+
+  it("doesn't warn about numbers or a null value", () => {
+    const agent = new BedrockAgent();
+    const warn = spyWarn(agent);
+    agent.setPromptLlmParams({ temperature: 0.2, top_p: null });
+    expect(warn.mock.calls.filter(([m]) => String(m).includes('must be'))).toEqual([]);
+  });
+});

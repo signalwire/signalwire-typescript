@@ -110,7 +110,7 @@ An argument left `undefined` keeps its current value. The schema allows `tempera
 
 `setPromptLlmParams()` takes the settings by their SWML names. On a `BedrockAgent` it sorts them into three groups:
 
-- `temperature`, `top_p` and `max_tokens` update the inference settings, as `setInferenceParams()` does. A value that isn't a number is ignored.
+- `temperature`, `top_p` and `max_tokens` update the inference settings, as `setInferenceParams()` does. A value that isn't a number keeps the current setting, and the SDK logs a warning that names the key.
 - `confidence`, `presence_penalty` and `frequency_penalty` are added to the prompt object.
 - Any other key, such as `barge_confidence`, is left out, and the SDK logs a warning that names it.
 

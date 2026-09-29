@@ -237,7 +237,8 @@ export class BedrockAgent extends AgentBase {
    * Set the prompt settings Bedrock's prompt object defines.
    *
    * `temperature`, `top_p` and `max_tokens` update the inference settings, as
-   * {@link setInferenceParams} does. `confidence`, `presence_penalty` and
+   * {@link setInferenceParams} does; a value that isn't a number keeps the
+   * current setting and logs a warning. `confidence`, `presence_penalty` and
    * `frequency_penalty` go into the prompt object. Anything else, such as
    * `barge_confidence`, isn't part of the Bedrock prompt, so it's ignored
    * with a warning. Mirrors Python `set_prompt_llm_params`.
@@ -247,12 +248,22 @@ export class BedrockAgent extends AgentBase {
    */
   override setPromptLlmParams(params: Record<string, unknown>): this {
     const rest = { ...params };
+    const notNumbers: string[] = [];
     const take = (key: string): number | undefined => {
       const value = rest[key];
       delete rest[key];
-      return typeof value === 'number' ? value : undefined;
+      if (typeof value === 'number') return value;
+      if (value !== undefined && value !== null) notNumbers.push(key);
+      return undefined;
     };
     this.setInferenceParams(take('temperature'), take('top_p'), take('max_tokens'));
+    if (notNumbers.length > 0) {
+      notNumbers.sort();
+      const mustBe = notNumbers.length === 1 ? 'must be a number' : 'must be numbers';
+      this.log.warn(
+        `setPromptLlmParams(): ${notNumbers.join(', ')} ${mustBe}, so ${itOrThey(notNumbers)} ignored`,
+      );
+    }
     const promptParams: Record<string, unknown> = {};
     for (const key of BEDROCK_PROMPT_PARAMS) {
       if (key in rest) {
