@@ -301,7 +301,7 @@ A path that doesn't resolve shows as `<MISSING:path>` in the result. The simulat
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --env SWML_BASIC_AUTH_USER=admin --env-file .env --dump-swml
 ```
 
-Node.js 24 also reads `--env-file` itself, wherever it appears on the command line. When the file doesn't exist, Node stops before `swaig-test` runs, printing `node: .env: not found` with exit status 9.
+Node.js checks every `--env-file` on its command line itself, even one after the script name. Node 22 and 24 both do, so it happens however you run the CLI: the installed `swaig-test`, `node dist/cli/swaig-test.js` and `npx tsx src/cli/swaig-test.ts` alike. When the file exists, Node doesn't load it and passes the option on, and `swaig-test` loads the file. When the file doesn't exist, Node stops before `swaig-test` runs, printing `node: .env: not found` with exit status 9. Check the path, or set the variables with `--env`.
 
 ---
 
