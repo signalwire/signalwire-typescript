@@ -355,7 +355,7 @@ https://dev:w00t@example.com/cgi-bin/agent.cgi/swaig
 With a signing key set, the agent checks each POST's signature against the URL the platform received it on:
 
 - **Lambda**: `https://` plus `requestContext.domainName` (or the function URL's host), the path as called (with any API Gateway stage), and the query. [API Gateway REST APIs](#api-gateway-rest-apis) explains the limit on decoded queries.
-- **Google Cloud Functions**: the request's protocol and `Host` header, plus `req.originalUrl`.
+- **Google Cloud Functions**: the webhook base URL from the preceding table (`FUNCTION_URL`, or the host with `/<K_SERVICE>` on `cloudfunctions.net`), plus `req.originalUrl`. The platform strips the function's name before the request arrives, so the request's own host and `req.originalUrl` are tried second.
 - **Azure Functions**: `req.url`.
 - **CGI**: the scheme, `HTTP_HOST` (or `SERVER_NAME`), and `REQUEST_URI` (or `SCRIPT_NAME`, `PATH_INFO` and `QUERY_STRING`).
 

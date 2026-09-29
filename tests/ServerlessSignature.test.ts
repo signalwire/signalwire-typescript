@@ -151,6 +151,42 @@ describe('Google Cloud Functions', () => {
   });
 });
 
+describe('Google Cloud Functions on cloudfunctions.net (found in review)', () => {
+  afterEach(() => {
+    delete process.env['K_SERVICE'];
+  });
+
+  it("accepts a signature over the URL with the function's name, which the platform strips", async () => {
+    // SignalWire calls the webhook URL the SWML gave it, which includes the
+    // function's name; the request reaches the function without it.
+    process.env['K_SERVICE'] = 'voice';
+    const host = 'us-central1-proj.cloudfunctions.net';
+    let status = 0;
+    const handler = ServerlessAdapter.createGcfHandler(makeAgent().getApp());
+    await handler(
+      {
+        method: 'POST',
+        headers: {
+          host,
+          authorization: AUTH,
+          'content-type': 'application/json',
+          'x-signalwire-signature': sign(`https://${host}/voice/?tenant=x`),
+        },
+        url: '/?tenant=x',
+        path: '/',
+        rawBody: Buffer.from(BODY),
+        body: JSON.parse(BODY) as Record<string, unknown>,
+      },
+      {
+        status: (code: number) => void (status = code),
+        set: () => undefined,
+        send: () => undefined,
+      },
+    );
+    expect(status).toBe(200);
+  });
+});
+
 describe('Azure Functions', () => {
   it('routes below /api/<function> and checks the full URL it was called on', async () => {
     const url = 'https://app.azurewebsites.net/api/agent/?code=abc';
