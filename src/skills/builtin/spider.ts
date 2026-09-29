@@ -57,7 +57,7 @@ const ORIGIN_BOUND_HEADERS = new Set(['authorization', 'cookie', 'proxy-authoriz
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
+ * await agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
  * ```
  */
 export class SpiderSkill extends SkillBase {

@@ -177,9 +177,10 @@ export interface ParameterSchemaEntry {
  * - **Speech hints** via `getHints()`
  * - **Global data** seeded into each call via `getGlobalData()`
  *
- * Skills are added to an agent with `agent.addSkill('name', config)` and the
- * {@link SkillManager} calls `setAgent()` + `setup()` in sequence before the
- * agent starts serving requests.
+ * Skills are added to an agent with `agent.addSkill(new MySkill(config))`, or
+ * by registered name with `agent.addSkillByName('name', config)`. The agent
+ * calls `setAgent()`, and the {@link SkillManager} then calls `setup()`,
+ * before the skill's tools are registered.
  *
  * @example Custom skill
  * ```ts
@@ -201,7 +202,7 @@ export interface ParameterSchemaEntry {
  *
  * // In your agent:
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
+ * await agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
  * ```
  *
  * @see {@link SkillManager}

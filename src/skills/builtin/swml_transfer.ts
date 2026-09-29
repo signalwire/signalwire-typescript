@@ -64,10 +64,19 @@ interface TransferConfig {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('swml_transfer', {
+ * // Python-style: a regular expression per destination
+ * await agent.addSkillByName('swml_transfer', {
+ *   transfers: {
+ *     '/sales|pricing/i': { url: 'https://example.com/sales-agent' },
+ *     '/support/i': { address: '+15553334444', message: 'Connecting you to support.' },
+ *   },
+ * });
+ * // Or named destinations, matched by name
+ * await agent.addSkillByName('swml_transfer', {
+ *   tool_name: 'transfer_to_team',
  *   patterns: [
- *     { name: 'sales', pattern: /sales|pricing|buy/i, to: '+15551112222' },
- *     { name: 'support', pattern: /help|support|broken/i, to: '+15553334444' },
+ *     { name: 'billing', destination: '+15551112222', description: 'Billing department' },
+ *     { name: 'support', destination: 'sip:support@example.com' },
  *   ],
  * });
  * ```

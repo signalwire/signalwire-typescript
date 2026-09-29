@@ -51,7 +51,7 @@ interface WikipediaActionExtractsResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('wikipedia_search', { num_results: 2 });
+ * await agent.addSkillByName('wikipedia_search', { num_results: 2 });
  * ```
  */
 export class WikipediaSearchSkill extends SkillBase {

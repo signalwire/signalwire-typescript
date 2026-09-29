@@ -82,13 +82,13 @@ interface CustomSkillsConfigData {
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
  * // Requires SWML_ALLOW_CUSTOM_HANDLER_CODE=true
- * agent.addSkillByName('custom_skills', {
+ * await agent.addSkillByName('custom_skills', {
  *   tools: [
  *     {
  *       name: 'echo',
  *       description: 'Echo back the caller-supplied message.',
- *       parameters: { type: 'object', properties: { msg: { type: 'string' } } },
- *       handlerBody: 'return new FunctionResult(args.msg);',
+ *       parameters: [{ name: 'msg', type: 'string', description: 'The message', required: true }],
+ *       handler_code: 'return new FunctionResult(args.msg);',
  *     },
  *   ],
  * });

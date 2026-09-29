@@ -249,15 +249,21 @@ function scoreTfIdf(
 /**
  * Document search using TF-IDF in-memory scoring or a remote search server.
  *
- * Multi-instance capable (distinguished by `tool_name` + `index_file`).
+ * Multi-instance capable (distinguished by `tool_name` + `index_file`). The
+ * Python skill's local-index parameters (`index_file`, `build_index`,
+ * `backend` and the rest) are accepted but not used, except `index_file` in
+ * the instance key.
  *
- * @example Local JSON index
+ * @example In-memory documents
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('native_vector_search', {
+ * await agent.addSkillByName('native_vector_search', {
  *   tool_name: 'search_docs',
- *   index_file: './data/support-docs.json',
+ *   documents: [
+ *     { id: 'returns', text: 'Items can be returned within 30 days with a receipt.' },
+ *     { id: 'hours', text: 'The store is open 9am to 6pm, Monday to Saturday.' },
+ *   ],
  *   count: 3,
  * });
  * ```
