@@ -11,6 +11,8 @@ import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwmlRequestData } from '../PlatformContracts.js';
+import type { Context } from 'hono';
+import { filterSensitiveHeaders } from '../SecurityUtils.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -27,6 +29,9 @@ export interface InfoGathererQuestion {
 /**
  * Callback invoked on each incoming SWML request to produce the list of
  * questions for that request. Mirrors Python's `set_question_callback`.
+ * `queryParams` are the request URL's query parameters, `bodyParams` the
+ * parsed request body, and `headers` the HTTP request headers (lower-case
+ * names, without Authorization, Cookie and other credential headers).
  * @returns a list of questions (may be async).
  */
 export type InfoGathererQuestionCallback = (
@@ -225,7 +230,11 @@ export class InfoGathererAgent extends AgentBase {
    * per-request global_data payload which AgentBase merges into the SWML
    * response. Mirrors Python's `on_swml_request` return-dict contract.
    */
-  override async onSwmlRequest(rawData: SwmlRequestData): Promise<Record<string, unknown> | void> {
+  override async onSwmlRequest(
+    rawData: SwmlRequestData,
+    _callbackPath?: string,
+    context?: Context,
+  ): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
 
@@ -240,13 +249,23 @@ export class InfoGathererAgent extends AgentBase {
       };
     }
 
-    // Build callback inputs from the incoming raw data.
-    const queryParams = this.extractRecord(rawData['query_params']);
-    const headers = this.extractRecord(rawData['headers']);
+    // Build callback inputs from the request itself, as Python reads
+    // request.query_params and request.headers. Credential-bearing headers
+    // (Authorization, Cookie, ...) are removed, as for dynamic config. Without
+    // a request context (a direct call), both are empty.
+    const queryParams: Record<string, string> = context ? { ...context.req.query() } : {};
+    const headers: Record<string, string> = {};
+    context?.req.raw.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
     const bodyParams = rawData;
 
     try {
-      const questions = await this.questionCallback(queryParams, bodyParams, headers);
+      const questions = await this.questionCallback(
+        queryParams,
+        bodyParams,
+        filterSensitiveHeaders(headers),
+      );
       InfoGathererAgent.validateQuestions(questions);
       return {
         global_data: {
@@ -265,18 +284,6 @@ export class InfoGathererAgent extends AgentBase {
         },
       };
     }
-  }
-
-  private extractRecord(value: unknown): Record<string, string> {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const result: Record<string, string> = {};
-      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        if (typeof v === 'string') result[k] = v;
-        else if (v !== null && v !== undefined) result[k] = String(v);
-      }
-      return result;
-    }
-    return {};
   }
 
   // ── Tool registration ─────────────────────────────────────────────────

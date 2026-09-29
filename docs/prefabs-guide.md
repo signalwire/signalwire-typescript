@@ -138,13 +138,12 @@ Records the answer to the current question and moves to the next.
 
 Omit `questions` and register a callback that returns the question list for each call. The callback runs on every SWML request, before the SWML is rendered, and its list becomes that call's `global_data.questions`.
 
-The callback's signature is `(queryParams, bodyParams, headers)`. In this version, `queryParams` and `headers` come from the request body's `query_params` and `headers` keys. They don't come from the request URL or its HTTP headers, so they're usually empty. Choose the questions from `bodyParams`, the SWML request body:
+The callback's signature is `(queryParams, bodyParams, headers)`. `queryParams` holds the query parameters of the SWML request's URL, `bodyParams` the SWML request body, and `headers` the request's HTTP headers, with lower-case names. The SDK removes `Authorization`, `Cookie` and the other credential headers before the callback sees them. This callback chooses the questions from a query parameter, so a webhook URL ending in `?mode=support` gets the support questions:
 
 ```typescript
 const agent = new InfoGathererAgent({ name: 'dynamic-intake' });
 agent.setQuestionCallback((queryParams, bodyParams, headers) => {
-  const call = (bodyParams['call'] ?? {}) as Record<string, unknown>;
-  if (String(call['to'] ?? '').includes('support')) {
+  if (queryParams['mode'] === 'support') {
     return [
       { key_name: 'name', question_text: 'What is your name?' },
       { key_name: 'issue', question_text: "What's the issue?" },
