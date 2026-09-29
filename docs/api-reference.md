@@ -2832,7 +2832,7 @@ constructor(options: ChatGatewayOptions)
 | `maxTurns` | `number` | 200 | Turns per conversation |
 | `windowSeconds` | `number` | 60 | Window for `maxNewConversations`, in seconds |
 
-`router()` returns a Hono app that answers `POST /` with the JSON-RPC methods `start`, `chat`, `log` and `end`. The caps are counted in the process, so behind several replicas each keeps its own count. The origin check stops a key pasted into another page, since the browser sends that page's origin. It doesn't stop a client that sends no origin or a false one. The gateway forwards the browser's `user_meta_data` (up to `MAX_USER_METADATA_BYTES`, 8 KiB), which is the visitor's claim about itself, not a verified value. `close()` closes a client the gateway created.
+`router()` returns a Hono app that answers `POST /` with the JSON-RPC methods `start`, `chat`, `log` and `end`. The caps are counted in the process, so behind several replicas each keeps its own count. The origin check stops a key pasted into another page, since the browser sends that page's origin. It doesn't stop a client that sends no origin or a false one. The gateway forwards the browser's `user_meta_data` (up to `MAX_USER_METADATA_BYTES`, 8 KiB), which is the visitor's claim about itself, not a verified value. A request body over `MAX_REQUEST_BODY_BYTES` (64 KiB) or a chat message over `MAX_MESSAGE_BYTES` (8 KiB of UTF-8) gets 413. `close()` closes a client the gateway created.
 
 ### HandoffRouter
 
@@ -2853,7 +2853,7 @@ constructor(options: HandoffRouterOptions)
 | `nonceTtl` | `number` | 3600 | Seconds a nonce can be redeemed |
 | `maxMessagesPerCall` | `number` | 200 | Typed messages allowed per call |
 | `captureTimeout` | `number` | 8 | Seconds to wait for `captureLeg` |
-| `registry` | `Map<string, NonceEntry>` | A new `Map` | The nonce table. Supply shared storage to run more than one replica. |
+| `registry` | `Map<string, NonceEntry>` | A new `Map` | The nonce table. Supply shared storage to run more than one replica. It may return copies of its entries, because the router writes every change back with `set()`. Its read-then-write steps aren't atomic across replicas that share it. |
 
 Your application puts a random `handoff_nonce` in the user variables of a dial. From that call's per-request callback, it calls `register(nonce, { conversationId, callId })` with the call ID from the platform's request. The browser later presents the nonce, never a call ID.
 
@@ -2863,7 +2863,7 @@ Your application puts a random `handoff_nonce` in the user variables of a dial. 
 - `POST /escalate` takes `{ handle }` and returns `{ ok: true }`.
 - `POST /say` takes `{ nonce, text }` and returns `{ ok: true }`.
 
-A nonce or handle that doesn't verify gets 404, and a refused origin gets 403.
+A nonce or handle that doesn't verify gets 404, and a refused origin gets 403. A body over `MAX_REQUEST_BODY_BYTES` gets 413 on every route, and `/say` text over `MAX_MESSAGE_BYTES` gets 413, both checked before the nonce is looked up.
 
 Mount both routers at the same prefix, because the browser derives every path from the gateway's URL:
 
