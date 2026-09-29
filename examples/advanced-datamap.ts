@@ -5,6 +5,11 @@
  * error keys and a fallback output, a foreach over a list in the response,
  * `${ENV.*}` expansion with a prefix allowlist, and an expression with a
  * nomatch output.
+ *
+ * Where a template reads the arguments depends on the stage: a webhook's
+ * URL and the expressions read `${args.word}`, while a webhook's output and
+ * foreach read the webhook's response, with the arguments under `input`
+ * (`${input.args.word}`).
  * Run: npx tsx examples/advanced-datamap.ts
  */
 
@@ -25,9 +30,9 @@ agent.setPromptText(
 );
 
 // Pattern 1: Expression-based tool (no HTTP call)
-// Detects simple greetings and responds appropriately. The lc: helper
-// lowercases the text before the match, so the pattern needs no
-// case-insensitive modifier.
+// Detects simple greetings and responds appropriately. The platform matches
+// a pattern case-insensitively unless it is written '/pattern/'; the lc:
+// helper also lowercases the text, so the pattern reads as lowercase.
 const greetingTool = createExpressionTool({
   name: 'detect_greeting',
   patterns: {
@@ -43,21 +48,24 @@ const greetingTool = createExpressionTool({
 agent.registerSwaigFunction(greetingTool.toSwaigFunction());
 
 // Pattern 2: GET webhook with error keys and a fallback output.
-// The dictionary API returns an object with a "title" key when the word
-// isn't found, so errorKeys(['title']) treats that response as a failure.
+// The dictionary API returns an array for a word it knows, and an object
+// with a "title" key when the word isn't found, so errorKeys(['title'])
+// treats that response as a failure and the fallback output answers.
 const definitionTool = new DataMap('lookup_definition')
   .purpose('Look up the definition of a word in the dictionary')
   .parameter('word', 'string', 'The word to look up', { required: true })
   .webhook('GET', 'https://api.dictionaryapi.dev/api/v2/entries/en/${enc:args.word}')
-  .output(new FunctionResult('Definition of ${args.word}: The word was found in the dictionary.'))
+  .output(
+    new FunctionResult('Definition of ${input.args.word}: The word was found in the dictionary.'),
+  )
   .errorKeys(['title'])
   .fallbackOutput(new FunctionResult('Could not find a definition for that word.'));
 
 agent.registerSwaigFunction(definitionTool.toSwaigFunction());
 
 // Pattern 3: DataMap with foreach to iterate over list results.
-// input_key is the key in the response object that holds the array
-// ("articles"), not a template.
+// input_key is the path to the array in the response ("articles"), not a
+// template.
 const newsTool = new DataMap('get_news')
   .purpose('Get the latest news headlines')
   .parameter('topic', 'string', 'News topic to search for')
@@ -71,7 +79,7 @@ const newsTool = new DataMap('get_news')
     append: '- ${this.title}: ${this.description}\n',
     max: 5,
   })
-  .output(new FunctionResult('Latest news on ${args.topic}:\n${headlines}'))
+  .output(new FunctionResult('Latest news on ${input.args.topic}:\n${headlines}'))
   .fallbackOutput(new FunctionResult('No news found for that topic.'));
 
 // Enable env expansion for the news API key

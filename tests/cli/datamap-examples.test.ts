@@ -39,3 +39,41 @@ describe('examples/datamap-tools.ts', () => {
     expect(result).toEqual({ response: 'Weather in London: 61°F, Overcast' });
   });
 });
+
+describe('examples/advanced-datamap.ts', () => {
+  const fns = () => functionsOf('advanced-datamap.ts');
+
+  it('lookup_definition names the word, and falls back on a response with title', async () => {
+    const fn = (await fns()).get('lookup_definition')!;
+    expect(await executeDataMap(fn, { word: 'tea' }, answer([{ word: 'tea' }]))).toEqual({
+      response: 'Definition of tea: The word was found in the dictionary.',
+    });
+    expect(
+      await executeDataMap(fn, { word: 'zzz' }, answer({ title: 'No Definitions Found' }, 404)),
+    ).toEqual({ response: 'Could not find a definition for that word.' });
+  });
+
+  it('get_news names the topic and lists the articles', async () => {
+    const fn = (await fns()).get('get_news')!;
+    const articles = [
+      { title: 'A', description: 'first' },
+      { title: 'B', description: 'second' },
+    ];
+    expect(await executeDataMap(fn, { topic: 'tea' }, answer({ articles }))).toEqual({
+      response: 'Latest news on tea:\n- A: first\n- B: second\n',
+    });
+  });
+
+  it('matches the expression tools case-insensitively', async () => {
+    const all = await fns();
+    expect(await executeDataMap(all.get('detect_greeting')!, { text: 'Hello there' })).toEqual({
+      response: 'The user greeted with: Hello there. Respond warmly.',
+    });
+    expect(await executeDataMap(all.get('check_status')!, { service: 'API' })).toEqual({
+      response: 'The API service is currently operational.',
+    });
+    expect(await executeDataMap(all.get('check_status')!, { service: 'mail' })).toEqual({
+      response: 'Unknown service "mail". Available services: api, web, database.',
+    });
+  });
+});
