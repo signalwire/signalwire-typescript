@@ -11,7 +11,7 @@ import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
 import { readFile, stat, readdir, realpath } from 'node:fs/promises';
-import { join, extname, normalize, resolve, basename, sep } from 'node:path';
+import { join, extname, normalize, relative, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
 import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
@@ -566,7 +566,7 @@ export class WebService {
             if (
               isWithin(idxReal, realBase) &&
               idxStat.isFile() &&
-              this._isFileAllowed(indexPath, idxStat.size)
+              this._isServable(indexPath, idxReal, realBase, idxStat.size)
             ) {
               return this._serveFile(c, indexPath);
             }
@@ -575,7 +575,7 @@ export class WebService {
           }
           return c.json({ error: 'Directory browsing disabled' }, 403);
         }
-        return this._serveDirectoryListing(c, fullPath, c.req.path);
+        return this._serveDirectoryListing(c, fullPath, c.req.path, realBase);
       }
 
       // Regular file
@@ -583,7 +583,7 @@ export class WebService {
         return c.json({ error: 'Not found' }, 404);
       }
 
-      if (!this._isFileAllowed(fullPath, fileStat.size)) {
+      if (!this._isServable(fullPath, realPath, realBase, fileStat.size)) {
         return c.json({ error: 'File type not allowed' }, 403);
       }
 
@@ -594,6 +594,19 @@ export class WebService {
   }
 
   // ── File checks ────────────────────────────────────────────────────
+
+  /**
+   * Whether a file may be served. The size limit, blocklist and allowlist
+   * apply both to the path requested and to the file actually read (its
+   * canonical path, relative to the mount's real root), so a symbolic link
+   * such as `alias.txt -> .env` can't serve a blocked file under an allowed
+   * name.
+   */
+  private _isServable(requested: string, real: string, realBase: string, size: number): boolean {
+    return (
+      this._isFileAllowed(requested, size) && this._isFileAllowed(relative(realBase, real), size)
+    );
+  }
 
   private _isFileAllowed(fullPath: string, size: number): boolean {
     // Check file size
@@ -639,6 +652,7 @@ export class WebService {
     c: Context,
     dirPath: string,
     urlPath: string,
+    realBase: string,
   ): Promise<Response> {
     const entries = await readdir(dirPath, { withFileTypes: true });
 
@@ -667,7 +681,8 @@ export class WebService {
         const entryPath = join(dirPath, entry.name);
         try {
           const entryStat = await stat(entryPath);
-          if (this._isFileAllowed(entryPath, entryStat.size)) {
+          const entryReal = await realpath(entryPath);
+          if (this._isServable(entryPath, entryReal, realBase, entryStat.size)) {
             const safeName = escapeHtml(entry.name);
             const sizeStr = formatSize(entryStat.size);
             items.push(`<li><a href="${safeName}">${safeName}</a> (${sizeStr})</li>`);

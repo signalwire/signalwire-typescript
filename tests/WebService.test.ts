@@ -92,6 +92,83 @@ describe('WebService symbolic links', () => {
   });
 });
 
+// The blocklist and allowlist apply to the file actually read, not only to the
+// name in the URL: a link inside the mount can't serve a blocked file under an
+// allowed name.
+describe('WebService blocklist through symbolic links', () => {
+  beforeEach(() => {
+    writeFileSync(join(mount, '.env'), 'env-secret');
+    writeFileSync(join(mount, 'server.key'), 'key-secret');
+    mkdirSync(join(mount, '__pycache__'));
+    writeFileSync(join(mount, '__pycache__', 'data.txt'), 'cache-secret');
+  });
+
+  async function get(path: string, options: Record<string, unknown> = {}) {
+    const web = new WebService({ directories: { '/docs': mount }, ...options });
+    const res = await web.getApp().request(path);
+    return { status: res.status, body: await res.text() };
+  }
+
+  it('refuses a link to .env', async () => {
+    symlinkSync(join(mount, '.env'), join(mount, 'alias.txt'));
+    expect((await get('/docs/.env')).status).toBe(403);
+    const res = await get('/docs/alias.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('env-secret');
+  });
+
+  it('refuses a relative link to a .key file', async () => {
+    symlinkSync('server.key', join(mount, 'cert.txt'));
+    const res = await get('/docs/cert.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('key-secret');
+  });
+
+  it('refuses a link into a blocked directory', async () => {
+    symlinkSync(join(mount, '__pycache__', 'data.txt'), join(mount, 'notes.txt'));
+    const res = await get('/docs/notes.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('cache-secret');
+  });
+
+  it('refuses a file under a directory link to a blocked directory', async () => {
+    symlinkSync(join(mount, '__pycache__'), join(mount, 'pub'));
+    const res = await get('/docs/pub/data.txt');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('cache-secret');
+  });
+
+  it('does not list files under a directory link to a blocked directory', async () => {
+    symlinkSync(join(mount, '__pycache__'), join(mount, 'pub'));
+    const res = await get('/docs/pub/', { enableDirectoryBrowsing: true });
+    expect(res.status).toBe(200);
+    expect(res.body).not.toContain('data.txt');
+  });
+
+  it('refuses an index.html that links to .env', async () => {
+    mkdirSync(join(mount, 'sub'));
+    symlinkSync(join(mount, '.env'), join(mount, 'sub', 'index.html'));
+    const res = await get('/docs/sub/');
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('env-secret');
+  });
+
+  it('applies allowedExtensions to the link target', async () => {
+    writeFileSync(join(mount, 'data.bin'), 'binary-secret');
+    symlinkSync(join(mount, 'data.bin'), join(mount, 'data.txt'));
+    const res = await get('/docs/data.txt', { allowedExtensions: ['.txt'] });
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('binary-secret');
+  });
+
+  it('still serves a link to an allowed file', async () => {
+    symlinkSync(join(mount, 'inside.txt'), join(mount, 'alias.txt'));
+    const res = await get('/docs/alias.txt');
+    expect(res.status).toBe(200);
+    expect(res.body).toBe('inside');
+  });
+});
+
 describe('WebService runtime directory changes', () => {
   it('addDirectory() after the first request serves the new route', async () => {
     const web = new WebService();
