@@ -70,8 +70,8 @@ function createSalesAgent(): Agent {
       'find the right products and process orders. Be enthusiastic ' +
       'but not pushy. Always mention our satisfaction guarantee.',
     tools: {
-      get_pricing: { ...getPricing, name: 'get_pricing' },
-      create_order: { ...createOrder, name: 'create_order' },
+      get_pricing: getPricing,
+      create_order: createOrder,
     },
   });
 }
@@ -129,9 +129,9 @@ function createSupportAgent(): Agent {
       'customers troubleshoot issues, reset passwords, and resolve ' +
       'technical problems. Be patient and thorough.',
     tools: {
-      check_system_status: { ...checkSystemStatus, name: 'check_system_status' },
-      reset_password: { ...resetPassword, name: 'reset_password' },
-      create_ticket: { ...createTicket, name: 'create_ticket' },
+      check_system_status: checkSystemStatus,
+      reset_password: resetPassword,
+      create_ticket: createTicket,
     },
   });
 }
@@ -180,8 +180,8 @@ const agentDef = defineAgent({
         'understand what the caller needs and route them to the right department. ' +
         'Ask clarifying questions if needed, then use the appropriate handoff tool.',
       tools: {
-        handoff_to_sales: { ...handoffToSales, name: 'handoff_to_sales' },
-        handoff_to_support: { ...handoffToSupport, name: 'handoff_to_support' },
+        handoff_to_sales: handoffToSales,
+        handoff_to_support: handoffToSupport,
       },
     });
 

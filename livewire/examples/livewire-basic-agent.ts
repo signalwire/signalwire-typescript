@@ -56,7 +56,7 @@ const agentDef = defineAgent({
     const agent = new Agent({
       instructions:
         'You are a helpful weather assistant. When asked about weather, use the get_weather tool.',
-      tools: { get_weather: { ...getWeather, name: 'get_weather' } },
+      tools: { get_weather: getWeather },
     });
 
     // Start the session -- this binds the agent to SignalWire's

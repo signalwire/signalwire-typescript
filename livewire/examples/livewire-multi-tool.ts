@@ -100,10 +100,10 @@ const agentDef = defineAgent({
         'You can check order status, look up product information, ' +
         'and schedule callbacks. Be concise and helpful.',
       tools: {
-        check_order: { ...checkOrder, name: 'check_order' },
-        lookup_product: { ...lookupProduct, name: 'lookup_product' },
-        schedule_callback: { ...scheduleCallback, name: 'schedule_callback' },
-        escalate: { ...escalate, name: 'escalate' },
+        check_order: checkOrder,
+        lookup_product: lookupProduct,
+        schedule_callback: scheduleCallback,
+        escalate: escalate,
       },
     });
 

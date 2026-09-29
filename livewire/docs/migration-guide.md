@@ -93,7 +93,7 @@ const getWeather = tool({
 });
 ```
 
-LiveWire doesn't convert a Zod schema to JSON Schema: it sends `parameters` to the platform as given. Rewrite Zod parameter schemas as JSON Schema objects. When you add the tool to an agent, set its `name`, as the complete example shows.
+LiveWire doesn't convert a Zod schema to JSON Schema: it sends `parameters` to the platform as given. Rewrite Zod parameter schemas as JSON Schema objects. Pass tools to the agent as an object keyed by name, as in LiveKit (`tools: { getWeather }`); each key becomes the tool's name.
 
 ## Step 5: Update the Entrypoint
 
@@ -234,7 +234,7 @@ const agentDef = defineAgent({
     });
     const agent = new Agent({
       instructions: 'You are a helpful assistant.',
-      tools: [{ ...greet, name: 'greet' }],
+      tools: { greet },
     });
     await session.start({ agent });
   },
@@ -247,5 +247,5 @@ The two versions differ in these ways:
 
 1. One import path instead of several plugin packages
 2. Provider names are strings instead of class instances
-3. The tool's `parameters` is a JSON Schema object instead of a Zod schema, and the tool gets its `name` when it's added to the agent
+3. The tool's `parameters` is a JSON Schema object instead of a Zod schema
 4. The definition is passed to `runApp()`

@@ -51,7 +51,7 @@ const agentDef = defineAgent({
 
     const agent = new Agent({
       instructions: 'You are a helpful weather assistant.',
-      tools: [{ ...getWeather, name: 'get_weather' }],
+      tools: { get_weather: getWeather },
     });
 
     await session.start({ agent });
@@ -62,7 +62,7 @@ const agentDef = defineAgent({
 runApp(agentDef);
 ```
 
-`tool()` returns a tool with an empty name, so you set `name` when you add it to the agent's `tools` array. The `@signalwire/sdk/livewire` subpath exports the same names as the `livewire` namespace of `@signalwire/sdk`.
+`tools` is an object keyed by tool name, as in LiveKit agents-js, and each key becomes the name of a SWAIG function. `tools` also takes an array, as the Python SDK does; each tool in the array needs a `name`, which `tool()` leaves empty, so set it: `tools: [{ ...getWeather, name: 'get_weather' }]`. The `@signalwire/sdk/livewire` subpath exports the same names as the `livewire` namespace of `@signalwire/sdk`.
 
 ## Why LiveWire
 

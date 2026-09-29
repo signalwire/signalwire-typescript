@@ -120,7 +120,7 @@ export interface VoiceOptions {
 
 /** A tool definition that can be registered on an {@link Agent}. */
 export interface FunctionTool {
-  /** Tool name. Populated when the tool is attached to an `Agent.tools` map. */
+  /** Tool name. Set from the key when the tool is passed in a name-keyed `tools` object. */
   name: string;
   /** Human-readable description shown to the LLM. */
   description: string;
@@ -128,6 +128,19 @@ export interface FunctionTool {
   parameters?: Record<string, unknown>;
   /** Handler invoked by the platform when the LLM calls this tool. */
   execute: (params: unknown, context: { ctx: RunContext }) => unknown;
+}
+
+/**
+ * Normalize a tool list to `[name, tool]` pairs. Accepts Python's list shape
+ * (each tool carries its `name`) and the name-keyed object that LiveKit
+ * agents-js uses (`tools: { getWeather }`), where the key is the tool name.
+ */
+function toolEntries(
+  tools: FunctionTool[] | Record<string, FunctionTool> | undefined,
+): [string, FunctionTool][] {
+  if (!tools) return [];
+  if (Array.isArray(tools)) return tools.map((t) => [t.name, t]);
+  return Object.entries(tools).map(([name, t]) => [name, { ...t, name }]);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +156,9 @@ export interface FunctionTool {
  * `allowInterruptions` and the endpointing delays map to AI params when
  * {@link AgentSession.start} builds the agent.
  *
+ * `tools` takes an object keyed by tool name, as LiveKit agents-js does, or
+ * an array of tools that each have a `name`, as the Python SDK does.
+ *
  * @example Minimal LiveKit-compatible agent
  * ```ts
  * import { livewire } from '@signalwire/sdk';
@@ -154,7 +170,7 @@ export interface FunctionTool {
  *
  * const agent = new livewire.Agent({
  *   instructions: 'You are a friendly helper.',
- *   tools: [{ ...timeTool, name: 'time' }],
+ *   tools: { time: timeTool },
  * });
  *
  * const session = new livewire.AgentSession();
@@ -182,7 +198,7 @@ export class Agent<UserData = unknown> {
 
   constructor(options?: {
     instructions?: string;
-    tools?: FunctionTool[];
+    tools?: FunctionTool[] | Record<string, FunctionTool>;
     userData?: UserData;
     chatCtx?: unknown;
     stt?: unknown;
@@ -196,17 +212,9 @@ export class Agent<UserData = unknown> {
     maxEndpointingDelay?: number;
   }) {
     this.instructions = options?.instructions ?? '';
-    // Mirror Python: tools is Optional[List[Any]], stored internally as a name-keyed map.
-    // Build the record from the array using the same pattern as updateTools().
-    if (options?.tools) {
-      const record: Record<string, FunctionTool> = {};
-      for (const t of options.tools) {
-        record[t.name] = t;
-      }
-      this.tools = record;
-    } else {
-      this.tools = {};
-    }
+    // Python takes a list; LiveKit agents-js takes a name-keyed object. Both
+    // are stored as a name-keyed map.
+    this.tools = Object.fromEntries(toolEntries(options?.tools));
     this.userData = options?.userData;
 
     // Pipeline noop advisories (matching Python behavior)
@@ -353,20 +361,17 @@ export class Agent<UserData = unknown> {
   /**
    * Replace the agent's tool list.
    *
-   * Replaces the current tool record with one built from the given array,
-   * keyed by `tool.name`. This changes the `Agent` object only: tools are
-   * registered when {@link AgentSession.start} runs, so a session that has
-   * already started keeps its tools.
+   * Replaces the current tool record with one built from the given tools.
+   * This changes the `Agent` object only: tools are registered when
+   * {@link AgentSession.start} runs, so a session that has already started
+   * keeps its tools.
    *
-   * @param tools - Ordered array of {@link FunctionTool} definitions. Each
-   *   tool's `name` is used as its map key.
+   * @param tools - An array of {@link FunctionTool} definitions, each keyed
+   *   by its `name`, or an object keyed by tool name (the LiveKit agents-js
+   *   shape), whose keys become the tool names.
    */
-  async updateTools(tools: FunctionTool[]): Promise<void> {
-    const record: Record<string, FunctionTool> = {};
-    for (const t of tools) {
-      record[t.name] = t;
-    }
-    this.tools = record;
+  async updateTools(tools: FunctionTool[] | Record<string, FunctionTool>): Promise<void> {
+    this.tools = Object.fromEntries(toolEntries(tools));
   }
 }
 
@@ -427,7 +432,7 @@ export class RunContext<UserData = unknown> {
  */
 export class AgentSession<UserData = unknown> {
   private _llm: unknown;
-  private _tools: FunctionTool[];
+  private _tools: [string, FunctionTool][];
   private _userData: UserData;
   private _agent?: Agent<UserData>;
   private _swAgent?: AgentBase;
@@ -447,7 +452,7 @@ export class AgentSession<UserData = unknown> {
     llm?: unknown;
     vad?: unknown;
     turnDetection?: unknown;
-    tools?: FunctionTool[];
+    tools?: FunctionTool[] | Record<string, FunctionTool>;
     mcpServers?: unknown;
     userData?: UserData;
     allowInterruptions?: boolean;
@@ -458,7 +463,7 @@ export class AgentSession<UserData = unknown> {
     preemptiveGeneration?: boolean;
   }) {
     this._llm = options?.llm;
-    this._tools = options?.tools ? [...options.tools] : [];
+    this._tools = toolEntries(options?.tools);
     this._userData = (options?.userData ?? {}) as UserData;
     this._allowInterruptions = options?.allowInterruptions ?? true;
     this._minInterruptionDuration = options?.minInterruptionDuration ?? 0.5;
@@ -577,10 +582,7 @@ export class AgentSession<UserData = unknown> {
     }
 
     // Register all tools from the agent + session-level tools
-    const allTools: [string, FunctionTool][] = [
-      ...Object.entries(agent.tools),
-      ...this._tools.map((t) => [t.name, t] as [string, FunctionTool]),
-    ];
+    const allTools: [string, FunctionTool][] = [...Object.entries(agent.tools), ...this._tools];
     for (const [name, toolDef] of allTools) {
       const handler: SwaigHandler = async (args, _rawData) => {
         const ctx = new RunContext<UserData>(this);
@@ -703,8 +705,9 @@ export class AgentSession<UserData = unknown> {
 /**
  * Create a tool definition. Mirrors `llm.tool()` from `@livekit/agents-js`.
  *
- * The returned tool has an empty `name`. Set it when you add the tool to an
- * agent's `tools` array (see the {@link Agent} example).
+ * The returned tool has an empty `name`. It gets its name from its key when
+ * you add it to an agent's `tools` object (see the {@link Agent} example), or
+ * from the `name` you set when you pass `tools` as an array.
  *
  * `parameters` is stored as given and sent as the tool's SWAIG parameters, so
  * pass a JSON Schema object. A Zod schema isn't converted to JSON Schema.
