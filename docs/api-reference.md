@@ -1499,7 +1499,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `joinRoom` | `(name: string): this` | A `SWML` action with `join_room: { name }` |
 | `sipRefer` | `(toUri: string): this` | A `SWML` action with `sip_refer: { to_uri }` |
-| `joinConference` | `(name: string, opts?): this` | A `SWML` action with a `join_conference` verb: the name alone when every option is at its default, otherwise an object. Throws on an empty name, or a `maxParticipants` outside 1 to 250. |
+| `joinConference` | `(name: string, opts?): this` | A `SWML` action with a `join_conference` verb: the name alone when every option is at its default, otherwise an object. Throws on an empty name, or a `maxParticipants` that isn't an integer from 2 to 100000 or a SWML variable reference. `maxParticipants` is sent whenever it's given. |
 
 The `joinConference()` options are `muted`, `beep`, `startOnEnter`, `endOnExit`, `waitUrl`, `maxParticipants`, `record`, `region`, `trim`, `coach`, `statusCallbackEvent`, `statusCallback`, `statusCallbackMethod`, `recordingStatusCallback`, `recordingStatusCallbackMethod`, `recordingStatusCallbackEvent` and `result`. Each is emitted in snake case.
 
@@ -1538,11 +1538,11 @@ pay(opts: {
   inputMethod?: string;        // default 'dtmf'
   statusUrl?: string;
   paymentMethod?: string;      // default 'credit-card'
-  timeout?: number;            // default 5
-  maxAttempts?: number;        // default 1
-  securityCode?: boolean;      // default true
+  timeout?: number | string;   // default 5
+  maxAttempts?: number | string; // default 1
+  securityCode?: boolean | string; // default true
   postalCode?: boolean | string; // default true
-  minPostalCodeLength?: number;  // default 0
+  minPostalCodeLength?: number | string; // default 0
   tokenType?: string;          // default 'reusable'
   chargeAmount?: string;
   currency?: string;           // default 'usd'
@@ -1556,7 +1556,7 @@ pay(opts: {
 }): this
 ```
 
-It emits a `SWML` action that sets `ai_response` and runs the `pay` verb. Numbers and booleans are sent as strings, and `inputMethod` is sent as `input`. The default `aiResponse` is `'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.'`
+It emits a `SWML` action that sets `ai_response` and runs the `pay` verb. `timeout`, `max_attempts` and `min_postal_code_length` are sent as integers and `security_code` as a boolean (a numeric string is converted and a SWML variable reference passes through), and `inputMethod` is sent as `input`. The default `aiResponse` is `'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.'`
 
 ### FunctionResult Static Helpers
 
@@ -1755,12 +1755,12 @@ The next five methods apply to the most recently added webhook, and throw when t
 | Method | Signature | Sets |
 |--------|-----------|------|
 | `webhookExpressions` | `(expressions: Record<string, unknown>[]): this` | The webhook's `expressions` |
-| `body` | `(data: Record<string, unknown>): this` | The webhook's `body` |
+| `body` | `(data: Record<string, unknown>): this` | The webhook's `params` (the same as `params()`) |
 | `params` | `(data: Record<string, unknown>): this` | The webhook's `params` |
 | `foreach` | `(config: { input_key: string; output_key: string; append: string; max?: number }): this` | The webhook's `foreach` |
 | `output` | `(result: FunctionResult): this` | The webhook's `output` |
 
-In a `foreach`, `input_key` is the path to the array, and `append` is a template where `${this.field}` is a field of the current element (`${this}` for a string or number element); the built text is stored under `output_key`. The platform doesn't send `body`: `params` is the request body.
+In a `foreach`, `input_key` is the path to the array, and `append` is a template where `${this.field}` is a field of the current element (`${this}` for a string or number element); the built text is stored under `output_key`. `body()` and `params()` both set `params`, which the platform sends as the JSON request body.
 
 ### DataMap Output Methods
 
