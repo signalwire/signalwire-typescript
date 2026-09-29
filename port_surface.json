@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 2cf4a949a8967ef37364db0b4b1ec6c8de66529a",
+  "generated_from": "signalwire-typescript @ 6014b6b43ad7bcbf426681c50cc23075056e076b",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1612,6 +1612,17 @@
           "to_dict",
           "to_json",
           "to_yaml"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.prefabs.call_session_store": {
+      "classes": {
+        "CallSessionStore": [
+          "__init__",
+          "delete",
+          "get_or_create",
+          "size"
         ]
       },
       "functions": []
@@ -3547,7 +3558,8 @@
       "classes": {
         "AskClaudeSkill": [
           "get_parameter_schema",
-          "get_tools"
+          "get_tools",
+          "setup"
         ]
       },
       "functions": [
@@ -3861,6 +3873,7 @@
     "signalwire.utils": {
       "classes": {},
       "functions": [
+        "cors_origins_from_env",
         "is_private_ip",
         "is_serverless_mode",
         "resolve_and_validate_url",

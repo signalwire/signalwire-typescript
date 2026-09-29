@@ -1389,6 +1389,12 @@
                   "type": "float",
                   "required": false,
                   "default": 0
+                },
+                {
+                  "name": "redeemed",
+                  "type": "bool",
+                  "required": false,
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -1774,6 +1780,453 @@
         }
       }
     },
+    "signalwire.cli.tsdocs.agents_note": {
+      "functions": {
+        "init": {
+          "params": [
+            {
+              "name": "project",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "skill",
+              "type": "bool",
+              "required": false,
+              "default": false
+            }
+          ],
+          "returns": "list<tuple<string,union<string,string,string>>>"
+        },
+        "note": {
+          "params": [],
+          "returns": "string"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.api": {
+      "functions": {
+        "close_matches": {
+          "params": [
+            {
+              "name": "word",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "pool",
+              "type": "list<string>",
+              "required": true
+            },
+            {
+              "name": "n",
+              "type": "float",
+              "required": false,
+              "default": 3
+            },
+            {
+              "name": "cutoff",
+              "type": "float",
+              "required": false,
+              "default": 0.6
+            }
+          ],
+          "returns": "list<string>"
+        },
+        "load_api_index": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "class:signalwire.cli.tsdocs.api_types.ApiIndex"
+        },
+        "render_found": {
+          "params": [
+            {
+              "name": "index",
+              "type": "class:signalwire.cli.tsdocs.api_types.ApiIndex",
+              "required": true
+            },
+            {
+              "name": "found",
+              "type": "class:signalwire.cli.tsdocs.api.Found",
+              "required": true
+            },
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "resolve_name": {
+          "params": [
+            {
+              "name": "index",
+              "type": "class:signalwire.cli.tsdocs.api_types.ApiIndex",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<class:signalwire.cli.tsdocs.api.Found>"
+        },
+        "suggestions": {
+          "params": [
+            {
+              "name": "index",
+              "type": "class:signalwire.cli.tsdocs.api_types.ApiIndex",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
+        },
+        "summary": {
+          "params": [
+            {
+              "name": "doc",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "summary_of": {
+          "params": [
+            {
+              "name": "index",
+              "type": "class:signalwire.cli.tsdocs.api_types.ApiIndex",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "use_api_index": {
+          "params": [
+            {
+              "name": "index",
+              "type": "class:signalwire.cli.tsdocs.api_types.ApiIndex",
+              "required": true
+            }
+          ],
+          "returns": "void"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.files": {
+      "functions": {
+        "all_doc_files": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,string>"
+        },
+        "code_files": {
+          "params": [
+            {
+              "name": "dir",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "declarations",
+              "type": "bool",
+              "required": false,
+              "default": true
+            }
+          ],
+          "returns": "dict<string,string>"
+        },
+        "grep_files": {
+          "params": [
+            {
+              "name": "pattern",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "files",
+              "type": "dict<string,string>",
+              "required": true
+            },
+            {
+              "name": "limit",
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        },
+        "headings": {
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<class:signalwire.cli.tsdocs.files.Heading>"
+        },
+        "is_doc_file": {
+          "params": [
+            {
+              "name": "rel",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "is_text": {
+          "params": [
+            {
+              "name": "rel",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "bool"
+        },
+        "resolve_doc": {
+          "params": [
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "files",
+              "type": "dict<string,string>",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
+        },
+        "section": {
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "wanted",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,any>"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.index": {
+      "functions": {
+        "main": {
+          "params": [
+            {
+              "name": "argv",
+              "type": "list<string>",
+              "required": true
+            },
+            {
+              "name": "io",
+              "type": "class:signalwire.cli.tsdocs.index.Io",
+              "required": false,
+              "default": "processIo"
+            },
+            {
+              "name": "root",
+              "type": "optional<string>",
+              "required": false,
+              "default": "packageRoot()"
+            }
+          ],
+          "returns": "float"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.live": {
+      "functions": {
+        "render_live": {
+          "params": [
+            {
+              "name": "section",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "ctx",
+              "type": "class:signalwire.cli.tsdocs.live.LiveContext",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "scan_env_names": {
+          "params": [
+            {
+              "name": "dir",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,list<string>>"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.locate": {
+      "functions": {
+        "code_dir": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "find_package_root": {
+          "params": [
+            {
+              "name": "from",
+              "type": "optional<string>",
+              "required": false,
+              "default": "HERE"
+            }
+          ],
+          "returns": "string"
+        },
+        "package_root": {
+          "params": [],
+          "returns": "string"
+        },
+        "read_package_json": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "class:signalwire.cli.tsdocs.locate.PackageJson"
+        }
+      }
+    },
+    "signalwire.cli.tsdocs.render": {
+      "functions": {
+        "example_descriptions": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "dict<string,tuple<string,string>>"
+        },
+        "expand_examples": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "rel",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
+        },
+        "render_examples": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "wanted",
+              "type": "optional<string>",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "string"
+        },
+        "render_index": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "render_llms_txt": {
+          "params": [],
+          "returns": "string"
+        },
+        "render_topic": {
+          "params": [
+            {
+              "name": "topic",
+              "type": "class:signalwire.cli.tsdocs.topics.Topic",
+              "required": true
+            },
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "args",
+              "type": "list<string>",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        },
+        "render_topic_list": {
+          "params": [],
+          "returns": "string"
+        },
+        "version": {
+          "params": [
+            {
+              "name": "root",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "string"
+        }
+      }
+    },
     "signalwire.core.agent.prompt.manager": {
       "classes": {
         "PromptManager": {
@@ -1956,12 +2409,6 @@
                 {
                   "name": "self",
                   "kind": "self"
-                },
-                {
-                  "name": "contexts",
-                  "type": "union<dict<string,any>,class:signalwire.core.contexts.ContextBuilder>",
-                  "required": false,
-                  "default": null
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
@@ -6011,12 +6458,12 @@
                   "kind": "self"
                 },
                 {
-                  "name": "_username",
+                  "name": "username",
                   "type": "string",
                   "required": true
                 },
                 {
-                  "name": "_password",
+                  "name": "password",
                   "type": "string",
                   "required": true
                 }
@@ -6079,12 +6526,6 @@
                 {
                   "name": "self",
                   "kind": "self"
-                },
-                {
-                  "name": "contexts",
-                  "type": "union<dict<string,any>,class:signalwire.core.contexts.ContextBuilder>",
-                  "required": false,
-                  "default": null
                 }
               ],
               "returns": "class:signalwire.core.contexts.ContextBuilder"
@@ -9727,7 +10168,7 @@
                 },
                 {
                   "name": "tools",
-                  "type": "list<class:signalwire.livewire.FunctionTool>",
+                  "type": "union<dict<string,any>,list<class:signalwire.livewire.FunctionTool>>",
                   "required": true
                 }
               ],
@@ -10966,6 +11407,71 @@
         }
       }
     },
+    "signalwire.prefabs.call_session_store": {
+      "classes": {
+        "CallSessionStore": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "options",
+                  "type": "class:signalwire.prefabs.call_session_store.CallSessionStoreOptions",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "bool"
+            },
+            "get_or_create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "create",
+                  "type": "callable<list<>,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "size": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            }
+          }
+        }
+      }
+    },
     "signalwire.prefabs.concierge": {
       "classes": {
         "ConciergeAgent": {
@@ -11257,6 +11763,18 @@
                   "name": "raw_data",
                   "type": "class:signalwire.platform_contracts.generated.SwmlRequestData",
                   "required": true
+                },
+                {
+                  "name": "_callback_path",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "context",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "union<void,dict<string,any>>"
@@ -11369,7 +11887,7 @@
                   "required": true
                 },
                 {
-                  "name": "_raw_data",
+                  "name": "raw_data",
                   "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
@@ -11486,7 +12004,7 @@
                   "required": true
                 },
                 {
-                  "name": "_raw_data",
+                  "name": "raw_data",
                   "type": "class:signalwire.swaig_contracts.generated.PostPrompt",
                   "required": true
                 }
@@ -14385,30 +14903,8 @@
                   "required": true
                 },
                 {
-                  "name": "tag",
-                  "type": "optional<string>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "max_duration",
-                  "type": "optional<float>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "dial_timeout",
-                  "type": "optional<float>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "kwargs",
-                  "kind": "var_keyword",
-                  "type": "any",
+                  "name": "options",
+                  "type": "class:signalwire.relay.types.DialOptions",
                   "required": false,
                   "default": {}
                 }
@@ -14570,65 +15066,9 @@
                   "kind": "self"
                 },
                 {
-                  "name": "to_number",
-                  "type": "string",
-                  "required": true,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "from_number",
-                  "type": "string",
-                  "required": true,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "context",
-                  "type": "optional<string>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "body",
-                  "type": "optional<string>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "media",
-                  "type": "optional<list<string>>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "tags",
-                  "type": "optional<list<string>>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "region",
-                  "type": "optional<string>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "on_completed",
-                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,union<void,void>>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
-                },
-                {
-                  "name": "kwargs",
-                  "kind": "var_keyword",
-                  "type": "any",
-                  "required": false,
-                  "default": {}
+                  "name": "options",
+                  "type": "class:signalwire.relay.types.SendMessageOptions",
+                  "required": true
                 }
               ],
               "returns": "class:signalwire.relay.message.Message"
@@ -27316,6 +27756,15 @@
                 }
               ],
               "returns": "list<class:signalwire.core.skill_base.SkillToolDefinition>"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             }
           }
         }
@@ -32382,6 +32831,17 @@
     },
     "signalwire.utils": {
       "functions": {
+        "cors_origins_from_env": {
+          "params": [
+            {
+              "name": "value",
+              "type": "optional<string>",
+              "required": false,
+              "default": "process.env['SWML_CORS_ORIGINS']"
+            }
+          ],
+          "returns": "union<list<string>,string>"
+        },
         "is_private_ip": {
           "params": [
             {
@@ -33096,6 +33556,10 @@
         "messages": {
           "type": "float",
           "required": false
+        },
+        "redeemed": {
+          "type": "bool",
+          "required": false
         }
       }
     },
@@ -33590,7 +34054,7 @@
           "required": false
         },
         "tools": {
-          "type": "list<class:signalwire.livewire.FunctionTool>",
+          "type": "union<dict<string,any>,list<class:signalwire.livewire.FunctionTool>>",
           "required": false
         },
         "tts": {
@@ -33650,7 +34114,7 @@
           "required": false
         },
         "tools": {
-          "type": "list<class:signalwire.livewire.FunctionTool>",
+          "type": "union<dict<string,any>,list<class:signalwire.livewire.FunctionTool>>",
           "required": false
         },
         "tts": {
@@ -33755,6 +34219,18 @@
         },
         "title": {
           "type": "optional<string>",
+          "required": false
+        }
+      }
+    },
+    "signalwire.prefabs.call_session_store.CallSessionStore": {
+      "params": {
+        "max_entries": {
+          "type": "optional<float>",
+          "required": false
+        },
+        "max_idle_ms": {
+          "type": "optional<float>",
           "required": false
         }
       }
