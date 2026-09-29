@@ -15,7 +15,7 @@ A skill's static `getParameterSchema()` returns one entry per parameter, with it
 - **Documentation**: list every parameter with its default
 - **Pre-flight checks**: check a configuration before you construct the skill
 - **Secret handling**: mark a parameter as secret, so a form can mask it
-- **Environment variables**: record which variable can supply a value
+- **Environment variables**: name the variable a configuration tool can fill a value in from
 
 The schema is a description. The SDK checks only that it's a non-empty object, when the skill is registered or added. It doesn't check a configuration against it. A missing `required` parameter, a wrong type or an out-of-range value is caught only if the skill's own `setup()` checks it. `hidden` and `env_var` are hints for tools. They don't hide a value or read a variable themselves.
 
@@ -186,7 +186,7 @@ Each parameter's entry (`ParameterSchemaEntry`) can have these properties:
 | `default` | any | Value the skill uses when the parameter is absent |
 | `required` | boolean | Whether the parameter must be set. Absent means `false`. |
 | `hidden` | boolean | Whether a form should mask the value, as for a key or password |
-| `env_var` | string | Environment variable the skill reads when the parameter is absent |
+| `env_var` | string | Environment variable a configuration tool can read this value from. The SDK doesn't read it: the skill gets the value from its params |
 | `enum` | array | Allowed values |
 | `min` | number | Lowest allowed value, for numbers |
 | `max` | number | Highest allowed value, for numbers |
@@ -225,7 +225,7 @@ class MyCustomSkill extends SkillBase {
         description: 'API authentication key',
         required: true,
         hidden: true,
-        env_var: 'MY_API_KEY',
+        env_var: 'MY_API_KEY', // Where a configuration tool can find it
       },
       timeout: {
         type: 'integer',
@@ -261,11 +261,10 @@ class MyCustomSkill extends SkillBase {
 
   override async setup(): Promise<boolean> {
     this.apiEndpoint = this.getConfig<string>('api_endpoint', 'https://api.example.com');
-    // The schema says MY_API_KEY can supply the key, so read it here.
-    this.apiKey = this.getConfig<string | undefined>('api_key') ?? process.env['MY_API_KEY'];
+    this.apiKey = this.getConfig<string | undefined>('api_key');
     this.timeout = this.getConfig<number>('timeout', 30);
     if (!this.apiKey) {
-      this.logger.error('api_key or MY_API_KEY is required');
+      this.logger.error('api_key is required');
       return false;
     }
     if (this.timeout < 1 || this.timeout > 300) {
@@ -281,13 +280,13 @@ class MyCustomSkill extends SkillBase {
 }
 ```
 
-The `setup()` checks are what enforce `required`, `env_var` and the range. When `setup()` returns `false`, the skill isn't added.
+The `setup()` checks are what enforce `required` and the range. When `setup()` returns `false`, the skill isn't added.
 
 ## Common Parameter Patterns
 
 ### API Keys and Secrets
 
-Mark a key as `hidden`, and name the variable it can come from in `env_var`:
+Mark a key as `hidden`, and name the usual environment variable in `env_var`, so a configuration tool can fill the value in:
 
 <!-- snippet: no-compile bare schema-entry object-literal fragment -->
 ```typescript
@@ -300,7 +299,7 @@ api_key: {
 }
 ```
 
-Read the variable in `setup()` or the handler, because `env_var` doesn't read it for you.
+The SDK doesn't read the variable, so the skill gets the value from its params. A skill that should also fall back to the variable reads it in `setup()` itself.
 
 ### Numeric Parameters with Constraints
 
@@ -355,7 +354,7 @@ enable_analytics: {
 - **`skip_prompt`** (boolean, default `false`): when `true`, the skill adds no prompt sections
 - **`tool_name`** (string, default the skill's `SKILL_NAME`): only for a class with `SUPPORTS_MULTIPLE_INSTANCES = true`, to tell instances apart
 
-A skill can redeclare a base parameter with its own description or default. `joke`, `swml_transfer` and `native_vector_search`, for example, redeclare `tool_name` with the tool's default name, and `spider`, whose `tool_name` is a prefix, redeclares it with no default.
+A skill can redeclare a base parameter with its own description or default, or remove one it doesn't use. `joke`, `swml_transfer` and `native_vector_search`, for example, redeclare `tool_name` with the tool's default name, and `spider`, whose `tool_name` is a prefix, redeclares it with no default. `info_gatherer` and `claude_skills` name their tools with `prefix` and `tool_prefix`, and never read `tool_name`, so their schemas leave it out.
 
 ## Examples
 
@@ -412,7 +411,7 @@ These practices keep a schema accurate and useful:
 2. **Set defaults that work.** A skill with sensible defaults loads with a short configuration.
 3. **Mark secrets as `hidden`.** A form can then mask them.
 4. **Use the narrowest type.** Use `integer` for whole numbers, and `enum` for a fixed set of strings.
-5. **Read every `env_var` you declare.** The schema only names the variable.
+5. **Treat `env_var` as a hint for tools.** A configuration tool reads the variable; the SDK doesn't, so the skill reads only its params unless its `setup()` reads the variable.
 6. **Check values in `setup()`.** The SDK doesn't enforce `required`, `enum`, `min` or `max`.
 7. **Spread the base schema.** Start the object with `...super.getParameterSchema()`.
 8. **Keep the schema and the code in step.** Use the same default in both places, so the schema reports what the skill does.
