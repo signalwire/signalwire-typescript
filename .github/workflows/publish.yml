@@ -39,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
           cache-dependency-path: signalwire-typescript/package-lock.json
@@ -52,6 +52,27 @@ jobs:
         run: |
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
+
+      # The rest of the setup mirrors test.yml, so the gate battery below runs
+      # as it does on a PR: the reference SDK for the oracle gates, the HTTP
+      # backends the SWAIG-HTTP and AI-CHAT-GATEWAY gates import, and the
+      # actionlint binary the ACTIONLINT gate needs.
+      - name: Install signalwire-python (EMISSION oracle) if not importable
+        run: |
+          if python -c "import signalwire.core.function_result" 2>/dev/null; then
+            echo "signalwire-python already importable; skipping install"
+          else
+            pip install ./signalwire-python
+          fi
+
+      - name: Install gate HTTP backends (httpx2 for TestClient, httpx for AI-CHAT-GATEWAY)
+        run: pip install httpx httpx2
+
+      - name: Install actionlint (ACTIONLINT gate)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
 
       - name: npm ci
         working-directory: signalwire-typescript
