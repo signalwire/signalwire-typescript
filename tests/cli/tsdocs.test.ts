@@ -351,7 +351,9 @@ describe('sections read from the package', () => {
 
   it('the command summaries match package.json', async () => {
     expect(Object.keys(COMMAND_SUMMARIES).sort()).toEqual(Object.keys(PKG.bin).sort());
-    expect(PKG.bin['sw-tsdocs']).toBe('./dist/cli/tsdocs/bin.js');
+    expect(PKG.bin['sw-tsdocs']).toBe('dist/cli/tsdocs/bin.js');
+    // npm 11 removes a bin path that starts with ./ when it publishes.
+    for (const target of Object.values(PKG.bin)) expect(target).not.toMatch(/^\.\//);
     const { out } = await run('cli');
     for (const name of Object.keys(PKG.bin))
       expect(out).toContain(`\`${name}\`: ${COMMAND_SUMMARIES[name]}`);
