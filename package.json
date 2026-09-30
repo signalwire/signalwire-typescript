@@ -59,8 +59,8 @@
     "tutorial/**/*.ts"
   ],
   "bin": {
-    "swaig-test": "./dist/cli/swaig-test.js",
-    "sw-tsdocs": "./dist/cli/tsdocs/bin.js"
+    "swaig-test": "dist/cli/swaig-test.js",
+    "sw-tsdocs": "dist/cli/tsdocs/bin.js"
   },
   "scripts": {
     "generate:rest-types": "npx tsx scripts/generate-rest-types.ts",
