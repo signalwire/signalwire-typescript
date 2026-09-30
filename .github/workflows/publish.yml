@@ -90,11 +90,17 @@ jobs:
           PORTING_SDK_PATH: ${{ github.workspace }}/porting-sdk
         run: bash scripts/run-ci.sh
 
+      # Trusted publishing: npm authenticates this workflow through GitHub's OIDC
+      # token (the job's id-token: write permission), so no npm token is stored
+      # in the repo. The package's trusted publisher on npmjs.com names this
+      # repository and publish.yml. It needs npm 11.5.1 or later, and publishes
+      # with provenance.
+      - name: Use an npm that supports trusted publishing
+        run: npm install -g npm@latest && npm --version
+
       - name: npm publish
         working-directory: signalwire-typescript
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
