@@ -1,6 +1,6 @@
 # Migrating a LiveKit Agent to LiveWire
 
-This guide walks through converting an existing LiveKit voice agent (TypeScript / @livekit/agents-js) to run on SignalWire's platform using LiveWire. The process is mechanical -- mostly import path changes -- because LiveWire mirrors LiveKit's API surface.
+This guide converts an existing LiveKit voice agent, written in TypeScript with `@livekit/agents`, to run on SignalWire with LiveWire. Most of the work is changing import paths, because LiveWire uses LiveKit's class and function names. A few LiveKit features behave differently or aren't implemented; [What LiveWire Ignores](../README.md#what-livewire-ignores) lists them.
 
 ## Step 1: Change the Import Path
 
@@ -23,7 +23,7 @@ import {
 } from '@signalwire/sdk/livewire';
 ```
 
-All types are in a single module. No separate plugin packages needed.
+Every LiveWire name comes from one module, so you don't install plugin packages.
 
 ## Step 2: Update Type References
 
@@ -42,7 +42,7 @@ const agent = new Agent({ instructions: 'Hello' });
 
 ## Step 3: Update Session Options
 
-LiveWire provides the same session options. STT, TTS, and VAD are accepted but are noops -- SignalWire's control plane handles the media pipeline. LLM model selection is honored.
+LiveWire accepts the same session options. It ignores the STT, TTS and VAD options, because SignalWire's control plane runs the media pipeline. The `llm` option sets the `model` AI param. It takes a model name, from which LiveWire removes any `provider/` prefix, or an LLM plugin object such as `new plugins.OpenAILLM({ model: 'gpt-4o' })`, whose `model` it uses:
 
 <!-- snippet: no-compile before/after comparison; the "Before" half uses LiveKit plugin classes (DeepgramSTT/ElevenLabsTTS/SileroVAD/OpenAILLM) from external packages and redeclares `session` -->
 ```typescript
@@ -51,21 +51,21 @@ const session = new AgentSession({
   stt: new DeepgramSTT(),
   tts: new ElevenLabsTTS(),
   vad: SileroVAD.load(),
-  llm: new OpenAILLM({ model: 'gpt-4' }),
+  llm: new OpenAILLM({ model: 'gpt-4o' }),
 });
 
 // After (LiveWire)
 const session = new AgentSession({
-  stt: 'deepgram',           // noop -- platform handles STT
-  tts: 'elevenlabs',         // noop -- platform handles TTS
-  vad: plugins.SileroVAD.load(),  // noop -- platform handles VAD
-  llm: 'openai/gpt-4',      // model selection is honored
+  stt: 'deepgram', // ignored; the platform handles STT
+  tts: 'elevenlabs', // ignored; the platform handles TTS
+  vad: plugins.SileroVAD.load(), // ignored; the platform handles VAD
+  llm: 'openai/gpt-4o', // sets the model param to gpt-4o
 });
 ```
 
 ## Step 4: Update Tool Definitions
 
-LiveWire uses the same `tool()` function:
+LiveWire has the same `tool()` function. Its `parameters` must be a JSON Schema object:
 
 <!-- snippet: no-compile before/after comparison; the "Before" half imports the external `@livekit/agents/llm` package plus Zod (`z`) and redeclares `getWeather` -->
 ```typescript
@@ -93,9 +93,11 @@ const getWeather = tool({
 });
 ```
 
-Note: LiveWire accepts both Zod schemas and plain JSON Schema objects for parameters.
+LiveWire doesn't convert a Zod schema to JSON Schema: it sends `parameters` to the platform as given. Rewrite Zod parameter schemas as JSON Schema objects. Pass tools to the agent as an object keyed by name, as in LiveKit (`tools: { getWeather }`); each key becomes the tool's name.
 
 ## Step 5: Update the Entrypoint
+
+The entry point keeps the LiveKit shape. `ctx.connect()` does nothing on SignalWire, and the `prewarm` callback still runs. Pass the definition to `runApp()`, which the complete example shows. When the entry function returns, `runApp()` serves the agent of the session it started:
 
 <!-- snippet: no-compile before/after comparison fused in one fence; two default exports and `defineAgent` is only imported in prose elsewhere -->
 ```typescript
@@ -110,9 +112,9 @@ export default defineAgent({
 
 // After (LiveWire)
 export default defineAgent({
-  prewarm: (proc) => { /* warmup -- noop on SignalWire */ },
+  prewarm: (proc) => { /* runs; SignalWire has no worker processes to prewarm */ },
   entry: async (ctx) => {
-    await ctx.connect();   // noop on SignalWire
+    await ctx.connect(); // does nothing on SignalWire
     // ... create session, agent, tools ...
   },
 });
@@ -120,7 +122,7 @@ export default defineAgent({
 
 ## Step 6: Remove Infrastructure Configuration
 
-LiveKit agents typically have configuration for:
+A LiveKit agent often has configuration for these services:
 
 - STT API keys and endpoints
 - TTS API keys and endpoints
@@ -129,22 +131,27 @@ LiveKit agents typically have configuration for:
 - WebRTC TURN/STUN servers
 - Room service URLs
 
-With LiveWire, none of this is needed. SignalWire's platform manages the entire media pipeline. You can delete all infrastructure configuration.
+LiveWire doesn't use any of these settings, because SignalWire runs the media pipeline. You can remove them.
 
-The only configuration you need:
+The agent's HTTP server reads its port and Basic Auth credentials from the environment:
 
 ```bash
-# For the agent HTTP server
-export PORT=3000  # optional, defaults to 3000
+# HTTP server port (optional; the default is 3000)
+export PORT=3000
 
-# If using RELAY or REST features
+# Basic Auth credentials SignalWire uses to fetch the agent's SWML
+export SWML_BASIC_AUTH_USER=your-username
+export SWML_BASIC_AUTH_PASSWORD=a-long-random-password
+
+# Only if your code also uses the REST client
 export SIGNALWIRE_PROJECT_ID=your-project-id
 export SIGNALWIRE_API_TOKEN=your-api-token
+export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
 ## Step 7: Deploy
 
-LiveWire agents are standard HTTP servers. Deploy them anywhere:
+A LiveWire agent runs as a Node.js HTTP server, which `runApp()` starts. Compile the agent with the TypeScript compiler, then run the output:
 
 ```bash
 # Build
@@ -154,11 +161,15 @@ npx tsc
 node dist/my-agent.js
 ```
 
-Point your SignalWire phone number at the agent's URL and calls will flow through automatically.
+Then point a SignalWire phone number at the agent's URL, with the Basic Auth credentials, so the platform requests its SWML for each call.
 
 ## Complete Before/After Example
 
+This section shows one agent written for LiveKit and the same agent converted to LiveWire.
+
 ### Before (LiveKit)
+
+The LiveKit version imports the plugin packages and a Zod schema:
 
 <!-- snippet: no-compile the "Before" LiveKit reference example; imports the external `@livekit/*` packages this SDK does not depend on -->
 ```typescript
@@ -194,6 +205,8 @@ export default defineAgent({
 
 ### After (LiveWire)
 
+The LiveWire version imports from one module and passes the provider names as strings:
+
 <!-- snippet: no-run imports the @signalwire/sdk/livewire subpath which is not a resolvable package export standalone -->
 ```typescript
 import {
@@ -210,26 +223,29 @@ const greet = tool({
   execute: (params: { name: string }) => `Hello, ${params.name}!`,
 });
 
-export default defineAgent({
+const agentDef = defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
     const session = new AgentSession({
       stt: 'deepgram',
       tts: 'elevenlabs',
       vad: plugins.SileroVAD.load(),
-      llm: 'openai/gpt-4',
+      llm: 'openai/gpt-4o',
     });
     const agent = new Agent({
       instructions: 'You are a helpful assistant.',
-      tools: [{ ...greet, name: 'greet' }],
+      tools: { greet },
     });
     await session.start({ agent });
   },
 });
+
+runApp(agentDef);
 ```
 
-The code is nearly identical. The differences are:
+The two versions differ in these ways:
 
-1. Single import path instead of multiple plugin packages
+1. One import path instead of several plugin packages
 2. Provider names are strings instead of class instances
-3. Everything runs on SignalWire's infrastructure -- no STT/TTS/VAD services to manage
+3. The tool's `parameters` is a JSON Schema object instead of a Zod schema
+4. The definition is passed to `runApp()`, which serves the agent over HTTP

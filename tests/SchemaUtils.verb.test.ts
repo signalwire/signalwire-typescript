@@ -212,3 +212,49 @@ describe('SchemaUtils — verb extraction and validation', () => {
     });
   });
 });
+
+// Verbs that embed SWML (execute, connect, switch, cond, join_conference,
+// amazon_bedrock, ...) refer back to the whole document schema by its $id,
+// SWMLObject.json. Their validators failed to compile, and validateVerb
+// silently fell back to checking required properties only. The reference
+// validates them fully.
+describe('SchemaUtils — verbs that embed SWML are fully validated', () => {
+  it('builds a full validator for every verb', () => {
+    const schema = new SchemaUtils() as unknown as {
+      getVerbNames(): string[];
+      getVerbValidator(name: string): unknown;
+    };
+    const missing = schema.getVerbNames().filter((v) => schema.getVerbValidator(v) === null);
+    expect(missing).toEqual([]);
+  });
+
+  it('refuses an unknown key on execute, connect and amazon_bedrock', () => {
+    const schema = new SchemaUtils();
+    expect(schema.validateVerb('execute', { dest: 'main' }).valid).toBe(true);
+    const execute = schema.validateVerb('execute', { dest: 'main', destt: 'x' });
+    expect(execute.valid).toBe(false);
+    expect(execute.errors[0]).toContain("unknown property 'destt'");
+    expect(schema.validateVerb('connect', { to: '+15551234567' }).valid).toBe(true);
+    expect(schema.validateVerb('connect', { to: '+15551234567', tooo: 1 }).valid).toBe(false);
+    expect(schema.validateVerb('amazon_bedrock', { prompt: { text: 'hi', zzz: 1 } }).valid).toBe(
+      false,
+    );
+  });
+
+  it('names the allowed values for a failed choice, not the other prompt form', () => {
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', {
+      prompt: { text: 'hi', voice_id: 'inworld.Mark' },
+    });
+    expect(result.errors).toEqual([
+      "Schema validation error for 'amazon_bedrock': /amazon_bedrock/prompt/voice_id must be one of: tiffany, matthew, amy, lupe, carlos",
+    ]);
+  });
+
+  it('shares compiled validators between instances using the bundled schema', () => {
+    const a = new SchemaUtils() as unknown as { getVerbValidator(name: string): unknown };
+    const b = new SchemaUtils() as unknown as { getVerbValidator(name: string): unknown };
+    const validator = a.getVerbValidator('execute');
+    expect(typeof validator).toBe('function');
+    expect(b.getVerbValidator('execute')).toBe(validator);
+  });
+});

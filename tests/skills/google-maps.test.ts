@@ -2,11 +2,12 @@
  * Individual tests for the GoogleMaps skill.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { GoogleMapsSkill, createGoogleMapsSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { AgentBase } from '../../src/AgentBase.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -69,10 +70,57 @@ describe('GoogleMapsSkill', () => {
     expect(skill.getGlobalData()).toEqual({});
   });
 
-  it('should return correct manifest with required env vars', () => {
+  it('should return correct manifest with no required env vars (Python parity)', () => {
     const klass = GoogleMapsSkill as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('google_maps');
-    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
+    // Python google_maps/skill.py:471: the key comes from api_key.
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
+  });
+
+  describe('api_key', () => {
+    const saved = process.env['GOOGLE_MAPS_API_KEY'];
+    const requested: string[] = [];
+
+    beforeEach(() => {
+      delete process.env['GOOGLE_MAPS_API_KEY'];
+      requested.length = 0;
+      vi.stubGlobal('fetch', async (url: string) => {
+        requested.push(url);
+        return new Response(
+          JSON.stringify({
+            status: 'OK',
+            results: [
+              {
+                formatted_address: '1600 Amphitheatre Pkwy, Mountain View, CA',
+                geometry: { location: { lat: 37.42, lng: -122.08 } },
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      if (saved !== undefined) process.env['GOOGLE_MAPS_API_KEY'] = saved;
+    });
+
+    it('loads on an agent with api_key and no GOOGLE_MAPS_API_KEY, and sends that key', async () => {
+      const agent = new AgentBase({ name: 'maps', route: '/' });
+      const skill = new GoogleMapsSkill({ api_key: 'config-key' });
+      await agent.addSkill(skill);
+      expect(agent.hasSkill('google_maps')).toBe(true);
+      const result = (await skill
+        .getTools()[0]!
+        .handler({ address: '1600 Amphitheatre Pkwy' }, {})) as FunctionResult;
+      expect(result.response).toContain('Mountain View');
+      expect(new URL(requested[0]!).searchParams.get('key')).toBe('config-key');
+    });
+
+    it('setup succeeds with api_key alone', async () => {
+      await expect(new GoogleMapsSkill({ api_key: 'k' }).setup()).resolves.toBe(true);
+    });
   });
 
   it('lookup_address errors when address is missing', async () => {

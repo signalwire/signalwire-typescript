@@ -90,11 +90,37 @@ fall into these named categories:
 ## Idiom: TS constructors
 
 signalwire.agent_server.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.ai_chat.gateway.ChatGateway.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.ai_chat.handoff.HandoffRouter.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.cli.agent_loader.describe_agents: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.execute_data_map: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_template: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.parse_function_arguments: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.schema_properties: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.undeclared_argument_warnings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.__init__: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_convenience_mappings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_overrides: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.comprehensive_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.fake_swml_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.load_env_file: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.minimal_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.parse_override_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.set_nested: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.core._sync_handlers.is_async_callable: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
+signalwire.core._sync_handlers.run_sync_handler: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
+signalwire.core._sync_handlers.sync_handlers_inline: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
 signalwire.core.agent_base.AgentBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.agent_base.AgentBase.on_call_end: the handler's rawData is typed as the generated SwaigRequest payload, the same request dict the reference passes as dict[str, Any], with its fields typed
 signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherQuestion.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.function_result.FunctionResult.response: TS keeps response a string so existing reads of it still type-check; the structured { tool_result, tool_prompt } form set by setToolResponse() or the constructor is held separately, and toDict() emits the same wire shape as the reference
+signalwire.core.mixins.web_mixin.WebMixin.add_per_call_config: TS callback's 2nd arg is typed SwmlRequestData (canonical dynamic-SWML request) and its 4th the AgentBase copy; Python types them dict[str,Any] and Any. Same callback contract as set_dynamic_config_callback, TS stricter payload.
+signalwire.core.post_prompt.NormalizedPostPrompt.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.post_prompt.dialogue_turns: roles is a readonly string[]; the reference records Python's variadic tuple[str, ...] as tuple<string,any>, which is a list of strings (the oracle spells a (str, Any) pair the same way, so the difference can't be folded without changing the oracle's tuple encoding for every port)
 signalwire.core.pom_builder.PomBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.security_config.SecurityConfig.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -143,6 +169,7 @@ signalwire.relay.message.Message.__init__: TS constructor signature follows TS c
 signalwire.rest._base.HttpClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest.client.RestClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.skills.spider.skill.SpiderSkill.session: impossible: Python exposes the skill's requests.Session (a _PublicSession that refuses private addresses); TS fetches through _publicFetch, whose guarded transport does the same per request, and fetch has no session object to expose
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
@@ -219,6 +246,7 @@ signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: TS cal
 
 ## Idiom: TS overload set expresses the Python union (enumerator records first overload)
 
+signalwire.core.agent.prompt.manager.PromptManager.define_contexts: TS overloads express the reference's union (a dict or a ContextBuilder): (contexts?: ContextBuilder) -> ContextBuilder and (contexts: Record<string, unknown>) -> this, which is the reference's return for a dict. The enumerator records only the first overload; both forms are present. Same contract.
 signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: TS overloads express the full union: (includeSource?: false) -> [string,string] and (includeSource: true) -> [string,string,source]. The enumerator records only the first overload; the union is present and in fact stricter (source is a literal union). Same contract.
 signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: TS overloads express the full [string,string] | [string,string,source] union; the enumerator records only the first overload. Same contract, TS stricter.
 signalwire.core.security.session_manager.SessionManager.set_session_metadata: TS overloads: (sessionId, metadata) -> void (TS-native bulk merge) and (sessionId, key, value) -> boolean (the Python-compatible 3-arg form matching set_session_metadata(call_id,key,value)->bool). The enumerator records the first (bulk) overload; the Python-parity overload exists. session_id≡call_id (rename).
@@ -303,8 +331,6 @@ signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_parameter_sche
 
 signalwire.cli.agent_loader.list_agents: TS-only CLI helper (offline agent loader for swaig-test); no Python equivalent in the signatures oracle.
 signalwire.cli.agent_loader.load_agent: TS-only CLI helper (offline agent loader for swaig-test); no Python equivalent.
-signalwire.cli.mock_data.generate_fake_post_data: TS-only CLI helper (swaig-test mock POST data); no Python equivalent.
-signalwire.cli.mock_data.generate_minimal_post_data: TS-only CLI helper (swaig-test mock POST data); no Python equivalent.
 signalwire.core.agent.tools.type_inference.create_typed_handler_wrapper: ts-idiom typed-handler wrapper — same capability as the oracle's create_typed_handler_wrapper, but TS cannot runtime-reflect a handler's parameter names (JS erases them), so it takes an explicit `param_names: list<string>` and wraps a typed `(args, rawData) -> FunctionResult` handler. The extra param and the concrete FunctionResult return type are the static-typed rendering of the same runtime helper.
 signalwire.core.agent.tools.type_inference.infer_schema: ts-idiom typed-params builder — same capability as the oracle's infer_schema, but TS returns a single `InferredSchema` struct (properties + required + description) instead of Python's positional 5-tuple. Idiom: a static port builds a named result object where the runtime port returns a bare tuple; the schema content is identical.
 signalwire.core.agent_base.AgentBase.setup_graceful_shutdown: TS static setupGracefulShutdown({timeout}) projected onto AgentBase; the reference declares it on WebMixin (reconciled there). This AgentBase-level entry is the TS static form with no separate reference method.

@@ -7,7 +7,7 @@
  * Run: npx tsx examples/prefab-concierge.ts
  */
 
-import { ConciergeAgent } from '../src/index.js';
+import { ConciergeAgent } from '@signalwire/sdk';
 
 export const agent = new ConciergeAgent({
   name: 'hotel-concierge',

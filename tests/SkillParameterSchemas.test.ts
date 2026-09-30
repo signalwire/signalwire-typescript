@@ -72,6 +72,14 @@ describe('Skill Parameter Schemas', () => {
           ).toBe(true);
         }
       });
+
+      it('declares numeric ranges as min and max, not minimum and maximum', () => {
+        // The skill-schema convention; mirrors signalwire-python 5af47a9 (B27).
+        for (const [paramName, entry] of Object.entries(cls.getParameterSchema())) {
+          expect(entry, `${name}.${paramName}`).not.toHaveProperty('minimum');
+          expect(entry, `${name}.${paramName}`).not.toHaveProperty('maximum');
+        }
+      });
     });
   }
 

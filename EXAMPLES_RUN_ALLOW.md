@@ -10,12 +10,10 @@ Format: `- <path> — <reason>` (date).
 
 ## Skill examples requiring real provider credentials / config
 
-- examples/datasphere.ts — DataSphereSkill.setup() fails-loud on missing required params (space_name, project_id, token, document_id); needs a real SignalWire DataSphere knowledge base (2026-07-09).
 - examples/datasphere-serverless-env.ts — requires SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, DATASPHERE_DOCUMENT_ID env vars for a real DataSphere document (2026-07-09).
 - examples/datasphere-webhook-env.ts — same real-DataSphere env-var requirement as datasphere-serverless-env.ts (2026-07-09).
 - examples/web-search.ts — WebSearchSkill requires GOOGLE_SEARCH_API_KEY + GOOGLE_SEARCH_ENGINE_ID (real Google Programmable Search creds) (2026-07-09).
 - examples/web-search-multi-instance.ts — same `GOOGLE_SEARCH_*` real-creds requirement as web-search.ts (2026-07-09).
-- examples/mcp-gateway.ts — McpGatewaySkill requires auth_token or (auth_user + auth_password) for a real MCP gateway endpoint (2026-07-09).
 
 ## Real-network / real-creds runnable examples
 
@@ -31,3 +29,4 @@ Format: `- <path> — <reason>` (date).
 
 - relay/examples/relay-outbound.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and dials a real number; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).
 - relay/examples/relay-messaging.ts — connect() opens a live RELAY WebSocket to SIGNALWIRE_SPACE and sends a real SMS; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same class + reason as the owner-approved php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09; ratified for this ts entry: user, 2026-07-21).
+- examples/pgi/serve.ts — refuses to start unless CASE_TENANT_ID, SWML_BASIC_AUTH_USER, SWML_BASIC_AUTH_PASSWORD, SIGNALWIRE_SIGNING_KEY and SIGNALWIRE_SWAIG_SECRET are set, by design (docs/pgi_agent_guide.md section 6); the agent it serves is tested by tests/examples/pgi-reference.test.ts (anthm@signalwire.com, 2026-09-28).

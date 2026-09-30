@@ -30,10 +30,13 @@
 
 import type { Context, MiddlewareHandler } from 'hono';
 
-import { validateWebhookSignature } from './WebhookValidator.js';
+import { _SIGNATURE_TARGETS_ENV_KEY, type _SignatureTarget } from './ServerlessAdapter.js';
+import { validateWebhookSignature, validateWebhookSignatureSha256 } from './WebhookValidator.js';
 
 /** Canonical lowercase header names (Hono's c.req.header() is case-insensitive). */
 export const SIGNALWIRE_SIGNATURE_HEADER = 'x-signalwire-signature';
+/** The HMAC-SHA256 signature header, preferred over the SHA-1 one when present. */
+export const SIGNALWIRE_SHA256_SIGNATURE_HEADER = 'x-signalwire-sha256-signature';
 export const TWILIO_COMPAT_SIGNATURE_HEADER = 'x-twilio-signature';
 
 /**
@@ -72,6 +75,9 @@ function headerLookup(headers: Record<string, string>, name: string): string | u
  *
  * Behavior mirrors the SignalWire webhook signature-validation contract:
  *
+ *   - A valid ``X-SignalWire-Sha256-Signature`` (HMAC-SHA256) → ``null`` (pass).
+ *     This stronger header is checked first; when it is missing or doesn't
+ *     match, the SHA-1 header decides.
  *   - Missing ``X-SignalWire-Signature`` (or the ``X-Twilio-Signature`` alias)
  *     → reject ``[403, {}, 'Forbidden']`` (never throws for a missing header).
  *   - Bad signature → reject ``[403, {}, 'Forbidden']``.
@@ -103,6 +109,19 @@ export function validate(
   void method; // signature is over url + body, not the method
   if (!signingKey || typeof signingKey !== 'string') {
     throw new Error('signingKey is required');
+  }
+
+  // Prefer the stronger SHA-256 signature when the platform sends it: the same
+  // Scheme A message, hashed with SHA-256. Fall back to the SHA-1 header below,
+  // so deployments on older platform builds, and the cXML/form Scheme B path,
+  // keep validating.
+  const sha256Signature = headerLookup(headers, SIGNALWIRE_SHA256_SIGNATURE_HEADER);
+  if (sha256Signature) {
+    try {
+      if (validateWebhookSignatureSha256(signingKey, sha256Signature, url, body)) return null;
+    } catch {
+      // Fall back to the SHA-1 header.
+    }
   }
 
   const signature =
@@ -166,32 +185,74 @@ function extractSignatureHeader(c: Context): string | null {
  *   3. The raw request URL (``c.req.url``).
  */
 function reconstructUrl(c: Context, opts: { trustProxy: boolean }): string {
-  const rawUrl = c.req.url;
+  return publicUrl(c.req.url, (name) => c.req.header(name), opts.trustProxy);
+}
 
+/**
+ * Rebuild the public URL SignalWire POSTed to, from the URL the server or
+ * platform saw. Framework-free, so the Hono adapter and serverless requests
+ * share it (mirrors the reference's `_public_url`).
+ *
+ * @param url - The full URL the request was received on.
+ * @param header - Looks up a request header by name.
+ * @param trustProxy - Whether to honor `X-Forwarded-Proto` / `X-Forwarded-Host`.
+ * @param pathAndQuery - The path and query to join to `SWML_PROXY_URL_BASE`;
+ *   defaults to those of `url`. A serverless platform passes the path below
+ *   the app's root. A forwarded host always keeps the path of `url`, so a
+ *   platform prefix (a CGI script, an API Gateway stage) is kept.
+ */
+function publicUrl(
+  url: string,
+  header: (name: string) => string | undefined,
+  trustProxy: boolean,
+  pathAndQuery?: string,
+): string {
   // Extract path + query from the raw URL without losing original encoding.
-  let pathAndQuery: string;
+  let urlPathAndQuery: string;
   try {
-    const u = new URL(rawUrl);
-    pathAndQuery = u.pathname + (u.search || '');
+    const u = new URL(url);
+    urlPathAndQuery = u.pathname + (u.search || '');
   } catch {
-    pathAndQuery = rawUrl;
+    urlPathAndQuery = url;
   }
 
   const proxyBase = process.env['SWML_PROXY_URL_BASE'];
   if (proxyBase) {
     const trimmed = proxyBase.replace(/\/+$/, '');
-    return `${trimmed}${pathAndQuery}`;
+    return `${trimmed}${pathAndQuery ?? urlPathAndQuery}`;
   }
 
-  if (opts.trustProxy) {
-    const fwdHost = c.req.header('x-forwarded-host');
+  if (trustProxy) {
+    const fwdHost = header('x-forwarded-host');
     if (fwdHost) {
-      const fwdProto = c.req.header('x-forwarded-proto') ?? 'https';
-      return `${fwdProto}://${fwdHost}${pathAndQuery}`;
+      const fwdProto = header('x-forwarded-proto') ?? 'https';
+      return `${fwdProto}://${fwdHost}${urlPathAndQuery}`;
     }
   }
 
-  return rawUrl;
+  return url;
+}
+
+/**
+ * The URLs a serverless request's signature may have been computed over, from
+ * the targets the serverless adapter passes in Hono's `env`, or null for a
+ * request that didn't come through the adapter.
+ */
+function serverlessSignatureUrls(c: Context, trustProxy: boolean): string[] | null {
+  const env = c.env as Record<string, unknown> | undefined;
+  const targets = env?.[_SIGNATURE_TARGETS_ENV_KEY];
+  if (!Array.isArray(targets) || targets.length === 0) return null;
+  const urls: string[] = [];
+  for (const t of targets as _SignatureTarget[]) {
+    const url = publicUrl(
+      t.url || c.req.url,
+      (name) => c.req.header(name),
+      trustProxy,
+      t.pathAndQuery,
+    );
+    if (!urls.includes(url)) urls.push(url);
+  }
+  return urls;
 }
 
 /**
@@ -203,8 +264,8 @@ function reconstructUrl(c: Context, opts: { trustProxy: boolean }): string {
  *   1. Captures the raw body (``await c.req.text()``) BEFORE any other
  *      consumer reads the stream. The string is stashed at ``c.set('rawBody')``
  *      so the downstream handler can re-parse without re-reading the stream.
- *   2. Pulls the ``X-SignalWire-Signature`` header (or the ``X-Twilio-Signature``
- *      alias).
+ *   2. Pulls the ``X-SignalWire-Sha256-Signature`` header and the
+ *      ``X-SignalWire-Signature`` header (or the ``X-Twilio-Signature`` alias).
  *   3. Reconstructs the public URL (``SWML_PROXY_URL_BASE`` env > forwarded
  *      headers when ``trustProxy`` > raw request URL).
  *   4. Calls {@link validateWebhookSignature}.
@@ -233,13 +294,23 @@ export function webhookValidationMiddleware(opts: WebhookValidationOptions): Mid
     }
 
     const signature = extractSignatureHeader(c);
-    const url = reconstructUrl(c, { trustProxy });
+    // A serverless request carries the URL(s) the platform was called on;
+    // otherwise rebuild the URL from this request.
+    const urls = serverlessSignatureUrls(c, trustProxy) ?? [reconstructUrl(c, { trustProxy })];
 
     // Delegate the decision to the framework-free `validate` core so the Hono
     // adapter and the decomposed cross-port contract share one implementation.
     const headers: Record<string, string> = {};
     if (signature !== null) headers[SIGNALWIRE_SIGNATURE_HEADER] = signature;
-    const rejection = validate(c.req.method, url, headers, rawBody, signingKey);
+    const sha256Signature = c.req.header(SIGNALWIRE_SHA256_SIGNATURE_HEADER);
+    if (sha256Signature !== undefined) {
+      headers[SIGNALWIRE_SHA256_SIGNATURE_HEADER] = sha256Signature;
+    }
+    let rejection: WebhookRejection | null = null;
+    for (const url of urls) {
+      rejection = validate(c.req.method, url, headers, rawBody, signingKey);
+      if (rejection === null) break;
+    }
 
     if (rejection !== null) {
       const [status, respHeaders, respBody] = rejection;

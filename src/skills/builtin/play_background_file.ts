@@ -42,7 +42,7 @@ interface PreConfiguredFile {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('play_background_file', {
+ * await agent.addSkillByName('play_background_file', {
  *   files: [
  *     { key: 'hold', url: 'https://cdn.example.com/hold-music.mp3', description: 'Hold music' },
  *   ],

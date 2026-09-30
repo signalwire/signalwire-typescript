@@ -71,7 +71,7 @@ function safeEvaluate(expr: string): number {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('math');
+ * await agent.addSkillByName('math');
  * ```
  */
 export class MathSkill extends SkillBase {

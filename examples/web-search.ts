@@ -6,7 +6,7 @@
  * Run: npx tsx examples/web-search.ts
  */
 
-import { AgentBase, WebSearchSkill } from '../src/index.js';
+import { AgentBase, WebSearchSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'search-agent',

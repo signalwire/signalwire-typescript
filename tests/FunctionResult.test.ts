@@ -289,10 +289,9 @@ describe('FunctionResult', () => {
     );
   });
 
-  it('joinConference rejects max_participants > 250 (runtime guard, parity with Python)', () => {
-    expect(() =>
-      new FunctionResult('ok').joinConference('conf1', { maxParticipants: 300 }),
-    ).toThrow('max_participants must be a positive integer <= 250');
+  it('joinConference accepts max_participants above the schema maximum, as the platform does', () => {
+    const r = new FunctionResult('ok').joinConference('conf1', { maxParticipants: 100001 });
+    expect(JSON.stringify(r.toDict())).toContain('"max_participants":100001');
   });
 
   it('executeRpc', () => {
@@ -351,8 +350,10 @@ describe('FunctionResult', () => {
     const swml = JSON.stringify({ version: '1.0.0', sections: { main: [] } });
     const r = new FunctionResult('ok').executeSwml(swml, true);
     const acts = r.toDict().action as Record<string, unknown>[];
-    const action = acts[0]!['SWML'] as Record<string, unknown>;
-    expect(action['transfer']).toBe('true');
+    // transfer rides beside the SWML document (as connect() emits it), not inside it.
+    expect(acts[0]!['transfer']).toBe('true');
+    expect((acts[0]!['SWML'] as Record<string, unknown>)['transfer']).toBeUndefined();
+    expect((acts[0]!['SWML'] as Record<string, unknown>)['version']).toBe('1.0.0');
   });
 
   it('executeSwml with valid object is unchanged (regression for the bad-type guard)', () => {

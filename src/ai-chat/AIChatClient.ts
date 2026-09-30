@@ -10,10 +10,19 @@
  * Async by nature: a {@link AIChatClient.chat} call awaits a full LLM round trip
  * (seconds, not milliseconds). The service streams keepalive whitespace ahead of
  * a slow response body (proxy read-timeout protection), so liveness is byte-driven
- * rather than wall-clock: there is no total-request timeout an idle turn could
- * trip — only a per-read idle timeout, mirroring the python reference's
- * `aiohttp.ClientTimeout(total=None, connect=10, sock_read=60)`. Leading whitespace
- * is valid JSON, so the buffered `response.json()` parse is unaffected.
+ * rather than wall-clock: there is no total-request timeout a slow turn could
+ * trip, only an idle timeout that restarts with every chunk received, as with
+ * the python reference's `aiohttp.ClientTimeout(total=None, sock_read=60)`.
+ * Leading whitespace is valid JSON, so parsing the buffered body is unaffected.
+ *
+ * URL resolution, in order:
+ *
+ * 1. The `url` option, used verbatim.
+ * 2. The `RAILS_DEV_MODE` environment variable, when it holds a URL rather than
+ *    a boolean (point it at a dev chat service, e.g. `http://localhost:8080/`).
+ * 3. `https://{space}.signalwire.com/api/ai/chat`, from the `space` option or
+ *    `SIGNALWIRE_SPACE`. A space hostname (`example.signalwire.com`), the form
+ *    the REST client reads from the same variable, is accepted too.
  *
  * Mirrors the python reference `signalwire.ai_chat.AIChatClient`.
  *
@@ -28,8 +37,48 @@
  * ```
  */
 
+import { getLogger } from '../Logger.js';
+import { _userAgent } from '../rest/HttpClient.js';
+
+const logger = getLogger('ai_chat.client');
+
 /** Default endpoint path appended to a `space`-derived base URL. */
 const DEFAULT_PATH = '/api/ai/chat';
+
+/**
+ * `RAILS_DEV_MODE` values that switch the service's persona on or off without
+ * naming a URL; only another value overrides the target.
+ */
+const DEV_MODE_BOOLEANS = new Set(['false', '0', 'no', 'off', 'true', '1', 'yes', 'on']);
+
+/** Characters the chat service keeps in a conversation id; it strips any other, silently. */
+const ID_UNSAFE = /[^a-zA-Z0-9_\-.:]/g;
+
+/**
+ * Warn when the service won't store the conversation id it's given.
+ *
+ * The service drops disallowed characters from conversation ids without
+ * reporting it, so a caller composing ids (`root~2` for a second leg of
+ * `root`) gets back `root2`, a different id that looks valid. Anything filed
+ * under the requested id can't be found, and no layer reports an error. Of
+ * the kept characters, `_` and `-` occur in the ids `ChatGateway.mintHandle`
+ * generates and `:` is the gateway's handle delimiter, which leaves `.` as the
+ * safe separator for composing ids.
+ */
+function warnIfIdWillBeAltered(conversationId: string): void {
+  if (typeof conversationId !== 'string' || !conversationId) return;
+  const cleaned = conversationId.replace(ID_UNSAFE, '');
+  if (cleaned === conversationId) return;
+  const removed = [...new Set(conversationId.match(ID_UNSAFE) ?? [])].sort().join('');
+  logger.warn('conversation_id_will_be_sanitized', {
+    requested: conversationId,
+    stored_as: cleaned,
+    removed_characters: removed,
+    message:
+      '[signalwire] the chat service will store this conversation under a different id; ' +
+      "anything filed under the requested id will not be found. Use '.' to compose ids.",
+  });
+}
 
 /**
  * Idle read timeout (seconds) for a single request. The service streams keepalive
@@ -168,7 +217,11 @@ export interface AIChatClientOptions {
   url?: string;
   /** Override the `fetch` implementation (dependency injection for tests). */
   fetchImpl?: typeof globalThis.fetch;
-  /** Idle read timeout in seconds (byte-silence, NOT total turn length). Default 60. `0` disables. */
+  /**
+   * Seconds without receiving any data (headers or body) before a request is
+   * abandoned. Not a limit on the whole turn: every chunk restarts it. Default
+   * 60. `0` disables.
+   */
   readIdleTimeoutSeconds?: number;
 }
 
@@ -264,11 +317,126 @@ export class AIChatClient {
 
   private static _resolveUrl(url: string | undefined, space: string): string {
     if (url) return url;
-    if (space) return `https://${space}.signalwire.com${DEFAULT_PATH}`;
-    throw new Error('No service URL: provide url= or space= / SIGNALWIRE_SPACE.');
+    const devUrl = (process.env['RAILS_DEV_MODE'] ?? '').trim();
+    // RAILS_DEV_MODE doubles as the service's persona switch, so a plain
+    // boolean turns that on without naming a URL; only a URL overrides the target.
+    if (devUrl && !DEV_MODE_BOOLEANS.has(devUrl.toLowerCase())) return devUrl;
+    if (space) {
+      // A hostname (`example.signalwire.com`), the form the REST client reads
+      // from SIGNALWIRE_SPACE, is used as the host; a bare name gets the domain.
+      const host = space.includes('.') ? space : `${space}.signalwire.com`;
+      return `https://${host}${DEFAULT_PATH}`;
+    }
+    throw new Error(
+      'No service URL: provide url, set RAILS_DEV_MODE to a full URL, ' +
+        'or provide space / SIGNALWIRE_SPACE.',
+    );
   }
 
   // ── Wire ─────────────────────────────────────────────────────────
+
+  /**
+   * POST one JSON-RPC call and return the response, its body not yet read.
+   *
+   * The idle timeout covers the wait for headers and every wait for the next
+   * body chunk, each measured separately: a turn the service keeps alive with
+   * keepalive whitespace runs as long as it needs, and a connection that goes
+   * silent is abandoned. Time the caller spends between reads doesn't count.
+   * An expired timeout aborts the connection and fails the read with an
+   * {@link AIChatError} whose code is `null`.
+   */
+  private async _post(method: string, params: JsonRpcParams): Promise<Response> {
+    this._requestCounter += 1;
+    const payload = {
+      jsonrpc: '2.0',
+      method,
+      params,
+      id: `req-${this._requestCounter}`,
+    };
+
+    const seconds = this._readIdleTimeoutSeconds;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const disarm = () => clearTimeout(timer);
+    const arm = () => {
+      disarm();
+      if (seconds <= 0) return;
+      timer = setTimeout(() => {
+        controller.abort(
+          new AIChatError(null, `no data from the chat service for ${seconds}s; request abandoned`),
+        );
+      }, seconds * 1000);
+    };
+    const failure = (err: unknown) => (controller.signal.aborted ? controller.signal.reason : err);
+
+    // Every wait (for headers, then each body chunk) races the abort, so a
+    // transport that ignores the signal still stops waiting.
+    const aborted = new Promise<never>((_resolve, reject) => {
+      controller.signal.addEventListener('abort', () => reject(controller.signal.reason), {
+        once: true,
+      });
+    });
+    aborted.catch(() => undefined);
+
+    arm();
+    let response: Response;
+    let pending: Promise<Response>;
+    try {
+      pending = this._fetch(this.url, {
+        method: 'POST',
+        headers: {
+          Authorization: this._authHeader,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'User-Agent': _userAgent(),
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      disarm();
+      throw err;
+    }
+    try {
+      response = await Promise.race([pending, aborted]);
+    } catch (err) {
+      disarm();
+      // Headers that arrive after the timeout are discarded.
+      pending.then(
+        (late) => late.body?.cancel().catch(() => undefined),
+        () => undefined,
+      );
+      throw failure(err);
+    }
+    disarm();
+    if (!response.body || seconds <= 0) return response;
+
+    const reader = response.body.getReader();
+    const body = new ReadableStream<Uint8Array>({
+      async pull(stream) {
+        arm();
+        try {
+          const { done, value } = await Promise.race([reader.read(), aborted]);
+          disarm();
+          if (done) stream.close();
+          else stream.enqueue(value);
+        } catch (err) {
+          disarm();
+          void reader.cancel().catch(() => undefined);
+          stream.error(failure(err));
+        }
+      },
+      cancel(reason) {
+        disarm();
+        return reader.cancel(reason);
+      },
+    });
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  }
 
   /**
    * POST one JSON-RPC call and return its decoded `result` object.
@@ -281,24 +449,7 @@ export class AIChatClient {
    * @throws {AIChatError} (or a typed subclass) when the body carries `error`.
    */
   private async _request(method: string, params: JsonRpcParams): Promise<Record<string, unknown>> {
-    this._requestCounter += 1;
-    const payload = {
-      jsonrpc: '2.0',
-      method,
-      params,
-      id: `req-${this._requestCounter}`,
-    };
-
-    const response = await this._fetch(this.url, {
-      method: 'POST',
-      headers: {
-        Authorization: this._authHeader,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: this._readIdleSignal(),
-    });
+    const response = await this._post(method, params);
 
     // Buffer the whole body then parse. Leading keepalive whitespace is valid
     // JSON, so a plain parse handles it — no need to strip.
@@ -322,15 +473,43 @@ export class AIChatClient {
   }
 
   /**
-   * The per-request AbortSignal enforcing the read-idle timeout. `fetch` has no
-   * per-read timeout, so this is a bounded total for the whole buffered read;
-   * because the mock (and the real proxy) heartbeat well within the window, a
-   * live-but-slow turn never trips it, while a truly dead connection is severed
-   * after `readIdleTimeoutSeconds` of silence. A value of `0` disables it.
+   * POST one JSON-RPC call and return the response with its body unread.
+   *
+   * For a proxy that has to stream the body through rather than buffer it.
+   * The service pads a slow response with keepalive whitespace so that
+   * intermediaries don't close the connection mid-turn; a proxy that waits for
+   * the whole body holds back that padding and brings back the timeout it's
+   * there to prevent. Pass `response.body` on as it arrives.
+   *
+   * The caller interprets the result, including that a JSON-RPC error arrives
+   * under HTTP 200 (see the typed methods). Read the body to the end or cancel
+   * it, so the connection is released. The idle timeout applies to each read.
+   * Prefer the typed methods unless you are relaying bytes.
+   *
+   * @param method - JSON-RPC method, e.g. `chat`.
+   * @param params - JSON-RPC params, sent as they are.
+   * @returns The response, body unread.
+   *
+   * @example
+   * ```ts
+   * import { Hono } from 'hono';
+   * import { AIChatClient } from '@signalwire/sdk';
+   *
+   * const client = new AIChatClient({ space: 'myspace' });
+   * const app = new Hono();
+   *
+   * app.post('/chat', async (c) => {
+   *   const { id, message } = await c.req.json<{ id: string; message: string }>();
+   *   const upstream = await client.rawPost('chat', { id, message });
+   *   return new Response(upstream.body, {
+   *     status: upstream.status,
+   *     headers: { 'Content-Type': 'application/json' },
+   *   });
+   * });
+   * ```
    */
-  private _readIdleSignal(): AbortSignal | undefined {
-    if (this._readIdleTimeoutSeconds <= 0) return undefined;
-    return AbortSignal.timeout(this._readIdleTimeoutSeconds * 1000);
+  async rawPost(method: string, params: JsonRpcParams): Promise<Response> {
+    return this._post(method, params);
   }
 
   // ── API methods ──────────────────────────────────────────────────
@@ -347,6 +526,7 @@ export class AIChatClient {
     conversationId: string,
     options: CreateConversationOptions,
   ): Promise<ConversationInfo> {
+    warnIfIdWillBeAltered(conversationId);
     const params: JsonRpcParams = { id: conversationId, config_url: options.configUrl };
     if (options.userMessage) params['user_message'] = options.userMessage;
     if (options.timeout) params['conversation_timeout'] = options.timeout;

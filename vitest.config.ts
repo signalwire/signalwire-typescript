@@ -1,6 +1,21 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Examples import the package by name; in tests that is the source tree,
+  // as tsconfig's `paths` make it for tsc and tsx.
+  resolve: {
+    alias: [
+      {
+        find: /^@signalwire\/sdk\/livewire$/,
+        replacement: fileURLToPath(new URL('./src/livewire/index.ts', import.meta.url)),
+      },
+      {
+        find: /^@signalwire\/sdk$/,
+        replacement: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+      },
+    ],
+  },
   test: {
     globals: true,
     environment: 'node',

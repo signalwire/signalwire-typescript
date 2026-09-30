@@ -70,6 +70,11 @@ function buildUserAgent(): string {
 
 const USER_AGENT = buildUserAgent();
 
+/** The SDK's User-Agent, shared by the other HTTP clients (the AI Chat client). */
+export function _userAgent(): string {
+  return USER_AGENT;
+}
+
 /**
  * Cached undici dispatcher trusting a custom REST CA bundle, built lazily on
  * first use from `SIGNALWIRE_REST_CA_FILE` (A5 fleet CA-var contract, hard-cut,

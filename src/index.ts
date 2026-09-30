@@ -5,6 +5,10 @@
  * [SWML](https://developer.signalwire.com/sdks/reference/swml/) documents
  * and handle SWAIG function callbacks from the SignalWire platform.
  *
+ * The documentation for the installed version ships with the package: run
+ * `npx sw-tsdocs` for a map of the SDK, its docs and examples, and
+ * `npx sw-tsdocs api <name>` for a signature and its JSDoc.
+ *
  * @example Minimal agent
  * ```ts
  * import { AgentBase, FunctionResult } from '@signalwire/sdk';
@@ -170,12 +174,17 @@ export {
 } from './SecurityUtils.js';
 
 // Webhook signature validation
-export { validateWebhookSignature, validateRequest } from './WebhookValidator.js';
+export {
+  validateWebhookSignature,
+  validateWebhookSignatureSha256,
+  validateRequest,
+} from './WebhookValidator.js';
 export type { FormParams, FormParamValue } from './WebhookValidator.js';
 export {
   webhookValidationMiddleware,
   validate,
   SIGNALWIRE_SIGNATURE_HEADER,
+  SIGNALWIRE_SHA256_SIGNATURE_HEADER,
   TWILIO_COMPAT_SIGNATURE_HEADER,
 } from './WebhookMiddleware.js';
 export type { WebhookValidationOptions, WebhookRejection } from './WebhookMiddleware.js';
@@ -408,3 +417,15 @@ export function registerSkill(skillClass: typeof _SkillBase): void {
 export function addSkillDirectory(path: string): void {
   _SkillRegistry.getInstance().addSearchPath(path);
 }
+
+// Client capabilities and post-prompt normalization
+export { userVariables, declaredCapabilities, hasCapability } from './capabilities.js';
+export {
+  DIALOGUE_ROLES,
+  NormalizedPostPrompt,
+  dialogueTurns,
+  normalizePostPrompt,
+  parsePostPromptData,
+  stripJsonFence,
+} from './PostPrompt.js';
+export type { DialogueTurn } from './PostPrompt.js';

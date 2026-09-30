@@ -25,7 +25,10 @@ import { createHmac } from 'node:crypto';
 
 import { SessionManager } from '../src/SessionManager.js';
 import { filterSensitiveHeaders, redactUrl } from '../src/SecurityUtils.js';
-import { validateWebhookSignature } from '../src/WebhookValidator.js';
+import {
+  validateWebhookSignature,
+  validateWebhookSignatureSha256,
+} from '../src/WebhookValidator.js';
 
 // SECRET mirrors wire_crypto_corpus.SECRET ("a" * 64).
 const SECRET = 'a'.repeat(64);
@@ -94,6 +97,11 @@ function main(): void {
     valid: sm.validateToken('oracle_call', 'oracle_fn', oracleToken('oracle_call', 'oracle_fn')),
   };
 
+  // token_interop_dotted_call_id: a call_id containing dots validates.
+  out['token_interop_dotted_call_id'] = {
+    valid: sm.validateToken('root.2', 'oracle_fn', oracleToken('root.2', 'oracle_fn')),
+  };
+
   // token_tamper_rejected: a one-byte-flipped signature must fail.
   out['token_tamper_rejected'] = { valid: sm.validateToken('c', 'f', tamperedToken()) };
 
@@ -106,6 +114,18 @@ function main(): void {
   // wire_validate_webhook_signature_bad: wrong sig -> invalid.
   out['wire_validate_webhook_signature_bad'] = {
     valid: validateWebhookSignature(SECRET, 'deadbeef'.repeat(8), whUrl, whBody),
+  };
+
+  // wire_validate_webhook_signature_sha256: hex(HMAC-SHA256(key, url+body)) -> valid;
+  // a correct SHA-1 signature in its place -> invalid.
+  const sha256 = createHmac('sha256', SECRET)
+    .update(whUrl + whBody)
+    .digest('hex');
+  out['wire_validate_webhook_signature_sha256'] = {
+    valid: validateWebhookSignatureSha256(SECRET, sha256, whUrl, whBody),
+  };
+  out['wire_validate_webhook_signature_sha256_bad'] = {
+    valid: validateWebhookSignatureSha256(SECRET, oracleSig(whUrl, whBody, SECRET), whUrl, whBody),
   };
 
   // wire_redact_url: credentials redacted, structure preserved.

@@ -21,6 +21,13 @@ export interface AgentOptions {
   usePom?: boolean;
   /** Session token expiry in seconds (defaults to 3600). */
   tokenExpirySecs?: number;
+  /**
+   * Secret that signs this agent's per-call SWAIG function tokens. Falls back
+   * to `SIGNALWIRE_SWAIG_SECRET`. Set the same secret on every replica, and
+   * keep it across restarts, so a token minted by one process validates on
+   * another; when neither is set, each process generates its own.
+   */
+  swaigSecret?: string;
   /** Whether to automatically insert an "answer" verb in the SWML call flow (defaults to true). */
   autoAnswer?: boolean;
   /** Whether to record the call (defaults to false). */
@@ -109,12 +116,22 @@ export interface LanguageConfig {
   engine?: string;
   /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */
   model?: string;
-  /** Filler phrases keyed by category for this language. */
-  fillers?: Record<string, string[]>;
+  /** Phrases the AI can say to fill a pause in speech (`speech_fillers`). */
+  speechFillers?: string[];
+  /**
+   * Phrases said while a function runs (`function_fillers`). The older form,
+   * keyed by function name then language code, is flattened into one list;
+   * for fillers per tool, use the tool's own `fillers` option.
+   */
+  functionFillers?: string[] | Record<string, Record<string, string[]>>;
+  /**
+   * Filler phrases for both speech and functions, the schema's older `fillers`
+   * list. The older form keyed by category is flattened into one list and
+   * sent as `speechFillers`.
+   */
+  fillers?: string[] | Record<string, string[]>;
   /** Speech recognition model identifier. */
   speechModel?: string;
-  /** Per-function filler phrases, keyed by function name then language code. */
-  functionFillers?: Record<string, Record<string, string[]>>;
   /**
    * Optional per-language params dict (engine-specific tuning, voice settings,
    * etc.). Emitted as the language object's `params` key in SWML — only

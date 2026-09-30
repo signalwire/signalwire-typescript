@@ -1,0 +1,23 @@
+{
+  "name": "fred-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fred, a voice agent that answers questions from Wikipedia",
+  "type": "module",
+  "scripts": {
+    "start": "tsx fred.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "@signalwire/sdk": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

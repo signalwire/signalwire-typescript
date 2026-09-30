@@ -87,7 +87,9 @@ describe('DataMap', () => {
     >[];
     expect(webhooks[0]!['method']).toBe('POST');
     expect(webhooks[0]!['headers']).toEqual({ Authorization: 'Bearer TOKEN' });
-    expect(webhooks[0]!['body']).toEqual({ query: '${query}', limit: 3 });
+    // body() sets params: the platform reads the request body from params only
+    expect(webhooks[0]!['params']).toEqual({ query: '${query}', limit: 3 });
+    expect(webhooks[0]).not.toHaveProperty('body');
   });
 
   it('webhook with params', () => {

@@ -52,7 +52,7 @@ interface QuestionDefinition {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('info_gatherer', {
+ * await agent.addSkillByName('info_gatherer', {
  *   questions: [
  *     { key_name: 'name', question_text: 'What is your name?' },
  *     { key_name: 'email', question_text: 'Your email?', confirm: true },
@@ -79,8 +79,11 @@ export class InfoGathererSkill extends SkillBase {
   private completionMessage: string = DEFAULT_COMPLETION_MESSAGE;
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    // Instances are told apart by prefix, not tool_name, so the base
+    // schema's tool_name entry doesn't apply.
+    const { tool_name: _toolName, ...base } = super.getParameterSchema();
     return {
-      ...super.getParameterSchema(),
+      ...base,
       questions: {
         type: 'array',
         description:

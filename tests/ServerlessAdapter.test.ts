@@ -230,3 +230,29 @@ describe('ServerlessAdapter', () => {
     }
   });
 });
+
+describe('rate limiting on serverless platforms (found in review)', () => {
+  it("keys each Lambda client by the platform's source IP", async () => {
+    const { AgentBase } = await import('../src/AgentBase.js');
+    const saved = process.env['SWML_RATE_LIMIT'];
+    process.env['SWML_RATE_LIMIT'] = '1';
+    try {
+      const agent = new AgentBase({ name: 'rl', route: '/', basicAuth: ['u', 'p'] });
+      agent.setPromptText('hi');
+      const event = (sourceIp: string) => ({
+        rawPath: '/',
+        rawQueryString: '',
+        headers: { host: 'abc.lambda-url.us-east-1.on.aws', authorization: 'Basic ' + btoa('u:p') },
+        requestContext: { http: { method: 'GET', sourceIp } },
+      });
+      const status = async (ip: string) =>
+        ((await agent.runServerless(event(ip), {}, 'lambda')) as { statusCode: number }).statusCode;
+      expect(await status('198.51.100.1')).toBe(200);
+      expect(await status('198.51.100.1')).toBe(429);
+      expect(await status('198.51.100.2')).toBe(200);
+    } finally {
+      if (saved === undefined) delete process.env['SWML_RATE_LIMIT'];
+      else process.env['SWML_RATE_LIMIT'] = saved;
+    }
+  });
+});

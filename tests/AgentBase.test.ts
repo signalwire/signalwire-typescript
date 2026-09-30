@@ -243,8 +243,9 @@ describe('AgentBase', () => {
     def.addStep('quiz', { task: 'Ask a quiz question' });
     const swml = JSON.parse(agent.renderSwml());
     const ai = swml.sections.main[1].ai;
-    expect(ai.contexts).toBeDefined();
-    expect(ai.contexts.default.steps.length).toBe(2);
+    // Contexts are inside the prompt, as the platform and the reference read them.
+    expect(ai.contexts).toBeUndefined();
+    expect(ai.prompt.contexts.default.steps.length).toBe(2);
   });
 
   it('contexts step functions whitelist rejects a dangling SWAIG ref', () => {
@@ -384,16 +385,19 @@ describe('AgentBase', () => {
 
   // ── asRouter (host-app mounting) ──────────────────────────────────
 
-  it('asRouter returns the same wired Hono app as getApp', () => {
-    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+  it("asRouter serves the agent's routes relative to its root; getApp under its route", async () => {
+    const agent = new AgentBase({ name: 'test', route: '/sales', basicAuth: ['u', 'p'] });
     agent.setPromptText('hello');
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    // asRouter is the "embed my routes in a host app" handle, route-relative
+    // like the reference's as_router(): the host picks the mount path.
     const router = agent.asRouter();
-    // asRouter is the "embed my routes in a host app" handle; it is the same
-    // fully-wired Hono app getApp() builds (idempotent build), returned for
-    // mounting instead of serving.
-    expect(router).toBe(agent.getApp());
     expect(typeof router.request).toBe('function');
-    expect(typeof router.route).toBe('function');
+    expect((await router.request('/', { headers: auth })).status).toBe(200);
+    expect((await router.request('/sales', { headers: auth })).status).toBe(404);
+    // getApp serves the same routes under the agent's route.
+    expect((await agent.getApp().request('/sales', { headers: auth })).status).toBe(200);
+    expect(agent.asRouter()).toBe(router);
   });
 
   it('asRouter serves the agent SWML route when mounted into a host app', async () => {
@@ -449,14 +453,22 @@ describe('AgentBase', () => {
     });
     expect(swaigRes.status).toBe(404);
 
-    // /post_prompt accepts the call summary callback.
-    const ppRes = await router.request('/post_prompt', {
+    // /post_prompt accepts the call summary callback, with the post-prompt
+    // token from the SWML the router serves for that call.
+    agent.setPostPrompt('Summarize.');
+    const swmlRes = await router.request('/?call_id=c1', {
+      headers: { Authorization: 'Basic ' + btoa('u:p') },
+    });
+    const swml = await swmlRes.json();
+    const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
+    const ppQuery = new URL(ai.post_prompt_url).search;
+    const ppRes = await router.request(`/post_prompt${ppQuery}`, {
       method: 'POST',
       headers: {
         Authorization: 'Basic ' + btoa('u:p'),
         'Content-Type': 'application/json',
       },
-      body: '{}',
+      body: JSON.stringify({ call_id: 'c1' }),
     });
     expect(ppRes.status).toBe(200);
   });
@@ -766,6 +778,30 @@ describe('AgentBase', () => {
     }
   });
 
+  it('SWML_RATE_LIMIT keys each client by its socket address, not one shared bucket', async () => {
+    const saved = process.env['SWML_RATE_LIMIT'];
+    process.env['SWML_RATE_LIMIT'] = '1';
+    try {
+      const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+      agent.setPromptText('hello');
+      const app = agent.getApp();
+      // @hono/node-server passes the Node request as env.incoming.
+      const from = (remoteAddress: string) =>
+        app.request(
+          '/',
+          { headers: { Authorization: 'Basic ' + btoa('u:p') } },
+          { incoming: { socket: { remoteAddress } } },
+        );
+      expect((await from('10.0.0.1')).status).toBe(200);
+      expect((await from('10.0.0.1')).status).toBe(429);
+      // Another client isn't limited by the first one's requests.
+      expect((await from('10.0.0.2')).status).toBe(200);
+    } finally {
+      if (saved) process.env['SWML_RATE_LIMIT'] = saved;
+      else delete process.env['SWML_RATE_LIMIT'];
+    }
+  });
+
   it('SWML_RATE_LIMIT returns 429 when exceeded', async () => {
     const saved = process.env['SWML_RATE_LIMIT'];
     process.env['SWML_RATE_LIMIT'] = '2'; // 2 requests per minute
@@ -875,9 +911,33 @@ describe('AgentBase', () => {
     expect(calls).toContain('test_fn');
   });
 
-  it('validateBasicAuth hook default returns true', () => {
-    const agent = createAgent();
-    expect(agent.validateBasicAuth('any', 'pass')).toBe(true);
+  it('validateBasicAuth checks the configured credentials by default, as the reference does', () => {
+    const agent = new AgentBase({ name: 'auth', route: '/', basicAuth: ['u', 'p'] });
+    expect(agent.validateBasicAuth('u', 'p')).toBe(true);
+    expect(agent.validateBasicAuth('any', 'pass')).toBe(false);
+    expect(agent.validateBasicAuth('u', 'wrong')).toBe(false);
+  });
+
+  it('calls a validateBasicAuth override on every protected route', async () => {
+    class Guarded extends AgentBase {
+      override validateBasicAuth(username: string, password: string): boolean {
+        return username === 'u' && password === 'p' && !blocked.has(username);
+      }
+    }
+    const blocked = new Set<string>();
+    const agent = new Guarded({ name: 'auth', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const app = agent.getApp();
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    expect((await app.request('/', { headers: auth })).status).toBe(200);
+    blocked.add('u');
+    expect((await app.request('/', { headers: auth })).status).toBe(401);
+    const swaig = await app.request('/swaig', {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    expect(swaig.status).toBe(401);
   });
 
   it('CORS origin defaults to *', async () => {
@@ -1109,7 +1169,7 @@ describe('AgentBase', () => {
     expect(text).not.toContain('real_tool');
   });
 
-  it('invalid token returns 200 with FunctionResult (not 403)', async () => {
+  it('refuses a secure function with a missing or invalid token, as a 200 FunctionResult', async () => {
     const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
     agent.defineTool({
       name: 'secure_fn',
@@ -1119,37 +1179,29 @@ describe('AgentBase', () => {
       secure: true,
     });
     const app = agent.getApp();
+    const headers = {
+      Authorization: 'Basic ' + btoa('u:p'),
+      'Content-Type': 'application/json',
+    };
 
-    // Missing token: dispatch proceeds. Parity with the reference
-    // (agent_base.py:1413 `if token:`) — a token is validated only when one is
-    // supplied; absence alone does not refuse the call, since basic auth already
-    // gates this endpoint. The per-tool `__token` is minted into the rendered
-    // web_hook_url for the platform to round-trip (see Contract 9).
+    // Missing token: refused. The token is in the web_hook_url the agent
+    // rendered, so a request without one didn't come from that SWML.
     const res1 = await app.request('/swaig', {
       method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + btoa('u:p'),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ function: 'secure_fn', argument: {} }),
+      headers,
+      body: JSON.stringify({ function: 'secure_fn', call_id: 'c1', argument: {} }),
     });
     expect(res1.status).toBe(200);
-    const body1 = await res1.json();
-    expect(body1.response).toBe('ok');
+    expect((await res1.json()).response).toContain('security token');
 
-    // Invalid token — a SUPPLIED token must be valid: refused, but as a 200
-    // FunctionResult (not a 403), which is what this test pins.
+    // Invalid token: refused the same way (a 200 FunctionResult, not a 403).
     const res2 = await app.request('/swaig?__token=bogus_token', {
       method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + btoa('u:p'),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ function: 'secure_fn', argument: {} }),
+      headers,
+      body: JSON.stringify({ function: 'secure_fn', call_id: 'c1', argument: {} }),
     });
     expect(res2.status).toBe(200);
-    const body2 = await res2.json();
-    expect(body2.response).toContain('security token');
+    expect((await res2.json()).response).toContain('security token');
   });
 
   it('rejects function names with invalid characters', async () => {
@@ -1756,5 +1808,142 @@ describe('AgentBase', () => {
       expect(agent.runCount).toBe(1);
       expect(agent.getTools().filter((t) => t.name === 'once')).toHaveLength(1);
     });
+  });
+});
+
+describe('defineContexts', () => {
+  it('returns the existing builder when called again, as the reference does', () => {
+    const agent = new AgentBase({ name: 'ctx', route: '/' });
+    agent.defineContexts().addContext('default').addStep('greet').setText('Hello.');
+    const again = agent.defineContexts();
+    again.getContext('default')!.addStep('ask').setText('Ask.');
+    const contexts = agent.getContexts() as Record<string, { steps: { name: string }[] }>;
+    expect(contexts['default']!.steps.map((s) => s.name)).toEqual(['greet', 'ask']);
+  });
+});
+
+describe('schemaValidation and schemaPath reach the SWML builder (found in the documentation pass)', () => {
+  it('schemaValidation: false lets a verb the schema rejects render', () => {
+    const agent = new AgentBase({
+      name: 'nov',
+      route: '/',
+      basicAuth: ['u', 'p'],
+      schemaValidation: false,
+    });
+    agent.setPromptText('hi');
+    agent.addPreAnswerVerb('play', { not_a_play_key: true });
+    expect(() => agent.renderSwml()).not.toThrow();
+    // The per-request copy renders with the same setting.
+    agent.setDynamicConfigCallback(() => undefined);
+    expect(() => agent.renderSwml()).not.toThrow();
+  });
+
+  it('validates by default', () => {
+    const agent = new AgentBase({ name: 'val', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    expect(() => {
+      agent.addPreAnswerVerb('play', { not_a_play_key: true });
+      agent.renderSwml();
+    }).toThrow(/Schema validation/);
+  });
+});
+
+describe('suppressLogs silences the constructor too (found in the documentation pass)', () => {
+  it("doesn't print the signing-key warning when suppressLogs is set", async () => {
+    const { suppressAllLogs } = await import('../src/Logger.js');
+    const saved = process.env['SIGNALWIRE_SIGNING_KEY'];
+    delete process.env['SIGNALWIRE_SIGNING_KEY'];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      new AgentBase({ name: 'quiet', route: '/', suppressLogs: true });
+      const lines = [...warn.mock.calls, ...log.mock.calls, ...info.mock.calls].map((c) =>
+        String(c[0]),
+      );
+      expect(lines.filter((l) => l.includes('signature validation is disabled'))).toEqual([]);
+    } finally {
+      warn.mockRestore();
+      log.mockRestore();
+      info.mockRestore();
+      suppressAllLogs(false);
+      if (saved !== undefined) process.env['SIGNALWIRE_SIGNING_KEY'] = saved;
+    }
+  });
+});
+
+describe('addLanguage fillers match the schema and the reference (found in the documentation pass)', () => {
+  const lang = (config: Record<string, unknown>) => {
+    const agent = new AgentBase({ name: 'l', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    agent.addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'inworld.Mark',
+      ...config,
+    } as never);
+    return JSON.parse(agent.renderSwml()).sections.main.find((v: { ai?: unknown }) => v.ai).ai
+      .languages[0];
+  };
+
+  it('emits speech_fillers and function_fillers as arrays when both are given', () => {
+    const l = lang({ speechFillers: ['um'], functionFillers: ['one moment'] });
+    expect(l.speech_fillers).toEqual(['um']);
+    expect(l.function_fillers).toEqual(['one moment']);
+    expect(l.fillers).toBeUndefined();
+  });
+
+  it('emits one kind alone as the fillers array, as the reference does', () => {
+    expect(lang({ speechFillers: ['um'] }).fillers).toEqual(['um']);
+    expect(lang({ functionFillers: ['one moment'] }).fillers).toEqual(['one moment']);
+  });
+
+  it('flattens the older object forms into arrays', () => {
+    const l = lang({
+      fillers: { thinking: ['let me think'] },
+      functionFillers: { get_time: { 'en-US': ['checking the clock'] } },
+    });
+    expect(l.speech_fillers).toEqual(['let me think']);
+    expect(l.function_fillers).toEqual(['checking the clock']);
+  });
+});
+
+describe('defineContexts with a plain object (found in the documentation pass)', () => {
+  it('renders the object as the contexts, as the reference does with a dict', () => {
+    const agent = new AgentBase({ name: 'raw', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const contexts = { default: { steps: [{ name: 'greet', text: 'Greet the caller.' }] } };
+    expect(agent.defineContexts(contexts)).toBe(agent);
+    const ai = JSON.parse(agent.renderSwml()).sections.main.find((v: { ai?: unknown }) => v.ai).ai;
+    expect(ai.prompt.contexts).toEqual(contexts);
+    expect(agent.getContexts()).toEqual(contexts);
+    agent.resetContexts();
+    expect(agent.getContexts()).toBeNull();
+  });
+});
+
+describe('validateBasicAuth runs once per served request (found in review)', () => {
+  it('checks the credentials of a served SWML request once', async () => {
+    let calls = 0;
+    class Counting extends AgentBase {
+      override validateBasicAuth(username: string, password: string): boolean {
+        calls += 1;
+        return super.validateBasicAuth(username, password) as boolean;
+      }
+    }
+    const agent = new Counting({ name: 'once', route: '/', basicAuth: ['u', 'p'] });
+    agent.setPromptText('hi');
+    const res = await agent
+      .getApp()
+      .request('/', { headers: { Authorization: 'Basic ' + btoa('u:p') } });
+    expect(res.status).toBe(200);
+    expect(calls).toBe(1);
+    // The framework-free core still checks on its own.
+    calls = 0;
+    const [status] = await agent.handleRequest('GET', 'http://localhost/', {
+      authorization: 'Basic ' + btoa('u:x'),
+    });
+    expect(status).toBe(401);
+    expect(calls).toBe(1);
   });
 });

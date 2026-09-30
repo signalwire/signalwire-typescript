@@ -15,8 +15,15 @@ let globalAllowedEnvPrefixes: string[] = ['SIGNALWIRE_', 'SWML_', 'SW_'];
 /**
  * Set the global allowed env var prefixes for `${ENV.*}` expansion.
  *
- * Only environment variables whose names start with one of these prefixes
- * will be expanded. An empty array allows all variables (escape hatch).
+ * This is the default list for every DataMap that has no list of its own
+ * (see {@link DataMap.setAllowedEnvPrefixes}), read when each DataMap's
+ * `toSwaigFunction()` runs. Only variables whose names start with one of
+ * these prefixes are expanded; any other `${ENV.NAME}` becomes an empty
+ * string. The default is `['SIGNALWIRE_', 'SWML_', 'SW_']`.
+ *
+ * Expanded values are written into the SWML document, so the list limits
+ * which variables a template can publish there. An empty array allows every
+ * variable and removes that protection.
  *
  * @param prefixes - Array of prefix strings to allow.
  */
@@ -60,9 +67,19 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
 /**
  * Fluent builder for SWAIG data_map configurations.
  *
- * Creates server-side tool definitions that execute on SignalWire's infrastructure
- * **without** requiring a webhook endpoint in your application. Ideal for simple
- * third-party API integrations (REST calls + pattern-matched response shaping).
+ * Builds a SWAIG function whose `data_map` the SignalWire platform runs, so
+ * the tool needs no webhook endpoint in your application. The platform makes
+ * the HTTP requests, matches the expressions and expands the templates; this
+ * class only builds the definition.
+ *
+ * What a template can read depends on where it is. A webhook's `url` and
+ * `params`, the top-level expressions and the fallback output read the call
+ * data, where the arguments are `${args.city}`. A webhook's `output`,
+ * `expressions` and `foreach` read that webhook's response instead: a JSON
+ * object's fields from the root (`${temp}`), a JSON array under `array`
+ * (`${array[0].joke}`), and the call data under `input`, so the arguments
+ * there are `${input.args.city}`; `${args.city}` expands to nothing.
+ * Header values are sent as written, with no templates expanded.
  *
  * @example Simple webhook-driven tool (no handler needed)
  * ```ts
@@ -70,9 +87,9 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
  *
  * const weather = new DataMap('get_weather')
  *   .purpose('Look up the current weather for a city')
- *   .parameter('city', 'string', 'The city name', true)
- *   .webhook('GET', 'https://api.example.com/weather?city=${args.city}')
- *   .output(new FunctionResult('In ${city} it is ${response.temp}°F and ${response.condition}.'));
+ *   .parameter('city', 'string', 'The city name', { required: true })
+ *   .webhook('GET', 'https://api.example.com/weather?city=${enc:args.city}')
+ *   .output(new FunctionResult('In ${input.args.city} it is ${temp}°F and ${condition}.'));
  *
  * // Register onto an agent:
  * agent.registerSwaigFunction(weather.toSwaigFunction());
@@ -82,14 +99,14 @@ function expandEnvInObject(obj: unknown, allowedPrefixes: string[]): unknown {
  * ```ts
  * new DataMap('classify_intent')
  *   .purpose('Route callers to the right department.')
- *   .parameter('utterance', 'string', 'What the caller said', true)
- *   .expression('${args.utterance}', /billing|invoice|charge/i, new FunctionResult('billing'))
- *   .expression('${args.utterance}', /tech|broken|error/i, new FunctionResult('support'));
+ *   .parameter('utterance', 'string', 'What the caller said', { required: true })
+ *   .expression('${lc:args.utterance}', 'billing|invoice|charge', new FunctionResult('billing'))
+ *   .expression('${lc:args.utterance}', 'tech|broken|error', new FunctionResult('support'));
  * ```
  *
- * @see {@link FunctionResult} — response shape used in `.output()` / `.expression()`
- * @see {@link createSimpleApiTool} — one-liner helper for REST API tools
- * @see {@link AgentBase.defineTool} — alternative for tools that run in your process
+ * @see {@link FunctionResult}: the response shape used in `.output()` and `.expression()`
+ * @see {@link createSimpleApiTool}: a helper for a tool with one webhook and one output
+ * @see {@link AgentBase.defineTool}: for tools that run in your process
  */
 export class DataMap {
   /** The name of the SWAIG function this data map defines. */
@@ -111,8 +128,15 @@ export class DataMap {
   }
 
   /**
-   * Enable `${ENV.*}` variable expansion in URLs, bodies, and outputs.
-   * @param enabled - Whether to enable expansion (defaults to true).
+   * Turn on `${ENV.NAME}` expansion for this DataMap (off until called).
+   *
+   * The SDK, not the platform, does this expansion: `toSwaigFunction()`
+   * replaces each `${ENV.NAME}` in every string of the definition with
+   * `process.env.NAME`, or with an empty string when the variable is unset or
+   * its name has no allowed prefix (see {@link DataMap.setAllowedEnvPrefixes}).
+   * The values are written into the SWML document.
+   *
+   * @param enabled - Whether to turn expansion on (defaults to true).
    * @returns This instance for chaining.
    */
   enableEnvExpansion(enabled = true): this {
@@ -123,8 +147,10 @@ export class DataMap {
   /**
    * Set the allowed env var prefixes for this DataMap instance.
    *
-   * Overrides the global defaults. Only env vars whose names start with
-   * one of these prefixes will be expanded. An empty array allows all.
+   * Replaces the global default list (`SIGNALWIRE_`, `SWML_`, `SW_` unless
+   * changed with the exported `setAllowedEnvPrefixes()`) for this DataMap.
+   * Only variables whose names start with one of these prefixes are
+   * expanded. An empty array allows every variable.
    *
    * @param prefixes - Array of prefix strings to allow.
    * @returns This instance for chaining.
@@ -135,15 +161,12 @@ export class DataMap {
   }
 
   /**
-   * Set the purpose (description) for this data-map tool — READ BY THE LLM.
+   * Set the purpose (description) for this data-map tool. The model reads it.
    *
-   * This string is rendered into the OpenAI tool schema `description`
-   * field and sent to the model on every turn. The model uses it to
-   * decide WHEN to call this tool. It is **prompt engineering**, not
-   * developer documentation.
-   *
-   * A vague `purpose()` is the #1 cause of "the model has the right tool
-   * but doesn't call it" failures with data-map tools.
+   * This string becomes the function's `description` in the SWML, which the
+   * model reads to decide WHEN to call this tool. Write it as a prompt, not
+   * as developer documentation. With a vague `purpose()`, the model can have
+   * the right tool and not call it.
    *
    * ### Bad vs good
    *
@@ -176,12 +199,12 @@ export class DataMap {
   }
 
   /**
-   * Define a parameter for this data-map tool — `description` is READ BY THE LLM.
+   * Define a parameter for this data-map tool. The model reads its `description`.
    *
-   * Each parameter `description` is rendered into the OpenAI tool schema
-   * under `parameters.properties.<name>.description` and sent to the
-   * model. The model uses it to decide HOW to fill in the argument from
-   * user speech. It is **prompt engineering**, not developer FYI.
+   * Each parameter's `description` becomes
+   * `parameters.properties.<name>.description` in the SWML. The model reads
+   * it to decide HOW to fill in the argument from what the caller said.
+   * Write it as a prompt, not as developer documentation.
    *
    * ### Bad vs good
    *
@@ -197,7 +220,8 @@ export class DataMap {
    * @param paramType - The JSON Schema type (e.g., "string", "number").
    * @param description - Prompt-engineering description telling the model
    *   how to extract this value from the user's utterance. Read by the LLM.
-   * @param opts - Optional flags for required and enum constraints.
+   * @param opts - Options object: `{ required: true }` lists the parameter in the
+   *   schema's `required` array, and `enum` restricts its values.
    * @returns This instance for chaining.
    */
   parameter(
@@ -222,10 +246,24 @@ export class DataMap {
 
   /**
    * Add a pattern-matching expression that evaluates a test value against a regex.
-   * @param testValue - The string or template variable to test.
-   * @param pattern - A regex pattern (string or RegExp) to match against.
+   *
+   * The platform expands `testValue` against the call data, where an
+   * argument is `${args.command}`, and searches it for `pattern`, which can
+   * match anywhere in the value. It tries the expressions in order and stops
+   * at the first that produces a result: a match gives its `output`, and a
+   * non-match gives its `nomatch-output` when it has one, so no expression
+   * after one with a `nomatchOutput` runs. The top-level expressions run
+   * before any webhook, and one that produces a result ends the function.
+   * @param testValue - The string or template variable to test, such as `'${args.input}'`.
+   * @param pattern - A regex pattern (string or RegExp) to match against. The
+   *   platform wraps a pattern that doesn't start with `/` as `/pattern/i`, so
+   *   matching is case-insensitive by default. To match case-sensitively, write
+   *   the pattern as `'/pattern/'`. For a RegExp only `.source` is kept, so its
+   *   flags are dropped and it matches case-insensitively.
    * @param output - The result to return when the pattern matches.
-   * @param nomatchOutput - Optional result to return when the pattern does not match.
+   * @param nomatchOutput - Optional result, written as `nomatch-output`, which the
+   *   platform returns when the pattern doesn't match; later expressions are then
+   *   not tried. The SWML schema's expression object doesn't define that key.
    * @returns This instance for chaining.
    */
   expression(
@@ -249,9 +287,27 @@ export class DataMap {
 
   /**
    * Add a webhook that is called when this data map tool is invoked.
-   * @param method - HTTP method (e.g., "GET", "POST").
-   * @param url - The webhook URL to call.
-   * @param opts - Optional headers, form parameter name, and argument settings.
+   *
+   * The platform sends GET and POST requests only. A webhook is sent as a
+   * POST when `method` is `POST` or when it has params (see
+   * {@link DataMap.params}), and as a GET otherwise, so `PUT`, `PATCH` and
+   * `DELETE` are sent as GET.
+   *
+   * The platform tries the webhooks in order, skipping one whose
+   * `requireArgs` are all absent. The first one it requests decides the
+   * result: if it fails, the fallback output is used and no later webhook is
+   * tried. A later webhook is useful only when the earlier ones can be skipped
+   * by their `requireArgs`.
+   * @param method - HTTP method: `GET` or `POST`. It is uppercased.
+   * @param url - The webhook URL to call. The platform expands templates in
+   *   it against the call data, such as `${enc:args.city}`.
+   * @param opts - Optional `headers` (sent as written, with no templates
+   *   expanded), `formParam` (sends the JSON params URL-encoded as one form
+   *   field with this name; written as `form_param`, which the SWML schema
+   *   doesn't define), `inputArgsAsParams` (merges the function's arguments
+   *   into params, which makes the request a POST) and `requireArgs` (the
+   *   webhook is skipped, without a request, unless at least one of these
+   *   arguments is present).
    * @returns This instance for chaining.
    */
   webhook(
@@ -275,6 +331,11 @@ export class DataMap {
 
   /**
    * Set pattern-matching expressions on the most recently added webhook.
+   *
+   * They run after the webhook's foreach, against its response, and the first
+   * one that produces an output replaces the webhook's own output. Their
+   * templates read the response's fields from the root, and the call data
+   * under `input`, such as `${input.args.query}`.
    * @param expressions - Array of expression objects to evaluate against the webhook response.
    * @returns This instance for chaining.
    */
@@ -286,19 +347,32 @@ export class DataMap {
   }
 
   /**
-   * Set the JSON body for the most recently added webhook.
-   * @param data - The request body object.
+   * Set the JSON request body for the most recently added webhook; the same
+   * as {@link DataMap.params}.
+   *
+   * The platform reads a webhook's request body from its `params` field and
+   * has no `body` field, so this sets `params`, replacing any `params`
+   * already set. See {@link DataMap.params} for how the body is sent.
+   * @param data - The request body object. Values can contain templates.
    * @returns This instance for chaining.
    */
   body(data: Record<string, unknown>): this {
     if (!this._webhooks.length) throw new Error('Must add webhook before setting body');
-    this._webhooks[this._webhooks.length - 1]!['body'] = data; // non-empty checked above
+    // The platform sends `params` as the body; it reads no `body` field.
+    this._webhooks[this._webhooks.length - 1]!['params'] = data; // non-empty checked above
     return this;
   }
 
   /**
-   * Set query or form parameters for the most recently added webhook.
-   * @param data - The parameters object.
+   * Set the JSON request body for the most recently added webhook, written as
+   * its `params`.
+   *
+   * The platform sends `params` as the request's JSON body, not as URL query
+   * parameters, expanding templates in its values first (against the call
+   * data, so arguments are `${args.name}`), and a webhook with `params` is
+   * always a POST, whatever its method. Put query-string values for a GET
+   * request in the URL instead.
+   * @param data - The request body object. Values can contain templates.
    * @returns This instance for chaining.
    */
   params(data: Record<string, unknown>): this {
@@ -309,6 +383,16 @@ export class DataMap {
 
   /**
    * Configure iteration over an array in the webhook response.
+   *
+   * `input_key` is the path to the array in the webhook's template data, such
+   * as `"orders"` or `"data.items"` (a path, not a template). `append` is
+   * expanded once per element, reading an object element's fields as
+   * `${this.field}` and a string or number element as `${this}`, along with
+   * the response and `${input.args.name}`. The joined text is stored under
+   * `output_key`, which the webhook's output reads as `${<output_key>}`.
+   * `max`, when above 0, limits the elements used. The platform runs the
+   * foreach before the webhook's expressions and output, and skips a foreach
+   * that lacks `input_key`, `output_key` or `append`.
    * @param config - Foreach configuration with input/output keys, append template, and optional max.
    * @returns This instance for chaining.
    */
@@ -320,6 +404,11 @@ export class DataMap {
 
   /**
    * Set the output template for the most recently added webhook.
+   *
+   * Its templates read the webhook's JSON response: an object's fields from
+   * the root, such as `${current.temp_f}`, or `${array[0].x}` for an array.
+   * The call data is under `input`, so an argument is `${input.args.city}`;
+   * `${args.city}` is empty here. A foreach's text is `${<output_key>}`.
    * @param result - The FunctionResult to use as the output template.
    * @returns This instance for chaining.
    */
@@ -330,7 +419,10 @@ export class DataMap {
   }
 
   /**
-   * Set a fallback output used when no webhook or expression matches.
+   * Set a fallback output: the `data_map`'s own `output`, used when no
+   * expression matched and no webhook produced a result (the webhook failed,
+   * none was requested, or its expressions didn't match and it has no
+   * output). Its templates read the call data, so arguments are `${args.name}`.
    * @param result - The FunctionResult to use as the fallback.
    * @returns This instance for chaining.
    */
@@ -341,7 +433,18 @@ export class DataMap {
 
   /**
    * Set error keys on the most recently added webhook, or globally if no webhook exists.
-   * @param keys - Response keys that indicate an error occurred.
+   *
+   * The platform fails the webhook when any of these keys is present at the
+   * top level of its JSON object response, whatever the value (`"errors": []`,
+   * `false` and `null` count). An HTTP status outside 200-299 isn't a failure
+   * by itself: the platform adds an `http_code` key to such a response, so
+   * `'http_code'` in this list fails the webhook on any such status. A failed
+   * webhook gives the fallback output; the next webhook isn't tried.
+   *
+   * The platform reads error keys only on a webhook. Called before any
+   * webhook, this sets a top-level `error_keys` field, which the platform
+   * ignores (see {@link DataMap.globalErrorKeys}).
+   * @param keys - Response keys whose presence marks the response as a failure.
    * @returns This instance for chaining.
    */
   errorKeys(keys: string[]): this {
@@ -354,7 +457,11 @@ export class DataMap {
   }
 
   /**
-   * Set error keys at the top-level data map scope, regardless of webhook context.
+   * Set `error_keys` on the `data_map` object itself, regardless of webhook context.
+   *
+   * The SWML schema defines `error_keys` only on a webhook, and the platform
+   * reads it only there, so these keys fail no request. Use
+   * {@link DataMap.errorKeys} after each webhook.
    * @param keys - Response keys that indicate an error occurred.
    * @returns This instance for chaining.
    */
@@ -420,6 +527,13 @@ export class DataMap {
 
 /**
  * Create a DataMap tool that calls a single API endpoint and formats the response.
+ *
+ * `url` reads the arguments as `${args.name}`. `responseTemplate` becomes
+ * the webhook's output, which reads the response's fields from the root,
+ * such as `${current.temp_f}`, and the arguments as `${input.args.name}`.
+ * `body` is set as the webhook's params (see {@link DataMap.body}), so a
+ * tool with a body is sent as a POST. `method` defaults to `GET`; headers
+ * are sent as written.
  * @param opts - Configuration including name, URL, response template, and optional parameters.
  * @returns A configured DataMap instance ready for registration.
  */
@@ -442,7 +556,8 @@ export function createSimpleApiTool(opts: {
     }
   }
   dm.webhook(opts.method ?? 'GET', opts.url, { headers: opts.headers });
-  if (opts.body) dm.body(opts.body);
+  // An empty body is left out, as in Python: params, even {}, make the request a POST.
+  if (opts.body && Object.keys(opts.body).length > 0) dm.body(opts.body);
   if (opts.errorKeys) dm.errorKeys(opts.errorKeys);
   dm.output(new FunctionResult(opts.responseTemplate));
   return dm;

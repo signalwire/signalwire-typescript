@@ -86,7 +86,7 @@ interface ParsedSkill {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('claude_skills', { skills_dir: './claude-skills' });
+ * await agent.addSkillByName('claude_skills', { skills_path: './claude-skills' });
  * ```
  */
 export class ClaudeSkillsSkill extends SkillBase {
@@ -108,8 +108,11 @@ export class ClaudeSkillsSkill extends SkillBase {
   private _skills: ParsedSkill[] = [];
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    // Tools are named with tool_prefix, and instances are told apart by
+    // skills_path, so the base schema's tool_name entry doesn't apply.
+    const { tool_name: _toolName, ...base } = super.getParameterSchema();
     return {
-      ...super.getParameterSchema(),
+      ...base,
       skills_path: {
         type: 'string',
         description: 'Path to directory containing Claude skill folders (each with SKILL.md)',

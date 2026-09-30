@@ -1,7 +1,8 @@
 /**
  * Ask Claude - Provides access to Anthropic's Claude AI for sub-queries.
  *
- * Tier 3 built-in skill: requires ANTHROPIC_API_KEY environment variable.
+ * Needs an Anthropic API key, from `api_key` or the ANTHROPIC_API_KEY
+ * environment variable.
  * Allows the agent to send prompts to Claude for complex reasoning,
  * analysis, or sub-tasks that benefit from a dedicated AI query.
  */
@@ -58,15 +59,15 @@ interface AnthropicResponse {
 /**
  * Provides access to Anthropic's Claude AI for sub-queries and complex reasoning.
  *
- * Tier 3 built-in skill. Requires the `ANTHROPIC_API_KEY` environment variable.
- * Supports `model` and `max_tokens` config options to control which Claude model
+ * Needs an Anthropic API key, passed as `api_key` or set in the
+ * `ANTHROPIC_API_KEY` environment variable; setup fails without one. Supports `model` and `max_tokens` config options to control which Claude model
  * is used and the maximum response length.
  *
  * @example
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('ask_claude', { model: 'claude-sonnet-4-6', max_tokens: 512 });
+ * await agent.addSkillByName('ask_claude', { model: 'claude-sonnet-4-6', max_tokens: 512 });
  * ```
  */
 export class AskClaudeSkill extends SkillBase {
@@ -74,7 +75,28 @@ export class AskClaudeSkill extends SkillBase {
   static override SKILL_NAME = 'ask_claude';
   static override SKILL_DESCRIPTION =
     'Provides access to Anthropic Claude AI for complex reasoning, analysis, and sub-queries.';
-  static override REQUIRED_ENV_VARS: readonly string[] = ['ANTHROPIC_API_KEY'];
+  // The key can come from api_key, so no variable is required; setup()
+  // checks that one of the two is set.
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
+
+  /** The API key: `api_key`, or `ANTHROPIC_API_KEY` when it isn't set. */
+  private apiKey(): string | undefined {
+    return (
+      this.getConfig<string | undefined>('api_key', undefined) ?? process.env['ANTHROPIC_API_KEY']
+    );
+  }
+
+  /**
+   * Fails when neither `api_key` nor `ANTHROPIC_API_KEY` is set.
+   * @returns `true` if an API key is present, `false` otherwise.
+   */
+  override async setup(): Promise<boolean> {
+    if (!this.apiKey()) {
+      log.error('ask_claude: api_key is required. Pass api_key or set ANTHROPIC_API_KEY.');
+      return false;
+    }
+    return true;
+  }
 
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
@@ -128,10 +150,10 @@ export class AskClaudeSkill extends SkillBase {
             return new FunctionResult('Please provide a prompt for Claude.');
           }
 
-          const apiKey = process.env['ANTHROPIC_API_KEY'];
+          const apiKey = this.apiKey();
           if (!apiKey) {
             return new FunctionResult(
-              'Claude AI is not configured. The ANTHROPIC_API_KEY environment variable is required.',
+              'Claude AI is not configured. Set api_key or the ANTHROPIC_API_KEY environment variable.',
             );
           }
 

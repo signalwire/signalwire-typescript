@@ -36,6 +36,20 @@ import * as yaml from 'js-yaml';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
+
+/**
+ * The path of a source file under this repo's `src/`, without the `.ts`
+ * extension (`rest/namespaces/calling.types.generated`), or null when the file
+ * isn't under `src/`. Works from the path relative to the repo root, so the
+ * result doesn't depend on where the checkout lives: matching `/src/` in the
+ * absolute path picked up any `src` directory above the repo (such as
+ * `~/src/signalwire-typescript/src/...`) and put it in module names.
+ */
+function srcSubpath(fileName: string): string | null {
+  const rel = path.relative(REPO_ROOT, fileName).split(path.sep).join('/');
+  const m = rel.match(/^src\/(.+)\.ts$/);
+  return m ? m[1]! : null;
+}
 // PORTING_SDK is the env var run-ci.sh exports; PSDK is a legacy alias.
 // Fallback to the sibling-adjacency convention (../porting-sdk) if neither is set.
 const PSDK =
@@ -55,6 +69,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // to the reference module ``signalwire.ai_chat.client`` (else it falls back
   // to ``signalwire.ai_chat.ai_chat_client``).
   'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
+  'src/ai-chat/ChatGateway.ts': 'signalwire.ai_chat.gateway',
+  'src/ai-chat/HandoffRouter.ts': 'signalwire.ai_chat.handoff',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -76,6 +92,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  'src/capabilities.ts': 'signalwire.core.capabilities',
+  'src/PostPrompt.ts': 'signalwire.core.post_prompt',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
@@ -324,6 +342,8 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'run',
       'serve',
       'set_dynamic_config_callback',
+      'add_per_call_config',
+      'mount',
       'on_request',
       'on_swml_request',
     ],
@@ -360,6 +380,12 @@ const SKIP_METHOD_NAMES = new Set([
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   // Context.add_step — Python keyword-only step config (task/bullets/criteria/…).
   'signalwire.core.contexts.Context.add_step',
+  // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
+  'signalwire.core.agent_base.AgentBase.mount',
+  // dialogue_turns — Python's roles/drop_echo are keyword-only.
+  'signalwire.core.post_prompt.dialogue_turns',
+  'signalwire.ai_chat.gateway.ChatGateway.prepare',
+  'signalwire.ai_chat.handoff.HandoffRouter.register',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',
@@ -903,8 +929,8 @@ function translateType(
       // against Python's `class:...<gen-module>.<AliasName>`. A bare
       // `class:CallResponse` would lack the gen-module marker and not normalize.
       // Derive the dotted module path from the source file under src/.
-      const m = srcFile.match(/\/src\/(.+?)\.ts$/);
-      const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+      const sub = srcSubpath(srcFile);
+      const modPath = sub ? sub.replace(/\//g, '.') : 'rest.namespaces';
       return `class:signalwire.${modPath}.${aliasSym.getName()}`;
     }
   }
@@ -1470,8 +1496,8 @@ function extractCrudBase(
           const decl = sym?.declarations?.[0];
           const src = decl?.getSourceFile().fileName ?? '';
           if (src.includes('.types.generated') || src.includes('.generated.')) {
-            const m = src.match(/\/src\/(.+?)\.ts$/);
-            const modPath = m ? m[1].replace(/\//g, '.') : 'rest.namespaces';
+            const sub = srcSubpath(src);
+            const modPath = sub ? sub.replace(/\//g, '.') : 'rest.namespaces';
             return `class:signalwire.${modPath}.${node.typeName.text}`;
           }
           return `class:${node.typeName.text}`;
@@ -1711,9 +1737,9 @@ function generatedAliasFromNode(
     // are recorded under the `*_types_generated` module so the diff's generated-type
     // normalization (which keys off `.types.generated.` / `_types_generated.`)
     // folds them to `gen:<Name>` and matches the Python reference.
-    const m = src.match(/\/src\/(.+?)\.ts$/);
-    if (m && /\.types\.generated$/.test(m[1])) {
-      const modPath = m[1].replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
+    const sub = srcSubpath(src);
+    if (sub && /\.types\.generated$/.test(sub)) {
+      const modPath = sub.replace(/\.types\.generated$/, '_types_generated').replace(/\//g, '.');
       return `class:signalwire.${modPath}.${node.typeName.text}`;
     }
     // Generated-payload aliases/interfaces (swml_verbs_generated.ts,
@@ -1722,11 +1748,11 @@ function generatedAliasFromNode(
     // above needs each member's NAME to survive the type checker's alias inlining
     // (`boolean | SWMLVar` would otherwise resolve to `boolean | string`). The diff
     // folds the gen-payload module + compares by leaf name.
-    if (m && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
+    if (sub && GEN_PAYLOAD_FILE_MARKERS.some((mk) => src.includes(mk))) {
       // The diff compares generated `class:` refs by LEAF name (the module folds to
       // gen-payload), so the qualifier only needs to be a stable gen-payload module
       // path — fallbackModuleName produces exactly the one collectInterface records.
-      return `class:${fallbackModuleName(`src/${m[1]}.ts`)}.${node.typeName.text}`;
+      return `class:${fallbackModuleName(`src/${sub}.ts`)}.${node.typeName.text}`;
     }
   }
   return null;

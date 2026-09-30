@@ -1,34 +1,40 @@
 # Calling Commands
 
-The Calling API provides REST-based call control. All commands are dispatched via a single `POST /api/calling/calls` endpoint with a `command` field. No WebSocket connection is needed.
+The Calling API controls calls over REST. Every command is a `POST` to `/api/calling/calls` with a `command` field, and needs no WebSocket connection. This page lists each method on `client.calling` with an example.
 
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each example as a module so top-level `await` is allowed
-// Shared context the fragments below assume (constructed on the Getting Started page).
+// Shared context the fragments on this page assume (constructed on the Getting Started page).
 declare const client: import('@signalwire/sdk').RestClient;
 declare const callId: string; // the UUID of an active call
 ```
 
 ## How It Works
 
-Every method on `client.calling` sends a POST request with this structure:
+Each method on `client.calling` sends one POST request. This is the body that `client.calling.play(callId, [...])` sends:
 
 ```json
 {
-    "command": "calling.play",
-    "id": "<call-uuid>",
-    "params": { ... }
+  "command": "calling.play",
+  "params": {
+    "play": [{ "type": "audio", "params": { "url": "https://example.com/a.mp3" } }]
+  },
+  "id": "<call-uuid>"
 }
 ```
 
-For `dial` and `update`, the call details are inside `params` (no top-level `id`). For all other commands, the first argument is the UUID of the call to control. Each method is async and returns the parsed JSON response.
+For `dial` and `update`, the call details go inside `params`, with no top-level `id`. Every other method takes the UUID of the call to control as its first argument. Each method is async and returns the parsed JSON response.
+
+Every method also accepts an `extras` object in its options, merged into `params` for fields the SDK doesn't type, and a final `requestOptions` argument. [Request Options](guide.md#request-options-timeout-retries-abort) describes the second.
 
 ## Call Lifecycle
 
+These methods start, change and end calls.
+
 ### `dial(from, to, options?)`
 
-Initiate an outbound call. `from` and `to` are positional; everything else is options.
+`dial` starts an outbound call. `from` and `to` are positional, and the other fields are options:
 
 ```typescript
 const result = await client.calling.dial('+15559876543', '+15551234567', {
@@ -39,7 +45,7 @@ const newCallId = result.id;
 
 ### `update(id, options?)`
 
-Update an active call's dialplan mid-call. The call `id` is positional.
+`update` gives an active call a new dialplan, from a `url` or inline `swml`. The call `id` is positional:
 
 ```typescript
 await client.calling.update(callId, { url: 'https://example.com/new-handler' });
@@ -47,7 +53,7 @@ await client.calling.update(callId, { url: 'https://example.com/new-handler' });
 
 ### `end(callId, options?)`
 
-Terminate a call.
+`end` hangs up a call. The optional `reason` is one of `hangup`, `cancel`, `busy`, `noAnswer`, `decline` or `error`:
 
 ```typescript
 await client.calling.end(callId, { reason: 'hangup' });
@@ -55,15 +61,15 @@ await client.calling.end(callId, { reason: 'hangup' });
 
 ### `transfer(callId, dest, options?)`
 
-Transfer a call to a new destination. `dest` is positional.
+`transfer` moves a call to a new destination: a SIP URI, a phone number or an inline SWML object. `dest` is positional:
 
 ```typescript
 await client.calling.transfer(callId, 'sip:agent@example.com');
 ```
 
-### `disconnect(callId)`
+### `disconnect(callId, options?)`
 
-Disconnect bridged calls without hanging up either leg.
+`disconnect` separates bridged calls without hanging up either leg:
 
 ```typescript
 await client.calling.disconnect(callId);
@@ -71,19 +77,24 @@ await client.calling.disconnect(callId);
 
 ## Audio Playback
 
+These methods play media into a call and control the playback.
+
 ### `play(callId, play, options?)`
 
-Play audio, TTS, silence, or ringtone. The `play` array is positional.
+`play` plays audio, TTS, silence or a ringtone. The `play` array is positional. Each item has a `type` (`audio`, `tts`, `silence` or `ring`) and its `params`:
 
 ```typescript
 await client.calling.play(callId, [{ type: 'tts', params: { text: 'Hello!' } }], {
+  control_id: 'ctrl-1',
   volume: 5.0,
 });
 ```
 
+The `volume` option adjusts the level in dB.
+
 ### `playPause(callId, control_id, options?)` / `playResume(callId, control_id, options?)`
 
-Pause or resume active playback. `control_id` is positional.
+These pause and resume active playback. `control_id` is positional:
 
 ```typescript
 await client.calling.playPause(callId, 'ctrl-1');
@@ -92,7 +103,7 @@ await client.calling.playResume(callId, 'ctrl-1');
 
 ### `playStop(callId, control_id, options?)`
 
-Stop active playback.
+`playStop` stops active playback:
 
 ```typescript
 await client.calling.playStop(callId, 'ctrl-1');
@@ -100,7 +111,7 @@ await client.calling.playStop(callId, 'ctrl-1');
 
 ### `playVolume(callId, control_id, volume, options?)`
 
-Adjust playback volume. `control_id` and `volume` are positional.
+`playVolume` adjusts the playback volume. `control_id` and `volume` are positional:
 
 ```typescript
 await client.calling.playVolume(callId, 'ctrl-1', -3.0);
@@ -108,9 +119,7 @@ await client.calling.playVolume(callId, 'ctrl-1', -3.0);
 
 ## Recording
 
-### `record(callId, options?)` / `recordPause(callId, control_id, options?)` / `recordResume` / `recordStop`
-
-`record` takes an options object; the pause/resume/stop variants take `control_id` positionally.
+`record` takes an options object. The pause, resume and stop methods take `control_id` positionally:
 
 ```typescript
 await client.calling.record(callId, {
@@ -124,9 +133,7 @@ await client.calling.recordStop(callId, 'rec-1');
 
 ## Input Collection
 
-### `collect(callId, options?)` / `collectStop(callId, control_id, options?)` / `collectStartInputTimers(callId, control_id, options?)`
-
-`collect` takes an options object; the stop/timer variants take `control_id` positionally.
+`collect` gathers DTMF or speech input and takes an options object. `collectStop` and `collectStartInputTimers` take `control_id` positionally:
 
 ```typescript
 await client.calling.collect(callId, {
@@ -140,9 +147,7 @@ await client.calling.collectStartInputTimers(callId, 'coll-1');
 
 ## Detection
 
-### `detect(callId, detect, options?)` / `detectStop(callId, control_id, options?)`
-
-The `detect` config object is positional; `detectStop` takes `control_id` positionally.
+`detect` starts an answering-machine, fax or digit detector. The `detect` config object is positional, and `detectStop` takes `control_id` positionally:
 
 ```typescript
 await client.calling.detect(callId, { type: 'machine', params: { initial_timeout: 4.5 } }, {
@@ -151,11 +156,13 @@ await client.calling.detect(callId, { type: 'machine', params: { initial_timeout
 await client.calling.detectStop(callId, 'det-1');
 ```
 
-## Tap & Stream
+## Tap and Stream
+
+`tap` sends call audio to an RTP or WebSocket endpoint, and `stream` sends it to a WebSocket URL.
 
 ### `tap(callId, tap, device, options?)` / `tapStop(callId, control_id, options?)`
 
-The `tap` and `device` config objects are positional; `tapStop` takes `control_id` positionally.
+The `tap` and `device` config objects are positional, and `tapStop` takes `control_id` positionally:
 
 ```typescript
 await client.calling.tap(
@@ -169,7 +176,7 @@ await client.calling.tapStop(callId, 'tap-1');
 
 ### `stream(callId, url, options?)` / `streamStop(callId, control_id, options?)`
 
-The stream `url` is positional; `streamStop` takes `control_id` positionally.
+The stream `url` is positional, and `streamStop` takes `control_id` positionally:
 
 ```typescript
 await client.calling.stream(callId, 'wss://example.com/audio-stream', {
@@ -181,7 +188,7 @@ await client.calling.streamStop(callId, 'str-1');
 
 ## Denoise
 
-### `denoise(callId, params?)` / `denoiseStop(callId, params?)`
+`denoise` starts noise reduction on a call and `denoiseStop` stops it. Both take only the call ID and an optional `extras` object:
 
 ```typescript
 await client.calling.denoise(callId);
@@ -190,7 +197,7 @@ await client.calling.denoiseStop(callId);
 
 ## Transcription
 
-### `transcribe(callId, options?)` / `transcribeStop(callId, control_id, options?)`
+`transcribe` starts transcription of the call, and `transcribeStop` takes `control_id` positionally:
 
 ```typescript
 await client.calling.transcribe(callId, { control_id: 'tx-1', status_url: 'https://example.com/hook' });
@@ -199,30 +206,36 @@ await client.calling.transcribeStop(callId, 'tx-1');
 
 ## AI
 
-### `aiMessage(callId, params?)`
+These methods act on an AI session running on a call.
 
-Inject a message into an active AI session.
+### `aiMessage(callId, options?)`
+
+`aiMessage` adds a message to the AI conversation. The `role` is `system`, `user` or `assistant`. The options also accept `reset` and `global_data`:
 
 ```typescript
 await client.calling.aiMessage(callId, { role: 'user', message_text: 'Transfer me to billing' });
 ```
 
-### `aiHold(callId, params?)` / `aiUnhold(callId, params?)`
+### `aiHold(callId, options?)` / `aiUnhold(callId, options?)`
+
+`aiHold` puts the caller on hold for up to `timeout` seconds. Its `prompt` is a system message added to the conversation before the hold, not text read to the caller:
 
 ```typescript
-await client.calling.aiHold(callId, { timeout: 60, prompt: 'Please wait while I transfer you.' });
-await client.calling.aiUnhold(callId, { prompt: "I'm back, how can I help?" });
+await client.calling.aiHold(callId, { timeout: 60, prompt: 'Tell the caller you are checking their account.' });
+await client.calling.aiUnhold(callId, { prompt: 'The account check is done. Continue helping the caller.' });
 ```
 
 ### `aiStop(callId, control_id, options?)`
+
+`aiStop` stops an active AI session on a call:
 
 ```typescript
 await client.calling.aiStop(callId, 'ai-1');
 ```
 
-## Live Transcribe & Translate
+## Live Transcribe and Translate
 
-The `action` is a positional structured object. Use `{ start: {...} }` to begin, or `'stop'` to end.
+`liveTranscribe` and `liveTranslate` take a positional `action`. Use `{ start: {...} }` to begin, `{ summarize: {...} }` to request a summary, or the string `'stop'` to end. `liveTranslate` also accepts `{ inject: {...} }`:
 
 ```typescript
 await client.calling.liveTranscribe(callId, {
@@ -231,33 +244,38 @@ await client.calling.liveTranscribe(callId, {
 await client.calling.liveTranslate(callId, {
   start: { from_lang: 'en-US', to_lang: 'es-ES', direction: ['remote-caller'] },
 });
+await client.calling.liveTranscribe(callId, 'stop');
 ```
 
 ## Fax
+
+These methods stop an active fax send or receive:
 
 ```typescript
 await client.calling.sendFaxStop(callId, 'fax-1');
 await client.calling.receiveFaxStop(callId, 'fax-1');
 ```
 
-## SIP & Custom Events
+## SIP and Custom Events
+
+`refer` transfers a SIP call with SIP REFER, and `userEvent` fires a custom event on the call:
 
 ```typescript
-// SIP REFER transfer — the `device` object is positional
-await client.calling.refer(callId, { to: 'sip:agent@example.com' });
+// SIP REFER transfer; the `device` object is positional
+await client.calling.refer(callId, { type: 'sip', params: { to: 'sip:agent@example.com' } });
 
-// Custom event — the `event` object is positional; each value is an object
+// Custom event; the `event` object is positional, and each value is an object
 await client.calling.userEvent(callId, { custom: { key: 'value' } });
 ```
 
 ## Complete Method List
 
-All 37 commands, with the wire `command` value each dispatches:
+The table lists all 37 methods, with the wire `command` value each one sends:
 
 | Method | Command | Requires callId |
 |--------|---------|:-:|
 | `dial(from, to, options?)` | `dial` | No |
-| `update(id, options?)` | `update` | No |
+| `update(id, options?)` | `update` | No (`id` goes in `params`) |
 | `end(callId, options?)` | `calling.end` | Yes |
 | `transfer(callId, dest, options?)` | `calling.transfer` | Yes |
 | `disconnect(callId, options?)` | `calling.disconnect` | Yes |

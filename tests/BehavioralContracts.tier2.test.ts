@@ -532,7 +532,8 @@ describe('Contract 8 — structured pattern-hint + language (fillers/engine/mode
     expect(lang['code']).toBe('en-US');
     expect(lang['engine']).toBe('rime'); // dropped by a degraded impl
     expect(lang['speech_model']).toBe('arcana'); // model — dropped by a degraded impl
-    expect(lang['fillers']).toEqual({ default: ['um', 'let me check'] }); // fillers survive
+    // Fillers survive, flattened to the list the schema and the reference use.
+    expect(lang['fillers']).toEqual(['um', 'let me check']);
   });
 });
 
@@ -613,9 +614,9 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     // route:'/' so the SWAIG endpoint is served at '/swaig' (the fixture agent
     // above is routed at '/sd', where it would be '/sd/swaig').
     //
-    // Parity with the reference (agent_base.py:1413-1445): a token that IS
-    // supplied must be valid for a secure function; a missing token does not by
-    // itself block dispatch (basic auth already gates the endpoint).
+    // Parity with the reference: a secure function runs only with a valid
+    // token for that function and call. A missing token is refused too; that
+    // case is covered in tests/SwaigTokens.test.ts.
     function agentFor(): AgentBase {
       const a = new AgentBase({ name: 'secure-dispatch', route: '/', basicAuth: ['u', 'p'] });
       a.setPromptText('secure default dispatch');

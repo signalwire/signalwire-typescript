@@ -5,7 +5,7 @@
  * for each skill. API-dependent skills verify error messages when keys are missing.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -52,6 +52,7 @@ import {
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { AgentBase } from '../../src/AgentBase.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -224,7 +225,7 @@ describe('WeatherApiSkill', () => {
     const klass = skill.constructor as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('weather_api');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
-    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return a get_weather tool', () => {
@@ -235,12 +236,11 @@ describe('WeatherApiSkill', () => {
     expect(tools[0]!.required).toContain('location');
   });
 
-  it('should report missing env var via validateEnvVars', () => {
+  it('should require no env var when api_key is passed', () => {
     const originalKey = process.env['WEATHER_API_KEY'];
     delete process.env['WEATHER_API_KEY'];
-    const skill = createWeatherApiSkill();
-    const missing = skill.validateEnvVars();
-    expect(missing).toContain('WEATHER_API_KEY');
+    const skill = createWeatherApiSkill({ api_key: 'k' });
+    expect(skill.validateEnvVars()).toEqual([]);
     if (originalKey !== undefined) process.env['WEATHER_API_KEY'] = originalKey;
   });
 
@@ -657,7 +657,7 @@ describe('GoogleMapsSkill', () => {
     const klass = skill.constructor as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('google_maps');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
-    expect(klass.REQUIRED_ENV_VARS).toContain('GOOGLE_MAPS_API_KEY');
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
   });
 
   it('should return exactly lookup_address + compute_route (matches Python)', () => {
@@ -928,7 +928,45 @@ describe('AskClaudeSkill', () => {
     const klass = skill.constructor as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('ask_claude');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
-    expect(klass.REQUIRED_ENV_VARS).toContain('ANTHROPIC_API_KEY');
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
+  });
+
+  describe('api_key', () => {
+    const saved = process.env['ANTHROPIC_API_KEY'];
+    const sent: Record<string, string>[] = [];
+
+    beforeEach(() => {
+      delete process.env['ANTHROPIC_API_KEY'];
+      sent.length = 0;
+      vi.stubGlobal('fetch', async (_url: string, init: { headers: Record<string, string> }) => {
+        sent.push(init.headers);
+        return new Response(
+          JSON.stringify({ content: [{ type: 'text', text: 'Paris.' }], stop_reason: 'end_turn' }),
+          { status: 200 },
+        );
+      });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      if (saved !== undefined) process.env['ANTHROPIC_API_KEY'] = saved;
+    });
+
+    it('loads on an agent with api_key and no ANTHROPIC_API_KEY, and sends that key', async () => {
+      const agent = new AgentBase({ name: 'claude', route: '/' });
+      const skill = createAskClaudeSkill({ api_key: 'sk-config' });
+      await agent.addSkill(skill);
+      expect(agent.hasSkill('ask_claude')).toBe(true);
+      const result = (await skill
+        .getTools()[0]!
+        .handler({ prompt: 'Capital of France?' }, {})) as FunctionResult;
+      expect(result.response).toContain('Paris.');
+      expect(sent[0]!['x-api-key']).toBe('sk-config');
+    });
+
+    it('fails setup with neither api_key nor ANTHROPIC_API_KEY', async () => {
+      await expect(createAskClaudeSkill().setup()).resolves.toBe(false);
+    });
   });
 
   it('should return an ask_claude tool', () => {

@@ -157,7 +157,8 @@ type WsLike = {
  *
  * client.onCall(async (call) => {
  *   await call.answer();
- *   await call.playTTS('Thanks for calling!');
+ *   const played = await call.play([{ type: 'tts', text: 'Thanks for calling!' }]);
+ *   await played.wait();
  *   await call.hangup();
  * });
  *
@@ -695,10 +696,13 @@ export class RelayClient {
    * @throws {Error} When the dial times out.
    * @throws {RelayError} When the server rejects the dial request.
    */
+  // The options are written out (the same shape as the exported DialOptions)
+  // so the signature snapshot reads them as the reference's keyword arguments.
   async dial(
     devices: Record<string, unknown>[][],
     options: {
       tag?: string;
+      /** Maximum call duration in minutes. */
       maxDuration?: number;
       /** Dial timeout in seconds (default 120). */
       dialTimeout?: number;
@@ -770,6 +774,7 @@ export class RelayClient {
    * @returns A {@link Message} tracking the outbound send.
    * @throws {RelayError} When the server rejects the send request.
    */
+  // Written out, the same shape as the exported SendMessageOptions (see dial()).
   async sendMessage(options: {
     toNumber: string;
     fromNumber: string;
@@ -784,7 +789,8 @@ export class RelayClient {
       throw new Error('At least one of body or media is required');
     }
 
-    const msgContext = options.context ?? this._relayProtocol ?? 'default';
+    // `||`, not `??`: the protocol is '' until the server assigns one.
+    const msgContext = options.context || this._relayProtocol || 'default';
     const params: Record<string, unknown> = {
       context: msgContext,
       to_number: options.toNumber,
@@ -1265,12 +1271,19 @@ export class RelayClient {
     const messageId = (params.message_id ?? '') as string;
     const message = this._messages.get(messageId);
     if (message) {
-      message._dispatchEvent(payload).catch((err) => {
-        logger.error(`Error dispatching message state for ${messageId}: ${err}`);
-      });
-      if (message.isDone) {
-        this._messages.delete(messageId);
-      }
+      // Check isDone only after dispatch settles: _dispatchEvent awaits the
+      // message's on() listeners before it resolves the terminal state, so a
+      // synchronous check would miss it and leave the message tracked forever.
+      message
+        ._dispatchEvent(payload)
+        .catch((err) => {
+          logger.error(`Error dispatching message state for ${messageId}: ${err}`);
+        })
+        .finally(() => {
+          if (message.isDone && this._messages.get(messageId) === message) {
+            this._messages.delete(messageId);
+          }
+        });
     } else {
       logger.debug(`State event for unknown message ${messageId}`);
     }

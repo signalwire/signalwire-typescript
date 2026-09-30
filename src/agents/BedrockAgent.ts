@@ -5,13 +5,100 @@
  * while keeping full compatibility with the SignalWire agent ecosystem
  * (skills, POM, SWAIG functions, post-prompt). The one behavioral difference
  * from a standard agent is that the rendered SWML uses the `amazon_bedrock`
- * verb instead of `ai`.
+ * verb instead of `ai`. Speech hints, languages, pronunciation rules,
+ * multilingual settings and contexts aren't part of that verb, so they're
+ * left out of the SWML, with one warning per agent for each.
  *
  * Ported from the Python SDK `signalwire.agents.bedrock.BedrockAgent`.
  */
 
 import { AgentBase } from '../AgentBase.js';
 import type { AgentOptions } from '../types.js';
+
+/** The `ai` verb keys the `amazon_bedrock` verb carries over; the rest are left out. */
+const BEDROCK_VERB_KEYS: ReadonlySet<string> = new Set([
+  'prompt',
+  'SWAIG',
+  'params',
+  'global_data',
+  'post_prompt',
+  'post_prompt_url',
+]);
+
+/**
+ * The prompt keys copied from the `ai` verb's prompt. The platform's Bedrock
+ * session reads only these, `voice_id`, `temperature` and `top_p`; the last
+ * three are set from the agent's own settings, as is `max_tokens`.
+ */
+const BEDROCK_PROMPT_KEYS: ReadonlySet<string> = new Set(['text', 'pom']);
+
+/** The prompt keys set from the agent's own settings. */
+const AGENT_PROMPT_KEYS: ReadonlySet<string> = new Set([
+  'voice_id',
+  'temperature',
+  'top_p',
+  'max_tokens',
+]);
+
+/** What the `ai` verb keys that Bedrock leaves out are, for the warning. */
+const FEATURE_NAMES: Readonly<Record<string, string>> = {
+  hints: "speech hints (addHint(), addHints(), addPatternHint() and skills' hints)",
+  languages: 'languages (addLanguage())',
+  pronounce: 'pronunciation rules (addPronunciation())',
+  multilingual: 'multilingual settings (setMultilingual())',
+  contexts: 'contexts and steps (defineContexts())',
+};
+
+/** A SWML variable reference, such as `${temperature}`, which the schema accepts for temperature and top_p. */
+const SWML_VAR = /^[$%]\{.*\}$/;
+
+/** A decimal number as a string, such as `0.7`, `-1`, `.5` or `1e3` (not `0x10` or `''`). */
+const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/** `"it's"` for one name and `"they're"` for more, for the warnings below. */
+function itOrThey(names: string[]): string {
+  return names.length === 1 ? "it's" : "they're";
+}
+
+/** A value as it appears in an error message. */
+function describeValue(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'object' && value !== null) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+/**
+ * Return `value` as a number for the Bedrock prompt, or throw.
+ *
+ * Accepts a number or a numeric string. `temperature` and `top_p` may also be
+ * a SWML variable reference such as `${temperature}`, which the schema allows
+ * and which is passed through as written.
+ *
+ * @throws Error if the value isn't a finite number (or an integer, for `max_tokens`).
+ */
+function toNumber(name: string, value: unknown, integer: true): number;
+function toNumber(name: string, value: unknown, integer?: false): number | string;
+function toNumber(name: string, value: unknown, integer = false): number | string {
+  if (!integer && typeof value === 'string' && SWML_VAR.test(value.trim())) return value.trim();
+  const fail = (): never => {
+    throw new Error(
+      `BedrockAgent ${name} must be ${integer ? 'an integer' : 'a number'}, got ${describeValue(value)}`,
+    );
+  };
+  let number: number;
+  if (typeof value === 'number') number = value;
+  else if (typeof value === 'string' && DECIMAL.test(value.trim())) number = Number(value.trim());
+  else return fail();
+  if (!Number.isFinite(number)) return fail();
+  if (integer && !Number.isInteger(number)) return fail();
+  return number;
+}
 
 /** Configuration for the {@link BedrockAgent}. */
 export interface BedrockAgentConfig {
@@ -21,14 +108,25 @@ export interface BedrockAgentConfig {
   route?: string;
   /** Initial system prompt (can be overridden later with `setPromptText`). */
   systemPrompt?: string;
-  /** Bedrock voice ID (defaults to `"matthew"`). */
+  /** Bedrock voice: `tiffany`, `matthew`, `amy`, `lupe` or `carlos` (defaults to `"matthew"`). */
   voiceId?: string;
-  /** Generation temperature (0-1). Defaults to 0.7. */
-  temperature?: number;
-  /** Nucleus sampling parameter (0-1). Defaults to 0.9. */
-  topP?: number;
-  /** Maximum tokens to generate. Defaults to 1024. */
-  maxTokens?: number;
+  /**
+   * Generation temperature (0-2). Defaults to 0.7. A numeric string is
+   * converted, and a SWML variable reference such as `${temperature}` is
+   * passed through.
+   */
+  temperature?: number | string;
+  /**
+   * Nucleus sampling parameter (0-1). Defaults to 0.9. A numeric string is
+   * converted, and a SWML variable reference such as `${top_p}` is passed
+   * through.
+   */
+  topP?: number | string;
+  /**
+   * Maximum tokens to generate. Defaults to 1024. A numeric string is
+   * converted. The platform's Bedrock session doesn't read it; it uses 1024.
+   */
+  maxTokens?: number | string;
   /** Additional AgentBase options forwarded to `super()`. */
   agentOptions?: Partial<AgentOptions>;
 }
@@ -46,7 +144,7 @@ export interface BedrockAgentConfig {
  *
  * const agent = new BedrockAgent({
  *   systemPrompt: 'You are a helpful voice assistant.',
- *   voiceId: 'joanna',
+ *   voiceId: 'tiffany',
  * });
  *
  * agent.setInferenceParams(0.5, 0.95, 2048);
@@ -55,15 +153,26 @@ export interface BedrockAgentConfig {
  */
 export class BedrockAgent extends AgentBase {
   private _voiceId: string;
-  private _temperature: number;
-  private _topP: number;
+  private _temperature: number | string;
+  private _topP: number | string;
   private _maxTokens: number;
+  /**
+   * Features already reported as left out of the `amazon_bedrock` verb, so
+   * each is reported once per agent. A per-request copy shares this set.
+   */
+  private _bedrockDroppedWarned = new Set<string>();
 
   /**
    * Create a BedrockAgent.
    * @param config - Configuration including voice, inference params, and optional system prompt.
+   * @throws Error if `temperature` or `topP` isn't a number, or `maxTokens` isn't an integer.
    */
   constructor(config: BedrockAgentConfig = {}) {
+    // Check the inference settings before building the agent.
+    const temperature = toNumber('temperature', config.temperature ?? 0.7);
+    const topP = toNumber('top_p', config.topP ?? 0.9);
+    const maxTokens = toNumber('max_tokens', config.maxTokens ?? 1024, true);
+
     super({
       name: config.name ?? 'bedrock_agent',
       route: config.route ?? '/bedrock',
@@ -72,9 +181,9 @@ export class BedrockAgent extends AgentBase {
 
     // Store Bedrock-specific parameters.
     this._voiceId = config.voiceId ?? 'matthew';
-    this._temperature = config.temperature ?? 0.7;
-    this._topP = config.topP ?? 0.9;
-    this._maxTokens = config.maxTokens ?? 1024;
+    this._temperature = temperature;
+    this._topP = topP;
+    this._maxTokens = maxTokens;
 
     // Set initial prompt if provided (after super init).
     if (config.systemPrompt) {
@@ -88,6 +197,13 @@ export class BedrockAgent extends AgentBase {
    * Render the SWML document, transforming the base `ai` verb into an
    * `amazon_bedrock` verb with the same structure. Mirrors Python
    * `BedrockAgent._render_swml`.
+   *
+   * Only `prompt`, `SWAIG`, `params`, `global_data`, `post_prompt` and
+   * `post_prompt_url` are carried over. Anything else on the `ai` verb, such
+   * as `hints`, `languages`, `pronounce`, `multilingual` or the debug webhook
+   * keys, is left out, as is anything in the prompt that the Bedrock prompt
+   * doesn't define, such as `contexts`. The agent logs one warning for each
+   * feature it leaves out, the first time it leaves it out.
    */
   override renderSwml(callId?: string, modifications?: Record<string, unknown>): string {
     // Build the base SWML with the ai verb, then transform it.
@@ -101,6 +217,12 @@ export class BedrockAgent extends AgentBase {
       const verb = mainSection[i]!;
       if ('ai' in verb) {
         const aiConfig = (verb['ai'] as Record<string, unknown>) ?? {};
+        // The ai verb's other keys (hints, languages, pronounce,
+        // multilingual) have no place in the amazon_bedrock verb.
+        this.warnDropped(
+          Object.keys(aiConfig).filter((key) => !BEDROCK_VERB_KEYS.has(key)),
+          'the amazon_bedrock verb has no',
+        );
 
         // Build the amazon_bedrock verb with the same structure. Voice and
         // inference params live inside the prompt object for Bedrock.
@@ -127,6 +249,16 @@ export class BedrockAgent extends AgentBase {
     return JSON.stringify(swml);
   }
 
+  /** Log a warning, once per agent, for each feature left out of the SWML. */
+  private warnDropped(keys: string[], reason: string): void {
+    for (const key of keys) {
+      if (this._bedrockDroppedWarned.has(key)) continue;
+      this._bedrockDroppedWarned.add(key);
+      const what = key in FEATURE_NAMES ? `the agent's ${FEATURE_NAMES[key]} are` : "it's";
+      this.log.warn(`BedrockAgent: ${reason} ${key}, so ${what} left out of the SWML`);
+    }
+  }
+
   /**
    * Add voice configuration to the prompt object. In Bedrock, voice and
    * inference params are part of the prompt object (not separate fields).
@@ -134,21 +266,28 @@ export class BedrockAgent extends AgentBase {
    */
   private addVoiceToPrompt(promptConfig: Record<string, unknown>): Record<string, unknown> {
     const filtered: Record<string, unknown> = {};
-    // Skip text-model-specific parameters that don't apply to Bedrock's
-    // voice-to-voice model.
-    const skip = new Set(['barge_confidence', 'presence_penalty', 'frequency_penalty']);
+    // Copy the prompt text. Anything else, such as confidence or contexts, is
+    // left out: the platform's Bedrock session doesn't read it.
     for (const [key, value] of Object.entries(promptConfig)) {
-      if (skip.has(key)) continue;
-      filtered[key] = value;
+      if (BEDROCK_PROMPT_KEYS.has(key)) filtered[key] = value;
     }
+    // voice_id and the inference settings are replaced below, so only the
+    // other keys are features the Bedrock prompt leaves out.
+    this.warnDropped(
+      Object.keys(promptConfig).filter(
+        (key) => !BEDROCK_PROMPT_KEYS.has(key) && !AGENT_PROMPT_KEYS.has(key),
+      ),
+      "Bedrock's prompt has no",
+    );
     filtered['voice_id'] = this._voiceId;
     filtered['temperature'] = this._temperature;
     filtered['top_p'] = this._topP;
+    filtered['max_tokens'] = this._maxTokens;
     return filtered;
   }
 
   /**
-   * Set the Bedrock voice ID (e.g. `"matthew"`, `"joanna"`).
+   * Set the Bedrock voice: `tiffany`, `matthew`, `amy`, `lupe` or `carlos`.
    * Mirrors Python `set_voice`.
    */
   setVoice(voiceId: string): this {
@@ -158,13 +297,29 @@ export class BedrockAgent extends AgentBase {
   }
 
   /**
-   * Update Bedrock inference parameters. Any argument left undefined is
-   * unchanged. Mirrors Python `set_inference_params`.
+   * Update Bedrock inference parameters. Any argument left undefined (or
+   * null) is unchanged. Each value may be a number or a numeric string, which
+   * is converted. `temperature` and `topP` may also be a SWML variable
+   * reference such as `${temperature}`. The platform's Bedrock session applies
+   * `temperature` (0 to 2) and `topP` (0 to 1), and doesn't read `maxTokens`: it
+   * uses 1024. Mirrors Python `set_inference_params`.
+   *
+   * @throws Error if `temperature` or `topP` isn't a number, or `maxTokens`
+   *   isn't an integer. Nothing is changed when a value is refused.
    */
-  setInferenceParams(temperature?: number, topP?: number, maxTokens?: number): this {
-    if (temperature !== undefined) this._temperature = temperature;
-    if (topP !== undefined) this._topP = topP;
-    if (maxTokens !== undefined) this._maxTokens = maxTokens;
+  setInferenceParams(
+    temperature?: number | string | null,
+    topP?: number | string | null,
+    maxTokens?: number | string | null,
+  ): this {
+    // Convert all three before changing any, so a refused value leaves the
+    // settings as they were.
+    const newTemperature = temperature != null ? toNumber('temperature', temperature) : undefined;
+    const newTopP = topP != null ? toNumber('top_p', topP) : undefined;
+    const newMaxTokens = maxTokens != null ? toNumber('max_tokens', maxTokens, true) : undefined;
+    if (newTemperature !== undefined) this._temperature = newTemperature;
+    if (newTopP !== undefined) this._topP = newTopP;
+    if (newMaxTokens !== undefined) this._maxTokens = newMaxTokens;
     this.log.debug(
       `Inference params updated: temp=${this._temperature}, top_p=${this._topP}, max_tokens=${this._maxTokens}`,
     );
@@ -184,8 +339,10 @@ export class BedrockAgent extends AgentBase {
   /**
    * Set the LLM temperature — redirects to {@link setInferenceParams}.
    * Mirrors Python `set_llm_temperature`.
+   *
+   * @throws Error if `temperature` isn't a number or a SWML variable reference.
    */
-  setLlmTemperature(temperature: number): this {
+  setLlmTemperature(temperature: number | string): this {
     return this.setInferenceParams(temperature);
   }
 
@@ -202,11 +359,35 @@ export class BedrockAgent extends AgentBase {
   }
 
   /**
-   * Set prompt LLM parameters — use {@link setInferenceParams} instead for
-   * Bedrock. Logs a warning. Mirrors Python `set_prompt_llm_params`.
+   * Set the prompt's inference settings.
+   *
+   * `temperature`, `top_p` and `max_tokens` update the inference settings, as
+   * {@link setInferenceParams} does, which converts numeric strings and
+   * throws for other values. The platform's Bedrock session reads no other
+   * prompt setting, so anything else, such as `confidence`,
+   * `presence_penalty` or `barge_confidence`, is ignored with a warning.
+   * Mirrors Python `set_prompt_llm_params`.
+   *
+   * @param params - Prompt settings, with their SWML names.
+   * @returns This agent, for chaining.
+   * @throws Error if `temperature` or `top_p` isn't a number, or `max_tokens`
+   *   isn't an integer. Nothing is changed when a value is refused.
    */
-  setPromptLlmParams(_params: Record<string, unknown>): this {
-    this.log.warn('setPromptLlmParams() called - use setInferenceParams() for Bedrock');
+  override setPromptLlmParams(params: Record<string, unknown>): this {
+    const rest = { ...params };
+    const take = (key: string): number | string | undefined => {
+      const value = rest[key];
+      delete rest[key];
+      // setInferenceParams() checks the value, and treats null as not given.
+      return value as number | string | undefined;
+    };
+    this.setInferenceParams(take('temperature'), take('top_p'), take('max_tokens'));
+    const ignored = Object.keys(rest).sort();
+    if (ignored.length > 0) {
+      this.log.warn(
+        `setPromptLlmParams(): the platform's Bedrock session doesn't use ${ignored.join(', ')}, so ${itOrThey(ignored)} ignored`,
+      );
+    }
     return this;
   }
 }
