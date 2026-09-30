@@ -80,9 +80,20 @@ export type { HostAppRouter } from './web.js';
 export { FunctionResult } from './FunctionResult.js';
 /** @deprecated Use {@link FunctionResult} instead. */
 export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
-export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
+export type {
+  PaymentPrompt,
+  PaymentAction,
+  PaymentParameter,
+  SwaigAction,
+  SwaigResultDict,
+} from './FunctionResult.js';
 export { SwaigFunction } from './SwaigFunction.js';
-export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
+export type {
+  SwaigHandler,
+  SwaigFunctionOptions,
+  SwaigErrorHandler,
+  SwaigErrorContext,
+} from './SwaigFunction.js';
 
 // Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the
 // explicit-params path; byte-identical to the untyped `parameters` blob).
@@ -102,6 +113,8 @@ export type {
   RecordDirection,
   TapDirection,
   TapCodec,
+  ToolParameters,
+  ToolArgs,
 } from './ParameterSchema.js';
 
 // DataMap (server-side tools)
@@ -141,7 +154,13 @@ export {
   createSimpleContext,
   HISTORY_MODES,
 } from './ContextBuilder.js';
-export type { HistoryMode } from './ContextBuilder.js';
+export type {
+  HistoryMode,
+  ContextDict,
+  StepDict,
+  GatherInfoDict,
+  StepSection,
+} from './ContextBuilder.js';
 
 // Security
 export { SessionManager } from './SessionManager.js';
@@ -157,7 +176,7 @@ export type { ValidationResult } from './SchemaUtils.js';
 
 // Auth
 export { AuthHandler } from './AuthHandler.js';
-export type { AuthConfig } from './AuthHandler.js';
+export type { AuthConfig, ExpressLikeRequest, ExpressLikeResponse } from './AuthHandler.js';
 
 // Type inference for typed tool handlers
 export { inferSchema, createTypedHandlerWrapper, parseFunctionParams } from './TypeInference.js';
@@ -205,7 +224,7 @@ export {
   getExecutionMode,
   stripControlChars,
 } from './Logger.js';
-export type { LogLevel } from './Logger.js';
+export type { LogLevel, LogFormat, LogStream } from './Logger.js';
 
 // Serverless
 export { ServerlessAdapter } from './ServerlessAdapter.js';
@@ -213,6 +232,10 @@ export type {
   ServerlessPlatform,
   ServerlessEvent,
   ServerlessResponse,
+  GcfRequest,
+  GcfResponse,
+  AzureRequest,
+  AzureContext,
 } from './ServerlessAdapter.js';
 
 // Skills
@@ -288,7 +311,13 @@ export type {
 // Platform-contract types — the webhook bodies the backend POSTs, referenced by
 // the public callback signatures above (DynamicConfigCallback → SwmlRequestData)
 // so a subclass/override can name them.
-export type { SwmlRequestData, SwmlRequestCall, SignalWireErrorBody } from './PlatformContracts.js';
+export type {
+  SwmlRequestData,
+  SwmlRequestCall,
+  SignalWireErrorBody,
+  PostPromptConversationTurn,
+  PostPromptFunctionCall,
+} from './PlatformContracts.js';
 
 // Typed SWAIG wire payloads (SWAIG_PIPELINE §4), generated from the authoritative
 // porting-sdk/swaig-specs/ engine specs: SWAIG handlers receive `SwaigRequest`;
