@@ -151,7 +151,7 @@ The output names the project and the version:
 
 ```text
 fred-bot@1.0.0 /home/you/fred-bot
-└── @signalwire/sdk@3.2.0
+└── @signalwire/sdk@3.5.0
 ```
 
 You can delete `check-setup.ts` once it passes.
@@ -203,7 +203,7 @@ After the installs, `package.json` lists the SDK and the three tools. Replace th
     "node": ">=22.18.0"
   },
   "dependencies": {
-    "@signalwire/sdk": "^3.2.0"
+    "@signalwire/sdk": "^3.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

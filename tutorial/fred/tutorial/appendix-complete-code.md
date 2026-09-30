@@ -444,7 +444,7 @@ Two files describe the project. `package.json` lists the dependencies and the sc
     "node": ">=22.18.0"
   },
   "dependencies": {
-    "@signalwire/sdk": "^3.2.0"
+    "@signalwire/sdk": "^3.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

@@ -2135,7 +2135,7 @@ Inside this repository, Penny uses the repository's own packages, and needs no i
     "start": "node --import tsx penny.ts"
   },
   "dependencies": {
-    "@signalwire/sdk": "^3.2.0",
+    "@signalwire/sdk": "^3.5.0",
     "tsx": "^4.21.0"
   }
 }

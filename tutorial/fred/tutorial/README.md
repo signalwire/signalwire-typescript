@@ -53,4 +53,4 @@ Start with [Lesson 1: Introduction to SignalWire Agents](01-introduction.md).
 
 ---
 
-*This tutorial was written for `@signalwire/sdk` 3.2.0.*
+*This tutorial was written for `@signalwire/sdk` 3.5.0.*

@@ -2,7 +2,7 @@
 
 This guide starts from problems developers recognize when they build voice agents. Each entry names the symptom, the mechanism that addresses it, and the responsibility that still belongs to the application. It's a map of capabilities, not a claim that every safeguard is enabled automatically.
 
-It was checked against the `@signalwire/sdk` TypeScript source at commit `a778d3d` (version 3.2.0 in `package.json`), plus the changes listed under Unreleased in `CHANGELOG.md`. It describes the SDK's contract. It doesn't verify the platform's server-side behavior, and no live call was tested. The [PGI implementation guide](pgi_agent_guide.md) labels its capabilities with these entries' `Pxx` numbers. Source identifiers such as [S03] resolve in [Sources](#sources).
+It was checked against the `@signalwire/sdk` TypeScript source at commit `a778d3d` (version 3.2.0 in `package.json`), plus changes that were released in 3.5.0 (see `CHANGELOG.md`). It describes the SDK's contract. It doesn't verify the platform's server-side behavior, and no live call was tested. The [PGI implementation guide](pgi_agent_guide.md) labels its capabilities with these entries' `Pxx` numbers. Source identifiers such as [S03] resolve in [Sources](#sources).
 
 A working voice demo is not the same as a dependable application. The difficult work often lives around the model: reaching users, managing live media, preserving state, enforcing prerequisites, executing real actions, and recovering when something fails.
 
@@ -322,7 +322,7 @@ Sources: [S04], [S05].
 
 A hidden tool is not a replacement for authenticated HTTP endpoints and application authorization.
 
-**How SignalWire addresses it:** The SDK supports Basic Auth, function tokens, and inbound webhook signature validation. Configure the relevant mechanisms, then validate identity, tenant, state, and permissions in handlers. With a signing key set (`signingKey` or `SIGNALWIRE_SIGNING_KEY`), the agent refuses a POST to its SWML, `/swaig`, `/post_prompt` and routing-callback routes without a valid SignalWire signature. That holds on a web server and through `ServerlessAdapter`. A secure tool, the default for `defineTool()`, runs only with the token minted for that function and call. The Unreleased section of `CHANGELOG.md` lists paths that earlier releases didn't check.
+**How SignalWire addresses it:** The SDK supports Basic Auth, function tokens, and inbound webhook signature validation. Configure the relevant mechanisms, then validate identity, tenant, state, and permissions in handlers. With a signing key set (`signingKey` or `SIGNALWIRE_SIGNING_KEY`), the agent refuses a POST to its SWML, `/swaig`, `/post_prompt` and routing-callback routes without a valid SignalWire signature. That holds on a web server and through `ServerlessAdapter`. A secure tool, the default for `defineTool()`, runs only with the token minted for that function and call. The 3.5.0 section of `CHANGELOG.md` lists paths that earlier releases didn't check.
 
 **You still own:** Enable signature checking, protect proxy trust, manage secrets, and reject unauthorized business operations. Apps added with `mount()` aren't behind the agent's basic auth or signature check. Caller ID alone is not verified customer identity.
 
@@ -545,4 +545,4 @@ The identifiers in the entries resolve to these documents and source files in th
 
 - [S26] [SWAIG request/result contract](swaig-reference.md): `docs/swaig-reference.md`.
 
-- [S27] [Release notes, including the Unreleased changes](../CHANGELOG.md): `CHANGELOG.md`.
+- [S27] [Release notes, including 3.5.0](../CHANGELOG.md): `CHANGELOG.md`.

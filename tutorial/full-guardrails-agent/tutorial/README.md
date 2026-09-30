@@ -103,4 +103,4 @@ Start with [Lesson 1: Why Guardrails](01-why-guardrails.md).
 
 ---
 
-*This tutorial was written for the SignalWire TypeScript SDK's 4.0 release (`@signalwire/sdk`).*
+*This tutorial was written for `@signalwire/sdk` 3.5.0.*

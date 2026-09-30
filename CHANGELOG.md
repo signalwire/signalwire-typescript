@@ -3,13 +3,14 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (Wave 1)
+## 3.5.0 (2026-09-29)
 
-The Wave 1 breaking work. Adopts the reference SDK's per-request transport
-envelope across the whole REST surface and ships the cross-port parity/hardening
-legs. This will land as part of the coordinated Wave-1 MAJOR at the release cut —
-per WAVE_4.0_PLAN D5, version numbers are NOT set during the wave, so this stays
-`Unreleased` (the `package.json` version is unchanged) until the fleet cuts 4.0.
+Brings the TypeScript SDK to parity with signalwire-python 3.5.1: the
+security fixes, the per-call configuration and tool-response API, the
+AI Chat gateway and handoff router, swaig-test's DataMap simulator, the
+packaged documentation (`sw-tsdocs`) and the tutorials. It also adopts the
+reference SDK's per-request transport envelope across the REST surface. Some
+changes break existing code; see Changed (breaking) and Notes for upgraders.
 
 ### Added
 

@@ -1,6 +1,6 @@
 # SignalWire PGI and the TypeScript SDK
 
-This implementation guide is for AI coding agents, technical assistants and application developers who build agents with `@signalwire/sdk`. It was checked against the source in this repository at commit `52bd923`: version 3.2.0 in `package.json`. The guide relies on the changes listed under Unreleased in `CHANGELOG.md`. The SDK requires Node.js 22 or later (`engines` in `package.json`). The guide also draws on [Programmatically Governed Inference](programmatically_governed_inference.md), the PGI concept document in this directory.
+This implementation guide is for AI coding agents, technical assistants and application developers who build agents with `@signalwire/sdk`. It was checked against the source in this repository at commit `52bd923`: version 3.2.0 in `package.json`, plus changes that were released in 3.5.0 (see `CHANGELOG.md`). The SDK requires Node.js 22 or later (`engines` in `package.json`). The guide also draws on [Programmatically Governed Inference](programmatically_governed_inference.md), the PGI concept document in this directory.
 
 Its claims were checked against the source. The reference implementation in [section 6](#6-reference-implementation) runs under a test suite and `swaig-test`. The fragments in sections 5 and 7 were type-checked against the SDK; the RELAY fragments in 7.8 need a live connection and weren't run. No live call was tested.
 
@@ -56,7 +56,7 @@ Apply these rules to every agent you build or review:
 
 ### Version and evidence discipline
 
-The baseline for this file is the source at commit `52bd923`: version 3.2.0 plus the Unreleased changes in `CHANGELOG.md`. Examples import from `'@signalwire/sdk'`. `SwaigFunctionResult` is an alias of `FunctionResult` in this snapshot. [S01, S04, S23, S27]
+The baseline for this file is the source at commit `52bd923`: version 3.2.0 plus changes that were released in 3.5.0 (see `CHANGELOG.md`). Examples import from `'@signalwire/sdk'`. `SwaigFunctionResult` is an alias of `FunctionResult` in this snapshot. [S01, S04, S23, S27]
 
 When you build against another version, check its package metadata, method signatures, emitted SWML and tests. Documentation can be ahead of or behind the installed package. Keep four kinds of claim apart:
 
@@ -153,18 +153,15 @@ Source: [S01-S09, S13-S18, S21-S25].
 
 ### Installing the reviewed baseline
 
-This guide relies on changes that no release has yet: they're listed under Unreleased in `CHANGELOG.md`. The 3.2.0 release doesn't have them. For example, on 3.2.0 a secure tool runs when the request carries no token at all, and `addPerCallConfig()`, `onCallEnd()`, `swaigSecret` and `setToolResponse()` don't exist. Until a release includes them, build the package from a checkout at the commit you validated. [S23, S27]
+This guide relies on changes that were released in 3.5.0 (see `CHANGELOG.md`). Earlier versions don't have them. For example, before 3.5.0 a secure tool runs when the request carries no token at all, and `addPerCallConfig()`, `onCallEnd()`, `swaigSecret` and `setToolResponse()` don't exist. Pin 3.5.0 or later. [S23, S27]
 
-These commands build the package from the checkout and print the version it reports:
+This command installs it:
 
 ```bash
-# From the root of a checkout at the commit you validated:
-npm ci
-npm run build
-node -p "require('./package.json').version"
+npm install @signalwire/sdk@^3.5.0
 ```
 
-The version printed is `3.2.0`, the same as the release, so record the commit you built as well. Pin the build you validated: this baseline is reproducible, not a claim that it's the newest code.
+Pin the version you validated: this baseline is reproducible, not a claim that it's the newest code.
 
 ## 4. Design before coding
 
@@ -1756,7 +1753,7 @@ A yes is evidence that consequential correctness isn't only a property of the pr
 
 ### 12.1. Authority of this reference
 
-This document draws on the PGI concept document and on the SDK source in this repository. The baseline is commit `52bd923`: version 3.2.0 plus the Unreleased changes in `CHANGELOG.md`.
+This document draws on the PGI concept document and on the SDK source in this repository. The baseline is commit `52bd923`: version 3.2.0 plus changes that were released in 3.5.0 (see `CHANGELOG.md`).
 
 [PGI] [Programmatically Governed Inference](programmatically_governed_inference.md), `docs/programmatically_governed_inference.md`, describes the discipline; the [PGI section of the SDK features guide](sdk_features.md#programmatically-governed-inference-pgi) summarizes it. Where broad language could imply infallible speech or external transaction guarantees, this guide uses the narrower claim you can implement.
 
@@ -1798,7 +1795,7 @@ Each source identifier used in this guide points to one file:
 - [S24] [RELAY events and actions](../relay/docs/events.md): `relay/docs/events.md`.
 - [S25] Hosting several agents: `src/AgentServer.ts`.
 - [S26] [SWAIG request and result contract](swaig-reference.md): `docs/swaig-reference.md`.
-- [S27] [Release notes, including the Unreleased changes](../CHANGELOG.md): `CHANGELOG.md`.
+- [S27] [Release notes, including 3.5.0](../CHANGELOG.md): `CHANGELOG.md`.
 
 ### 12.3. Symbols to inspect first
 
