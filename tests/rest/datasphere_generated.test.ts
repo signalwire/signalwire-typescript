@@ -136,7 +136,7 @@ describe('datasphere wire (generated)', () => {
   });
 
   it('documents_update success', async () => {
-    await client.datasphere.documents.update('x', { tags: [] });
+    await client.datasphere.documents.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.matched_route).toBe('datasphere.update_document');
@@ -144,7 +144,7 @@ describe('datasphere wire (generated)', () => {
 
   it('documents_update error', async () => {
     await mock.pushScenario('datasphere.update_document', 500, { error: 'x' });
-    await expect(client.datasphere.documents.update('x', { tags: [] })).rejects.toThrow(RestError);
+    await expect(client.datasphere.documents.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

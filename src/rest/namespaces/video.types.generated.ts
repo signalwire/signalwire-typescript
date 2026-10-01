@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/video/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/video/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -14,17 +14,17 @@ export interface ActiveSession {
   /** The named identifier of room session. */
   name?: string;
   /** Display name of room, no character limitations. Maximum of 200 characters. Defaults to the value of name. */
-  display_name?: string;
+  display_name?: string | null;
   /** Room Session does not accept new Members before this time. */
-  join_from?: string;
+  join_from?: string | null;
   /** Room Session stops accepting new Members at this time. */
-  join_until?: string;
+  join_until?: string | null;
   /** Remove Members from the Room Session at this time. */
-  remove_at?: string;
+  remove_at?: string | null;
   /** Remove Members after they are in the Room Session for N seconds. */
-  remove_after_seconds_elapsed?: number;
+  remove_after_seconds_elapsed?: number | null;
   /** The Room Session's initial layout. See documentation for a full list of supported layouts. */
-  layout?: string;
+  layout?: string | null;
   /** The maximum number of members allowed in the room at a time. */
   max_members?: number;
   /** The Room Session's frames per second. */
@@ -44,9 +44,27 @@ export interface ActiveSession {
   /** Whether a video with a preview of the content of the room is to be generated. */
   enable_room_previews?: boolean;
   /** If room previews are enabled and the room session is in progress, this is the URL of the preview video. */
-  preview_url?: string;
-  /** Enable/disable jitter buffer audio-video sync. */
-  audio_video_sync?: boolean;
+  preview_url?: string | null;
+  /** Whether jitter-buffer audio-video sync is enabled for the session. */
+  sync_audio_video?: boolean;
+  /** Whether a tone is played when a member enters or exits the room session. */
+  tone_on_entry_and_exit?: boolean;
+  /** Whether participants join with video off by room setting. */
+  room_join_video_off?: boolean;
+  /** Whether participants join with video off by user setting. */
+  user_join_video_off?: boolean;
+  /** Whether the room session is locked. */
+  locked?: boolean;
+  /** The cost of the room session so far, in dollars. */
+  cost_in_dollars?: number;
+  /** Timestamp when the room session was created. */
+  created_at?: string;
+  /** Timestamp when the room session was last updated. */
+  updated_at?: string;
+  /** URL of the locked room cover image. */
+  locked_cover?: string;
+  /** Whether raised hands are prioritized in the layout. */
+  prioritize_handraise?: boolean | null;
 }
 
 /** Charge detail item for logs. */
@@ -115,8 +133,68 @@ export interface Conference {
   created_at: string;
   /** Timestamp when the conference was last updated. */
   updated_at: string;
-  /** Active session information. Only present when requested via the `include_active_session` query parameter. */
-  active_session?: ActiveSession;
+  /** Active session information. Only present when requested via the `include_active_session` query parameter; null when there is no in-progress session. */
+  active_session?: ActiveSession | null;
+}
+
+/** Video conference returned by create and update (no `active_session`). */
+export interface ConferenceMutationResponse {
+  /** Unique ID of the video conference. */
+  id: string;
+  /** A named unique identifier for the conference. Allowed characters: `A-Za-z0-9_-`. */
+  name: string;
+  /** Display name of the video conference. Maximum of 200 characters. */
+  display_name: string | null;
+  /** Description of the conference. Maximum of 3000 characters. */
+  description: string | null;
+  /** Conference does not accept new participants before this time. */
+  join_from: string | null;
+  /** Conference stops accepting new participants at this time, but keeps running until all participants leave. */
+  join_until: string | null;
+  /** The conference's resolution. */
+  quality: VideoQuality;
+  /** The conference's initial layout. */
+  layout: VideoLayout;
+  /** The size of the video conference. */
+  size: ConferenceSize | null;
+  /** Whether to start recording when a conference session begins. */
+  record_on_start: boolean;
+  /** Whether a tone is played when a member enters or exits the conference. */
+  tone_on_entry_and_exit: boolean;
+  /** Whether participants join with video off by user setting. */
+  user_join_video_off: boolean;
+  /** Whether participants join with video off by room setting. */
+  room_join_video_off: boolean;
+  /** Whether group chat is enabled for conference participants. */
+  enable_chat: boolean;
+  /** Whether a preview video of the conference content is generated. */
+  enable_room_previews: boolean | null;
+  /** CTA buttons and selected items color (dark theme). */
+  dark_primary: string | null;
+  /** Main background color (dark theme). */
+  dark_background: string | null;
+  /** Main foreground color (dark theme). */
+  dark_foreground: string | null;
+  /** Success indication color (dark theme). */
+  dark_success: string | null;
+  /** Error indication color (dark theme). */
+  dark_negative: string | null;
+  /** CTA buttons and selected items color (light theme). */
+  light_primary: string | null;
+  /** Main background color (light theme). */
+  light_background: string | null;
+  /** Main foreground color (light theme). */
+  light_foreground: string | null;
+  /** Success indication color (light theme). */
+  light_success: string | null;
+  /** Error indication color (light theme). */
+  light_negative: string | null;
+  /** User-defined metadata for the conference. */
+  meta: Record<string, Record<string, unknown>> | null;
+  /** Timestamp when the conference was created. */
+  created_at: string;
+  /** Timestamp when the conference was last updated. */
+  updated_at: string;
 }
 
 /** Conference size options. */
@@ -143,9 +221,9 @@ export interface CreateConferenceRequest {
   /** Description of the conference. Maximum of 3000 characters. */
   description?: string;
   /** Conference does not accept new participants before this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_from?: string;
+  join_from?: string | number;
   /** Conference stops accepting new participants at this time, but keeps running until all participants leave. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_until?: string;
+  join_until?: string | number;
   /** The conference's resolution. */
   quality?: VideoQuality;
   /** The conference's initial layout. */
@@ -193,11 +271,11 @@ export interface CreateRoomRequest {
   /** The room's resolution. */
   quality?: VideoQuality;
   /** Room does not accept new participants before this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_from?: string;
+  join_from?: string | number;
   /** Room stops accepting new participants at this time, but keeps running until all participants leave. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_until?: string;
+  join_until?: string | number;
   /** Remove users from the room at this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  remove_at?: string;
+  remove_at?: string | number;
   /** Remove users after they are in the room for N seconds. */
   remove_after_seconds_elapsed?: number;
   /** The room's initial layout. */
@@ -221,11 +299,11 @@ export interface CreateRoomTokenRequest {
   /** A list of permissions, which define what user can do once they join the room. If `join_as` is `audience`, permissions are set to an empty array regardless of the value provided. */
   permissions?: RoomTokenPermission[];
   /** The user can't join the room before this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z` */
-  join_from?: string;
+  join_from?: string | number;
   /** The user can't join the room after this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z` */
-  join_until?: string;
+  join_until?: string | number;
   /** Remove user from the room at this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z` */
-  remove_at?: string;
+  remove_at?: string | number;
   /** Remove user after they are in the room for N seconds. */
   remove_after_seconds_elapsed?: number;
   /** Whether the user joins the room with their audio muted. */
@@ -405,9 +483,9 @@ export interface PaginationLinks {
   self: string;
   /** Link to the first page. */
   first: string;
-  /** Link to the next page. */
+  /** Link to the next page. Only present when there are more results. */
   next?: string;
-  /** Link to the previous page. */
+  /** Link to the previous page. Only present when not on the first page. */
   prev?: string;
 }
 
@@ -500,8 +578,56 @@ export interface RoomResponse {
   meta: Record<string, Record<string, unknown>> | null;
   /** Whether hand raises are prioritized in the room layout. */
   prioritize_handraise: boolean;
-  /** Active session information for the room. */
-  active_session?: ActiveSession;
+  /** Active session information for the room. Only present when requested via the `include_active_session` query parameter; null when there is no in-progress session. */
+  active_session?: ActiveSession | null;
+  /** Timestamp when the room was created. */
+  created_at: string;
+  /** Timestamp when the room was last updated. */
+  updated_at: string;
+}
+
+/** Room returned by create and update (no `active_session`). */
+export interface RoomMutationResponse {
+  /** A unique identifier for the room. */
+  id: string;
+  /** A named unique identifier for the room. */
+  name: string;
+  /** Display name of the room. */
+  display_name: string | null;
+  /** Description of the room. */
+  description: string | null;
+  /** The maximum number of members in the room at a time. */
+  max_members: number;
+  /** The room's resolution. */
+  quality: VideoQuality;
+  /** Frames per second parameter of room video quality. */
+  fps: number;
+  /** Room does not accept new participants before this time. */
+  join_from: string | null;
+  /** Room stops accepting new participants at this time. */
+  join_until: string | null;
+  /** Remove users from the room at this time. */
+  remove_at: string | null;
+  /** Remove users after they are in the room for N seconds. */
+  remove_after_seconds_elapsed: number | null;
+  /** The room's initial layout. */
+  layout: RoomLayout;
+  /** Specifies whether to start recording a Room Session when one is started for this Room. */
+  record_on_start: boolean;
+  /** Whether a tone is played when participants enter or exit the room. */
+  tone_on_entry_and_exit: boolean;
+  /** Whether the room's video is turned off when participants join. */
+  room_join_video_off: boolean;
+  /** Whether a user's video is turned off when they join the room. */
+  user_join_video_off: boolean;
+  /** Whether a video with a preview of the content of the room is to be generated. */
+  enable_room_previews: boolean | null;
+  /** Enable/disable jitter buffer audio-video sync. */
+  sync_audio_video: boolean | null;
+  /** User-defined metadata for the room. */
+  meta: Record<string, Record<string, unknown>> | null;
+  /** Whether hand raises are prioritized in the room layout. */
+  prioritize_handraise: boolean;
   /** Timestamp when the room was created. */
   created_at: string;
   /** Timestamp when the room was last updated. */
@@ -666,7 +792,7 @@ export interface RoomSessionSummary {
   /** If room previews are enabled and the room session is in progress, this is the URL of the preview video. */
   preview_url: string | null;
   /** Whether raised hands are prioritized in the layout. */
-  prioritize_handraise: boolean | null;
+  prioritize_handraise: boolean;
   /** Enable/disable jitter buffer audio-video sync. */
   sync_audio_video: boolean | null;
 }
@@ -786,13 +912,13 @@ export interface Types_StatusCodes_StatusCode500 {
 /** Request body for updating a conference. */
 export interface UpdateConferenceRequest {
   /** Display name of the video conference. Maximum of 200 characters. */
-  display_name: string;
+  display_name?: string;
   /** Description of the conference. Maximum of 3000 characters. */
   description?: string;
   /** Conference does not accept new participants before this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_from?: string;
+  join_from?: string | number;
   /** Conference stops accepting new participants at this time, but keeps running until all participants leave. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_until?: string;
+  join_until?: string | number;
   /** The conference's resolution. */
   quality?: VideoQuality;
   /** The conference's initial layout. */
@@ -844,11 +970,11 @@ export interface UpdateRoomRequest {
   /** The room's resolution. */
   quality?: VideoQuality;
   /** Room does not accept new participants before this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_from?: string;
+  join_from?: string | number;
   /** Room stops accepting new participants at this time, but keeps running until all participants leave. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  join_until?: string;
+  join_until?: string | number;
   /** Remove users from the room at this time. Expects RFC 3339 datetime: `2022-01-01T23:59:60Z`. Date only: `2022-01-01` will be converted to `2022-01-01T00:00:00Z`. */
-  remove_at?: string;
+  remove_at?: string | number;
   /** Remove users after they are in the room for N seconds. */
   remove_after_seconds_elapsed?: number;
   /** The room's initial layout. */
@@ -866,7 +992,7 @@ export interface UpdateRoomRequest {
 /** Request body for updating a stream. */
 export interface UpdateStreamRequest {
   /** RTMP or RTMPS URL. This must be the address of a server accepting incoming RTMP/RTMPS streams. */
-  url: string;
+  url?: string;
 }
 
 /** Video frames per second. */

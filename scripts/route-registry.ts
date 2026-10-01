@@ -74,6 +74,11 @@ const recordingFetch: typeof globalThis.fetch = async (input, init) => {
     path = url;
   }
   captured.push({ method, path });
+  // A redirect-answer method (getRedirectLocation) does not follow redirects and
+  // expects its success to BE a 3xx with a Location, like the real endpoint.
+  if (init?.redirect === 'manual') {
+    return new Response(null, { status: 302, headers: { Location: 'https://example.invalid/x' } });
+  }
   // Minimal Response the SDK's _request can consume (.ok, .status, .json/.text).
   return new Response('{}', {
     status: 200,
@@ -139,6 +144,7 @@ async function build(): Promise<{
     project: 'p',
     token: 't',
     host: 'example.signalwire.com',
+    personalAccessToken: 'pat_p',
     fetchImpl: recordingFetch,
   });
 

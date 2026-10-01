@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/projects/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/projects/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -7,21 +7,25 @@
 
 /** A project or subproject within the caller's project tree. */
 export interface Project {
-  /** Project identifier. */
+  /** The unique identifier of the project. */
   id: string;
-  /** Project name. */
+  /** The name of the project. */
   name: string;
-  /** The root project's ID; `null` for a root project. */
+  /** The unique identifier of the root project. `null` when this project is itself a root project. */
   parent_project_id: string | null;
-  /** `true` if this project is a subproject. */
+  /** `true` when this project is a subproject. */
   subproject: boolean;
-  /** Effective region preference. Returned in all responses; not currently settable via this API. */
-  region_preference: string;
+  /** When enabled, recordings created within the project require authentication to access. */
   protect_recordings: boolean;
+  /** When enabled, message media created within the project requires authentication to access. */
   protect_message_media: boolean;
+  /** When enabled, fax media created within the project requires authentication to access. */
   protect_fax_media: boolean;
+  /** When enabled, requests made to the project's webhooks and callbacks must use HTTPS. */
   force_https_requests: boolean;
+  /** The date and time when the project was created. */
   created_at: string;
+  /** The date and time when the project was last updated. */
   updated_at: string;
 }
 
@@ -35,25 +39,42 @@ export type ProjectWithSigningKey = Project & {
 export interface ProjectCreate {
   /** Project name. **Required.** Max 250 characters. */
   name: string;
+  /** When enabled, recordings created within the project require authentication to access. */
+  protect_recordings?: boolean;
+  /** When enabled, message media created within the project requires authentication to access. */
+  protect_message_media?: boolean;
+  /** When enabled, fax media created within the project requires authentication to access. */
+  protect_fax_media?: boolean;
+  /** When enabled, requests made to the project's webhooks and callbacks must use HTTPS. */
+  force_https_requests?: boolean;
+  /** The parent project for the new subproject. Used under Personal Access Token auth; ignored when authenticating with a project API token. */
+  parent_project_id?: string;
+}
+
+/** Request body for updating a project's name and settings. */
+export interface ProjectUpdate {
+  /** Project name. Max 250 characters. Defaults to the current name when omitted. */
+  name?: string;
   protect_recordings?: boolean;
   protect_message_media?: boolean;
   protect_fax_media?: boolean;
   force_https_requests?: boolean;
 }
 
-/** Request body for updating a project's name and settings. */
-export type ProjectUpdate = ProjectCreate;
-
 /** A page of projects. */
 export interface ProjectList {
+  /** Pagination links for the list of projects. */
   links: {
+    /** The link to the current page. */
     self: string;
+    /** The link to the first page. */
     first: string;
-    /** Present only when more results exist. */
+    /** The link to the next page. Only present when more results exist. */
     next?: string;
-    /** Present only when a previous page exists. */
+    /** The link to the previous page. Only present when a previous page exists. */
     prev?: string;
   };
+  /** The projects on this page. */
   data: Project[];
 }
 

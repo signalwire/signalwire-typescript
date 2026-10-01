@@ -7,6 +7,11 @@
 // live on FunctionResult; these are the shapes those methods accept. Held to the
 // same lint bar as hand source.
 
+export interface ChangeVoiceAction {
+  voice?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface ContextSwitchAction {
   consolidate?: boolean | string;
   full_reset?: boolean | string;
@@ -24,7 +29,9 @@ export interface ContextSwitchAction {
 }
 
 export interface HoldAction {
+  step?: string;
   timeout?: number | string;
+  timeout_step?: string;
   [key: string]: unknown;
 }
 
@@ -46,12 +53,16 @@ export interface SwaigAction {
   add_dynamic_hints?: (
     | {
         hint?: string;
+        ignore_case?: boolean | string;
+        pattern?: string;
+        replace?: string;
       }
     | string
   )[];
   back_to_back_functions?: boolean | 'forever' | string;
   change_context?: string;
   change_step?: string;
+  change_voice?: string | ChangeVoiceAction;
   clear_dynamic_hints?: boolean | string;
   context_switch?: string | ContextSwitchAction;
   end_of_speech_timeout?: number;
@@ -81,10 +92,15 @@ export interface SwaigAction {
   [key: string]: unknown;
 }
 
-/** Parsed at actions.c:2228-2276. */
+/** Parsed at actions.c:2685-2727. */
 export interface SwaigResponse {
-  /** Result text fed back to the AI for its reply. */
-  response?: string;
+  /** Result fed back to the AI for its reply: a string, or an object splitting it into named parts. Which arm applies is decided by the value's JSON type. */
+  response?:
+    | string
+    | {
+        tool_prompt?: string;
+        tool_result?: string;
+      };
   /** One action object, or an array of them. Each object may carry several action keys; every recognized key is dispatched. See SwaigAction. */
   action?: SwaigAction | SwaigAction[];
   /** If true, defer response+actions until after the AI's next turn (delayed_response). */

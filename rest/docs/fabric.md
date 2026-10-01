@@ -182,11 +182,6 @@ const guestToken = await client.fabric.tokens.createGuestToken(
   { expire_at: 1767225599 },
 );
 
-// Subscriber invite token; `address_id` is positional
-const inviteToken = await client.fabric.tokens.createInviteToken('address-uuid', {
-  expires_at: 1767225599,
-});
-
 // Click-to-call embed token; the source token is positional
 const embedToken = await client.fabric.tokens.createEmbedToken('embed-source-token');
 ```

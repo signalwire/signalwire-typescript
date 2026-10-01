@@ -320,3 +320,19 @@ describe('Queues', () => {
     expect(last.path).toBe('/api/relay/rest/queues/q-1/members/mem-7');
   });
 });
+
+// ---------------------------------------------------------------------------
+// A redirect-answer endpoint returns its Location instead of following it.
+// ---------------------------------------------------------------------------
+
+describe('Recordings download', () => {
+  it('test_download_returns_redirect_location', async () => {
+    const location = await client.recordings.download('rec-9');
+    expect(typeof location).toBe('string');
+    expect(location.length).toBeGreaterThan(0);
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.path).toBe('/api/relay/rest/recordings/rec-9.mp3');
+    expect(last.matched_route).toBe('relay-rest.download_recording');
+  });
+});

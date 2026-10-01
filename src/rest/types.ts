@@ -12,6 +12,12 @@ export interface ClientOptions {
   token?: string;
   /** SignalWire space host (e.g. "example.signalwire.com"). Falls back to SIGNALWIRE_SPACE env var. */
   host?: string;
+  /**
+   * A user's Personal Access Token (`pat_...`), which authenticates `client.space`
+   * (the Space Administration API) — HTTP Basic with an empty username. Falls back
+   * to the SIGNALWIRE_PERSONAL_ACCESS_TOKEN env var.
+   */
+  personalAccessToken?: string;
   /** Custom fetch implementation for testing. */
   fetchImpl?: typeof globalThis.fetch;
   /**

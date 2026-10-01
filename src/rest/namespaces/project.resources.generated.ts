@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/project/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/project/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // One typed resource class per x-sdk-resource: CRUD bases bound to the
@@ -9,7 +9,11 @@
 import type { HttpClient } from '../HttpClient.js';
 import type { RequestOptionsInit } from '../RequestOptions.js';
 import { BaseResource } from '../base/BaseResource.js';
-import type { TokenPermission, TokenResponse } from './project.types.generated.js';
+import type {
+  TokenPermission,
+  TokenResponse,
+  TokenUpdateResponse,
+} from './project.types.generated.js';
 
 export class ProjectTokens extends BaseResource {
   constructor(http: HttpClient) {
@@ -19,7 +23,7 @@ export class ProjectTokens extends BaseResource {
   async create(
     name: string,
     permissions: TokenPermission[],
-    options?: { subproject_id?: string; extras?: Record<string, unknown> },
+    options?: { subproject_id?: string; project_id?: string; extras?: Record<string, unknown> },
     requestOptions?: RequestOptionsInit,
   ): Promise<TokenResponse> {
     const body: Record<string, unknown> = {};
@@ -27,6 +31,7 @@ export class ProjectTokens extends BaseResource {
       name,
       permissions,
       subproject_id: options?.subproject_id,
+      project_id: options?.project_id,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
@@ -37,7 +42,7 @@ export class ProjectTokens extends BaseResource {
     token_id: string,
     options?: { name?: string; permissions?: TokenPermission[]; extras?: Record<string, unknown> },
     requestOptions?: RequestOptionsInit,
-  ): Promise<TokenResponse> {
+  ): Promise<TokenUpdateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       name: options?.name,
@@ -45,7 +50,7 @@ export class ProjectTokens extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    return this._http.patch<TokenResponse>(this._path(token_id), body, requestOptions);
+    return this._http.patch<TokenUpdateResponse>(this._path(token_id), body, requestOptions);
   }
 
   async delete(

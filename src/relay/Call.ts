@@ -696,7 +696,7 @@ export class Call {
    * @throws {RelayError} When the record command is rejected.
    */
   async record(
-    audio?: CallRecordRequest['params']['audio'],
+    audio?: CallRecordRequest['params']['record']['audio'],
     options: {
       controlId?: string;
       onCompleted?: CompletedCallback;

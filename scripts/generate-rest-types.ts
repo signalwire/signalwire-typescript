@@ -285,6 +285,77 @@ interface ParamSpec {
   name: string;
   ann: string; // the TS type expression
   required: boolean;
+  /** Rendered as a leading positional (required, or pinned by POSITIONAL_COMPAT). */
+  positional?: boolean;
+}
+
+// ---- published-release positional compatibility ----------------------------
+// TS renders a REQUIRED body field as a leading positional (renderSignature).
+// When the spec later relaxes a field to optional — or reorders the required
+// set — the default emit moves that positional into the options object or
+// swaps it, so a call that works with the PUBLISHED release (`dial(from, to)`)
+// stops compiling and, in plain JS, silently sends the wrong body. The
+// keyword-only reference is immune; this port is not. So, per
+// `<Class>.<method>`, this table pins the positional params the published
+// release (v3.5.0, tag on main) takes, in their published order. A pinned field
+// the spec now makes optional stays an OPTIONAL positional (wire unchanged when
+// passed). On a pinned method the pins are the WHOLE positional set: a field
+// the spec newly REQUIRES but the release took through `options` (e.g.
+// createOrder's `phone_numbers`) stays an options member, so the published
+// `createOrder(id, { phone_numbers })` keeps working (an empty pin list pins
+// "no body positionals"). A pinned name the spec no longer declares, or a pin no
+// method consumes, is a hard error — the table can only describe live surface.
+const POSITIONAL_COMPAT: Record<string, string[]> = {
+  'Calling.dial': ['from', 'to'],
+  'Calling.aiStop': ['control_id'],
+  'Calling.tap': ['tap', 'device'],
+  'FabricTokens.createGuestToken': ['allowed_addresses'],
+  'Messages.update': ['body'],
+  'ShortCodes.update': ['name', 'message_handler'],
+  'VideoStreams.update': ['url'],
+  'RegistryCampaigns.createOrder': [],
+};
+const usedPositionalCompat = new Set<string>();
+
+/**
+ * Mark each param's `positional` flag (required → positional) and apply any
+ * POSITIONAL_COMPAT pin for `key`: pinned params lead, in the pinned order, and
+ * stay positional even when the spec made them optional. Returns the params in
+ * render order (pinned, then the rest in spec order).
+ */
+function applyPositionalCompat(key: string, bodyParams: ParamSpec[]): ParamSpec[] {
+  for (const p of bodyParams) p.positional = p.required;
+  const pins = POSITIONAL_COMPAT[key];
+  if (!pins) return bodyParams;
+  usedPositionalCompat.add(key);
+  const byName = new Map(bodyParams.map((p) => [p.name, p]));
+  const pinned = pins.map((n) => {
+    const p = byName.get(n);
+    if (!p) {
+      throw new Error(`POSITIONAL_COMPAT ${key}: pinned param '${n}' is not a field of the spec`);
+    }
+    p.positional = true;
+    return p;
+  });
+  const rest = bodyParams.filter((p) => !pins.includes(p.name));
+  for (const p of rest) p.positional = false;
+  return [...pinned, ...rest];
+}
+
+const isPositional = (p: ParamSpec): boolean => p.positional ?? p.required;
+
+/**
+ * The leading positional params: a required one is `name: T`; an optional
+ * (pinned) one is `name?: T`, or `name: T | undefined` when a later positional
+ * is required (TS forbids a required param after an optional one).
+ */
+function renderPositionals(bodyParams: ParamSpec[]): string[] {
+  const pos = bodyParams.filter(isPositional);
+  return pos.map((p, i) => {
+    if (p.required) return `${p.name}: ${p.ann}`;
+    if (pos.slice(i + 1).some((q) => q.required)) return `${p.name}: ${p.ann} | undefined`;
+    return `${p.name}?: ${p.ann}`;
+  });
 }
 
 /**
@@ -300,13 +371,13 @@ interface ParamSpec {
 function renderSignature(
   pathArgs: string[],
   bodyParams: ParamSpec[],
-  opts: { extras: boolean; query: boolean },
+  opts: { extras: boolean; query: boolean; leading?: string[]; extraOpts?: ParamSpec[] },
 ): string {
   const parts: string[] = [];
   for (const a of pathArgs) parts.push(`${a}: string`);
-  const req = bodyParams.filter((p) => p.required);
-  const opt = bodyParams.filter((p) => !p.required);
-  for (const p of req) parts.push(`${p.name}: ${p.ann}`);
+  parts.push(...(opts.leading ?? []));
+  const opt = [...(opts.extraOpts ?? []), ...bodyParams.filter((p) => !isPositional(p))];
+  parts.push(...renderPositionals(bodyParams));
   const optsObj = renderOptionsObject(opt, opts.extras);
   if (optsObj) parts.push(optsObj);
   if (opts.query) parts.push('params?: QueryParams');
@@ -351,8 +422,8 @@ function bodyVar(bodyParams: ParamSpec[]): string {
  * The wire body is byte-identical to the pre-options-object flat form.
  */
 function renderBodyAssembly(bodyParams: ParamSpec[], extras: boolean, varName = 'body'): string {
-  const req = bodyParams.filter((p) => p.required);
-  const opt = bodyParams.filter((p) => !p.required);
+  const req = bodyParams.filter(isPositional);
+  const opt = bodyParams.filter((p) => !isPositional(p));
   const hasOptionsObj = opt.length > 0 || extras;
   if (bodyParams.length === 0) {
     return extras
@@ -382,6 +453,7 @@ function renderBodyAssembly(bodyParams: ParamSpec[], extras: boolean, varName = 
  */
 function emitOperationMethod(
   doc: OpenApiDoc,
+  resourceName: string,
   collection: string,
   methodName: string,
   opId: string,
@@ -409,12 +481,15 @@ function emitOperationMethod(
   const pathParts: string[] = []; // args for this._path(...)
   const absParts: string[] = []; // pieces for a sibling absolute template
   for (const seg of segments) {
-    const m = /^\{([^}]+)\}$/.exec(seg);
+    // A path param fills a whole segment (`{id}`) or sits beside a literal in one
+    // (`{id}.mp3` — a Rails format suffix); the literal stays in the same segment.
+    const m = /^([^{}]*)\{([^}]+)\}([^{}]*)$/.exec(seg);
     if (m) {
-      const arg = snakeCase(m[1]);
+      const [, pre, name, post] = m;
+      const arg = snakeCase(name);
       pathArgs.push(arg);
-      pathParts.push(arg);
-      absParts.push('${' + arg + '}');
+      pathParts.push(pre || post ? '`' + pre + '${' + arg + '}' + post + '`' : arg);
+      absParts.push(pre + '${' + arg + '}' + post);
     } else {
       pathParts.push(JSON.stringify(seg));
       absParts.push(seg);
@@ -427,8 +502,70 @@ function emitOperationMethod(
   const resSchema = (okRes.content?.['application/json']?.schema ?? {}) as Schema;
   const resRef =
     resSchema.$ref ?? (resSchema.type === 'array' ? (resSchema.items?.$ref ?? '') : '') ?? '';
-  const returnT = resRef ? leafName(resRef) : 'Record<string, unknown>';
-  if (resRef) for (const t of referencedTypes(returnT, schemaNames)) refs.add(t);
+  // How the success is read (mirrors the reference generator): JSON (default);
+  // `text` when the success body is another media type (`text/csv`); `redirect`
+  // when the only success IS a 3xx carrying `Location` — the method returns that
+  // URL instead of following it.
+  const okContent = okRes.content ?? {};
+  const textMedia = Object.keys(okContent).find((mt) => mt !== 'application/json');
+  let responseKind: 'json' | 'text' | 'redirect' = 'json';
+  const hasOk = Object.keys(okRes).length > 0;
+  if (hasOk && !('application/json' in okContent) && textMedia !== undefined) {
+    responseKind = 'text';
+  } else if (!hasOk) {
+    const redirect = Object.entries(responses)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .find(([code, r]) => {
+        const hdrs = (r as { headers?: Record<string, unknown> } | undefined)?.headers ?? {};
+        return code.startsWith('3') && 'Location' in hdrs;
+      });
+    if (redirect) responseKind = 'redirect';
+  }
+  if (responseKind !== 'json' && httpVerb !== 'get') {
+    throw new Error(
+      `x-sdk-resource on ${collection}: methods.${methodName} (${opId}) has a ` +
+        `${responseKind} success on ${httpVerb.toUpperCase()}; only GET is supported`,
+    );
+  }
+  const returnT =
+    responseKind !== 'json' ? 'string' : resRef ? leafName(resRef) : 'Record<string, unknown>';
+  if (resRef && responseKind === 'json') {
+    for (const t of referencedTypes(returnT, schemaNames)) refs.add(t);
+  }
+
+  // Header params (path-level + op-level `in: header`): a required one is a
+  // leading positional after the path ids, an optional one an options member;
+  // both are sent as request headers, never in the body.
+  const headerParams: { wire: string; arg: string; ann: string; required: boolean }[] = [];
+  const pathLevel = ((doc.paths?.[path] as Record<string, unknown> | undefined)?.parameters ??
+    []) as unknown[];
+  const opLevel = ((op as { parameters?: unknown[] }).parameters ?? []) as unknown[];
+  for (const raw of [...pathLevel, ...opLevel]) {
+    let prm = raw as Record<string, unknown>;
+    if (typeof prm.$ref === 'string') prm = resolveRef(doc, prm.$ref) as Record<string, unknown>;
+    if (prm.in !== 'header') continue;
+    const wire = String(prm.name);
+    const arg = snakeCase(wire.replace(/[^0-9A-Za-z]+/g, '_')).replace(/^_+|_+$/g, '');
+    const ann = paramType(prm.schema as Schema | undefined);
+    for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
+    headerParams.push({ wire, arg, ann, required: Boolean(prm.required) });
+  }
+  if (headerParams.length && httpVerb !== 'get' && httpVerb !== 'post') {
+    throw new Error(
+      `x-sdk-resource on ${collection}: methods.${methodName} (${opId}) declares a header ` +
+        `parameter on ${httpVerb.toUpperCase()}; only GET/POST carry headers`,
+    );
+  }
+  const headerLeading = headerParams.filter((h) => h.required).map((h) => `${h.arg}: ${h.ann}`);
+  const headerOpts: ParamSpec[] = headerParams
+    .filter((h) => !h.required)
+    .map((h) => ({ name: h.arg, ann: h.ann, required: false }));
+  const headerEntries = headerParams.map(
+    (h) => [h.wire, h.required ? h.arg : `options?.${h.arg}`] as const,
+  );
+  if (responseKind === 'text' && textMedia) {
+    headerEntries.push(['Accept', JSON.stringify(textMedia)] as const);
+  }
 
   // Request body.
   const reqSchema = (op.requestBody?.content?.['application/json']?.schema ?? {}) as Schema;
@@ -464,15 +601,26 @@ function emitOperationMethod(
       for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
       bodyParams.push({ name, ann, required: flat.required.includes(key) });
     }
+    const ordered = applyPositionalCompat(`${resourceName}.${camelCase(methodName)}`, bodyParams);
+    bodyParams.splice(0, bodyParams.length, ...ordered);
     sig =
-      renderSignature(pathArgs, bodyParams, { extras: true, query: false }) +
-      `, ${REQUEST_OPTIONS_SIG}`;
+      renderSignature(pathArgs, bodyParams, {
+        extras: true,
+        query: false,
+        leading: headerLeading,
+        extraOpts: headerOpts,
+      }) + `, ${REQUEST_OPTIONS_SIG}`;
     const bvar = bodyVar(bodyParams);
     preamble = renderBodyAssembly(bodyParams, true, bvar);
     bodyExpr = bvar;
   } else {
     const query = httpVerb === 'get';
-    const base = renderSignature(pathArgs, [], { extras: false, query });
+    const base = renderSignature(pathArgs, [], {
+      extras: false,
+      query,
+      leading: headerLeading,
+      extraOpts: headerOpts,
+    });
     sig = base ? `${base}, ${REQUEST_OPTIONS_SIG}` : REQUEST_OPTIONS_SIG;
   }
 
@@ -493,22 +641,55 @@ function emitOperationMethod(
   // and `delete` (`(path, requestOptions?)`) take it directly after their args.
   let call: string;
   const needsQuery = httpVerb === 'get' && !hasBody;
+  // The per-call headers (declared header params — an unset optional one is not
+  // sent — plus the Accept of a non-JSON success).
+  let hdrArg = '';
+  if (headerEntries.length) {
+    // Always-sent entries (required header args, the Accept literal) initialise
+    // the object; an optional header is added only when the caller set it.
+    const keyTok = (w: string): string =>
+      /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(w) ? w : JSON.stringify(w);
+    const valTok = (expr: string, ann: string): string =>
+      expr.startsWith('"') || ann === 'string' ? expr : `String(${expr})`;
+    const annOf = (wire: string): string =>
+      headerParams.find((h) => h.wire === wire)?.ann ?? 'string';
+    const fixed = headerEntries.filter(([, e]) => !e.startsWith('options?.'));
+    const optional = headerEntries.filter(([, e]) => e.startsWith('options?.'));
+    const init = fixed.map(([w, e]) => `${keyTok(w)}: ${valTok(e, annOf(w))}`).join(', ');
+    preamble += `    const _headers: Record<string, string> = { ${init} };\n`;
+    for (const [w, e] of optional) {
+      const access = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(w) ? `.${w}` : `[${JSON.stringify(w)}]`;
+      preamble += `    if (${e} !== undefined) _headers${access} = ${valTok(e, annOf(w))};\n`;
+    }
+    hdrArg = ', _headers';
+  }
   if (hasBody) {
     call =
       httpVerb === 'post'
-        ? `this._http.post<${returnT}>(${target}, ${bodyExpr}, undefined, requestOptions)`
+        ? `this._http.post<${returnT}>(${target}, ${bodyExpr}, undefined, requestOptions${hdrArg})`
         : `this._http.${httpVerb}<${returnT}>(${target}, ${bodyExpr}, requestOptions)`;
+  } else if (responseKind === 'text') {
+    call = `this._http.getText(${target}, params, requestOptions${hdrArg})`;
+  } else if (responseKind === 'redirect') {
+    call = `this._http.getRedirectLocation(${target}, params, requestOptions${hdrArg})`;
   } else if (httpVerb === 'get') {
-    call = `this._http.get<${returnT}>(${target}, params, requestOptions)`;
+    call = `this._http.get<${returnT}>(${target}, params, requestOptions${hdrArg})`;
   } else if (httpVerb === 'delete') {
     call = `this._http.delete<${returnT}>(${target}, requestOptions)`;
   } else if (httpVerb === 'post') {
-    call = `this._http.post<${returnT}>(${target}, undefined, undefined, requestOptions)`;
+    call = `this._http.post<${returnT}>(${target}, undefined, undefined, requestOptions${hdrArg})`;
   } else {
     call = `this._http.${httpVerb}<${returnT}>(${target}, undefined, requestOptions)`;
   }
 
+  const doc_ =
+    responseKind === 'redirect'
+      ? `  /**\n   * Return the URL this endpoint redirects to (the \`Location\` of its redirect),\n` +
+        `   * without following it or downloading anything; fetch it with any HTTP client.\n` +
+        `   * @throws {RestError} For an error status.\n   */\n`
+      : '';
   const src =
+    doc_ +
     `  async ${camelCase(methodName)}(${sig}): Promise<${returnT}> {\n` +
     preamble +
     `    return ${call};\n` +
@@ -559,9 +740,10 @@ function commandMethodName(command: string): string {
  */
 function emitCommandDispatch(
   doc: OpenApiDoc,
+  resourceName: string,
   requestName: string,
   schemaNames: Set<string>,
-): { srcs: string[]; refs: Set<string> } {
+): { srcs: string[]; refs: Set<string>; usesUuid: boolean } {
   const req = doc.components?.schemas?.[requestName];
   if (!req) throw new Error(`command-dispatch request ${requestName} not in components.schemas`);
   const mapping = (req as Schema & { discriminator?: { mapping?: Record<string, string> } })
@@ -572,40 +754,91 @@ function emitCommandDispatch(
   const returnT = 'CallResponse';
   const refs = new Set<string>([returnT]);
   const srcs: string[] = [];
+  let usesUuid = false;
   for (const [command, ref] of Object.entries(mapping)) {
     const sch = typeof ref === 'string' ? resolveRef(doc, ref) : ({} as Schema);
     const props = sch.properties ?? {};
     const hasId = 'id' in props;
     const methodName = commandMethodName(command);
     const flat = flattenUnion(doc, props.params);
-    const bodyParams: ParamSpec[] = [];
+    // x-sdk-compat-kwargs (on the `params` schema): an SDK kwarg kept for
+    // compatibility that is sent INTO a nested wire key, e.g. calling.record
+    // `audio` -> params.record.audio. The nested root it fills stays OPTIONAL.
+    // Mirrors the reference generator (generate_python_rest_types.py).
+    let pnode = props.params as Schema | undefined;
+    if (pnode?.$ref) pnode = resolveRef(doc, pnode.$ref);
+    const compat = ((pnode as Record<string, unknown> | undefined)?.['x-sdk-compat-kwargs'] ??
+      {}) as Record<string, { into?: string } | undefined>;
+    const compatKw: { arg: string; root: string; leaf: string; ann: string }[] = [];
+    let required = flat.required;
+    for (const [carg, cspec] of Object.entries(compat)) {
+      const into = cspec?.into ?? '';
+      const segs = into.split('.');
+      if (segs.length !== 2 || carg in flat.props || !(segs[0] in flat.props)) {
+        throw new Error(
+          `command ${command}: x-sdk-compat-kwargs.${carg} into ${into} must name ` +
+            `<existing param>.<key> and must not shadow a param`,
+        );
+      }
+      const root = flattenUnion(doc, flat.props[segs[0]]);
+      if (!(segs[1] in root.props)) {
+        throw new Error(`command ${command}: x-sdk-compat-kwargs.${carg}: ${into} not found`);
+      }
+      const ann = paramType(root.props[segs[1]]);
+      for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
+      compatKw.push({ arg: carg, root: segs[0], leaf: segs[1], ann });
+      required = required.filter((r) => r !== segs[0]);
+    }
+    let bodyParams: ParamSpec[] = [];
+    const autofill: string[] = [];
     for (const [key, ps] of Object.entries(flat.props)) {
       const name = safeParam(key);
       if (name === null) continue;
       const ann = paramType(ps);
       for (const t of referencedTypes(ann, schemaNames)) refs.add(t);
-      bodyParams.push({ name, ann, required: flat.required.includes(key) });
+      // x-sdk-autofill: uuid4 — a server-required id the SDK generates when the
+      // caller omits it (the RELAY client's control_id idiom), so it stays optional.
+      const fill = (ps as Record<string, unknown>)['x-sdk-autofill'];
+      if (fill !== undefined && fill !== 'uuid4') {
+        throw new Error(
+          `command ${command}: ${key}: x-sdk-autofill ${String(fill)} is not a known generator (uuid4)`,
+        );
+      }
+      if (fill === 'uuid4') autofill.push(key);
+      bodyParams.push({ name, ann, required: fill !== 'uuid4' && required.includes(key) });
     }
+    bodyParams = applyPositionalCompat(`${resourceName}.${camelCase(methodName)}`, bodyParams);
     // Same named idiom as operation methods (RULES §6): leading callId (if any)
     // + required params positional + ONE trailing options object of optionals +
     // extras. Not flat positionals.
     const parts: string[] = [];
     if (hasId) parts.push('callId: string');
-    const reqP = bodyParams.filter((p) => p.required);
-    const optP = bodyParams.filter((p) => !p.required);
-    for (const p of reqP) parts.push(`${p.name}: ${p.ann}`);
+    parts.push(...renderPositionals(bodyParams));
+    const optP: ParamSpec[] = [
+      ...bodyParams.filter((p) => !isPositional(p)),
+      ...compatKw.map((c) => ({ name: c.arg, ann: c.ann, required: false })),
+    ];
     const optsObj = renderOptionsObject(optP, true);
     if (optsObj) parts.push(optsObj);
     parts.push(REQUEST_OPTIONS_SIG);
     let src = `  async ${camelCase(methodName)}(${parts.join(', ')}): Promise<${returnT}> {\n`;
     src += renderBodyAssembly(bodyParams, true, 'params');
+    for (const c of compatKw) {
+      src +=
+        `    if (options?.${c.arg} !== undefined)\n` +
+        `      params.${c.root} = { ...(params.${c.root} as Record<string, unknown> | undefined), ${c.leaf}: options.${c.arg} };\n`;
+    }
+    for (const k of autofill) {
+      usesUuid = true;
+      src += `    params.${k} ??= randomUUID();\n`;
+    }
     const wire = hasId
       ? `{ command: ${JSON.stringify(command)}, params, id: callId }`
       : `{ command: ${JSON.stringify(command)}, params }`;
     src += `    return this._http.post<${returnT}>(this._basePath, ${wire}, undefined, requestOptions);\n  }`;
     srcs.push(src);
   }
-  return { srcs, refs };
+  return { srcs, refs, usesUuid };
 }
 
 /**
@@ -741,6 +974,8 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
   // A module whose resources are ALL base-inherited (e.g. read-only FaxLogs) emits
   // no method bodies, so it must NOT import RequestOptionsInit (unused-import lint).
   let usesRequestOptions = false;
+  // True once a command-dispatch method autofills an id (x-sdk-autofill: uuid4).
+  let usesUuid = false;
 
   for (const { coll: anchorPath, x } of targets) {
     const collection = x.collection ?? anchorPath;
@@ -824,16 +1059,25 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
     if (x.kind === 'command-dispatch') {
       if (!x.request)
         throw new Error(`x-sdk-resource on ${collection}: command-dispatch needs 'request'`);
-      const cd = emitCommandDispatch(doc, x.request, schemaNames);
+      const cd = emitCommandDispatch(doc, resourceName, x.request, schemaNames);
       subSrcs.push(...cd.srcs);
       cd.refs.forEach((t) => usedTypes.add(t));
+      if (cd.usesUuid) usesUuid = true;
     }
     // Declared operation methods.
     for (const [methodName, spec] of Object.entries(x.methods ?? {})) {
       const opId = typeof spec === 'string' ? spec : spec.op;
       if (!opId)
         throw new Error(`x-sdk-resource on ${collection}: methods.${methodName} has no 'op'`);
-      const m = emitOperationMethod(doc, collection, methodName, opId, prefix, schemaNames);
+      const m = emitOperationMethod(
+        doc,
+        resourceName,
+        collection,
+        methodName,
+        opId,
+        prefix,
+        schemaNames,
+      );
       subSrcs.push(m.src);
       m.refs.forEach((t) => usedTypes.add(t));
       if (m.needsQuery) needsQuery = true;
@@ -888,12 +1132,13 @@ function emitResourcesModule(doc: OpenApiDoc, ns: string, psdk: string): string 
     ? `import type { HttpClient } from '../HttpClient.js';\n${roImport}import type { QueryParams } from '../types.js';\n`
     : `import type { HttpClient } from '../HttpClient.js';\n${roImport}`;
   const header =
-    `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.yaml — DO NOT EDIT.\n` +
+    `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.enriched.yaml — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
     `// One typed resource class per x-sdk-resource: CRUD bases bound to the\n` +
     `// resource's spec types (closed body + extras door) plus declared operation\n` +
     `// methods, command-dispatch, and set_methods — mirrors the Python reference's\n` +
     `// <ns>_resources_generated module.\n\n` +
+    (usesUuid ? `import { randomUUID } from 'node:crypto';\n` : '') +
     httpImports +
     `${baseImportLines}\n` +
     typeImport +
@@ -994,6 +1239,59 @@ function resolvePlacement(docs: Record<string, OpenApiDoc>): {
 }
 
 /**
+ * The security scheme a Personal-Access-Token spec declares (rest-apis/space) —
+ * the same name the mock routes by (mock_signalwire/auth.py PAT_SECURITY_SCHEME).
+ */
+const PAT_SECURITY_SCHEME = 'SignalWirePersonalAccessToken';
+
+/** True when the spec's root `security` accepts ONLY the Personal Access Token. */
+function isPatSpec(doc: OpenApiDoc): boolean {
+  const security = ((doc as { security?: unknown[] }).security ?? []) as unknown[];
+  const names = security.flatMap((req) =>
+    req && typeof req === 'object' ? Object.keys(req as Record<string, unknown>) : [],
+  );
+  return names.length > 0 && names.every((n) => n === PAT_SECURITY_SCHEME);
+}
+
+/**
+ * The placement containers whose resources ALL come from a PAT spec; fail loud
+ * on a container mixing PAT and project-token resources (one container is
+ * handed one HTTP client), or on a PAT resource placed flat on the client.
+ * Mirrors the reference generator's `_pat_containers`.
+ */
+function patContainers(docs: Record<string, OpenApiDoc>): Set<string> {
+  const kinds: Record<string, Set<boolean>> = {};
+  for (const doc of Object.values(docs)) {
+    const specContainer =
+      (doc as { 'x-sdk-namespace'?: { attr?: string } })['x-sdk-namespace']?.attr ?? null;
+    const pat = isPatSpec(doc);
+    for (const { x } of xSdkResources(doc)) {
+      const container = x.namespace ?? specContainer ?? '<flat>';
+      (kinds[container] ??= new Set()).add(pat);
+    }
+  }
+  const mixed = Object.entries(kinds)
+    .filter(([, k]) => k.size > 1)
+    .map(([c]) => c)
+    .sort();
+  if (mixed.length) {
+    throw new Error(
+      `placement container(s) ${mixed.join(', ')} mix Personal-Access-Token and ` +
+        'project-token resources; a container is wired to one credential',
+    );
+  }
+  const out = new Set(
+    Object.entries(kinds)
+      .filter(([, k]) => k.has(true))
+      .map(([c]) => c),
+  );
+  if (out.has('<flat>')) {
+    throw new Error('a Personal-Access-Token spec must declare x-sdk-namespace (a container)');
+  }
+  return out;
+}
+
+/**
  * Emit `_client_tree_generated.ts`: one `<Pascal>Namespace` container class per
  * group plus the `_GeneratedResourceTree` base the hand `RestClient` extends.
  * Flat resources sit directly on the client; containered ones under their
@@ -1002,6 +1300,7 @@ function resolvePlacement(docs: Record<string, OpenApiDoc>): {
 function emitClientTree(docs: Record<string, OpenApiDoc>): string {
   const { flat, containers } = resolvePlacement(docs);
   const containerNames = Object.keys(containers).sort();
+  const pat = patContainers(docs);
 
   // Imports: every (class, module) used, grouped by module.
   const importsByModule: Record<string, Set<string>> = {};
@@ -1043,7 +1342,8 @@ function emitClientTree(docs: Record<string, OpenApiDoc>): string {
   const treeAssign = [
     ...flatSorted.map((m) => `    this.${m.accessor} = new ${m.cls}(http);`),
     ...containerNames.map(
-      (c) => `    this.${camelCaseAccessor(c)} = new ${pascal(c)}Namespace(http);`,
+      (c) =>
+        `    this.${camelCaseAccessor(c)} = new ${pascal(c)}Namespace(${pat.has(c) ? 'patHttp' : 'http'});`,
     ),
   ].join('\n');
   const treeClass =
@@ -1051,13 +1351,14 @@ function emitClientTree(docs: Record<string, OpenApiDoc>): string {
     ` * Generated resource wiring for \`RestClient\` (flat resources + namespace\n` +
     ` * containers). The hand \`RestClient\` extends this and calls \`_wireResources\`\n` +
     ` * after constructing the HTTP layer; it keeps only the non-spec-derivable bits\n` +
-    ` * (auth, HTTP construction).\n` +
+    ` * (auth, HTTP construction). \`http\` carries the project token, \`patHttp\` the\n` +
+    ` * Personal Access Token (the namespaces whose spec security requires it).\n` +
     ` */\n` +
     `export class _GeneratedResourceTree {\n${treeFields}\n\n` +
-    `  protected _wireResources(http: HttpClient): void {\n${treeAssign}\n  }\n}`;
+    `  protected _wireResources(http: HttpClient, patHttp: HttpClient): void {\n${treeAssign}\n  }\n}`;
 
   const header =
-    `// AUTO-GENERATED from porting-sdk/rest-apis/*/openapi.yaml — DO NOT EDIT.\n` +
+    `// AUTO-GENERATED from porting-sdk/rest-apis/*/openapi.enriched.yaml — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n` +
     `// The SDK client object tree: one namespace container class per\n` +
     `// x-sdk-namespace group plus the flat resources, wired from each resource's\n` +
@@ -1086,7 +1387,7 @@ async function generateForSpec(specPath: string, outPath: string, ns: string): P
   const taken = new Set(Object.keys(schemas).map(tsName));
   const decls = Object.entries(schemas).map(([n, s]) => declaration(n, s));
   const ops = operationAliases(doc, taken);
-  const header = `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.yaml — DO NOT EDIT.\n// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n// Held to the same lint bar as hand-written source (no rule suppressions, no\n// loose types). If the generator cannot emit a clean faithful type, fix the\n// generator rather than weaken the output.\n\n`;
+  const header = `// AUTO-GENERATED from porting-sdk/rest-apis/${ns}/openapi.enriched.yaml — DO NOT EDIT.\n// Regenerate with: npx tsx scripts/generate-rest-types.ts\n//\n// Held to the same lint bar as hand-written source (no rule suppressions, no\n// loose types). If the generator cannot emit a clean faithful type, fix the\n// generator rather than weaken the output.\n\n`;
   const raw = header + decls.join('\n') + '\n' + ops.join('\n');
   // Format through the repo's own prettier config so generated files pass the
   // FMT gate by construction (the gate is `prettier --check` in CI).
@@ -1161,7 +1462,16 @@ async function main(): Promise<void> {
   const resourceDocs: Record<string, OpenApiDoc> = {};
   for (const specDir of discoverSpecDirs(psdk)) {
     const outPath = `src/rest/namespaces/${specDir}.types.generated.ts`;
-    const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.yaml');
+    // READ the composed `openapi.enriched.yaml` (owner ruling 2026-09-28, the
+    // reference generator's GENERATOR_SPEC): the base's facts + x-sdk markup with
+    // the round-tripped prose. Discovery stays keyed on the base `openapi.yaml`.
+    // Missing is fatal — the bare base would silently drop the prose.
+    const specPath = path.join(psdk, 'rest-apis', specDir, 'openapi.enriched.yaml');
+    if (!fs.existsSync(specPath)) {
+      throw new Error(
+        `${specPath} is missing — run porting-sdk \`python3 scripts/spec_pipeline.py build\``,
+      );
+    }
     const n = await generateForSpec(specPath, outPath, specDir);
     console.log(`${verb} ${outPath} (${n} types)`);
 
@@ -1187,6 +1497,11 @@ async function main(): Promise<void> {
     const formatted = await formatTs(treeSrc, treeOut);
     emitFile(treeOut, formatted);
     console.log(`${verb} ${treeOut} (client tree)`);
+  }
+
+  const stalePins = Object.keys(POSITIONAL_COMPAT).filter((k) => !usedPositionalCompat.has(k));
+  if (stalePins.length) {
+    throw new Error(`POSITIONAL_COMPAT pins no generated method consumes: ${stalePins.join(', ')}`);
   }
 
   finalizeCheck('npx tsx scripts/generate-rest-types.ts');

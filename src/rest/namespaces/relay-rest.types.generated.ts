@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/relay-rest/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/relay-rest/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -39,7 +39,265 @@ export interface Address {
   postal_code: string;
   /** The postal code of the street address. Alias for postal_code for backwards compatibility. */
   zip_code: string;
+  /** Whether E911 emergency calling is enabled for this address (carrier-validated when created/updated with `emergency_enabled=true` for a US address). */
+  emergency_enabled?: boolean;
+  /** Whether the address was validated by the carrier (true when the carrier returned a valid or auto-corrected match). */
+  validated?: boolean;
+  /** The RFC 3339 / ISO 8601 timestamp of the last successful carrier validation, or null if never validated. */
+  validated_at?: string | null;
 }
+
+/** ISO 3166-1 alpha-2 country code (uppercase). */
+export type AddressCountryCode =
+  | 'AD'
+  | 'AE'
+  | 'AF'
+  | 'AG'
+  | 'AI'
+  | 'AL'
+  | 'AM'
+  | 'AO'
+  | 'AQ'
+  | 'AR'
+  | 'AS'
+  | 'AT'
+  | 'AU'
+  | 'AW'
+  | 'AX'
+  | 'AZ'
+  | 'BA'
+  | 'BB'
+  | 'BD'
+  | 'BE'
+  | 'BF'
+  | 'BG'
+  | 'BH'
+  | 'BI'
+  | 'BJ'
+  | 'BL'
+  | 'BM'
+  | 'BN'
+  | 'BO'
+  | 'BQ'
+  | 'BR'
+  | 'BS'
+  | 'BT'
+  | 'BV'
+  | 'BW'
+  | 'BY'
+  | 'BZ'
+  | 'CA'
+  | 'CC'
+  | 'CD'
+  | 'CF'
+  | 'CG'
+  | 'CH'
+  | 'CI'
+  | 'CK'
+  | 'CL'
+  | 'CM'
+  | 'CN'
+  | 'CO'
+  | 'CR'
+  | 'CU'
+  | 'CV'
+  | 'CW'
+  | 'CX'
+  | 'CY'
+  | 'CZ'
+  | 'DE'
+  | 'DJ'
+  | 'DK'
+  | 'DM'
+  | 'DO'
+  | 'DZ'
+  | 'EC'
+  | 'EE'
+  | 'EG'
+  | 'EH'
+  | 'ER'
+  | 'ES'
+  | 'ET'
+  | 'FI'
+  | 'FJ'
+  | 'FK'
+  | 'FM'
+  | 'FO'
+  | 'FR'
+  | 'GA'
+  | 'GB'
+  | 'GD'
+  | 'GE'
+  | 'GF'
+  | 'GG'
+  | 'GH'
+  | 'GI'
+  | 'GL'
+  | 'GM'
+  | 'GN'
+  | 'GP'
+  | 'GQ'
+  | 'GR'
+  | 'GS'
+  | 'GT'
+  | 'GU'
+  | 'GW'
+  | 'GY'
+  | 'HK'
+  | 'HM'
+  | 'HN'
+  | 'HR'
+  | 'HT'
+  | 'HU'
+  | 'ID'
+  | 'IE'
+  | 'IL'
+  | 'IM'
+  | 'IN'
+  | 'IO'
+  | 'IQ'
+  | 'IR'
+  | 'IS'
+  | 'IT'
+  | 'JE'
+  | 'JM'
+  | 'JO'
+  | 'JP'
+  | 'KE'
+  | 'KG'
+  | 'KH'
+  | 'KI'
+  | 'KM'
+  | 'KN'
+  | 'KP'
+  | 'KR'
+  | 'KW'
+  | 'KY'
+  | 'KZ'
+  | 'LA'
+  | 'LB'
+  | 'LC'
+  | 'LI'
+  | 'LK'
+  | 'LR'
+  | 'LS'
+  | 'LT'
+  | 'LU'
+  | 'LV'
+  | 'LY'
+  | 'MA'
+  | 'MC'
+  | 'MD'
+  | 'ME'
+  | 'MF'
+  | 'MG'
+  | 'MH'
+  | 'MK'
+  | 'ML'
+  | 'MM'
+  | 'MN'
+  | 'MO'
+  | 'MP'
+  | 'MQ'
+  | 'MR'
+  | 'MS'
+  | 'MT'
+  | 'MU'
+  | 'MV'
+  | 'MW'
+  | 'MX'
+  | 'MY'
+  | 'MZ'
+  | 'NA'
+  | 'NC'
+  | 'NE'
+  | 'NF'
+  | 'NG'
+  | 'NI'
+  | 'NL'
+  | 'NO'
+  | 'NP'
+  | 'NR'
+  | 'NU'
+  | 'NZ'
+  | 'OM'
+  | 'PA'
+  | 'PE'
+  | 'PF'
+  | 'PG'
+  | 'PH'
+  | 'PK'
+  | 'PL'
+  | 'PM'
+  | 'PN'
+  | 'PR'
+  | 'PS'
+  | 'PT'
+  | 'PW'
+  | 'PY'
+  | 'QA'
+  | 'RE'
+  | 'RO'
+  | 'RS'
+  | 'RU'
+  | 'RW'
+  | 'SA'
+  | 'SB'
+  | 'SC'
+  | 'SD'
+  | 'SE'
+  | 'SG'
+  | 'SH'
+  | 'SI'
+  | 'SJ'
+  | 'SK'
+  | 'SL'
+  | 'SM'
+  | 'SN'
+  | 'SO'
+  | 'SR'
+  | 'SS'
+  | 'ST'
+  | 'SV'
+  | 'SX'
+  | 'SY'
+  | 'SZ'
+  | 'TC'
+  | 'TD'
+  | 'TF'
+  | 'TG'
+  | 'TH'
+  | 'TJ'
+  | 'TK'
+  | 'TL'
+  | 'TM'
+  | 'TN'
+  | 'TO'
+  | 'TR'
+  | 'TT'
+  | 'TV'
+  | 'TW'
+  | 'TZ'
+  | 'UA'
+  | 'UG'
+  | 'UM'
+  | 'US'
+  | 'UY'
+  | 'UZ'
+  | 'VA'
+  | 'VC'
+  | 'VE'
+  | 'VG'
+  | 'VI'
+  | 'VN'
+  | 'VU'
+  | 'WF'
+  | 'WS'
+  | 'YE'
+  | 'YT'
+  | 'ZA'
+  | 'ZM'
+  | 'ZW';
 
 /** Response containing a list of addresses. */
 export interface AddressListResponse {
@@ -77,6 +335,12 @@ export interface AddressResponse {
   postal_code: string;
   /** The postal code of the street address. Alias for postal_code for backwards compatibility. */
   zip_code: string;
+  /** Whether E911 emergency calling is enabled for this address (carrier-validated when created/updated with `emergency_enabled=true` for a US address). */
+  emergency_enabled?: boolean;
+  /** Whether the address was validated by the carrier (true when the carrier returned a valid or auto-corrected match). */
+  validated?: boolean;
+  /** The RFC 3339 / ISO 8601 timestamp of the last successful carrier validation, or null if never validated. */
+  validated_at?: string | null;
 }
 
 /** Address type for sub-addresses. */
@@ -102,6 +366,8 @@ export interface AssignedNumber {
   campaign_id?: uuid;
   /** The phone number details. */
   phone_number?: AssignedPhoneNumber;
+  /** The URL that receives status callbacks for this assignment. */
+  status_callback_url?: string | null;
   /** Timestamp when the assignment was created. */
   created_at?: string;
   /** Timestamp when the assignment was last updated. */
@@ -124,30 +390,30 @@ export interface AssignedPhoneNumber {
   name?: string;
   /** The phone number in E.164 format. */
   number?: string;
-  /** Optional: Specify a URL to receive webhook notifications. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
 }
 
 /** Available phone number for purchase. */
 export interface AvailablePhoneNumber {
-  /** The phone number in E.164 format. */
-  number: string;
   /** The region of the phone number. */
   region?: string;
-  /** The city of the phone number. */
-  city?: string;
   /** The rate center of the phone number. */
   rate_center?: string;
-  /** The LATA of the phone number. */
-  lata?: string;
   /** The capabilities of the phone number. */
-  capabilities?: PhoneNumberCapabilities;
+  capabilities?: PhoneNumberCapability[];
+  /** The phone number in E.164 format. */
+  e164?: string;
+  /** The phone number in national format. */
+  national_number_formatted?: string | null;
+  /** The phone number in international format. */
+  international_number_formatted?: string | null;
+  /** The ISO 3166-1 alpha-2 region code of the phone number. */
+  country_code?: string | null;
 }
 
 /** Response containing available phone numbers for purchase. */
 export interface AvailablePhoneNumbersResponse {
-  /** Pagination links. */
-  links?: PaginationLinks;
+  /** Always an empty object (search results are not paginated). */
+  links?: Record<string, unknown>;
   /** List of available phone numbers. */
   data?: AvailablePhoneNumber[];
 }
@@ -161,33 +427,37 @@ export interface Brand {
   /** Brand/Marketing/DBA name of the business if applicable. */
   name?: string;
   /** The legal name of the business. */
-  company_name?: string;
+  company_name?: string | null;
   /** A company contact email for this brand. */
-  contact_email?: string;
+  contact_email?: string | null;
   /** A contact phone number for this brand. */
-  contact_phone?: string;
+  contact_phone?: string | null;
   /** Country of registration. */
-  ein_issuing_country?: string;
+  ein_issuing_country?: string | null;
   /** What type of legal entity is the organization? (PRIVATE_PROFIT, PUBLIC_PROFIT, NON_PROFIT) */
-  legal_entity_type?: string;
+  legal_entity_type?: string | null;
   /** Company EIN Number/Tax ID. */
-  ein?: string;
+  ein?: string | null;
   /** Full company address. */
-  company_address?: string;
+  company_address?: string | null;
   /** An optional Vertical for the brand (REAL_ESTATE, HEALTHCARE, ENERGY, ENTERTAINMENT, RETAIL, AGRICULTURE, INSURANCE, EDUCATION, HOSPITALITY, FINANCIAL, GAMBLING, CONSTRUCTION, NGO, MANUFACTURING, GOVERNMENT, TECHNOLOGY, COMMUNICATION). */
-  company_vertical?: string;
-  /** Link to the company website. */
-  company_website?: string;
+  company_vertical?: string | null;
   /** If you are your own Campaign Service Provider, this is the approved Brand ID (Mandatory for CSPs, otherwise please omit). */
-  csp_brand_reference?: string;
+  csp_brand_reference?: string | null;
   /** This value must be true for all self-registered brands. */
   csp_self_registered?: boolean;
   /** Optional: Specify a URL to receive webhook notifications when your brand's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
   /** Timestamp when the brand was created. */
   created_at?: string;
   /** Timestamp when the brand was last updated. */
   updated_at?: string;
+  /** Email addresses SignalWire uses for registration correspondence about this brand and its campaigns. Defaults to the first administrator on the account. */
+  signalwire_contact_emails?: string[];
+  /** The large message limit assigned to the brand. */
+  large_message_limit?: string | null;
+  /** The number pooling setting assigned to the brand's company. */
+  number_pooling_for_company?: string | null;
 }
 
 /** Response containing a list of brands. */
@@ -207,37 +477,41 @@ export interface BrandResponse {
   /** Brand/Marketing/DBA name of the business if applicable. */
   name?: string;
   /** The legal name of the business. */
-  company_name?: string;
+  company_name?: string | null;
   /** A company contact email for this brand. */
-  contact_email?: string;
+  contact_email?: string | null;
   /** A contact phone number for this brand. */
-  contact_phone?: string;
+  contact_phone?: string | null;
   /** Country of registration. */
-  ein_issuing_country?: string;
+  ein_issuing_country?: string | null;
   /** What type of legal entity is the organization? (PRIVATE_PROFIT, PUBLIC_PROFIT, NON_PROFIT) */
-  legal_entity_type?: string;
+  legal_entity_type?: string | null;
   /** Company EIN Number/Tax ID. */
-  ein?: string;
+  ein?: string | null;
   /** Full company address. */
-  company_address?: string;
+  company_address?: string | null;
   /** An optional Vertical for the brand (REAL_ESTATE, HEALTHCARE, ENERGY, ENTERTAINMENT, RETAIL, AGRICULTURE, INSURANCE, EDUCATION, HOSPITALITY, FINANCIAL, GAMBLING, CONSTRUCTION, NGO, MANUFACTURING, GOVERNMENT, TECHNOLOGY, COMMUNICATION). */
-  company_vertical?: string;
-  /** Link to the company website. */
-  company_website?: string;
+  company_vertical?: string | null;
   /** If you are your own Campaign Service Provider, this is the approved Brand ID (Mandatory for CSPs, otherwise please omit). */
-  csp_brand_reference?: string;
+  csp_brand_reference?: string | null;
   /** This value must be true for all self-registered brands. */
   csp_self_registered?: boolean;
   /** Optional: Specify a URL to receive webhook notifications when your brand's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
   /** Timestamp when the brand was created. */
   created_at?: string;
   /** Timestamp when the brand was last updated. */
   updated_at?: string;
+  /** Email addresses SignalWire uses for registration correspondence about this brand and its campaigns. Defaults to the first administrator on the account. */
+  signalwire_contact_emails?: string[];
+  /** The large message limit assigned to the brand. */
+  large_message_limit?: string | null;
+  /** The number pooling setting assigned to the brand's company. */
+  number_pooling_for_company?: string | null;
 }
 
 /** Call receive mode. */
-export type CallReceiveMode = 'voice' | 'fax';
+export type CallReceiveMode = 'voice' | 'fax' | 'none';
 
 /** Campaign model for 10DLC registration. */
 export interface Campaign {
@@ -248,61 +522,69 @@ export interface Campaign {
   /** The current state of the campaign. */
   state?: string;
   /** An SMS Use Case category for the campaign (2FA, ACCOUNT_NOTIFICATION, AGENTS_FRANCHISES, CARRIER_EXEMPT, CHARITY, CUSTOMER_CARE, DELIVERY_NOTIFICATION, EMERGENCY, FRAUD_ALERT, HIGHER_EDUCATION, K12_EDUCATION, LOW_VOLUME_MIXED, MARKETING, MIXED, POLITICAL, POLITICAL_SECTION_527, POLLING_VOTING, PROXY, PUBLIC_SERVICE_ANNOUNCEMENT, SECURITY_ALERT, SOCIAL, SWEEPSTAKE, TRIAL, UCAAS_HIGH_VOLUME, UCAAS_LOW_VOLUME). */
-  sms_use_case?: string;
+  sms_use_case?: string | null;
   /** A sub use case category for MIXED or LOW_VOLUME_MIXED campaigns (CUSTOMER_CARE, HIGHER_EDUCATION, POLLING_VOTING, PUBLIC_SERVICE_ANNOUNCEMENT, MARKETING, SECURITY_ALERT, 2FA, ACCOUNT_NOTIFICATION, DELIVERY_NOTIFICATION, FRAUD_ALERT). */
   sub_use_cases?: string[];
   /** Campaign Verify token. Required if sms use case is POLITICAL_SECTION_527. */
-  campaign_verify_token?: string;
+  campaign_verify_token?: string | null;
   /** A description for the campaign. Please use at least 40 characters. */
-  description?: string;
+  description?: string | null;
   /** Sample message template/content. At least two samples are required and up to five can be provided. Please use at least 20 characters. */
-  sample1?: string;
+  sample1?: string | null;
   /** Sample 2. */
-  sample2?: string;
+  sample2?: string | null;
   /** Sample 3. */
-  sample3?: string;
+  sample3?: string | null;
   /** Sample 4. */
-  sample4?: string;
+  sample4?: string | null;
   /** Sample 5. */
-  sample5?: string;
-  /** If your messaging content will be modified in any way beyond what you shared in your templates, please describe the nature of how the content will change. */
-  dynamic_templates?: string;
+  sample5?: string | null;
   /** Please describe the call to action/message flow your intended recipients will experience. */
-  message_flow?: string;
+  message_flow?: string | null;
   /** Please share the message subscribers receive when they opt in. */
-  opt_in_message?: string;
+  opt_in_message?: string | null;
   /** Please share the message subscribers receive when they opt out. */
-  opt_out_message?: string;
+  opt_out_message?: string | null;
   /** Please share the message subscribers receive when they request help. */
-  help_message?: string;
+  help_message?: string | null;
   /** Opt in keywords that subscribers can use. */
-  opt_in_keywords?: string;
+  opt_in_keywords?: string | null;
   /** Opt out keywords that subscribers can use. */
-  opt_out_keywords?: string;
+  opt_out_keywords?: string | null;
   /** Help keywords that subscribers can use. */
-  help_keywords?: string;
-  /** Will 50 or more numbers be used with this single campaign? If so, please enter true. */
-  number_pooling_required?: boolean;
+  help_keywords?: string | null;
   /** If you will be using number pooling, please provide an explanation as to why it is needed. */
-  number_pooling_per_campaign?: string;
+  number_pooling_per_campaign?: string | null;
   /** Will this campaign include content related to direct lending or other loan agreements? */
-  direct_lending?: boolean;
+  direct_lending?: boolean | null;
   /** Will you be using an embedded link of any kind? Note that public URL shorteners (bitly, tinyurl) will not be accepted. */
-  embedded_link?: boolean;
+  embedded_link?: boolean | null;
   /** Are you using an embedded phone number (except the required HELP information contact phone number)? */
-  embedded_phone?: boolean;
+  embedded_phone?: boolean | null;
   /** Will this campaign include any age gated content as defined by carrier and CTA guidelines? */
-  age_gated_content?: boolean;
+  age_gated_content?: boolean | null;
   /** Is there any intent of this campaign to generate leads? */
-  lead_generation?: boolean;
+  lead_generation?: boolean | null;
   /** If you are your own Campaign Service Provider, what is the approved Campaign ID? (Mandatory for CSPs, otherwise please omit) */
-  csp_campaign_reference?: string;
+  csp_campaign_reference?: string | null;
   /** Optional: Specify a URL to receive webhook notifications when your campaign's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
   /** Timestamp when the campaign was created. */
   created_at?: string;
   /** Timestamp when the campaign was last updated. */
   updated_at?: string;
+  /** Whether the campaign sends dynamic (templated) message content. */
+  dynamic_messages?: string | null;
+  /** The requested message throughput. */
+  requested_throughput?: string | null;
+  /** The expected daily messages per number. */
+  daily_messages_per_number?: string | null;
+  /** Link to the campaign's privacy policy. */
+  privacy_policy_link?: string | null;
+  /** Whether numbers will be purchased or ported for the campaign. */
+  purchase_or_port_numbers?: string | null;
+  /** Email addresses SignalWire uses for registration correspondence about this campaign. Defaults to the brand's addresses, then the first administrator on the account. */
+  signalwire_contact_emails?: string[];
 }
 
 /** Response containing a list of campaigns. */
@@ -322,61 +604,69 @@ export interface CampaignResponse {
   /** The current state of the campaign. */
   state?: string;
   /** An SMS Use Case category for the campaign (2FA, ACCOUNT_NOTIFICATION, AGENTS_FRANCHISES, CARRIER_EXEMPT, CHARITY, CUSTOMER_CARE, DELIVERY_NOTIFICATION, EMERGENCY, FRAUD_ALERT, HIGHER_EDUCATION, K12_EDUCATION, LOW_VOLUME_MIXED, MARKETING, MIXED, POLITICAL, POLITICAL_SECTION_527, POLLING_VOTING, PROXY, PUBLIC_SERVICE_ANNOUNCEMENT, SECURITY_ALERT, SOCIAL, SWEEPSTAKE, TRIAL, UCAAS_HIGH_VOLUME, UCAAS_LOW_VOLUME). */
-  sms_use_case?: string;
+  sms_use_case?: string | null;
   /** A sub use case category for MIXED or LOW_VOLUME_MIXED campaigns (CUSTOMER_CARE, HIGHER_EDUCATION, POLLING_VOTING, PUBLIC_SERVICE_ANNOUNCEMENT, MARKETING, SECURITY_ALERT, 2FA, ACCOUNT_NOTIFICATION, DELIVERY_NOTIFICATION, FRAUD_ALERT). */
   sub_use_cases?: string[];
   /** Campaign Verify token. Required if sms use case is POLITICAL_SECTION_527. */
-  campaign_verify_token?: string;
+  campaign_verify_token?: string | null;
   /** A description for the campaign. Please use at least 40 characters. */
-  description?: string;
+  description?: string | null;
   /** Sample message template/content. At least two samples are required and up to five can be provided. Please use at least 20 characters. */
-  sample1?: string;
+  sample1?: string | null;
   /** Sample 2. */
-  sample2?: string;
+  sample2?: string | null;
   /** Sample 3. */
-  sample3?: string;
+  sample3?: string | null;
   /** Sample 4. */
-  sample4?: string;
+  sample4?: string | null;
   /** Sample 5. */
-  sample5?: string;
-  /** If your messaging content will be modified in any way beyond what you shared in your templates, please describe the nature of how the content will change. */
-  dynamic_templates?: string;
+  sample5?: string | null;
   /** Please describe the call to action/message flow your intended recipients will experience. */
-  message_flow?: string;
+  message_flow?: string | null;
   /** Please share the message subscribers receive when they opt in. */
-  opt_in_message?: string;
+  opt_in_message?: string | null;
   /** Please share the message subscribers receive when they opt out. */
-  opt_out_message?: string;
+  opt_out_message?: string | null;
   /** Please share the message subscribers receive when they request help. */
-  help_message?: string;
+  help_message?: string | null;
   /** Opt in keywords that subscribers can use. */
-  opt_in_keywords?: string;
+  opt_in_keywords?: string | null;
   /** Opt out keywords that subscribers can use. */
-  opt_out_keywords?: string;
+  opt_out_keywords?: string | null;
   /** Help keywords that subscribers can use. */
-  help_keywords?: string;
-  /** Will 50 or more numbers be used with this single campaign? If so, please enter true. */
-  number_pooling_required?: boolean;
+  help_keywords?: string | null;
   /** If you will be using number pooling, please provide an explanation as to why it is needed. */
-  number_pooling_per_campaign?: string;
+  number_pooling_per_campaign?: string | null;
   /** Will this campaign include content related to direct lending or other loan agreements? */
-  direct_lending?: boolean;
+  direct_lending?: boolean | null;
   /** Will you be using an embedded link of any kind? Note that public URL shorteners (bitly, tinyurl) will not be accepted. */
-  embedded_link?: boolean;
+  embedded_link?: boolean | null;
   /** Are you using an embedded phone number (except the required HELP information contact phone number)? */
-  embedded_phone?: boolean;
+  embedded_phone?: boolean | null;
   /** Will this campaign include any age gated content as defined by carrier and CTA guidelines? */
-  age_gated_content?: boolean;
+  age_gated_content?: boolean | null;
   /** Is there any intent of this campaign to generate leads? */
-  lead_generation?: boolean;
+  lead_generation?: boolean | null;
   /** If you are your own Campaign Service Provider, what is the approved Campaign ID? (Mandatory for CSPs, otherwise please omit) */
-  csp_campaign_reference?: string;
+  csp_campaign_reference?: string | null;
   /** Optional: Specify a URL to receive webhook notifications when your campaign's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
   /** Timestamp when the campaign was created. */
   created_at?: string;
   /** Timestamp when the campaign was last updated. */
   updated_at?: string;
+  /** Whether the campaign sends dynamic (templated) message content. */
+  dynamic_messages?: string | null;
+  /** The requested message throughput. */
+  requested_throughput?: string | null;
+  /** The expected daily messages per number. */
+  daily_messages_per_number?: string | null;
+  /** Link to the campaign's privacy policy. */
+  privacy_policy_link?: string | null;
+  /** Whether numbers will be purchased or ported for the campaign. */
+  purchase_or_port_numbers?: string | null;
+  /** Email addresses SignalWire uses for registration correspondence about this campaign. Defaults to the brand's addresses, then the first administrator on the account. */
+  signalwire_contact_emails?: string[];
 }
 
 /** Carrier lookup information. */
@@ -399,6 +689,8 @@ export interface CarrierLookupInfo {
   lec?: string;
   /** The type of line the number is. Generally either wireless or landline. */
   linetype?: string;
+  /** The Do Not Call flag reported by the carrier lookup. */
+  dnc?: string | null;
 }
 
 /** Caller ID (CNAM) information. */
@@ -435,10 +727,10 @@ export type CompanyVertical =
 
 /** Request body for creating an address. */
 export interface CreateAddressRequest {
-  /** A friendly name given to the address to help distinguish and search for different addresses within your project. */
+  /** A friendly name given to the address to help distinguish and search for different addresses within your project. When the address is assigned to a phone number for E911, this label is also sent to the carrier as the caller name. The emergency network limits that field to 32 characters, so longer labels are truncated to the first 32 characters before being sent. Truncation affects only the name shown to the dispatcher, never the address used to route the call. */
   label: string;
   /** The ISO 3166 Alpha 2 country code. */
-  country: string;
+  country: AddressCountryCode;
   /** First name of the occupant associated with this address. */
   first_name: string;
   /** Last name of the occupant associated with this address. */
@@ -457,6 +749,10 @@ export interface CreateAddressRequest {
   state: string;
   /** The postal code of the street address. */
   postal_code: string;
+  /** When true (US, with a street number), the address is validated for E911 with the carrier. */
+  emergency_enabled?: boolean;
+  /** Whether the address may be corrected during validation. */
+  auto_correct_address?: boolean;
 }
 
 /** Request body for importing a self-registered CSP brand. Use this when you have already registered your brand directly with TCR. */
@@ -469,6 +765,8 @@ export interface CreateCspBrandRequest {
   csp_brand_reference: string;
   /** Specify a URL to receive webhook notifications when your brand's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
   status_callback_url?: string;
+  /** Email addresses SignalWire contacts about this brand, as a list or a comma-separated string. */
+  signalwire_contact_emails?: string[] | string;
 }
 
 /** Request body for creating a domain application. */
@@ -515,6 +813,8 @@ export interface CreateDomainApplicationRequest {
   call_video_room_id?: uuid;
   /** A string representing the URL of the Relay script to execute when a call is received. Required when call_handler is relay_script. */
   call_relay_script_url?: string;
+  /** The HTTP method used to fetch call_relay_script_url. Must be POST when call_handler is relay_script. */
+  call_relay_script_url_method?: string;
   /** A string representing the ID of the Dialogflow Agent to forward incoming calls to. Required when call_handler is dialogflow. */
   call_dialogflow_agent_id?: uuid;
   /** A string representing the ID of the AI Agent to forward incoming calls to. Required when call_handler is ai_agent. */
@@ -522,7 +822,7 @@ export interface CreateDomainApplicationRequest {
   /** A string representing the ID of the Call Flow to forward incoming calls to. Required when call_handler is call_flow. */
   call_flow_id?: uuid;
   /** A string representing the version of your Call Flow you'd like to use. */
-  call_flow_version?: 'working_copy' | 'current_deployed';
+  call_flow_version?: 'working_copy';
   /** This handler type is deprecated. Please use call_relay_application or call_relay_topic instead. */
   call_relay_context?: string;
   /** This property is deprecated. Please use call_relay_topic_status_callback_url instead. */
@@ -553,16 +853,43 @@ export interface CreateManagedBrandRequest {
   company_website: string;
   /** Specify a URL to receive webhook notifications when your brand's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
   status_callback_url?: string;
+  /** If you are your own Campaign Service Provider, the approved Brand ID. */
+  csp_brand_reference?: string;
+  /** Email addresses SignalWire contacts about this brand, as a list or a comma-separated string. */
+  signalwire_contact_emails?: string[] | string;
 }
 
 /** Request body for creating a managed campaign. Used when the brand is a managed (non-CSP) brand. */
 export interface CreateManagedCampaignRequest {
   /** A name for the campaign. */
   name: string;
-  /** The ID of the brand to associate with this campaign. */
-  brand_id: uuid;
   /** An SMS Use Case category for the campaign. */
-  sms_use_case: string;
+  sms_use_case:
+    | '2FA'
+    | 'ACCOUNT_NOTIFICATION'
+    | 'AGENTS_FRANCHISES'
+    | 'CARRIER_EXEMPT'
+    | 'CHARITY'
+    | 'CUSTOMER_CARE'
+    | 'DELIVERY_NOTIFICATION'
+    | 'EMERGENCY'
+    | 'FRAUD_ALERT'
+    | 'HIGHER_EDUCATION'
+    | 'K12_EDUCATION'
+    | 'LOW_VOLUME_MIXED'
+    | 'MARKETING'
+    | 'MIXED'
+    | 'POLITICAL'
+    | 'POLITICAL_SECTION_527'
+    | 'POLLING_VOTING'
+    | 'PROXY'
+    | 'PUBLIC_SERVICE_ANNOUNCEMENT'
+    | 'SECURITY_ALERT'
+    | 'SOCIAL'
+    | 'SWEEPSTAKE'
+    | 'TRIAL'
+    | 'UCAAS_HIGH'
+    | 'UCAAS_LOW';
   /** A sub use case category. Required for MIXED (2-5 sub use cases) or LOW_VOLUME_MIXED (1-5 sub use cases) campaigns. Must not be provided for other use cases. */
   sub_use_cases?: string[];
   /** Campaign Verify token. Required if sms_use_case is POLITICAL_SECTION_527. */
@@ -613,6 +940,10 @@ export interface CreateManagedCampaignRequest {
   terms_and_conditions: boolean;
   /** Specify a URL to receive webhook notifications when your campaign's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
   status_callback_url?: string;
+  /** If you are your own Campaign Service Provider, the approved Campaign ID. */
+  csp_campaign_reference?: string;
+  /** Email addresses SignalWire contacts about this campaign, as a list or a comma-separated string. */
+  signalwire_contact_emails?: string[] | string;
 }
 
 /** Request body for creating a number group. */
@@ -626,7 +957,7 @@ export interface CreateNumberGroupRequest {
 /** Request body for creating an order. */
 export interface CreateOrderRequest {
   /** A list of phone numbers in E164 format. */
-  phone_numbers?: string[];
+  phone_numbers: string[];
   /** Optional: Specify a URL to receive webhook notifications when your number assignment order and the number assignments that belong to it change state. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
   status_callback_url?: string;
 }
@@ -635,18 +966,18 @@ export interface CreateOrderRequest {
 export interface CreatePartnerCampaignRequest {
   /** A name for the campaign. */
   name: string;
-  /** The ID of the brand to associate with this campaign. Must be a CSP/partner brand. */
-  brand_id: uuid;
   /** The approved Campaign ID from TCR. Required for CSP/self-registered campaigns. */
   csp_campaign_reference: string;
   /** Specify a URL to receive webhook notifications when your campaign's state changes. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
   status_callback_url?: string;
+  /** Email addresses SignalWire contacts about this campaign, as a list or a comma-separated string. */
+  signalwire_contact_emails?: string[] | string;
 }
 
 /** Request body for creating a queue. */
 export interface CreateQueueRequest {
   /** The name of the queue. */
-  name?: string;
+  name: string;
   /** The maximum number of callers allowed in the queue. */
   max_size?: number;
 }
@@ -669,12 +1000,16 @@ export interface CreateSipEndpointRequest {
   encryption?: 'default' | 'required' | 'optional';
   /** What type of handler you want to run on inbound calls. */
   call_handler?:
+    | 'default'
+    | 'passthrough'
+    | 'block-pstn'
     | 'relay_context'
     | 'relay_topic'
     | 'relay_application'
     | 'relay_connector'
     | 'relay_script'
     | 'laml_webhooks'
+    | 'laml_webhook'
     | 'laml_application'
     | 'dialogflow'
     | 'video_room'
@@ -716,6 +1051,8 @@ export interface CreateSipEndpointRequest {
   call_ai_agent_id?: string;
   /** A URL of a SWML script to respond to incoming calls. Required when call_handler is relay_script. */
   call_relay_script_url?: string;
+  /** The HTTP method used to fetch call_relay_script_url. Must be POST when call_handler is relay_script. */
+  call_relay_script_url_method?: string;
 }
 
 /** Request body for creating a verified caller ID. */
@@ -791,15 +1128,15 @@ export interface DomainApplication {
   /** A string representing the LaML URL to access when a call is received. */
   call_request_url: string | null;
   /** A string representing the HTTP method to use with call_request_url. */
-  call_request_method: 'GET' | 'POST' | null;
+  call_request_method: string | null;
   /** A string representing the LaML URL to access when the call to call_request_url fails. */
   call_fallback_url: string | null;
   /** A string representing the HTTP method to use with call_fallback_url. */
-  call_fallback_method: 'GET' | 'POST' | null;
+  call_fallback_method: string | null;
   /** A string representing a URL to send status change messages to. */
   call_status_callback_url: string | null;
   /** A string representing the HTTP method to use with call_status_callback_url. */
-  call_status_callback_method: 'GET' | 'POST' | null;
+  call_status_callback_method: string | null;
   /** A string representing the ID of the LaML application to forward incoming calls to. */
   call_laml_application_id: string | null;
   /** A string representing the ID of the Video Room to forward incoming calls to. */
@@ -855,15 +1192,15 @@ export interface DomainApplicationResponse {
   /** A string representing the LaML URL to access when a call is received. */
   call_request_url: string | null;
   /** A string representing the HTTP method to use with call_request_url. */
-  call_request_method: 'GET' | 'POST' | null;
+  call_request_method: string | null;
   /** A string representing the LaML URL to access when the call to call_request_url fails. */
   call_fallback_url: string | null;
   /** A string representing the HTTP method to use with call_fallback_url. */
-  call_fallback_method: 'GET' | 'POST' | null;
+  call_fallback_method: string | null;
   /** A string representing a URL to send status change messages to. */
   call_status_callback_url: string | null;
   /** A string representing the HTTP method to use with call_status_callback_url. */
-  call_status_callback_method: 'GET' | 'POST' | null;
+  call_status_callback_method: string | null;
   /** A string representing the ID of the LaML application to forward incoming calls to. */
   call_laml_application_id: string | null;
   /** A string representing the ID of the Video Room to forward incoming calls to. */
@@ -1029,7 +1366,18 @@ export interface Order {
   /** Timestamp when the order was last updated. */
   updated_at?: string;
   /** Optional: Specify a URL to receive webhook notifications when your number assignment order and the number assignments that belong to it change state. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
+  /** The campaign the order belongs to. */
+  campaign_id?: string;
+  /** The brand the order's campaign belongs to. */
+  brand_id?: string;
+  /** The phone numbers in the order. */
+  phone_numbers?: {
+    /** The phone number's ID. */
+    sid?: string;
+    /** The phone number in E.164 format. */
+    number?: string;
+  }[];
 }
 
 /** Response containing a list of orders. */
@@ -1053,7 +1401,18 @@ export interface OrderResponse {
   /** Timestamp when the order was last updated. */
   updated_at?: string;
   /** Optional: Specify a URL to receive webhook notifications when your number assignment order and the number assignments that belong to it change state. See the [10DLC status callback](/docs/apis/relay-rest/campaign-registry/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
+  /** The campaign the order belongs to. */
+  campaign_id?: string;
+  /** The brand the order's campaign belongs to. */
+  brand_id?: string;
+  /** The phone numbers in the order. */
+  phone_numbers?: {
+    /** The phone number's ID. */
+    sid?: string;
+    /** The phone number in E.164 format. */
+    number?: string;
+  }[];
 }
 
 /** Pagination links for list responses. */
@@ -1082,6 +1441,10 @@ export interface PhoneNumber {
   number_type: PhoneNumberType;
   /** The E911 address ID associated with this phone number. */
   e911_address_id: uuid | null;
+  /** The E911 provisioning status for this phone number. `null` when the number has never had an E911 */
+  e911_status?: PhoneNumberE911Status | null;
+  /** The caller ID name currently applied at the carrier for this phone number, or `null` when none is */
+  cnam?: string | null;
   /** The date the number was added to your project. */
   created_at: string;
   /** The date the number was last updated. */
@@ -1089,7 +1452,7 @@ export interface PhoneNumber {
   /** The next date the number will be billed for. */
   next_billed_at: string | null;
   /** What type of handler you want to run on inbound calls. */
-  call_handler: PhoneNumberCallHandler | null;
+  call_handler: PhoneNumberCallHandler;
   /** The unique identifier of the calling handler resource. */
   calling_handler_resource_id: uuid | null;
   /** How do you want to receive the incoming call. */
@@ -1097,15 +1460,15 @@ export interface PhoneNumber {
   /** The URL to make a request to when using the laml_webhooks call handler. */
   call_request_url: string | null;
   /** The HTTP method to use when making a request to the call_request_url. */
-  call_request_method: HttpMethod | null;
+  call_request_method: string | null;
   /** The fallback URL to make a request to when using the laml_webhooks call handler and the call_request_url fails. */
   call_fallback_url: string | null;
   /** The HTTP method to use when making a request to the call_fallback_url. */
-  call_fallback_method: HttpMethod | null;
+  call_fallback_method: string | null;
   /** The URL to make status callbacks to when using the laml_webhooks call handler. */
   call_status_callback_url: string | null;
   /** The HTTP method to use when making a request to the call_status_callback_url. */
-  call_status_callback_method: HttpMethod | null;
+  call_status_callback_method: string | null;
   /** The ID of the LaML Application to use when using the laml_application call handler. */
   call_laml_application_id: string | null;
   /** The ID of the Dialogflow Agent to start when using the dialogflow call handler. */
@@ -1131,17 +1494,17 @@ export interface PhoneNumber {
   /** The ID of the Video Room to send this call to when using the video_room call handler. */
   call_video_room_id: uuid | null;
   /** What type of handler you want to run on inbound messages. */
-  message_handler: PhoneNumberMessageHandler | null;
+  message_handler: PhoneNumberMessageHandler;
   /** The unique identifier of the messaging handler resource. */
   messaging_handler_resource_id: uuid | null;
   /** The URL to make a request to when using the laml_webhooks message handler. */
   message_request_url: string | null;
   /** The HTTP method to use when making a request to the message_request_url. */
-  message_request_method: HttpMethod | null;
+  message_request_method: string | null;
   /** The fallback URL to make a request to when using the laml_webhooks message handler and the message_request_url fails. */
   message_fallback_url: string | null;
   /** The HTTP method to use when making a request to the message_fallback_url. */
-  message_fallback_method: HttpMethod | null;
+  message_fallback_method: string | null;
   /** The ID of the LaML Application to use when using the laml_application message handler. */
   message_laml_application_id: string | null;
   /** The name of the Relay Topic to send this message to when using the relay_topic message handler. */
@@ -1171,7 +1534,7 @@ export type PhoneNumberCallHandler =
   | 'sip_gateway'
   | 'call_queue';
 
-/** Call handler type for phone number update requests. */
+/** Call handler type for phone number update requests. Excludes handlers that can only be set via Fabric API. */
 export type PhoneNumberCallHandlerRequest =
   | 'relay_context'
   | 'relay_topic'
@@ -1258,6 +1621,10 @@ export interface PhoneNumberResponse {
   number_type: PhoneNumberType;
   /** The E911 address ID associated with this phone number. */
   e911_address_id: uuid | null;
+  /** The E911 provisioning status for this phone number. `null` when the number has never had an E911 */
+  e911_status?: PhoneNumberE911Status | null;
+  /** The caller ID name currently applied at the carrier for this phone number, or `null` when none is */
+  cnam?: string | null;
   /** The date the number was added to your project. */
   created_at: string;
   /** The date the number was last updated. */
@@ -1265,7 +1632,7 @@ export interface PhoneNumberResponse {
   /** The next date the number will be billed for. */
   next_billed_at: string | null;
   /** What type of handler you want to run on inbound calls. */
-  call_handler: PhoneNumberCallHandler | null;
+  call_handler: PhoneNumberCallHandler;
   /** The unique identifier of the calling handler resource. */
   calling_handler_resource_id: uuid | null;
   /** How do you want to receive the incoming call. */
@@ -1273,15 +1640,15 @@ export interface PhoneNumberResponse {
   /** The URL to make a request to when using the laml_webhooks call handler. */
   call_request_url: string | null;
   /** The HTTP method to use when making a request to the call_request_url. */
-  call_request_method: HttpMethod | null;
+  call_request_method: string | null;
   /** The fallback URL to make a request to when using the laml_webhooks call handler and the call_request_url fails. */
   call_fallback_url: string | null;
   /** The HTTP method to use when making a request to the call_fallback_url. */
-  call_fallback_method: HttpMethod | null;
+  call_fallback_method: string | null;
   /** The URL to make status callbacks to when using the laml_webhooks call handler. */
   call_status_callback_url: string | null;
   /** The HTTP method to use when making a request to the call_status_callback_url. */
-  call_status_callback_method: HttpMethod | null;
+  call_status_callback_method: string | null;
   /** The ID of the LaML Application to use when using the laml_application call handler. */
   call_laml_application_id: string | null;
   /** The ID of the Dialogflow Agent to start when using the dialogflow call handler. */
@@ -1307,17 +1674,17 @@ export interface PhoneNumberResponse {
   /** The ID of the Video Room to send this call to when using the video_room call handler. */
   call_video_room_id: uuid | null;
   /** What type of handler you want to run on inbound messages. */
-  message_handler: PhoneNumberMessageHandler | null;
+  message_handler: PhoneNumberMessageHandler;
   /** The unique identifier of the messaging handler resource. */
   messaging_handler_resource_id: uuid | null;
   /** The URL to make a request to when using the laml_webhooks message handler. */
   message_request_url: string | null;
   /** The HTTP method to use when making a request to the message_request_url. */
-  message_request_method: HttpMethod | null;
+  message_request_method: string | null;
   /** The fallback URL to make a request to when using the laml_webhooks message handler and the message_request_url fails. */
   message_fallback_url: string | null;
   /** The HTTP method to use when making a request to the message_fallback_url. */
-  message_fallback_method: HttpMethod | null;
+  message_fallback_method: string | null;
   /** The ID of the LaML Application to use when using the laml_application message handler. */
   message_laml_application_id: string | null;
   /** The name of the Relay Topic to send this message to when using the relay_topic message handler. */
@@ -1329,7 +1696,7 @@ export interface PhoneNumberResponse {
 }
 
 /** Phone number type. */
-export type PhoneNumberType = 'toll-free' | 'longcode';
+export type PhoneNumberType = 'tollfree' | 'longcode';
 
 /** Recording from a PSTN call leg. */
 export interface PstnRecording {
@@ -1343,20 +1710,20 @@ export interface PstnRecording {
   updated_at: string;
   /** Duration of the recording in seconds. */
   duration_in_seconds: number;
-  /** Error code if the recording failed. */
-  error_code?: string;
+  /** Error code if the recording failed, and `null` otherwise. */
+  error_code?: string | null;
   /** Price of the recording. */
   price: number;
   /** Currency unit for the price. */
   price_unit: string;
-  /** Status of the recording. */
-  status: string;
+  /** Status of the recording. One of `recording`, `paused`, `finished`, or `no_input`. */
+  status: 'recording' | 'paused' | 'finished' | 'no_input';
   /** URL of the recording file. */
   url: string;
   /** Indicates whether the recording is stereo. */
   stereo: boolean;
   /** Size of the recording file in bytes. */
-  byte_size?: number;
+  byte_size?: number | null;
   /** Audio track of the recording. */
   track: string;
   /** ID of the PSTN leg associated with the recording. */
@@ -1367,6 +1734,8 @@ export interface PstnRecording {
 export interface PurchasePhoneNumberRequest {
   /** The phone number in E164 format. */
   number: string;
+  /** The kind of number being purchased. Overridden to tollfree when the number is toll-free. */
+  number_type?: 'local' | 'tollfree';
 }
 
 /** Queue model. */
@@ -1465,8 +1834,40 @@ export interface QueueResponse {
   date_updated?: string;
 }
 
-/** Recording model. A recording is associated with exactly one call leg type (PSTN, SIP, or WebRTC). */
-export type Recording = PstnRecording | SipRecording | WebRtcRecording;
+/** Recording model. A recording is associated with exactly one source type (PSTN, SIP, WebRTC, or Relay conference). */
+export type Recording = PstnRecording | SipRecording | WebRtcRecording | RelayConferenceRecording;
+
+/** Recording from a RELAY conference. */
+export interface RelayConferenceRecording {
+  /** Unique ID of the recording. */
+  id: uuid;
+  /** Unique ID of the project. */
+  project_id: uuid;
+  /** Date and time when the recording was created. */
+  created_at: string;
+  /** Date and time when the recording was last updated. */
+  updated_at: string;
+  /** Duration of the recording in seconds. */
+  duration_in_seconds: number;
+  /** Error code if the recording failed. */
+  error_code?: string;
+  /** Price of the recording. */
+  price: number;
+  /** Currency unit for the price. */
+  price_unit: string;
+  /** Status of the recording. */
+  status: 'recording' | 'paused' | 'finished' | 'no_input';
+  /** URL of the recording file. */
+  url: string;
+  /** Indicates whether the recording is stereo. */
+  stereo: boolean;
+  /** Size of the recording file in bytes. */
+  byte_size?: number;
+  /** Audio track of the recording. */
+  track: string;
+  /** ID of the RELAY conference associated with the recording. */
+  relay_conference_id: uuid;
+}
 
 /** Response containing a list of recordings. */
 export interface RecordingListResponse {
@@ -1505,11 +1906,11 @@ export interface ShortCode {
   /** The URL to send message requests to when using laml_webhooks handler. */
   message_request_url: string | null;
   /** The HTTP method to use for message requests. */
-  message_request_method: HttpMethod | null;
+  message_request_method: string | null;
   /** The fallback URL for message requests. */
   message_fallback_url: string | null;
   /** The HTTP method to use for fallback requests. */
-  message_fallback_method: HttpMethod | null;
+  message_fallback_method: string | null;
   /** The ID of the LāML application to handle messages when using laml_application handler. */
   message_laml_application_id: uuid | null;
   /** The Relay context to use when using relay_context handler. */
@@ -1559,11 +1960,11 @@ export interface ShortCodeResponse {
   /** The URL to send message requests to when using laml_webhooks handler. */
   message_request_url: string | null;
   /** The HTTP method to use for message requests. */
-  message_request_method: HttpMethod | null;
+  message_request_method: string | null;
   /** The fallback URL for message requests. */
   message_fallback_url: string | null;
   /** The HTTP method to use for fallback requests. */
-  message_fallback_method: HttpMethod | null;
+  message_fallback_method: string | null;
   /** The ID of the LāML application to handle messages when using laml_application handler. */
   message_laml_application_id: uuid | null;
   /** The Relay context to use when using relay_context handler. */
@@ -1590,23 +1991,23 @@ export interface SipEndpoint {
   /** A list of codecs this endpoint will support. */
   codecs: string[];
   /** Whether connections to this endpoint require encryption or if encryption is optional. */
-  encryption: 'default' | 'required' | 'optional';
+  encryption: 'required' | 'optional';
   /** What type of handler you want to run on inbound calls. */
   call_handler: SipEndpointCallHandler | null;
   /** The unique identifier of the calling handler resource. */
   calling_handler_resource_id: uuid | null;
   /** A string representing the LaML URL to access when a call is received. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_request_url: string | null;
-  /** A string representing the HTTP method to use with call_request_url. Valid values are GET and POST. */
-  call_request_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_request_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_request_method: string | null;
   /** A string representing the LaML URL to access when the call to call_request_url fails. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_fallback_url: string | null;
-  /** A string representing the HTTP method to use with call_fallback_url. Valid values are GET and POST. */
-  call_fallback_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_fallback_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_fallback_method: string | null;
   /** A string representing a URL to send status change messages to. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_status_callback_url: string | null;
-  /** A string representing the HTTP method to use with call_status_callback_url. Valid values are GET and POST. */
-  call_status_callback_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_status_callback_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_status_callback_method: string | null;
   /** A string representing the ID of the LaML application to forward incoming calls to. This is only used (and required) when call_handler is set to laml_application. */
   call_laml_application_id: string | null;
   /** A string representing the ID of the Dialogflow agent to forward incoming calls to. This is only used (and required) when call_handler is set to dialogflow. */
@@ -1629,17 +2030,19 @@ export interface SipEndpoint {
 
 /** Call handler type for SIP endpoints. */
 export type SipEndpointCallHandler =
-  | 'relay_context'
-  | 'relay_topic'
-  | 'relay_application'
-  | 'relay_connector'
-  | 'relay_script'
-  | 'laml_webhooks'
+  | 'default'
+  | 'passthrough'
+  | 'block-pstn'
+  | 'laml_webhook'
   | 'laml_application'
   | 'dialogflow'
+  | 'relay_context'
+  | 'relay_application'
+  | 'relay_connector'
   | 'video_room'
-  | 'call_flow'
-  | 'ai_agent';
+  | 'ai_agent'
+  | 'relay_script'
+  | 'call_flow';
 
 /** Response containing a list of SIP endpoints. */
 export interface SipEndpointListResponse {
@@ -1666,23 +2069,23 @@ export interface SipEndpointResponse {
   /** A list of codecs this endpoint will support. */
   codecs: string[];
   /** Whether connections to this endpoint require encryption or if encryption is optional. */
-  encryption: 'default' | 'required' | 'optional';
+  encryption: 'required' | 'optional';
   /** What type of handler you want to run on inbound calls. */
   call_handler: SipEndpointCallHandler | null;
   /** The unique identifier of the calling handler resource. */
   calling_handler_resource_id: uuid | null;
   /** A string representing the LaML URL to access when a call is received. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_request_url: string | null;
-  /** A string representing the HTTP method to use with call_request_url. Valid values are GET and POST. */
-  call_request_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_request_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_request_method: string | null;
   /** A string representing the LaML URL to access when the call to call_request_url fails. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_fallback_url: string | null;
-  /** A string representing the HTTP method to use with call_fallback_url. Valid values are GET and POST. */
-  call_fallback_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_fallback_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_fallback_method: string | null;
   /** A string representing a URL to send status change messages to. This is only used (and required) when call_handler is set to laml_webhooks. */
   call_status_callback_url: string | null;
-  /** A string representing the HTTP method to use with call_status_callback_url. Valid values are GET and POST. */
-  call_status_callback_method: 'GET' | 'POST' | null;
+  /** A string representing the HTTP method to use with call_status_callback_url. GET or POST (enforced only for the laml_webhooks handler). */
+  call_status_callback_method: string | null;
   /** A string representing the ID of the LaML application to forward incoming calls to. This is only used (and required) when call_handler is set to laml_application. */
   call_laml_application_id: string | null;
   /** A string representing the ID of the Dialogflow agent to forward incoming calls to. This is only used (and required) when call_handler is set to dialogflow. */
@@ -1717,6 +2120,8 @@ export interface SipProfileResponse {
   default_encryption?: 'required' | 'optional';
   /** The e164 formatted number you wish to set as the originating number when dialing PSTN phone numbers from a SIP Endpoint that uses this profile. Specify null or an empty string to randomly choose a purchased or verified number from within the project. */
   default_send_as?: string;
+  /** The default outbound calling policy for SIP endpoints. */
+  default_outbound_policy?: 'passthrough' | 'block-pstn';
 }
 
 /** Recording from a SIP call leg. */
@@ -1731,14 +2136,14 @@ export interface SipRecording {
   updated_at: string;
   /** Duration of the recording in seconds. */
   duration_in_seconds: number;
-  /** Error code if the recording failed. */
+  /** Error code if the recording failed, and `null` otherwise. */
   error_code?: string;
   /** Price of the recording. */
   price: number;
   /** Currency unit for the price. */
   price_unit: string;
-  /** Status of the recording. */
-  status: string;
+  /** Status of the recording. One of `recording`, `paused`, `finished`, or `no_input`. */
+  status: 'recording' | 'paused' | 'finished' | 'no_input';
   /** URL of the recording file. */
   url: string;
   /** Indicates whether the recording is stereo. */
@@ -1789,10 +2194,14 @@ export interface Types_StatusCodes_ValidationError {
   errors: Types_StatusCodes_SpaceApiErrorItem[];
 }
 
-/** Request body for updating a campaign. */
+/** Request body for updating a campaign. Every field is optional; a field you omit keeps its current value. */
 export interface UpdateCampaignRequest {
   /** A name for the campaign. */
   name?: string;
+  /** Specify a URL to receive webhook notifications when your campaign's state changes. See the [10DLC status callback](/docs/apis/rest/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
+  status_callback_url?: string;
+  /** Email addresses SignalWire contacts about this campaign, as a list or a comma-separated string. */
+  signalwire_contact_emails?: string[] | string;
 }
 
 /** Request body for updating a domain application. */
@@ -1839,6 +2248,8 @@ export interface UpdateDomainApplicationRequest {
   call_video_room_id?: uuid;
   /** A string representing the URL of the Relay script to execute when a call is received. */
   call_relay_script_url?: string;
+  /** The HTTP method used to fetch call_relay_script_url. Must be POST when call_handler is relay_script. */
+  call_relay_script_url_method?: string;
   /** A string representing the ID of the Dialogflow Agent to forward incoming calls to. */
   call_dialogflow_agent_id?: uuid;
   /** A string representing the ID of the AI Agent to forward incoming calls to. */
@@ -1846,7 +2257,7 @@ export interface UpdateDomainApplicationRequest {
   /** A string representing the ID of the Call Flow to forward incoming calls to. */
   call_flow_id?: uuid;
   /** A string representing the version of your Call Flow you'd like to use. */
-  call_flow_version?: 'working_copy' | 'current_deployed';
+  call_flow_version?: 'working_copy';
   /** This handler type is deprecated. Please use call_relay_application or call_relay_topic instead. */
   call_relay_context?: string;
   /** This property is deprecated. Please use call_relay_topic_status_callback_url instead. */
@@ -1856,7 +2267,7 @@ export interface UpdateDomainApplicationRequest {
 /** Request body for updating a number group. */
 export interface UpdateNumberGroupRequest {
   /** The name given to the number group. Helps to distinguish different groups within your project. */
-  name: string;
+  name?: string;
   /** Whether the number group uses the same 'From' number for outbound requests to a number, or chooses a random one. */
   sticky_sender?: boolean;
 }
@@ -1868,7 +2279,7 @@ export interface UpdatePhoneNumberRequest {
   /** The call handler for the phone number. */
   call_handler?: PhoneNumberCallHandlerRequest;
   /** The call receive mode for the phone number. */
-  call_receive_mode?: string;
+  call_receive_mode?: 'voice' | 'fax';
   /** The call request URL for the phone number. */
   call_request_url?: string;
   /** The call request method for the phone number. */
@@ -1891,6 +2302,8 @@ export interface UpdatePhoneNumberRequest {
   call_relay_topic_status_callback_url?: string;
   /** The URL to make a request to when using the relay_script call handler. */
   call_relay_script_url?: string;
+  /** The HTTP method used to fetch call_relay_script_url. Must be POST when call_handler is relay_script. */
+  call_relay_script_url_method?: string;
   /** This handler type is deprecated. Please use call_relay_application or call_relay_topic instead. */
   call_relay_context?: string;
   /** This property is deprecated. Please use call_relay_topic_status_callback_url instead. */
@@ -1941,10 +2354,10 @@ export interface UpdateQueueRequest {
 
 /** Request body for updating a short code. */
 export interface UpdateShortCodeRequest {
-  /** The name given to the short code. */
-  name: string;
-  /** The message handler type for incoming messages. */
-  message_handler: ShortCodeMessageHandler;
+  /** The name given to the short code. Required on the first update of a newly provisioned short code (none is stored yet). */
+  name?: string;
+  /** The message handler type for incoming messages. Required on the first update of a newly provisioned short code (none is stored yet). */
+  message_handler?: ShortCodeMessageHandler;
   /** The URL to send message requests to when using laml_webhooks handler. */
   message_request_url?: string;
   /** The HTTP method to use for message requests. Defaults to POST. */
@@ -1977,12 +2390,16 @@ export interface UpdateSipEndpointRequest {
   encryption?: 'default' | 'required' | 'optional';
   /** What type of handler you want to run on inbound calls. */
   call_handler?:
+    | 'default'
+    | 'passthrough'
+    | 'block-pstn'
     | 'relay_context'
     | 'relay_topic'
     | 'relay_application'
     | 'relay_connector'
     | 'relay_script'
     | 'laml_webhooks'
+    | 'laml_webhook'
     | 'laml_application'
     | 'dialogflow'
     | 'video_room'
@@ -2024,6 +2441,8 @@ export interface UpdateSipEndpointRequest {
   call_ai_agent_id?: string;
   /** A URL of a SWML script to respond to incoming calls. Required when call_handler is relay_script. */
   call_relay_script_url?: string;
+  /** The HTTP method used to fetch call_relay_script_url. Must be POST when call_handler is relay_script. */
+  call_relay_script_url_method?: string;
 }
 
 /** Request body for updating the SIP profile. */
@@ -2038,12 +2457,14 @@ export interface UpdateSipProfileRequest {
   default_encryption?: 'required' | 'optional';
   /** The e164 formatted number you wish to set as the originating number when dialing PSTN phone numbers from a SIP Endpoint that uses this profile. Specify null or an empty string to randomly choose a purchased or verified number from within the project. */
   default_send_as?: string;
+  /** The default outbound calling policy for SIP endpoints. */
+  default_outbound_policy?: 'passthrough' | 'block-pstn';
 }
 
 /** Request body for updating a verified caller ID. */
 export interface UpdateVerifiedCallerIDRequest {
   /** The name portion of the caller ID. */
-  name: string;
+  name?: string;
 }
 
 /** Verified caller ID model. */
@@ -2055,13 +2476,13 @@ export interface VerifiedCallerID {
   /** String representing the phone number for the caller ID. This must be a valid, routeable phone number in E.164 format. */
   number: string;
   /** String representing the name portion of the caller ID. If not provided, the default will be the formatted number that has been provided. */
-  name?: string;
+  name?: string | null;
   /** String representing the extension of the phone number for the caller ID. This is only used when placing the verification call. */
-  extension?: string;
+  extension?: string | null;
   /** A boolean representing whether the number has been verified or not. */
   verified: boolean;
   /** Nullable DateTime field representing the date and time that the number was verified. If the number has not been verified, it will be null. */
-  verified_at?: string;
+  verified_at?: string | null;
   /** The verification status for the caller ID. */
   status?: 'Verified' | 'Awaiting Verification';
 }
@@ -2083,13 +2504,13 @@ export interface VerifiedCallerIDResponse {
   /** String representing the phone number for the caller ID. This must be a valid, routeable phone number in E.164 format. */
   number: string;
   /** String representing the name portion of the caller ID. If not provided, the default will be the formatted number that has been provided. */
-  name?: string;
+  name?: string | null;
   /** String representing the extension of the phone number for the caller ID. This is only used when placing the verification call. */
-  extension?: string;
+  extension?: string | null;
   /** A boolean representing whether the number has been verified or not. */
   verified: boolean;
   /** Nullable DateTime field representing the date and time that the number was verified. If the number has not been verified, it will be null. */
-  verified_at?: string;
+  verified_at?: string | null;
   /** The verification status for the caller ID. */
   status?: 'Verified' | 'Awaiting Verification';
 }
@@ -2112,14 +2533,14 @@ export interface WebRtcRecording {
   updated_at: string;
   /** Duration of the recording in seconds. */
   duration_in_seconds: number;
-  /** Error code if the recording failed. */
+  /** Error code if the recording failed, and `null` otherwise. */
   error_code?: string;
   /** Price of the recording. */
   price: number;
   /** Currency unit for the price. */
   price_unit: string;
-  /** Status of the recording. */
-  status: string;
+  /** Status of the recording. One of `recording`, `paused`, `finished`, or `no_input`. */
+  status: 'recording' | 'paused' | 'finished' | 'no_input';
   /** URL of the recording file. */
   url: string;
   /** Indicates whether the recording is stereo. */
@@ -2132,10 +2553,169 @@ export interface WebRtcRecording {
   relay_webrtc_leg_id: uuid;
 }
 
+/** Request body for updating an address. */
+export interface UpdateAddressRequest {
+  /** A friendly name given to the address to help distinguish and search for different addresses within your project. When the address is assigned to a phone number for E911, this label is also sent to the carrier as the caller name. The emergency network limits that field to 32 characters, so longer labels are truncated to the first 32 characters before being sent. Truncation affects only the name shown to the dispatcher, never the address used to route the call. */
+  label?: string;
+  /** The ISO 3166 Alpha 2 country code. */
+  country?: AddressCountryCode;
+  /** First name of the occupant associated with this address. */
+  first_name?: string;
+  /** Last name of the occupant associated with this address. */
+  last_name?: string;
+  /** The number portion of the street address. */
+  street_number?: string;
+  /** The name portion of the street address. */
+  street_name?: string;
+  /** If the address is divided into multiple sub-addresses, this identifies how the address is divided. Possible values are: Apartment, Basement, Building, Department, Floor, Office, Penthouse, Suite, Trailer, Unit. */
+  address_type?: AddressType;
+  /** If the address is divided into multiple sub-addresses, this identifies the particular sub-address. */
+  address_number?: string;
+  /** The city portion of the street address. */
+  city?: string;
+  /** The state/province/region of the street address. In the USA and Canada, use the two-letter abbreviated form. */
+  state?: string;
+  /** The postal code of the street address. */
+  postal_code?: string;
+  /** Applies to US addresses only. When `true` and `country` is `US`, the address is validated against */
+  emergency_enabled?: boolean;
+  /** When the carrier suggests a corrected version of the address, `true` (the default) stores the corrected address; `false` rejects the request with the suggestion returned as candidates. */
+  auto_correct_address?: boolean;
+}
+
+/** A carrier-suggested alternative to the submitted address. */
+export interface AddressCandidate {
+  /** The number portion of the suggested street address. */
+  street_number: string | null;
+  /** The name portion of the suggested street address. */
+  street_name: string | null;
+  /** The city portion of the suggested street address. */
+  city: string | null;
+  /** The state of the suggested street address. */
+  state: string | null;
+  /** The postal code of the suggested street address. */
+  postal_code: string | null;
+}
+
+/** The request failed validation. See `errors` for details. When carrier validation rejected the address */
+export interface AddressValidationError {
+  /** List of validation errors. */
+  errors: Types_StatusCodes_SpaceApiErrorItem[];
+  /** Alternative addresses suggested by the carrier. Omitted when the carrier returned no alternatives. */
+  candidates?: AddressCandidate[];
+}
+
+/** Request body for updating a brand. Every field is optional; a field you omit keeps its current value. Only a brand in the `unverified` state accepts changes to fields other than `signalwire_contact_emails`. */
+export interface UpdateBrandRequest {
+  /** Brand/Marketing/DBA name of the business. */
+  name?: string;
+  /** The legal name of the business. */
+  company_name?: string;
+  /** A company contact email for this brand. */
+  contact_email?: string;
+  /** A contact phone number for this brand. */
+  contact_phone?: string;
+  /** Country of registration. */
+  ein_issuing_country?: string;
+  /** What type of legal entity is the organization? */
+  legal_entity_type?: LegalEntityType;
+  /** Company EIN Number/Tax ID. */
+  ein?: string;
+  /** An optional Vertical for the brand. */
+  company_vertical?: CompanyVertical;
+  /** Link to the company website. */
+  company_website?: string;
+  /** Full company address. */
+  company_address?: string;
+  /** The approved Brand ID from TCR, for self-registered CSP brands. */
+  csp_brand_reference?: string;
+  /** Specify a URL to receive webhook notifications when your brand's state changes. See the [10DLC status callback](/docs/apis/rest/webhooks/ten-dlc-status-callback) docs for the webhook payload. */
+  status_callback_url?: string;
+  /** Email addresses SignalWire uses for registration correspondence about this brand and its campaigns. Omit the field to keep the current list. Send an empty list to remove the addresses, after which correspondence goes to the first administrator on the account. */
+  signalwire_contact_emails?: string[] | string;
+}
+
+/** Details about a specific error. */
+export interface Types_StatusCodes_RestApiErrorItem {
+  /** The category of error. */
+  type: string;
+  /** A specific error code. */
+  code: string;
+  /** A description of what caused the error. */
+  message: string;
+  /** The request parameter that caused the error, if applicable. */
+  attribute: string | null;
+  /** A link to documentation about this error. */
+  url: string;
+}
+
+/** The request contains invalid parameters. See errors for details. */
+export interface BrandUpdateStatusCode422 {
+  /** List of validation errors. */
+  errors: Types_StatusCodes_RestApiErrorItem[];
+}
+
+/** Request body for assigning an E911 address to a phone number. */
+export interface AssignE911AddressRequest {
+  /** The ID of a validated E911 address in the same project to assign to this phone number. */
+  e911_address_id: uuid;
+}
+
+/** E911 provisioning status of a phone number. */
+export type PhoneNumberE911Status =
+  'pending' | 'active' | 'failed' | 'pending_removal' | 'unregistered';
+
+/** Request body for requesting a caller ID name for a phone number. */
+export interface CreatePhoneNumberCnamRequest {
+  /** The caller ID name you want displayed on outbound calls. SignalWire normalizes the value before */
+  name: string;
+}
+
+/** Possible review statuses for a caller ID name request. */
+export type PhoneNumberCnamStatus =
+  'pending' | 'approved' | 'in_review' | 'rejected' | 'failed' | 'superseded';
+
+/** Possible reasons a caller ID name request requires review, was rejected, or failed. Each code is explained on the `reason` field. */
+export type PhoneNumberCnamReason =
+  | 'offensive_language'
+  | 'impersonation'
+  | 'unverified_brand'
+  | 'implied_trusted_institution'
+  | 'scam_wording'
+  | 'deceptive'
+  | 'unsupported_personal_name'
+  | 'too_generic'
+  | 'invalid_format'
+  | 'unrelated_to_business'
+  | 'needs_documentation'
+  | 'other_compliance_concern'
+  | 'processing_failed'
+  | 'unsupported_provider';
+
+/** Details and review status returned for a caller ID name request. */
+export interface PhoneNumberCnamResponse {
+  /** The type of object. Always `cnam`. */
+  type: 'cnam';
+  /** The unique identifier of the caller ID name request. */
+  id: uuid;
+  /** The unique identifier of the phone number this request belongs to. */
+  phone_number_id: uuid;
+  /** The requested caller ID name after normalization. SignalWire removes control characters, */
+  name: string;
+  /** The current state of the request. */
+  status: PhoneNumberCnamStatus;
+  /** A machine-readable reason the request requires review, was rejected, or failed, or `null` when */
+  reason: PhoneNumberCnamReason | null;
+  /** An action you can take to address the review, such as changing, verifying, or documenting the */
+  required_action: string | null;
+  /** The date the request was created. */
+  created_at: string;
+  /** The date the request was last updated. */
+  updated_at: string;
+}
+
 /** Universal Unique Identifier. */
 export type uuid = string;
-
-export type GetRecordingResponse = PstnRecording | SipRecording | WebRtcRecording;
 
 export type CreateBrandRequest = CreateManagedBrandRequest | CreateCspBrandRequest;
 

@@ -57,7 +57,9 @@ describe('CallingNamespace', () => {
 
   it('play sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.play('call-123', [{ url: 'http://example.com/audio.mp3' }]);
+    await calling.play('call-123', [
+      { type: 'audio', params: { url: 'http://example.com/audio.mp3' } },
+    ]);
     expect(getRequests()[0]!.body.command).toBe('calling.play');
   });
 
@@ -69,9 +71,11 @@ describe('CallingNamespace', () => {
 
   it('record sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.record('call-123', { extras: { beep: true } });
+    await calling.record('call-123', { audio: { beep: true } });
     expect(getRequests()[0]!.body.command).toBe('calling.record');
-    expect(getRequests()[0]!.body.params).toEqual({ beep: true });
+    const params = getRequests()[0]!.body.params as Record<string, unknown>;
+    expect(params.record).toEqual({ audio: { beep: true } });
+    expect(typeof params.control_id).toBe('string');
   });
 
   it('collect sends correct command', async () => {
@@ -88,7 +92,11 @@ describe('CallingNamespace', () => {
 
   it('tap sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.tap('call-123', {}, {});
+    await calling.tap(
+      'call-123',
+      { type: 'audio', params: { direction: 'both' } },
+      { type: 'ws', params: { uri: 'wss://example.com/tap' } },
+    );
     expect(getRequests()[0]!.body.command).toBe('calling.tap');
   });
 
@@ -132,7 +140,7 @@ describe('CallingNamespace', () => {
 
   it('refer sends correct command', async () => {
     const { calling, getRequests } = setup();
-    await calling.refer('call-123', { to: 'sip:user@example.com' });
+    await calling.refer('call-123', { type: 'sip', params: { to: 'sip:user@example.com' } });
     expect(getRequests()[0]!.body.command).toBe('calling.refer');
   });
 

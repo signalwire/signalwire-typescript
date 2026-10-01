@@ -177,7 +177,9 @@ export class HttpClient {
     body?: unknown,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    extra: { headers?: Record<string, string>; response?: 'json' | 'text' | 'redirect' } = {},
   ): Promise<T> {
+    const responseKind = extra.response ?? 'json';
     let url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
     if (params) {
@@ -200,6 +202,8 @@ export class HttpClient {
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
     }
+    // Per-call headers (declared header params, a non-JSON success's Accept).
+    if (extra.headers) Object.assign(headers, extra.headers);
     const encodedBody = body !== undefined ? JSON.stringify(body) : undefined;
 
     // total attempts = retries + 1; retry on a retryable status (idempotency-
@@ -225,6 +229,8 @@ export class HttpClient {
           body: encodedBody,
           signal: this._attemptSignal(opts),
         };
+        // A redirect-answer endpoint: never follow — its Location IS the answer.
+        if (responseKind === 'redirect') init.redirect = 'manual';
         const dispatcher = restCaDispatcher();
         if (dispatcher !== undefined) init.dispatcher = dispatcher;
         resp = await this._fetch(url, init as RequestInit);
@@ -243,6 +249,17 @@ export class HttpClient {
         }
         const message = err instanceof Error ? err.message : String(err);
         throw new RestTransportError(message, url, method);
+      }
+
+      if (responseKind === 'redirect' && resp.status < 400) {
+        const location = resp.headers.get('Location');
+        if (resp.status >= 300 && location) return location as T;
+        // A success that is not the redirect the endpoint answers with.
+        const respHeaders: Record<string, string> = {};
+        resp.headers.forEach((v, k) => {
+          respHeaders[k] = v;
+        });
+        throw new RestError(resp.status, await resp.text(), url, method, respHeaders);
       }
 
       if (!resp.ok) {
@@ -268,6 +285,8 @@ export class HttpClient {
         });
         throw new RestError(resp.status, errBody, url, method, respHeaders);
       }
+
+      if (responseKind === 'text') return (await resp.text()) as T;
 
       if (resp.status === 204) {
         return {} as T;
@@ -305,6 +324,7 @@ export class HttpClient {
    * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
    * @param params - Optional query parameters; `undefined` values are skipped.
    * @param requestOptions - Optional per-request transport envelope override.
+   * @param headers - Optional per-call request headers.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -312,8 +332,57 @@ export class HttpClient {
     path: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    headers?: Record<string, string>,
   ): Promise<T> {
-    return this._request<T>('GET', path, undefined, params, requestOptions);
+    return this._request<T>('GET', path, undefined, params, requestOptions, { headers });
+  }
+
+  /**
+   * Perform an authenticated HTTP GET whose success body is NOT JSON (e.g.
+   * `text/csv`) and return it as text. Pass that media type as the `Accept`
+   * header. Errors are raised exactly as {@link HttpClient.get}.
+   *
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param params - Optional query parameters; `undefined` values are skipped.
+   * @param requestOptions - Optional per-request transport envelope override.
+   * @param headers - Optional per-call request headers.
+   * @returns The response body as text.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
+  async getText(
+    path: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+    headers?: Record<string, string>,
+  ): Promise<string> {
+    return this._request<string>('GET', path, undefined, params, requestOptions, {
+      headers,
+      response: 'text',
+    });
+  }
+
+  /**
+   * Perform an authenticated HTTP GET whose success IS a redirect and return its
+   * `Location`. The redirect is not followed: the endpoint's answer is the URL of
+   * the resource (e.g. a signed download URL), fetched with any HTTP client.
+   *
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param params - Optional query parameters; `undefined` values are skipped.
+   * @param requestOptions - Optional per-request transport envelope override.
+   * @param headers - Optional per-call request headers.
+   * @returns The redirect target URL.
+   * @throws {RestError} On an error status, or a success that is not a redirect.
+   */
+  async getRedirectLocation(
+    path: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+    headers?: Record<string, string>,
+  ): Promise<string> {
+    return this._request<string>('GET', path, undefined, params, requestOptions, {
+      headers,
+      response: 'redirect',
+    });
   }
 
   /**
@@ -324,6 +393,7 @@ export class HttpClient {
    * @param body - JSON-serialisable request body. Omit to send no body.
    * @param params - Optional query parameters appended to the URL.
    * @param requestOptions - Optional per-request transport envelope override.
+   * @param headers - Optional per-call request headers.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -332,8 +402,9 @@ export class HttpClient {
     body?: unknown,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    headers?: Record<string, string>,
   ): Promise<T> {
-    return this._request<T>('POST', path, body, params, requestOptions);
+    return this._request<T>('POST', path, body, params, requestOptions, { headers });
   }
 
   /**

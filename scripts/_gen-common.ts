@@ -579,7 +579,20 @@ export function declaration(name: string, schema: Schema): string {
   if (isObject && schema.properties) {
     // topLevel=true: the open `[key: string]: unknown` tail is emitted here (the
     // named type) but suppressed on nested inline objects (see objectBody).
-    return `${doc}export interface ${id} ${objectBody(schema, 0, true, name)}\n`;
+    const body = objectBody(schema, 0, true, name);
+    // A memberless body is a type expression (`Record<...>`), not an interface
+    // body — `export interface X Record<string, unknown>` is a syntax error that
+    // breaks the package build. Emit a type alias instead. A top-level CLOSED
+    // empty object (`properties: {}` + `additionalProperties: false`, e.g.
+    // verto.attach's result) admits only `{}`, spelled `Record<string, never>`.
+    // Nested inline empty objects stay `Record<string, unknown>` (the reference
+    // renders those as an open `dict[str, Any]`).
+    if (!body.startsWith('{')) {
+      const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
+      const alias = ap === false ? 'Record<string, never>' : body;
+      return `${doc}export type ${id} = ${alias};\n`;
+    }
+    return `${doc}export interface ${id} ${body}\n`;
   }
   return `${doc}export type ${id} = ${tsType(schema, 0)};\n`;
 }

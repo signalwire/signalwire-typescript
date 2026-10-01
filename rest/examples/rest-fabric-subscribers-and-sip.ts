@@ -64,14 +64,16 @@ async function main() {
   try {
     const addresses = await client.fabric.addresses.list();
     for (const addr of (addresses.data ?? []).slice(0, 5)) {
-      console.log(`  - ${addr.display_name ?? addr.id ?? 'unknown'}`);
+      console.log(`  - ${'display_name' in addr ? addr.display_name : addr.id}`);
     }
 
     // 7. Get a specific fabric address
     const firstAddr = (addresses.data ?? [{}])[0];
     if (firstAddr?.id) {
       const addrDetail = await client.fabric.addresses.get(firstAddr.id);
-      console.log(`  Address detail: ${addrDetail.display_name ?? 'N/A'}`);
+      console.log(
+        `  Address detail: ${'display_name' in addrDetail ? addrDetail.display_name : addrDetail.id}`,
+      );
     }
   } catch (err) {
     if (err instanceof RestError) {

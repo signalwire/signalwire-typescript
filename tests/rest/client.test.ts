@@ -11,6 +11,7 @@ describe('RestClient', () => {
       'SIGNALWIRE_API_TOKEN',
       'SIGNALWIRE_SPACE',
       'SIGNALWIRE_REST_BASE_URL',
+      'SIGNALWIRE_PERSONAL_ACCESS_TOKEN',
     ]) {
       savedEnv[key] = process.env[key];
       delete process.env[key];
@@ -106,6 +107,46 @@ describe('RestClient', () => {
           fetchImpl,
         }),
     ).toThrow(/project, token, and host are required/);
+  });
+
+  it('authenticates client.space with the personal access token (empty username)', async () => {
+    const [fetchImpl, getRequests] = createMockFetch([{ status: 200, body: { data: [] } }]);
+    const client = new RestClient({
+      host: 'test.signalwire.com',
+      personalAccessToken: 'pat_abc',
+      fetchImpl,
+    });
+    await client.space.members.list();
+    const req = getRequests()[0]!;
+    expect(req.url).toContain('/api/space/members');
+    expect(req.headers['Authorization']).toBe(
+      'Basic ' + Buffer.from(':pat_abc').toString('base64'),
+    );
+  });
+
+  it('a PAT-only client refuses a project resource before sending', async () => {
+    const [fetchImpl, getRequests] = createMockFetch();
+    const client = new RestClient({
+      host: 'test.signalwire.com',
+      personalAccessToken: 'pat_abc',
+      fetchImpl,
+    });
+    await expect(client.phoneNumbers.list()).rejects.toThrow(/project and token are required/);
+    expect(getRequests()).toHaveLength(0);
+  });
+
+  it('a project-only client refuses client.space before sending', async () => {
+    const [fetchImpl, getRequests] = createMockFetch();
+    const client = new RestClient({
+      project: 'proj',
+      token: 'tok',
+      host: 'test.signalwire.com',
+      fetchImpl,
+    });
+    await expect(client.space.members.list()).rejects.toThrow(
+      /personalAccessToken is required for client.space/,
+    );
+    expect(getRequests()).toHaveLength(0);
   });
 
   it('reads from environment variables', async () => {

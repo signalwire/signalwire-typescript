@@ -66,7 +66,6 @@ async function main() {
     try {
       const campaign = await client.registry.brands.createCampaign(brandId, {
         name: 'Acme Notifications',
-        brand_id: brandId,
         sms_use_case: 'MIXED',
         sub_use_cases: ['CUSTOMER_CARE', 'DELIVERY_NOTIFICATION'],
         description: 'Customer notifications and support messages',

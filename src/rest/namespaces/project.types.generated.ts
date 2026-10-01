@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/project/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/project/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -11,8 +11,10 @@ export interface CreateTokenRequest {
   name: string;
   /** The permissions you would like to enable for this token. Valid permissions are calling, chat, datasphere, fax, management, messaging, numbers, pubsub, storage, tasking, and video */
   permissions: TokenPermission[];
-  /** The unique identifier of the subproject you would like to create a token for. The subproject passed must be a child of the project used to authenticate the request. */
+  /** The unique identifier of the subproject you would like to create a token for. The subproject passed must be a child of the project used to authenticate the request, or of `project_id` when authenticating with a Personal access token. */
   subproject_id?: string;
+  /** The project to create the token in. Required under Personal Access Token auth; ignored when authenticating with a project API token. */
+  project_id?: string;
 }
 
 /** Valid permission types for API tokens. */
@@ -36,8 +38,17 @@ export interface TokenResponse {
   name: string;
   /** The permissions enabled for this token. */
   permissions: TokenPermission[];
-  /** The API token that can be used along with the project ID for basic authentication */
+  /** The API token that can be used along with the project ID for basic authentication. It is returned only in this response and cannot be retrieved again; store it securely. */
   token: string;
+}
+
+export interface TokenUpdateResponse {
+  /** The ID of the API Token. */
+  id: string;
+  /** The name of the API Token. */
+  name: string;
+  /** The permissions enabled for this token. */
+  permissions: TokenPermission[];
 }
 
 /** The request contains invalid parameters. See errors for details. */

@@ -19,7 +19,6 @@ async function main() {
   console.log('Creating AI agent...');
   const agent = await client.fabric.aiAgents.create({
     name: 'Demo Support Bot',
-    agent_id: '00000000-0000-0000-0000-000000000000',
     prompt: { text: 'You are a friendly support agent for Acme Corp.' },
   });
   const agentId = agent.id;
@@ -36,7 +35,7 @@ async function main() {
   console.log('\nSearching for available phone numbers...');
   const available = await client.phoneNumbers.search({ areacode: '512', max_results: 3 });
   for (const num of available.data ?? []) {
-    console.log(`  - ${num.number ?? 'unknown'}`);
+    console.log(`  - ${num.e164 ?? 'unknown'}`);
   }
 
   // 4. Place a test call (requires valid numbers)

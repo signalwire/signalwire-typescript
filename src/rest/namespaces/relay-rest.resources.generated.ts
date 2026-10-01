@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/relay-rest/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/relay-rest/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // One typed resource class per x-sdk-resource: CRUD bases bound to the
@@ -12,6 +12,7 @@ import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
 import { CrudResource } from '../base/CrudResource.js';
 import type {
+  AddressCountryCode,
   AddressListResponse,
   AddressResponse,
   AddressType,
@@ -21,6 +22,7 @@ import type {
   BrandResponse,
   CampaignListResponse,
   CampaignResponse,
+  CompanyVertical,
   CreateCspBrandRequest,
   CreateManagedBrandRequest,
   CreateManagedCampaignRequest,
@@ -29,6 +31,7 @@ import type {
   CreateQueueRequest,
   CreateVerifiedCallerIDRequest,
   HttpMethod,
+  LegalEntityType,
   MfaResponse,
   MfaVerifyResponse,
   NumberGroupListResponse,
@@ -37,6 +40,7 @@ import type {
   NumberGroupResponse,
   OrderListResponse,
   OrderResponse,
+  PhoneNumberCnamResponse,
   PhoneNumberListResponse,
   PhoneNumberLookupResponse,
   PhoneNumberResponse,
@@ -45,6 +49,7 @@ import type {
   QueueMemberListResponse,
   QueueMemberResponse,
   QueueResponse,
+  Recording,
   RecordingListResponse,
   ShortCodeListResponse,
   ShortCodeMessageHandler,
@@ -73,7 +78,7 @@ export class Addresses extends BaseResource {
 
   async create(
     label: string,
-    country: string,
+    country: AddressCountryCode,
     first_name: string,
     last_name: string,
     street_number: string,
@@ -84,6 +89,8 @@ export class Addresses extends BaseResource {
     options?: {
       address_type?: AddressType;
       address_number?: string;
+      emergency_enabled?: boolean;
+      auto_correct_address?: boolean;
       extras?: Record<string, unknown>;
     },
     requestOptions?: RequestOptionsInit,
@@ -101,6 +108,8 @@ export class Addresses extends BaseResource {
       postal_code,
       address_type: options?.address_type,
       address_number: options?.address_number,
+      emergency_enabled: options?.emergency_enabled,
+      auto_correct_address: options?.auto_correct_address,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
@@ -113,6 +122,47 @@ export class Addresses extends BaseResource {
     requestOptions?: RequestOptionsInit,
   ): Promise<AddressResponse> {
     return this._http.get<AddressResponse>(this._path(id), params, requestOptions);
+  }
+
+  async update(
+    id: string,
+    options?: {
+      label?: string;
+      country?: AddressCountryCode;
+      first_name?: string;
+      last_name?: string;
+      street_number?: string;
+      street_name?: string;
+      address_type?: AddressType;
+      address_number?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      emergency_enabled?: boolean;
+      auto_correct_address?: boolean;
+      extras?: Record<string, unknown>;
+    },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AddressResponse> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      label: options?.label,
+      country: options?.country,
+      first_name: options?.first_name,
+      last_name: options?.last_name,
+      street_number: options?.street_number,
+      street_name: options?.street_name,
+      address_type: options?.address_type,
+      address_number: options?.address_number,
+      city: options?.city,
+      state: options?.state,
+      postal_code: options?.postal_code,
+      emergency_enabled: options?.emergency_enabled,
+      auto_correct_address: options?.auto_correct_address,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.put<AddressResponse>(this._path(id), body, requestOptions);
   }
 
   async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
@@ -392,6 +442,68 @@ export class PhoneNumbers extends CrudResource<
     );
   }
 
+  async assignE911Address(
+    id: string,
+    e911_address_id: uuid,
+    options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberResponse> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      e911_address_id,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.post<PhoneNumberResponse>(
+      this._path(id, 'e911_address'),
+      body,
+      undefined,
+      requestOptions,
+    );
+  }
+
+  async removeE911Address(
+    id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberResponse> {
+    return this._http.delete<PhoneNumberResponse>(this._path(id, 'e911_address'), requestOptions);
+  }
+
+  async getCnam(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberCnamResponse> {
+    return this._http.get<PhoneNumberCnamResponse>(this._path(id, 'cnam'), params, requestOptions);
+  }
+
+  async requestCnam(
+    id: string,
+    name: string,
+    options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberCnamResponse> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      name,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.post<PhoneNumberCnamResponse>(
+      this._path(id, 'cnam'),
+      body,
+      undefined,
+      requestOptions,
+    );
+  }
+
+  async clearCnam(
+    id: string,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id, 'cnam'), requestOptions);
+  }
+
   async setSwmlWebhook(
     resourceId: string,
     url: string,
@@ -576,12 +688,25 @@ export class Recordings extends BaseResource {
     id: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-  ): Promise<Record<string, unknown>> {
-    return this._http.get<Record<string, unknown>>(this._path(id), params, requestOptions);
+  ): Promise<Recording> {
+    return this._http.get<Recording>(this._path(id), params, requestOptions);
   }
 
   async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
     return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
+  }
+
+  /**
+   * Return the URL this endpoint redirects to (the `Location` of its redirect),
+   * without following it or downloading anything; fetch it with any HTTP client.
+   * @throws {RestError} For an error status.
+   */
+  async download(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<string> {
+    return this._http.getRedirectLocation(this._path(`${id}.mp3`), params, requestOptions);
   }
 }
 
@@ -616,6 +741,47 @@ export class RegistryBrands extends BaseResource {
     requestOptions?: RequestOptionsInit,
   ): Promise<BrandResponse> {
     return this._http.get<BrandResponse>(this._path(id), params, requestOptions);
+  }
+
+  async update(
+    id: string,
+    options?: {
+      name?: string;
+      company_name?: string;
+      contact_email?: string;
+      contact_phone?: string;
+      ein_issuing_country?: string;
+      legal_entity_type?: LegalEntityType;
+      ein?: string;
+      company_vertical?: CompanyVertical;
+      company_website?: string;
+      company_address?: string;
+      csp_brand_reference?: string;
+      status_callback_url?: string;
+      signalwire_contact_emails?: string[] | string;
+      extras?: Record<string, unknown>;
+    },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<BrandResponse> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      name: options?.name,
+      company_name: options?.company_name,
+      contact_email: options?.contact_email,
+      contact_phone: options?.contact_phone,
+      ein_issuing_country: options?.ein_issuing_country,
+      legal_entity_type: options?.legal_entity_type,
+      ein: options?.ein,
+      company_vertical: options?.company_vertical,
+      company_website: options?.company_website,
+      company_address: options?.company_address,
+      csp_brand_reference: options?.csp_brand_reference,
+      status_callback_url: options?.status_callback_url,
+      signalwire_contact_emails: options?.signalwire_contact_emails,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.put<BrandResponse>(this._path(id), body, requestOptions);
   }
 
   async listCampaigns(
@@ -660,12 +826,19 @@ export class RegistryCampaigns extends BaseResource {
 
   async update(
     id: string,
-    options?: { name?: string; extras?: Record<string, unknown> },
+    options?: {
+      name?: string;
+      status_callback_url?: string;
+      signalwire_contact_emails?: string[] | string;
+      extras?: Record<string, unknown>;
+    },
     requestOptions?: RequestOptionsInit,
   ): Promise<CampaignResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       name: options?.name,
+      status_callback_url: options?.status_callback_url,
+      signalwire_contact_emails: options?.signalwire_contact_emails,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
@@ -763,8 +936,8 @@ export class ShortCodes extends BaseResource {
 
   async update(
     id: string,
-    name: string,
-    message_handler: ShortCodeMessageHandler,
+    name?: string,
+    message_handler?: ShortCodeMessageHandler,
     options?: {
       message_request_url?: string;
       message_request_method?: HttpMethod;
@@ -812,6 +985,7 @@ export class SipProfile extends BaseResource {
       default_ciphers?: string[];
       default_encryption?: 'required' | 'optional';
       default_send_as?: string;
+      default_outbound_policy?: 'passthrough' | 'block-pstn';
       extras?: Record<string, unknown>;
     },
     requestOptions?: RequestOptionsInit,
@@ -823,6 +997,7 @@ export class SipProfile extends BaseResource {
       default_ciphers: options?.default_ciphers,
       default_encryption: options?.default_encryption,
       default_send_as: options?.default_send_as,
+      default_outbound_policy: options?.default_outbound_policy,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);

@@ -62,10 +62,10 @@ describe('CxmlApplications.create', () => {
   });
 });
 
-// ---- CallFlows.list_addresses uses singular path -----------------------
+// ---- CallFlows.list_addresses uses the plural path (the route the server serves)
 
 describe('CallFlows.listAddresses', () => {
-  it('list_addresses_uses_singular_path', async () => {
+  it('list_addresses_uses_plural_path', async () => {
     const body = await client.fabric.callFlows.listAddresses('cf-1');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -74,16 +74,16 @@ describe('CallFlows.listAddresses', () => {
 
     const last = await mock.last();
     expect(last.method).toBe('GET');
-    // singular 'call_flow' (NOT 'call_flows') in the addresses sub-path.
-    expect(last.path).toBe('/api/fabric/resources/call_flow/cf-1/addresses');
+    // plural 'call_flows' in the addresses sub-path (the route the server serves).
+    expect(last.path).toBe('/api/fabric/resources/call_flows/cf-1/addresses');
     expect(last.matched_route).not.toBeNull();
   });
 });
 
-// ---- ConferenceRooms.list_addresses uses singular path -----------------
+// ---- ConferenceRooms.list_addresses uses the plural path (the route the server serves)
 
 describe('ConferenceRooms.listAddresses', () => {
-  it('list_addresses_uses_singular_path', async () => {
+  it('list_addresses_uses_plural_path', async () => {
     const body = await client.fabric.conferenceRooms.listAddresses('cr-1');
     expect(typeof body).toBe('object');
     expect(body).not.toBeNull();
@@ -91,8 +91,8 @@ describe('ConferenceRooms.listAddresses', () => {
 
     const last = await mock.last();
     expect(last.method).toBe('GET');
-    // singular 'conference_room' segment.
-    expect(last.path).toBe('/api/fabric/resources/conference_room/cr-1/addresses');
+    // plural 'conference_rooms' segment.
+    expect(last.path).toBe('/api/fabric/resources/conference_rooms/cr-1/addresses');
     expect(last.matched_route).not.toBeNull();
   });
 });
@@ -141,23 +141,6 @@ describe('Subscribers SIP endpoint ops', () => {
 // ---- FabricTokens — every token endpoint -------------------------------
 
 describe('FabricTokens', () => {
-  it('create_invite_token', async () => {
-    // address_id is the real spec-declared field (SubscriberInviteTokenCreateRequest).
-    const body = await client.fabric.tokens.createInviteToken(
-      '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    );
-    expect(typeof body).toBe('object');
-    expect(body).not.toBeNull();
-
-    const last = await mock.last();
-    expect(last.method).toBe('POST');
-    // subscriber/invites uses the singular 'subscriber' path segment.
-    expect(last.path).toBe('/api/fabric/subscriber/invites');
-    expect(typeof last.body).toBe('object');
-    expect(last.body).not.toBeNull();
-    expect((last.body as WireBody).address_id).toBe('3fa85f64-5717-4562-b3fc-2c963f66afa6');
-  });
-
   it('create_embed_token', async () => {
     // token is the only spec-declared field (EmbedsTokensRequest).
     const body = await client.fabric.tokens.createEmbedToken(

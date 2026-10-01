@@ -55,7 +55,7 @@ async function main() {
   try {
     const versions = await client.fabric.callFlows.listVersions(flowId);
     for (const v of versions.data ?? []) {
-      console.log(`  - Version: ${v.version ?? v.id ?? 'unknown'}`);
+      console.log(`  - Version: ${v.document_version}`);
     }
   } catch (err) {
     if (err instanceof RestError) {

@@ -108,9 +108,7 @@ async function main() {
   // 8. SIP refer
   console.log('\nSIP refer...');
   await safe('SIP refer', () =>
-    client.calling.refer(CALL_ID, {
-      device: { type: 'sip', params: { to: 'sip:support@example.com' } },
-    }),
+    client.calling.refer(CALL_ID, { type: 'sip', params: { to: 'sip:support@example.com' } }),
   );
 
   // 9. Fax stop commands

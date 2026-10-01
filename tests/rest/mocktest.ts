@@ -88,6 +88,9 @@ export interface WireBody {
  * a helper to push scenario overrides, and a reset method tests call from
  * beforeEach.
  */
+/** The specs whose routes authenticate with a Personal Access Token (rest-apis/space). */
+const PAT_SPECS = new Set(['space']);
+
 export class MockHarness {
   readonly url: string;
   readonly port: number;
@@ -112,6 +115,13 @@ export class MockHarness {
    */
   authHeader = '';
 
+  /**
+   * The same client's Personal Access Token header (`Basic base64(":pat_...")`),
+   * which it sends on the PAT-authenticated specs (`client.space`). The scoped
+   * view covers both of the client's credentials.
+   */
+  patAuthHeader = '';
+
   constructor(url: string, port: number) {
     this.url = url;
     this.port = port;
@@ -134,7 +144,8 @@ export class MockHarness {
   async journal(): Promise<JournalEntry[]> {
     const entries = await this.rawJournal();
     if (!this.authHeader) return entries;
-    return entries.filter((e) => e.headers.authorization === this.authHeader);
+    const mine = new Set([this.authHeader, this.patAuthHeader].filter(Boolean));
+    return entries.filter((e) => mine.has(e.headers.authorization ?? ''));
   }
 
   /**
@@ -185,7 +196,12 @@ export class MockHarness {
     // Scope the override to THIS client's auth header so a concurrent test
     // can't consume it (and a stale one can't bleed across tests). REST's
     // session key is the Authorization header. Unscoped harness => shared.
-    const q = this.authHeader ? `?session_id=${encodeURIComponent(this.authHeader)}` : '';
+    // A PAT-authenticated spec's routes carry the client's PAT header instead.
+    const session =
+      PAT_SPECS.has(endpointId.split('.', 1)[0]!) && this.patAuthHeader
+        ? this.patAuthHeader
+        : this.authHeader;
+    const q = session ? `?session_id=${encodeURIComponent(session)}` : '';
     const resp = await fetch(`${this.url}/__mock__/scenarios/${endpointId}${q}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -429,16 +445,24 @@ export async function newMockClient(): Promise<{
   // Pass `host` with the http:// prefix preserved — RestClient's `host` field
   // accepts a fully-qualified URL when the value starts with "http", which is
   // how we hop the constructor's default https:// normalization.
+  // A unique Personal Access Token too (HTTP Basic, EMPTY username), so
+  // client.space reaches the mock's PAT-authenticated routes with its own
+  // isolation key.
+  const pat = `pat_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  const patAuthHeader = 'Basic ' + Buffer.from(`:${pat}`).toString('base64');
+
   const client = new RestClient({
     project,
     token: REST_TOKEN,
     host: shared.url,
+    personalAccessToken: pat,
   });
 
   // Per-call harness view scoped to this client's auth header. No reset is
   // needed: this client starts with zero entries in the (auth-filtered) view.
   const mock = new MockHarness(shared.url, shared.port);
   mock.authHeader = authHeader;
+  mock.patAuthHeader = patAuthHeader;
   mock.project = project;
 
   return { client, mock, project };

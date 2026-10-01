@@ -24,7 +24,7 @@ beforeEach(async () => {
 
 describe('relay-rest wire (generated)', () => {
   it('addresses_create success', async () => {
-    await client.addresses.create('x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x');
+    await client.addresses.create('x', 'AD', 'x', 'x', 'x', 'x', 'x', 'x', 'x');
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('relay-rest.create_address');
@@ -33,7 +33,7 @@ describe('relay-rest wire (generated)', () => {
   it('addresses_create error', async () => {
     await mock.pushScenario('relay-rest.create_address', 500, { error: 'x' });
     await expect(
-      client.addresses.create('x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'),
+      client.addresses.create('x', 'AD', 'x', 'x', 'x', 'x', 'x', 'x', 'x'),
     ).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
@@ -77,6 +77,20 @@ describe('relay-rest wire (generated)', () => {
   it('addresses_list error', async () => {
     await mock.pushScenario('relay-rest.list_addresses', 500, { error: 'x' });
     await expect(client.addresses.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('addresses_update success', async () => {
+    await client.addresses.update('x');
+    const last = await mock.last();
+    expect(last.method).toBe('PUT');
+    expect(last.matched_route).toBe('relay-rest.update_address');
+  });
+
+  it('addresses_update error', async () => {
+    await mock.pushScenario('relay-rest.update_address', 500, { error: 'x' });
+    await expect(client.addresses.update('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -264,7 +278,7 @@ describe('relay-rest wire (generated)', () => {
   });
 
   it('numberGroups_update success', async () => {
-    await client.numberGroups.update('x', { name: 'x' });
+    await client.numberGroups.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('relay-rest.update_number_group');
@@ -272,7 +286,35 @@ describe('relay-rest wire (generated)', () => {
 
   it('numberGroups_update error', async () => {
     await mock.pushScenario('relay-rest.update_number_group', 500, { error: 'x' });
-    await expect(client.numberGroups.update('x', { name: 'x' })).rejects.toThrow(RestError);
+    await expect(client.numberGroups.update('x', {})).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumbers_assignE911Address success', async () => {
+    await client.phoneNumbers.assignE911Address('x', 'x');
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('relay-rest.assign_e911_address');
+  });
+
+  it('phoneNumbers_assignE911Address error', async () => {
+    await mock.pushScenario('relay-rest.assign_e911_address', 500, { error: 'x' });
+    await expect(client.phoneNumbers.assignE911Address('x', 'x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumbers_clearCnam success', async () => {
+    await client.phoneNumbers.clearCnam('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('relay-rest.clear_caller_id_name');
+  });
+
+  it('phoneNumbers_clearCnam error', async () => {
+    await mock.pushScenario('relay-rest.clear_caller_id_name', 500, { error: 'x' });
+    await expect(client.phoneNumbers.clearCnam('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -305,6 +347,20 @@ describe('relay-rest wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('phoneNumbers_getCnam success', async () => {
+    await client.phoneNumbers.getCnam('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('relay-rest.retrieve_caller_id_name');
+  });
+
+  it('phoneNumbers_getCnam error', async () => {
+    await mock.pushScenario('relay-rest.retrieve_caller_id_name', 500, { error: 'x' });
+    await expect(client.phoneNumbers.getCnam('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('phoneNumbers_get success', async () => {
     await client.phoneNumbers.get('x');
     const last = await mock.last();
@@ -329,6 +385,34 @@ describe('relay-rest wire (generated)', () => {
   it('phoneNumbers_list error', async () => {
     await mock.pushScenario('relay-rest.list_phone_numbers', 500, { error: 'x' });
     await expect(client.phoneNumbers.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumbers_removeE911Address success', async () => {
+    await client.phoneNumbers.removeE911Address('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('relay-rest.remove_e911_address');
+  });
+
+  it('phoneNumbers_removeE911Address error', async () => {
+    await mock.pushScenario('relay-rest.remove_e911_address', 500, { error: 'x' });
+    await expect(client.phoneNumbers.removeE911Address('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumbers_requestCnam success', async () => {
+    await client.phoneNumbers.requestCnam('x', 'x');
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('relay-rest.request_caller_id_name');
+  });
+
+  it('phoneNumbers_requestCnam error', async () => {
+    await mock.pushScenario('relay-rest.request_caller_id_name', 500, { error: 'x' });
+    await expect(client.phoneNumbers.requestCnam('x', 'x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -362,7 +446,7 @@ describe('relay-rest wire (generated)', () => {
   });
 
   it('queues_create success', async () => {
-    await client.queues.create({});
+    await client.queues.create({ name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('relay-rest.create_queue');
@@ -370,7 +454,7 @@ describe('relay-rest wire (generated)', () => {
 
   it('queues_create error', async () => {
     await mock.pushScenario('relay-rest.create_queue', 500, { error: 'x' });
-    await expect(client.queues.create({})).rejects.toThrow(RestError);
+    await expect(client.queues.create({ name: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -487,6 +571,20 @@ describe('relay-rest wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('recordings_download success', async () => {
+    await client.recordings.download('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('relay-rest.download_recording');
+  });
+
+  it('recordings_download error', async () => {
+    await mock.pushScenario('relay-rest.download_recording', 500, { error: 'x' });
+    await expect(client.recordings.download('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('recordings_get success', async () => {
     await client.recordings.get('x');
     const last = await mock.last();
@@ -518,8 +616,7 @@ describe('relay-rest wire (generated)', () => {
   it('brands_createCampaign success', async () => {
     await client.registry.brands.createCampaign('x', {
       name: 'x',
-      brand_id: 'x',
-      sms_use_case: 'x',
+      sms_use_case: '2FA',
       description: 'x',
       sample1: 'x',
       sample2: 'x',
@@ -544,8 +641,7 @@ describe('relay-rest wire (generated)', () => {
     await expect(
       client.registry.brands.createCampaign('x', {
         name: 'x',
-        brand_id: 'x',
-        sms_use_case: 'x',
+        sms_use_case: '2FA',
         description: 'x',
         sample1: 'x',
         sample2: 'x',
@@ -639,6 +735,20 @@ describe('relay-rest wire (generated)', () => {
   it('brands_list error', async () => {
     await mock.pushScenario('relay-rest.list_brands', 500, { error: 'x' });
     await expect(client.registry.brands.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('brands_update success', async () => {
+    await client.registry.brands.update('x');
+    const last = await mock.last();
+    expect(last.method).toBe('PUT');
+    expect(last.matched_route).toBe('relay-rest.update_brand');
+  });
+
+  it('brands_update error', async () => {
+    await mock.pushScenario('relay-rest.update_brand', 500, { error: 'x' });
+    await expect(client.registry.brands.update('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -770,7 +880,7 @@ describe('relay-rest wire (generated)', () => {
   });
 
   it('shortCodes_update success', async () => {
-    await client.shortCodes.update('x', 'x', 'relay_context');
+    await client.shortCodes.update('x');
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('relay-rest.update_short_code');
@@ -778,7 +888,7 @@ describe('relay-rest wire (generated)', () => {
 
   it('shortCodes_update error', async () => {
     await mock.pushScenario('relay-rest.update_short_code', 500, { error: 'x' });
-    await expect(client.shortCodes.update('x', 'x', 'relay_context')).rejects.toThrow(RestError);
+    await expect(client.shortCodes.update('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -896,7 +1006,7 @@ describe('relay-rest wire (generated)', () => {
   });
 
   it('verifiedCallers_update success', async () => {
-    await client.verifiedCallers.update('x', { name: 'x' });
+    await client.verifiedCallers.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('relay-rest.update_verified_caller_id');
@@ -904,7 +1014,7 @@ describe('relay-rest wire (generated)', () => {
 
   it('verifiedCallers_update error', async () => {
     await mock.pushScenario('relay-rest.update_verified_caller_id', 500, { error: 'x' });
-    await expect(client.verifiedCallers.update('x', { name: 'x' })).rejects.toThrow(RestError);
+    await expect(client.verifiedCallers.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

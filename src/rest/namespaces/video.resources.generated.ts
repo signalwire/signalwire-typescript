@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/video/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/video/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // One typed resource class per x-sdk-resource: CRUD bases bound to the
@@ -169,6 +169,19 @@ export class VideoRoomRecordings extends BaseResource {
       requestOptions,
     );
   }
+
+  /**
+   * Return the URL this endpoint redirects to (the `Location` of its redirect),
+   * without following it or downloading anything; fetch it with any HTTP client.
+   * @throws {RestError} For an error status.
+   */
+  async download(
+    id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<string> {
+    return this._http.getRedirectLocation(this._path(`${id}.mp4`), params, requestOptions);
+  }
 }
 
 export class VideoRoomSessions extends ReadResource<ListRoomSessionsResponse, RoomSessionSummary> {
@@ -223,9 +236,9 @@ export class VideoRoomTokens extends BaseResource {
     options?: {
       user_name?: string;
       permissions?: RoomTokenPermission[];
-      join_from?: string;
-      join_until?: string;
-      remove_at?: string;
+      join_from?: string | number;
+      join_until?: string | number;
+      remove_at?: string | number;
       remove_after_seconds_elapsed?: number;
       join_audio_muted?: boolean;
       join_video_muted?: boolean;
@@ -344,7 +357,7 @@ export class VideoStreams extends BaseResource {
 
   async update(
     id: string,
-    url: string,
+    url?: string,
     options?: { extras?: Record<string, unknown> },
     requestOptions?: RequestOptionsInit,
   ): Promise<Stream> {

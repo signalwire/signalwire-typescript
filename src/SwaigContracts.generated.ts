@@ -22,22 +22,22 @@ export interface SwaigArgument {
 }
 
 export interface SwaigRequest {
-  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2104-2107`). `true` = all SWML vars (`actions.c:2114`/`2108`); an array = only the listed var names (`actions.c:2132`/`2126`). */
   SWMLCall?: Record<string, unknown>;
-  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2097-2100`). `true` = all SWML vars (`actions.c:2107`/`2108`); an array = only the listed var names (`actions.c:2125`/`2126`). */
+  /** only if `swaig_post_swml_vars` is set **and** the `swml_serialized_state` channel var is present (`actions.c:2104-2107`). `true` = all SWML vars (`actions.c:2114`/`2108`); an array = only the listed var names (`actions.c:2132`/`2126`). */
   SWMLVars?: Record<string, unknown>;
   /** Always present. */
   ai_session_id?: string;
   /** Always present. */
   app_name?: string;
-  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these. */
+  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2205`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2213`); `input` is a shallow self-duplicate of the post_data (`actions.c:2218`). The webhook-URL path does not add these. */
   args?: string;
   argument?: SwaigArgument;
   /** Always present. */
   argument_desc?: Record<string, unknown>;
   /** Always present. */
   call_id?: string;
-  /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
+  /** only if `swaig_post_conversation` is set (`actions.c:2141`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2144`); `raw_call_log` is the full transcript (`actions.c:2146`). */
   call_log?: {
     content?: string;
     role?: string;
@@ -46,9 +46,9 @@ export interface SwaigRequest {
     /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
     tool_calls?: Record<string, unknown>;
   }[];
-  /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
+  /** only if the caller-ID channel vars are set (`actions.c:2338`/`2335`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. Any `{` or `}` in either is removed (see Global Data, "Caller ID is data"). */
   caller_id_name?: string;
-  /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
+  /** only if the caller-ID channel vars are set (`actions.c:2338`/`2335`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. Any `{` or `}` in either is removed (see Global Data, "Caller ID is data"). */
   caller_id_num?: string;
   /** Always present. */
   channel_active?: boolean;
@@ -60,27 +60,27 @@ export interface SwaigRequest {
   content_disposition?: 'SWAIG Function';
   /** Always present. */
   content_type?: 'text/swaig';
-  /** only if configured (`actions.c:2077`). */
+  /** only if configured (`actions.c:2084`). */
   conversation_id?: string;
   /** Always present. */
   description?: string;
-  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow". */
+  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2070-2072`). See CLAUDE.md "Fatal Error Recovery Flow". */
   error_reason?: string;
-  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow". */
+  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2070-2072`). See CLAUDE.md "Fatal Error Recovery Flow". */
   fatal_error?: boolean;
   /** Always present. */
   function?: string;
-  /** only if global data exists (`actions.c:2016`). */
+  /** only if global data exists (`actions.c:2023`). */
   global_data?: Record<string, unknown>;
-  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these. */
+  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2205`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2213`); `input` is a shallow self-duplicate of the post_data (`actions.c:2218`). The webhook-URL path does not add these. */
   input?: string;
-  /** only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none). */
+  /** only if the function has a `meta_data_token` (`actions.c:2092-2100`). `meta_data` is that token's metadata store (empty object if none). */
   meta_data?: Record<string, unknown>;
-  /** only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none). */
+  /** only if the function has a `meta_data_token` (`actions.c:2092-2100`). `meta_data` is that token's metadata store (empty object if none). */
   meta_data_token?: string;
-  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
+  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2047`/`2044`). */
   project_id?: string;
-  /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
+  /** only if `swaig_post_conversation` is set (`actions.c:2141`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2144`); `raw_call_log` is the full transcript (`actions.c:2146`). */
   raw_call_log?: {
     content?: string;
     role?: string;
@@ -89,7 +89,7 @@ export interface SwaigRequest {
     /** written by the engine as a copy of a value assembled elsewhere (cJSON_Duplicate), so this site fixes no type */
     tool_calls?: Record<string, unknown>;
   }[];
-  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
+  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2047`/`2044`). */
   space_id?: string;
   /** Always present. */
   version?: '2.0';
@@ -252,7 +252,7 @@ export interface PostPromptSystemLogEntry {
   role?: string;
   content?: string;
   timestamp?: number;
-  /** closed set of 28 values, from two producers: `ai_conversation_system_log` (8); `tl_make_entry` (21). Derived from the call sites, not hand-listed. */
+  /** closed set of 27 values, from two producers: `ai_conversation_system_log` (7); `tl_make_entry` (21). Derived from the call sites, not hand-listed. */
   action?:
     | 'attention_timeout'
     | 'attention_wait'
@@ -273,7 +273,6 @@ export interface PostPromptSystemLogEntry {
     | 'hangup_hook'
     | 'hearing_hint'
     | 'inner_dialog'
-    | 'inner_dialog_scorecard'
     | 'manual_say'
     | 'reset'
     | 'session_end'
@@ -305,21 +304,21 @@ export interface PostPromptSwaigLogEntry {
   command_name?: string;
   command_arg?: string;
   epoch_time?: number;
-  /** present and true for a NATIVE function, which has no SWAIG handle (actions.c:1954); absent otherwise */
+  /** present and true for a NATIVE function, which has no SWAIG handle (actions.c:2391); absent otherwise */
   native?: true;
-  /** the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:1968-1971), so it is absent whenever `native` is present. */
+  /** the function's remaining activation count, or "endless". Written only for a non-native function (actions.c:2406, :2408), so it is absent whenever `native` is present. */
   active_count?: number | 'endless';
   url?: string;
   post_data?: SwaigRequest;
-  /** the SWAIG webhook's response body, as returned (actions.c:2312). Mutually exclusive with delayed_post_response. */
+  /** the SWAIG webhook's response body, as returned (actions.c:2806). Mutually exclusive with delayed_post_response. */
   post_response?: SwaigResponse;
-  /** the SWAIG webhook's response body when it is held for post-processing instead of executed immediately (actions.c:2256). Mutually exclusive with post_response. */
+  /** the SWAIG webhook's response body when it is held for post-processing instead of executed immediately (actions.c:2750). Mutually exclusive with post_response. */
   delayed_post_response?: SwaigResponse;
   mcp_url?: string;
   mcp_tool?: string;
-  /** the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2158). Not parsed JSON. */
+  /** the MCP tool's raw result text, as returned by mcp_call_tool (actions.c:2614). Not parsed JSON. */
   mcp_response?: string;
-  /** present and true when the MCP tool returned no result (actions.c:2162); absent otherwise */
+  /** present and true when the MCP tool returned no result (actions.c:2618); absent otherwise */
   mcp_error?: true;
   [key: string]: unknown;
 }
@@ -360,7 +359,6 @@ export interface PostPromptTiming {
 export interface PostPromptStampsUs {
   speech_start?: number;
   last_word_end?: number;
-  suspected_end?: number;
   turn_decided?: number;
   status_pushed?: number;
   request_detect?: number;

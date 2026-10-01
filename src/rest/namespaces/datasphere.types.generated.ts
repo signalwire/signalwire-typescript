@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/datasphere/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/datasphere/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -142,7 +142,7 @@ export type DocumentStatus = 'submitted' | 'in_progress' | 'completed' | 'failed
 
 export interface DocumentUpdateRequest {
   /** Document tags. */
-  tags: string[];
+  tags?: string[];
 }
 
 /** The request contains invalid parameters. See errors for details. */

@@ -158,6 +158,7 @@ export interface CallingConnectParams {
     params: Record<string, unknown>;
     type: string;
   }[];
+  send_digits?: string;
   tag?: string;
   [key: string]: unknown;
 }
@@ -206,6 +207,7 @@ export interface CallingDialParams {
   max_price_per_minute?: number | null;
   node_id?: string;
   region?: string;
+  send_digits?: string;
   tag?: string;
   [key: string]: unknown;
 }
@@ -1324,4 +1326,62 @@ export interface SignalwireReauthenticateResult {
   ice_servers?: Record<string, unknown>[];
   result?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+export interface VertoAnswerResult {
+  message?: 'CALL DOES NOT EXIST' | 'CODEC ERROR' | 'MEDIA ERROR';
+}
+
+export type VertoAttachResult = Record<string, never>;
+
+export interface VertoBroadcastResult {
+  code?: -32002;
+  message?: string;
+  sessid?: string;
+}
+
+export interface VertoByeResult {
+  callID?: string;
+  cause?: string;
+  causeCode?: number;
+  message?: 'CALL DOES NOT EXIST' | 'CALL ENDED' | 'Permission Denied.';
+}
+
+export interface VertoInfoResult {
+  message?: 'SENT' | 'Unknown call method';
+  [key: string]: unknown;
+}
+
+export interface VertoInviteResult {
+  callID?: string;
+  memberID?: string;
+  message?: string;
+}
+
+export interface VertoModifyResult {
+  action?: string;
+  callID?: string;
+  holdState?: 'active' | 'held';
+  message?:
+    | 'CALL DOES NOT EXIST'
+    | 'CALL TRANSFERRED'
+    | 'CODEC NEGOTIATION ERROR'
+    | 'Cannot update a call that has not been answered.'
+    | 'MEDIA ERROR'
+    | 'Permission Denied.'
+    | 'SDP missing'
+    | 'call is not bridged'
+    | 'destination missing'
+    | 'invalid transfer leg'
+    | 'replaceCallID missing'
+    | 'transfer failed';
+  sdp?: string;
+}
+
+export type VertoPongResult = Record<string, never>;
+
+export interface VertoSubscribeResult {
+  alreadySubscribedChannels?: string[];
+  subscribedChannels?: string[];
+  unauthorizedChannels?: string[];
 }

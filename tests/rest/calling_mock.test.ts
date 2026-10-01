@@ -263,7 +263,11 @@ describe('Calling detect', () => {
 
 describe('Calling tap', () => {
   it('test_tap', async () => {
-    const body = await client.calling.tap('call-1', { type: 'audio' }, { type: 'rtp' });
+    const tap = { type: 'audio' as const, params: { direction: 'both' as const } };
+    const body = await client.calling.tap('call-1', tap, {
+      type: 'rtp',
+      params: { addr: '203.0.113.10', port: 1234 },
+    });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -272,7 +276,7 @@ describe('Calling tap', () => {
     expect(last.path).toBe(CALLS_PATH);
     expect(wireBody.command).toBe('calling.tap');
     expect(wireBody.id).toBe('call-1');
-    expect((wireBody.params as WireBody).tap).toEqual({ type: 'audio' });
+    expect((wireBody.params as WireBody).tap).toEqual(tap);
   });
 
   it('test_tap_stop', async () => {
@@ -492,13 +496,10 @@ describe('Calling fax', () => {
 
 describe('Calling misc (refer / user_event)', () => {
   it('test_refer', async () => {
-    const body = await client.calling.refer(
-      'call-1',
-      {},
-      {
-        extras: { to: 'sip:other@example.com' },
-      },
-    );
+    const body = await client.calling.refer('call-1', {
+      type: 'sip',
+      params: { to: 'sip:other@example.com' },
+    });
     expect(typeof body).toBe('object');
     expect('id' in body).toBe(true);
     const last = await mock.last();
@@ -507,7 +508,10 @@ describe('Calling misc (refer / user_event)', () => {
     expect(last.path).toBe(CALLS_PATH);
     expect(wireBody.command).toBe('calling.refer');
     expect(wireBody.id).toBe('call-1');
-    expect((wireBody.params as WireBody).to).toBe('sip:other@example.com');
+    expect((wireBody.params as WireBody).device).toEqual({
+      type: 'sip',
+      params: { to: 'sip:other@example.com' },
+    });
   });
 
   it('test_user_event', async () => {
@@ -531,5 +535,45 @@ describe('Calling misc (refer / user_event)', () => {
     expect(wireBody.id).toBe('call-1');
     expect((wireBody.params as WireBody).event_name).toBe('my-event');
     expect((wireBody.params as WireBody).payload).toEqual({ foo: 'bar' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec markup the generator honours: x-sdk-autofill (control_id),
+// x-sdk-compat-kwargs (record audio), and the published positional shape.
+// ---------------------------------------------------------------------------
+
+describe('Calling generator markup', () => {
+  it('test_play_autofills_control_id', async () => {
+    await client.calling.play('call-1', [{ type: 'tts', params: { text: 'hi' } }]);
+    const params = (await mock.lastBody()).params as WireBody;
+    expect(typeof params.control_id).toBe('string');
+    expect((params.control_id as string).length).toBeGreaterThan(0);
+  });
+
+  it('test_play_keeps_caller_control_id', async () => {
+    await client.calling.play('call-1', [{ type: 'silence', params: { duration: 1 } }], {
+      control_id: 'mine',
+    });
+    expect(((await mock.lastBody()).params as WireBody).control_id).toBe('mine');
+  });
+
+  it('test_record_audio_compat_kwarg_nests_under_record', async () => {
+    await client.calling.record('call-1', { audio: { format: 'wav', beep: true } });
+    const params = (await mock.lastBody()).params as WireBody;
+    expect(params.record).toEqual({ audio: { format: 'wav', beep: true } });
+    expect(params.audio).toBeUndefined();
+  });
+
+  it('test_dial_published_positional_to', async () => {
+    await client.calling.dial('+15550000001', '+15550000002', { url: 'https://example.com/swml' });
+    const params = (await mock.lastBody()).params as WireBody;
+    expect(params.from).toBe('+15550000001');
+    expect(params.to).toBe('+15550000002');
+  });
+
+  it('test_ai_stop_published_positional_control_id', async () => {
+    await client.calling.aiStop('call-1', 'ai-1');
+    expect(((await mock.lastBody()).params as WireBody).control_id).toBe('ai-1');
   });
 });
