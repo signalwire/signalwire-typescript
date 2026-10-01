@@ -30,6 +30,8 @@ The constructor accepts these options:
 The constructor throws an `Error` when `host` is missing, or when neither a complete `project` + `token` pair nor a `personalAccessToken` is given (each from its option or its environment variable). Project resources authenticate with HTTP Basic Auth `project:token`; `client.space` authenticates with the Personal Access Token (HTTP Basic with an empty username). Either credential, or both, may be given: calling a resource whose credential the client was not given rejects with an `Error` naming it, before any request is sent.
 
 ```typescript
+import { RestClient } from '@signalwire/sdk';
+
 const admin = new RestClient({
   personalAccessToken: 'pat_...', // SIGNALWIRE_PERSONAL_ACCESS_TOKEN
   host: 'example.signalwire.com',

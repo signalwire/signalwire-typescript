@@ -206,7 +206,6 @@ const found = await client.registry.brands.get('brand-uuid');
 const campaigns = await client.registry.brands.listCampaigns('brand-uuid');
 const campaign = await client.registry.brands.createCampaign('brand-uuid', {
   name: 'Alerts',
-  brand_id: 'brand-uuid',
   csp_campaign_reference: 'CAMP123',
 });
 

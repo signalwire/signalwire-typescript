@@ -450,8 +450,9 @@ function splitTopUnion(t: string): string[] {
 export function tsType(schema: Schema | undefined, indent = 0): string {
   if (!schema) return 'unknown';
   // The empty schema `{}` admits ANY value (the reference's py_type -> `Any`),
-  // not just an object.
-  if (Object.keys(schema).length === 0) return 'unknown';
+  // not just an object. SWML-scoped (like the scalar allOf intersection): the
+  // REST/RELAY/platform types keep their published `Record<string, unknown>`.
+  if (_kindDefs !== null && Object.keys(schema).length === 0) return 'unknown';
 
   // Field-markup overrides (the SWML schema's formulaic-enrichment vocabulary,
   // mirrored from the Python generator's py_type). REST specs never set these.

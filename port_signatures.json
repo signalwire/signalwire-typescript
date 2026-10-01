@@ -21837,7 +21837,7 @@
                 },
                 {
                   "name": "hints",
-                  "type": "optional<list<any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31506,14 +31506,14 @@
                 },
                 {
                   "name": "room_meta",
-                  "type": "optional<dict<string,any>>",
+                  "type": "optional<dict<string,dict<string,any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "meta",
-                  "type": "optional<dict<string,any>>",
+                  "type": "optional<dict<string,dict<string,any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -33520,7 +33520,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "any"
+              "returns": "dict<string,any>"
             }
           }
         },

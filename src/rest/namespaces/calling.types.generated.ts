@@ -26,8 +26,8 @@ export interface AIObject {
         argument?: FunctionParameters;
         data_map?: DataMap;
         fillers?: {
-          default?: unknown;
-          auto?: unknown;
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
         };
         function?: string;
         meta_data?: Record<string, unknown>;
@@ -59,14 +59,14 @@ export interface AIObject {
     fillers?:
       | unknown[]
       | {
-          default?: unknown;
-          auto?: unknown;
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
         };
     function_fillers?:
       | unknown[]
       | {
-          default?: unknown;
-          auto?: unknown;
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
         };
     languages?: unknown[];
     min_switch_words?: number;
@@ -76,7 +76,7 @@ export interface AIObject {
     turn_fillers?:
       | unknown[]
       | {
-          default?: unknown;
+          default?: Record<string, unknown>;
         };
   };
   params?: AIParams;
@@ -98,8 +98,8 @@ export interface AIObject {
         argument?: FunctionParameters;
         data_map?: DataMap;
         fillers?: {
-          default?: unknown;
-          auto?: unknown;
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
         };
         function?: string;
         meta_data?: Record<string, unknown>;
@@ -126,14 +126,14 @@ export interface AIObject {
         fillers?:
           | unknown[]
           | {
-              default?: unknown;
-              auto?: unknown;
+              default?: Record<string, unknown>;
+              auto?: Record<string, unknown>;
             };
         function_fillers?:
           | unknown[]
           | {
-              default?: unknown;
-              auto?: unknown;
+              default?: Record<string, unknown>;
+              auto?: Record<string, unknown>;
             };
         languages?: unknown[];
         min_switch_words?: number;
@@ -143,7 +143,7 @@ export interface AIObject {
         turn_fillers?:
           | unknown[]
           | {
-              default?: unknown;
+              default?: Record<string, unknown>;
             };
       }
     | AIParams
@@ -383,12 +383,12 @@ export interface AIParams {
 
 /** The final set of instructions and configuration settings to send to the agent. */
 export interface AIPostPrompt {
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
   pom?: POM[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   temperature?: number;
   text?: string;
@@ -398,12 +398,12 @@ export interface AIPostPrompt {
 
 /** The final set of instructions and configuration settings to send to the agent. */
 export interface AIPostPromptPom {
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
   pom?: POM[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   temperature?: number;
   text?: string;
@@ -413,12 +413,12 @@ export interface AIPostPromptPom {
 
 /** The final set of instructions and configuration settings to send to the agent. */
 export interface AIPostPromptText {
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
   pom?: POM[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   temperature?: number;
   text?: string;
@@ -429,7 +429,7 @@ export interface AIPostPromptText {
 /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
 export interface AIPrompt {
   contexts?: Contexts;
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
@@ -441,7 +441,7 @@ export interface AIPrompt {
     numberedBullets?: boolean;
     subsections?: unknown[];
   }[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   steps?: Step[];
   temperature?: number;
@@ -453,7 +453,7 @@ export interface AIPrompt {
 /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
 export interface AIPromptPom {
   contexts?: Contexts;
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
@@ -465,7 +465,7 @@ export interface AIPromptPom {
     numberedBullets?: boolean;
     subsections?: unknown[];
   }[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   steps?: Step[];
   temperature?: number;
@@ -477,7 +477,7 @@ export interface AIPromptPom {
 /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
 export interface AIPromptText {
   contexts?: Contexts;
-  frequency_penalty?: unknown;
+  frequency_penalty?: Record<string, unknown>;
   max_completion_tokens?: number;
   max_tokens?: number;
   model?: string;
@@ -489,7 +489,7 @@ export interface AIPromptText {
     numberedBullets?: boolean;
     subsections?: unknown[];
   }[];
-  presence_penalty?: unknown;
+  presence_penalty?: Record<string, unknown>;
   reasoning_effort?: string;
   steps?: Step[];
   temperature?: number;
@@ -515,7 +515,7 @@ export interface Action {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -694,7 +694,7 @@ export interface ArrayProperty {
   /** The type of parameter(s) the AI is passing to the function. */
   type: 'array';
   /** The default array value */
-  default?: unknown[];
+  default?: Record<string, unknown>[];
   /** Schema for array items */
   items: SchemaType;
 }
@@ -973,26 +973,26 @@ export interface CallLeg {
   type: 'relay_pstn_call' | 'relay_sip_call' | 'relay_webrtc_call';
   /** Media quality metrics reported for the call once it has ended. `null` until metrics are available (always `null` in the response to a new dial). */
   qos_metrics?: {
-    audio_in_media_packet_count?: unknown;
-    audio_in_dtmf_packet_count?: unknown;
-    audio_in_flaw_total?: unknown;
-    audio_in_quality_percentage?: unknown;
-    audio_in_mean_interval?: unknown;
-    audio_out_media_packet_count?: unknown;
-    audio_in_skip_packet_count?: unknown;
-    audio_in_flush_packet_count?: unknown;
-    audio_in_largest_jb_size?: unknown;
-    audio_in_jitter_min_variance?: unknown;
-    audio_in_jitter_max_variance?: unknown;
-    audio_out_dtmf_packet_count?: unknown;
-    audio_rtt_avg?: unknown;
-    audio_rtt_min?: unknown;
-    audio_rtt_max?: unknown;
-    audio_out_jitter_min?: unknown;
-    audio_out_jitter_max?: unknown;
-    audio_out_jitter_avg?: unknown;
-    audio_out_lost?: unknown;
-    audio_in_mos?: unknown;
+    audio_in_media_packet_count?: Record<string, unknown>;
+    audio_in_dtmf_packet_count?: Record<string, unknown>;
+    audio_in_flaw_total?: Record<string, unknown>;
+    audio_in_quality_percentage?: Record<string, unknown>;
+    audio_in_mean_interval?: Record<string, unknown>;
+    audio_out_media_packet_count?: Record<string, unknown>;
+    audio_in_skip_packet_count?: Record<string, unknown>;
+    audio_in_flush_packet_count?: Record<string, unknown>;
+    audio_in_largest_jb_size?: Record<string, unknown>;
+    audio_in_jitter_min_variance?: Record<string, unknown>;
+    audio_in_jitter_max_variance?: Record<string, unknown>;
+    audio_out_dtmf_packet_count?: Record<string, unknown>;
+    audio_rtt_avg?: Record<string, unknown>;
+    audio_rtt_min?: Record<string, unknown>;
+    audio_rtt_max?: Record<string, unknown>;
+    audio_out_jitter_min?: Record<string, unknown>;
+    audio_out_jitter_max?: Record<string, unknown>;
+    audio_out_jitter_avg?: Record<string, unknown>;
+    audio_out_lost?: Record<string, unknown>;
+    audio_in_mos?: Record<string, unknown>;
   } | null;
   /** The parent call ID if this is a child call. */
   parent_id: uuid | null;
@@ -1028,7 +1028,7 @@ export interface CallLiveTranscribeRequest {
             verbose_utterances?: boolean;
             webhook?: string;
           };
-          stop?: unknown;
+          stop?: Record<string, unknown>;
           summarize?: {
             ai_model?: string;
             prompt?: string;
@@ -1036,7 +1036,7 @@ export interface CallLiveTranscribeRequest {
             webhook?: string;
           };
         };
-    hints?: unknown[];
+    hints?: Record<string, unknown>[];
   };
 }
 
@@ -1083,7 +1083,7 @@ export interface CallLiveTranslateRequest {
             vad_thresh?: number;
             webhook?: string;
           };
-          stop?: unknown;
+          stop?: Record<string, unknown>;
           summarize?: {
             prompt?: string;
             summary_prompt?: string;
@@ -1765,7 +1765,7 @@ export interface ChangeContextAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -1844,7 +1844,7 @@ export interface ChangeStepAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -1970,8 +1970,8 @@ export interface ConnectSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       };
   /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
   case?: Record<
@@ -1979,8 +1979,8 @@ export interface ConnectSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
   >;
   /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
@@ -1990,16 +1990,16 @@ export interface ConnectSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
     | Record<
         string,
         | SWMLMethod[]
         | {
             code: Record<string, unknown>;
-            meta?: unknown;
-            [key: string]: Record<string, unknown> | unknown | undefined;
+            meta?: Record<string, unknown>;
+            [key: string]: Record<string, unknown> | undefined;
           }
       >
     | string
@@ -2050,7 +2050,7 @@ export interface ContextSwitchAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -2325,8 +2325,8 @@ export interface Execute {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             };
         /** Parameters accessible as `params.*` in the called section. Replaces (does not merge with) any outer `params` from the caller. */
         params?: Record<string, unknown> | SWMLVar;
@@ -2346,8 +2346,8 @@ export interface Execute {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
           | Record<string, unknown>
           | SWMLVar
@@ -2375,8 +2375,8 @@ export interface Execute {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             };
         /** Parameters accessible as `params.*` in the called section. Replaces (does not merge with) any outer `params` from the caller. */
         params?: Record<string, unknown> | SWMLVar;
@@ -2396,8 +2396,8 @@ export interface Execute {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
           | Record<string, unknown>
           | SWMLVar
@@ -2422,8 +2422,8 @@ export interface ExecuteSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       };
   /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
   case?: Record<
@@ -2431,8 +2431,8 @@ export interface ExecuteSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
   >;
   /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
@@ -2442,16 +2442,16 @@ export interface ExecuteSwitch {
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
     | Record<
         string,
         | SWMLMethod[]
         | {
             code: Record<string, unknown>;
-            meta?: unknown;
-            [key: string]: Record<string, unknown> | unknown | undefined;
+            meta?: Record<string, unknown>;
+            [key: string]: Record<string, unknown> | undefined;
           }
       >
     | string
@@ -2495,8 +2495,8 @@ export interface FabricDeviceLeg {
 }
 
 export interface FunctionFillers {
-  default?: unknown;
-  auto?: unknown;
+  default?: Record<string, unknown>;
+  auto?: Record<string, unknown>;
 }
 
 /** A JSON Schema (draft 2020-12) that may also carry `example`, `nullable`, `propertyOrdering`: the value is forwarded verbatim to whichever model API the session resolves to, and those receivers do not accept one vocabulary, so a schema here must be able to express their UNION (vocabulary_union). The engine does not inspect it. */
@@ -2512,7 +2512,7 @@ export interface FunctionParameters {
     | 'object'
     | 'string'
     | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
-  const?: unknown;
+  const?: Record<string, unknown>;
   enum?: unknown[];
   format?: string;
   pattern?: string;
@@ -2526,7 +2526,7 @@ export interface FunctionParameters {
   maxItems?: number;
   minProperties?: number;
   maxProperties?: number;
-  default?: unknown;
+  default?: Record<string, unknown>;
   examples?: unknown[];
   deprecated?: boolean;
   nullable?: boolean;
@@ -2545,7 +2545,7 @@ export interface FunctionParameters {
   dependentRequired?: Record<string, string[]>;
   dependentSchemas?: Record<string, FunctionParameters | boolean>;
   else?: FunctionParameters | boolean;
-  example?: unknown;
+  example?: Record<string, unknown>;
   if?: FunctionParameters | boolean;
   maxContains?: number;
   minContains?: number;
@@ -2670,7 +2670,7 @@ export interface HangupAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -2759,7 +2759,7 @@ export interface HoldAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -2870,8 +2870,8 @@ export interface JoinConferenceObject {
   max_participants?: number | SWMLVar;
   meta?:
     | {
-        private?: unknown;
-        public?: unknown;
+        private?: Record<string, unknown>;
+        public?: Record<string, unknown>;
       }
     | SWMLVar;
   min_participants?: number | SWMLVar;
@@ -2925,8 +2925,8 @@ export interface JoinConferenceObject {
     | number
     | SWMLVar
     | {
-        private?: unknown;
-        public?: unknown;
+        private?: Record<string, unknown>;
+        public?: Record<string, unknown>;
       }
     | SWMLVar
     | 'do-not-record'
@@ -3097,7 +3097,7 @@ export interface LiveTranscribe {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     ai_model?: string | SWMLVar;
@@ -3143,7 +3143,7 @@ export interface LiveTranscribe {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     ai_model?: string | SWMLVar;
@@ -3196,7 +3196,7 @@ export interface LiveTranscribe {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     ai_model?: string | SWMLVar;
@@ -3242,7 +3242,7 @@ export interface LiveTranscribe {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     ai_model?: string | SWMLVar;
@@ -3353,7 +3353,7 @@ export interface LiveTranslate {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     prompt?: string | SWMLVar;
@@ -3400,7 +3400,7 @@ export interface LiveTranslate {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     prompt?: string | SWMLVar;
@@ -3455,7 +3455,7 @@ export interface LiveTranslate {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     prompt?: string | SWMLVar;
@@ -3502,7 +3502,7 @@ export interface LiveTranslate {
                     webhook?: string | SWMLVar;
                   }
                 | SWMLVar;
-              stop?: unknown;
+              stop?: Record<string, unknown>;
               summarize?:
                 | {
                     prompt?: string | SWMLVar;
@@ -3610,7 +3610,7 @@ export interface ObjectProperty {
   /** The type of parameter(s) the AI is passing to the function. */
   type: 'object';
   /** The default object value */
-  default?: Record<string, unknown>;
+  default?: Record<string, Record<string, unknown>>;
   /** Nested properties */
   properties?: Record<string, SchemaType>;
   /** Required property names */
@@ -3709,7 +3709,7 @@ export interface Pay {
           | SWMLVar
           | undefined;
       }
-    | (unknown | 'dtmf' | 'voice' | SWMLVar)[]
+    | (Record<string, unknown> | 'dtmf' | 'voice' | SWMLVar)[]
     | number
     | string;
   [key: string]:
@@ -3777,7 +3777,7 @@ export interface Pay {
           | SWMLVar
           | undefined;
       }
-    | (unknown | 'dtmf' | 'voice' | SWMLVar)[]
+    | (Record<string, unknown> | 'dtmf' | 'voice' | SWMLVar)[]
     | number
     | string;
 }
@@ -3940,7 +3940,7 @@ export interface PlaybackBGAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -4360,7 +4360,7 @@ export interface Request {
   request:
     | {
         /** Request body. Objects are JSON-encoded automatically. */
-        body?: Record<string, unknown> | unknown[] | string | number | boolean;
+        body?: Record<string, unknown> | Record<string, unknown>[] | string | number | boolean;
         /** Maximum time in seconds to wait for a connection. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
         connect_timeout?: number | SWMLVar;
         /** HTTP headers to include with the request, as a map of header name to value. Each value must be a string. */
@@ -4376,7 +4376,7 @@ export interface Request {
         [key: string]:
           | Record<string, unknown>
           | Record<string, unknown>
-          | unknown[]
+          | Record<string, unknown>[]
           | string
           | number
           | boolean
@@ -4404,7 +4404,7 @@ export interface Request {
     | Record<string, unknown>
     | {
         /** Request body. Objects are JSON-encoded automatically. */
-        body?: Record<string, unknown> | unknown[] | string | number | boolean;
+        body?: Record<string, unknown> | Record<string, unknown>[] | string | number | boolean;
         /** Maximum time in seconds to wait for a connection. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
         connect_timeout?: number | SWMLVar;
         /** HTTP headers to include with the request, as a map of header name to value. Each value must be a string. */
@@ -4420,7 +4420,7 @@ export interface Request {
         [key: string]:
           | Record<string, unknown>
           | Record<string, unknown>
-          | unknown[]
+          | Record<string, unknown>[]
           | string
           | number
           | boolean
@@ -4518,8 +4518,8 @@ export interface SWAIG {
     argument?: FunctionParameters;
     data_map?: DataMap;
     fillers?: {
-      default?: unknown;
-      auto?: unknown;
+      default?: Record<string, unknown>;
+      auto?: Record<string, unknown>;
     };
     function?: string;
     meta_data?: Record<string, unknown>;
@@ -4547,7 +4547,7 @@ export interface SWAIG {
 }
 
 export interface SWAIGDefaults {
-  meta_data?: unknown;
+  meta_data?: Record<string, unknown>;
   meta_data_token?: string;
   web_hook_auth_pass?: string;
   web_hook_auth_password?: string;
@@ -4588,40 +4588,40 @@ export interface SWAIGIncludes {
 
 export interface SWAIGInternalFiller {
   adjust_response_latency?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   change_context?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   check_time?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   get_ideal_strategy?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   get_visual_input?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   next_step?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   pause_conversation?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   wait_for_user?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
   wait_seconds?: {
-    default?: unknown;
-    auto?: unknown;
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
   };
 }
 
@@ -4644,7 +4644,7 @@ export interface SWMLAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -4784,7 +4784,7 @@ export interface SayAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -4950,7 +4950,7 @@ export interface SetGlobalDataAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5029,7 +5029,7 @@ export interface SetMetaDataAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5194,7 +5194,7 @@ export interface StopAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5292,7 +5292,7 @@ export interface StopPlaybackBGAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5382,22 +5382,22 @@ export interface StopTap {
   stop_tap:
     | {
         /** ID of the tap to stop. */
-        control_id?: unknown | SWMLVar;
-        [key: string]: Record<string, unknown> | unknown | SWMLVar | undefined;
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
       }
-    | (unknown | SWMLVar)[]
+    | (Record<string, unknown> | SWMLVar)[]
     | number
-    | (string & (unknown | SWMLVar));
+    | (string & (Record<string, unknown> | SWMLVar));
   [key: string]:
     | Record<string, unknown>
     | {
         /** ID of the tap to stop. */
-        control_id?: unknown | SWMLVar;
-        [key: string]: Record<string, unknown> | unknown | SWMLVar | undefined;
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
       }
-    | (unknown | SWMLVar)[]
+    | (Record<string, unknown> | SWMLVar)[]
     | number
-    | (string & (unknown | SWMLVar));
+    | (string & (Record<string, unknown> | SWMLVar));
 }
 
 export type StringFormat =
@@ -5473,8 +5473,8 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             };
         /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
         case?: Record<
@@ -5482,8 +5482,8 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
         >;
         /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
@@ -5493,16 +5493,16 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
           | Record<
               string,
               | SWMLMethod[]
               | {
                   code: Record<string, unknown>;
-                  meta?: unknown;
-                  [key: string]: Record<string, unknown> | unknown | undefined;
+                  meta?: Record<string, unknown>;
+                  [key: string]: Record<string, unknown> | undefined;
                 }
             >
           | string
@@ -5520,8 +5520,8 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             };
         /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
         case?: Record<
@@ -5529,8 +5529,8 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
         >;
         /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
@@ -5540,16 +5540,16 @@ export interface Switch {
           | SWMLMethod[]
           | {
               code: Record<string, unknown>;
-              meta?: unknown;
-              [key: string]: Record<string, unknown> | unknown | undefined;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
             }
           | Record<
               string,
               | SWMLMethod[]
               | {
                   code: Record<string, unknown>;
-                  meta?: unknown;
-                  [key: string]: Record<string, unknown> | unknown | undefined;
+                  meta?: Record<string, unknown>;
+                  [key: string]: Record<string, unknown> | undefined;
                 }
             >
           | string
@@ -5568,7 +5568,7 @@ export interface Tap {
         /** Codec to use for the tap media stream. */
         codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | SWMLVar;
         /** Identifier for this tap to use with `stop_tap`. */
-        control_id?: unknown | SWMLVar;
+        control_id?: Record<string, unknown> | SWMLVar;
         /** Direction of the audio to tap: */
         direction?: 'listen' | 'speak' | 'both' | SWMLVar;
         /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
@@ -5584,7 +5584,7 @@ export interface Tap {
           | 'pcma'
           | 'pcmu'
           | SWMLVar
-          | unknown
+          | Record<string, unknown>
           | SWMLVar
           | 'listen'
           | 'speak'
@@ -5605,7 +5605,7 @@ export interface Tap {
         /** Codec to use for the tap media stream. */
         codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | SWMLVar;
         /** Identifier for this tap to use with `stop_tap`. */
-        control_id?: unknown | SWMLVar;
+        control_id?: Record<string, unknown> | SWMLVar;
         /** Direction of the audio to tap: */
         direction?: 'listen' | 'speak' | 'both' | SWMLVar;
         /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
@@ -5621,7 +5621,7 @@ export interface Tap {
           | 'pcma'
           | 'pcmu'
           | SWMLVar
-          | unknown
+          | Record<string, unknown>
           | SWMLVar
           | 'listen'
           | 'speak'
@@ -5655,7 +5655,7 @@ export interface ToggleFunctionsAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5868,7 +5868,7 @@ export interface UnsetGlobalDataAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -5947,7 +5947,7 @@ export interface UnsetMetaDataAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -6047,7 +6047,7 @@ export interface UserInputAction {
   change_voice?:
     | string
     | {
-        voice?: unknown;
+        voice?: Record<string, unknown>;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -6207,7 +6207,7 @@ export interface Stream {
         /** Codec to use for the streamed audio. Freeform and endpoint-specific. */
         codec?: string | SWMLVar;
         /** Identifier for this stream to use with `stop_stream`. If not set, one is generated and stored in the `stream_control_id` variable. */
-        control_id?: unknown | SWMLVar;
+        control_id?: Record<string, unknown> | SWMLVar;
         /** Custom key-value pairs sent to the WebSocket endpoint in the start message. */
         custom_parameters?: Record<string, unknown>;
         /** Friendly name for the stream. */
@@ -6224,7 +6224,7 @@ export interface Stream {
           | Record<string, unknown>
           | string
           | SWMLVar
-          | unknown
+          | Record<string, unknown>
           | SWMLVar
           | 'GET'
           | 'POST'
@@ -6246,7 +6246,7 @@ export interface Stream {
         /** Codec to use for the streamed audio. Freeform and endpoint-specific. */
         codec?: string | SWMLVar;
         /** Identifier for this stream to use with `stop_stream`. If not set, one is generated and stored in the `stream_control_id` variable. */
-        control_id?: unknown | SWMLVar;
+        control_id?: Record<string, unknown> | SWMLVar;
         /** Custom key-value pairs sent to the WebSocket endpoint in the start message. */
         custom_parameters?: Record<string, unknown>;
         /** Friendly name for the stream. */
@@ -6263,7 +6263,7 @@ export interface Stream {
           | Record<string, unknown>
           | string
           | SWMLVar
-          | unknown
+          | Record<string, unknown>
           | SWMLVar
           | 'GET'
           | 'POST'
@@ -6284,22 +6284,22 @@ export interface StopStream {
   stop_stream:
     | {
         /** ID of the stream to stop. */
-        control_id?: unknown | SWMLVar;
-        [key: string]: Record<string, unknown> | unknown | SWMLVar | undefined;
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
       }
-    | (unknown | SWMLVar)[]
+    | (Record<string, unknown> | SWMLVar)[]
     | number
-    | (string & (unknown | SWMLVar));
+    | (string & (Record<string, unknown> | SWMLVar));
   [key: string]:
     | Record<string, unknown>
     | {
         /** ID of the stream to stop. */
-        control_id?: unknown | SWMLVar;
-        [key: string]: Record<string, unknown> | unknown | SWMLVar | undefined;
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
       }
-    | (unknown | SWMLVar)[]
+    | (Record<string, unknown> | SWMLVar)[]
     | number
-    | (string & (unknown | SWMLVar));
+    | (string & (Record<string, unknown> | SWMLVar));
 }
 
 export interface Step {
@@ -6416,7 +6416,7 @@ export interface JsonSchema {
     | 'object'
     | 'string'
     | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
-  const?: unknown;
+  const?: Record<string, unknown>;
   enum?: unknown[];
   format?: string;
   pattern?: string;
@@ -6430,7 +6430,7 @@ export interface JsonSchema {
   maxItems?: number;
   minProperties?: number;
   maxProperties?: number;
-  default?: unknown;
+  default?: Record<string, unknown>;
   examples?: unknown[];
   deprecated?: boolean;
   properties?: Record<string, JsonSchema | boolean>;
@@ -6556,14 +6556,14 @@ export interface ConnectDevice {
   call_state_events?: string[] | SWMLVar;
   call_state_url?: string | SWMLVar;
   codec?: string | SWMLVar;
-  codecs?: string | unknown[];
+  codecs?: string | Record<string, unknown>[];
   confirm?:
     | string
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
     | SWMLVar;
   confirm_timeout?: number | SWMLVar;
@@ -6589,13 +6589,13 @@ export interface ConnectDevice {
     | string[]
     | SWMLVar
     | string
-    | unknown[]
+    | Record<string, unknown>[]
     | string
     | SWMLMethod[]
     | {
         code: Record<string, unknown>;
-        meta?: unknown;
-        [key: string]: Record<string, unknown> | unknown | undefined;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
       }
     | SWMLVar
     | number
@@ -6632,7 +6632,7 @@ export interface ClearDigitBindings {
 export interface CallDeviceStream {
   authorization_bearer_token?: string | SWMLVar;
   codec?: string | SWMLVar;
-  custom_parameters?: unknown;
+  custom_parameters?: Record<string, unknown>;
   name?: string | SWMLVar;
   realtime?: boolean | SWMLVar;
   status_url?: string | SWMLVar;
@@ -6642,7 +6642,6 @@ export interface CallDeviceStream {
     | Record<string, unknown>
     | string
     | SWMLVar
-    | unknown
     | boolean
     | SWMLVar
     | 'GET'
@@ -7001,9 +7000,9 @@ export interface AiSidecar {
 }
 
 export interface RelayIsReset {
-  full_reset?: unknown;
-  system_prompt?: unknown;
-  user_prompt?: unknown;
+  full_reset?: Record<string, unknown>;
+  system_prompt?: Record<string, unknown>;
+  user_prompt?: Record<string, unknown>;
 }
 
 export type RelayCallPlayInner =

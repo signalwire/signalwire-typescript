@@ -113,7 +113,7 @@ cXML applications support list, get, update and delete. The class has no `create
 ```typescript
 const apps = await client.fabric.cxmlApplications.list();
 const app = await client.fabric.cxmlApplications.get('app-uuid');
-await client.fabric.cxmlApplications.update('app-uuid', { voice_url: 'https://example.com/voice' });
+await client.fabric.cxmlApplications.update('app-uuid', { call_request_url: 'https://example.com/voice' });
 await client.fabric.cxmlApplications.delete('app-uuid');
 ```
 
