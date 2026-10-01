@@ -88,11 +88,13 @@ describe('BedrockAgent prompt', () => {
     expect(result.errors).toEqual([]);
   });
 
-  it('fails schema validation with a voice Bedrock does not offer', () => {
+  it('passes schema validation with a voice outside the known list', () => {
+    // The engine-derived schema lists Bedrock's known voices but marks an
+    // unlisted voice_id as ignored, not rejected, so validation accepts it.
     const agent = new BedrockAgent({ voiceId: 'inworld.Mark' });
     agent.setPromptText('You are a helpful assistant.');
     const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
-    expect(result.errors[0]).toContain('voice_id must be one of');
+    expect(result).toEqual({ valid: true, errors: [] });
   });
 });
 
