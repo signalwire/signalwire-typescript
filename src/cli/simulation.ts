@@ -445,6 +445,12 @@ const PLATFORM_VARIABLES = [
   'SWML_PROXY_URL_BASE',
 ];
 
+/**
+ * Simulates a serverless platform's environment for swaig-test: sets the
+ * platform's preset variables (plus any overrides) while active, clears the
+ * other platforms' variables so detection picks this one, and restores the
+ * original environment afterwards.
+ */
 export class ServerlessSimulator {
   private snapshot: NodeJS.ProcessEnv | null = null;
 
