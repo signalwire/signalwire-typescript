@@ -1,8 +1,14 @@
 # VERSION FREEZE — TEMPORARY. DELETE THIS FILE BEFORE RELEASING.
 #
-# Ruled by the owner 2026-07-28. This port declares version 3.0.0, and its SemVer
-# release floor (port_signatures.baseline.json -> baseline_version) is pinned at
-# 3.0.0 with the recorded surface payload overwritten to match today's surface.
+# Ruled by the owner 2026-07-28. Its SemVer release floor
+# (port_signatures.baseline.json -> baseline_version) is pinned at 3.0.0 with the
+# recorded surface payload overwritten to match the 3.0.0-wave surface.
+#
+# UPDATED 2026-10-01 (owner): this port now declares 3.5.0, matching main, where
+# v3.5.0 IS published (tag v3.5.0 on main) -- the wave6 branch took main's version
+# when main was merged in. The freeze STAYS until the wave6 work has landed on
+# main: do not bump past 3.5.0 and do not re-anchor the floor until then. At that
+# point follow the checklist below, re-anchoring at the real released tag.
 #
 # THIS FILE IS DOCUMENTATION ONLY (owner ruling, 2026-07-28). No gate reads it and
 # nothing fails if it is present. It exists so that neither a person nor a future
