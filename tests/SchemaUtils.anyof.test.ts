@@ -14,8 +14,7 @@
  * of string / array). Four of the five have object branches whose keys are
  * perfectly enumerable, and the shallow check accepted arbitrary keys for all four.
  *
- * The semantic is the #223 contract (porting-sdk docs/legacy-census/DISC-g-d21.md
- * §1.4/§4): EXACTLY ONE closed object branch, else disengage. A verb body is a
+ * The semantic: EXACTLY ONE closed object branch, else disengage. A verb body is a
  * union of FORMS (object / string / number / array — swml_schema.c
  * check_method_type_and_unknown_params); the non-object forms contribute no keys,
  * so the one object form's keys are the known set. Several closed object branches

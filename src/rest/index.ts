@@ -16,6 +16,23 @@ import { _GeneratedResourceTree } from './namespaces/_client_tree_generated.js';
 const logger = getLogger('rest_client');
 
 /**
+ * Stands in for the HTTP client of a credential the `RestClient` was not given:
+ * every request rejects with an `Error` naming the missing credential, before
+ * anything is sent — so a PAT-only client fails loudly on a project resource (and
+ * a project-only client on `client.space`) instead of sending a request the
+ * server can only refuse.
+ */
+function missingCredentialHttp(message: string): HttpClient {
+  return new Proxy({} as HttpClient, {
+    get(_target, prop) {
+      // Not a thenable, and no implicit-conversion hooks: only named methods refuse.
+      if (typeof prop !== 'string' || prop === 'then') return undefined;
+      return () => Promise.reject(new Error(message));
+    },
+  });
+}
+
+/**
  * REST client for the SignalWire platform APIs.
  *
  * @example
@@ -37,25 +54,13 @@ const logger = getLogger('rest_client');
  * await client.calling.play(callId, [{ type: 'audio', params: { url: 'https://cdn.example.com/greeting.mp3' } }]);
  * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
+ *
+ * // The Space Administration API (client.space) authenticates with a user's
+ * // Personal Access Token (or SIGNALWIRE_PERSONAL_ACCESS_TOKEN):
+ * const admin = new RestClient({ personalAccessToken: 'pat_...', host: 'your-space.signalwire.com' });
+ * await admin.space.members.list();
  * ```
  */
-/**
- * Stands in for the HTTP client of a credential the `RestClient` was not given:
- * every request rejects with an `Error` naming the missing credential, before
- * anything is sent — so a PAT-only client fails loudly on a project resource (and
- * a project-only client on `client.space`) instead of sending a request the
- * server can only refuse.
- */
-function missingCredentialHttp(message: string): HttpClient {
-  return new Proxy({} as HttpClient, {
-    get(_target, prop) {
-      // Not a thenable, and no implicit-conversion hooks: only named methods refuse.
-      if (typeof prop !== 'string' || prop === 'then') return undefined;
-      return () => Promise.reject(new Error(message));
-    },
-  });
-}
-
 export class RestClient extends _GeneratedResourceTree {
   // The flat resources (phoneNumbers, addresses, …) and namespace containers
   // (fabric, video, logs, registry, …) are declared + wired by the generated

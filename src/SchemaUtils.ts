@@ -808,8 +808,8 @@ export class SchemaUtils {
   /**
    * Resolve the set of KNOWN top-level property names for a verb's config object,
    * following `$ref` (e.g. AI -> AIObject) and, for an `anyOf`/`oneOf` union, the
-   * ONE branch that is a closed object (the #223 contract: exactly-one-closed-arm,
-   * else disengage). Returns `null` when there is no single enumerable closed
+   * ONE branch that is a closed object (exactly one closed branch, else no
+   * check). Returns `null` when there is no single enumerable closed
    * key-set (so no shallow key check applies).
    */
   private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
@@ -828,8 +828,7 @@ export class SchemaUtils {
    *
    * - `$ref` — followed into `$defs` and resolved recursively (ai -> AIObject).
    * - `anyOf`/`oneOf` — resolved BRANCH BY BRANCH; engaged only when EXACTLY ONE
-   *   branch is a closed object, whose keys are then the known set (the #223
-   *   contract, porting-sdk docs/legacy-census/DISC-g-d21.md §1.4/§4). A verb
+   *   branch is a closed object, whose keys are then the known set. A verb
    *   body is a union of FORMS — the engine admits an object, string, number or
    *   array body (swml_schema.c `check_method_type_and_unknown_params`) — so the
    *   non-object branches (a bare scalar, a positional array, SWMLVar) contribute

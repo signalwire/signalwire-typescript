@@ -245,6 +245,12 @@ export function stripControlChars<T extends Record<string, unknown>>(eventDict: 
  * @returns A shallow copy of the event record with control characters removed.
  */
 export function stripControlChars(...args: unknown[]): Record<string, unknown>;
+/**
+ * Implementation of both {@link stripControlChars} forms: sanitizes the LAST
+ * argument (the event record).
+ * @param args - The event record, or `(logger, methodName, eventDict)`.
+ * @returns A shallow copy of the event record with control characters removed.
+ */
 export function stripControlChars(...args: unknown[]): Record<string, unknown> {
   if (args.length === 0) throw new TypeError('stripControlChars() requires the event dict');
   return stripRecord(args[args.length - 1] as Record<string, unknown>);
